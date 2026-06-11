@@ -38,6 +38,7 @@ CAMP_ATOM_NAMES = (
     "lane_deviation",
     "clearance",
 )
+DP_CAMP_ATOM_NAMES = CAMP_ATOM_NAMES + ("progress_shortfall",)
 
 DP_SCENE_FEATURE_KEYS = (
     "ego_current_state",
@@ -1070,6 +1071,7 @@ class CAMPSelector:
         *,
         scene_embedding: Optional[np.ndarray] = None,
         candidate_obstacles: Optional[np.ndarray] = None,
+        candidate_progress: Optional[np.ndarray] = None,
         external_feasible_mask: Optional[np.ndarray] = None,
         external_infeasibility_reasons: Optional[Sequence[Sequence[str]]] = None,
         apply_context_feasibility: bool = True,
@@ -1124,6 +1126,14 @@ class CAMPSelector:
                 "external_infeasibility_reasons must match candidate count, "
                 f"got {len(external_reasons)}, expected {candidates.shape[0]}."
             )
+        progress = None
+        if candidate_progress is not None:
+            progress = np.asarray(candidate_progress, dtype=np.float64).reshape(-1)
+            if progress.shape != (candidates.shape[0],):
+                raise ValueError(
+                    "candidate_progress must match candidate count, "
+                    f"got {progress.shape}, expected ({candidates.shape[0]},)."
+                )
 
         atoms = []
         feasible = []
@@ -1140,10 +1150,10 @@ class CAMPSelector:
 
             trajectory_xy = trajectory[:, :2]
             atom_vector = compute_atom_bank_vector(local_context, trajectory_xy)
-            if atom_vector.shape != (self.num_atoms,):
+            if atom_vector.shape != (len(CAMP_ATOM_NAMES),):
                 raise ValueError(
-                    f"CAMP atom dimension is {atom_vector.shape}, "
-                    f"but scales expect ({self.num_atoms},)."
+                    f"Base CAMP atom dimension is {atom_vector.shape}, "
+                    f"expected ({len(CAMP_ATOM_NAMES)},)."
                 )
             atoms.append(atom_vector)
             reasons = []
@@ -1166,7 +1176,9 @@ class CAMPSelector:
                 if external_reasons is None:
                     reasons.append("external_gate")
                 else:
-                    reasons.extend(str(reason) for reason in external_reasons[candidate_idx])
+                    reasons.extend(
+                        str(reason) for reason in external_reasons[candidate_idx]
+                    )
             collision_reason = self._collision_failure_reason(
                 local_context,
                 trajectory,
@@ -1184,6 +1196,31 @@ class CAMPSelector:
             infeasibility_reasons.append(tuple(reasons))
 
         atoms_arr = np.asarray(atoms, dtype=np.float64)
+        feasible_mask = np.asarray(feasible, dtype=bool)
+        if self.num_atoms == len(DP_CAMP_ATOM_NAMES):
+            if progress is None:
+                progress = np.linalg.norm(
+                    np.diff(candidates[:, :, :2], axis=1),
+                    axis=-1,
+                ).sum(axis=1)
+            progress = np.nan_to_num(progress, nan=0.0, posinf=0.0, neginf=0.0)
+            reference_progress = float(
+                np.max(progress[feasible_mask])
+                if feasible_mask.any()
+                else np.max(progress)
+            )
+            progress_shortfall = np.maximum(reference_progress - progress, 0.0)
+            atoms_arr = np.concatenate(
+                [atoms_arr, progress_shortfall.reshape(-1, 1)],
+                axis=1,
+            )
+        elif self.num_atoms != len(CAMP_ATOM_NAMES):
+            raise ValueError(
+                "Diffusion Planner CAMP scales must contain either "
+                f"{len(CAMP_ATOM_NAMES)} legacy atoms or "
+                f"{len(DP_CAMP_ATOM_NAMES)} atoms with progress_shortfall, "
+                f"got {self.num_atoms}."
+            )
         normalized = atoms_arr / self.atom_scales.reshape(1, -1)
         positive_inf = self.atom_clip if self.atom_clip > 0 else np.finfo(np.float64).max
         normalized = np.nan_to_num(
@@ -1194,7 +1231,6 @@ class CAMPSelector:
             normalized = np.clip(normalized, 0.0, self.atom_clip)
 
         weights = self.weights_for(scene_embedding)
-        feasible_mask = np.asarray(feasible, dtype=bool)
         scores = normalized @ weights
         used_fallback = not feasible_mask.any()
         if used_fallback:

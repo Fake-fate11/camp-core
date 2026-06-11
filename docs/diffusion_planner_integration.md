@@ -365,6 +365,12 @@ comfort-only score from selecting a near-stationary trajectory. The complete
 candidate reward breakdown is stored in each `camp_selection_log.json` record
 for later Static/Theta preference training.
 
+DP reward training uses a backward-compatible tenth atom,
+`progress_shortfall = max(candidate_progress) - candidate_progress`. Legacy
+nine-atom checkpoints still load unchanged. New collection runs should use
+`configs/integrations/dp_camp_atom_scales_10_bootstrap.json`; training then
+writes dataset-calibrated ten-atom scales for the final checkpoints.
+
 The legacy `context` feasibility source remains available. Its route-corridor
 gate uses `lane_half_width + --camp_lane_corridor_buffer`, whose default remains
 `1.0 m`. All feasibility settings are recorded in the replay and validation

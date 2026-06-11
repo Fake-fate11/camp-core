@@ -18,11 +18,11 @@ for path in (ROOT, PACKAGE_ROOT):
         sys.path.insert(0, path_str)
 
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
-    CAMP_ATOM_NAMES,
     DP_SCENE_FEATURE_NAMES,
 )
 from scripts.integrations.train_diffusion_planner_static_camp import (  # noqa: E402
     DEFAULT_PROXY_WEIGHTS,
+    atom_names_for_dimension,
     load_candidate_reward_values,
     normalize_nonnegative,
     oracle_indices,
@@ -265,10 +265,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     features, atoms, feasible = load_scene_training_records(args.selection_log)
-    if atoms.shape[-1] != len(CAMP_ATOM_NAMES):
-        raise ValueError(
-            f"Expected {len(CAMP_ATOM_NAMES)} atoms, got {atoms.shape[-1]}."
-        )
+    atom_names = atom_names_for_dimension(atoms.shape[-1])
 
     proxy_weights = None
     dropped_records = 0
@@ -295,10 +292,10 @@ def main() -> None:
         if args.proxy_weights:
             proxy_weights = np.asarray(json.loads(args.proxy_weights), dtype=np.float64)
         else:
-            proxy_weights = DEFAULT_PROXY_WEIGHTS
-        if proxy_weights.shape != (len(CAMP_ATOM_NAMES),):
+            proxy_weights = DEFAULT_PROXY_WEIGHTS[: len(atom_names)]
+        if proxy_weights.shape != (len(atom_names),):
             raise ValueError(
-                f"proxy_weights must have {len(CAMP_ATOM_NAMES)} entries, "
+                f"proxy_weights must have {len(atom_names)} entries, "
                 f"got {proxy_weights.shape}."
             )
 
@@ -379,7 +376,7 @@ def main() -> None:
         "num_candidates": int(atoms.shape[1]),
         "num_atoms": int(atoms.shape[2]),
         "feature_dim": int(features.shape[1]),
-        "atom_names": list(CAMP_ATOM_NAMES),
+        "atom_names": list(atom_names),
         "feature_names": list(DP_SCENE_FEATURE_NAMES),
         "scale_percentile": float(args.scale_percentile),
         "feature_clip": float(args.feature_clip),

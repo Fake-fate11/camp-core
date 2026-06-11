@@ -19,6 +19,7 @@ for path in (ROOT, PACKAGE_ROOT):
 
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
     CAMP_ATOM_NAMES,
+    DP_CAMP_ATOM_NAMES,
 )
 
 
@@ -33,6 +34,7 @@ DEFAULT_PROXY_WEIGHTS = np.array(
         0.75,
         2.00,
         3.00,
+        2.00,
     ],
     dtype=np.float64,
 )
@@ -109,6 +111,17 @@ def normalize_nonnegative(values: np.ndarray) -> np.ndarray:
     if total <= 0.0:
         return np.full(weights.shape[0], 1.0 / weights.shape[0], dtype=np.float64)
     return weights / total
+
+
+def atom_names_for_dimension(num_atoms: int) -> tuple[str, ...]:
+    if num_atoms == len(CAMP_ATOM_NAMES):
+        return CAMP_ATOM_NAMES
+    if num_atoms == len(DP_CAMP_ATOM_NAMES):
+        return DP_CAMP_ATOM_NAMES
+    raise ValueError(
+        f"Expected {len(CAMP_ATOM_NAMES)} legacy atoms or "
+        f"{len(DP_CAMP_ATOM_NAMES)} DP atoms, got {num_atoms}."
+    )
 
 
 def oracle_indices(
@@ -242,6 +255,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     atoms, feasible = load_training_records(args.selection_log)
+    atom_names = atom_names_for_dimension(atoms.shape[-1])
     scales = robust_atom_scales(atoms, args.scale_percentile)
     normalized = np.clip(np.nan_to_num(atoms / scales.reshape(1, 1, -1)), 0.0, 10.0)
 
@@ -269,10 +283,10 @@ def main() -> None:
         if args.proxy_weights:
             proxy_weights = np.asarray(json.loads(args.proxy_weights), dtype=np.float64)
         else:
-            proxy_weights = DEFAULT_PROXY_WEIGHTS
-        if proxy_weights.shape != (len(CAMP_ATOM_NAMES),):
+            proxy_weights = DEFAULT_PROXY_WEIGHTS[: len(atom_names)]
+        if proxy_weights.shape != (len(atom_names),):
             raise ValueError(
-                f"proxy_weights must have {len(CAMP_ATOM_NAMES)} entries, "
+                f"proxy_weights must have {len(atom_names)} entries, "
                 f"got {proxy_weights.shape}."
             )
         labels = oracle_indices(normalized, feasible, proxy_weights)
@@ -305,7 +319,7 @@ def main() -> None:
         "dropped_records_without_feasible_candidate": dropped_records,
         "num_candidates": int(normalized.shape[1]),
         "num_atoms": int(normalized.shape[2]),
-        "atom_names": list(CAMP_ATOM_NAMES),
+        "atom_names": list(atom_names),
         "scale_percentile": float(args.scale_percentile),
         "proxy_weights_normalized": (
             normalize_nonnegative(proxy_weights).tolist()

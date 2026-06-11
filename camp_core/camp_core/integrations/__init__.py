@@ -3,6 +3,7 @@
 from .diffusion_planner import (
     AUTOWARE_UNSUPPORTED_REGULATORY_SUBTYPES,
     CAMP_ATOM_NAMES,
+    DP_CAMP_ATOM_NAMES,
     CAMPSelectionResult,
     CAMPSelector,
     build_context_from_scene,
@@ -15,6 +16,7 @@ from .diffusion_planner import (
 __all__ = [
     "AUTOWARE_UNSUPPORTED_REGULATORY_SUBTYPES",
     "CAMP_ATOM_NAMES",
+    "DP_CAMP_ATOM_NAMES",
     "CAMPSelectionResult",
     "CAMPSelector",
     "build_context_from_scene",

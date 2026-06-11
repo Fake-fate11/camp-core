@@ -629,6 +629,7 @@ def _install_camp_predictor(
             replay_module.SceneNPCManager.is_static_npc,
         )
         candidate_rewards = None
+        candidate_progress = None
         external_feasible_mask = None
         external_infeasibility_reasons = None
         if feasibility_source == "dp_reward":
@@ -650,11 +651,16 @@ def _install_camp_predictor(
                 candidate_rewards,
                 min_progress_ratio,
             )
+            candidate_progress = np.asarray(
+                [reward["progress"] for reward in candidate_rewards],
+                dtype=np.float64,
+            )
         selection = selector.select(
             candidates,
             context,
             scene_embedding=scene_features if selector.mode == "linear" else None,
             candidate_obstacles=obstacles,
+            candidate_progress=candidate_progress,
             external_feasible_mask=external_feasible_mask,
             external_infeasibility_reasons=external_infeasibility_reasons,
             apply_context_feasibility=feasibility_source == "context",

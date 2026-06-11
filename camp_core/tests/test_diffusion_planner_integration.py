@@ -11,6 +11,7 @@ from camp_core.atoms.driver_atoms import DriverAtomContext
 from camp_core.integrations.diffusion_planner import (
     CAMP_ATOM_NAMES,
     DP_SCENE_FEATURE_NAMES,
+    DP_CAMP_ATOM_NAMES,
     CAMPSelector,
     build_context_from_scene,
     extract_dp_scene_features,
@@ -346,6 +347,39 @@ def test_static_selector_prefers_smoother_feasible_candidate() -> None:
     assert result.feasible_mask.tolist() == [True, True]
     assert result.infeasibility_reasons == ((), ())
     assert not result.used_fallback
+
+
+def test_dp_selector_appends_progress_shortfall_atom() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=5.0,
+        speed_limit=50.0,
+    )
+    x = np.linspace(0.5, 4.0, 8)
+    candidates = np.stack(
+        [
+            np.column_stack([x, np.zeros_like(x)]),
+            np.column_stack([x, np.full_like(x, 0.1)]),
+        ]
+    )
+    weights = np.zeros(len(DP_CAMP_ATOM_NAMES))
+    weights[-1] = 1.0
+    selector = CAMPSelector(
+        atom_scales=np.ones(len(DP_CAMP_ATOM_NAMES)),
+        static_weights=weights,
+        mode="static",
+    )
+
+    result = selector.select(
+        candidates,
+        context,
+        candidate_progress=np.array([5.0, 10.0]),
+    )
+
+    assert result.atoms.shape == (2, len(DP_CAMP_ATOM_NAMES))
+    np.testing.assert_allclose(result.atoms[:, -1], np.array([5.0, 0.0]))
+    assert result.selected_index == 1
 
 
 def test_selector_respects_configurable_lane_corridor_buffer() -> None:
