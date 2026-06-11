@@ -44,10 +44,18 @@ def main() -> None:
     replay_result = replay_summary.get("replay_result")
     selection_log = args.output_dir / "camp_selection_log.json"
     records = _read_json(selection_log) if selection_log.is_file() else None
+    metric_log = args.output_dir / "camp_metric_log.json"
+    metric_records = _read_json(metric_log) if metric_log.is_file() else None
+    evaluation_log = args.output_dir / "camp_evaluation_state_log.json"
+    evaluation_records = (
+        _read_json(evaluation_log) if evaluation_log.is_file() else None
+    )
     summary = summarize_replay_artifacts(
         args.output_dir,
         selection_records=records,
         replay_result=replay_result,
+        metric_records=metric_records,
+        evaluation_records=evaluation_records,
         near_miss_threshold_m=args.near_miss_threshold_m,
     )
     summary["selector_mode"] = replay_summary.get("selector_mode")

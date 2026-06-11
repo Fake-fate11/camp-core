@@ -29,11 +29,19 @@ SUMMARY_KEYS = (
     "final_goal_distance_m",
     "min_goal_distance_m",
     "goal_distance_reduction_rate",
+    "route_completion_rate",
     "distance_traveled_m",
     "obb_collision_rate",
     "near_miss_rate",
     "lane_violation_rate",
     "red_light_violation_rate",
+    "planned_red_light_violation_rate",
+    "mean_acceleration_magnitude_mps2",
+    "max_acceleration_magnitude_mps2",
+    "mean_jerk_magnitude_mps3",
+    "max_jerk_magnitude_mps3",
+    "mean_lateral_acceleration_mps2",
+    "max_lateral_acceleration_mps2",
     "fallback_rate",
     "candidate_feasible_rate",
     "p95_selection_latency_ms",
@@ -55,10 +63,18 @@ def _load_or_build_summary(output_dir: Path) -> dict[str, Any]:
     replay_summary = _read_json(output_dir / "camp_replay_summary.json")
     selection_log = output_dir / "camp_selection_log.json"
     records = _read_json(selection_log) if selection_log.is_file() else None
+    metric_log = output_dir / "camp_metric_log.json"
+    metric_records = _read_json(metric_log) if metric_log.is_file() else None
+    evaluation_log = output_dir / "camp_evaluation_state_log.json"
+    evaluation_records = (
+        _read_json(evaluation_log) if evaluation_log.is_file() else None
+    )
     summary = summarize_replay_artifacts(
         output_dir,
         selection_records=records,
         replay_result=replay_summary.get("replay_result"),
+        metric_records=metric_records,
+        evaluation_records=evaluation_records,
     )
     summary["selector_mode"] = replay_summary.get("selector_mode")
     summary["num_candidates"] = replay_summary.get("num_candidates")
@@ -80,6 +96,7 @@ def _run_key(summary: dict[str, Any], output_dir: Path) -> str:
             benchmark.get("steps"),
             benchmark.get("max_npcs"),
             benchmark.get("spawn_probability"),
+            benchmark.get("traffic_lights"),
         ]
         if any(field is not None for field in fields):
             return "|".join(str(field) for field in fields)

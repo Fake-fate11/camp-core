@@ -320,25 +320,49 @@ probabilities, use:
 ```bash
 "$DP_PYTHON" scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
   --diffusion_repo "$DP_REPO" \
-  --map_path "$MAP_PATH" \
   --route sample59_86="$ROUTE" \
+  --route sample58_55="$ASSETS/sample_map_tl_route_58_to_55.pkl" \
+  --route nishishinjuku="$ASSETS/nishishinjuku_release_auto_route.pkl" \
   --model_path "$DP_MODEL" \
   --model_args "$DP_PARAM" \
   --config "$CONFIG" \
+  --reward_config configs/integrations/dp_camp_reward_eval.json \
   --output_root /root/autodl-tmp/camp_dp_benchmark_v1 \
   --steps 200 \
   --seeds 1,2,3 \
   --max_npcs 4,8 \
   --spawn_probabilities 0.2,0.4 \
+  --traffic_light_modes on,off \
   --camp_atom_scales "$THETA_ASSET_DIR/atom_scales_dp_scene_theta.json" \
   --camp_static_weights "$STATIC_ASSET_DIR/offline_weights_dp_static.npy" \
   --camp_theta_checkpoint "$THETA_ASSET_DIR/camp_dp_scene_theta.npz" \
-  --num_candidates 8
+  --num_candidates 8 \
+  --resume
 ```
 
 The script runs `top1`, `uniform`, `static`, and `theta` for every matched
 setting and writes `benchmark_comparison.json` plus
 `benchmark_comparison.md`.
+
+Omit `--map_path` when routes from multiple maps are supplied; each route
+pickle then uses its own verified map. Enabled traffic lights use the same
+seed across all four variants, so NPC spawning and initial signal phases are
+paired. `--traffic_light_modes on,off` adds an explicit traffic-control
+ablation. `--resume` skips any run that already has
+`camp_validation_summary.json`.
+
+The versioned reward configuration is:
+
+```text
+configs/integrations/dp_camp_reward_eval.json
+```
+
+It fixes lane, road-border, static-collision, kinematic, and red-light reward
+semantics. The runner calls upstream Diffusion Planner `_score_step` in memory,
+so these diagnostics do not require writing the large per-step NPZ tensors.
+Realized red-light violations are measured separately from consecutive
+closed-loop ego poses against the red route-lane state recorded at each tick.
+The output distinguishes realized and selected-plan red-light rates.
 
 For existing replay outputs, create a matched comparison table with:
 

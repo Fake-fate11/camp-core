@@ -409,6 +409,9 @@ def test_summarize_replay_artifacts_without_selection_log(tmp_path) -> None:
     summary = summarize_replay_artifacts(
         tmp_path,
         replay_result={"reason": "max_steps", "final_step": 2, "goal_reached": False},
+        route_centerline=np.array(
+            [[0.0, 0.0], [5.0, 0.0], [10.0, 0.0], [0.1, 0.0]]
+        ),
         near_miss_threshold_m=2.0,
     )
 
@@ -416,8 +419,55 @@ def test_summarize_replay_artifacts_without_selection_log(tmp_path) -> None:
     assert summary["closed_loop_steps"] == 3
     assert summary["distance_traveled_m"] == 3.0
     assert summary["goal_distance_reduction_rate"] == 0.3
+    assert 0.1 < summary["route_completion_rate"] < 0.2
     assert summary["obb_collision_steps"] == 1
     assert summary["near_miss_steps"] == 2
+
+
+def test_summarize_replay_artifacts_reports_realized_red_light(tmp_path) -> None:
+    trajectory = [
+        {"step": 0, "x": 0.0, "y": 0.0, "heading": 0.0, "speed": 5.0, "goal_d": 10.0},
+        {"step": 1, "x": 1.0, "y": 0.0, "heading": 0.0, "speed": 5.0, "goal_d": 9.0},
+    ]
+    (tmp_path / "trajectory_log.json").write_text(json.dumps(trajectory), encoding="utf-8")
+    evaluation_records = [
+        {
+            "step": 0,
+            "x": 0.0,
+            "y": 0.0,
+            "heading": 0.0,
+            "red_route_points": [[1.0, 0.0, 1.0, 0.0]],
+        },
+        {
+            "step": 1,
+            "x": 1.0,
+            "y": 0.0,
+            "heading": 0.0,
+            "red_route_points": [[1.0, 0.0, 1.0, 0.0]],
+        },
+    ]
+    metric_records = [
+        {
+            "lane_crossing": False,
+            "pred_lane_crossing": True,
+            "collision": False,
+            "pred_collision": False,
+            "pred_red_light": -10.5,
+        }
+    ]
+
+    summary = summarize_replay_artifacts(
+        tmp_path,
+        replay_result={"reason": "max_steps", "final_step": 1, "goal_reached": False},
+        metric_records=metric_records,
+        evaluation_records=evaluation_records,
+    )
+
+    assert summary["realized_red_light_violation_steps"] == 1
+    assert summary["red_light_violation_rate"] == 1.0
+    assert summary["planned_red_light_violation_rate"] == 1.0
+    assert summary["lane_violation_rate"] == 0.0
+    assert summary["planned_lane_violation_rate"] == 1.0
 
 
 @dataclass

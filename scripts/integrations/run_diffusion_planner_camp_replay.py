@@ -58,6 +58,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max_npcs", type=int, default=None)
     parser.add_argument("--spawn_probability", type=float, default=None)
+    parser.add_argument(
+        "--traffic_lights",
+        choices=("config", "on", "off"),
+        default="config",
+        help="Override SpawnConfig.enable_traffic_lights for matched experiments.",
+    )
+    parser.add_argument(
+        "--reward_config",
+        type=Path,
+        default=None,
+        help=(
+            "Optional full GRPO/reward JSON. When provided, the runner calls "
+            "the upstream replay reward scorer in memory without dumping NPZs."
+        ),
+    )
 
     weights = parser.add_mutually_exclusive_group(required=False)
     weights.add_argument(
@@ -111,6 +126,8 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--candidate_noise_scale must be > 0.")
     if args.near_miss_threshold_m < 0:
         raise ValueError("--near_miss_threshold_m must be non-negative.")
+    if args.reward_config is not None and not args.reward_config.is_file():
+        raise FileNotFoundError(f"Missing reward config: {args.reward_config}")
 
 
 def _build_selector(args: argparse.Namespace) -> CAMPSelector | None:
@@ -235,6 +252,151 @@ def _candidate_obstacles(
     return obstacles
 
 
+def _route_centerline_world(builder: Any, route: Any) -> np.ndarray:
+    points: list[np.ndarray] = []
+    for lanelet_id in route.route_lanelet_ids or []:
+        cached = builder._cache.get(lanelet_id)
+        if cached is None:
+            continue
+        centerline = np.asarray(cached.raw_centerline, dtype=np.float64)[:, :2]
+        if centerline.shape[0] < 2:
+            continue
+        if points and np.linalg.norm(points[-1][-1] - centerline[0]) < 1e-3:
+            centerline = centerline[1:]
+        if centerline.size:
+            points.append(centerline)
+    if not points:
+        return np.zeros((0, 2), dtype=np.float64)
+    return np.concatenate(points, axis=0)
+
+
+def _evaluation_state(scene: Any, ego_id: str) -> dict[str, Any]:
+    ego = scene.get_agent(ego_id)
+    route_lanes = np.asarray(ego.route_lanes, dtype=np.float64)
+    if route_lanes.ndim == 4 and route_lanes.shape[0] == 1:
+        route_lanes = route_lanes[0]
+    red_points: list[list[float]] = []
+    if route_lanes.ndim == 3 and route_lanes.shape[-1] > 10:
+        red_mask = route_lanes[:, :, 10] > 0.5
+        valid = np.linalg.norm(route_lanes[:, :, :2], axis=-1) > 0.1
+        for point in route_lanes[red_mask & valid]:
+            red_points.append(
+                [
+                    float(point[0]),
+                    float(point[1]),
+                    float(point[2]),
+                    float(point[3]),
+                ]
+            )
+    return {
+        "step": None,
+        "x": float(ego.current_position[0]),
+        "y": float(ego.current_position[1]),
+        "heading": float(ego.current_heading),
+        "red_route_points": red_points,
+    }
+
+
+def _append_metric_record(
+    *,
+    replay_module: Any,
+    tensor_converter_module: Any,
+    scene: Any,
+    map_cache: Any,
+    model_args: Any,
+    prediction: np.ndarray,
+    device: str,
+    reward_config: Any,
+    spawn_config: Any,
+    records: list[dict[str, Any]],
+) -> None:
+    if reward_config is None:
+        return
+    if map_cache is None:
+        raise RuntimeError("Reward scoring requires Diffusion Planner map_cache.")
+    data = tensor_converter_module.dump_step_npz(
+        scene,
+        map_cache,
+        future_len=int(model_args.future_len),
+        predicted_neighbor_num=int(model_args.predicted_neighbor_num),
+    )
+    scored_prediction = np.asarray(prediction).copy()
+    if bool(getattr(spawn_config, "sg_smooth_enabled", False)):
+        scored_prediction = replay_module._sg_smooth_trajectory(
+            scored_prediction,
+            int(spawn_config.sg_filter_window),
+            int(spawn_config.sg_filter_order),
+        )
+    records.append(
+        replay_module._score_step(
+            data,
+            len(records),
+            device,
+            reward_config,
+            spawn_config,
+            prediction=scored_prediction,
+        )
+    )
+
+
+def _install_top1_observer(
+    replay_module: Any,
+    tensor_converter_module: Any,
+    *,
+    reward_config: Any,
+    spawn_config: Any,
+) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]]]:
+    original_predict = replay_module._predict_batch
+    metric_records: list[dict[str, Any]] = []
+    evaluation_records: list[dict[str, Any]] = []
+
+    def observed_predict(
+        model,
+        model_args,
+        scene,
+        agent_ids,
+        device,
+        map_cache=None,
+        return_turn_indicators=False,
+        inference_delay=0,
+        turn_indicator_keep_bias=0.25,
+    ):
+        base = original_predict(
+            model,
+            model_args,
+            scene,
+            agent_ids,
+            device,
+            map_cache=map_cache,
+            return_turn_indicators=return_turn_indicators,
+            inference_delay=inference_delay,
+            turn_indicator_keep_bias=turn_indicator_keep_bias,
+        )
+        ego_id = scene.ego_agent_id
+        if ego_id not in agent_ids:
+            return base
+        predictions = base[0] if return_turn_indicators else base
+        state = _evaluation_state(scene, ego_id)
+        state["step"] = len(evaluation_records)
+        evaluation_records.append(state)
+        _append_metric_record(
+            replay_module=replay_module,
+            tensor_converter_module=tensor_converter_module,
+            scene=scene,
+            map_cache=map_cache,
+            model_args=model_args,
+            prediction=predictions[ego_id],
+            device=device,
+            reward_config=reward_config,
+            spawn_config=spawn_config,
+            records=metric_records,
+        )
+        return base
+
+    replay_module._predict_batch = observed_predict
+    return original_predict, metric_records, evaluation_records
+
+
 def _install_camp_predictor(
     replay_module: Any,
     tensor_converter_module: Any,
@@ -247,9 +409,18 @@ def _install_camp_predictor(
     ego_length: float,
     ego_width: float,
     ego_wheelbase: float,
-) -> tuple[Any, list[dict[str, Any]]]:
+    reward_config: Any,
+    spawn_config: Any,
+) -> tuple[
+    Any,
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]:
     original_predict = replay_module._predict_batch
     records: list[dict[str, Any]] = []
+    metric_records: list[dict[str, Any]] = []
+    evaluation_records: list[dict[str, Any]] = []
 
     def camp_predict(
         model,
@@ -325,6 +496,21 @@ def _install_camp_predictor(
         elapsed_ms = (time.perf_counter() - start) * 1000.0
 
         predictions[ego_id] = selection.selected_trajectory
+        state = _evaluation_state(scene, ego_id)
+        state["step"] = len(evaluation_records)
+        evaluation_records.append(state)
+        _append_metric_record(
+            replay_module=replay_module,
+            tensor_converter_module=tensor_converter_module,
+            scene=scene,
+            map_cache=map_cache,
+            model_args=model_args,
+            prediction=selection.selected_trajectory,
+            device=device,
+            reward_config=reward_config,
+            spawn_config=spawn_config,
+            records=metric_records,
+        )
         if return_turn_indicators and turn_logits is not None:
             chosen_logits = turn_logits[selection.selected_index].copy()
             if turn_indicator_keep_bias != 0.0 and chosen_logits.shape[-1] > 4:
@@ -352,7 +538,7 @@ def _install_camp_predictor(
         return predictions
 
     replay_module._predict_batch = camp_predict
-    return original_predict, records
+    return original_predict, records, metric_records, evaluation_records
 
 
 def main() -> None:
@@ -366,6 +552,7 @@ def main() -> None:
     import scenario_generation.tensor_converter as tensor_converter
     from scenario_generation.gui.lanelet_scene_builder import LaneletSceneBuilder
     from scenario_generation.route import Route
+    from rlvr.autoresearch.tools.reward_config_from_json import load_reward_config
 
     route = Route.load(args.route)
     map_path = args.map_path or route.map_path
@@ -380,15 +567,29 @@ def main() -> None:
         config.max_active_npcs = args.max_npcs
     if args.spawn_probability is not None:
         config.spawn_probability = args.spawn_probability
+    if args.traffic_lights != "config":
+        config.enable_traffic_lights = args.traffic_lights == "on"
     config.validate()
 
     device = args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
     model, model_args = _load_model(args.model_path, args.model_args, device)
+    reward_config = (
+        load_reward_config(args.reward_config)
+        if args.reward_config is not None
+        else None
+    )
     selector = _build_selector(args)
     records: list[dict[str, Any]] | None = None
+    metric_records: list[dict[str, Any]] = []
+    evaluation_records: list[dict[str, Any]] = []
     original_predict = None
     if selector is not None:
-        original_predict, records = _install_camp_predictor(
+        (
+            original_predict,
+            records,
+            metric_records,
+            evaluation_records,
+        ) = _install_camp_predictor(
             replay,
             tensor_converter,
             selector,
@@ -399,6 +600,19 @@ def main() -> None:
             ego_length=float(config.ego_length),
             ego_width=float(config.ego_width),
             ego_wheelbase=float(config.ego_wheelbase),
+            reward_config=reward_config,
+            spawn_config=config,
+        )
+    else:
+        (
+            original_predict,
+            metric_records,
+            evaluation_records,
+        ) = _install_top1_observer(
+            replay,
+            tensor_converter,
+            reward_config=reward_config,
+            spawn_config=config,
         )
 
     try:
@@ -420,11 +634,20 @@ def main() -> None:
     if records is not None:
         selection_log = args.output_dir / "camp_selection_log.json"
         selection_log.write_text(json.dumps(records, indent=2), encoding="utf-8")
+    metric_log = args.output_dir / "camp_metric_log.json"
+    metric_log.write_text(json.dumps(metric_records, indent=2), encoding="utf-8")
+    evaluation_log = args.output_dir / "camp_evaluation_state_log.json"
+    evaluation_log.write_text(
+        json.dumps(evaluation_records, indent=2),
+        encoding="utf-8",
+    )
     effective_num_candidates = args.num_candidates if records is not None else 1
     effective_noise_scale = args.candidate_noise_scale if records is not None else None
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
+        "camp_metric_log": str(metric_log),
+        "camp_evaluation_state_log": str(evaluation_log),
         "num_candidates": effective_num_candidates,
         "candidate_noise_scale": effective_noise_scale,
         "selector_mode": args.camp_selector_mode,
@@ -441,6 +664,10 @@ def main() -> None:
             "steps": args.steps,
             "max_npcs": args.max_npcs,
             "spawn_probability": args.spawn_probability,
+            "traffic_lights": bool(config.enable_traffic_lights),
+            "reward_config": (
+                str(args.reward_config) if args.reward_config is not None else None
+            ),
         },
     }
     (args.output_dir / "camp_replay_summary.json").write_text(
@@ -450,6 +677,9 @@ def main() -> None:
         args.output_dir,
         selection_records=records,
         replay_result=result,
+        metric_records=metric_records,
+        evaluation_records=evaluation_records,
+        route_centerline=_route_centerline_world(builder, route),
         near_miss_threshold_m=args.near_miss_threshold_m,
     )
     validation["selector_mode"] = args.camp_selector_mode
@@ -458,7 +688,8 @@ def main() -> None:
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (
         f"route={args.route}|seed={args.seed}|steps={args.steps}|"
-        f"max_npcs={args.max_npcs}|spawn_probability={args.spawn_probability}"
+        f"max_npcs={args.max_npcs}|spawn_probability={args.spawn_probability}|"
+        f"traffic_lights={bool(config.enable_traffic_lights)}"
     )
     (args.output_dir / "camp_validation_summary.json").write_text(
         json.dumps(validation, indent=2), encoding="utf-8"

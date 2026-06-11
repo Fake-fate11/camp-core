@@ -354,6 +354,14 @@ def _summarize_trajectory_log(records: list[dict[str, Any]]) -> dict[str, Any]:
             "max_abs_acceleration_mps2": None,
             "mean_abs_jerk_mps3": None,
             "max_abs_jerk_mps3": None,
+            "mean_acceleration_magnitude_mps2": None,
+            "max_acceleration_magnitude_mps2": None,
+            "mean_jerk_magnitude_mps3": None,
+            "max_jerk_magnitude_mps3": None,
+            "mean_abs_yaw_rate_rps": None,
+            "max_abs_yaw_rate_rps": None,
+            "mean_lateral_acceleration_mps2": None,
+            "max_lateral_acceleration_mps2": None,
         }
 
     xy = np.asarray(
@@ -367,8 +375,31 @@ def _summarize_trajectory_log(records: list[dict[str, Any]]) -> dict[str, Any]:
         distance = float(np.sum(np.linalg.norm(diffs, axis=1)))
 
     speeds = np.asarray(_finite_values([record.get("speed") for record in records]))
+    headings = np.asarray(
+        _finite_values([record.get("heading") for record in records]),
+        dtype=np.float64,
+    )
     accel = np.diff(speeds) / 0.1 if speeds.size >= 2 else np.asarray([])
     jerk = np.diff(accel) / 0.1 if accel.size >= 2 else np.asarray([])
+    acceleration_magnitude = np.asarray([])
+    jerk_magnitude = np.asarray([])
+    yaw_rate = np.asarray([])
+    lateral_acceleration = np.asarray([])
+    if speeds.size == headings.size and speeds.size >= 2:
+        velocity = np.column_stack(
+            [speeds * np.cos(headings), speeds * np.sin(headings)]
+        )
+        acceleration_vectors = np.diff(velocity, axis=0) / 0.1
+        acceleration_magnitude = np.linalg.norm(acceleration_vectors, axis=1)
+        if acceleration_vectors.shape[0] >= 2:
+            jerk_vectors = np.diff(acceleration_vectors, axis=0) / 0.1
+            jerk_magnitude = np.linalg.norm(jerk_vectors, axis=1)
+        heading_delta = np.arctan2(
+            np.sin(np.diff(headings)),
+            np.cos(np.diff(headings)),
+        )
+        yaw_rate = heading_delta / 0.1
+        lateral_acceleration = np.abs(speeds[1:] * yaw_rate)
     goal_distances = _finite_values([record.get("goal_d") for record in records])
     final_goal = goal_distances[-1] if goal_distances else None
     min_goal = min(goal_distances) if goal_distances else None
@@ -396,6 +427,168 @@ def _summarize_trajectory_log(records: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "mean_abs_jerk_mps3": float(np.mean(np.abs(jerk))) if jerk.size else None,
         "max_abs_jerk_mps3": float(np.max(np.abs(jerk))) if jerk.size else None,
+        "mean_acceleration_magnitude_mps2": (
+            float(np.mean(acceleration_magnitude))
+            if acceleration_magnitude.size
+            else None
+        ),
+        "max_acceleration_magnitude_mps2": (
+            float(np.max(acceleration_magnitude))
+            if acceleration_magnitude.size
+            else None
+        ),
+        "mean_jerk_magnitude_mps3": (
+            float(np.mean(jerk_magnitude)) if jerk_magnitude.size else None
+        ),
+        "max_jerk_magnitude_mps3": (
+            float(np.max(jerk_magnitude)) if jerk_magnitude.size else None
+        ),
+        "mean_abs_yaw_rate_rps": (
+            float(np.mean(np.abs(yaw_rate))) if yaw_rate.size else None
+        ),
+        "max_abs_yaw_rate_rps": (
+            float(np.max(np.abs(yaw_rate))) if yaw_rate.size else None
+        ),
+        "mean_lateral_acceleration_mps2": (
+            float(np.mean(lateral_acceleration))
+            if lateral_acceleration.size
+            else None
+        ),
+        "max_lateral_acceleration_mps2": (
+            float(np.max(lateral_acceleration))
+            if lateral_acceleration.size
+            else None
+        ),
+    }
+
+
+def _project_route_progress(
+    records: list[dict[str, Any]],
+    route_centerline: np.ndarray,
+) -> dict[str, Any]:
+    centerline = np.asarray(route_centerline, dtype=np.float64)
+    if len(records) < 1 or centerline.ndim != 2 or centerline.shape[0] < 2:
+        return {}
+
+    segments = centerline[1:, :2] - centerline[:-1, :2]
+    segment_lengths = np.linalg.norm(segments, axis=1)
+    valid = segment_lengths > 1e-6
+    if not valid.any():
+        return {}
+    segment_lengths = np.maximum(segment_lengths, 1e-6)
+    directions = segments / segment_lengths[:, np.newaxis]
+    arc_starts = np.concatenate([[0.0], np.cumsum(segment_lengths)])[:-1]
+    route_length = float(np.sum(segment_lengths))
+
+    progress = 0.0
+    max_progress = 0.0
+    previous_xy = None
+    for record_idx, record in enumerate(records):
+        point = np.asarray(
+            [record.get("x", np.nan), record.get("y", np.nan)],
+            dtype=np.float64,
+        )
+        if not np.all(np.isfinite(point)):
+            continue
+        if record_idx == 0:
+            previous_xy = point
+            continue
+
+        relative = point - centerline[:-1, :2]
+        along = np.einsum("ij,ij->i", relative, directions)
+        along = np.clip(along, 0.0, segment_lengths)
+        projections = centerline[:-1, :2] + directions * along[:, np.newaxis]
+        distances = np.linalg.norm(projections - point, axis=1)
+        candidate_arcs = arc_starts + along
+
+        step_distance = (
+            float(np.linalg.norm(point - previous_xy))
+            if previous_xy is not None
+            else 0.0
+        )
+        max_forward_jump = max(15.0, step_distance * 5.0 + 5.0)
+        allowed = (
+            (candidate_arcs >= progress - 5.0)
+            & (candidate_arcs <= progress + max_forward_jump)
+        )
+        if allowed.any():
+            allowed_indices = np.flatnonzero(allowed)
+            best_idx = int(allowed_indices[np.argmin(distances[allowed])])
+        else:
+            best_idx = int(np.argmin(distances))
+        progress = max(progress, float(candidate_arcs[best_idx]))
+        max_progress = max(max_progress, progress)
+        previous_xy = point
+
+    completion = min(max_progress / route_length, 1.0) if route_length > 0 else None
+    return {
+        "route_length_m": route_length,
+        "route_progress_m": max_progress,
+        "route_completion_rate": completion,
+    }
+
+
+def _summarize_realized_red_lights(
+    records: list[dict[str, Any]],
+    *,
+    dt: float = 0.1,
+) -> dict[str, Any]:
+    if len(records) < 2:
+        return {}
+
+    violations = 0
+    exposure_steps = 0
+    evaluated_steps = 0
+    for previous, current in zip(records[:-1], records[1:]):
+        red_points = np.asarray(previous.get("red_route_points", []), dtype=np.float64)
+        if red_points.ndim != 2 or red_points.shape[1] < 4:
+            red_points = np.zeros((0, 4), dtype=np.float64)
+        if red_points.size:
+            exposure_steps += 1
+
+        previous_xy = np.asarray(
+            [previous.get("x", np.nan), previous.get("y", np.nan)],
+            dtype=np.float64,
+        )
+        current_xy = np.asarray(
+            [current.get("x", np.nan), current.get("y", np.nan)],
+            dtype=np.float64,
+        )
+        heading = float(current.get("heading", np.nan))
+        if not (
+            np.all(np.isfinite(previous_xy))
+            and np.all(np.isfinite(current_xy))
+            and np.isfinite(heading)
+        ):
+            continue
+        evaluated_steps += 1
+        speed = float(np.linalg.norm(current_xy - previous_xy) / max(dt, 1e-6))
+        if speed <= 0.5 or not red_points.size:
+            continue
+
+        red_xy = red_points[:, :2]
+        red_directions = red_points[:, 2:4]
+        direction_norms = np.linalg.norm(red_directions, axis=1)
+        valid = direction_norms > 1e-6
+        if not valid.any():
+            continue
+        red_xy = red_xy[valid]
+        red_directions = red_directions[valid] / direction_norms[valid, np.newaxis]
+        distances = np.linalg.norm(red_xy - current_xy, axis=1)
+        ego_direction = np.array([math.cos(heading), math.sin(heading)])
+        aligned = red_directions @ ego_direction > 0.5
+        if np.any((distances < 3.0) & aligned):
+            violations += 1
+
+    denominator = max(evaluated_steps, 1)
+    return {
+        "red_light_evaluated_steps": evaluated_steps,
+        "red_light_exposure_steps": exposure_steps,
+        "realized_red_light_violation_steps": violations,
+        "realized_red_light_violation_rate": violations / denominator,
+        "red_light_violation_steps": violations,
+        "red_light_violation_rate": violations / denominator,
+        "red_light_metric_source": "closed_loop_state_transition",
     }
 
 
@@ -449,29 +642,29 @@ def _truthy_count(records: list[dict[str, Any]], keys: Sequence[str]) -> int:
 def _summarize_metrics_log(payload: dict[str, Any]) -> dict[str, Any]:
     steps = list(payload.get("steps", []))
     denominator = max(len(steps), 1)
-    lane_crossings = _truthy_count(steps, ("lane_crossing", "pred_lane_crossing"))
-    collisions = _truthy_count(steps, ("collision", "pred_collision"))
-    red_light_violations = _truthy_count(
-        steps,
-        (
-            "red_light_violation",
-            "red_light_crossing",
-            "traffic_light_violation",
-            "tl_violation",
-            "pred_red_light_violation",
-            "pred_red_light_crossing",
-            "pred_traffic_light_violation",
-            "pred_tl_violation",
-        ),
+    lane_crossings = _truthy_count(steps, ("lane_crossing",))
+    planned_lane_crossings = _truthy_count(steps, ("pred_lane_crossing",))
+    collisions = _truthy_count(steps, ("collision",))
+    planned_collisions = _truthy_count(steps, ("pred_collision",))
+    planned_red_light_violations = sum(
+        1
+        for record in steps
+        if (_finite_values([record.get("pred_red_light")]) or [0.0])[0] < -0.5
     )
     return {
         "metrics_log_steps": len(steps),
         "metrics_collision_steps": collisions,
         "metrics_collision_rate": collisions / denominator,
+        "planned_collision_steps": planned_collisions,
+        "planned_collision_rate": planned_collisions / denominator,
         "lane_violation_steps": lane_crossings,
         "lane_violation_rate": lane_crossings / denominator,
-        "red_light_violation_steps": red_light_violations,
-        "red_light_violation_rate": red_light_violations / denominator,
+        "planned_lane_violation_steps": planned_lane_crossings,
+        "planned_lane_violation_rate": planned_lane_crossings / denominator,
+        "planned_red_light_violation_steps": planned_red_light_violations,
+        "planned_red_light_violation_rate": (
+            planned_red_light_violations / denominator
+        ),
         "min_reward_road_border_distance_m": _min_or_none(
             [record.get("rb_min_dist") for record in steps]
         ),
@@ -490,6 +683,9 @@ def summarize_replay_artifacts(
     *,
     selection_records: Optional[list[dict[str, Any]]] = None,
     replay_result: Optional[dict[str, Any]] = None,
+    metric_records: Optional[list[dict[str, Any]]] = None,
+    evaluation_records: Optional[list[dict[str, Any]]] = None,
+    route_centerline: Optional[np.ndarray] = None,
     near_miss_threshold_m: float = 2.0,
 ) -> dict[str, Any]:
     """Build a comparable closed-loop summary from Diffusion-Planner outputs."""
@@ -518,12 +714,14 @@ def summarize_replay_artifacts(
     trajectory_log_path = output_path / "trajectory_log.json"
     if replay_result and replay_result.get("trajectory_log_path"):
         trajectory_log_path = Path(str(replay_result["trajectory_log_path"]))
+    trajectory_records: list[dict[str, Any]] = []
     if trajectory_log_path.is_file():
-        summary.update(
-            _summarize_trajectory_log(
-                json.loads(trajectory_log_path.read_text(encoding="utf-8-sig"))
-            )
+        trajectory_records = json.loads(
+            trajectory_log_path.read_text(encoding="utf-8-sig")
         )
+        summary.update(_summarize_trajectory_log(trajectory_records))
+        if route_centerline is not None:
+            summary.update(_project_route_progress(trajectory_records, route_centerline))
 
     clearance_log_path = output_path / "clearance_log.json"
     if replay_result and replay_result.get("clearance_log_path"):
@@ -536,15 +734,31 @@ def summarize_replay_artifacts(
             )
         )
 
-    metrics_log_path = output_path / "metrics_log.json"
-    if replay_result and replay_result.get("metrics_log_path"):
-        metrics_log_path = Path(str(replay_result["metrics_log_path"]))
-    if metrics_log_path.is_file():
-        summary.update(
-            _summarize_metrics_log(
-                json.loads(metrics_log_path.read_text(encoding="utf-8-sig"))
+    if metric_records is not None:
+        summary.update(_summarize_metrics_log({"steps": metric_records}))
+    else:
+        metrics_log_path = output_path / "metrics_log.json"
+        if replay_result and replay_result.get("metrics_log_path"):
+            metrics_log_path = Path(str(replay_result["metrics_log_path"]))
+        if metrics_log_path.is_file():
+            summary.update(
+                _summarize_metrics_log(
+                    json.loads(metrics_log_path.read_text(encoding="utf-8-sig"))
+                )
             )
+
+    if evaluation_records is not None:
+        summary.update(_summarize_realized_red_lights(evaluation_records))
+    elif "red_light_violation_rate" not in summary and (
+        "planned_red_light_violation_rate" in summary
+    ):
+        summary["red_light_violation_steps"] = summary.get(
+            "planned_red_light_violation_steps"
         )
+        summary["red_light_violation_rate"] = summary.get(
+            "planned_red_light_violation_rate"
+        )
+        summary["red_light_metric_source"] = "selected_trajectory_plan"
 
     return summary
 

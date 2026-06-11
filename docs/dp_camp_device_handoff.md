@@ -106,20 +106,24 @@ THETA_ASSETS=$ASSETS/camp_dp_scene_theta_v1_fc318c8
 
 "$DP_PYTHON" scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
   --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
-  --map_path "$ASSETS/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm" \
   --route sample59_86="$ASSETS/sample_map_tl_route_59_to_86.pkl" \
+  --route sample58_55="$ASSETS/sample_map_tl_route_58_to_55.pkl" \
+  --route nishishinjuku="$ASSETS/nishishinjuku_release_auto_route.pkl" \
   --model_path "$ASSETS/diffusion_planner.pth" \
   --model_args "$ASSETS/diffusion_planner.param.json" \
   --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --reward_config configs/integrations/dp_camp_reward_eval.json \
   --output_root /root/autodl-tmp/camp_dp_benchmark_v1 \
   --steps 200 \
   --seeds 1,2,3 \
   --max_npcs 4,8 \
   --spawn_probabilities 0.2,0.4 \
+  --traffic_light_modes on,off \
   --camp_atom_scales "$THETA_ASSETS/atom_scales_dp_scene_theta.json" \
   --camp_static_weights "$STATIC_ASSETS/offline_weights_dp_static.npy" \
   --camp_theta_checkpoint "$THETA_ASSETS/camp_dp_scene_theta.npz" \
-  --num_candidates 8
+  --num_candidates 8 \
+  --resume
 ```
 
 The runner evaluates `top1`, `uniform`, `static`, and `theta` under each

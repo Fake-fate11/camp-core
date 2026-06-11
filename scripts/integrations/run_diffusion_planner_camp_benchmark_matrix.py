@@ -31,6 +31,16 @@ def _parse_float_list(value: str) -> list[float]:
     return [float(part.strip()) for part in value.split(",") if part.strip()]
 
 
+def _parse_traffic_light_modes(value: str) -> list[str]:
+    modes = [part.strip() for part in value.split(",") if part.strip()]
+    invalid = [mode for mode in modes if mode not in {"on", "off"}]
+    if invalid:
+        raise argparse.ArgumentTypeError(
+            f"traffic light modes must be on/off, got {invalid}"
+        )
+    return modes
+
+
 def _spawn_tag(value: float) -> str:
     return str(value).replace(".", "p")
 
@@ -60,6 +70,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seeds", type=_parse_int_list, required=True)
     parser.add_argument("--max_npcs", type=_parse_int_list, required=True)
     parser.add_argument("--spawn_probabilities", type=_parse_float_list, required=True)
+    parser.add_argument(
+        "--traffic_light_modes",
+        type=_parse_traffic_light_modes,
+        default=["on"],
+        help="Comma-separated on/off modes. Seeds vary enabled-light phases.",
+    )
+    parser.add_argument(
+        "--reward_config",
+        type=Path,
+        default=None,
+        help="Full reward JSON used for in-memory lane/red-light plan metrics.",
+    )
     parser.add_argument("--camp_atom_scales", type=Path, required=True)
     parser.add_argument("--camp_static_weights", type=Path, required=True)
     parser.add_argument("--camp_theta_checkpoint", type=Path, required=True)
@@ -70,6 +92,11 @@ def parse_args() -> argparse.Namespace:
         "--render_png",
         action="store_true",
         help="Render per-step PNGs. By default REPLAY_NO_PNG=1 is set.",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Skip runs that already contain camp_validation_summary.json.",
     )
     parser.add_argument("--dry_run", action="store_true")
     return parser.parse_args()
@@ -98,6 +125,8 @@ def _append_common(cmd: list[str], args: argparse.Namespace, route: Path) -> Non
         cmd.extend(["--model_args", str(args.model_args)])
     if args.steps is not None:
         cmd.extend(["--steps", str(args.steps)])
+    if args.reward_config is not None:
+        cmd.extend(["--reward_config", str(args.reward_config)])
 
 
 def _variant_command(
@@ -108,6 +137,7 @@ def _variant_command(
     seed: int,
     max_npcs: int,
     spawn_probability: float,
+    traffic_lights: str,
     args: argparse.Namespace,
 ) -> list[str]:
     cmd = [sys.executable, str(RUNNER)]
@@ -122,6 +152,8 @@ def _variant_command(
             str(max_npcs),
             "--spawn_probability",
             str(spawn_probability),
+            "--traffic_lights",
+            traffic_lights,
             "--camp_selector_mode",
             "linear" if variant == "theta" else variant,
         ]
@@ -152,11 +184,18 @@ def main() -> None:
     if not args.render_png:
         env["REPLAY_NO_PNG"] = "1"
 
-    for (route_name, route_path), seed, max_npcs, spawn_probability in product(
+    for (
+        (route_name, route_path),
+        seed,
+        max_npcs,
+        spawn_probability,
+        traffic_lights,
+    ) in product(
         args.route,
         args.seeds,
         args.max_npcs,
         args.spawn_probabilities,
+        args.traffic_light_modes,
     ):
         scenario_dir = (
             args.output_root
@@ -164,6 +203,7 @@ def main() -> None:
             / f"seed_{seed}"
             / f"npc_{max_npcs}"
             / f"spawn_{_spawn_tag(spawn_probability)}"
+            / f"tl_{traffic_lights}"
         )
         for variant in variants:
             output_dir = scenario_dir / variant
@@ -174,10 +214,14 @@ def main() -> None:
                 seed=seed,
                 max_npcs=max_npcs,
                 spawn_probability=spawn_probability,
+                traffic_lights=traffic_lights,
                 args=args,
             )
             print(" ".join(cmd), flush=True)
-            if not args.dry_run:
+            completed = (output_dir / "camp_validation_summary.json").is_file()
+            if args.resume and completed:
+                print(f"SKIP completed {output_dir}", flush=True)
+            elif not args.dry_run:
                 subprocess.run(cmd, check=True, env=env)
             runs.append((variant, output_dir))
 
