@@ -310,6 +310,299 @@ def extract_dp_scene_features(
     return np.asarray(features, dtype=np.float64)
 
 
+def _finite_values(values: Sequence[Any]) -> list[float]:
+    finite = []
+    for value in values:
+        if value is None:
+            continue
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            continue
+        if np.isfinite(number):
+            finite.append(number)
+    return finite
+
+
+def _min_or_none(values: Sequence[Any]) -> Optional[float]:
+    finite = _finite_values(values)
+    return float(min(finite)) if finite else None
+
+
+def _max_or_none(values: Sequence[Any]) -> Optional[float]:
+    finite = _finite_values(values)
+    return float(max(finite)) if finite else None
+
+
+def _mean_or_none(values: Sequence[Any]) -> Optional[float]:
+    finite = _finite_values(values)
+    return float(np.mean(finite)) if finite else None
+
+
+def _summarize_trajectory_log(records: list[dict[str, Any]]) -> dict[str, Any]:
+    if not records:
+        return {
+            "closed_loop_steps": 0,
+            "distance_traveled_m": None,
+            "final_goal_distance_m": None,
+            "min_goal_distance_m": None,
+            "goal_distance_reduction_m": None,
+            "goal_distance_reduction_rate": None,
+            "mean_speed_mps": None,
+            "max_speed_mps": None,
+            "mean_abs_acceleration_mps2": None,
+            "max_abs_acceleration_mps2": None,
+            "mean_abs_jerk_mps3": None,
+            "max_abs_jerk_mps3": None,
+        }
+
+    xy = np.asarray(
+        [[record.get("x", np.nan), record.get("y", np.nan)] for record in records],
+        dtype=np.float64,
+    )
+    valid_xy = np.all(np.isfinite(xy), axis=1)
+    distance = None
+    if valid_xy.sum() >= 2:
+        diffs = np.diff(xy[valid_xy], axis=0)
+        distance = float(np.sum(np.linalg.norm(diffs, axis=1)))
+
+    speeds = np.asarray(_finite_values([record.get("speed") for record in records]))
+    accel = np.diff(speeds) / 0.1 if speeds.size >= 2 else np.asarray([])
+    jerk = np.diff(accel) / 0.1 if accel.size >= 2 else np.asarray([])
+    goal_distances = _finite_values([record.get("goal_d") for record in records])
+    final_goal = goal_distances[-1] if goal_distances else None
+    min_goal = min(goal_distances) if goal_distances else None
+    reduction = None
+    reduction_rate = None
+    if len(goal_distances) >= 2:
+        reduction = float(goal_distances[0] - goal_distances[-1])
+        if goal_distances[0] > 1e-6:
+            reduction_rate = float(reduction / goal_distances[0])
+
+    return {
+        "closed_loop_steps": len(records),
+        "distance_traveled_m": distance,
+        "final_goal_distance_m": final_goal,
+        "min_goal_distance_m": min_goal,
+        "goal_distance_reduction_m": reduction,
+        "goal_distance_reduction_rate": reduction_rate,
+        "mean_speed_mps": float(np.mean(speeds)) if speeds.size else None,
+        "max_speed_mps": float(np.max(speeds)) if speeds.size else None,
+        "mean_abs_acceleration_mps2": (
+            float(np.mean(np.abs(accel))) if accel.size else None
+        ),
+        "max_abs_acceleration_mps2": (
+            float(np.max(np.abs(accel))) if accel.size else None
+        ),
+        "mean_abs_jerk_mps3": float(np.mean(np.abs(jerk))) if jerk.size else None,
+        "max_abs_jerk_mps3": float(np.max(np.abs(jerk))) if jerk.size else None,
+    }
+
+
+def _summarize_clearance_log(
+    payload: dict[str, Any],
+    *,
+    near_miss_threshold_m: float,
+) -> dict[str, Any]:
+    records = list(payload.get("records", []))
+    moving = [record.get("moving_dist") for record in records]
+    stopped = [record.get("stopped_dist") for record in records]
+    road_border = [record.get("rb_dist") for record in records]
+
+    collision_steps = 0
+    near_miss_steps = 0
+    for record in records:
+        obstacle_distances = _finite_values(
+            [record.get("moving_dist"), record.get("stopped_dist")]
+        )
+        if not obstacle_distances:
+            continue
+        min_obstacle = min(obstacle_distances)
+        if min_obstacle <= 1e-6:
+            collision_steps += 1
+        if min_obstacle <= near_miss_threshold_m:
+            near_miss_steps += 1
+
+    denominator = max(len(records), 1)
+    return {
+        "clearance_log_steps": len(records),
+        "near_miss_threshold_m": float(near_miss_threshold_m),
+        "obb_collision_steps": collision_steps,
+        "obb_collision_rate": collision_steps / denominator,
+        "near_miss_steps": near_miss_steps,
+        "near_miss_rate": near_miss_steps / denominator,
+        "min_moving_clearance_m": _min_or_none(moving),
+        "min_stopped_clearance_m": _min_or_none(stopped),
+        "min_obstacle_clearance_m": _min_or_none([*moving, *stopped]),
+        "min_road_border_clearance_m": _min_or_none(road_border),
+    }
+
+
+def _truthy_count(records: list[dict[str, Any]], keys: Sequence[str]) -> int:
+    count = 0
+    for record in records:
+        if any(bool(record.get(key)) for key in keys):
+            count += 1
+    return count
+
+
+def _summarize_metrics_log(payload: dict[str, Any]) -> dict[str, Any]:
+    steps = list(payload.get("steps", []))
+    denominator = max(len(steps), 1)
+    lane_crossings = _truthy_count(steps, ("lane_crossing", "pred_lane_crossing"))
+    collisions = _truthy_count(steps, ("collision", "pred_collision"))
+    red_light_violations = _truthy_count(
+        steps,
+        (
+            "red_light_violation",
+            "red_light_crossing",
+            "traffic_light_violation",
+            "tl_violation",
+            "pred_red_light_violation",
+            "pred_red_light_crossing",
+            "pred_traffic_light_violation",
+            "pred_tl_violation",
+        ),
+    )
+    return {
+        "metrics_log_steps": len(steps),
+        "metrics_collision_steps": collisions,
+        "metrics_collision_rate": collisions / denominator,
+        "lane_violation_steps": lane_crossings,
+        "lane_violation_rate": lane_crossings / denominator,
+        "red_light_violation_steps": red_light_violations,
+        "red_light_violation_rate": red_light_violations / denominator,
+        "min_reward_road_border_distance_m": _min_or_none(
+            [record.get("rb_min_dist") for record in steps]
+        ),
+        "mean_lane_near_fraction": _mean_or_none(
+            [record.get("lane_near_frac") for record in steps]
+        ),
+        "min_lane_gate": _min_or_none([record.get("lane_gate") for record in steps]),
+        "min_pred_lane_gate": _min_or_none(
+            [record.get("pred_lane_gate") for record in steps]
+        ),
+    }
+
+
+def summarize_replay_artifacts(
+    output_dir: Union[str, Path],
+    *,
+    selection_records: Optional[list[dict[str, Any]]] = None,
+    replay_result: Optional[dict[str, Any]] = None,
+    near_miss_threshold_m: float = 2.0,
+) -> dict[str, Any]:
+    """Build a comparable closed-loop summary from Diffusion-Planner outputs."""
+    output_path = Path(output_dir)
+    summary: dict[str, Any] = {}
+    if selection_records is not None:
+        summary.update(summarize_selection_records(selection_records, replay_result))
+    elif replay_result is not None:
+        summary.update(
+            {
+                "selection_steps": None,
+                "selected_index_counts": None,
+                "nonzero_selection_rate": None,
+                "fallback_rate": None,
+                "candidate_feasible_rate": None,
+                "mean_feasible_candidates": None,
+                "mean_selection_latency_ms": None,
+                "p95_selection_latency_ms": None,
+                "replay_reason": replay_result.get("reason"),
+                "replay_final_step": replay_result.get("final_step"),
+                "goal_reached": replay_result.get("goal_reached"),
+                "n_npc_spawned": replay_result.get("n_npc_spawned"),
+            }
+        )
+
+    trajectory_log_path = output_path / "trajectory_log.json"
+    if replay_result and replay_result.get("trajectory_log_path"):
+        trajectory_log_path = Path(str(replay_result["trajectory_log_path"]))
+    if trajectory_log_path.is_file():
+        summary.update(
+            _summarize_trajectory_log(
+                json.loads(trajectory_log_path.read_text(encoding="utf-8-sig"))
+            )
+        )
+
+    clearance_log_path = output_path / "clearance_log.json"
+    if replay_result and replay_result.get("clearance_log_path"):
+        clearance_log_path = Path(str(replay_result["clearance_log_path"]))
+    if clearance_log_path.is_file():
+        summary.update(
+            _summarize_clearance_log(
+                json.loads(clearance_log_path.read_text(encoding="utf-8-sig")),
+                near_miss_threshold_m=near_miss_threshold_m,
+            )
+        )
+
+    metrics_log_path = output_path / "metrics_log.json"
+    if replay_result and replay_result.get("metrics_log_path"):
+        metrics_log_path = Path(str(replay_result["metrics_log_path"]))
+    if metrics_log_path.is_file():
+        summary.update(
+            _summarize_metrics_log(
+                json.loads(metrics_log_path.read_text(encoding="utf-8-sig"))
+            )
+        )
+
+    return summary
+
+
+def _trajectory_headings(trajectory: np.ndarray) -> np.ndarray:
+    trajectory = np.asarray(trajectory, dtype=np.float64)
+    if trajectory.shape[1] >= 4:
+        headings = np.arctan2(trajectory[:, 3], trajectory[:, 2])
+        if np.all(np.isfinite(headings)):
+            return headings
+    if trajectory.shape[0] < 2:
+        return np.zeros(trajectory.shape[0], dtype=np.float64)
+    deltas = np.diff(trajectory[:, :2], axis=0)
+    headings = np.arctan2(deltas[:, 1], deltas[:, 0])
+    return np.concatenate([headings[:1], headings])
+
+
+def _obb_corners(
+    x: float,
+    y: float,
+    heading: float,
+    length: float,
+    width: float,
+    wheelbase: Optional[float] = None,
+) -> np.ndarray:
+    cos_h, sin_h = math.cos(heading), math.sin(heading)
+    if wheelbase is not None and np.isfinite(wheelbase) and wheelbase > 0:
+        rear_overhang = (length - wheelbase) / 2.0
+        dx_lo, dx_hi = -rear_overhang, length - rear_overhang
+    else:
+        dx_lo, dx_hi = -length / 2.0, length / 2.0
+    dy_lo, dy_hi = -width / 2.0, width / 2.0
+    local = np.array(
+        [[dx_lo, dy_lo], [dx_hi, dy_lo], [dx_hi, dy_hi], [dx_lo, dy_hi]],
+        dtype=np.float64,
+    )
+    rotation = np.array([[cos_h, -sin_h], [sin_h, cos_h]], dtype=np.float64)
+    return local @ rotation.T + np.array([x, y], dtype=np.float64)
+
+
+def _obb_collides(corners_a: np.ndarray, corners_b: np.ndarray) -> bool:
+    for corners in (corners_a, corners_b):
+        for idx in range(4):
+            edge = corners[(idx + 1) % 4] - corners[idx]
+            axis = np.array([-edge[1], edge[0]], dtype=np.float64)
+            norm = float(np.linalg.norm(axis))
+            if norm < 1e-9:
+                continue
+            axis /= norm
+            proj_a = corners_a @ axis
+            proj_b = corners_b @ axis
+            if float(proj_a.max()) < float(proj_b.min()):
+                return False
+            if float(proj_b.max()) < float(proj_a.min()):
+                return False
+    return True
+
+
 @dataclass(frozen=True)
 class CAMPSelectionResult:
     selected_index: int
@@ -554,11 +847,16 @@ class CAMPSelector:
         *,
         scene_embedding: Optional[np.ndarray] = None,
         candidate_obstacles: Optional[np.ndarray] = None,
+        ego_length: float = 4.5,
+        ego_width: float = 1.9,
+        ego_wheelbase: float = 2.925,
     ) -> CAMPSelectionResult:
         """Select one trajectory from ``[K, T, >=2]`` candidates.
 
-        ``candidate_obstacles`` may be ``[K, M, T, 2]`` for candidate-specific
-        neighbor predictions or ``[M, T, 2]`` for one shared obstacle forecast.
+        ``candidate_obstacles`` may be ``[K, M, T, D]`` for candidate-specific
+        neighbor predictions or ``[M, T, D]`` for one shared obstacle forecast.
+        ``D >= 2`` uses point-distance collision. ``D >= 5`` is interpreted as
+        ``x, y, heading, length, width[, wheelbase]`` and enables OBB checks.
         """
         candidates = np.asarray(candidates, dtype=np.float64)
         if candidates.ndim != 3 or candidates.shape[0] < 1 or candidates.shape[2] < 2:
@@ -608,7 +906,16 @@ class CAMPSelector:
             atoms.append(atom_vector)
             feasible.append(
                 compute_feasibility_mask(local_context, trajectory_xy)
-                and self._collision_free(local_context, trajectory_xy)
+                and self._collision_free(
+                    local_context,
+                    trajectory,
+                    candidate_obstacles=(
+                        obstacles[candidate_idx] if obstacles is not None else None
+                    ),
+                    ego_length=ego_length,
+                    ego_width=ego_width,
+                    ego_wheelbase=ego_wheelbase,
+                )
             )
 
         atoms_arr = np.asarray(atoms, dtype=np.float64)
@@ -645,7 +952,17 @@ class CAMPSelector:
         )
 
     @staticmethod
-    def _collision_free(context: DriverAtomContext, trajectory_xy: np.ndarray) -> bool:
+    def _collision_free(
+        context: DriverAtomContext,
+        trajectory: np.ndarray,
+        *,
+        candidate_obstacles: Optional[np.ndarray] = None,
+        ego_length: float = 4.5,
+        ego_width: float = 1.9,
+        ego_wheelbase: float = 2.925,
+    ) -> bool:
+        trajectory = np.asarray(trajectory, dtype=np.float64)
+        trajectory_xy = trajectory[:, :2]
         threshold = float(context.safety_radius)
         if context.static_obstacles is not None and len(context.static_obstacles) > 0:
             static_xy = np.asarray(context.static_obstacles, dtype=np.float64)[:, :2]
@@ -655,6 +972,50 @@ class CAMPSelector:
             )
             if float(distances.min()) < threshold:
                 return False
+
+        if candidate_obstacles is not None:
+            obstacles = np.asarray(candidate_obstacles, dtype=np.float64)
+            if obstacles.ndim != 3 or obstacles.shape[-1] < 2:
+                raise ValueError(
+                    "candidate_obstacles for collision checks must have shape "
+                    f"[M, T, D>=2], got {obstacles.shape}."
+                )
+            if obstacles.shape[-1] >= 5:
+                ego_headings = _trajectory_headings(trajectory)
+                for obstacle in obstacles:
+                    horizon = min(len(trajectory_xy), len(obstacle))
+                    for t in range(horizon):
+                        row = obstacle[t]
+                        if not np.all(np.isfinite(row[:5])):
+                            continue
+                        if np.linalg.norm(row[:2]) < 1e-8:
+                            continue
+                        obs_length = max(float(row[3]), 1e-3)
+                        obs_width = max(float(row[4]), 1e-3)
+                        obs_wheelbase = (
+                            float(row[5])
+                            if row.shape[0] >= 6 and np.isfinite(row[5]) and row[5] > 0
+                            else None
+                        )
+                        ego_box = _obb_corners(
+                            float(trajectory_xy[t, 0]),
+                            float(trajectory_xy[t, 1]),
+                            float(ego_headings[t]),
+                            float(ego_length),
+                            float(ego_width),
+                            float(ego_wheelbase),
+                        )
+                        obs_box = _obb_corners(
+                            float(row[0]),
+                            float(row[1]),
+                            float(row[2]),
+                            obs_length,
+                            obs_width,
+                            obs_wheelbase,
+                        )
+                        if _obb_collides(ego_box, obs_box):
+                            return False
+                return True
 
         if context.dynamic_obstacles:
             for obstacle in context.dynamic_obstacles.values():

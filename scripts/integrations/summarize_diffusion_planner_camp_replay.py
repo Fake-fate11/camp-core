@@ -16,14 +16,14 @@ for path in (ROOT, PACKAGE_ROOT):
         sys.path.insert(0, path_str)
 
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
-    summarize_selection_records,
+    summarize_replay_artifacts,
 )
 
 
 def _read_json(path: Path) -> Any:
     if not path.is_file():
         raise FileNotFoundError(f"Missing replay artifact: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def main() -> None:
@@ -37,14 +37,24 @@ def main() -> None:
         default=None,
         help="Defaults to OUTPUT_DIR/camp_validation_summary.json.",
     )
+    parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     args = parser.parse_args()
 
-    records = _read_json(args.output_dir / "camp_selection_log.json")
     replay_summary = _read_json(args.output_dir / "camp_replay_summary.json")
     replay_result = replay_summary.get("replay_result")
-    summary = summarize_selection_records(records, replay_result)
+    selection_log = args.output_dir / "camp_selection_log.json"
+    records = _read_json(selection_log) if selection_log.is_file() else None
+    summary = summarize_replay_artifacts(
+        args.output_dir,
+        selection_records=records,
+        replay_result=replay_result,
+        near_miss_threshold_m=args.near_miss_threshold_m,
+    )
+    summary["selector_mode"] = replay_summary.get("selector_mode")
     summary["num_candidates"] = replay_summary.get("num_candidates")
     summary["candidate_noise_scale"] = replay_summary.get("candidate_noise_scale")
+    if "benchmark" in replay_summary:
+        summary["benchmark"] = replay_summary["benchmark"]
 
     summary_path = (
         args.summary_path

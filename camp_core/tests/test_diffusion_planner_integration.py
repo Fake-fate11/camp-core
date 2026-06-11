@@ -17,6 +17,7 @@ from camp_core.integrations.diffusion_planner import (
     install_lanelet2_projection_fallback,
     project_simplex,
     sanitize_lanelet2_map,
+    summarize_replay_artifacts,
     summarize_selection_records,
 )
 from scripts.integrations.train_diffusion_planner_theta import (
@@ -343,6 +344,80 @@ def test_selector_masks_candidate_that_collides_with_predicted_neighbor() -> Non
 
     assert result.feasible_mask.tolist() == [False, True]
     assert result.selected_index == 1
+
+
+def test_selector_uses_obb_collision_when_obstacle_shape_is_available() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, -10.0], [0.0, 10.0]]),
+        lane_half_width=20.0,
+        speed_limit=50.0,
+        desired_speed=5.0,
+        safety_radius=0.1,
+    )
+    y = np.linspace(0.0, 3.5, 8)
+    colliding = np.column_stack([np.zeros_like(y), y, np.ones_like(y), np.zeros_like(y)])
+    clear = np.column_stack([np.full_like(y, 6.0), y, np.ones_like(y), np.zeros_like(y)])
+    candidates = np.stack([colliding, clear])
+
+    obstacles = np.zeros((2, 1, 8, 6), dtype=np.float64)
+    obstacles[:, 0, :, 0] = 0.0
+    obstacles[:, 0, :, 1] = 1.0
+    obstacles[:, 0, :, 2] = np.pi / 2.0
+    obstacles[:, 0, :, 3] = 4.5
+    obstacles[:, 0, :, 4] = 1.9
+    obstacles[:, 0, :, 5] = 2.9
+
+    selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=np.ones(9),
+        mode="static",
+    )
+    result = selector.select(
+        candidates,
+        context,
+        candidate_obstacles=obstacles,
+        ego_length=4.5,
+        ego_width=1.9,
+        ego_wheelbase=2.9,
+    )
+
+    assert result.feasible_mask.tolist() == [False, True]
+    assert result.selected_index == 1
+
+
+def test_summarize_replay_artifacts_without_selection_log(tmp_path) -> None:
+    trajectory = [
+        {"step": 0, "x": 0.0, "y": 0.0, "heading": 0.0, "speed": 1.0, "goal_d": 10.0},
+        {"step": 1, "x": 1.0, "y": 0.0, "heading": 0.0, "speed": 2.0, "goal_d": 9.0},
+        {"step": 2, "x": 3.0, "y": 0.0, "heading": 0.0, "speed": 2.5, "goal_d": 7.0},
+    ]
+    (tmp_path / "trajectory_log.json").write_text(json.dumps(trajectory), encoding="utf-8")
+    (tmp_path / "clearance_log.json").write_text(
+        json.dumps(
+            {
+                "records": [
+                    {"moving_dist": 3.0, "stopped_dist": None, "rb_dist": 4.0},
+                    {"moving_dist": 1.0, "stopped_dist": None, "rb_dist": 2.0},
+                    {"moving_dist": 0.0, "stopped_dist": None, "rb_dist": 1.5},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    summary = summarize_replay_artifacts(
+        tmp_path,
+        replay_result={"reason": "max_steps", "final_step": 2, "goal_reached": False},
+        near_miss_threshold_m=2.0,
+    )
+
+    assert summary["selection_steps"] is None
+    assert summary["closed_loop_steps"] == 3
+    assert summary["distance_traveled_m"] == 3.0
+    assert summary["goal_distance_reduction_rate"] == 0.3
+    assert summary["obb_collision_steps"] == 1
+    assert summary["near_miss_steps"] == 2
 
 
 @dataclass

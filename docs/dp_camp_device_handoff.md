@@ -9,8 +9,8 @@ Planner + CAMP work from another computer.
 
 - Repository: `https://github.com/Fake-fate11/camp-core.git`
 - Branch: `main`
-- Minimum DP scene-conditioned integration commit:
-  `fc318c8023626e2c84f33b08ea81b04035e153e8`
+- Use the latest `origin/main` commit. The exact hash advances as benchmark
+  code and handoff documentation are updated.
 
 ```bash
 git clone https://github.com/Fake-fate11/camp-core.git
@@ -42,7 +42,7 @@ The active AutoDL checkout is:
 ## AutoDL connection
 
 ```bash
-ssh -p 39458 root@connect.bjb2.seetacloud.com
+ssh -p 20885 root@connect.bjb2.seetacloud.com
 ```
 
 The password is intentionally not stored in Git.
@@ -61,6 +61,7 @@ These files are intentionally excluded from Git and remain on AutoDL:
 /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth
 /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json
 /root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+/root/autodl-tmp/camp_dp_assets/camp_dp_static_calibration_v2/
 /root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1_fc318c8/
 ```
 
@@ -89,6 +90,44 @@ The matched 200-step replay directories are:
 ```text
 /root/autodl-tmp/camp_dp_replay_theta_collect_59_86_k8_steps200_fc318c8
 /root/autodl-tmp/camp_dp_replay_theta_59_86_k8_steps200_fc318c8
+```
+
+## Matched benchmark matrix
+
+Use the matrix runner for the formal four-way comparison:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+DP_PYTHON=/root/autodl-tmp/dp312_venv/bin/python
+ASSETS=/root/autodl-tmp/camp_dp_assets
+STATIC_ASSETS=$ASSETS/camp_dp_static_calibration_v2
+THETA_ASSETS=$ASSETS/camp_dp_scene_theta_v1_fc318c8
+
+"$DP_PYTHON" scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --map_path "$ASSETS/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm" \
+  --route sample59_86="$ASSETS/sample_map_tl_route_59_to_86.pkl" \
+  --model_path "$ASSETS/diffusion_planner.pth" \
+  --model_args "$ASSETS/diffusion_planner.param.json" \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --output_root /root/autodl-tmp/camp_dp_benchmark_v1 \
+  --steps 200 \
+  --seeds 1,2,3 \
+  --max_npcs 4,8 \
+  --spawn_probabilities 0.2,0.4 \
+  --camp_atom_scales "$THETA_ASSETS/atom_scales_dp_scene_theta.json" \
+  --camp_static_weights "$STATIC_ASSETS/offline_weights_dp_static.npy" \
+  --camp_theta_checkpoint "$THETA_ASSETS/camp_dp_scene_theta.npz" \
+  --num_candidates 8
+```
+
+The runner evaluates `top1`, `uniform`, `static`, and `theta` under each
+matched route/seed/NPC/spawn setting and writes:
+
+```text
+/root/autodl-tmp/camp_dp_benchmark_v1/benchmark_comparison.json
+/root/autodl-tmp/camp_dp_benchmark_v1/benchmark_comparison.md
 ```
 
 ## Monitoring

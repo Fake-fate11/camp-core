@@ -26,6 +26,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     extract_dp_scene_features,
     generate_candidate_trajectories,
     install_lanelet2_projection_fallback,
+    summarize_replay_artifacts,
 )
 
 
@@ -58,7 +59,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_npcs", type=int, default=None)
     parser.add_argument("--spawn_probability", type=float, default=None)
 
-    weights = parser.add_mutually_exclusive_group(required=True)
+    weights = parser.add_mutually_exclusive_group(required=False)
     weights.add_argument(
         "--camp_checkpoint",
         type=Path,
@@ -69,14 +70,16 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Standalone offline_weights.npy.",
     )
-    parser.add_argument("--camp_atom_scales", type=Path, required=True)
+    parser.add_argument("--camp_atom_scales", type=Path, default=None)
     parser.add_argument(
         "--camp_selector_mode",
-        choices=("static", "linear"),
+        choices=("top1", "uniform", "static", "linear"),
         default="static",
         help=(
-            "static uses offline_weights; linear uses Theta from --camp_checkpoint "
-            "and per-step Diffusion Planner scene features."
+            "top1 runs upstream Diffusion Planner unchanged; uniform generates "
+            "K candidates and scores CAMP atoms with equal weights; static uses "
+            "offline_weights; linear uses Theta from --camp_checkpoint and "
+            "per-step Diffusion Planner scene features."
         ),
     )
     parser.add_argument("--camp_atom_clip", type=float, default=10.0)
@@ -84,7 +87,51 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camp_clearance_margin", type=float, default=1.0)
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
+    parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     return parser.parse_args()
+
+
+def _validate_args(args: argparse.Namespace) -> None:
+    if args.camp_selector_mode != "top1" and args.camp_atom_scales is None:
+        raise ValueError(
+            "--camp_atom_scales is required for uniform/static/linear CAMP modes."
+        )
+    if args.camp_selector_mode == "static" and (
+        args.camp_checkpoint is None and args.camp_static_weights is None
+    ):
+        raise ValueError(
+            "static CAMP selection requires --camp_checkpoint or "
+            "--camp_static_weights."
+        )
+    if args.camp_selector_mode == "linear" and args.camp_checkpoint is None:
+        raise ValueError("linear CAMP selection requires --camp_checkpoint.")
+    if args.camp_selector_mode != "top1" and args.num_candidates < 2:
+        raise ValueError("--num_candidates must be >= 2 for CAMP candidate selection.")
+    if args.candidate_noise_scale <= 0:
+        raise ValueError("--candidate_noise_scale must be > 0.")
+    if args.near_miss_threshold_m < 0:
+        raise ValueError("--near_miss_threshold_m must be non-negative.")
+
+
+def _build_selector(args: argparse.Namespace) -> CAMPSelector | None:
+    if args.camp_selector_mode == "top1":
+        return None
+    if args.camp_selector_mode == "uniform":
+        with args.camp_atom_scales.open("r", encoding="utf-8") as f:
+            atom_scales = np.asarray(json.load(f), dtype=np.float64)
+        return CAMPSelector(
+            atom_scales,
+            static_weights=np.ones_like(atom_scales, dtype=np.float64),
+            mode="static",
+            atom_clip=args.camp_atom_clip,
+        )
+    return CAMPSelector.from_files(
+        atom_scales_path=args.camp_atom_scales,
+        checkpoint_path=args.camp_checkpoint,
+        static_weights_path=args.camp_static_weights,
+        mode=args.camp_selector_mode,
+        atom_clip=args.camp_atom_clip,
+    )
 
 
 def _install_diffusion_repo(diffusion_repo: Path) -> None:
@@ -139,7 +186,12 @@ def _candidate_obstacles(
     neighbor_predictions: np.ndarray,
     is_static_npc,
 ) -> np.ndarray:
-    """Match tensor_converter's distance-sorted neighbor slot order."""
+    """Match tensor_converter's distance-sorted neighbor slot order.
+
+    Returns ``[K, M, T, 6]`` as x, y, heading, length, width, wheelbase in
+    the ego frame. Older CAMP code only consumed x/y; the extra columns enable
+    oriented bounding-box collision checks without changing DP internals.
+    """
     ego = scene.get_agent(ego_agent_id)
     ego_xy = np.asarray(ego.current_position, dtype=np.float64)
     ego_heading = float(ego.current_heading)
@@ -152,8 +204,22 @@ def _candidate_obstacles(
     )
 
     count = min(len(neighbors), neighbor_predictions.shape[1])
-    obstacles = neighbor_predictions[:, :count, :, :2].copy()
+    obstacles = np.zeros(
+        (neighbor_predictions.shape[0], count, neighbor_predictions.shape[2], 6),
+        dtype=np.float64,
+    )
+    obstacles[:, :, :, :2] = neighbor_predictions[:, :count, :, :2]
+    if neighbor_predictions.shape[-1] >= 4:
+        obstacles[:, :, :, 2] = np.arctan2(
+            neighbor_predictions[:, :count, :, 3],
+            neighbor_predictions[:, :count, :, 2],
+        )
     for neighbor_idx, agent in enumerate(neighbors[:count]):
+        obstacles[:, neighbor_idx, :, 3] = float(getattr(agent, "length", 4.5))
+        obstacles[:, neighbor_idx, :, 4] = float(getattr(agent, "width", 1.9))
+        obstacles[:, neighbor_idx, :, 5] = float(
+            getattr(agent, "wheelbase", 0.65 * getattr(agent, "length", 4.5))
+        )
         if not is_static_npc(agent.id):
             continue
         static_xy = _ego_frame_xy(
@@ -163,6 +229,9 @@ def _candidate_obstacles(
         )[0]
         obstacles[:, neighbor_idx, :, 0] = static_xy[0]
         obstacles[:, neighbor_idx, :, 1] = static_xy[1]
+        obstacles[:, neighbor_idx, :, 2] = (
+            float(agent.current_heading) - ego_heading
+        )
     return obstacles
 
 
@@ -175,6 +244,9 @@ def _install_camp_predictor(
     noise_scale: float,
     safety_radius: float,
     clearance_margin: float,
+    ego_length: float,
+    ego_width: float,
+    ego_wheelbase: float,
 ) -> tuple[Any, list[dict[str, Any]]]:
     original_predict = replay_module._predict_batch
     records: list[dict[str, Any]] = []
@@ -246,6 +318,9 @@ def _install_camp_predictor(
             context,
             scene_embedding=scene_features if selector.mode == "linear" else None,
             candidate_obstacles=obstacles,
+            ego_length=ego_length,
+            ego_width=ego_width,
+            ego_wheelbase=ego_wheelbase,
         )
         elapsed_ms = (time.perf_counter() - start) * 1000.0
 
@@ -282,10 +357,7 @@ def _install_camp_predictor(
 
 def main() -> None:
     args = parse_args()
-    if args.num_candidates < 2:
-        raise ValueError("--num_candidates must be >= 2 for CAMP candidate selection.")
-    if args.candidate_noise_scale <= 0:
-        raise ValueError("--candidate_noise_scale must be > 0.")
+    _validate_args(args)
 
     _install_diffusion_repo(args.diffusion_repo)
 
@@ -294,14 +366,6 @@ def main() -> None:
     import scenario_generation.tensor_converter as tensor_converter
     from scenario_generation.gui.lanelet_scene_builder import LaneletSceneBuilder
     from scenario_generation.route import Route
-
-    selector = CAMPSelector.from_files(
-        atom_scales_path=args.camp_atom_scales,
-        checkpoint_path=args.camp_checkpoint,
-        static_weights_path=args.camp_static_weights,
-        mode=args.camp_selector_mode,
-        atom_clip=args.camp_atom_clip,
-    )
 
     route = Route.load(args.route)
     map_path = args.map_path or route.map_path
@@ -320,15 +384,22 @@ def main() -> None:
 
     device = args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
     model, model_args = _load_model(args.model_path, args.model_args, device)
-    original_predict, records = _install_camp_predictor(
-        replay,
-        tensor_converter,
-        selector,
-        num_candidates=args.num_candidates,
-        noise_scale=args.candidate_noise_scale,
-        safety_radius=args.camp_safety_radius,
-        clearance_margin=args.camp_clearance_margin,
-    )
+    selector = _build_selector(args)
+    records: list[dict[str, Any]] | None = None
+    original_predict = None
+    if selector is not None:
+        original_predict, records = _install_camp_predictor(
+            replay,
+            tensor_converter,
+            selector,
+            num_candidates=args.num_candidates,
+            noise_scale=args.candidate_noise_scale,
+            safety_radius=args.camp_safety_radius,
+            clearance_margin=args.camp_clearance_margin,
+            ego_length=float(config.ego_length),
+            ego_width=float(config.ego_width),
+            ego_wheelbase=float(config.ego_wheelbase),
+        )
 
     try:
         result = replay.run_route_replay(
@@ -341,25 +412,58 @@ def main() -> None:
             device=device,
         )
     finally:
-        replay._predict_batch = original_predict
+        if original_predict is not None:
+            replay._predict_batch = original_predict
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    selection_log = args.output_dir / "camp_selection_log.json"
-    selection_log.write_text(json.dumps(records, indent=2), encoding="utf-8")
+    selection_log = None
+    if records is not None:
+        selection_log = args.output_dir / "camp_selection_log.json"
+        selection_log.write_text(json.dumps(records, indent=2), encoding="utf-8")
     summary = {
         "replay_result": result,
-        "camp_selection_log": str(selection_log),
+        "camp_selection_log": str(selection_log) if selection_log is not None else None,
         "num_candidates": args.num_candidates,
         "candidate_noise_scale": args.candidate_noise_scale,
         "selector_mode": args.camp_selector_mode,
         "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
         "model_args": str(args.model_args) if args.model_args is not None else None,
         "using_no_ros_projection_fallback": using_projection_fallback,
+        "benchmark": {
+            "variant": args.camp_selector_mode,
+            "route": str(args.route),
+            "map_path": str(map_path),
+            "model_path": str(args.model_path),
+            "config": str(args.config),
+            "seed": args.seed,
+            "steps": args.steps,
+            "max_npcs": args.max_npcs,
+            "spawn_probability": args.spawn_probability,
+        },
     }
     (args.output_dir / "camp_replay_summary.json").write_text(
         json.dumps(summary, indent=2), encoding="utf-8"
     )
-    print(json.dumps(summary, indent=2))
+    validation = summarize_replay_artifacts(
+        args.output_dir,
+        selection_records=records,
+        replay_result=result,
+        near_miss_threshold_m=args.near_miss_threshold_m,
+    )
+    validation["selector_mode"] = args.camp_selector_mode
+    validation["num_candidates"] = args.num_candidates if records is not None else 1
+    validation["candidate_noise_scale"] = (
+        args.candidate_noise_scale if records is not None else None
+    )
+    validation["benchmark"] = summary["benchmark"]
+    validation["benchmark_key"] = (
+        f"route={args.route}|seed={args.seed}|steps={args.steps}|"
+        f"max_npcs={args.max_npcs}|spawn_probability={args.spawn_probability}"
+    )
+    (args.output_dir / "camp_validation_summary.json").write_text(
+        json.dumps(validation, indent=2), encoding="utf-8"
+    )
+    print(json.dumps({"replay": summary, "validation": validation}, indent=2))
 
 
 if __name__ == "__main__":

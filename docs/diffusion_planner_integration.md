@@ -309,15 +309,53 @@ seed, NPC settings, steps, candidate count, and DP checkpoint:
 - DP + CAMP calibrated static weights;
 - DP + CAMP scene-conditioned `Theta`.
 
-For CAMP-enabled replay outputs, create a matched comparison table with:
+The single-run replay wrapper now accepts all four comparable modes via
+`--camp_selector_mode top1|uniform|static|linear`. `top1` runs upstream
+Diffusion Planner unchanged and does not require CAMP weights; `uniform`,
+`static`, and `linear` all use the same K-candidate generation path.
+
+For a full matched matrix over routes, seeds, NPC caps, and spawn
+probabilities, use:
+
+```bash
+"$DP_PYTHON" scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  --diffusion_repo "$DP_REPO" \
+  --map_path "$MAP_PATH" \
+  --route sample59_86="$ROUTE" \
+  --model_path "$DP_MODEL" \
+  --model_args "$DP_PARAM" \
+  --config "$CONFIG" \
+  --output_root /root/autodl-tmp/camp_dp_benchmark_v1 \
+  --steps 200 \
+  --seeds 1,2,3 \
+  --max_npcs 4,8 \
+  --spawn_probabilities 0.2,0.4 \
+  --camp_atom_scales "$THETA_ASSET_DIR/atom_scales_dp_scene_theta.json" \
+  --camp_static_weights "$STATIC_ASSET_DIR/offline_weights_dp_static.npy" \
+  --camp_theta_checkpoint "$THETA_ASSET_DIR/camp_dp_scene_theta.npz" \
+  --num_candidates 8
+```
+
+The script runs `top1`, `uniform`, `static`, and `theta` for every matched
+setting and writes `benchmark_comparison.json` plus
+`benchmark_comparison.md`.
+
+For existing replay outputs, create a matched comparison table with:
 
 ```bash
 "$DP_PYTHON" scripts/integrations/compare_diffusion_planner_camp_replays.py \
+  --baseline top1 \
+  --variant top1=/root/autodl-tmp/camp_dp_benchmark_v1/sample59_86/seed_1/npc_4/spawn_0p2/top1 \
+  --variant uniform=/root/autodl-tmp/camp_dp_benchmark_v1/sample59_86/seed_1/npc_4/spawn_0p2/uniform \
   --variant static=/root/autodl-tmp/camp_dp_replay_static_59_86_k8_steps200 \
   --variant theta=/root/autodl-tmp/camp_dp_replay_theta_59_86_k8_steps200 \
   --output_json /root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1/comparison.json \
   --output_markdown /root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1/comparison.md
 ```
+
+The comparison output includes per-run rows, per-variant means with 95% CI,
+and paired deltas against the requested baseline when runs share the same
+route/seed/NPC/spawn key.
 
 ## AutoDL validation result
 
@@ -379,8 +417,10 @@ preference labels.
 
 ## Current limitations
 
-- Collision feasibility uses the current CAMP point-distance safety radius,
-  not full oriented bounding-box overlap.
+- Dynamic-vehicle hard collision feasibility now uses oriented bounding-box
+  overlap when Diffusion Planner neighbor predictions provide shape metadata.
+  Map static objects still fall back to point-distance checks because their
+  stable length/width/heading fields are not exposed by the current wrapper.
 - The current DP-compatible `Theta` uses a stable 96-dimensional summary of
   Diffusion Planner input tensors, not a learned adapter over private DP
   encoder features.
