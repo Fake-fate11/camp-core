@@ -1,0 +1,103 @@
+# Python bytecode and local environments
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+conda_env/
+.env
+.env.*
+
+# Package/build metadata
+/build/
+/dist/
+*.egg-info/
+camp_core/camp_core.egg-info/
+
+# Editor and OS noise
+.vscode/
+.idea/
+.codex/
+.agents/
+.DS_Store
+Thumbs.db
+
+# Runtime caches
+.matplotlib-cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+trajdata_cache/
+nusc_cache_trajdata/
+.unified_data_cache/
+
+# CAMP generated data, checkpoints, and experiment outputs
+/data/
+/models/
+/logs/
+/results/
+/plots/
+/figures/
+/analysis_bundles/
+/ppt_assets/
+/qualitative_figures*/
+adaptive-prediction/data/
+adaptive-prediction/experiments/pedestrians/raw/
+adaptive-prediction/experiments/figures/
+adaptive-prediction/experiments/nuScenes/figures/
+
+# Model/data artifact file types
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.zarr/
+
+# Presentation, report, and generated media artifacts
+*.pptx
+*.pdf
+*.aux
+*.log
+*.synctex.gz
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.html
+*.ipynb
+*.bak_*
+
+# Archives and exported sessions
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+/my-session.codex-session*/
+*.codex-session/
+/codex-session-exporter/
+
+# Slurm and shell run outputs
+*.out
+*.err
+
+# Local generated scratch files
+_*.pptx
+_wandb_env.js
+_wandb_run_page.html
+
+# Project report/deck source artifacts kept outside code sync
+/Adaptive_Risk-Aware_Motion_Prediction_rebuilt.md
+/CAMP_*Briefing*.md
+/CAMP_WITH_TIERIV_Speaker_Notes.md
+/Formulation.txt
+/Inverse_RL.txt
+/experiment_design.txt
+/short_methods_results_summary.tex
