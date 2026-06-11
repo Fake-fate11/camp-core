@@ -3,6 +3,7 @@ set -euo pipefail
 
 THETA_OUTPUT_DIR="${THETA_OUTPUT_DIR:-/root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1}"
 LINES="${LINES:-80}"
+PYTHON_BIN="${DP_PYTHON:-${PYTHON:-python3}}"
 TRAIN_LOG="$THETA_OUTPUT_DIR/train_dp_scene_theta.log"
 PID_FILE="$THETA_OUTPUT_DIR/train_dp_scene_theta.pid"
 SUMMARY="$THETA_OUTPUT_DIR/training_summary.json"
@@ -29,7 +30,7 @@ fi
 
 if [[ -f "$SUMMARY" ]]; then
   printf '\n--- summary ---\n'
-  python - "$SUMMARY" <<'PY'
+  "$PYTHON_BIN" - "$SUMMARY" <<'PY'
 import json
 import sys
 from pathlib import Path
