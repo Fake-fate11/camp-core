@@ -41,6 +41,17 @@ def _parse_traffic_light_modes(value: str) -> list[str]:
     return modes
 
 
+def _parse_variants(value: str) -> list[str]:
+    variants = [part.strip() for part in value.split(",") if part.strip()]
+    valid = {"top1", "uniform", "static", "theta"}
+    invalid = [variant for variant in variants if variant not in valid]
+    if invalid or not variants:
+        raise argparse.ArgumentTypeError(
+            f"variants must be a non-empty subset of {sorted(valid)}, got {variants}"
+        )
+    return variants
+
+
 def _spawn_tag(value: float) -> str:
     return str(value).replace(".", "p")
 
@@ -83,8 +94,8 @@ def parse_args() -> argparse.Namespace:
         help="Full reward JSON used for in-memory lane/red-light plan metrics.",
     )
     parser.add_argument("--camp_atom_scales", type=Path, required=True)
-    parser.add_argument("--camp_static_weights", type=Path, required=True)
-    parser.add_argument("--camp_theta_checkpoint", type=Path, required=True)
+    parser.add_argument("--camp_static_weights", type=Path, default=None)
+    parser.add_argument("--camp_theta_checkpoint", type=Path, default=None)
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
     parser.add_argument("--camp_lane_corridor_buffer", type=float, default=1.0)
@@ -95,6 +106,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--camp_min_progress_ratio", type=float, default=0.8)
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
+    parser.add_argument(
+        "--variants",
+        type=_parse_variants,
+        default=["top1", "uniform", "static", "theta"],
+        help="Comma-separated subset of top1,uniform,static,theta.",
+    )
+    parser.add_argument(
+        "--skip_compare",
+        action="store_true",
+        help="Skip aggregate comparison, for example during uniform-only collection.",
+    )
     parser.add_argument(
         "--render_png",
         action="store_true",
@@ -195,7 +217,11 @@ def main() -> None:
         raise ValueError(
             "--camp_feasibility_source dp_reward requires --reward_config."
         )
-    variants = ("top1", "uniform", "static", "theta")
+    variants = tuple(args.variants)
+    if "static" in variants and args.camp_static_weights is None:
+        raise ValueError("The static variant requires --camp_static_weights.")
+    if "theta" in variants and args.camp_theta_checkpoint is None:
+        raise ValueError("The theta variant requires --camp_theta_checkpoint.")
     runs: list[tuple[str, Path]] = []
     env = os.environ.copy()
     if not args.render_png:
@@ -241,6 +267,14 @@ def main() -> None:
             elif not args.dry_run:
                 subprocess.run(cmd, check=True, env=env)
             runs.append((variant, output_dir))
+
+    if args.skip_compare:
+        return
+    if "top1" not in variants or len(variants) < 2:
+        raise ValueError(
+            "Comparison requires top1 plus at least one CAMP variant; "
+            "otherwise pass --skip_compare."
+        )
 
     compare_cmd = [sys.executable, str(COMPARE), "--baseline", "top1"]
     for variant, output_dir in runs:

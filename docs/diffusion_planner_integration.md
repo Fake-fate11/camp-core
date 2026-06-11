@@ -371,6 +371,11 @@ nine-atom checkpoints still load unchanged. New collection runs should use
 `configs/integrations/dp_camp_atom_scales_10_bootstrap.json`; training then
 writes dataset-calibrated ten-atom scales for the final checkpoints.
 
+For reward-labeled data collection without running obsolete checkpoints, use
+the matrix runner with `--variants uniform --skip_compare`. The route, seed,
+NPC, traffic-light, reward, and candidate-generation paths remain identical to
+the formal four-way benchmark.
+
 The legacy `context` feasibility source remains available. Its route-corridor
 gate uses `lane_half_width + --camp_lane_corridor_buffer`, whose default remains
 `1.0 m`. All feasibility settings are recorded in the replay and validation
