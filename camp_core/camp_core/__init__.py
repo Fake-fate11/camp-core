@@ -12,5 +12,6 @@ __all__ = [
     "mapping_heads",
     "base_predictor",
     "data_interfaces",
+    "integrations",
     "utils",
 ]

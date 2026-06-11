@@ -118,6 +118,12 @@ Check the printed `Map source counts`; `vector_map` should dominate. Rebuilding 
 
 The CAMP-Select computational graph is summarized in [`docs/camp_computational_graph.md`](docs/camp_computational_graph.md). The diagram separates the shared Trajectron++ / atom-extraction path, the offline training-time Benders optimization loop, and the one-shot inference-time selector.
 
+The TIER IV Diffusion Planner simulator bridge is documented in
+[`docs/diffusion_planner_integration.md`](docs/diffusion_planner_integration.md).
+It generates multiple Diffusion Planner ego candidates, selects one with CAMP,
+and returns the selected trajectory to the upstream perfect/MPC tracker without
+requiring a ROS runtime.
+
 ### 1. Atom Scale Calibration
 
 Script: `scripts/tools/compute_atom_scales.py`

@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+
+ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_ROOT = ROOT / "camp_core"
+for path in (ROOT, PACKAGE_ROOT):
+    path_str = str(path)
+    if path_str not in sys.path:
+        sys.path.insert(0, path_str)
+
+from camp_core.integrations.diffusion_planner import (  # noqa: E402
+    CAMP_ATOM_NAMES,
+)
+
+
+DEFAULT_PROXY_WEIGHTS = np.array(
+    [
+        0.75,
+        0.75,
+        0.75,
+        0.50,
+        1.50,
+        1.00,
+        0.75,
+        2.00,
+        3.00,
+    ],
+    dtype=np.float64,
+)
+
+
+def _records_from_path(path: Path) -> list[dict[str, Any]]:
+    log_path = path / "camp_selection_log.json" if path.is_dir() else path
+    if not log_path.is_file():
+        raise FileNotFoundError(f"Selection log not found: {log_path}")
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    if not isinstance(records, list):
+        raise ValueError(f"{log_path} must contain a JSON list.")
+    return records
+
+
+def load_training_records(paths: list[Path]) -> tuple[np.ndarray, np.ndarray]:
+    atoms = []
+    feasible = []
+    for path in paths:
+        for record in _records_from_path(path):
+            record_atoms = np.asarray(record["atoms"], dtype=np.float64)
+            record_feasible = np.asarray(record["feasible_mask"], dtype=bool)
+            if record_atoms.ndim != 2:
+                raise ValueError(f"atoms must be [K,R], got {record_atoms.shape}.")
+            if record_feasible.shape != (record_atoms.shape[0],):
+                raise ValueError(
+                    "feasible_mask must match candidate count, got "
+                    f"{record_feasible.shape} for atoms {record_atoms.shape}."
+                )
+            atoms.append(record_atoms)
+            feasible.append(record_feasible)
+    if not atoms:
+        raise ValueError("No selection records were loaded.")
+    return np.stack(atoms), np.stack(feasible)
+
+
+def robust_atom_scales(atoms: np.ndarray, percentile: float) -> np.ndarray:
+    scales = np.percentile(np.reshape(atoms, (-1, atoms.shape[-1])), percentile, axis=0)
+    scales = np.nan_to_num(scales, nan=1.0, posinf=1.0, neginf=1.0)
+    return np.maximum(scales, 1e-6)
+
+
+def normalize_nonnegative(values: np.ndarray) -> np.ndarray:
+    weights = np.asarray(values, dtype=np.float64).reshape(-1)
+    weights = np.nan_to_num(weights, nan=0.0, posinf=0.0, neginf=0.0)
+    weights = np.maximum(weights, 0.0)
+    total = float(weights.sum())
+    if total <= 0.0:
+        return np.full(weights.shape[0], 1.0 / weights.shape[0], dtype=np.float64)
+    return weights / total
+
+
+def oracle_indices(
+    normalized_atoms: np.ndarray,
+    feasible_mask: np.ndarray,
+    proxy_weights: np.ndarray,
+) -> np.ndarray:
+    proxy = normalize_nonnegative(proxy_weights)
+    costs = normalized_atoms @ proxy
+    masked = costs.copy()
+    masked[~feasible_mask] = np.inf
+    all_bad = ~np.isfinite(masked).any(axis=1)
+    if all_bad.any():
+        masked[all_bad] = costs[all_bad]
+    return np.argmin(masked, axis=1)
+
+
+def train_static_weights(
+    normalized_atoms: np.ndarray,
+    labels: np.ndarray,
+    *,
+    epochs: int,
+    lr: float,
+    l2_reg: float,
+) -> tuple[np.ndarray, list[dict[str, float]]]:
+    logits = np.zeros(normalized_atoms.shape[-1], dtype=np.float64)
+    history = []
+    num_records = normalized_atoms.shape[0]
+    rows = np.arange(num_records)
+
+    for epoch in range(epochs):
+        shifted = logits - np.max(logits)
+        exp_logits = np.exp(shifted)
+        weights = exp_logits / np.sum(exp_logits)
+
+        costs = normalized_atoms @ weights
+        pred_probs = np.exp(-costs - np.max(-costs, axis=1, keepdims=True))
+        pred_probs /= np.sum(pred_probs, axis=1, keepdims=True)
+        loss = -np.log(pred_probs[rows, labels] + 1e-12).mean()
+        loss += float(l2_reg) * float(np.sum((weights - 1.0 / len(weights)) ** 2))
+
+        expected_atoms = np.einsum("nk,nkr->nr", pred_probs, normalized_atoms)
+        chosen_atoms = normalized_atoms[rows, labels]
+        grad_weights = (chosen_atoms - expected_atoms).mean(axis=0)
+        grad_weights += 2.0 * float(l2_reg) * (weights - 1.0 / len(weights))
+        grad_logits = weights * (grad_weights - float(np.dot(grad_weights, weights)))
+        logits -= float(lr) * grad_logits
+
+        if epoch == 0 or epoch == epochs - 1 or (epoch + 1) % 100 == 0:
+            selected = np.argmin(costs, axis=1)
+            accuracy = float(np.mean(selected == labels))
+            history.append(
+                {
+                    "epoch": float(epoch + 1),
+                    "loss": float(loss),
+                    "oracle_match_rate": accuracy,
+                }
+            )
+
+    shifted = logits - np.max(logits)
+    weights = np.exp(shifted)
+    weights /= np.sum(weights)
+    return weights, history
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Calibrate static CAMP weights from Diffusion Planner replay "
+            "candidate atoms. This is a proxy-preference warm start, not "
+            "scene-conditioned CAMP-Select training."
+        )
+    )
+    parser.add_argument("--selection_log", type=Path, action="append", required=True)
+    parser.add_argument("--output_dir", type=Path, required=True)
+    parser.add_argument("--epochs", type=int, default=1000)
+    parser.add_argument("--lr", type=float, default=0.2)
+    parser.add_argument("--l2_reg", type=float, default=0.01)
+    parser.add_argument("--scale_percentile", type=float, default=95.0)
+    parser.add_argument(
+        "--proxy_weights",
+        type=str,
+        default="",
+        help="Optional JSON list of 9 proxy weights before simplex projection.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    atoms, feasible = load_training_records(args.selection_log)
+    scales = robust_atom_scales(atoms, args.scale_percentile)
+    normalized = np.clip(np.nan_to_num(atoms / scales.reshape(1, 1, -1)), 0.0, 10.0)
+
+    if args.proxy_weights:
+        proxy_weights = np.asarray(json.loads(args.proxy_weights), dtype=np.float64)
+    else:
+        proxy_weights = DEFAULT_PROXY_WEIGHTS
+    if proxy_weights.shape != (len(CAMP_ATOM_NAMES),):
+        raise ValueError(
+            f"proxy_weights must have {len(CAMP_ATOM_NAMES)} entries, "
+            f"got {proxy_weights.shape}."
+        )
+
+    labels = oracle_indices(normalized, feasible, proxy_weights)
+    weights, history = train_static_weights(
+        normalized,
+        labels,
+        epochs=args.epochs,
+        lr=args.lr,
+        l2_reg=args.l2_reg,
+    )
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    weights_path = args.output_dir / "offline_weights_dp_static.npy"
+    scales_path = args.output_dir / "atom_scales_dp_static.json"
+    summary_path = args.output_dir / "training_summary.json"
+
+    np.save(weights_path, weights.astype(np.float64))
+    scales_path.write_text(json.dumps(scales.tolist(), indent=2) + "\n", encoding="utf-8")
+    costs = normalized @ weights
+    selected = np.argmin(costs, axis=1)
+    summary = {
+        "training_type": "diffusion_planner_static_proxy_calibration",
+        "selection_logs": [str(path) for path in args.selection_log],
+        "num_records": int(normalized.shape[0]),
+        "num_candidates": int(normalized.shape[1]),
+        "num_atoms": int(normalized.shape[2]),
+        "atom_names": list(CAMP_ATOM_NAMES),
+        "scale_percentile": float(args.scale_percentile),
+        "proxy_weights_normalized": normalize_nonnegative(proxy_weights).tolist(),
+        "trained_weights": weights.tolist(),
+        "oracle_match_rate": float(np.mean(selected == labels)),
+        "feasible_candidate_rate": float(np.mean(feasible)),
+        "records_with_any_infeasible": int(np.sum(~feasible.all(axis=1))),
+        "weights_path": str(weights_path),
+        "atom_scales_path": str(scales_path),
+        "history": history,
+        "caveat": (
+            "This is a DP-specific static warm start trained from proxy "
+            "preferences over replay candidates. It is not GT-supervised "
+            "CAMP-Select Theta training."
+        ),
+    }
+    summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    print(json.dumps(summary, indent=2))
+
+
+if __name__ == "__main__":
+    main()
