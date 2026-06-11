@@ -1,0 +1,22 @@
+diff --git a/bin/codex-session-exporter.mjs b/bin/codex-session-exporter.mjs
+index 389cf1e..661b829 100755
+--- a/bin/codex-session-exporter.mjs
++++ b/bin/codex-session-exporter.mjs
+@@ -7 +7 @@ import path from "node:path";
+-import { fileURLToPath } from "node:url";
++import { fileURLToPath, pathToFileURL } from "node:url";
+@@ -17 +17 @@ if (CURRENT_NODE_MAJOR >= REQUIRED_NODE_MAJOR) {
+-  const { main } = await import(CLI_PATH);
++  const { main } = await import(pathToFileURL(CLI_PATH).href);
+diff --git a/src/renderers.mjs b/src/renderers.mjs
+index f71a04e..6c219b6 100644
+--- a/src/renderers.mjs
++++ b/src/renderers.mjs
+@@ -1,0 +2 @@ import { escapeHtml, formatDisplayDate } from "./utils.mjs";
++import { countTurns } from "./transcript.mjs";
+diff --git a/src/transcript.mjs b/src/transcript.mjs
+index fe320a0..17971d3 100644
+--- a/src/transcript.mjs
++++ b/src/transcript.mjs
+@@ -2,0 +3 @@ import { normalizeWhitespace, safeArray } from "./utils.mjs";
++
