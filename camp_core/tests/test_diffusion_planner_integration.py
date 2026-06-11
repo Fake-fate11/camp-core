@@ -229,9 +229,9 @@ def test_dp_candidate_reward_labels_prefer_best_feasible_candidate(tmp_path) -> 
                     "atoms": [[0.0] * 9, [1.0] * 9, [2.0] * 9],
                     "feasible_mask": [True, False, True],
                     "dp_candidate_rewards": [
-                        {"total": 2.0},
-                        {"total": 100.0},
-                        {"total": 5.0},
+                        {"total": 2.0, "progress": 0.5},
+                        {"total": 100.0, "progress": 50.0},
+                        {"total": 5.0, "progress": 1.0},
                     ],
                 }
             ]
@@ -241,9 +241,15 @@ def test_dp_candidate_reward_labels_prefer_best_feasible_candidate(tmp_path) -> 
 
     _, feasible = load_training_records([log_path])
     rewards = load_candidate_reward_values([log_path])
+    quality = load_candidate_reward_values(
+        [log_path],
+        reward_key="quality_without_progress",
+        progress_weight=2.0,
+    )
     labels = reward_oracle_indices(rewards, feasible)
 
     assert rewards.tolist() == [[2.0, 100.0, 5.0]]
+    assert quality.tolist() == [[1.0, 0.0, 3.0]]
     assert labels.tolist() == [2]
 
 

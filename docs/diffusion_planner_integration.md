@@ -95,7 +95,11 @@ existing `scripts/train/train_offline_preference.py` and
 `scripts/train/train_camp_select.py` pipelines. The integration runner instead
 logs the upstream DP reward breakdown for every candidate. By default,
 `scripts/integrations/train_diffusion_planner_static_camp.py` uses the
-highest-reward feasible candidate as the preference label.
+highest `quality_without_progress` feasible candidate as the preference label.
+This subtracts `w_progress * progress` from DP total after the safety and
+minimum-progress gates have already been applied, so CAMP learns the remaining
+safety-margin, lane, centerline, and comfort tradeoffs instead of collapsing to
+a progress-only policy.
 
 `scripts/integrations/train_diffusion_planner_theta.py` trains a
 scene-conditioned `Theta` from the same replay logs, using the logged
@@ -237,7 +241,8 @@ DP_PYTHON=/root/autodl-tmp/dp312_venv/bin/python
   --selection_log /root/autodl-tmp/camp_dp_replay_nishishinjuku_release_k8_steps10/camp_selection_log.json \
   --output_dir "$DP_CAL" \
   --label_source dp_reward \
-  --reward_key total \
+  --reward_key quality_without_progress \
+  --reward_progress_weight 2.0 \
   --epochs 1000 \
   --lr 0.2 \
   --l2_reg 0.01
@@ -272,7 +277,8 @@ Then train the DP-compatible scene-conditioned mapping head:
 THETA_OUTPUT_DIR=/root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1 \
 SELECTION_LOGS=/root/autodl-tmp/camp_dp_replay_theta_collect_59_86_k8_steps200/camp_selection_log.json \
 LABEL_SOURCE=dp_reward \
-REWARD_KEY=total \
+REWARD_KEY=quality_without_progress \
+REWARD_PROGRESS_WEIGHT=2.0 \
 BACKGROUND=1 \
 bash scripts/integrations/run_diffusion_planner_theta_remote.sh
 ```

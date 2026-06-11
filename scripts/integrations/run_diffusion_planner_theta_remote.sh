@@ -14,7 +14,8 @@ FEATURE_CLIP="${FEATURE_CLIP:-5.0}"
 SCALE_PERCENTILE="${SCALE_PERCENTILE:-95.0}"
 SEED="${SEED:-7}"
 LABEL_SOURCE="${LABEL_SOURCE:-dp_reward}"
-REWARD_KEY="${REWARD_KEY:-total}"
+REWARD_KEY="${REWARD_KEY:-quality_without_progress}"
+REWARD_PROGRESS_WEIGHT="${REWARD_PROGRESS_WEIGHT:-2.0}"
 BACKGROUND="${BACKGROUND:-0}"
 
 fail() {
@@ -60,6 +61,7 @@ CMD=(
   --seed "$SEED"
   --label_source "$LABEL_SOURCE"
   --reward_key "$REWARD_KEY"
+  --reward_progress_weight "$REWARD_PROGRESS_WEIGHT"
 )
 
 printf '%q ' "${CMD[@]}" > "$CMD_FILE"

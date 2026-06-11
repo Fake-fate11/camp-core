@@ -74,6 +74,7 @@ def load_training_records(paths: list[Path]) -> tuple[np.ndarray, np.ndarray]:
 def load_candidate_reward_values(
     paths: list[Path],
     reward_key: str = "total",
+    progress_weight: float = 2.0,
 ) -> np.ndarray:
     values = []
     for path in paths:
@@ -86,11 +87,22 @@ def load_candidate_reward_values(
                 )
             record_values = []
             for reward in candidate_rewards:
-                if reward_key not in reward:
+                if reward_key == "quality_without_progress":
+                    if "total" not in reward or "progress" not in reward:
+                        raise ValueError(
+                            f"Candidate reward in {path} needs total and progress "
+                            "for quality_without_progress."
+                        )
+                    value = float(reward["total"]) - float(progress_weight) * float(
+                        reward["progress"]
+                    )
+                elif reward_key in reward:
+                    value = float(reward[reward_key])
+                else:
                     raise ValueError(
                         f"Candidate reward in {path} has no {reward_key!r} field."
                     )
-                record_values.append(float(reward[reward_key]))
+                record_values.append(value)
             values.append(record_values)
     if not values:
         raise ValueError("No candidate reward records were loaded.")
@@ -242,7 +254,12 @@ def parse_args() -> argparse.Namespace:
         choices=("dp_reward", "proxy"),
         default="dp_reward",
     )
-    parser.add_argument("--reward_key", type=str, default="total")
+    parser.add_argument(
+        "--reward_key",
+        type=str,
+        default="quality_without_progress",
+    )
+    parser.add_argument("--reward_progress_weight", type=float, default=2.0)
     parser.add_argument(
         "--proxy_weights",
         type=str,
@@ -265,6 +282,7 @@ def main() -> None:
         candidate_rewards = load_candidate_reward_values(
             args.selection_log,
             reward_key=args.reward_key,
+            progress_weight=args.reward_progress_weight,
         )
         if candidate_rewards.shape != feasible.shape:
             raise ValueError(
@@ -314,6 +332,12 @@ def main() -> None:
         "training_type": "diffusion_planner_static_candidate_preference",
         "label_source": args.label_source,
         "reward_key": args.reward_key if args.label_source == "dp_reward" else None,
+        "reward_progress_weight": (
+            args.reward_progress_weight
+            if args.label_source == "dp_reward"
+            and args.reward_key == "quality_without_progress"
+            else None
+        ),
         "selection_logs": [str(path) for path in args.selection_log],
         "num_records": int(normalized.shape[0]),
         "dropped_records_without_feasible_candidate": dropped_records,
