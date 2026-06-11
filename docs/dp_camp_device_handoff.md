@@ -9,12 +9,14 @@ Planner + CAMP work from another computer.
 
 - Repository: `https://github.com/Fake-fate11/camp-core.git`
 - Branch: `main`
-- Verified commit: `fc318c8023626e2c84f33b08ea81b04035e153e8`
+- Minimum DP scene-conditioned integration commit:
+  `fc318c8023626e2c84f33b08ea81b04035e153e8`
 
 ```bash
 git clone https://github.com/Fake-fate11/camp-core.git
 cd camp-core
-git checkout fc318c8023626e2c84f33b08ea81b04035e153e8
+git checkout main
+git pull --ff-only
 ```
 
 ### Diffusion Planner
@@ -139,9 +141,12 @@ git status --short --branch
 Expected:
 
 ```text
-fc318c8023626e2c84f33b08ea81b04035e153e8
 ## main...origin/main
 ```
+
+`git rev-parse HEAD` and `git rev-parse origin/main` must print the same
+commit. The exact hash advances as handoff documentation and experiment code
+are updated.
 
 On AutoDL:
 

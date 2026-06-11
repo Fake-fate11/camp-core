@@ -356,12 +356,36 @@ fallback rate. This confirms the trained files are consumable by the closed
 loop, but the fallback rate also makes the limitation explicit: this is a
 proxy-calibrated static warm start, not a final CAMP performance result.
 
+The DP-compatible scene-conditioned `Theta` path was then trained from 200
+logged replay records with 96-dimensional DP input features. At epoch 1000,
+the proxy-label masked match rate was 66.25% on the training split and 77.5%
+on the validation split. The checkpoint was consumed successfully by the
+linear CAMP selector in a matched 200-step closed-loop replay.
+
+Under the same fixed `59 -> 86` route, seed, candidate count, NPC settings,
+and DP checkpoint, the recorded static-vs-Theta comparison was:
+
+| Selector | Fallback rate | Candidate feasibility | p95 selection latency |
+| --- | ---: | ---: | ---: |
+| DP-specific static CAMP | 9.5% | 83.4375% | 115.69 ms |
+| DP scene-conditioned `Theta` | 7.5% | 85.6875% | 113.35 ms |
+
+Both variants completed 200 selection steps, spawned six NPCs, and selected a
+nonzero candidate on 97.5% of steps. This is evidence that the full training,
+checkpoint-loading, and closed-loop comparison path works. It is not yet a
+statistically sufficient claim that scene-conditioned CAMP is generally
+better, because the comparison covers one route and one seed and uses proxy
+preference labels.
+
 ## Current limitations
 
 - Collision feasibility uses the current CAMP point-distance safety radius,
   not full oriented bounding-box overlap.
-- CAMP static weights are used until a compatible scene embedding path is
-  trained and validated.
-- Full scene-conditioned CAMP still requires a compatible Diffusion Planner
-  scene embedding adapter and supervised/preference training data. The current
-  DP static calibration is a warm start for closed-loop validation.
+- The current DP-compatible `Theta` uses a stable 96-dimensional summary of
+  Diffusion Planner input tensors, not a learned adapter over private DP
+  encoder features.
+- Both the static and scene-conditioned DP weights are trained from explicit
+  proxy preferences rather than ground-truth closed-loop safety labels.
+- Formal evaluation still needs matched original-DP, uniform-CAMP,
+  static-CAMP, and scene-conditioned-CAMP runs over multiple routes, seeds,
+  traffic-light phases, and NPC densities.
