@@ -6,6 +6,7 @@ import json
 import math
 import sys
 import time
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -101,6 +102,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camp_safety_radius", type=float, default=2.0)
     parser.add_argument("--camp_clearance_margin", type=float, default=1.0)
     parser.add_argument("--camp_lane_corridor_buffer", type=float, default=1.0)
+    parser.add_argument(
+        "--camp_feasibility_source",
+        choices=("context", "dp_reward"),
+        default="context",
+        help=(
+            "Use legacy CAMP route/speed gates or authoritative Diffusion Planner "
+            "candidate reward gates before CAMP scoring."
+        ),
+    )
+    parser.add_argument(
+        "--camp_min_progress_ratio",
+        type=float,
+        default=0.8,
+        help=(
+            "For dp_reward feasibility, retain safe candidates whose progress is "
+            "at least this fraction of the best safe candidate."
+        ),
+    )
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
@@ -127,6 +146,12 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--candidate_noise_scale must be > 0.")
     if args.camp_lane_corridor_buffer < 0:
         raise ValueError("--camp_lane_corridor_buffer must be non-negative.")
+    if not 0.0 <= args.camp_min_progress_ratio <= 1.0:
+        raise ValueError("--camp_min_progress_ratio must be in [0, 1].")
+    if args.camp_feasibility_source == "dp_reward" and args.reward_config is None:
+        raise ValueError(
+            "--camp_feasibility_source dp_reward requires --reward_config."
+        )
     if args.near_miss_threshold_m < 0:
         raise ValueError("--near_miss_threshold_m must be non-negative.")
     if args.reward_config is not None and not args.reward_config.is_file():
@@ -342,6 +367,118 @@ def _append_metric_record(
     )
 
 
+def _score_candidate_batch(
+    *,
+    replay_module: Any,
+    tensor_converter_module: Any,
+    scene: Any,
+    map_cache: Any,
+    model_args: Any,
+    candidates: np.ndarray,
+    device: str,
+    reward_config: Any,
+    spawn_config: Any,
+) -> list[dict[str, Any]]:
+    if map_cache is None:
+        raise RuntimeError("Candidate reward scoring requires Diffusion Planner map_cache.")
+
+    import torch
+    from rlvr.reward import compute_reward_batch
+
+    npz_data = tensor_converter_module.dump_step_npz(
+        scene,
+        map_cache,
+        future_len=int(model_args.future_len),
+        predicted_neighbor_num=int(model_args.predicted_neighbor_num),
+    )
+
+    def _to_tensor(array: np.ndarray) -> torch.Tensor:
+        tensor = torch.from_numpy(np.asarray(array)).float().to(device)
+        return tensor.unsqueeze(0) if tensor.dim() == 3 else tensor
+
+    reward_data: dict[str, torch.Tensor] = {}
+    keys = (
+        "lanes",
+        "route_lanes",
+        "line_strings",
+        "ego_shape",
+        "neighbor_agents_future",
+        "neighbor_agents_past",
+        "goal_pose",
+    )
+    for key in keys:
+        if key not in npz_data:
+            continue
+        array = np.asarray(npz_data[key])
+        if key == "goal_pose" and array.shape[-1] == 3:
+            yaw = array[..., 2]
+            array = np.stack(
+                (array[..., 0], array[..., 1], np.cos(yaw), np.sin(yaw)),
+                axis=-1,
+            )
+        reward_data[key] = _to_tensor(array)
+
+    scored_candidates = np.asarray(candidates, dtype=np.float32).copy()
+    if bool(getattr(spawn_config, "sg_smooth_enabled", False)):
+        scored_candidates = np.stack(
+            [
+                replay_module._sg_smooth_trajectory(
+                    candidate,
+                    int(spawn_config.sg_filter_window),
+                    int(spawn_config.sg_filter_order),
+                )
+                for candidate in scored_candidates
+            ]
+        )
+    trajectories = torch.from_numpy(scored_candidates).float().to(device)
+    return [
+        asdict(breakdown)
+        for breakdown in compute_reward_batch(
+            trajectories,
+            reward_data,
+            reward_config,
+        )
+    ]
+
+
+def _candidate_feasibility_from_rewards(
+    rewards: list[dict[str, Any]],
+    min_progress_ratio: float,
+) -> tuple[np.ndarray, tuple[tuple[str, ...], ...]]:
+    feasible = np.ones(len(rewards), dtype=bool)
+    reasons: list[list[str]] = [[] for _ in rewards]
+
+    for idx, reward in enumerate(rewards):
+        checks = (
+            ("dp_collision", reward.get("collision_step") is not None),
+            ("dp_road_border", bool(reward.get("rb_crossing", False))),
+            ("dp_lane_crossing", bool(reward.get("lane_crossing", False))),
+            ("dp_static_collision", bool(reward.get("static_crossing", False))),
+            ("dp_kinematic", bool(reward.get("kinematic_violated", False))),
+            ("dp_red_light", float(reward.get("red_light", 0.0)) < -0.5),
+        )
+        for reason, failed in checks:
+            if failed:
+                reasons[idx].append(reason)
+        feasible[idx] = not reasons[idx]
+
+    safe_indices = np.flatnonzero(feasible)
+    if safe_indices.size:
+        safe_progress = np.asarray(
+            [float(rewards[idx].get("progress", 0.0)) for idx in safe_indices],
+            dtype=np.float64,
+        )
+        best_progress = float(np.max(safe_progress))
+        if best_progress > 0.0:
+            minimum_progress = best_progress * float(min_progress_ratio)
+            for idx in safe_indices:
+                if float(rewards[idx].get("progress", 0.0)) < minimum_progress:
+                    feasible[idx] = False
+                    reasons[idx].append("dp_underprogress")
+
+    return feasible, tuple(tuple(row) for row in reasons)
+
+
 def _install_top1_observer(
     replay_module: Any,
     tensor_converter_module: Any,
@@ -410,6 +547,8 @@ def _install_camp_predictor(
     safety_radius: float,
     clearance_margin: float,
     lane_corridor_buffer: float,
+    feasibility_source: str,
+    min_progress_ratio: float,
     ego_length: float,
     ego_width: float,
     ego_wheelbase: float,
@@ -489,11 +628,36 @@ def _install_camp_predictor(
             neighbor_predictions,
             replay_module.SceneNPCManager.is_static_npc,
         )
+        candidate_rewards = None
+        external_feasible_mask = None
+        external_infeasibility_reasons = None
+        if feasibility_source == "dp_reward":
+            candidate_rewards = _score_candidate_batch(
+                replay_module=replay_module,
+                tensor_converter_module=tensor_converter_module,
+                scene=scene,
+                map_cache=map_cache,
+                model_args=model_args,
+                candidates=candidates,
+                device=device,
+                reward_config=reward_config,
+                spawn_config=spawn_config,
+            )
+            (
+                external_feasible_mask,
+                external_infeasibility_reasons,
+            ) = _candidate_feasibility_from_rewards(
+                candidate_rewards,
+                min_progress_ratio,
+            )
         selection = selector.select(
             candidates,
             context,
             scene_embedding=scene_features if selector.mode == "linear" else None,
             candidate_obstacles=obstacles,
+            external_feasible_mask=external_feasible_mask,
+            external_infeasibility_reasons=external_infeasibility_reasons,
+            apply_context_feasibility=feasibility_source == "context",
             ego_length=ego_length,
             ego_width=ego_width,
             ego_wheelbase=ego_wheelbase,
@@ -536,6 +700,7 @@ def _install_camp_predictor(
                 "weights": selection.weights.tolist(),
                 "atoms": selection.atoms.tolist(),
                 "normalized_atoms": selection.normalized_atoms.tolist(),
+                "dp_candidate_rewards": candidate_rewards,
                 "dp_scene_features": scene_features.tolist(),
                 "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
                 "latency_ms_including_candidate_generation": elapsed_ms,
@@ -606,6 +771,8 @@ def main() -> None:
             safety_radius=args.camp_safety_radius,
             clearance_margin=args.camp_clearance_margin,
             lane_corridor_buffer=args.camp_lane_corridor_buffer,
+            feasibility_source=args.camp_feasibility_source,
+            min_progress_ratio=args.camp_min_progress_ratio,
             ego_length=float(config.ego_length),
             ego_width=float(config.ego_width),
             ego_wheelbase=float(config.ego_wheelbase),
@@ -655,6 +822,14 @@ def main() -> None:
     effective_lane_buffer = (
         args.camp_lane_corridor_buffer if records is not None else None
     )
+    effective_feasibility_source = (
+        args.camp_feasibility_source if records is not None else None
+    )
+    effective_min_progress_ratio = (
+        args.camp_min_progress_ratio
+        if records is not None and args.camp_feasibility_source == "dp_reward"
+        else None
+    )
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
@@ -663,6 +838,8 @@ def main() -> None:
         "num_candidates": effective_num_candidates,
         "candidate_noise_scale": effective_noise_scale,
         "camp_lane_corridor_buffer": effective_lane_buffer,
+        "camp_feasibility_source": effective_feasibility_source,
+        "camp_min_progress_ratio": effective_min_progress_ratio,
         "selector_mode": args.camp_selector_mode,
         "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
         "model_args": str(args.model_args) if args.model_args is not None else None,
@@ -699,6 +876,8 @@ def main() -> None:
     validation["num_candidates"] = effective_num_candidates
     validation["candidate_noise_scale"] = effective_noise_scale
     validation["camp_lane_corridor_buffer"] = effective_lane_buffer
+    validation["camp_feasibility_source"] = effective_feasibility_source
+    validation["camp_min_progress_ratio"] = effective_min_progress_ratio
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (
         f"route={args.route}|seed={args.seed}|steps={args.steps}|"

@@ -1070,6 +1070,9 @@ class CAMPSelector:
         *,
         scene_embedding: Optional[np.ndarray] = None,
         candidate_obstacles: Optional[np.ndarray] = None,
+        external_feasible_mask: Optional[np.ndarray] = None,
+        external_infeasibility_reasons: Optional[Sequence[Sequence[str]]] = None,
+        apply_context_feasibility: bool = True,
         ego_length: float = 4.5,
         ego_width: float = 1.9,
         ego_wheelbase: float = 2.925,
@@ -1107,6 +1110,21 @@ class CAMPSelector:
             if obstacles.shape[-1] < 2:
                 raise ValueError("Obstacle trajectories need at least x/y coordinates.")
 
+        external_mask = None
+        if external_feasible_mask is not None:
+            external_mask = np.asarray(external_feasible_mask, dtype=bool).reshape(-1)
+            if external_mask.shape != (candidates.shape[0],):
+                raise ValueError(
+                    "external_feasible_mask must match candidate count, "
+                    f"got {external_mask.shape}, expected ({candidates.shape[0]},)."
+                )
+        external_reasons = external_infeasibility_reasons
+        if external_reasons is not None and len(external_reasons) != candidates.shape[0]:
+            raise ValueError(
+                "external_infeasibility_reasons must match candidate count, "
+                f"got {len(external_reasons)}, expected {candidates.shape[0]}."
+            )
+
         atoms = []
         feasible = []
         infeasibility_reasons = []
@@ -1129,20 +1147,26 @@ class CAMPSelector:
                 )
             atoms.append(atom_vector)
             reasons = []
-            if not compute_feasibility_mask(
-                local_context,
-                trajectory_xy,
-                check_speed=False,
-                check_lane=True,
-            ):
-                reasons.append("lane_corridor")
-            if not compute_feasibility_mask(
-                local_context,
-                trajectory_xy,
-                check_speed=True,
-                check_lane=False,
-            ):
-                reasons.append("speed_cap")
+            if apply_context_feasibility:
+                if not compute_feasibility_mask(
+                    local_context,
+                    trajectory_xy,
+                    check_speed=False,
+                    check_lane=True,
+                ):
+                    reasons.append("lane_corridor")
+                if not compute_feasibility_mask(
+                    local_context,
+                    trajectory_xy,
+                    check_speed=True,
+                    check_lane=False,
+                ):
+                    reasons.append("speed_cap")
+            if external_mask is not None and not external_mask[candidate_idx]:
+                if external_reasons is None:
+                    reasons.append("external_gate")
+                else:
+                    reasons.extend(str(reason) for reason in external_reasons[candidate_idx])
             collision_reason = self._collision_failure_reason(
                 local_context,
                 trajectory,
@@ -1155,6 +1179,7 @@ class CAMPSelector:
             )
             if collision_reason is not None:
                 reasons.append(collision_reason)
+            reasons = list(dict.fromkeys(reasons))
             feasible.append(not reasons)
             infeasibility_reasons.append(tuple(reasons))
 

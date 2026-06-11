@@ -20,6 +20,9 @@ from camp_core.integrations.diffusion_planner import (
     summarize_replay_artifacts,
     summarize_selection_records,
 )
+from scripts.integrations.run_diffusion_planner_camp_replay import (
+    _candidate_feasibility_from_rewards,
+)
 from scripts.integrations.train_diffusion_planner_theta import (
     load_scene_training_records,
     normalize_features,
@@ -347,6 +350,56 @@ def test_selector_respects_configurable_lane_corridor_buffer() -> None:
     assert strict_result.infeasibility_reasons == (("lane_corridor",),)
     assert relaxed_result.feasible_mask.tolist() == [True]
     assert relaxed_result.infeasibility_reasons == ((),)
+
+
+def test_selector_accepts_external_feasibility_without_context_lane_gate() -> None:
+    x = np.linspace(0.5, 4.0, 8)
+    candidates = np.stack(
+        [
+            np.column_stack([x, np.full_like(x, 3.0)]),
+            np.column_stack([x, np.full_like(x, 4.0)]),
+        ]
+    )
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=1.0,
+        lane_corridor_buffer=0.0,
+        speed_limit=50.0,
+    )
+    selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=np.ones(9),
+        mode="static",
+    )
+
+    result = selector.select(
+        candidates,
+        context,
+        external_feasible_mask=np.array([True, False]),
+        external_infeasibility_reasons=((), ("dp_lane_crossing",)),
+        apply_context_feasibility=False,
+    )
+
+    assert result.feasible_mask.tolist() == [True, False]
+    assert result.infeasibility_reasons == ((), ("dp_lane_crossing",))
+    assert result.selected_index == 0
+
+
+def test_dp_reward_feasibility_applies_safety_and_progress_gates() -> None:
+    rewards = [
+        {"progress": 10.0, "red_light": 0.0},
+        {"progress": 7.0, "red_light": 0.0},
+        {"progress": 12.0, "red_light": 0.0, "collision_step": 4},
+    ]
+
+    feasible, reasons = _candidate_feasibility_from_rewards(
+        rewards,
+        min_progress_ratio=0.8,
+    )
+
+    assert feasible.tolist() == [True, False, False]
+    assert reasons == ((), ("dp_underprogress",), ("dp_collision",))
 
 
 def test_selector_masks_candidate_that_collides_with_predicted_neighbor() -> None:

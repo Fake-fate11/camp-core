@@ -88,6 +88,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
     parser.add_argument("--camp_lane_corridor_buffer", type=float, default=1.0)
+    parser.add_argument(
+        "--camp_feasibility_source",
+        choices=("context", "dp_reward"),
+        default="dp_reward",
+    )
+    parser.add_argument("--camp_min_progress_ratio", type=float, default=0.8)
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     parser.add_argument(
         "--render_png",
@@ -170,6 +176,10 @@ def _variant_command(
                 str(args.candidate_noise_scale),
                 "--camp_lane_corridor_buffer",
                 str(args.camp_lane_corridor_buffer),
+                "--camp_feasibility_source",
+                args.camp_feasibility_source,
+                "--camp_min_progress_ratio",
+                str(args.camp_min_progress_ratio),
             ]
         )
     if variant == "static":
@@ -181,6 +191,10 @@ def _variant_command(
 
 def main() -> None:
     args = parse_args()
+    if args.camp_feasibility_source == "dp_reward" and args.reward_config is None:
+        raise ValueError(
+            "--camp_feasibility_source dp_reward requires --reward_config."
+        )
     variants = ("top1", "uniform", "static", "theta")
     runs: list[tuple[str, Path]] = []
     env = os.environ.copy()
