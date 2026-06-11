@@ -120,6 +120,15 @@ def parse_args() -> argparse.Namespace:
             "at least this fraction of the best safe candidate."
         ),
     )
+    parser.add_argument(
+        "--camp_reward_horizon_steps",
+        type=int,
+        default=30,
+        help=(
+            "Near-term trajectory steps used for DP candidate reward gates. "
+            "Full selected trajectories are still evaluated separately."
+        ),
+    )
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
@@ -148,6 +157,8 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--camp_lane_corridor_buffer must be non-negative.")
     if not 0.0 <= args.camp_min_progress_ratio <= 1.0:
         raise ValueError("--camp_min_progress_ratio must be in [0, 1].")
+    if args.camp_reward_horizon_steps < 2:
+        raise ValueError("--camp_reward_horizon_steps must be >= 2.")
     if args.camp_feasibility_source == "dp_reward" and args.reward_config is None:
         raise ValueError(
             "--camp_feasibility_source dp_reward requires --reward_config."
@@ -378,6 +389,7 @@ def _score_candidate_batch(
     device: str,
     reward_config: Any,
     spawn_config: Any,
+    reward_horizon_steps: int,
 ) -> list[dict[str, Any]]:
     if map_cache is None:
         raise RuntimeError("Candidate reward scoring requires Diffusion Planner map_cache.")
@@ -430,6 +442,7 @@ def _score_candidate_batch(
                 for candidate in scored_candidates
             ]
         )
+    scored_candidates = scored_candidates[:, :reward_horizon_steps]
     trajectories = torch.from_numpy(scored_candidates).float().to(device)
     return [
         asdict(breakdown)
@@ -549,6 +562,7 @@ def _install_camp_predictor(
     lane_corridor_buffer: float,
     feasibility_source: str,
     min_progress_ratio: float,
+    reward_horizon_steps: int,
     ego_length: float,
     ego_width: float,
     ego_wheelbase: float,
@@ -643,6 +657,7 @@ def _install_camp_predictor(
                 device=device,
                 reward_config=reward_config,
                 spawn_config=spawn_config,
+                reward_horizon_steps=reward_horizon_steps,
             )
             (
                 external_feasible_mask,
@@ -707,6 +722,11 @@ def _install_camp_predictor(
                 "atoms": selection.atoms.tolist(),
                 "normalized_atoms": selection.normalized_atoms.tolist(),
                 "dp_candidate_rewards": candidate_rewards,
+                "dp_candidate_reward_horizon_steps": (
+                    min(reward_horizon_steps, int(candidates.shape[1]))
+                    if candidate_rewards is not None
+                    else None
+                ),
                 "dp_scene_features": scene_features.tolist(),
                 "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
                 "latency_ms_including_candidate_generation": elapsed_ms,
@@ -779,6 +799,7 @@ def main() -> None:
             lane_corridor_buffer=args.camp_lane_corridor_buffer,
             feasibility_source=args.camp_feasibility_source,
             min_progress_ratio=args.camp_min_progress_ratio,
+            reward_horizon_steps=args.camp_reward_horizon_steps,
             ego_length=float(config.ego_length),
             ego_width=float(config.ego_width),
             ego_wheelbase=float(config.ego_wheelbase),
@@ -836,6 +857,11 @@ def main() -> None:
         if records is not None and args.camp_feasibility_source == "dp_reward"
         else None
     )
+    effective_reward_horizon_steps = (
+        args.camp_reward_horizon_steps
+        if records is not None and args.camp_feasibility_source == "dp_reward"
+        else None
+    )
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
@@ -846,6 +872,7 @@ def main() -> None:
         "camp_lane_corridor_buffer": effective_lane_buffer,
         "camp_feasibility_source": effective_feasibility_source,
         "camp_min_progress_ratio": effective_min_progress_ratio,
+        "camp_reward_horizon_steps": effective_reward_horizon_steps,
         "selector_mode": args.camp_selector_mode,
         "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
         "model_args": str(args.model_args) if args.model_args is not None else None,
@@ -884,6 +911,7 @@ def main() -> None:
     validation["camp_lane_corridor_buffer"] = effective_lane_buffer
     validation["camp_feasibility_source"] = effective_feasibility_source
     validation["camp_min_progress_ratio"] = effective_min_progress_ratio
+    validation["camp_reward_horizon_steps"] = effective_reward_horizon_steps
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (
         f"route={args.route}|seed={args.seed}|steps={args.steps}|"

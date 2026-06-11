@@ -105,6 +105,7 @@ def parse_args() -> argparse.Namespace:
         default="dp_reward",
     )
     parser.add_argument("--camp_min_progress_ratio", type=float, default=0.8)
+    parser.add_argument("--camp_reward_horizon_steps", type=int, default=30)
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     parser.add_argument(
         "--variants",
@@ -202,6 +203,8 @@ def _variant_command(
                 args.camp_feasibility_source,
                 "--camp_min_progress_ratio",
                 str(args.camp_min_progress_ratio),
+                "--camp_reward_horizon_steps",
+                str(args.camp_reward_horizon_steps),
             ]
         )
     if variant == "static":

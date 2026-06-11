@@ -365,6 +365,12 @@ comfort-only score from selecting a near-stationary trajectory. The complete
 candidate reward breakdown is stored in each `camp_selection_log.json` record
 for later Static/Theta preference training.
 
+Candidate reward gates use the first
+`--camp_reward_horizon_steps` trajectory points (default `30`, or 3 seconds at
+10 Hz). This matches the receding-horizon simulator better than treating the
+current traffic-light phase as fixed across the full 8-second prediction.
+Full-horizon selected-plan metrics remain unchanged.
+
 DP reward training uses a backward-compatible tenth atom,
 `progress_shortfall = max(candidate_progress) - candidate_progress`. Legacy
 nine-atom checkpoints still load unchanged. New collection runs should use
