@@ -8,6 +8,7 @@ DP_MODEL="${DP_MODEL:-}"
 DP_MODEL_ARGS="${DP_MODEL_ARGS:-}"
 ROUTE="${ROUTE:-}"
 SPAWN_CONFIG="${SPAWN_CONFIG:-$DIFFUSION_REPO/scenario_generation/configs/replay_default.json}"
+REWARD_CONFIG="${REWARD_CONFIG:-$CAMP_ROOT/configs/integrations/dp_camp_reward_eval.json}"
 CAMP_CHECKPOINT="${CAMP_CHECKPOINT:-}"
 CAMP_STATIC_WEIGHTS="${CAMP_STATIC_WEIGHTS:-}"
 CAMP_SELECTOR_MODE="${CAMP_SELECTOR_MODE:-static}"
@@ -17,6 +18,8 @@ MAP_PATH="${MAP_PATH:-}"
 STEPS="${STEPS:-20}"
 NUM_CANDIDATES="${NUM_CANDIDATES:-8}"
 CANDIDATE_NOISE_SCALE="${CANDIDATE_NOISE_SCALE:-1.0}"
+CAMP_FEASIBILITY_SOURCE="${CAMP_FEASIBILITY_SOURCE:-dp_reward}"
+CAMP_MIN_PROGRESS_RATIO="${CAMP_MIN_PROGRESS_RATIO:-0.8}"
 DEVICE="${DEVICE:-cuda}"
 SEED="${SEED:-42}"
 MAX_NPCS="${MAX_NPCS:-8}"
@@ -46,6 +49,9 @@ fi
 require_file "$ROUTE" "saved Route"
 require_file "$SPAWN_CONFIG" "spawn config"
 require_file "$CAMP_ATOM_SCALES" "CAMP atom scales"
+if [[ "$CAMP_FEASIBILITY_SOURCE" == "dp_reward" ]]; then
+  require_file "$REWARD_CONFIG" "reward config"
+fi
 if [[ "$CAMP_SELECTOR_MODE" != "static" && "$CAMP_SELECTOR_MODE" != "linear" ]]; then
   fail "CAMP_SELECTOR_MODE must be static or linear"
 fi
@@ -134,6 +140,8 @@ RUN_ARGS=(
   --camp_selector_mode "$CAMP_SELECTOR_MODE"
   --num_candidates "$NUM_CANDIDATES"
   --candidate_noise_scale "$CANDIDATE_NOISE_SCALE"
+  --camp_feasibility_source "$CAMP_FEASIBILITY_SOURCE"
+  --camp_min_progress_ratio "$CAMP_MIN_PROGRESS_RATIO"
   --steps "$STEPS"
   --device "$DEVICE"
   --seed "$SEED"
@@ -141,6 +149,9 @@ RUN_ARGS=(
   --spawn_probability "$SPAWN_PROBABILITY"
 )
 RUN_ARGS+=("${CAMP_WEIGHT_ARGS[@]}")
+if [[ -n "$REWARD_CONFIG" ]]; then
+  RUN_ARGS+=(--reward_config "$REWARD_CONFIG")
+fi
 if [[ -n "$DP_MODEL_ARGS" ]]; then
   RUN_ARGS+=(--model_args "$DP_MODEL_ARGS")
 fi

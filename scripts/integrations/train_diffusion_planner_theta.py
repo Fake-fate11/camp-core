@@ -23,8 +23,10 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 )
 from scripts.integrations.train_diffusion_planner_static_camp import (  # noqa: E402
     DEFAULT_PROXY_WEIGHTS,
+    load_candidate_reward_values,
     normalize_nonnegative,
     oracle_indices,
+    reward_oracle_indices,
     robust_atom_scales,
 )
 
@@ -246,6 +248,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scale_percentile", type=float, default=95.0)
     parser.add_argument("--feature_clip", type=float, default=5.0)
     parser.add_argument(
+        "--label_source",
+        choices=("dp_reward", "proxy"),
+        default="dp_reward",
+    )
+    parser.add_argument("--reward_key", type=str, default="total")
+    parser.add_argument(
         "--proxy_weights",
         type=str,
         default="",
@@ -262,23 +270,49 @@ def main() -> None:
             f"Expected {len(CAMP_ATOM_NAMES)} atoms, got {atoms.shape[-1]}."
         )
 
+    proxy_weights = None
+    dropped_records = 0
+    candidate_rewards = None
+    if args.label_source == "dp_reward":
+        candidate_rewards = load_candidate_reward_values(
+            args.selection_log,
+            reward_key=args.reward_key,
+        )
+        if candidate_rewards.shape != feasible.shape:
+            raise ValueError(
+                "Candidate reward shape must match feasible_mask, "
+                f"got {candidate_rewards.shape} and {feasible.shape}."
+            )
+        valid = feasible.any(axis=1) & np.isfinite(candidate_rewards).any(axis=1)
+        dropped_records = int(np.sum(~valid))
+        features = features[valid]
+        atoms = atoms[valid]
+        feasible = feasible[valid]
+        candidate_rewards = candidate_rewards[valid]
+        if not atoms.shape[0]:
+            raise ValueError("No reward-labeled records contain a feasible candidate.")
+    else:
+        if args.proxy_weights:
+            proxy_weights = np.asarray(json.loads(args.proxy_weights), dtype=np.float64)
+        else:
+            proxy_weights = DEFAULT_PROXY_WEIGHTS
+        if proxy_weights.shape != (len(CAMP_ATOM_NAMES),):
+            raise ValueError(
+                f"proxy_weights must have {len(CAMP_ATOM_NAMES)} entries, "
+                f"got {proxy_weights.shape}."
+            )
+
     atom_scales = robust_atom_scales(atoms, args.scale_percentile)
     normalized_atoms = np.clip(
         np.nan_to_num(atoms / atom_scales.reshape(1, 1, -1)),
         0.0,
         10.0,
     )
-
-    if args.proxy_weights:
-        proxy_weights = np.asarray(json.loads(args.proxy_weights), dtype=np.float64)
-    else:
-        proxy_weights = DEFAULT_PROXY_WEIGHTS
-    if proxy_weights.shape != (len(CAMP_ATOM_NAMES),):
-        raise ValueError(
-            f"proxy_weights must have {len(CAMP_ATOM_NAMES)} entries, "
-            f"got {proxy_weights.shape}."
-        )
-    labels = oracle_indices(normalized_atoms, feasible, proxy_weights)
+    labels = (
+        reward_oracle_indices(candidate_rewards, feasible)
+        if candidate_rewards is not None
+        else oracle_indices(normalized_atoms, feasible, proxy_weights)
+    )
 
     feature_center, feature_scale = robust_feature_normalization(features)
     normalized_features = normalize_features(
@@ -336,9 +370,12 @@ def main() -> None:
     )
 
     summary = {
-        "training_type": "diffusion_planner_scene_conditioned_theta_proxy",
+        "training_type": "diffusion_planner_scene_conditioned_theta_preference",
+        "label_source": args.label_source,
+        "reward_key": args.reward_key if args.label_source == "dp_reward" else None,
         "selection_logs": [str(path) for path in args.selection_log],
         "num_records": int(features.shape[0]),
+        "dropped_records_without_feasible_candidate": dropped_records,
         "num_candidates": int(atoms.shape[1]),
         "num_atoms": int(atoms.shape[2]),
         "feature_dim": int(features.shape[1]),
@@ -346,7 +383,11 @@ def main() -> None:
         "feature_names": list(DP_SCENE_FEATURE_NAMES),
         "scale_percentile": float(args.scale_percentile),
         "feature_clip": float(args.feature_clip),
-        "proxy_weights_normalized": normalize_nonnegative(proxy_weights).tolist(),
+        "proxy_weights_normalized": (
+            normalize_nonnegative(proxy_weights).tolist()
+            if proxy_weights is not None
+            else None
+        ),
         "offline_weights_mean": offline_weights.tolist(),
         "checkpoint_path": str(checkpoint_path),
         "atom_scales_path": str(scales_path),
@@ -354,10 +395,9 @@ def main() -> None:
         "history": history,
         "final_metrics": final_metrics,
         "caveat": (
-            "Theta is trained from proxy preferences over Diffusion Planner "
-            "replay candidates. It is scene-conditioned on logged DP input "
-            "features, but it is not a ground-truth closed-loop performance "
-            "claim without baseline comparisons."
+            "Theta is trained from candidate-level DP reward preferences, not "
+            "counterfactual closed-loop outcomes. Matched closed-loop baselines "
+            "remain required for final claims."
         ),
     }
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")

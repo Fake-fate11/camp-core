@@ -13,6 +13,8 @@ VAL_FRACTION="${VAL_FRACTION:-0.2}"
 FEATURE_CLIP="${FEATURE_CLIP:-5.0}"
 SCALE_PERCENTILE="${SCALE_PERCENTILE:-95.0}"
 SEED="${SEED:-7}"
+LABEL_SOURCE="${LABEL_SOURCE:-dp_reward}"
+REWARD_KEY="${REWARD_KEY:-total}"
 BACKGROUND="${BACKGROUND:-0}"
 
 fail() {
@@ -56,6 +58,8 @@ CMD=(
   --feature_clip "$FEATURE_CLIP"
   --scale_percentile "$SCALE_PERCENTILE"
   --seed "$SEED"
+  --label_source "$LABEL_SOURCE"
+  --reward_key "$REWARD_KEY"
 )
 
 printf '%q ' "${CMD[@]}" > "$CMD_FILE"

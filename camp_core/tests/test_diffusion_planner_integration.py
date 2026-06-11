@@ -30,8 +30,10 @@ from scripts.integrations.train_diffusion_planner_theta import (
     train_scene_theta,
 )
 from scripts.integrations.train_diffusion_planner_static_camp import (
+    load_candidate_reward_values,
     load_training_records,
     oracle_indices,
+    reward_oracle_indices,
     robust_atom_scales,
     train_static_weights,
 )
@@ -215,6 +217,33 @@ def test_train_diffusion_planner_static_camp_from_selection_log(tmp_path) -> Non
     np.testing.assert_allclose(weights.sum(), 1.0)
     assert np.all(weights > 0.0)
     assert history
+
+
+def test_dp_candidate_reward_labels_prefer_best_feasible_candidate(tmp_path) -> None:
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(
+        json.dumps(
+            [
+                {
+                    "atoms": [[0.0] * 9, [1.0] * 9, [2.0] * 9],
+                    "feasible_mask": [True, False, True],
+                    "dp_candidate_rewards": [
+                        {"total": 2.0},
+                        {"total": 100.0},
+                        {"total": 5.0},
+                    ],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    _, feasible = load_training_records([log_path])
+    rewards = load_candidate_reward_values([log_path])
+    labels = reward_oracle_indices(rewards, feasible)
+
+    assert rewards.tolist() == [[2.0, 100.0, 5.0]]
+    assert labels.tolist() == [2]
 
 
 def test_train_diffusion_planner_scene_theta_from_selection_log(tmp_path) -> None:

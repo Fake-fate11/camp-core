@@ -89,20 +89,19 @@ different scene features, so it needs either:
 - Or a full scene-conditioned `Theta` retrained with a compatible Diffusion
   Planner feature adapter and supervised/preference labels.
 
-The current lightweight simulator has no ground-truth future trajectory, so
-it cannot directly produce the `gt_atoms` cache required by the existing
-`scripts/train/train_offline_preference.py` and
-`scripts/train/train_camp_select.py` pipelines. As a practical first step,
-`scripts/integrations/train_diffusion_planner_static_camp.py` calibrates a
-DP-specific static warm-start from replay candidate atoms using explicit proxy
-preferences. It is useful for reproducible closed-loop experiments, but it is
-not GT-supervised CAMP-Select training.
+The lightweight simulator has no counterfactual ground-truth future for every
+candidate, so it cannot directly produce the `gt_atoms` cache required by the
+existing `scripts/train/train_offline_preference.py` and
+`scripts/train/train_camp_select.py` pipelines. The integration runner instead
+logs the upstream DP reward breakdown for every candidate. By default,
+`scripts/integrations/train_diffusion_planner_static_camp.py` uses the
+highest-reward feasible candidate as the preference label.
 
 `scripts/integrations/train_diffusion_planner_theta.py` trains a
 scene-conditioned `Theta` from the same replay logs, using the logged
-`dp_scene_features` as the scene input. This is a DP-compatible mapping head,
-but the default labels are still proxy preferences unless separate supervised
-labels are supplied in a future pipeline.
+`dp_scene_features` as the scene input and the same candidate-level DP reward
+labels. These are model-based preference labels; final claims still require the
+matched closed-loop evaluation matrix.
 
 ## AutoDL command
 
@@ -237,6 +236,8 @@ DP_PYTHON=/root/autodl-tmp/dp312_venv/bin/python
   --selection_log /root/autodl-tmp/camp_dp_replay_tl_59_86_k8_steps200_npc/camp_selection_log.json \
   --selection_log /root/autodl-tmp/camp_dp_replay_nishishinjuku_release_k8_steps10/camp_selection_log.json \
   --output_dir "$DP_CAL" \
+  --label_source dp_reward \
+  --reward_key total \
   --epochs 1000 \
   --lr 0.2 \
   --l2_reg 0.01
@@ -254,7 +255,7 @@ bash scripts/integrations/run_diffusion_planner_camp_remote.sh
 
 First collect selection logs with a current checkout. The current replay
 wrapper records `dp_scene_features`; older logs produced before this field was
-added must be regenerated:
+added, or without `dp_candidate_rewards`, must be regenerated:
 
 ```bash
 cd /root/autodl-tmp/camp_core
@@ -270,6 +271,8 @@ Then train the DP-compatible scene-conditioned mapping head:
 ```bash
 THETA_OUTPUT_DIR=/root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1 \
 SELECTION_LOGS=/root/autodl-tmp/camp_dp_replay_theta_collect_59_86_k8_steps200/camp_selection_log.json \
+LABEL_SOURCE=dp_reward \
+REWARD_KEY=total \
 BACKGROUND=1 \
 bash scripts/integrations/run_diffusion_planner_theta_remote.sh
 ```
@@ -427,14 +430,16 @@ DP-specific static calibration was run on 210 replay records, producing:
   training_summary.json
 ```
 
-The training proxy-oracle match rate was 95.7%. A 200-step replay using the
+The following values describe the legacy proxy-label checkpoint and are kept
+only for provenance. Its training proxy-oracle match rate was 95.7%. A
+200-step replay using the
 calibrated weights completed with four spawned NPCs, 96.0% nonzero candidate
 selection rate, 86.125% candidate feasibility rate, and 11.0% all-infeasible
 fallback rate. This confirms the trained files are consumable by the closed
 loop, but the fallback rate also makes the limitation explicit: this is a
 proxy-calibrated static warm start, not a final CAMP performance result.
 
-The DP-compatible scene-conditioned `Theta` path was then trained from 200
+The legacy DP-compatible scene-conditioned `Theta` path was trained from 200
 logged replay records with 96-dimensional DP input features. At epoch 1000,
 the proxy-label masked match rate was 66.25% on the training split and 77.5%
 on the validation split. The checkpoint was consumed successfully by the
