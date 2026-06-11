@@ -107,6 +107,9 @@ scene-conditioned `Theta` from the same replay logs, using the logged
 labels. These are model-based preference labels; final claims still require the
 matched closed-loop evaluation matrix.
 
+Theta validation is split by complete selection log, not by individual frame,
+so one closed-loop scenario cannot leak into both training and validation.
+
 ## AutoDL command
 
 ### Assets and Python environment

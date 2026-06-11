@@ -311,12 +311,15 @@ def test_train_diffusion_planner_scene_theta_from_selection_log(tmp_path) -> Non
         l2_reg=0.0,
         seed=1,
         val_fraction=0.2,
+        group_ids=np.array([0, 0, 1, 1, 2, 2]),
     )
 
     assert features.shape == (6, feature_dim)
     assert theta.shape == (len(CAMP_ATOM_NAMES), feature_dim + 1)
     assert history
     assert final_metrics["train_records"] > 0
+    assert final_metrics["train_groups"] == 2.0
+    assert final_metrics["val_groups"] == 1.0
 
 
 def test_summarize_selection_records_reports_candidate_usage() -> None:

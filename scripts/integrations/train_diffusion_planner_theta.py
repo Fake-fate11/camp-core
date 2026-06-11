@@ -77,6 +77,15 @@ def load_scene_training_records(
     return np.stack(features), np.stack(atoms), np.stack(feasible)
 
 
+def load_scene_training_groups(paths: list[Path]) -> np.ndarray:
+    groups = []
+    for group_idx, path in enumerate(paths):
+        groups.extend([group_idx] * len(_records_from_path(path)))
+    if not groups:
+        raise ValueError("No selection record groups were loaded.")
+    return np.asarray(groups, dtype=np.int64)
+
+
 def robust_feature_normalization(
     features: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -130,6 +139,7 @@ def train_scene_theta(
     l2_reg: float,
     seed: int,
     val_fraction: float,
+    group_ids: np.ndarray | None = None,
 ) -> tuple[np.ndarray, list[dict[str, float]], dict[str, float]]:
     rng = np.random.default_rng(seed)
     num_records, feature_dim = features.shape
@@ -139,14 +149,34 @@ def train_scene_theta(
         axis=1,
     )
 
-    order = rng.permutation(num_records)
-    val_count = int(round(num_records * float(val_fraction)))
-    if num_records > 1:
-        val_count = min(max(val_count, 1), num_records - 1)
+    train_group_count = 0
+    val_group_count = 0
+    if group_ids is not None:
+        groups = np.asarray(group_ids).reshape(-1)
+        if groups.shape != (num_records,):
+            raise ValueError(
+                f"group_ids must have shape ({num_records},), got {groups.shape}."
+            )
+        unique_groups = rng.permutation(np.unique(groups))
+        val_group_count = int(round(unique_groups.size * float(val_fraction)))
+        if unique_groups.size > 1:
+            val_group_count = min(max(val_group_count, 1), unique_groups.size - 1)
+        else:
+            val_group_count = 0
+        val_groups = unique_groups[:val_group_count]
+        val_mask = np.isin(groups, val_groups)
+        val_idx = np.flatnonzero(val_mask)
+        train_idx = np.flatnonzero(~val_mask)
+        train_group_count = int(unique_groups.size - val_group_count)
     else:
-        val_count = 0
-    val_idx = order[:val_count]
-    train_idx = order[val_count:] if val_count else order
+        order = rng.permutation(num_records)
+        val_count = int(round(num_records * float(val_fraction)))
+        if num_records > 1:
+            val_count = min(max(val_count, 1), num_records - 1)
+        else:
+            val_count = 0
+        val_idx = order[:val_count]
+        train_idx = order[val_count:] if val_count else order
 
     theta = np.zeros((num_atoms, feature_dim + 1), dtype=np.float64)
     m = np.zeros_like(theta)
@@ -223,6 +253,8 @@ def train_scene_theta(
     final = {
         "train_records": float(train_idx.size),
         "val_records": float(val_idx.size),
+        "train_groups": float(train_group_count),
+        "val_groups": float(val_group_count),
         "train_oracle_match_rate": train_match,
         "train_masked_oracle_match_rate": train_masked_match,
         "val_oracle_match_rate": val_match,
@@ -270,6 +302,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     features, atoms, feasible = load_scene_training_records(args.selection_log)
+    group_ids = load_scene_training_groups(args.selection_log)
     atom_names = atom_names_for_dimension(atoms.shape[-1])
 
     proxy_weights = None
@@ -291,6 +324,7 @@ def main() -> None:
         features = features[valid]
         atoms = atoms[valid]
         feasible = feasible[valid]
+        group_ids = group_ids[valid]
         candidate_rewards = candidate_rewards[valid]
         if not atoms.shape[0]:
             raise ValueError("No reward-labeled records contain a feasible candidate.")
@@ -334,6 +368,7 @@ def main() -> None:
         l2_reg=args.l2_reg,
         seed=args.seed,
         val_fraction=args.val_fraction,
+        group_ids=group_ids,
     )
 
     logits = np.concatenate(
