@@ -824,6 +824,7 @@ class CAMPSelectionResult:
     atoms: np.ndarray
     normalized_atoms: np.ndarray
     feasible_mask: np.ndarray
+    infeasibility_reasons: tuple[tuple[str, ...], ...]
     scores: np.ndarray
     weights: np.ndarray
     used_fallback: bool
@@ -841,6 +842,7 @@ def summarize_selection_records(
     feasible_candidates = 0
     total_candidates = 0
     latencies = []
+    infeasibility_reason_counts: dict[str, int] = {}
 
     for record in records:
         selected_index = int(record["selected_index"])
@@ -852,6 +854,12 @@ def summarize_selection_records(
         feasible_mask = np.asarray(record.get("feasible_mask", []), dtype=bool)
         feasible_candidates += int(feasible_mask.sum())
         total_candidates += int(feasible_mask.size)
+        for candidate_reasons in record.get("infeasibility_reasons", []):
+            for reason in candidate_reasons:
+                key = str(reason)
+                infeasibility_reason_counts[key] = (
+                    infeasibility_reason_counts.get(key, 0) + 1
+                )
 
         latency = record.get("latency_ms_including_candidate_generation")
         if latency is not None and np.isfinite(latency):
@@ -869,6 +877,7 @@ def summarize_selection_records(
         "mean_feasible_candidates": (
             feasible_candidates / denominator if num_steps else 0.0
         ),
+        "candidate_infeasibility_reason_counts": infeasibility_reason_counts,
         "mean_selection_latency_ms": (
             float(np.mean(latencies)) if latencies else None
         ),
@@ -1100,6 +1109,7 @@ class CAMPSelector:
 
         atoms = []
         feasible = []
+        infeasibility_reasons = []
         for candidate_idx, trajectory in enumerate(candidates):
             local_context = context
             if obstacles is not None:
@@ -1118,19 +1128,35 @@ class CAMPSelector:
                     f"but scales expect ({self.num_atoms},)."
                 )
             atoms.append(atom_vector)
-            feasible.append(
-                compute_feasibility_mask(local_context, trajectory_xy)
-                and self._collision_free(
-                    local_context,
-                    trajectory,
-                    candidate_obstacles=(
-                        obstacles[candidate_idx] if obstacles is not None else None
-                    ),
-                    ego_length=ego_length,
-                    ego_width=ego_width,
-                    ego_wheelbase=ego_wheelbase,
-                )
+            reasons = []
+            if not compute_feasibility_mask(
+                local_context,
+                trajectory_xy,
+                check_speed=False,
+                check_lane=True,
+            ):
+                reasons.append("lane_corridor")
+            if not compute_feasibility_mask(
+                local_context,
+                trajectory_xy,
+                check_speed=True,
+                check_lane=False,
+            ):
+                reasons.append("speed_cap")
+            collision_reason = self._collision_failure_reason(
+                local_context,
+                trajectory,
+                candidate_obstacles=(
+                    obstacles[candidate_idx] if obstacles is not None else None
+                ),
+                ego_length=ego_length,
+                ego_width=ego_width,
+                ego_wheelbase=ego_wheelbase,
             )
+            if collision_reason is not None:
+                reasons.append(collision_reason)
+            feasible.append(not reasons)
+            infeasibility_reasons.append(tuple(reasons))
 
         atoms_arr = np.asarray(atoms, dtype=np.float64)
         normalized = atoms_arr / self.atom_scales.reshape(1, -1)
@@ -1160,6 +1186,7 @@ class CAMPSelector:
             atoms=atoms_arr,
             normalized_atoms=normalized,
             feasible_mask=feasible_mask,
+            infeasibility_reasons=tuple(infeasibility_reasons),
             scores=scores,
             weights=weights,
             used_fallback=used_fallback,
@@ -1175,6 +1202,28 @@ class CAMPSelector:
         ego_width: float = 1.9,
         ego_wheelbase: float = 2.925,
     ) -> bool:
+        return (
+            CAMPSelector._collision_failure_reason(
+                context,
+                trajectory,
+                candidate_obstacles=candidate_obstacles,
+                ego_length=ego_length,
+                ego_width=ego_width,
+                ego_wheelbase=ego_wheelbase,
+            )
+            is None
+        )
+
+    @staticmethod
+    def _collision_failure_reason(
+        context: DriverAtomContext,
+        trajectory: np.ndarray,
+        *,
+        candidate_obstacles: Optional[np.ndarray] = None,
+        ego_length: float = 4.5,
+        ego_width: float = 1.9,
+        ego_wheelbase: float = 2.925,
+    ) -> Optional[str]:
         trajectory = np.asarray(trajectory, dtype=np.float64)
         trajectory_xy = trajectory[:, :2]
         threshold = float(context.safety_radius)
@@ -1185,7 +1234,7 @@ class CAMPSelector:
                 axis=-1,
             )
             if float(distances.min()) < threshold:
-                return False
+                return "static_point_clearance"
 
         if candidate_obstacles is not None:
             obstacles = np.asarray(candidate_obstacles, dtype=np.float64)
@@ -1228,8 +1277,8 @@ class CAMPSelector:
                             obs_wheelbase,
                         )
                         if _obb_collides(ego_box, obs_box):
-                            return False
-                return True
+                            return "dynamic_obb_collision"
+                return None
 
         if context.dynamic_obstacles:
             for obstacle in context.dynamic_obstacles.values():
@@ -1241,8 +1290,8 @@ class CAMPSelector:
                     trajectory_xy[:horizon] - obstacle_xy[:horizon], axis=-1
                 )
                 if float(distances.min()) < threshold:
-                    return False
-        return True
+                    return "dynamic_point_clearance"
+        return None
 
 
 def _route_centerline(route_lanes: np.ndarray) -> np.ndarray:

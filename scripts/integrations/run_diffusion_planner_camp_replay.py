@@ -524,6 +524,9 @@ def _install_camp_predictor(
                 "num_candidates": int(num_candidates),
                 "used_fallback": selection.used_fallback,
                 "feasible_mask": selection.feasible_mask.tolist(),
+                "infeasibility_reasons": [
+                    list(reasons) for reasons in selection.infeasibility_reasons
+                ],
                 "scores": selection.scores.tolist(),
                 "weights": selection.weights.tolist(),
                 "atoms": selection.atoms.tolist(),

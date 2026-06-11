@@ -312,6 +312,7 @@ def test_static_selector_prefers_smoother_feasible_candidate() -> None:
 
     assert result.selected_index == 0
     assert result.feasible_mask.tolist() == [True, True]
+    assert result.infeasibility_reasons == ((), ())
     assert not result.used_fallback
 
 
@@ -343,6 +344,7 @@ def test_selector_masks_candidate_that_collides_with_predicted_neighbor() -> Non
     )
 
     assert result.feasible_mask.tolist() == [False, True]
+    assert result.infeasibility_reasons == (("dynamic_point_clearance",), ())
     assert result.selected_index == 1
 
 
@@ -383,6 +385,7 @@ def test_selector_uses_obb_collision_when_obstacle_shape_is_available() -> None:
     )
 
     assert result.feasible_mask.tolist() == [False, True]
+    assert result.infeasibility_reasons == (("dynamic_obb_collision",), ())
     assert result.selected_index == 1
 
 
