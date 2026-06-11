@@ -27,6 +27,11 @@ from scripts.integrations.run_diffusion_planner_camp_replay import (
 from scripts.integrations.create_diffusion_planner_smoke_route import (
     _route_geometry,
 )
+from scripts.integrations.compare_diffusion_planner_camp_replays import (
+    _all_pairwise_deltas,
+    _mean_ci,
+    _pairing_audit,
+)
 from scripts.integrations.train_diffusion_planner_theta import (
     load_scene_training_records,
     normalize_features,
@@ -64,6 +69,38 @@ def test_route_geometry_reports_endpoint_separation_and_repeats() -> None:
     assert length == 10.0
     assert endpoint_distance == 3.0
     assert repeats == 1
+
+
+def test_comparison_reports_strict_pairing_and_pairwise_bootstrap_ci() -> None:
+    rows = []
+    offsets = {"top1": 0.0, "uniform": 1.0, "static": 2.0, "theta": 3.0}
+    for variant, offset in offsets.items():
+        for run_idx in range(3):
+            rows.append(
+                {
+                    "variant": variant,
+                    "run_key": f"run-{run_idx}",
+                    "route_completion_rate": float(run_idx) + offset,
+                }
+            )
+
+    audit = _pairing_audit(rows)
+    pairwise = _all_pairwise_deltas(rows)
+    theta_vs_static = next(
+        row
+        for row in pairwise
+        if row["baseline"] == "static" and row["variant"] == "theta"
+    )
+    first_ci = _mean_ci([1.0, 2.0, 3.0], seed_key="repeatable")
+    second_ci = _mean_ci([1.0, 2.0, 3.0], seed_key="repeatable")
+
+    assert audit["strictly_paired"]
+    assert audit["common_run_count"] == 3
+    assert len(pairwise) == 6
+    assert theta_vs_static["route_completion_rate"]["mean"] == 1.0
+    assert theta_vs_static["route_completion_rate"]["n"] == 3
+    assert first_ci == second_ci
+    assert first_ci["ci_method"] == "bootstrap_percentile"
 
 
 def test_no_ros_projection_fallback_installs_utm_factory(

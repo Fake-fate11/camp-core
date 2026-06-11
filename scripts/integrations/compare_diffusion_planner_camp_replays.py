@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from collections import defaultdict
+from itertools import combinations
 from pathlib import Path
 from typing import Any
+
+import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,6 +51,26 @@ SUMMARY_KEYS = (
     "p95_selection_latency_ms",
     "n_npc_spawned",
 )
+BENCHMARK_KEYS = (
+    "route",
+    "seed",
+    "steps",
+    "max_npcs",
+    "spawn_probability",
+    "traffic_lights",
+)
+PAPER_METRICS = (
+    "route_completion_rate",
+    "obb_collision_rate",
+    "near_miss_rate",
+    "lane_violation_rate",
+    "red_light_violation_rate",
+    "planned_red_light_violation_rate",
+    "mean_jerk_magnitude_mps3",
+    "fallback_rate",
+    "p95_selection_latency_ms",
+)
+BOOTSTRAP_RESAMPLES = 10_000
 
 
 def _read_json(path: Path) -> Any:
@@ -113,21 +137,61 @@ def _numeric(value: Any) -> float | None:
     return number if number == number else None
 
 
-def _mean_ci(values: list[float]) -> dict[str, Any]:
+def _seed_from_key(key: str) -> int:
+    digest = hashlib.sha256(key.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "little", signed=False)
+
+
+def _mean_ci(values: list[float], *, seed_key: str = "") -> dict[str, Any]:
     if not values:
-        return {"n": 0, "mean": None, "std": None, "ci95": None}
+        return {
+            "n": 0,
+            "mean": None,
+            "std": None,
+            "ci95": None,
+            "ci95_low": None,
+            "ci95_high": None,
+            "ci_method": "bootstrap_percentile",
+        }
     if len(values) == 1:
-        return {"n": 1, "mean": values[0], "std": 0.0, "ci95": 0.0}
-    import math
+        return {
+            "n": 1,
+            "mean": values[0],
+            "std": 0.0,
+            "ci95": 0.0,
+            "ci95_low": values[0],
+            "ci95_high": values[0],
+            "ci_method": "bootstrap_percentile",
+        }
 
-    mean = sum(values) / len(values)
-    variance = sum((value - mean) ** 2 for value in values) / (len(values) - 1)
-    std = math.sqrt(variance)
-    ci95 = 1.96 * std / math.sqrt(len(values))
-    return {"n": len(values), "mean": mean, "std": std, "ci95": ci95}
+    array = np.asarray(values, dtype=np.float64)
+    mean = float(np.mean(array))
+    std = float(np.std(array, ddof=1))
+    rng = np.random.default_rng(_seed_from_key(seed_key))
+    indices = rng.integers(
+        0,
+        len(array),
+        size=(BOOTSTRAP_RESAMPLES, len(array)),
+    )
+    bootstrap_means = np.mean(array[indices], axis=1)
+    low, high = np.percentile(bootstrap_means, [2.5, 97.5])
+    return {
+        "n": len(values),
+        "mean": mean,
+        "std": std,
+        "ci95": float((high - low) / 2.0),
+        "ci95_low": float(low),
+        "ci95_high": float(high),
+        "ci_method": "bootstrap_percentile",
+        "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
+    }
 
 
-def _aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _aggregate_rows(
+    rows: list[dict[str, Any]],
+    *,
+    seed_prefix: str = "aggregate",
+) -> list[dict[str, Any]]:
     by_variant: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         by_variant[str(row["variant"])].append(row)
@@ -142,7 +206,10 @@ def _aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 if numeric is not None
             ]
             if values:
-                aggregate[key] = _mean_ci(values)
+                aggregate[key] = _mean_ci(
+                    values,
+                    seed_key=f"{seed_prefix}|{variant}|{key}",
+                )
         aggregates.append(aggregate)
     return aggregates
 
@@ -151,10 +218,15 @@ def _paired_deltas(
     rows: list[dict[str, Any]],
     *,
     baseline: str,
+    seed_prefix: str = "paired",
 ) -> list[dict[str, Any]]:
     by_variant: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
     for row in rows:
-        by_variant[str(row["variant"])][str(row["run_key"])] = row
+        variant = str(row["variant"])
+        run_key = str(row["run_key"])
+        if run_key in by_variant[variant]:
+            raise ValueError(f"Duplicate run key for {variant}: {run_key}")
+        by_variant[variant][run_key] = row
     baseline_rows = by_variant.get(baseline, {})
 
     deltas = []
@@ -177,9 +249,99 @@ def _paired_deltas(
                 if lhs is not None and rhs is not None:
                     values.append(lhs - rhs)
             if values:
-                entry[key] = _mean_ci(values)
+                entry[key] = _mean_ci(
+                    values,
+                    seed_key=f"{seed_prefix}|{baseline}|{variant}|{key}",
+                )
         deltas.append(entry)
     return deltas
+
+
+def _all_pairwise_deltas(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    variants = list(dict.fromkeys(str(row["variant"]) for row in rows))
+    pairwise = []
+    for baseline, variant in combinations(variants, 2):
+        entries = _paired_deltas(
+            rows,
+            baseline=baseline,
+            seed_prefix="all_pairwise",
+        )
+        pairwise.extend(entry for entry in entries if entry["variant"] == variant)
+    return pairwise
+
+
+def _pairing_audit(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    by_variant: dict[str, set[str]] = defaultdict(set)
+    duplicates = []
+    for row in rows:
+        variant = str(row["variant"])
+        run_key = str(row["run_key"])
+        if run_key in by_variant[variant]:
+            duplicates.append({"variant": variant, "run_key": run_key})
+        by_variant[variant].add(run_key)
+
+    variants = list(by_variant)
+    common = set.intersection(*(by_variant[variant] for variant in variants))
+    union = set.union(*(by_variant[variant] for variant in variants))
+    return {
+        "variant_run_counts": {
+            variant: len(run_keys) for variant, run_keys in by_variant.items()
+        },
+        "common_run_count": len(common),
+        "union_run_count": len(union),
+        "missing_run_keys": {
+            variant: sorted(union - run_keys)
+            for variant, run_keys in by_variant.items()
+        },
+        "duplicate_run_keys": duplicates,
+        "strictly_paired": (
+            not duplicates
+            and bool(variants)
+            and all(run_keys == common for run_keys in by_variant.values())
+        ),
+    }
+
+
+def _stratum_value(row: dict[str, Any], fields: tuple[str, ...]) -> str:
+    return "|".join(f"{field}={row.get(field)}" for field in fields)
+
+
+def _stratified_statistics(
+    rows: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    dimensions = (
+        ("route_name",),
+        ("max_npcs",),
+        ("traffic_lights",),
+        ("route_name", "max_npcs", "traffic_lights"),
+    )
+    aggregates = []
+    pairwise = []
+    for fields in dimensions:
+        grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for row in rows:
+            grouped[_stratum_value(row, fields)].append(row)
+        for value, group in sorted(grouped.items()):
+            for entry in _aggregate_rows(
+                group,
+                seed_prefix=f"stratified|{','.join(fields)}|{value}",
+            ):
+                aggregates.append(
+                    {
+                        "group_by": list(fields),
+                        "group_value": value,
+                        **entry,
+                    }
+                )
+            for entry in _all_pairwise_deltas(group):
+                pairwise.append(
+                    {
+                        "group_by": list(fields),
+                        "group_value": value,
+                        **entry,
+                    }
+                )
+    return aggregates, pairwise
 
 
 def _parse_variant(value: str) -> tuple[str, Path]:
@@ -224,13 +386,39 @@ def _aggregate_markdown_table(rows: list[dict[str, Any]]) -> str:
             value = row.get(key)
             if isinstance(value, dict):
                 mean = value.get("mean")
-                ci95 = value.get("ci95")
                 if mean is None:
                     values.append("None")
                 else:
-                    values.append(f"{mean:.6g} +/- {ci95:.3g}")
+                    low = value.get("ci95_low")
+                    high = value.get("ci95_high")
+                    values.append(f"{mean:.6g} [{low:.3g}, {high:.3g}]")
             elif isinstance(value, float):
                 values.append(f"{value:.6g}")
+            else:
+                values.append(str(value))
+        lines.append("| " + " | ".join(values) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def _paired_markdown_table(rows: list[dict[str, Any]]) -> str:
+    headers = ("baseline", "variant", "n_pairs") + PAPER_METRICS
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join(["---"] * len(headers)) + " |",
+    ]
+    for row in rows:
+        values = []
+        for key in headers:
+            value = row.get(key)
+            if isinstance(value, dict):
+                mean = value.get("mean")
+                low = value.get("ci95_low")
+                high = value.get("ci95_high")
+                values.append(
+                    "None"
+                    if mean is None
+                    else f"{mean:.6g} [{low:.3g}, {high:.3g}]"
+                )
             else:
                 values.append(str(value))
         lines.append("| " + " | ".join(values) + " |")
@@ -261,11 +449,17 @@ def main() -> None:
     rows = []
     for name, output_dir in args.variant:
         summary = _load_or_build_summary(output_dir)
+        benchmark = summary.get("benchmark")
+        benchmark = benchmark if isinstance(benchmark, dict) else {}
+        route = benchmark.get("route")
         row = {
             "variant": name,
             "run_key": _run_key(summary, output_dir),
             "output_dir": str(output_dir),
+            "route_name": Path(str(route)).stem if route is not None else None,
         }
+        for key in BENCHMARK_KEYS:
+            row[key] = benchmark.get(key)
         for key in SUMMARY_KEYS:
             row[key] = summary.get(key)
         rows.append(row)
@@ -273,12 +467,21 @@ def main() -> None:
     baseline = args.baseline or rows[0]["variant"]
     aggregates = _aggregate_rows(rows)
     paired_deltas = _paired_deltas(rows, baseline=baseline)
+    all_pairwise_deltas = _all_pairwise_deltas(rows)
+    stratified_aggregates, stratified_pairwise_deltas = _stratified_statistics(rows)
+    pairing_audit = _pairing_audit(rows)
     result = {
         "comparison_type": "diffusion_planner_camp_replay_variants",
         "runs": rows,
         "aggregates": aggregates,
         "paired_deltas": paired_deltas,
+        "all_pairwise_deltas": all_pairwise_deltas,
+        "stratified_aggregates": stratified_aggregates,
+        "stratified_pairwise_deltas": stratified_pairwise_deltas,
+        "pairing_audit": pairing_audit,
         "baseline": baseline,
+        "ci_method": "deterministic bootstrap percentile",
+        "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
         "caveat": (
             "Rows are comparable only when route, map, seed, NPC settings, "
             "steps, DP checkpoint, candidate count, and spawn config match."
@@ -293,7 +496,13 @@ def main() -> None:
             "## Runs\n\n"
             + _markdown_table(rows)
             + "\n## Aggregates\n\n"
-            + _aggregate_markdown_table(aggregates),
+            + _aggregate_markdown_table(aggregates)
+            + "\n## All Pairwise Deltas (variant - baseline)\n\n"
+            + _paired_markdown_table(all_pairwise_deltas)
+            + "\n## Pairing Audit\n\n"
+            + "```json\n"
+            + json.dumps(pairing_audit, indent=2)
+            + "\n```\n",
             encoding="utf-8",
         )
 
