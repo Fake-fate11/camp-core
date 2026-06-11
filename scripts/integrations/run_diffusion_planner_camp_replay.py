@@ -20,8 +20,10 @@ for path in (ROOT, PACKAGE_ROOT):
         sys.path.insert(0, path_str)
 
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
+    DP_SCENE_FEATURE_NAMES,
     CAMPSelector,
     build_context_from_scene,
+    extract_dp_scene_features,
     generate_candidate_trajectories,
     install_lanelet2_projection_fallback,
 )
@@ -68,6 +70,15 @@ def parse_args() -> argparse.Namespace:
         help="Standalone offline_weights.npy.",
     )
     parser.add_argument("--camp_atom_scales", type=Path, required=True)
+    parser.add_argument(
+        "--camp_selector_mode",
+        choices=("static", "linear"),
+        default="static",
+        help=(
+            "static uses offline_weights; linear uses Theta from --camp_checkpoint "
+            "and per-step Diffusion Planner scene features."
+        ),
+    )
     parser.add_argument("--camp_atom_clip", type=float, default=10.0)
     parser.add_argument("--camp_safety_radius", type=float, default=2.0)
     parser.add_argument("--camp_clearance_margin", type=float, default=1.0)
@@ -208,6 +219,7 @@ def _install_camp_predictor(
             map_cache=map_cache,
             inference_delay=inference_delay,
         )
+        scene_features = extract_dp_scene_features(inputs)
         start = time.perf_counter()
         candidates, neighbor_predictions, turn_logits = generate_candidate_trajectories(
             model,
@@ -232,6 +244,7 @@ def _install_camp_predictor(
         selection = selector.select(
             candidates,
             context,
+            scene_embedding=scene_features if selector.mode == "linear" else None,
             candidate_obstacles=obstacles,
         )
         elapsed_ms = (time.perf_counter() - start) * 1000.0
@@ -254,6 +267,8 @@ def _install_camp_predictor(
                 "weights": selection.weights.tolist(),
                 "atoms": selection.atoms.tolist(),
                 "normalized_atoms": selection.normalized_atoms.tolist(),
+                "dp_scene_features": scene_features.tolist(),
+                "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
                 "latency_ms_including_candidate_generation": elapsed_ms,
             }
         )
@@ -284,7 +299,7 @@ def main() -> None:
         atom_scales_path=args.camp_atom_scales,
         checkpoint_path=args.camp_checkpoint,
         static_weights_path=args.camp_static_weights,
-        mode="static",
+        mode=args.camp_selector_mode,
         atom_clip=args.camp_atom_clip,
     )
 
@@ -336,7 +351,8 @@ def main() -> None:
         "camp_selection_log": str(selection_log),
         "num_candidates": args.num_candidates,
         "candidate_noise_scale": args.candidate_noise_scale,
-        "selector_mode": "static",
+        "selector_mode": args.camp_selector_mode,
+        "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
         "model_args": str(args.model_args) if args.model_args is not None else None,
         "using_no_ros_projection_fallback": using_projection_fallback,
     }

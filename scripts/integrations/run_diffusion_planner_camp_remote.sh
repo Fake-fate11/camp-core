@@ -10,6 +10,7 @@ ROUTE="${ROUTE:-}"
 SPAWN_CONFIG="${SPAWN_CONFIG:-$DIFFUSION_REPO/scenario_generation/configs/replay_default.json}"
 CAMP_CHECKPOINT="${CAMP_CHECKPOINT:-}"
 CAMP_STATIC_WEIGHTS="${CAMP_STATIC_WEIGHTS:-}"
+CAMP_SELECTOR_MODE="${CAMP_SELECTOR_MODE:-static}"
 CAMP_ATOM_SCALES="${CAMP_ATOM_SCALES:-}"
 OUTPUT_DIR="${OUTPUT_DIR:-/root/autodl-tmp/camp_dp_replay_smoke}"
 MAP_PATH="${MAP_PATH:-}"
@@ -45,6 +46,9 @@ fi
 require_file "$ROUTE" "saved Route"
 require_file "$SPAWN_CONFIG" "spawn config"
 require_file "$CAMP_ATOM_SCALES" "CAMP atom scales"
+if [[ "$CAMP_SELECTOR_MODE" != "static" && "$CAMP_SELECTOR_MODE" != "linear" ]]; then
+  fail "CAMP_SELECTOR_MODE must be static or linear"
+fi
 
 if [[ -n "$DP_PYTHON" ]]; then
   require_file "$DP_PYTHON" "Diffusion Planner Python"
@@ -127,6 +131,7 @@ RUN_ARGS=(
   --config "$EFFECTIVE_CONFIG"
   --output_dir "$OUTPUT_DIR"
   --camp_atom_scales "$CAMP_ATOM_SCALES"
+  --camp_selector_mode "$CAMP_SELECTOR_MODE"
   --num_candidates "$NUM_CANDIDATES"
   --candidate_noise_scale "$CANDIDATE_NOISE_SCALE"
   --steps "$STEPS"

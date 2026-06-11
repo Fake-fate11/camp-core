@@ -39,6 +39,38 @@ CAMP_ATOM_NAMES = (
     "clearance",
 )
 
+DP_SCENE_FEATURE_KEYS = (
+    "ego_current_state",
+    "neighbor_agents_past",
+    "neighbors_past",
+    "neighbor_agents_current_state",
+    "neighbors_current_state",
+    "route_lanes",
+    "route_lanes_speed_limit",
+    "route_lanes_has_speed_limit",
+    "map_lanes",
+    "map_lane_boundaries",
+    "traffic_lights",
+    "static_objects",
+)
+
+DP_SCENE_FEATURE_STATS = (
+    "present",
+    "finite_fraction",
+    "mean",
+    "std",
+    "min",
+    "max",
+    "abs_mean",
+    "rms",
+)
+
+DP_SCENE_FEATURE_NAMES = tuple(
+    f"{key}.{stat}"
+    for key in DP_SCENE_FEATURE_KEYS
+    for stat in DP_SCENE_FEATURE_STATS
+)
+
 
 def install_lanelet2_projection_fallback(map_path: Union[str, Path]) -> bool:
     """Provide a no-ROS MGRSProjector fallback backed by Lanelet2 UTM.
@@ -185,7 +217,11 @@ def _normalized_weights(weights: np.ndarray, num_atoms: int) -> np.ndarray:
     return weights / total
 
 
-def _load_torch_checkpoint(path: Path) -> dict[str, Any]:
+def _load_checkpoint_payload(path: Path) -> dict[str, Any]:
+    if path.suffix == ".npz":
+        with np.load(str(path), allow_pickle=False) as payload:
+            return {key: payload[key] for key in payload.files}
+
     try:
         import torch
     except ImportError as exc:
@@ -201,6 +237,77 @@ def _load_torch_checkpoint(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"CAMP checkpoint {path} must contain a dictionary.")
     return payload
+
+
+def _payload_string(payload: dict[str, Any], key: str, default: str) -> str:
+    value = payload.get(key)
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return value
+    arr = np.asarray(value)
+    if arr.shape == ():
+        return str(arr.item())
+    return str(arr.reshape(-1)[0])
+
+
+def _to_numpy_array(value: Any) -> Optional[np.ndarray]:
+    if value is None:
+        return None
+    if hasattr(value, "detach"):
+        value = value.detach()
+    if hasattr(value, "cpu"):
+        value = value.cpu()
+    try:
+        return np.asarray(value, dtype=np.float64)
+    except (TypeError, ValueError):
+        return None
+
+
+def _summary_stats(value: Any, *, clip: float) -> list[float]:
+    arr = _to_numpy_array(value)
+    if arr is None or arr.size == 0:
+        return [0.0] * len(DP_SCENE_FEATURE_STATS)
+
+    flat = arr.reshape(-1)
+    finite = np.isfinite(flat)
+    finite_fraction = float(np.mean(finite)) if flat.size else 0.0
+    if not finite.any():
+        return [1.0, finite_fraction, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    values = flat[finite]
+    if clip > 0:
+        values = np.clip(values, -float(clip), float(clip))
+    rms = float(np.sqrt(np.mean(values * values)))
+    return [
+        1.0,
+        finite_fraction,
+        float(np.mean(values)),
+        float(np.std(values)),
+        float(np.min(values)),
+        float(np.max(values)),
+        float(np.mean(np.abs(values))),
+        rms,
+    ]
+
+
+def extract_dp_scene_features(
+    model_inputs: dict[str, Any],
+    *,
+    feature_keys: Sequence[str] = DP_SCENE_FEATURE_KEYS,
+    value_clip: float = 1.0e4,
+) -> np.ndarray:
+    """Extract stable scene features from Diffusion Planner model inputs.
+
+    The bridge intentionally uses the public tensor-converter inputs instead
+    of hooking private encoder layers. This keeps the training log compatible
+    with upstream Diffusion Planner changes as long as the standard input keys
+    are still present.
+    """
+    features: list[float] = []
+    for key in feature_keys:
+        features.extend(_summary_stats(model_inputs.get(key), clip=value_clip))
+    return np.asarray(features, dtype=np.float64)
 
 
 @dataclass(frozen=True)
@@ -290,6 +397,10 @@ class CAMPSelector:
         *,
         static_weights: Optional[np.ndarray] = None,
         theta: Optional[np.ndarray] = None,
+        feature_center: Optional[np.ndarray] = None,
+        feature_scale: Optional[np.ndarray] = None,
+        feature_clip: float = 5.0,
+        linear_activation: str = "project_simplex",
         mode: str = "static",
         atom_clip: float = 10.0,
     ) -> None:
@@ -305,6 +416,13 @@ class CAMPSelector:
             raise ValueError(f"Unknown CAMP selector mode {mode!r}.")
         self.mode = mode
         self.atom_clip = float(atom_clip)
+        if linear_activation not in {"project_simplex", "softmax"}:
+            raise ValueError(
+                "linear_activation must be 'project_simplex' or 'softmax', "
+                f"got {linear_activation!r}."
+            )
+        self.linear_activation = linear_activation
+        self.feature_clip = float(feature_clip)
 
         self.static_weights = None
         if static_weights is not None:
@@ -319,6 +437,27 @@ class CAMPSelector:
                     f"got {theta_arr.shape}."
                 )
             self.theta = theta_arr
+
+        self.feature_center = None
+        self.feature_scale = None
+        if self.theta is not None:
+            expected_dim = self.theta.shape[1] - 1
+            if feature_center is not None:
+                center = np.asarray(feature_center, dtype=np.float64).reshape(-1)
+                if center.shape != (expected_dim,):
+                    raise ValueError(
+                        "feature_center must match Theta embedding dimension, "
+                        f"got {center.shape}, expected ({expected_dim},)."
+                    )
+                self.feature_center = center
+            if feature_scale is not None:
+                scale = np.asarray(feature_scale, dtype=np.float64).reshape(-1)
+                if scale.shape != (expected_dim,):
+                    raise ValueError(
+                        "feature_scale must match Theta embedding dimension, "
+                        f"got {scale.shape}, expected ({expected_dim},)."
+                    )
+                self.feature_scale = np.maximum(scale, 1e-6)
 
         if self.mode == "static" and self.static_weights is None:
             raise ValueError("Static CAMP selection requires static_weights.")
@@ -341,12 +480,27 @@ class CAMPSelector:
 
         static_weights = None
         theta = None
+        feature_center = None
+        feature_scale = None
+        feature_clip = 5.0
+        linear_activation = "project_simplex"
         if checkpoint_path is not None:
-            payload = _load_torch_checkpoint(Path(checkpoint_path))
+            payload = _load_checkpoint_payload(Path(checkpoint_path))
             if "offline_weights" in payload:
                 static_weights = np.asarray(payload["offline_weights"], dtype=np.float64)
             if "Theta" in payload:
                 theta = np.asarray(payload["Theta"], dtype=np.float64)
+            if "feature_center" in payload:
+                feature_center = np.asarray(payload["feature_center"], dtype=np.float64)
+            if "feature_scale" in payload:
+                feature_scale = np.asarray(payload["feature_scale"], dtype=np.float64)
+            if "feature_clip" in payload:
+                feature_clip = float(np.asarray(payload["feature_clip"]).reshape(-1)[0])
+            linear_activation = _payload_string(
+                payload,
+                "linear_activation",
+                linear_activation,
+            )
         if static_weights_path is not None:
             static_weights = np.load(str(static_weights_path))
 
@@ -354,6 +508,10 @@ class CAMPSelector:
             atom_scales,
             static_weights=static_weights,
             theta=theta,
+            feature_center=feature_center,
+            feature_scale=feature_scale,
+            feature_clip=feature_clip,
+            linear_activation=linear_activation,
             mode=mode,
             atom_clip=atom_clip,
         )
@@ -373,7 +531,20 @@ class CAMPSelector:
             raise ValueError(
                 f"Theta expects embedding_dim={expected_dim}, got {embedding.shape}."
             )
+        if self.feature_center is not None:
+            embedding = embedding - self.feature_center
+        if self.feature_scale is not None:
+            embedding = embedding / self.feature_scale
+        if self.feature_clip > 0:
+            embedding = np.clip(embedding, -self.feature_clip, self.feature_clip)
         raw = self.theta @ np.append(embedding, 1.0)
+        if self.linear_activation == "softmax":
+            shifted = raw - float(np.max(raw))
+            weights = np.exp(shifted)
+            total = float(np.sum(weights))
+            if total <= 0.0 or not np.isfinite(total):
+                return np.full(self.num_atoms, 1.0 / self.num_atoms, dtype=np.float64)
+            return weights / total
         return project_simplex(raw)
 
     def select(

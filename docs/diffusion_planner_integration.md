@@ -71,6 +71,11 @@ missing or dimensionally incompatible embeddings. Enabling scene-conditioned
 CAMP requires a separately trained Diffusion-Planner-to-CAMP embedding adapter
 or retraining the CAMP mapping head on Diffusion Planner scene features.
 
+The current bridge logs a fixed-width Diffusion Planner input feature vector
+as `dp_scene_features` in every `camp_selection_log.json` record. This is the
+first DP-compatible feature path for training a scene-conditioned CAMP
+`Theta` without depending on private upstream encoder internals.
+
 ## Do we need new CAMP weights?
 
 For integration smoke tests, no: uniform static weights are enough to verify
@@ -92,6 +97,12 @@ it cannot directly produce the `gt_atoms` cache required by the existing
 DP-specific static warm-start from replay candidate atoms using explicit proxy
 preferences. It is useful for reproducible closed-loop experiments, but it is
 not GT-supervised CAMP-Select training.
+
+`scripts/integrations/train_diffusion_planner_theta.py` trains a
+scene-conditioned `Theta` from the same replay logs, using the logged
+`dp_scene_features` as the scene input. This is a DP-compatible mapping head,
+but the default labels are still proxy preferences unless separate supervised
+labels are supplied in a future pipeline.
 
 ## AutoDL command
 
@@ -237,6 +248,75 @@ Use the resulting files in the replay wrapper:
 CAMP_STATIC_WEIGHTS="$DP_CAL/offline_weights_dp_static.npy" \
 CAMP_ATOM_SCALES="$DP_CAL/atom_scales_dp_static.json" \
 bash scripts/integrations/run_diffusion_planner_camp_remote.sh
+```
+
+### DP scene-conditioned Theta training
+
+First collect selection logs with a current checkout. The current replay
+wrapper records `dp_scene_features`; older logs produced before this field was
+added must be regenerated:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+OUTPUT_DIR=/root/autodl-tmp/camp_dp_replay_theta_collect_59_86_k8_steps200 \
+CAMP_STATIC_WEIGHTS=/root/autodl-tmp/camp_dp_assets/camp_dp_static_calibration_v2/offline_weights_dp_static.npy \
+CAMP_ATOM_SCALES=/root/autodl-tmp/camp_dp_assets/camp_dp_static_calibration_v2/atom_scales_dp_static.json \
+bash scripts/integrations/run_diffusion_planner_camp_remote.sh
+```
+
+Then train the DP-compatible scene-conditioned mapping head:
+
+```bash
+THETA_OUTPUT_DIR=/root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1 \
+SELECTION_LOGS=/root/autodl-tmp/camp_dp_replay_theta_collect_59_86_k8_steps200/camp_selection_log.json \
+BACKGROUND=1 \
+bash scripts/integrations/run_diffusion_planner_theta_remote.sh
+```
+
+Monitor the run:
+
+```bash
+THETA_OUTPUT_DIR=/root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1 \
+bash scripts/integrations/monitor_diffusion_planner_theta.sh
+```
+
+The training output is:
+
+```text
+camp_dp_scene_theta.npz
+atom_scales_dp_scene_theta.json
+feature_normalization_dp_scene_theta.json
+training_summary.json
+train_dp_scene_theta.log
+```
+
+Use the trained `Theta` in closed-loop replay with:
+
+```bash
+OUTPUT_DIR=/root/autodl-tmp/camp_dp_replay_theta_59_86_k8_steps200 \
+CAMP_SELECTOR_MODE=linear \
+CAMP_CHECKPOINT=/root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1/camp_dp_scene_theta.npz \
+CAMP_ATOM_SCALES=/root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1/atom_scales_dp_scene_theta.json \
+bash scripts/integrations/run_diffusion_planner_camp_remote.sh
+```
+
+For comparable results, run at least these variants with the same map, route,
+seed, NPC settings, steps, candidate count, and DP checkpoint:
+
+- original Diffusion Planner replay without CAMP;
+- DP + CAMP uniform/static smoke weights;
+- DP + CAMP calibrated static weights;
+- DP + CAMP scene-conditioned `Theta`.
+
+For CAMP-enabled replay outputs, create a matched comparison table with:
+
+```bash
+"$DP_PYTHON" scripts/integrations/compare_diffusion_planner_camp_replays.py \
+  --variant static=/root/autodl-tmp/camp_dp_replay_static_59_86_k8_steps200 \
+  --variant theta=/root/autodl-tmp/camp_dp_replay_theta_59_86_k8_steps200 \
+  --output_json /root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1/comparison.json \
+  --output_markdown /root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1/comparison.md
 ```
 
 ## AutoDL validation result

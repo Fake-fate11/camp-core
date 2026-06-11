@@ -10,12 +10,20 @@ import numpy as np
 from camp_core.atoms.driver_atoms import DriverAtomContext
 from camp_core.integrations.diffusion_planner import (
     CAMP_ATOM_NAMES,
+    DP_SCENE_FEATURE_NAMES,
     CAMPSelector,
     build_context_from_scene,
+    extract_dp_scene_features,
     install_lanelet2_projection_fallback,
     project_simplex,
     sanitize_lanelet2_map,
     summarize_selection_records,
+)
+from scripts.integrations.train_diffusion_planner_theta import (
+    load_scene_training_records,
+    normalize_features,
+    robust_feature_normalization,
+    train_scene_theta,
 )
 from scripts.integrations.train_diffusion_planner_static_camp import (
     load_training_records,
@@ -124,6 +132,46 @@ def test_selector_loads_numpy_weights_without_torch(tmp_path) -> None:
     assert selector.static_weights.shape == (9,)
 
 
+def test_extract_dp_scene_features_is_fixed_width() -> None:
+    inputs = {
+        "ego_current_state": np.array([[1.0, 2.0, 3.0]]),
+        "route_lanes": np.ones((1, 2, 3, 4), dtype=np.float64),
+    }
+
+    features = extract_dp_scene_features(inputs)
+
+    assert features.shape == (len(DP_SCENE_FEATURE_NAMES),)
+    assert np.all(np.isfinite(features))
+    assert features[0] == 1.0
+
+
+def test_linear_selector_loads_dp_theta_npz_with_normalization(tmp_path) -> None:
+    scales_path = tmp_path / "scales.json"
+    scales_path.write_text(json.dumps([1.0] * 9), encoding="utf-8")
+    checkpoint_path = tmp_path / "theta.npz"
+    theta = np.zeros((9, 3), dtype=np.float64)
+    theta[0, 0] = 2.0
+    theta[1, 0] = -2.0
+    np.savez(
+        checkpoint_path,
+        Theta=theta,
+        feature_center=np.array([10.0, 0.0]),
+        feature_scale=np.array([2.0, 1.0]),
+        feature_clip=np.array(5.0),
+        linear_activation=np.asarray("softmax"),
+    )
+
+    selector = CAMPSelector.from_files(
+        atom_scales_path=scales_path,
+        checkpoint_path=checkpoint_path,
+        mode="linear",
+    )
+    weights = selector.weights_for(np.array([12.0, 0.0]))
+
+    np.testing.assert_allclose(weights.sum(), 1.0)
+    assert weights[0] > weights[1]
+
+
 def test_train_diffusion_planner_static_camp_from_selection_log(tmp_path) -> None:
     log_path = tmp_path / "camp_selection_log.json"
     records = [
@@ -163,6 +211,52 @@ def test_train_diffusion_planner_static_camp_from_selection_log(tmp_path) -> Non
     np.testing.assert_allclose(weights.sum(), 1.0)
     assert np.all(weights > 0.0)
     assert history
+
+
+def test_train_diffusion_planner_scene_theta_from_selection_log(tmp_path) -> None:
+    log_path = tmp_path / "camp_selection_log.json"
+    feature_dim = len(DP_SCENE_FEATURE_NAMES)
+    base_feature = np.zeros(feature_dim, dtype=np.float64)
+    records = []
+    for idx in range(6):
+        features = base_feature.copy()
+        features[0] = 1.0
+        features[2] = float(idx)
+        records.append(
+            {
+                "dp_scene_features": features.tolist(),
+                "atoms": [
+                    [3.0, 3.0, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 5.0],
+                    [0.1, 0.1, 0.1, 0.5, 0.0, 0.0, 0.0, 0.0, 0.1],
+                    [1.0, 1.0, 1.0, 0.8, 0.0, 0.0, 0.0, 4.0, 0.0],
+                ],
+                "feasible_mask": [True, True, False],
+            }
+        )
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    features, atoms, feasible = load_scene_training_records([log_path])
+    center, scale = robust_feature_normalization(features)
+    normalized_features = normalize_features(features, center, scale, clip=5.0)
+    atom_scales = robust_atom_scales(atoms, percentile=95.0)
+    normalized_atoms = np.clip(atoms / atom_scales.reshape(1, 1, -1), 0.0, 10.0)
+    labels = oracle_indices(normalized_atoms, feasible, np.ones(len(CAMP_ATOM_NAMES)))
+    theta, history, final_metrics = train_scene_theta(
+        normalized_features,
+        normalized_atoms,
+        feasible,
+        labels,
+        epochs=20,
+        lr=0.01,
+        l2_reg=0.0,
+        seed=1,
+        val_fraction=0.2,
+    )
+
+    assert features.shape == (6, feature_dim)
+    assert theta.shape == (len(CAMP_ATOM_NAMES), feature_dim + 1)
+    assert history
+    assert final_metrics["train_records"] > 0
 
 
 def test_summarize_selection_records_reports_candidate_usage() -> None:
