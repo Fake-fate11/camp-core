@@ -183,8 +183,8 @@ def train_scene_theta(
         loss = -np.log(row_probs[train_idx] + 1e-12).mean()
         loss += float(l2_reg) * float(np.sum(theta[:, :-1] * theta[:, :-1]))
 
-        dcost = probs
-        dcost[rows_all, labels] -= 1.0
+        dcost = -probs
+        dcost[rows_all, labels] += 1.0
         train_mask = np.zeros(num_records, dtype=np.float64)
         train_mask[train_idx] = 1.0 / max(train_idx.size, 1)
         dcost *= train_mask.reshape(-1, 1)
