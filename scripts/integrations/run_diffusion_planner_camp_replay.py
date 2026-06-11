@@ -420,11 +420,13 @@ def main() -> None:
     if records is not None:
         selection_log = args.output_dir / "camp_selection_log.json"
         selection_log.write_text(json.dumps(records, indent=2), encoding="utf-8")
+    effective_num_candidates = args.num_candidates if records is not None else 1
+    effective_noise_scale = args.candidate_noise_scale if records is not None else None
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
-        "num_candidates": args.num_candidates,
-        "candidate_noise_scale": args.candidate_noise_scale,
+        "num_candidates": effective_num_candidates,
+        "candidate_noise_scale": effective_noise_scale,
         "selector_mode": args.camp_selector_mode,
         "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
         "model_args": str(args.model_args) if args.model_args is not None else None,
@@ -451,10 +453,8 @@ def main() -> None:
         near_miss_threshold_m=args.near_miss_threshold_m,
     )
     validation["selector_mode"] = args.camp_selector_mode
-    validation["num_candidates"] = args.num_candidates if records is not None else 1
-    validation["candidate_noise_scale"] = (
-        args.candidate_noise_scale if records is not None else None
-    )
+    validation["num_candidates"] = effective_num_candidates
+    validation["candidate_noise_scale"] = effective_noise_scale
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (
         f"route={args.route}|seed={args.seed}|steps={args.steps}|"
