@@ -179,6 +179,23 @@ Omit the explicit lanelet IDs to let the script find a deterministic smoke
 route, or pass ordered `--via_lanelet_id` values to force a scenario through
 specific lanelets.
 
+Create the second validated sample-map route with separated endpoints:
+
+```bash
+"$DP_PYTHON" scripts/integrations/create_diffusion_planner_smoke_route.py \
+  --diffusion_repo "$DP_REPO" \
+  --map_path "$ASSETS/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm" \
+  --output "$ASSETS/sample_map_route_2_to_104.pkl" \
+  --start_lanelet_id 2 \
+  --goal_lanelet_id 104 \
+  --min_length_m 300 \
+  --min_endpoint_distance_m 250
+```
+
+The route generator rejects repeated lanelets and endpoints closer than
+`--min_endpoint_distance_m` by default, preventing loop-like smoke routes from
+entering formal benchmarks.
+
 The official Nishishinjuku release map is extracted to:
 
 ```text
@@ -330,7 +347,7 @@ probabilities, use:
 "$DP_PYTHON" scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
   --diffusion_repo "$DP_REPO" \
   --route sample59_86="$ROUTE" \
-  --route sample58_55="$ASSETS/sample_map_tl_route_58_to_55.pkl" \
+  --route sample2_104="$ASSETS/sample_map_route_2_to_104.pkl" \
   --route nishishinjuku="$ASSETS/nishishinjuku_release_auto_route.pkl" \
   --model_path "$DP_MODEL" \
   --model_args "$DP_PARAM" \

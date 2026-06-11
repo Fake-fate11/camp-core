@@ -107,7 +107,7 @@ THETA_ASSETS=$ASSETS/camp_dp_scene_theta_v1_fc318c8
 "$DP_PYTHON" scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
   --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
   --route sample59_86="$ASSETS/sample_map_tl_route_59_to_86.pkl" \
-  --route sample58_55="$ASSETS/sample_map_tl_route_58_to_55.pkl" \
+  --route sample2_104="$ASSETS/sample_map_route_2_to_104.pkl" \
   --route nishishinjuku="$ASSETS/nishishinjuku_release_auto_route.pkl" \
   --model_path "$ASSETS/diffusion_planner.pth" \
   --model_args "$ASSETS/diffusion_planner.param.json" \

@@ -24,6 +24,9 @@ from camp_core.integrations.diffusion_planner import (
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_feasibility_from_rewards,
 )
+from scripts.integrations.create_diffusion_planner_smoke_route import (
+    _route_geometry,
+)
 from scripts.integrations.train_diffusion_planner_theta import (
     load_scene_training_records,
     normalize_features,
@@ -44,6 +47,23 @@ def test_project_simplex_returns_probability_vector() -> None:
     projected = project_simplex(np.array([-1.0, 0.5, 2.0]))
     np.testing.assert_allclose(projected.sum(), 1.0)
     assert np.all(projected >= 0.0)
+
+
+def test_route_geometry_reports_endpoint_separation_and_repeats() -> None:
+    class _Builder:
+        centerlines = {
+            1: np.array([[0.0, 0.0], [3.0, 0.0]]),
+            2: np.array([[3.0, 0.0], [3.0, 4.0]]),
+        }
+
+        def raw_centerline(self, lanelet_id: int) -> np.ndarray:
+            return self.centerlines[lanelet_id]
+
+    length, endpoint_distance, repeats = _route_geometry(_Builder(), [1, 2, 1])
+
+    assert length == 10.0
+    assert endpoint_distance == 3.0
+    assert repeats == 1
 
 
 def test_no_ros_projection_fallback_installs_utm_factory(

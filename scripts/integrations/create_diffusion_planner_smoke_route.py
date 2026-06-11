@@ -54,6 +54,23 @@ def _pose_at(centerline: np.ndarray, *, at_end: bool) -> np.ndarray:
     return np.array([position[0], position[1], heading], dtype=np.float32)
 
 
+def _route_geometry(builder, lanelet_ids: list[int]) -> tuple[float, float, int]:
+    route_length = sum(
+        float(
+            np.linalg.norm(
+                np.diff(builder.raw_centerline(lanelet_id)[:, :2], axis=0),
+                axis=1,
+            ).sum()
+        )
+        for lanelet_id in lanelet_ids
+    )
+    start_xy = builder.raw_centerline(lanelet_ids[0])[0, :2]
+    goal_xy = builder.raw_centerline(lanelet_ids[-1])[-1, :2]
+    endpoint_distance = float(np.linalg.norm(goal_xy - start_xy))
+    repeated_lanelets = len(lanelet_ids) - len(set(lanelet_ids))
+    return route_length, endpoint_distance, repeated_lanelets
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Create a deterministic smoke-test Route from a Lanelet2 map."
@@ -62,6 +79,12 @@ def main() -> None:
     parser.add_argument("--map_path", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--min_length_m", type=float, default=120.0)
+    parser.add_argument("--min_endpoint_distance_m", type=float, default=50.0)
+    parser.add_argument(
+        "--allow_repeated_lanelets",
+        action="store_true",
+        help="Allow loop-like routes containing repeated lanelet IDs.",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--start_lanelet_id", type=int, default=None)
     parser.add_argument("--goal_lanelet_id", type=int, default=None)
@@ -107,15 +130,15 @@ def main() -> None:
             route_ids = builder.find_route(start_id, min_length_m=args.min_length_m)
             if len(route_ids) < 2:
                 continue
-            route_length = sum(
-                float(
-                    np.linalg.norm(
-                        np.diff(builder.raw_centerline(lanelet_id)[:, :2], axis=0),
-                        axis=1,
-                    ).sum()
-                )
-                for lanelet_id in route_ids
-            )
+            (
+                route_length,
+                endpoint_distance,
+                repeated_lanelets,
+            ) = _route_geometry(builder, route_ids)
+            if endpoint_distance < args.min_endpoint_distance_m:
+                continue
+            if repeated_lanelets and not args.allow_repeated_lanelets:
+                continue
             if route_length > best_length:
                 best_ids = route_ids
                 best_length = route_length
@@ -123,15 +146,22 @@ def main() -> None:
 
     if best_ids is None:
         raise RuntimeError(f"No route was found in {args.map_path}.")
-    best_length = sum(
-        float(
-            np.linalg.norm(
-                np.diff(builder.raw_centerline(lanelet_id)[:, :2], axis=0),
-                axis=1,
-            ).sum()
+    (
+        best_length,
+        endpoint_distance,
+        repeated_lanelets,
+    ) = _route_geometry(builder, best_ids)
+    if endpoint_distance < args.min_endpoint_distance_m:
+        raise RuntimeError(
+            f"Resolved route endpoint separation is {endpoint_distance:.1f} m, "
+            "shorter than "
+            f"--min_endpoint_distance_m={args.min_endpoint_distance_m:.1f}."
         )
-        for lanelet_id in best_ids
-    )
+    if repeated_lanelets and not args.allow_repeated_lanelets:
+        raise RuntimeError(
+            f"Resolved route repeats {repeated_lanelets} lanelets; pass "
+            "--allow_repeated_lanelets only for intentional loop scenarios."
+        )
     if best_length < args.min_length_m:
         raise RuntimeError(
             f"Resolved route is {best_length:.1f} m, shorter than "
@@ -155,6 +185,8 @@ def main() -> None:
                 "output": str(args.output.resolve()),
                 "map_path": route.map_path,
                 "route_length_m": best_length,
+                "endpoint_distance_m": endpoint_distance,
+                "repeated_lanelet_count": repeated_lanelets,
                 "route_lanelet_count": len(best_ids),
                 "start_lanelet_id": route.start_lanelet_id,
                 "goal_lanelet_id": route.goal_lanelet_id,
