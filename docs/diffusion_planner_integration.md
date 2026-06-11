@@ -503,6 +503,20 @@ statistically sufficient claim that scene-conditioned CAMP is generally
 better, because the comparison covers one route and one seed and uses proxy
 preference labels.
 
+## Formal four-way benchmark
+
+The first strictly paired formal matrix completed 144/144 runs over three
+routes, three unseen seeds, two NPC caps, two traffic-light modes, and four
+selectors. Deterministic 10,000-resample bootstrap statistics, the pairing
+audit, exact asset provenance, and an honest interpretation are recorded in
+[`diffusion_planner_formal_v4_results.md`](diffusion_planner_formal_v4_results.md).
+
+The principal result is mixed rather than a general CAMP win. Uniform and
+Theta improve route completion over original DP Top-1, but also worsen comfort
+and selected-plan red-light violations. Theta does not significantly
+outperform Static across the full matrix. All variants recorded zero OBB
+collisions, so no collision-reduction claim is possible from this run.
+
 ## Current limitations
 
 - Dynamic-vehicle hard collision feasibility now uses oriented bounding-box
@@ -512,8 +526,10 @@ preference labels.
 - The current DP-compatible `Theta` uses a stable 96-dimensional summary of
   Diffusion Planner input tensors, not a learned adapter over private DP
   encoder features.
-- Both the static and scene-conditioned DP weights are trained from explicit
-  proxy preferences rather than ground-truth closed-loop safety labels.
-- Formal evaluation still needs matched original-DP, uniform-CAMP,
-  static-CAMP, and scene-conditioned-CAMP runs over multiple routes, seeds,
-  traffic-light phases, and NPC densities.
+- Static and Theta now use DP candidate-reward preferences after safety and
+  progress gating. These are model-based labels, not counterfactual
+  closed-loop outcomes or human preferences.
+- The formal matrix is complete, but selection p95 remains approximately
+  107-108 ms for CAMP variants, slightly above the simulator's 100 ms tick.
+- The next formal iteration needs closed-loop outcome labels, retraining, and
+  the same strictly paired matrix before claiming a general quality gain.

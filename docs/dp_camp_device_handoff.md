@@ -85,6 +85,27 @@ The trained checkpoint and comparison outputs are:
 /root/autodl-tmp/camp_dp_assets/camp_dp_scene_theta_v1_fc318c8/comparison.md
 ```
 
+The current formal-v4 trained assets are:
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_quality_static_v4_d1031de/
+/root/autodl-tmp/camp_dp_assets/camp_dp_quality_theta_v4_d1031de/
+```
+
+The completed formal result root is:
+
+```text
+/root/autodl-tmp/camp_dp_formal_v4_d1031de
+```
+
+Its 144 runs are strictly paired over 36 scenario keys for each of the four
+selectors. The versioned report and interpretation are in:
+
+```text
+results/diffusion_planner/benchmark_comparison_bootstrap_v4.json
+docs/diffusion_planner_formal_v4_results.md
+```
+
 The matched 200-step replay directories are:
 
 ```text

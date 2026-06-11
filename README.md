@@ -123,6 +123,8 @@ The TIER IV Diffusion Planner simulator bridge is documented in
 It generates multiple Diffusion Planner ego candidates, selects one with CAMP,
 and returns the selected trajectory to the upstream perfect/MPC tracker without
 requiring a ROS runtime.
+The first strictly paired four-way benchmark is summarized in
+[`docs/diffusion_planner_formal_v4_results.md`](docs/diffusion_planner_formal_v4_results.md).
 
 ### 1. Atom Scale Calibration
 
