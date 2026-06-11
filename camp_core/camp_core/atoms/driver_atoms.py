@@ -18,6 +18,7 @@ class DriverAtomContext:
     speed_limit: Optional[float] = None
     desired_speed: Optional[float] = None
     lane_half_width: float = 1.8
+    lane_corridor_buffer: float = 1.0
     safety_radius: float = 2.0
     clearance_soft_margin: float = 1.0
     map_source: str = "fallback"
@@ -323,8 +324,7 @@ def compute_feasibility_mask(
              d = abs(_project_point_onto_polyline(p, ctx.lane_centerline))
              max_dev = max(max_dev, d)
         
-        # Hard limit: Lane Half Width + 1.0m buffer
-        if max_dev > (ctx.lane_half_width + 1.0):
+        if max_dev > (ctx.lane_half_width + ctx.lane_corridor_buffer):
             return False
             
     # 2. Speed Cap (Hard Constraint)

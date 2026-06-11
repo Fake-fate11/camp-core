@@ -100,6 +100,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camp_atom_clip", type=float, default=10.0)
     parser.add_argument("--camp_safety_radius", type=float, default=2.0)
     parser.add_argument("--camp_clearance_margin", type=float, default=1.0)
+    parser.add_argument("--camp_lane_corridor_buffer", type=float, default=1.0)
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
@@ -124,6 +125,8 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--num_candidates must be >= 2 for CAMP candidate selection.")
     if args.candidate_noise_scale <= 0:
         raise ValueError("--candidate_noise_scale must be > 0.")
+    if args.camp_lane_corridor_buffer < 0:
+        raise ValueError("--camp_lane_corridor_buffer must be non-negative.")
     if args.near_miss_threshold_m < 0:
         raise ValueError("--near_miss_threshold_m must be non-negative.")
     if args.reward_config is not None and not args.reward_config.is_file():
@@ -406,6 +409,7 @@ def _install_camp_predictor(
     noise_scale: float,
     safety_radius: float,
     clearance_margin: float,
+    lane_corridor_buffer: float,
     ego_length: float,
     ego_width: float,
     ego_wheelbase: float,
@@ -477,6 +481,7 @@ def _install_camp_predictor(
             ego_id,
             safety_radius=safety_radius,
             clearance_soft_margin=clearance_margin,
+            lane_corridor_buffer=lane_corridor_buffer,
         )
         obstacles = _candidate_obstacles(
             scene,
@@ -600,6 +605,7 @@ def main() -> None:
             noise_scale=args.candidate_noise_scale,
             safety_radius=args.camp_safety_radius,
             clearance_margin=args.camp_clearance_margin,
+            lane_corridor_buffer=args.camp_lane_corridor_buffer,
             ego_length=float(config.ego_length),
             ego_width=float(config.ego_width),
             ego_wheelbase=float(config.ego_wheelbase),
@@ -646,6 +652,9 @@ def main() -> None:
     )
     effective_num_candidates = args.num_candidates if records is not None else 1
     effective_noise_scale = args.candidate_noise_scale if records is not None else None
+    effective_lane_buffer = (
+        args.camp_lane_corridor_buffer if records is not None else None
+    )
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
@@ -653,6 +662,7 @@ def main() -> None:
         "camp_evaluation_state_log": str(evaluation_log),
         "num_candidates": effective_num_candidates,
         "candidate_noise_scale": effective_noise_scale,
+        "camp_lane_corridor_buffer": effective_lane_buffer,
         "selector_mode": args.camp_selector_mode,
         "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
         "model_args": str(args.model_args) if args.model_args is not None else None,
@@ -688,6 +698,7 @@ def main() -> None:
     validation["selector_mode"] = args.camp_selector_mode
     validation["num_candidates"] = effective_num_candidates
     validation["candidate_noise_scale"] = effective_noise_scale
+    validation["camp_lane_corridor_buffer"] = effective_lane_buffer
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (
         f"route={args.route}|seed={args.seed}|steps={args.steps}|"

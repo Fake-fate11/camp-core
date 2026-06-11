@@ -337,6 +337,7 @@ probabilities, use:
   --camp_static_weights "$STATIC_ASSET_DIR/offline_weights_dp_static.npy" \
   --camp_theta_checkpoint "$THETA_ASSET_DIR/camp_dp_scene_theta.npz" \
   --num_candidates 8 \
+  --camp_lane_corridor_buffer 1.25 \
   --resume
 ```
 
@@ -350,6 +351,11 @@ seed across all four variants, so NPC spawning and initial signal phases are
 paired. `--traffic_light_modes on,off` adds an explicit traffic-control
 ablation. `--resume` skips any run that already has
 `camp_validation_summary.json`.
+
+The hard route-corridor gate uses
+`lane_half_width + --camp_lane_corridor_buffer`. Its default remains `1.0 m`;
+benchmark calibration should pass an explicit value, which is recorded in
+`camp_replay_summary.json` and `camp_validation_summary.json`.
 
 The versioned reward configuration is:
 

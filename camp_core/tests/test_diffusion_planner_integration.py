@@ -316,6 +316,39 @@ def test_static_selector_prefers_smoother_feasible_candidate() -> None:
     assert not result.used_fallback
 
 
+def test_selector_respects_configurable_lane_corridor_buffer() -> None:
+    x = np.linspace(0.5, 4.0, 8)
+    candidate = np.column_stack([x, np.full_like(x, 2.6)])
+    selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=np.ones(9),
+        mode="static",
+    )
+
+    strict = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=1.5,
+        lane_corridor_buffer=1.0,
+        speed_limit=50.0,
+    )
+    relaxed = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=1.5,
+        lane_corridor_buffer=1.25,
+        speed_limit=50.0,
+    )
+
+    strict_result = selector.select(candidate[np.newaxis], strict)
+    relaxed_result = selector.select(candidate[np.newaxis], relaxed)
+
+    assert strict_result.feasible_mask.tolist() == [False]
+    assert strict_result.infeasibility_reasons == (("lane_corridor",),)
+    assert relaxed_result.feasible_mask.tolist() == [True]
+    assert relaxed_result.infeasibility_reasons == ((),)
+
+
 def test_selector_masks_candidate_that_collides_with_predicted_neighbor() -> None:
     context = DriverAtomContext(
         dt=0.1,
@@ -518,7 +551,11 @@ def test_build_context_transforms_route_and_extracts_limits() -> None:
         static_objects=np.array([[14.0, 5.0, 1.0, 0.0, 2.0, 4.0, 0.0, 0.0, 0.0, 0.0]])
     )
 
-    context = build_context_from_scene(_FakeScene(agent, map_data), "ego")
+    context = build_context_from_scene(
+        _FakeScene(agent, map_data),
+        "ego",
+        lane_corridor_buffer=1.25,
+    )
 
     np.testing.assert_allclose(
         context.lane_centerline,
@@ -526,5 +563,6 @@ def test_build_context_transforms_route_and_extracts_limits() -> None:
     )
     np.testing.assert_allclose(context.static_obstacles, np.array([[4.0, 0.0]]))
     assert context.lane_half_width == 2.0
+    assert context.lane_corridor_buffer == 1.25
     assert context.speed_limit == 13.0
     assert context.desired_speed == 4.0

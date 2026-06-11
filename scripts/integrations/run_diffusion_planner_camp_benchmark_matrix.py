@@ -87,6 +87,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camp_theta_checkpoint", type=Path, required=True)
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
+    parser.add_argument("--camp_lane_corridor_buffer", type=float, default=1.0)
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     parser.add_argument(
         "--render_png",
@@ -167,6 +168,8 @@ def _variant_command(
                 str(args.num_candidates),
                 "--candidate_noise_scale",
                 str(args.candidate_noise_scale),
+                "--camp_lane_corridor_buffer",
+                str(args.camp_lane_corridor_buffer),
             ]
         )
     if variant == "static":

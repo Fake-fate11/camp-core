@@ -1329,6 +1329,7 @@ def build_context_from_scene(
     *,
     safety_radius: float = 2.0,
     clearance_soft_margin: float = 1.0,
+    lane_corridor_buffer: float = 1.0,
 ) -> DriverAtomContext:
     """Build CAMP atom context from a Diffusion-Planner ``SceneContext``.
 
@@ -1394,6 +1395,7 @@ def build_context_from_scene(
         speed_limit=speed_limit,
         desired_speed=desired_speed,
         lane_half_width=lane_half_width,
+        lane_corridor_buffer=lane_corridor_buffer,
         safety_radius=safety_radius,
         clearance_soft_margin=clearance_soft_margin,
         map_source="diffusion_planner_route",
