@@ -273,10 +273,9 @@ def main() -> None:
     args = parse_args()
     atoms, feasible = load_training_records(args.selection_log)
     atom_names = atom_names_for_dimension(atoms.shape[-1])
-    scales = robust_atom_scales(atoms, args.scale_percentile)
-    normalized = np.clip(np.nan_to_num(atoms / scales.reshape(1, 1, -1)), 0.0, 10.0)
 
     proxy_weights = None
+    candidate_rewards = None
     dropped_records = 0
     if args.label_source == "dp_reward":
         candidate_rewards = load_candidate_reward_values(
@@ -288,15 +287,14 @@ def main() -> None:
             raise ValueError(
                 "Candidate reward shape must match feasible_mask, "
                 f"got {candidate_rewards.shape} and {feasible.shape}."
-            )
+        )
         valid = feasible.any(axis=1) & np.isfinite(candidate_rewards).any(axis=1)
         dropped_records = int(np.sum(~valid))
-        normalized = normalized[valid]
+        atoms = atoms[valid]
         feasible = feasible[valid]
         candidate_rewards = candidate_rewards[valid]
-        if not normalized.shape[0]:
+        if not atoms.shape[0]:
             raise ValueError("No reward-labeled records contain a feasible candidate.")
-        labels = reward_oracle_indices(candidate_rewards, feasible)
     else:
         if args.proxy_weights:
             proxy_weights = np.asarray(json.loads(args.proxy_weights), dtype=np.float64)
@@ -307,7 +305,18 @@ def main() -> None:
                 f"proxy_weights must have {len(atom_names)} entries, "
                 f"got {proxy_weights.shape}."
             )
-        labels = oracle_indices(normalized, feasible, proxy_weights)
+
+    scales = robust_atom_scales(atoms, args.scale_percentile)
+    normalized = np.clip(
+        np.nan_to_num(atoms / scales.reshape(1, 1, -1)),
+        0.0,
+        10.0,
+    )
+    labels = (
+        reward_oracle_indices(candidate_rewards, feasible)
+        if candidate_rewards is not None
+        else oracle_indices(normalized, feasible, proxy_weights)
+    )
     weights, history = train_static_weights(
         normalized,
         labels,
