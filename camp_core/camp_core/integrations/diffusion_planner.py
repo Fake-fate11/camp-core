@@ -40,6 +40,16 @@ CAMP_ATOM_NAMES = (
 )
 DP_CAMP_ATOM_NAMES = CAMP_ATOM_NAMES + ("progress_shortfall",)
 
+DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS = {
+    "progress": 1.0,
+    "collision": 100.0,
+    "near_miss": 10.0,
+    "lane_violation": 20.0,
+    "red_light": 30.0,
+    "mean_jerk": 0.25,
+    "mean_lateral_acceleration": 1.0,
+}
+
 DP_SCENE_FEATURE_KEYS = (
     "ego_current_state",
     "neighbor_agents_past",
@@ -816,6 +826,305 @@ def _obb_collides(corners_a: np.ndarray, corners_b: np.ndarray) -> bool:
             if float(proj_b.max()) < float(proj_a.min()):
                 return False
     return True
+
+
+def _point_to_segment_distance(point: np.ndarray, start: np.ndarray, end: np.ndarray) -> float:
+    segment = end - start
+    denom = float(np.dot(segment, segment))
+    if denom <= 1e-12:
+        return float(np.linalg.norm(point - start))
+    t = float(np.clip(np.dot(point - start, segment) / denom, 0.0, 1.0))
+    closest = start + t * segment
+    return float(np.linalg.norm(point - closest))
+
+
+def _obb_distance(corners_a: np.ndarray, corners_b: np.ndarray) -> float:
+    if _obb_collides(corners_a, corners_b):
+        return 0.0
+    distances: list[float] = []
+    for corners, other in ((corners_a, corners_b), (corners_b, corners_a)):
+        for point in corners:
+            for idx in range(4):
+                distances.append(
+                    _point_to_segment_distance(
+                        point,
+                        other[idx],
+                        other[(idx + 1) % 4],
+                    )
+                )
+    return float(min(distances)) if distances else float("inf")
+
+
+def _polyline_projection_s(polyline: np.ndarray, point: np.ndarray) -> float:
+    line = np.asarray(polyline, dtype=np.float64)
+    if line.ndim != 2 or line.shape[0] < 2 or line.shape[1] < 2:
+        return 0.0
+    point = np.asarray(point, dtype=np.float64).reshape(2)
+    deltas = np.diff(line[:, :2], axis=0)
+    lengths = np.linalg.norm(deltas, axis=1)
+    cumulative = np.concatenate([[0.0], np.cumsum(lengths)])
+    best_distance = float("inf")
+    best_s = 0.0
+    for idx, (start, delta, length) in enumerate(zip(line[:-1, :2], deltas, lengths)):
+        if length <= 1e-9:
+            continue
+        t = float(np.clip(np.dot(point - start, delta) / (length * length), 0.0, 1.0))
+        closest = start + t * delta
+        distance = float(np.linalg.norm(point - closest))
+        if distance < best_distance:
+            best_distance = distance
+            best_s = float(cumulative[idx] + t * length)
+    return best_s
+
+
+def _red_route_points_from_lanes(route_lanes: Any) -> np.ndarray:
+    lanes = np.asarray(route_lanes, dtype=np.float64)
+    if lanes.ndim == 4 and lanes.shape[0] == 1:
+        lanes = lanes[0]
+    if lanes.ndim != 3 or lanes.shape[-1] <= 10:
+        return np.zeros((0, 4), dtype=np.float64)
+    red_mask = lanes[:, :, 10] > 0.5
+    valid = np.linalg.norm(lanes[:, :, :2], axis=-1) > 0.1
+    points = lanes[red_mask & valid][:, :4]
+    if points.size == 0:
+        return np.zeros((0, 4), dtype=np.float64)
+    return np.asarray(points, dtype=np.float64)
+
+
+def red_route_points_from_scene(scene: Any, ego_agent_id: str) -> np.ndarray:
+    """Return red route-lane points in the current ego frame."""
+    ego = scene.get_agent(ego_agent_id)
+    if ego.route_lanes is None:
+        return np.zeros((0, 4), dtype=np.float64)
+    points = _red_route_points_from_lanes(ego.route_lanes)
+    if points.size == 0:
+        return points
+    ego_xy = np.asarray(ego.current_position, dtype=np.float64)
+    ego_heading = float(ego.current_heading)
+    xy = _to_ego_frame(points[:, :2], ego_xy, ego_heading)
+    directions = points[:, 2:4]
+    c = math.cos(-ego_heading)
+    s = math.sin(-ego_heading)
+    rotation = np.array([[c, -s], [s, c]], dtype=np.float64)
+    dirs = directions @ rotation.T
+    return np.column_stack([xy, dirs])
+
+
+def _trajectory_comfort(trajectory: np.ndarray, dt: float) -> tuple[float, float]:
+    xy = np.asarray(trajectory, dtype=np.float64)[:, :2]
+    if xy.shape[0] < 3:
+        return 0.0, 0.0
+    velocity = np.diff(xy, axis=0) / max(float(dt), 1e-6)
+    acceleration = np.diff(velocity, axis=0) / max(float(dt), 1e-6)
+    mean_lateral = 0.0
+    if acceleration.size:
+        headings = _trajectory_headings(trajectory)[2:]
+        lateral_axes = np.column_stack([-np.sin(headings), np.cos(headings)])
+        mean_lateral = float(np.mean(np.abs(np.sum(acceleration * lateral_axes, axis=1))))
+    if acceleration.shape[0] < 2:
+        return 0.0, mean_lateral
+    jerk = np.diff(acceleration, axis=0) / max(float(dt), 1e-6)
+    return float(np.mean(np.linalg.norm(jerk, axis=1))), mean_lateral
+
+
+def _trajectory_lane_violation(
+    trajectory: np.ndarray,
+    context: DriverAtomContext,
+) -> bool:
+    line = np.asarray(context.lane_centerline, dtype=np.float64)
+    if line.ndim != 2 or line.shape[0] < 2:
+        return False
+    threshold = float(context.lane_half_width) + float(context.lane_corridor_buffer)
+    for point in np.asarray(trajectory, dtype=np.float64)[:, :2]:
+        min_distance = float("inf")
+        for start, end in zip(line[:-1, :2], line[1:, :2]):
+            min_distance = min(min_distance, _point_to_segment_distance(point, start, end))
+        if min_distance > threshold:
+            return True
+    return False
+
+
+def _trajectory_red_light_violation(
+    trajectory: np.ndarray,
+    red_points: np.ndarray,
+    dt: float,
+) -> bool:
+    red = np.asarray(red_points, dtype=np.float64)
+    if red.ndim != 2 or red.shape[1] < 4 or red.size == 0:
+        return False
+    headings = _trajectory_headings(trajectory)
+    xy = np.asarray(trajectory, dtype=np.float64)[:, :2]
+    for previous_xy, current_xy, heading in zip(xy[:-1], xy[1:], headings[1:]):
+        speed = float(np.linalg.norm(current_xy - previous_xy) / max(float(dt), 1e-6))
+        if speed <= 0.5:
+            continue
+        red_xy = red[:, :2]
+        red_directions = red[:, 2:4]
+        norms = np.linalg.norm(red_directions, axis=1)
+        valid = norms > 1e-6
+        if not valid.any():
+            continue
+        directions = red_directions[valid] / norms[valid, np.newaxis]
+        ego_direction = np.array([math.cos(float(heading)), math.sin(float(heading))])
+        aligned = directions @ ego_direction > 0.5
+        distances = np.linalg.norm(red_xy[valid] - current_xy, axis=1)
+        if np.any((distances < 3.0) & aligned):
+            return True
+    return False
+
+
+def compute_candidate_closed_loop_outcomes(
+    candidates: np.ndarray,
+    context: DriverAtomContext,
+    *,
+    candidate_obstacles: Optional[np.ndarray] = None,
+    red_route_points: Optional[np.ndarray] = None,
+    horizon_steps: int = 30,
+    near_miss_threshold_m: float = 2.0,
+    ego_length: float = 4.5,
+    ego_width: float = 1.9,
+    ego_wheelbase: float = 2.925,
+    weights: Optional[dict[str, float]] = None,
+) -> list[dict[str, Any]]:
+    """Evaluate short-horizon branch outcomes for each DP ego candidate.
+
+    This intentionally uses realized geometric outcomes over the candidate's
+    perfect-tracking branch, not Diffusion Planner's scalar reward. Candidates
+    and obstacles are in the current ego frame.
+    """
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.ndim != 3 or trajectories.shape[2] < 2:
+        raise ValueError(f"candidates must have shape [K,T,>=2], got {trajectories.shape}.")
+    horizon = min(max(int(horizon_steps), 2), trajectories.shape[1])
+    dt = float(context.dt)
+    score_weights = dict(DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS)
+    if weights:
+        score_weights.update({key: float(value) for key, value in weights.items()})
+
+    obstacles = None
+    if candidate_obstacles is not None:
+        obstacles = np.asarray(candidate_obstacles, dtype=np.float64)
+        if obstacles.ndim == 3:
+            obstacles = np.broadcast_to(
+                obstacles[np.newaxis],
+                (trajectories.shape[0],) + obstacles.shape,
+            )
+        if obstacles.ndim != 4 or obstacles.shape[0] != trajectories.shape[0]:
+            raise ValueError(
+                "candidate_obstacles must have shape [K,M,T,D] or [M,T,D], "
+                f"got {obstacles.shape}."
+            )
+    red_points = (
+        np.zeros((0, 4), dtype=np.float64)
+        if red_route_points is None
+        else np.asarray(red_route_points, dtype=np.float64)
+    )
+
+    outcomes: list[dict[str, Any]] = []
+    for candidate_idx, candidate in enumerate(trajectories):
+        branch = candidate[:horizon]
+        headings = _trajectory_headings(branch)
+        progress = max(
+            0.0,
+            _polyline_projection_s(context.lane_centerline, branch[-1, :2])
+            - _polyline_projection_s(context.lane_centerline, branch[0, :2]),
+        )
+        lane_violation = _trajectory_lane_violation(branch, context)
+        red_light_violation = _trajectory_red_light_violation(branch, red_points, dt)
+        mean_jerk, mean_lateral_acc = _trajectory_comfort(branch, dt)
+
+        collision = False
+        near_miss = False
+        min_clearance = float("inf")
+        if context.static_obstacles is not None and len(context.static_obstacles) > 0:
+            static_xy = np.asarray(context.static_obstacles, dtype=np.float64)[:, :2]
+            distances = np.linalg.norm(
+                branch[:, np.newaxis, :2] - static_xy[np.newaxis, :, :],
+                axis=-1,
+            )
+            if distances.size:
+                min_static = float(np.min(distances))
+                min_clearance = min(min_clearance, min_static)
+                if min_static < float(context.safety_radius):
+                    collision = True
+                if min_static <= float(near_miss_threshold_m):
+                    near_miss = True
+
+        if obstacles is not None:
+            candidate_obstacle = obstacles[candidate_idx]
+            for obstacle in candidate_obstacle:
+                obstacle_horizon = min(horizon, obstacle.shape[0])
+                for step_idx in range(obstacle_horizon):
+                    row = obstacle[step_idx]
+                    if row.shape[0] < 2 or not np.all(np.isfinite(row[:2])):
+                        continue
+                    if np.linalg.norm(row[:2]) < 1e-8:
+                        continue
+                    if row.shape[0] >= 5 and np.all(np.isfinite(row[:5])):
+                        obs_heading = float(row[2])
+                        obs_length = max(float(row[3]), 1e-3)
+                        obs_width = max(float(row[4]), 1e-3)
+                        obs_wheelbase = (
+                            float(row[5])
+                            if row.shape[0] >= 6 and np.isfinite(row[5]) and row[5] > 0
+                            else None
+                        )
+                        ego_box = _obb_corners(
+                            float(branch[step_idx, 0]),
+                            float(branch[step_idx, 1]),
+                            float(headings[step_idx]),
+                            float(ego_length),
+                            float(ego_width),
+                            float(ego_wheelbase),
+                        )
+                        obs_box = _obb_corners(
+                            float(row[0]),
+                            float(row[1]),
+                            obs_heading,
+                            obs_length,
+                            obs_width,
+                            obs_wheelbase,
+                        )
+                        clearance = _obb_distance(ego_box, obs_box)
+                    else:
+                        clearance = float(
+                            np.linalg.norm(branch[step_idx, :2] - row[:2])
+                        )
+                    min_clearance = min(min_clearance, clearance)
+                    if clearance <= 1e-6:
+                        collision = True
+                    if clearance <= float(near_miss_threshold_m):
+                        near_miss = True
+
+        feasible = not (collision or lane_violation or red_light_violation)
+        value = (
+            score_weights["progress"] * progress
+            - score_weights["collision"] * float(collision)
+            - score_weights["near_miss"] * float(near_miss)
+            - score_weights["lane_violation"] * float(lane_violation)
+            - score_weights["red_light"] * float(red_light_violation)
+            - score_weights["mean_jerk"] * mean_jerk
+            - score_weights["mean_lateral_acceleration"] * mean_lateral_acc
+        )
+        outcomes.append(
+            {
+                "candidate_index": int(candidate_idx),
+                "horizon_steps": int(horizon),
+                "progress_m": float(progress),
+                "collision": bool(collision),
+                "near_miss": bool(near_miss),
+                "lane_violation": bool(lane_violation),
+                "red_light_violation": bool(red_light_violation),
+                "mean_jerk_mps3": float(mean_jerk),
+                "mean_lateral_acceleration_mps2": float(mean_lateral_acc),
+                "min_obstacle_clearance_m": (
+                    None if not np.isfinite(min_clearance) else float(min_clearance)
+                ),
+                "feasible": bool(feasible),
+                "value": float(value),
+            }
+        )
+    return outcomes
 
 
 @dataclass(frozen=True)

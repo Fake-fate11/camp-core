@@ -23,6 +23,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 from scripts.integrations.train_diffusion_planner_static_camp import (  # noqa: E402
     DEFAULT_PROXY_WEIGHTS,
     atom_names_for_dimension,
+    load_candidate_closed_loop_outcomes,
     load_candidate_reward_values,
     normalize_nonnegative,
     oracle_indices,
@@ -281,7 +282,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--feature_clip", type=float, default=5.0)
     parser.add_argument(
         "--label_source",
-        choices=("dp_reward", "proxy"),
+        choices=("dp_reward", "closed_loop_outcome", "proxy"),
         default="dp_reward",
     )
     parser.add_argument(
@@ -290,6 +291,12 @@ def parse_args() -> argparse.Namespace:
         default="quality_without_progress",
     )
     parser.add_argument("--reward_progress_weight", type=float, default=2.0)
+    parser.add_argument(
+        "--outcome_key",
+        type=str,
+        default="value",
+        help="Candidate closed-loop outcome field to maximize.",
+    )
     parser.add_argument(
         "--proxy_weights",
         type=str,
@@ -308,6 +315,7 @@ def main() -> None:
     proxy_weights = None
     dropped_records = 0
     candidate_rewards = None
+    closed_loop_outcomes = None
     if args.label_source == "dp_reward":
         candidate_rewards = load_candidate_reward_values(
             args.selection_log,
@@ -328,6 +336,31 @@ def main() -> None:
         candidate_rewards = candidate_rewards[valid]
         if not atoms.shape[0]:
             raise ValueError("No reward-labeled records contain a feasible candidate.")
+    elif args.label_source == "closed_loop_outcome":
+        closed_loop_outcomes, outcome_feasible = load_candidate_closed_loop_outcomes(
+            args.selection_log,
+            outcome_key=args.outcome_key,
+        )
+        if closed_loop_outcomes.shape != feasible.shape:
+            raise ValueError(
+                "Candidate outcome shape must match feasible_mask, "
+                f"got {closed_loop_outcomes.shape} and {feasible.shape}."
+            )
+        if outcome_feasible.shape != feasible.shape:
+            raise ValueError(
+                "Candidate outcome feasible shape must match feasible_mask, "
+                f"got {outcome_feasible.shape} and {feasible.shape}."
+            )
+        finite_feasible = np.isfinite(closed_loop_outcomes) & outcome_feasible
+        valid = outcome_feasible.any(axis=1) & finite_feasible.any(axis=1)
+        dropped_records = int(np.sum(~valid))
+        features = features[valid]
+        atoms = atoms[valid]
+        feasible = outcome_feasible[valid]
+        group_ids = group_ids[valid]
+        closed_loop_outcomes = closed_loop_outcomes[valid]
+        if not atoms.shape[0]:
+            raise ValueError("No closed-loop outcome records contain a feasible candidate.")
     else:
         if args.proxy_weights:
             proxy_weights = np.asarray(json.loads(args.proxy_weights), dtype=np.float64)
@@ -348,7 +381,11 @@ def main() -> None:
     labels = (
         reward_oracle_indices(candidate_rewards, feasible)
         if candidate_rewards is not None
-        else oracle_indices(normalized_atoms, feasible, proxy_weights)
+        else (
+            reward_oracle_indices(closed_loop_outcomes, feasible)
+            if closed_loop_outcomes is not None
+            else oracle_indices(normalized_atoms, feasible, proxy_weights)
+        )
     )
 
     feature_center, feature_scale = robust_feature_normalization(features)
@@ -411,6 +448,9 @@ def main() -> None:
         "training_type": "diffusion_planner_scene_conditioned_theta_preference",
         "label_source": args.label_source,
         "reward_key": args.reward_key if args.label_source == "dp_reward" else None,
+        "outcome_key": (
+            args.outcome_key if args.label_source == "closed_loop_outcome" else None
+        ),
         "reward_progress_weight": (
             args.reward_progress_weight
             if args.label_source == "dp_reward"
@@ -439,9 +479,15 @@ def main() -> None:
         "history": history,
         "final_metrics": final_metrics,
         "caveat": (
-            "Theta is trained from candidate-level DP reward preferences, not "
-            "counterfactual closed-loop outcomes. Matched closed-loop baselines "
-            "remain required for final claims."
+            "Theta is trained from short-horizon candidate-branch closed-loop "
+            "outcomes. Matched closed-loop baselines remain required for final "
+            "claims."
+            if args.label_source == "closed_loop_outcome"
+            else (
+                "Theta is trained from candidate-level DP reward preferences, not "
+                "counterfactual closed-loop outcomes. Matched closed-loop baselines "
+                "remain required for final claims."
+            )
         ),
     }
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")

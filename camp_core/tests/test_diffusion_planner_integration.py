@@ -14,6 +14,7 @@ from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES,
     CAMPSelector,
     build_context_from_scene,
+    compute_candidate_closed_loop_outcomes,
     extract_dp_scene_features,
     install_lanelet2_projection_fallback,
     project_simplex,
@@ -39,6 +40,7 @@ from scripts.integrations.train_diffusion_planner_theta import (
     train_scene_theta,
 )
 from scripts.integrations.train_diffusion_planner_static_camp import (
+    load_candidate_closed_loop_outcomes,
     load_candidate_reward_values,
     load_training_records,
     oracle_indices,
@@ -307,6 +309,85 @@ def test_dp_candidate_reward_labels_prefer_best_feasible_candidate(tmp_path) -> 
 
     assert rewards.tolist() == [[2.0, 100.0, 5.0]]
     assert quality.tolist() == [[1.0, 0.0, 3.0]]
+    assert labels.tolist() == [2]
+
+
+def test_candidate_closed_loop_outcomes_capture_branch_metrics() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=1.5,
+        lane_corridor_buffer=0.5,
+        speed_limit=30.0,
+        safety_radius=1.0,
+    )
+    x = np.linspace(0.0, 5.0, 6)
+    safe = np.column_stack([x, np.zeros_like(x), np.ones_like(x), np.zeros_like(x)])
+    colliding = safe.copy()
+    lane_bad = np.column_stack([x, np.full_like(x, 3.0), np.ones_like(x), np.zeros_like(x)])
+    candidates = np.stack([safe, colliding, lane_bad])
+    obstacles = np.zeros((3, 1, 6, 6), dtype=np.float64)
+    obstacles[1, 0, :, 0] = x
+    obstacles[1, 0, :, 1] = 0.0
+    obstacles[1, 0, :, 2] = 0.0
+    obstacles[1, 0, :, 3] = 4.5
+    obstacles[1, 0, :, 4] = 1.9
+    obstacles[1, 0, :, 5] = 2.9
+    red_points = np.array([[4.0, 0.0, 1.0, 0.0]])
+
+    outcomes = compute_candidate_closed_loop_outcomes(
+        candidates,
+        context,
+        candidate_obstacles=obstacles,
+        red_route_points=red_points,
+        horizon_steps=6,
+        near_miss_threshold_m=2.0,
+        weights={
+            "progress": 1.0,
+            "collision": 100.0,
+            "near_miss": 10.0,
+            "lane_violation": 40.0,
+            "red_light": 30.0,
+            "mean_jerk": 0.0,
+            "mean_lateral_acceleration": 0.0,
+        },
+    )
+
+    assert outcomes[0]["progress_m"] > 4.0
+    assert outcomes[0]["red_light_violation"]
+    assert outcomes[1]["collision"]
+    assert outcomes[1]["near_miss"]
+    assert outcomes[2]["lane_violation"]
+    assert outcomes[1]["value"] < outcomes[0]["value"]
+    assert outcomes[2]["value"] < outcomes[0]["value"]
+
+
+def test_closed_loop_outcome_labels_prefer_best_feasible_candidate(tmp_path) -> None:
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(
+        json.dumps(
+            [
+                {
+                    "atoms": [[0.0] * 9, [1.0] * 9, [2.0] * 9],
+                    "feasible_mask": [True, True, True],
+                    "candidate_closed_loop_outcomes": [
+                        {"value": 1.0, "feasible": True},
+                        {"value": 100.0, "feasible": False},
+                        {"value": 5.0, "feasible": True},
+                    ],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    _, selector_feasible = load_training_records([log_path])
+    values, outcome_feasible = load_candidate_closed_loop_outcomes([log_path])
+    labels = reward_oracle_indices(values, outcome_feasible)
+
+    assert selector_feasible.tolist() == [[True, True, True]]
+    assert outcome_feasible.tolist() == [[True, False, True]]
+    assert values.tolist() == [[1.0, 100.0, 5.0]]
     assert labels.tolist() == [2]
 
 

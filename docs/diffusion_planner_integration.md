@@ -517,6 +517,58 @@ and selected-plan red-light violations. Theta does not significantly
 outperform Static across the full matrix. All variants recorded zero OBB
 collisions, so no collision-reduction claim is possible from this run.
 
+## V5 closed-loop outcome labels
+
+The v5 label path replaces `dp_reward` preference labels with
+`closed_loop_outcome` labels. During replay, pass:
+
+```bash
+--camp_collect_closed_loop_outcomes \
+--camp_outcome_horizon_steps 30
+```
+
+For each simulation tick and each Diffusion Planner candidate, the runner logs
+`candidate_closed_loop_outcomes` in `camp_selection_log.json`. The outcome is
+a short-horizon branch evaluation: ego follows the candidate with perfect
+tracking in the current ego frame, NPCs use the corresponding Diffusion
+Planner neighbor futures, and the value is computed from route progress,
+OBB collision, near miss, lane violation, red-light violation, jerk, and
+lateral acceleration. This is no longer the upstream DP scalar reward.
+
+For batched collection, use the matrix runner with the uniform variant:
+
+```bash
+"$DP_PYTHON" scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  --variants uniform \
+  --skip_compare \
+  --camp_collect_closed_loop_outcomes \
+  --camp_outcome_horizon_steps 30 \
+  ...  # same route/seed/NPC/traffic-light/model arguments as the formal matrix
+```
+
+Train Static CAMP from the collected logs with:
+
+```bash
+"$DP_PYTHON" scripts/integrations/train_diffusion_planner_static_camp.py \
+  --selection_log /path/to/camp_selection_log.json \
+  --output_dir /root/autodl-tmp/camp_dp_assets/camp_dp_outcome_static_v5 \
+  --label_source closed_loop_outcome \
+  --outcome_key value
+```
+
+Train scene-conditioned `Theta` with:
+
+```bash
+LABEL_SOURCE=closed_loop_outcome \
+OUTCOME_KEY=value \
+THETA_OUTPUT_DIR=/root/autodl-tmp/camp_dp_assets/camp_dp_outcome_theta_v5 \
+SELECTION_LOGS=/path/a/camp_selection_log.json:/path/b/camp_selection_log.json \
+bash scripts/integrations/run_diffusion_planner_theta_remote.sh
+```
+
+After training, rerun the same 144-run strict matrix with the v5 Static and
+Theta assets and regenerate paired bootstrap statistics.
+
 ## Current limitations
 
 - Dynamic-vehicle hard collision feasibility now uses oriented bounding-box
@@ -531,5 +583,6 @@ collisions, so no collision-reduction claim is possible from this run.
   closed-loop outcomes or human preferences.
 - The formal matrix is complete, but selection p95 remains approximately
   107-108 ms for CAMP variants, slightly above the simulator's 100 ms tick.
-- The next formal iteration needs closed-loop outcome labels, retraining, and
-  the same strictly paired matrix before claiming a general quality gain.
+- V5 closed-loop outcome label support is implemented, but the v5 collection,
+  retraining, and strict matrix rerun must complete before claiming a general
+  quality gain.

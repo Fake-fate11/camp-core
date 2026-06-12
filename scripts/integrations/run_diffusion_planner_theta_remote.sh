@@ -16,6 +16,7 @@ SEED="${SEED:-7}"
 LABEL_SOURCE="${LABEL_SOURCE:-dp_reward}"
 REWARD_KEY="${REWARD_KEY:-quality_without_progress}"
 REWARD_PROGRESS_WEIGHT="${REWARD_PROGRESS_WEIGHT:-2.0}"
+OUTCOME_KEY="${OUTCOME_KEY:-value}"
 BACKGROUND="${BACKGROUND:-0}"
 
 fail() {
@@ -62,6 +63,7 @@ CMD=(
   --label_source "$LABEL_SOURCE"
   --reward_key "$REWARD_KEY"
   --reward_progress_weight "$REWARD_PROGRESS_WEIGHT"
+  --outcome_key "$OUTCOME_KEY"
 )
 
 printf '%q ' "${CMD[@]}" > "$CMD_FILE"

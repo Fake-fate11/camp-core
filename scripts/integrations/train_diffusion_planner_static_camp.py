@@ -109,6 +109,36 @@ def load_candidate_reward_values(
     return np.asarray(values, dtype=np.float64)
 
 
+def load_candidate_closed_loop_outcomes(
+    paths: list[Path],
+    outcome_key: str = "value",
+) -> tuple[np.ndarray, np.ndarray]:
+    values = []
+    feasible = []
+    for path in paths:
+        for record in _records_from_path(path):
+            outcomes = record.get("candidate_closed_loop_outcomes")
+            if not isinstance(outcomes, list):
+                raise ValueError(
+                    f"{path} contains records without candidate_closed_loop_outcomes. "
+                    "Collect logs with --camp_collect_closed_loop_outcomes."
+                )
+            record_values = []
+            record_feasible = []
+            for outcome in outcomes:
+                if outcome_key not in outcome:
+                    raise ValueError(
+                        f"Candidate outcome in {path} has no {outcome_key!r} field."
+                    )
+                record_values.append(float(outcome[outcome_key]))
+                record_feasible.append(bool(outcome.get("feasible", True)))
+            values.append(record_values)
+            feasible.append(record_feasible)
+    if not values:
+        raise ValueError("No candidate closed-loop outcome records were loaded.")
+    return np.asarray(values, dtype=np.float64), np.asarray(feasible, dtype=bool)
+
+
 def robust_atom_scales(atoms: np.ndarray, percentile: float) -> np.ndarray:
     scales = np.percentile(np.reshape(atoms, (-1, atoms.shape[-1])), percentile, axis=0)
     scales = np.nan_to_num(scales, nan=1.0, posinf=1.0, neginf=1.0)
@@ -251,7 +281,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scale_percentile", type=float, default=95.0)
     parser.add_argument(
         "--label_source",
-        choices=("dp_reward", "proxy"),
+        choices=("dp_reward", "closed_loop_outcome", "proxy"),
         default="dp_reward",
     )
     parser.add_argument(
@@ -260,6 +290,12 @@ def parse_args() -> argparse.Namespace:
         default="quality_without_progress",
     )
     parser.add_argument("--reward_progress_weight", type=float, default=2.0)
+    parser.add_argument(
+        "--outcome_key",
+        type=str,
+        default="value",
+        help="Candidate closed-loop outcome field to maximize.",
+    )
     parser.add_argument(
         "--proxy_weights",
         type=str,
@@ -276,6 +312,7 @@ def main() -> None:
 
     proxy_weights = None
     candidate_rewards = None
+    closed_loop_outcomes = None
     dropped_records = 0
     if args.label_source == "dp_reward":
         candidate_rewards = load_candidate_reward_values(
@@ -295,6 +332,29 @@ def main() -> None:
         candidate_rewards = candidate_rewards[valid]
         if not atoms.shape[0]:
             raise ValueError("No reward-labeled records contain a feasible candidate.")
+    elif args.label_source == "closed_loop_outcome":
+        closed_loop_outcomes, outcome_feasible = load_candidate_closed_loop_outcomes(
+            args.selection_log,
+            outcome_key=args.outcome_key,
+        )
+        if closed_loop_outcomes.shape != feasible.shape:
+            raise ValueError(
+                "Candidate outcome shape must match feasible_mask, "
+                f"got {closed_loop_outcomes.shape} and {feasible.shape}."
+            )
+        if outcome_feasible.shape != feasible.shape:
+            raise ValueError(
+                "Candidate outcome feasible shape must match feasible_mask, "
+                f"got {outcome_feasible.shape} and {feasible.shape}."
+            )
+        finite_feasible = np.isfinite(closed_loop_outcomes) & outcome_feasible
+        valid = outcome_feasible.any(axis=1) & finite_feasible.any(axis=1)
+        dropped_records = int(np.sum(~valid))
+        atoms = atoms[valid]
+        feasible = outcome_feasible[valid]
+        closed_loop_outcomes = closed_loop_outcomes[valid]
+        if not atoms.shape[0]:
+            raise ValueError("No closed-loop outcome records contain a feasible candidate.")
     else:
         if args.proxy_weights:
             proxy_weights = np.asarray(json.loads(args.proxy_weights), dtype=np.float64)
@@ -315,7 +375,11 @@ def main() -> None:
     labels = (
         reward_oracle_indices(candidate_rewards, feasible)
         if candidate_rewards is not None
-        else oracle_indices(normalized, feasible, proxy_weights)
+        else (
+            reward_oracle_indices(closed_loop_outcomes, feasible)
+            if closed_loop_outcomes is not None
+            else oracle_indices(normalized, feasible, proxy_weights)
+        )
     )
     weights, history = train_static_weights(
         normalized,
@@ -341,6 +405,9 @@ def main() -> None:
         "training_type": "diffusion_planner_static_candidate_preference",
         "label_source": args.label_source,
         "reward_key": args.reward_key if args.label_source == "dp_reward" else None,
+        "outcome_key": (
+            args.outcome_key if args.label_source == "closed_loop_outcome" else None
+        ),
         "reward_progress_weight": (
             args.reward_progress_weight
             if args.label_source == "dp_reward"
@@ -367,9 +434,15 @@ def main() -> None:
         "atom_scales_path": str(scales_path),
         "history": history,
         "caveat": (
-            "Candidate-level DP rewards are model-based preferences, not "
-            "counterfactual closed-loop outcomes. Closed-loop matched baselines "
-            "remain required for final claims."
+            "Closed-loop outcome labels are short-horizon candidate-branch "
+            "evaluations. Matched closed-loop baselines remain required for "
+            "final claims."
+            if args.label_source == "closed_loop_outcome"
+            else (
+                "Candidate-level DP rewards are model-based preferences, not "
+                "counterfactual closed-loop outcomes. Closed-loop matched baselines "
+                "remain required for final claims."
+            )
         ),
     }
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")

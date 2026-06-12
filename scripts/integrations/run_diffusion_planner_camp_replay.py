@@ -24,9 +24,11 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     DP_SCENE_FEATURE_NAMES,
     CAMPSelector,
     build_context_from_scene,
+    compute_candidate_closed_loop_outcomes,
     extract_dp_scene_features,
     generate_candidate_trajectories,
     install_lanelet2_projection_fallback,
+    red_route_points_from_scene,
     summarize_replay_artifacts,
 )
 
@@ -129,6 +131,27 @@ def parse_args() -> argparse.Namespace:
             "Full selected trajectories are still evaluated separately."
         ),
     )
+    parser.add_argument(
+        "--camp_collect_closed_loop_outcomes",
+        action="store_true",
+        help=(
+            "Log short-horizon candidate outcome labels computed from perfect "
+            "tracking, predicted NPC futures, route progress, red lights, and "
+            "comfort. Used for v5 closed_loop_outcome training."
+        ),
+    )
+    parser.add_argument("--camp_outcome_horizon_steps", type=int, default=30)
+    parser.add_argument("--camp_outcome_progress_weight", type=float, default=1.0)
+    parser.add_argument("--camp_outcome_collision_penalty", type=float, default=100.0)
+    parser.add_argument("--camp_outcome_near_miss_penalty", type=float, default=10.0)
+    parser.add_argument("--camp_outcome_lane_penalty", type=float, default=20.0)
+    parser.add_argument("--camp_outcome_red_light_penalty", type=float, default=30.0)
+    parser.add_argument("--camp_outcome_jerk_penalty", type=float, default=0.25)
+    parser.add_argument(
+        "--camp_outcome_lateral_acceleration_penalty",
+        type=float,
+        default=1.0,
+    )
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
@@ -159,6 +182,8 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--camp_min_progress_ratio must be in [0, 1].")
     if args.camp_reward_horizon_steps < 2:
         raise ValueError("--camp_reward_horizon_steps must be >= 2.")
+    if args.camp_outcome_horizon_steps < 2:
+        raise ValueError("--camp_outcome_horizon_steps must be >= 2.")
     if args.camp_feasibility_source == "dp_reward" and args.reward_config is None:
         raise ValueError(
             "--camp_feasibility_source dp_reward requires --reward_config."
@@ -563,6 +588,10 @@ def _install_camp_predictor(
     feasibility_source: str,
     min_progress_ratio: float,
     reward_horizon_steps: int,
+    collect_closed_loop_outcomes: bool,
+    outcome_horizon_steps: int,
+    outcome_weights: dict[str, float],
+    near_miss_threshold_m: float,
     ego_length: float,
     ego_width: float,
     ego_wheelbase: float,
@@ -643,6 +672,7 @@ def _install_camp_predictor(
             replay_module.SceneNPCManager.is_static_npc,
         )
         candidate_rewards = None
+        candidate_outcomes = None
         candidate_progress = None
         external_feasible_mask = None
         external_infeasibility_reasons = None
@@ -669,6 +699,19 @@ def _install_camp_predictor(
             candidate_progress = np.asarray(
                 [reward["progress"] for reward in candidate_rewards],
                 dtype=np.float64,
+            )
+        if collect_closed_loop_outcomes:
+            candidate_outcomes = compute_candidate_closed_loop_outcomes(
+                candidates,
+                context,
+                candidate_obstacles=obstacles,
+                red_route_points=red_route_points_from_scene(scene, ego_id),
+                horizon_steps=outcome_horizon_steps,
+                near_miss_threshold_m=near_miss_threshold_m,
+                ego_length=ego_length,
+                ego_width=ego_width,
+                ego_wheelbase=ego_wheelbase,
+                weights=outcome_weights,
             )
         selection = selector.select(
             candidates,
@@ -726,6 +769,15 @@ def _install_camp_predictor(
                     min(reward_horizon_steps, int(candidates.shape[1]))
                     if candidate_rewards is not None
                     else None
+                ),
+                "candidate_closed_loop_outcomes": candidate_outcomes,
+                "candidate_closed_loop_outcome_horizon_steps": (
+                    min(outcome_horizon_steps, int(candidates.shape[1]))
+                    if candidate_outcomes is not None
+                    else None
+                ),
+                "candidate_closed_loop_outcome_weights": (
+                    outcome_weights if candidate_outcomes is not None else None
                 ),
                 "dp_scene_features": scene_features.tolist(),
                 "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
@@ -800,6 +852,20 @@ def main() -> None:
             feasibility_source=args.camp_feasibility_source,
             min_progress_ratio=args.camp_min_progress_ratio,
             reward_horizon_steps=args.camp_reward_horizon_steps,
+            collect_closed_loop_outcomes=args.camp_collect_closed_loop_outcomes,
+            outcome_horizon_steps=args.camp_outcome_horizon_steps,
+            outcome_weights={
+                "progress": args.camp_outcome_progress_weight,
+                "collision": args.camp_outcome_collision_penalty,
+                "near_miss": args.camp_outcome_near_miss_penalty,
+                "lane_violation": args.camp_outcome_lane_penalty,
+                "red_light": args.camp_outcome_red_light_penalty,
+                "mean_jerk": args.camp_outcome_jerk_penalty,
+                "mean_lateral_acceleration": (
+                    args.camp_outcome_lateral_acceleration_penalty
+                ),
+            },
+            near_miss_threshold_m=args.near_miss_threshold_m,
             ego_length=float(config.ego_length),
             ego_width=float(config.ego_width),
             ego_wheelbase=float(config.ego_wheelbase),
@@ -873,6 +939,16 @@ def main() -> None:
         "camp_feasibility_source": effective_feasibility_source,
         "camp_min_progress_ratio": effective_min_progress_ratio,
         "camp_reward_horizon_steps": effective_reward_horizon_steps,
+        "camp_collect_closed_loop_outcomes": (
+            bool(args.camp_collect_closed_loop_outcomes)
+            if records is not None
+            else None
+        ),
+        "camp_outcome_horizon_steps": (
+            args.camp_outcome_horizon_steps
+            if records is not None and args.camp_collect_closed_loop_outcomes
+            else None
+        ),
         "selector_mode": args.camp_selector_mode,
         "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
         "model_args": str(args.model_args) if args.model_args is not None else None,
@@ -912,6 +988,14 @@ def main() -> None:
     validation["camp_feasibility_source"] = effective_feasibility_source
     validation["camp_min_progress_ratio"] = effective_min_progress_ratio
     validation["camp_reward_horizon_steps"] = effective_reward_horizon_steps
+    validation["camp_collect_closed_loop_outcomes"] = (
+        bool(args.camp_collect_closed_loop_outcomes) if records is not None else None
+    )
+    validation["camp_outcome_horizon_steps"] = (
+        args.camp_outcome_horizon_steps
+        if records is not None and args.camp_collect_closed_loop_outcomes
+        else None
+    )
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (
         f"route={args.route}|seed={args.seed}|steps={args.steps}|"

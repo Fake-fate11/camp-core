@@ -106,6 +106,19 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--camp_min_progress_ratio", type=float, default=0.8)
     parser.add_argument("--camp_reward_horizon_steps", type=int, default=30)
+    parser.add_argument("--camp_collect_closed_loop_outcomes", action="store_true")
+    parser.add_argument("--camp_outcome_horizon_steps", type=int, default=30)
+    parser.add_argument("--camp_outcome_progress_weight", type=float, default=1.0)
+    parser.add_argument("--camp_outcome_collision_penalty", type=float, default=100.0)
+    parser.add_argument("--camp_outcome_near_miss_penalty", type=float, default=10.0)
+    parser.add_argument("--camp_outcome_lane_penalty", type=float, default=20.0)
+    parser.add_argument("--camp_outcome_red_light_penalty", type=float, default=30.0)
+    parser.add_argument("--camp_outcome_jerk_penalty", type=float, default=0.25)
+    parser.add_argument(
+        "--camp_outcome_lateral_acceleration_penalty",
+        type=float,
+        default=1.0,
+    )
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     parser.add_argument(
         "--variants",
@@ -207,6 +220,28 @@ def _variant_command(
                 str(args.camp_reward_horizon_steps),
             ]
         )
+        if args.camp_collect_closed_loop_outcomes:
+            cmd.append("--camp_collect_closed_loop_outcomes")
+            cmd.extend(
+                [
+                    "--camp_outcome_horizon_steps",
+                    str(args.camp_outcome_horizon_steps),
+                    "--camp_outcome_progress_weight",
+                    str(args.camp_outcome_progress_weight),
+                    "--camp_outcome_collision_penalty",
+                    str(args.camp_outcome_collision_penalty),
+                    "--camp_outcome_near_miss_penalty",
+                    str(args.camp_outcome_near_miss_penalty),
+                    "--camp_outcome_lane_penalty",
+                    str(args.camp_outcome_lane_penalty),
+                    "--camp_outcome_red_light_penalty",
+                    str(args.camp_outcome_red_light_penalty),
+                    "--camp_outcome_jerk_penalty",
+                    str(args.camp_outcome_jerk_penalty),
+                    "--camp_outcome_lateral_acceleration_penalty",
+                    str(args.camp_outcome_lateral_acceleration_penalty),
+                ]
+            )
     if variant == "static":
         cmd.extend(["--camp_static_weights", str(args.camp_static_weights)])
     elif variant == "theta":
