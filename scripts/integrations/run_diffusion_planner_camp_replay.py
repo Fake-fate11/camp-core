@@ -700,6 +700,7 @@ def _install_camp_predictor(
             noise_scale=noise_scale,
             deterministic_first=True,
         )
+        candidate_generation_done = time.perf_counter()
         context = build_context_from_scene(
             scene,
             ego_id,
@@ -713,6 +714,7 @@ def _install_camp_predictor(
             neighbor_predictions,
             replay_module.SceneNPCManager.is_static_npc,
         )
+        context_and_obstacles_done = time.perf_counter()
         candidate_rewards = None
         candidate_outcomes = None
         candidate_progress = None
@@ -747,6 +749,7 @@ def _install_camp_predictor(
                 [max(-float(reward.get("red_light", 0.0)), 0.0) for reward in candidate_rewards],
                 dtype=np.float64,
             )
+        reward_scoring_done = time.perf_counter()
         if collect_closed_loop_outcomes:
             candidate_outcomes = compute_candidate_closed_loop_outcomes(
                 candidates,
@@ -760,6 +763,7 @@ def _install_camp_predictor(
                 ego_wheelbase=ego_wheelbase,
                 weights=outcome_weights,
             )
+        outcome_collection_done = time.perf_counter()
         selection = selector.select(
             candidates,
             context,
@@ -774,7 +778,30 @@ def _install_camp_predictor(
             ego_width=ego_width,
             ego_wheelbase=ego_wheelbase,
         )
-        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        selection_done = time.perf_counter()
+        elapsed_ms = (selection_done - start) * 1000.0
+        phase_latencies_ms = {
+            "latency_ms_candidate_generation": (
+                candidate_generation_done - start
+            )
+            * 1000.0,
+            "latency_ms_context_and_obstacles": (
+                context_and_obstacles_done - candidate_generation_done
+            )
+            * 1000.0,
+            "latency_ms_reward_scoring": (
+                reward_scoring_done - context_and_obstacles_done
+            )
+            * 1000.0,
+            "latency_ms_outcome_collection": (
+                outcome_collection_done - reward_scoring_done
+            )
+            * 1000.0,
+            "latency_ms_camp_selection": (
+                selection_done - outcome_collection_done
+            )
+            * 1000.0,
+        }
 
         predictions[ego_id] = selection.selected_trajectory
         state = _evaluation_state(scene, ego_id)
@@ -844,6 +871,7 @@ def _install_camp_predictor(
                 "dp_scene_features": scene_features.tolist(),
                 "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
                 "latency_ms_including_candidate_generation": elapsed_ms,
+                **phase_latencies_ms,
             }
         )
         if return_turn_indicators:

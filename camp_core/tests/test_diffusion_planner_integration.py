@@ -1111,12 +1111,22 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "used_fallback": False,
             "feasible_mask": [True, False],
             "latency_ms_including_candidate_generation": 10.0,
+            "latency_ms_candidate_generation": 6.0,
+            "latency_ms_context_and_obstacles": 1.0,
+            "latency_ms_reward_scoring": 2.0,
+            "latency_ms_outcome_collection": 0.0,
+            "latency_ms_camp_selection": 1.0,
         },
         {
             "selected_index": 1,
             "used_fallback": True,
             "feasible_mask": [False, False],
             "latency_ms_including_candidate_generation": 20.0,
+            "latency_ms_candidate_generation": 12.0,
+            "latency_ms_context_and_obstacles": 2.0,
+            "latency_ms_reward_scoring": 4.0,
+            "latency_ms_outcome_collection": 0.0,
+            "latency_ms_camp_selection": 2.0,
         },
     ]
 
@@ -1131,6 +1141,11 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
     assert summary["fallback_rate"] == 0.5
     assert summary["candidate_feasible_rate"] == 0.25
     assert summary["mean_selection_latency_ms"] == 15.0
+    assert summary["mean_candidate_generation_latency_ms"] == 9.0
+    assert summary["mean_context_and_obstacles_latency_ms"] == 1.5
+    assert summary["mean_reward_scoring_latency_ms"] == 3.0
+    assert summary["mean_outcome_collection_latency_ms"] == 0.0
+    assert summary["mean_camp_selection_latency_ms"] == 1.5
     assert summary["replay_reason"] == "max_steps"
 
 

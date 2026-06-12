@@ -1200,7 +1200,17 @@ def summarize_selection_records(
     fallback_count = 0
     feasible_candidates = 0
     total_candidates = 0
-    latencies = []
+    latency_fields = {
+        "latency_ms_including_candidate_generation": "selection_latency_ms",
+        "latency_ms_candidate_generation": "candidate_generation_latency_ms",
+        "latency_ms_context_and_obstacles": "context_and_obstacles_latency_ms",
+        "latency_ms_reward_scoring": "reward_scoring_latency_ms",
+        "latency_ms_outcome_collection": "outcome_collection_latency_ms",
+        "latency_ms_camp_selection": "camp_selection_latency_ms",
+    }
+    latencies: dict[str, list[float]] = {
+        record_key: [] for record_key in latency_fields
+    }
     infeasibility_reason_counts: dict[str, int] = {}
 
     for record in records:
@@ -1220,9 +1230,10 @@ def summarize_selection_records(
                     infeasibility_reason_counts.get(key, 0) + 1
                 )
 
-        latency = record.get("latency_ms_including_candidate_generation")
-        if latency is not None and np.isfinite(latency):
-            latencies.append(float(latency))
+        for record_key in latency_fields:
+            latency = record.get(record_key)
+            if latency is not None and np.isfinite(latency):
+                latencies[record_key].append(float(latency))
 
     denominator = max(num_steps, 1)
     summary: dict[str, Any] = {
@@ -1237,13 +1248,15 @@ def summarize_selection_records(
             feasible_candidates / denominator if num_steps else 0.0
         ),
         "candidate_infeasibility_reason_counts": infeasibility_reason_counts,
-        "mean_selection_latency_ms": (
-            float(np.mean(latencies)) if latencies else None
-        ),
-        "p95_selection_latency_ms": (
-            float(np.percentile(latencies, 95)) if latencies else None
-        ),
     }
+    for record_key, summary_stem in latency_fields.items():
+        values = latencies[record_key]
+        summary[f"mean_{summary_stem}"] = (
+            float(np.mean(values)) if values else None
+        )
+        summary[f"p95_{summary_stem}"] = (
+            float(np.percentile(values, 95)) if values else None
+        )
     if replay_result is not None:
         summary.update(
             {
