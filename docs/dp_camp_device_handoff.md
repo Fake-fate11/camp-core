@@ -144,11 +144,15 @@ THETA_ASSETS=$ASSETS/camp_dp_scene_theta_v1_fc318c8
   --camp_static_weights "$STATIC_ASSETS/offline_weights_dp_static.npy" \
   --camp_theta_checkpoint "$THETA_ASSETS/camp_dp_scene_theta.npz" \
   --num_candidates 8 \
+  --camp_fallback_mode uniform \
   --resume
 ```
 
 The runner evaluates `top1`, `uniform`, `static`, and `theta` under each
 matched route/seed/NPC/spawn setting and writes:
+
+Use `--camp_fallback_mode learned` for the explicit all-infeasible fallback
+ablation; `uniform` keeps the legacy behavior.
 
 ```text
 /root/autodl-tmp/camp_dp_benchmark_v1/benchmark_comparison.json

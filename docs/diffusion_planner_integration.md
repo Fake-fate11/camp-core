@@ -367,6 +367,7 @@ probabilities, use:
   --camp_theta_checkpoint "$THETA_ASSET_DIR/camp_dp_scene_theta.npz" \
   --num_candidates 8 \
   --camp_feasibility_source dp_reward \
+  --camp_fallback_mode uniform \
   --camp_min_progress_ratio 0.8 \
   --resume
 ```
@@ -374,6 +375,9 @@ probabilities, use:
 The script runs `top1`, `uniform`, `static`, and `theta` for every matched
 setting and writes `benchmark_comparison.json` plus
 `benchmark_comparison.md`.
+
+Set `--camp_fallback_mode learned` to ablate the all-infeasible fallback
+branch; `uniform` preserves the legacy behavior.
 
 Omit `--map_path` when routes from multiple maps are supplied; each route
 pickle then uses its own verified map. Enabled traffic lights use the same
