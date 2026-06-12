@@ -278,6 +278,13 @@ def main() -> None:
             None if normalized_features is None else normalized_features[train_idx]
         ),
     )
+    if not result.converged or result.final_master_gap > args.tolerance:
+        raise RuntimeError(
+            "Robust CAMP master did not satisfy the declared cutting-plane "
+            "tolerance; refusing to save a deployable checkpoint. "
+            f"final_master_gap={result.final_master_gap:.6g}, "
+            f"tolerance={args.tolerance:.6g}."
+        )
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     scales_name = (
@@ -382,6 +389,7 @@ def main() -> None:
         "solver": args.solver,
         "solver_status": result.solver_status,
         "converged": bool(result.converged),
+        "final_master_gap": float(result.final_master_gap),
         "selection_logs": [str(path) for path in args.selection_log],
         "outcome_key": args.outcome_key if outcome_weights is None else None,
         "outcome_weights_path": (

@@ -40,6 +40,7 @@ class RobustMarginResult:
     theta: Optional[np.ndarray]
     train_weights: np.ndarray
     train_violations: np.ndarray
+    final_master_gap: float
     history: list[dict[str, Any]]
     converged: bool
     cuts_per_scene: list[int]
@@ -390,6 +391,7 @@ def solve_robust_margin_cutting_plane(
             atoms, train_weights, oracle, margin_values, feasible
         )
         gap = np.maximum(true_losses - master_losses, 0.0)
+        max_gap = float(np.max(gap))
         new_cuts = 0
         for record_idx, candidate_idx in enumerate(worst_indices):
             candidate = int(candidate_idx)
@@ -403,13 +405,16 @@ def solve_robust_margin_cutting_plane(
                 "exact_risk": _risk_value(true_losses, config),
                 "mean_violation": float(np.mean(true_losses)),
                 "max_violation": float(np.max(true_losses)),
-                "max_master_gap": float(np.max(gap)),
+                "max_master_gap": max_gap,
                 "new_cuts": new_cuts,
                 "total_cuts": int(sum(len(scene_cuts) for scene_cuts in cuts)),
+                "stalled": bool(new_cuts == 0 and max_gap > config.tolerance),
             }
         )
-        if new_cuts == 0:
+        if max_gap <= config.tolerance:
             converged = True
+            break
+        if new_cuts == 0:
             break
 
     if not converged:
@@ -437,6 +442,8 @@ def solve_robust_margin_cutting_plane(
             atoms, train_weights, oracle, margin_values, feasible
         )
         final_gap = np.maximum(true_losses - master_losses, 0.0)
+        final_max_gap = float(np.max(final_gap))
+        converged = final_max_gap <= config.tolerance
         history.append(
             {
                 "iteration": config.max_iter + 1,
@@ -444,7 +451,7 @@ def solve_robust_margin_cutting_plane(
                 "exact_risk": _risk_value(true_losses, config),
                 "mean_violation": float(np.mean(true_losses)),
                 "max_violation": float(np.max(true_losses)),
-                "max_master_gap": float(np.max(final_gap)),
+                "max_master_gap": final_max_gap,
                 "new_cuts": 0,
                 "total_cuts": int(sum(len(scene_cuts) for scene_cuts in cuts)),
                 "final_resolve": True,
@@ -454,11 +461,15 @@ def solve_robust_margin_cutting_plane(
     _, train_violations, _ = candidate_ranking_violations(
         atoms, train_weights, oracle, margin_values, feasible
     )
+    final_master_gap = float(
+        np.max(np.maximum(train_violations - master_losses, 0.0))
+    )
     return RobustMarginResult(
         static_weights=static_weights,
         theta=theta,
         train_weights=train_weights,
         train_violations=train_violations,
+        final_master_gap=final_master_gap,
         history=history,
         converged=converged,
         cuts_per_scene=[len(scene_cuts) for scene_cuts in cuts],

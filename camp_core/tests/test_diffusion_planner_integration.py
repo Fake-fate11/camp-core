@@ -721,6 +721,8 @@ def test_robust_margin_master_outputs_simplex_static_and_theta() -> None:
     )
     np.testing.assert_allclose(static_result.static_weights.sum(), 1.0, atol=1e-6)
     assert np.all(static_result.static_weights >= -1e-7)
+    assert static_result.converged
+    assert static_result.final_master_gap <= 1e-6
 
     features = np.array([[-1.0], [1.0], [-1.0], [1.0]])
     theta_result = solve_robust_margin_cutting_plane(
@@ -740,6 +742,76 @@ def test_robust_margin_master_outputs_simplex_static_and_theta() -> None:
     weights = theta_weights(theta_result.theta, features)
     np.testing.assert_allclose(weights.sum(axis=1), 1.0, atol=1e-6)
     assert np.all(weights >= -1e-7)
+    assert theta_result.converged
+    assert theta_result.final_master_gap <= 1e-6
+
+
+def test_static_cutting_plane_matches_full_epigraph_master() -> None:
+    cp = pytest.importorskip("cvxpy")
+    atoms = np.array(
+        [
+            [[0.1, 0.8, 0.4], [0.7, 0.2, 0.3], [0.4, 0.6, 0.1]],
+            [[0.9, 0.1, 0.2], [0.2, 0.7, 0.5], [0.3, 0.4, 0.8]],
+            [[0.5, 0.3, 0.9], [0.1, 0.8, 0.2], [0.7, 0.2, 0.4]],
+        ]
+    )
+    oracle = np.array([0, 1, 2])
+    margins = np.array(
+        [[0.0, 0.3, 0.7], [0.4, 0.0, 0.2], [0.5, 0.6, 0.0]]
+    )
+    feasible = np.array(
+        [[True, True, True], [True, True, False], [True, True, True]]
+    )
+    l2_reg = 0.03
+    config = RobustMarginConfig(
+        mode="static",
+        risk_type="mean",
+        l2_reg=l2_reg,
+        max_iter=10,
+        tolerance=1e-7,
+    )
+
+    result = solve_robust_margin_cutting_plane(
+        atoms,
+        oracle,
+        margins,
+        feasible,
+        config=config,
+    )
+
+    weights = cp.Variable(atoms.shape[-1])
+    losses = cp.Variable(atoms.shape[0], nonneg=True)
+    constraints = [weights >= 0.0, cp.sum(weights) == 1.0]
+    for record_idx in range(atoms.shape[0]):
+        oracle_atoms = atoms[record_idx, oracle[record_idx]]
+        for candidate_idx in np.flatnonzero(feasible[record_idx]):
+            constraints.append(
+                losses[record_idx]
+                >= margins[record_idx, candidate_idx]
+                + (oracle_atoms - atoms[record_idx, candidate_idx]) @ weights
+            )
+    uniform = np.full(atoms.shape[-1], 1.0 / atoms.shape[-1])
+    objective = cp.Minimize(
+        cp.sum(losses) / atoms.shape[0]
+        + l2_reg * cp.sum_squares(weights - uniform)
+    )
+    problem = cp.Problem(objective, constraints)
+    installed = set(cp.installed_solvers())
+    solver = next(name for name in ("CLARABEL", "SCS") if name in installed)
+    problem.solve(solver=solver)
+
+    assert problem.status in {cp.OPTIMAL, cp.OPTIMAL_INACCURATE}
+    assert result.converged
+    assert result.final_master_gap <= config.tolerance
+    result_objective = float(np.mean(result.train_violations)) + l2_reg * float(
+        np.sum((result.static_weights - uniform) ** 2)
+    )
+    assert result_objective == pytest.approx(problem.value, abs=2e-5)
+    np.testing.assert_allclose(
+        result.static_weights,
+        np.asarray(weights.value).reshape(-1),
+        atol=2e-4,
+    )
 
 
 def test_robust_theta_checkpoint_loads_in_existing_selector(tmp_path) -> None:

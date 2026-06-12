@@ -50,6 +50,13 @@ Because the candidate set is finite, adding violated pieces terminates at the
 exact epigraph after at most the number of feasible candidate pieces per
 scene, subject to numerical solver tolerance.
 
+Every generated inequality is globally valid: it is one affine member of the
+finite maximum defining \(\ell_i\), not a local approximation. A checkpoint is
+deployable only when the separation oracle certifies that the maximum omitted
+piece exceeds the solved epigraph value by no more than the declared
+tolerance. Exhausting iterations or merely failing to discover a new cut is
+not a convergence certificate.
+
 The Static v8 master minimizes empirical mean or CVaR of these nonnegative
 losses plus convex L2 regularization over \(\Delta_R\). Its feasible set is
 convex, the CVaR epigraph is convex, and the complete master is a convex
