@@ -110,10 +110,14 @@ Hard feasibility is evaluated before CAMP scoring. If at least one candidate
 is feasible, infeasible candidates receive infinite selection cost and no
 fallback policy may alter that branch.
 
-All-infeasible fallback is an operational recovery policy outside the convex
-training master. `uniform` and `learned` fallback must therefore be reported
-as separate ablations. Fallback outcomes cannot be used to claim that the
-normal feasible-branch Benders problem has improved.
+All-infeasible fallback is an operational recovery policy separate from the
+normal feasible-branch master. It may use its own finite-candidate convex
+robust-margin master by treating all \(K\) recovery candidates as the fallback
+choice set. Its atom scales and simplex weights must be trained and validated
+independently, and deployment may invoke them only when the normal feasible
+set is empty. `uniform` and learned fallback remain separate ablations.
+Fallback outcomes cannot be used to claim that the normal feasible-branch
+problem has improved.
 
 ## Required Gates
 

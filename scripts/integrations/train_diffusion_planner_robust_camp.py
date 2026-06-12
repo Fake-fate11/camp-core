@@ -57,6 +57,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output_dir", type=Path, required=True)
     parser.add_argument("--mode", choices=("static", "theta"), required=True)
     parser.add_argument(
+        "--training_scope",
+        choices=("feasible_ranking", "all_infeasible_fallback"),
+        default="feasible_ranking",
+    )
+    parser.add_argument(
         "--objective",
         choices=("robust_margin_cvar",),
         default="robust_margin_cvar",
@@ -194,6 +199,8 @@ def _verify_selector_artifact(
 
 def main() -> None:
     args = parse_args()
+    if args.training_scope == "all_infeasible_fallback" and args.mode != "static":
+        raise ValueError("All-infeasible fallback training currently requires static mode.")
     outcome_weights = load_outcome_weights(args.outcome_weights)
     if args.mode == "theta":
         features, atoms, selector_feasible = load_scene_training_records(
@@ -214,9 +221,22 @@ def main() -> None:
             "Outcome values must match selector feasibility, "
             f"got {outcome_values.shape} and {selector_feasible.shape}."
         )
-    combined_feasible = (
-        selector_feasible & outcome_feasible & np.isfinite(outcome_values)
-    )
+    input_records = int(atoms.shape[0])
+    if args.training_scope == "feasible_ranking":
+        scope_mask = np.ones(input_records, dtype=bool)
+        combined_feasible = (
+            selector_feasible & outcome_feasible & np.isfinite(outcome_values)
+        )
+    else:
+        scope_mask = ~selector_feasible.any(axis=1)
+        combined_feasible = np.isfinite(outcome_values)
+    atoms = atoms[scope_mask]
+    combined_feasible = combined_feasible[scope_mask]
+    outcome_values = outcome_values[scope_mask]
+    if features is not None:
+        features = features[scope_mask]
+    group_ids = group_ids[scope_mask]
+    scope_records = int(atoms.shape[0])
     valid = combined_feasible.any(axis=1)
     dropped_records = int(np.sum(~valid))
     atoms = atoms[valid]
@@ -298,11 +318,14 @@ def main() -> None:
         )
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    scales_name = (
-        "atom_scales_dp_static.json"
-        if args.mode == "static"
-        else "atom_scales_dp_scene_theta.json"
-    )
+    if args.training_scope == "all_infeasible_fallback":
+        scales_name = "atom_scales_dp_fallback.json"
+    else:
+        scales_name = (
+            "atom_scales_dp_static.json"
+            if args.mode == "static"
+            else "atom_scales_dp_scene_theta.json"
+        )
     scales_path = args.output_dir / scales_name
     scales_path.write_text(
         json.dumps(
@@ -319,7 +342,11 @@ def main() -> None:
 
     artifact_paths: dict[str, str] = {"atom_scales_path": str(scales_path)}
     if args.mode == "static":
-        weights_path = args.output_dir / "offline_weights_dp_static.npy"
+        weights_path = args.output_dir / (
+            "offline_weights_dp_fallback.npy"
+            if args.training_scope == "all_infeasible_fallback"
+            else "offline_weights_dp_static.npy"
+        )
         static_weights = project_simplex_rows(result.static_weights)[0]
         np.save(weights_path, static_weights.astype(np.float64))
         all_weights = np.broadcast_to(
@@ -397,6 +424,7 @@ def main() -> None:
     summary: dict[str, Any] = {
         "training_type": "diffusion_planner_robust_margin_camp",
         "mode": args.mode,
+        "training_scope": args.training_scope,
         "objective": args.objective,
         "risk_type": args.risk_type,
         "alpha": float(args.alpha),
@@ -415,8 +443,11 @@ def main() -> None:
             None if args.outcome_weights is None else str(args.outcome_weights)
         ),
         "outcome_weights": outcome_weights,
+        "input_records": input_records,
+        "scope_records": scope_records,
         "num_records": int(atoms.shape[0]),
         "dropped_records_without_feasible_candidate": dropped_records,
+        "dropped_records_without_eligible_candidate": dropped_records,
         "num_candidates": int(atoms.shape[1]),
         "num_atoms": int(atoms.shape[2]),
         "atom_names": list(atom_names),
@@ -442,8 +473,9 @@ def main() -> None:
         "artifacts": artifact_paths,
         "caveat": (
             "This checkpoint minimizes mean/CVaR robust outcome-margin "
-            "violations over short-horizon candidate branches. Matched "
-            "closed-loop evaluation remains required for performance claims."
+            f"violations for scope={args.training_scope!r} over short-horizon "
+            "candidate branches. Matched closed-loop evaluation remains "
+            "required for performance claims."
         ),
     }
     summary_path = args.output_dir / "training_summary.json"

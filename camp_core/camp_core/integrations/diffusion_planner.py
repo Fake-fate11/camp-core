@@ -1183,6 +1183,9 @@ class CAMPSelectionResult:
     infeasibility_reasons: tuple[tuple[str, ...], ...]
     scores: np.ndarray
     weights: np.ndarray
+    selection_scores: np.ndarray
+    selection_weights: np.ndarray
+    selection_normalized_atoms: np.ndarray
     used_fallback: bool
 
 
@@ -1275,6 +1278,8 @@ class CAMPSelector:
         linear_activation: str = "project_simplex",
         mode: str = "static",
         fallback_mode: str = "uniform",
+        fallback_atom_scales: Optional[np.ndarray] = None,
+        fallback_static_weights: Optional[np.ndarray] = None,
         atom_clip: float = 10.0,
     ) -> None:
         self.atom_scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
@@ -1302,6 +1307,30 @@ class CAMPSelector:
                 f"got {fallback_mode!r}."
             )
         self.fallback_mode = fallback_mode
+        if (fallback_atom_scales is None) != (fallback_static_weights is None):
+            raise ValueError(
+                "fallback_atom_scales and fallback_static_weights must be "
+                "provided together."
+            )
+        self.fallback_atom_scales = None
+        self.fallback_static_weights = None
+        if fallback_atom_scales is not None:
+            fallback_scales = np.asarray(
+                fallback_atom_scales, dtype=np.float64
+            ).reshape(-1)
+            if fallback_scales.shape != (self.num_atoms,):
+                raise ValueError(
+                    "fallback_atom_scales must match the primary atom dimension."
+                )
+            if not np.all(np.isfinite(fallback_scales)):
+                raise ValueError(
+                    "fallback_atom_scales must contain only finite values."
+                )
+            self.fallback_atom_scales = np.maximum(fallback_scales, 1e-6)
+            self.fallback_static_weights = _normalized_weights(
+                fallback_static_weights,
+                self.num_atoms,
+            )
 
         self.static_weights = None
         if static_weights is not None:
@@ -1350,6 +1379,8 @@ class CAMPSelector:
         atom_scales_path: Union[str, Path],
         checkpoint_path: Optional[Union[str, Path]] = None,
         static_weights_path: Optional[Union[str, Path]] = None,
+        fallback_atom_scales_path: Optional[Union[str, Path]] = None,
+        fallback_static_weights_path: Optional[Union[str, Path]] = None,
         mode: str = "static",
         fallback_mode: str = "uniform",
         atom_clip: float = 10.0,
@@ -1382,6 +1413,16 @@ class CAMPSelector:
             )
         if static_weights_path is not None:
             static_weights = np.load(str(static_weights_path))
+        fallback_atom_scales = (
+            None
+            if fallback_atom_scales_path is None
+            else load_dp_camp_atom_scales(fallback_atom_scales_path)
+        )
+        fallback_static_weights = (
+            None
+            if fallback_static_weights_path is None
+            else np.load(str(fallback_static_weights_path))
+        )
 
         return cls(
             atom_scales,
@@ -1393,6 +1434,8 @@ class CAMPSelector:
             linear_activation=linear_activation,
             mode=mode,
             fallback_mode=fallback_mode,
+            fallback_atom_scales=fallback_atom_scales,
+            fallback_static_weights=fallback_static_weights,
             atom_clip=atom_clip,
         )
 
@@ -1646,12 +1689,36 @@ class CAMPSelector:
         weights = self.weights_for(scene_embedding)
         scores = normalized @ weights
         used_fallback = not feasible_mask.any()
+        selection_weights = weights
+        selection_normalized = normalized
         if used_fallback:
             if self.fallback_mode == "learned":
-                selection_scores = scores.copy()
+                if self.fallback_static_weights is None:
+                    selection_scores = scores.copy()
+                else:
+                    selection_weights = self.fallback_static_weights
+                    selection_normalized = atoms_arr / (
+                        self.fallback_atom_scales.reshape(1, -1)
+                    )
+                    selection_normalized = np.nan_to_num(
+                        selection_normalized,
+                        nan=0.0,
+                        posinf=positive_inf,
+                        neginf=0.0,
+                    )
+                    selection_normalized = np.maximum(selection_normalized, 0.0)
+                    if self.atom_clip > 0:
+                        selection_normalized = np.clip(
+                            selection_normalized,
+                            0.0,
+                            self.atom_clip,
+                        )
+                    selection_scores = selection_normalized @ selection_weights
             else:
-                fallback_weights = np.full(self.num_atoms, 1.0 / self.num_atoms)
-                selection_scores = normalized @ fallback_weights
+                selection_weights = np.full(
+                    self.num_atoms, 1.0 / self.num_atoms
+                )
+                selection_scores = normalized @ selection_weights
         else:
             selection_scores = scores.copy()
             selection_scores[~feasible_mask] = np.inf
@@ -1666,6 +1733,9 @@ class CAMPSelector:
             infeasibility_reasons=tuple(infeasibility_reasons),
             scores=scores,
             weights=weights,
+            selection_scores=selection_scores,
+            selection_weights=selection_weights,
+            selection_normalized_atoms=selection_normalized,
             used_fallback=used_fallback,
         )
 

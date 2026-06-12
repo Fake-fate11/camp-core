@@ -22,6 +22,12 @@ def _make_args() -> SimpleNamespace:
         camp_atom_scales=Path("F:/camp_core-main/models/atom_scales.json"),
         camp_static_weights=Path("F:/camp_core-main/models/offline_weights.npy"),
         camp_theta_checkpoint=Path("F:/camp_core-main/models/theta.npz"),
+        camp_fallback_atom_scales=Path(
+            "F:/camp_core-main/models/fallback_scales.json"
+        ),
+        camp_fallback_static_weights=Path(
+            "F:/camp_core-main/models/fallback_weights.npy"
+        ),
         num_candidates=8,
         candidate_noise_scale=1.0,
         camp_lane_corridor_buffer=1.0,
@@ -56,6 +62,8 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_fallback_mode" in static_cmd
     idx = static_cmd.index("--camp_fallback_mode")
     assert static_cmd[idx + 1] == "learned"
+    assert "--camp_fallback_atom_scales" in static_cmd
+    assert "--camp_fallback_static_weights" in static_cmd
 
     top1_cmd = _variant_command(
         variant="top1",
@@ -68,3 +76,4 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
         args=args,
     )
     assert "--camp_fallback_mode" not in top1_cmd
+    assert "--camp_fallback_atom_scales" not in top1_cmd

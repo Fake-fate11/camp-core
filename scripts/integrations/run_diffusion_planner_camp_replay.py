@@ -91,6 +91,8 @@ def parse_args() -> argparse.Namespace:
         help="Standalone offline_weights.npy.",
     )
     parser.add_argument("--camp_atom_scales", type=Path, default=None)
+    parser.add_argument("--camp_fallback_atom_scales", type=Path, default=None)
+    parser.add_argument("--camp_fallback_static_weights", type=Path, default=None)
     parser.add_argument(
         "--camp_selector_mode",
         choices=("top1", "uniform", "static", "linear"),
@@ -183,6 +185,20 @@ def _validate_args(args: argparse.Namespace) -> None:
         )
     if args.camp_selector_mode == "linear" and args.camp_checkpoint is None:
         raise ValueError("linear CAMP selection requires --camp_checkpoint.")
+    if (args.camp_fallback_atom_scales is None) != (
+        args.camp_fallback_static_weights is None
+    ):
+        raise ValueError(
+            "--camp_fallback_atom_scales and --camp_fallback_static_weights "
+            "must be provided together."
+        )
+    if (
+        args.camp_fallback_static_weights is not None
+        and args.camp_fallback_mode != "learned"
+    ):
+        raise ValueError(
+            "Dedicated fallback artifacts require --camp_fallback_mode learned."
+        )
     if args.camp_selector_mode != "top1" and args.num_candidates < 2:
         raise ValueError("--num_candidates must be >= 2 for CAMP candidate selection.")
     if args.candidate_noise_scale <= 0:
@@ -210,17 +226,31 @@ def _build_selector(args: argparse.Namespace) -> CAMPSelector | None:
         return None
     if args.camp_selector_mode == "uniform":
         atom_scales = load_dp_camp_atom_scales(args.camp_atom_scales)
+        fallback_atom_scales = (
+            None
+            if args.camp_fallback_atom_scales is None
+            else load_dp_camp_atom_scales(args.camp_fallback_atom_scales)
+        )
+        fallback_static_weights = (
+            None
+            if args.camp_fallback_static_weights is None
+            else np.load(args.camp_fallback_static_weights)
+        )
         return CAMPSelector(
             atom_scales,
             static_weights=np.ones_like(atom_scales, dtype=np.float64),
             mode="static",
             fallback_mode=args.camp_fallback_mode,
+            fallback_atom_scales=fallback_atom_scales,
+            fallback_static_weights=fallback_static_weights,
             atom_clip=args.camp_atom_clip,
         )
     return CAMPSelector.from_files(
         atom_scales_path=args.camp_atom_scales,
         checkpoint_path=args.camp_checkpoint,
         static_weights_path=args.camp_static_weights,
+        fallback_atom_scales_path=args.camp_fallback_atom_scales,
+        fallback_static_weights_path=args.camp_fallback_static_weights,
         mode=args.camp_selector_mode,
         fallback_mode=args.camp_fallback_mode,
         atom_clip=args.camp_atom_clip,
@@ -783,8 +813,13 @@ def _install_camp_predictor(
                 ],
                 "scores": selection.scores.tolist(),
                 "weights": selection.weights.tolist(),
+                "selection_scores": selection.selection_scores.tolist(),
+                "selection_weights": selection.selection_weights.tolist(),
                 "atoms": selection.atoms.tolist(),
                 "normalized_atoms": selection.normalized_atoms.tolist(),
+                "selection_normalized_atoms": (
+                    selection.selection_normalized_atoms.tolist()
+                ),
                 "atom_schema_version": atom_schema_for_dimension(
                     selection.atoms.shape[1]
                 )[0],

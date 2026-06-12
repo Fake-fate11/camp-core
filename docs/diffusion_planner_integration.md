@@ -388,6 +388,14 @@ intervals use a deterministic 10,000-resample paired bootstrap.
 Set `--camp_fallback_mode learned` to ablate the all-infeasible fallback
 branch; `uniform` preserves the legacy behavior.
 
+A dedicated fallback checkpoint can be supplied with
+`--camp_fallback_atom_scales` and `--camp_fallback_static_weights`. These
+artifacts are consulted only when every candidate fails the normal hard
+feasibility gate. Train them with
+`train_diffusion_planner_robust_camp.py --training_scope
+all_infeasible_fallback`; this uses a separate convex finite-candidate master
+and does not alter feasible-branch scoring.
+
 Before spending a full closed-loop matrix on that ablation, run the paired
 short-horizon diagnostic on the same logged all-infeasible candidate sets:
 

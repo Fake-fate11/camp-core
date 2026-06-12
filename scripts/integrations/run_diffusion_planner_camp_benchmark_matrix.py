@@ -96,6 +96,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camp_atom_scales", type=Path, required=True)
     parser.add_argument("--camp_static_weights", type=Path, default=None)
     parser.add_argument("--camp_theta_checkpoint", type=Path, default=None)
+    parser.add_argument("--camp_fallback_atom_scales", type=Path, default=None)
+    parser.add_argument("--camp_fallback_static_weights", type=Path, default=None)
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
     parser.add_argument("--camp_lane_corridor_buffer", type=float, default=1.0)
@@ -249,6 +251,16 @@ def _variant_command(
                     "--camp_outcome_lateral_acceleration_penalty",
                     str(args.camp_outcome_lateral_acceleration_penalty),
                 ]
+            )
+        fallback_scales = getattr(args, "camp_fallback_atom_scales", None)
+        fallback_weights = getattr(args, "camp_fallback_static_weights", None)
+        if fallback_scales is not None:
+            cmd.extend(
+                ["--camp_fallback_atom_scales", str(fallback_scales)]
+            )
+        if fallback_weights is not None:
+            cmd.extend(
+                ["--camp_fallback_static_weights", str(fallback_weights)]
             )
     if variant == "static":
         cmd.extend(["--camp_static_weights", str(args.camp_static_weights)])

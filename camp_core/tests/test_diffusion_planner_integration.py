@@ -753,6 +753,82 @@ def test_static_robust_training_uses_grouped_validation_and_train_only_scales(
     np.testing.assert_allclose(saved_scales, expected_scales)
 
 
+def test_static_robust_training_can_target_all_infeasible_fallback(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    pytest.importorskip("cvxpy")
+    log_paths = []
+    for group_idx in range(3):
+        fallback_atoms = np.vstack(
+            [
+                np.arange(1.0, len(CAMP_ATOM_NAMES) + 1.0),
+                np.arange(len(CAMP_ATOM_NAMES), 0.0, -1.0),
+            ]
+        )
+        records = [
+            {
+                "atom_schema_version": "camp_legacy_v1_9d",
+                "atom_names": list(CAMP_ATOM_NAMES),
+                "atoms": fallback_atoms.tolist(),
+                "feasible_mask": [False, False],
+                "candidate_closed_loop_outcomes": [
+                    {"value": 0.0, "feasible": False},
+                    {"value": 1.0 + group_idx, "feasible": False},
+                ],
+            },
+            {
+                "atom_schema_version": "camp_legacy_v1_9d",
+                "atom_names": list(CAMP_ATOM_NAMES),
+                "atoms": (fallback_atoms + 1.0).tolist(),
+                "feasible_mask": [True, True],
+                "candidate_closed_loop_outcomes": [
+                    {"value": 1.0, "feasible": True},
+                    {"value": 0.0, "feasible": True},
+                ],
+            },
+        ]
+        log_path = tmp_path / f"group_{group_idx}" / "camp_selection_log.json"
+        log_path.parent.mkdir()
+        log_path.write_text(json.dumps(records), encoding="utf-8")
+        log_paths.append(log_path)
+
+    output_dir = tmp_path / "fallback_trained"
+    argv = [
+        "train_diffusion_planner_robust_camp.py",
+        "--output_dir",
+        str(output_dir),
+        "--mode",
+        "static",
+        "--training_scope",
+        "all_infeasible_fallback",
+        "--require_atom_schema",
+        "--val_fraction",
+        str(1.0 / 3.0),
+        "--seed",
+        "7",
+        "--max_iter",
+        "5",
+    ]
+    for log_path in log_paths:
+        argv.extend(["--selection_log", str(log_path)])
+    monkeypatch.setattr(sys, "argv", argv)
+
+    train_robust_camp_main()
+
+    summary = json.loads(
+        (output_dir / "training_summary.json").read_text(encoding="utf-8")
+    )
+    assert summary["training_scope"] == "all_infeasible_fallback"
+    assert summary["input_records"] == 6
+    assert summary["scope_records"] == 3
+    assert summary["num_records"] == 3
+    assert summary["converged"]
+    assert summary["final_master_gap"] <= summary["tolerance"]
+    assert (output_dir / "atom_scales_dp_fallback.json").is_file()
+    assert (output_dir / "offline_weights_dp_fallback.npy").is_file()
+
+
 def test_empirical_cvar_emphasizes_worst_case_loss() -> None:
     losses = np.array([0.0, 0.0, 1.0, 9.0])
 
@@ -1170,6 +1246,62 @@ def test_learned_fallback_only_changes_all_infeasible_branch() -> None:
     assert learned_result.feasible_mask.tolist() == [False, False]
     assert learned_result.selected_index == 0
     assert uniform_result.selected_index == 1
+
+
+def test_dedicated_fallback_model_is_used_only_for_all_infeasible_branch() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=0.1,
+        lane_corridor_buffer=0.0,
+        speed_limit=2.0,
+        desired_speed=1.0,
+    )
+    x_fast = np.linspace(0.5, 8.0, 8)
+    x_slow = np.linspace(0.5, 1.2, 8)
+    candidates = np.stack(
+        [
+            np.column_stack([x_fast, np.full_like(x_fast, 0.12)]),
+            np.column_stack([x_slow, np.full_like(x_slow, 0.5)]),
+        ]
+    )
+    primary_weights = np.eye(9)[0]
+    fallback_weights = np.eye(9)[7]
+    selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=primary_weights,
+        mode="static",
+        fallback_mode="learned",
+        fallback_atom_scales=np.full(9, 2.0),
+        fallback_static_weights=fallback_weights,
+    )
+
+    fallback_result = selector.select(candidates, context)
+    feasible_result = selector.select(
+        candidates,
+        context,
+        external_feasible_mask=np.ones(2, dtype=bool),
+        apply_context_feasibility=False,
+    )
+
+    assert fallback_result.used_fallback
+    np.testing.assert_allclose(
+        fallback_result.selection_weights,
+        fallback_weights,
+    )
+    np.testing.assert_allclose(
+        fallback_result.selection_normalized_atoms,
+        np.clip(fallback_result.atoms / 2.0, 0.0, 10.0),
+    )
+    assert not feasible_result.used_fallback
+    np.testing.assert_allclose(
+        feasible_result.selection_weights,
+        primary_weights,
+    )
+    np.testing.assert_allclose(
+        feasible_result.selection_scores,
+        feasible_result.scores,
+    )
 
 
 def test_selector_accepts_external_feasibility_without_context_lane_gate() -> None:

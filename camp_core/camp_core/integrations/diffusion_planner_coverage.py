@@ -380,6 +380,8 @@ def _record_info(
 
 
 def _record_scores(record: dict[str, Any]) -> np.ndarray:
+    if "selection_scores" in record:
+        return np.asarray(record["selection_scores"], dtype=float).reshape(-1)
     if "scores" in record:
         return np.asarray(record["scores"], dtype=float).reshape(-1)
     normalized = np.asarray(record["normalized_atoms"], dtype=float)
