@@ -380,6 +380,11 @@ The script runs `top1`, `uniform`, `static`, and `theta` for every matched
 setting and writes `benchmark_comparison.json` plus
 `benchmark_comparison.md`.
 
+For formal reports, pass `--require_strict_pairing` to
+`compare_diffusion_planner_camp_replays.py`. The comparison then fails if any
+variant is missing a matched run or contains duplicate run keys. Confidence
+intervals use a deterministic 10,000-resample paired bootstrap.
+
 Set `--camp_fallback_mode learned` to ablate the all-infeasible fallback
 branch; `uniform` preserves the legacy behavior.
 

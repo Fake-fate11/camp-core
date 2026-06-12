@@ -302,6 +302,16 @@ def _pairing_audit(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def require_strict_pairing(pairing_audit: dict[str, Any]) -> None:
+    if pairing_audit.get("strictly_paired"):
+        return
+    raise ValueError(
+        "Formal comparison requires identical run keys for every variant and "
+        "no duplicates. Pairing audit: "
+        + json.dumps(pairing_audit, sort_keys=True)
+    )
+
+
 def _stratum_value(row: dict[str, Any], fields: tuple[str, ...]) -> str:
     return "|".join(f"{field}={row.get(field)}" for field in fields)
 
@@ -444,6 +454,11 @@ def main() -> None:
     )
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_markdown", type=Path, default=None)
+    parser.add_argument(
+        "--require_strict_pairing",
+        action="store_true",
+        help="Fail instead of writing a comparison with missing or duplicate pairs.",
+    )
     args = parser.parse_args()
 
     rows = []
@@ -470,6 +485,8 @@ def main() -> None:
     all_pairwise_deltas = _all_pairwise_deltas(rows)
     stratified_aggregates, stratified_pairwise_deltas = _stratified_statistics(rows)
     pairing_audit = _pairing_audit(rows)
+    if args.require_strict_pairing:
+        require_strict_pairing(pairing_audit)
     result = {
         "comparison_type": "diffusion_planner_camp_replay_variants",
         "runs": rows,

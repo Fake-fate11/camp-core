@@ -44,6 +44,7 @@ from scripts.integrations.compare_diffusion_planner_camp_replays import (
     _all_pairwise_deltas,
     _mean_ci,
     _pairing_audit,
+    require_strict_pairing,
 )
 from scripts.integrations.train_diffusion_planner_theta import (
     load_scene_training_records,
@@ -121,6 +122,20 @@ def test_comparison_reports_strict_pairing_and_pairwise_bootstrap_ci() -> None:
     assert theta_vs_static["route_completion_rate"]["n"] == 3
     assert first_ci == second_ci
     assert first_ci["ci_method"] == "bootstrap_percentile"
+
+
+def test_formal_comparison_rejects_incomplete_pairing() -> None:
+    audit = _pairing_audit(
+        [
+            {"variant": "top1", "run_key": "run-1"},
+            {"variant": "top1", "run_key": "run-2"},
+            {"variant": "v8", "run_key": "run-1"},
+        ]
+    )
+
+    assert not audit["strictly_paired"]
+    with pytest.raises(ValueError, match="identical run keys"):
+        require_strict_pairing(audit)
 
 
 def test_no_ros_projection_fallback_installs_utm_factory(
