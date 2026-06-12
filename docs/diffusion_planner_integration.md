@@ -383,6 +383,24 @@ setting and writes `benchmark_comparison.json` plus
 Set `--camp_fallback_mode learned` to ablate the all-infeasible fallback
 branch; `uniform` preserves the legacy behavior.
 
+Before spending a full closed-loop matrix on that ablation, run the paired
+short-horizon diagnostic on the same logged all-infeasible candidate sets:
+
+```bash
+"$DP_PYTHON" scripts/integrations/analyze_diffusion_planner_camp_fallback.py \
+  --root /root/autodl-tmp/camp_dp_v8_outcome_collect_uniform_5853d8c \
+  --atom_scales "$V8_ASSET_DIR/atom_scales_dp_static.json" \
+  --learned_weights "$V8_ASSET_DIR/offline_weights_dp_static.npy" \
+  --require_atom_schema \
+  --output_json "$V8_ASSET_DIR/fallback_counterfactual.json"
+```
+
+This report changes only the all-infeasible selection rule and compares both
+choices against the same candidate closed-loop outcomes. It is a paired
+counterfactual diagnostic, not evidence of closed-loop policy improvement;
+the surviving fallback policy must still be evaluated in a matched replay
+matrix.
+
 Omit `--map_path` when routes from multiple maps are supplied; each route
 pickle then uses its own verified map. Enabled traffic lights use the same
 seed across all four variants, so NPC spawning and initial signal phases are
