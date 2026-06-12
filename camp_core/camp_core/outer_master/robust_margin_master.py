@@ -315,10 +315,25 @@ def solve_robust_margin_cutting_plane(
     margin_values = np.asarray(margins, dtype=np.float64)
     if atoms.ndim != 3:
         raise ValueError("normalized_atoms must have shape [N,K,R].")
+    if atoms.shape[0] == 0 or atoms.shape[1] == 0 or atoms.shape[2] == 0:
+        raise ValueError("normalized_atoms dimensions must all be non-empty.")
+    if not np.all(np.isfinite(atoms)):
+        raise ValueError("normalized_atoms must contain only finite values.")
+    if np.any(atoms < 0.0):
+        raise ValueError(
+            "normalized_atoms must be nonnegative cost features so simplex "
+            "weights preserve the declared atom direction."
+        )
     if feasible.shape != atoms.shape[:2] or margin_values.shape != atoms.shape[:2]:
         raise ValueError("feasible_mask and margins must match atoms [N,K].")
+    if not np.all(np.isfinite(margin_values)) or np.any(margin_values < 0.0):
+        raise ValueError("margins must contain finite nonnegative values.")
     if oracle.shape != (atoms.shape[0],):
         raise ValueError("oracle_indices must match the record count.")
+    if np.any(oracle < 0) or np.any(oracle >= atoms.shape[1]):
+        raise ValueError("oracle_indices must identify a candidate in each record.")
+    if not feasible[np.arange(atoms.shape[0]), oracle].all():
+        raise ValueError("Every oracle candidate must be feasible.")
     if config.mode == "theta":
         feature_values = np.asarray(features, dtype=np.float64)
         if feature_values.ndim != 2 or feature_values.shape[0] != atoms.shape[0]:

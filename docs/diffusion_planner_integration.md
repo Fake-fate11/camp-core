@@ -27,13 +27,17 @@ replay entrypoint and changes ego planning to:
 ```text
 Diffusion Planner observation
   -> K stochastic ego trajectory candidates in one GPU batch
-  -> CAMP 9-atom evaluation and hard feasibility mask
+  -> CAMP versioned 9/10/12-atom evaluation and hard feasibility mask
   -> selected trajectory
   -> upstream perfect/MPC tracker
 ```
 
 NPC planning remains on the original deterministic upstream path. CAMP is
 applied only to the executed ego plan.
+
+Every atom or training change must satisfy the finite-candidate convex master
+contract in
+[`dp_camp_mathematical_contract.md`](dp_camp_mathematical_contract.md).
 
 The selector uses:
 

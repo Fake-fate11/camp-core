@@ -60,6 +60,8 @@ from scripts.integrations.train_diffusion_planner_static_camp import (
     train_static_weights,
 )
 from scripts.integrations.train_diffusion_planner_robust_camp import (
+    grouped_train_val_indices,
+    main as train_robust_camp_main,
     save_theta_checkpoint,
 )
 
@@ -514,6 +516,156 @@ def test_robust_margin_violation_has_correct_ranking_direction() -> None:
     assert bad_violation[0] > 1.0
     assert bad_worst.tolist() == [1]
     assert np.isneginf(candidate_values[0, 2])
+
+
+def test_robust_margin_candidate_loss_is_convex_in_simplex_weights() -> None:
+    atoms = np.array(
+        [
+            [
+                [0.1, 0.8, 0.4],
+                [0.7, 0.2, 0.3],
+                [0.4, 0.6, 0.1],
+            ]
+        ]
+    )
+    oracle = np.array([0])
+    margins = np.array([[0.0, 0.3, 0.6]])
+    feasible = np.ones((1, 3), dtype=bool)
+    left = np.array([0.8, 0.1, 0.1])
+    right = np.array([0.1, 0.2, 0.7])
+    interpolation = 0.37
+    middle = interpolation * left + (1.0 - interpolation) * right
+
+    _, left_loss, _ = candidate_ranking_violations(
+        atoms, left, oracle, margins, feasible
+    )
+    _, right_loss, _ = candidate_ranking_violations(
+        atoms, right, oracle, margins, feasible
+    )
+    _, middle_loss, _ = candidate_ranking_violations(
+        atoms, middle, oracle, margins, feasible
+    )
+
+    convex_bound = interpolation * left_loss + (1.0 - interpolation) * right_loss
+    assert middle_loss[0] <= convex_bound[0] + 1e-12
+
+
+def test_robust_margin_master_rejects_invalid_atom_contract() -> None:
+    atoms = np.array([[[0.0, -0.1], [1.0, 0.0]]])
+    oracle = np.array([0])
+    margins = np.zeros((1, 2))
+    feasible = np.ones((1, 2), dtype=bool)
+
+    with pytest.raises(ValueError, match="nonnegative cost features"):
+        solve_robust_margin_cutting_plane(
+            atoms,
+            oracle,
+            margins,
+            feasible,
+            config=RobustMarginConfig(mode="static"),
+        )
+
+
+def test_grouped_split_keeps_selection_logs_disjoint() -> None:
+    groups = np.repeat(np.arange(6), 4)
+    train_idx, val_idx, train_groups, val_groups = grouped_train_val_indices(
+        groups,
+        val_fraction=1.0 / 3.0,
+        seed=7,
+    )
+
+    assert train_groups == 4
+    assert val_groups == 2
+    assert set(groups[train_idx]).isdisjoint(set(groups[val_idx]))
+    assert sorted(np.concatenate([train_idx, val_idx]).tolist()) == list(
+        range(groups.size)
+    )
+
+
+def test_grouped_split_rejects_invalid_validation_fraction() -> None:
+    with pytest.raises(ValueError, match="val_fraction"):
+        grouped_train_val_indices(
+            np.array([0, 1]),
+            val_fraction=1.0,
+            seed=7,
+        )
+
+
+def test_static_robust_training_uses_grouped_validation_and_train_only_scales(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    pytest.importorskip("cvxpy")
+    log_paths = []
+    all_atoms = []
+    group_ids = []
+    for group_idx, atom_base in enumerate([1.0, 3.0, 100.0]):
+        atoms = np.vstack(
+            [
+                np.full(len(CAMP_ATOM_NAMES), atom_base),
+                np.full(len(CAMP_ATOM_NAMES), atom_base + 1.0),
+            ]
+        )
+        record = {
+            "atoms": atoms.tolist(),
+            "feasible_mask": [True, True],
+            "candidate_closed_loop_outcomes": [
+                {"value": 1.0, "feasible": True},
+                {"value": 0.0, "feasible": True},
+            ],
+        }
+        log_path = tmp_path / f"group_{group_idx}" / "camp_selection_log.json"
+        log_path.parent.mkdir()
+        log_path.write_text(json.dumps([record]), encoding="utf-8")
+        log_paths.append(log_path)
+        all_atoms.append(atoms)
+        group_ids.append(group_idx)
+
+    train_idx, _, _, _ = grouped_train_val_indices(
+        np.asarray(group_ids),
+        val_fraction=1.0 / 3.0,
+        seed=7,
+    )
+    expected_scales = robust_atom_scales(
+        np.asarray(all_atoms)[train_idx],
+        percentile=95.0,
+    )
+    output_dir = tmp_path / "trained"
+    argv = [
+        "train_diffusion_planner_robust_camp.py",
+        "--output_dir",
+        str(output_dir),
+        "--mode",
+        "static",
+        "--val_fraction",
+        str(1.0 / 3.0),
+        "--seed",
+        "7",
+        "--max_iter",
+        "5",
+    ]
+    for log_path in log_paths:
+        argv.extend(["--selection_log", str(log_path)])
+    monkeypatch.setattr(sys, "argv", argv)
+
+    train_robust_camp_main()
+
+    summary = json.loads(
+        (output_dir / "training_summary.json").read_text(encoding="utf-8")
+    )
+    saved_scales = np.asarray(
+        json.loads(
+            (output_dir / "atom_scales_dp_static.json").read_text(encoding="utf-8")
+        )
+    )
+    assert summary["train_groups"] == 2
+    assert summary["val_groups"] == 1
+    assert summary["val_metrics"]["records"] == 1.0
+    assert summary["normalization_fit_scope"] == "train_groups_only"
+    assert set(summary["train_selection_logs"]).isdisjoint(
+        summary["val_selection_logs"]
+    )
+    np.testing.assert_allclose(saved_scales, expected_scales)
 
 
 def test_empirical_cvar_emphasizes_worst_case_loss() -> None:

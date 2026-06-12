@@ -85,6 +85,8 @@ def grouped_train_val_indices(
     seed: int,
 ) -> tuple[np.ndarray, np.ndarray, int, int]:
     groups = np.asarray(group_ids, dtype=np.int64).reshape(-1)
+    if not 0.0 <= float(val_fraction) < 1.0:
+        raise ValueError("val_fraction must be in [0, 1).")
     unique_groups = np.unique(groups)
     if unique_groups.size == 0:
         raise ValueError("At least one training group is required.")
@@ -191,11 +193,10 @@ def main() -> None:
         features, atoms, selector_feasible = load_scene_training_records(
             args.selection_log
         )
-        group_ids = load_scene_training_groups(args.selection_log)
     else:
         atoms, selector_feasible = load_training_records(args.selection_log)
         features = None
-        group_ids = None
+    group_ids = load_scene_training_groups(args.selection_log)
 
     outcome_values, outcome_feasible = load_candidate_closed_loop_outcomes(
         args.selection_log,
@@ -217,12 +218,20 @@ def main() -> None:
     outcome_values = outcome_values[valid]
     if features is not None:
         features = features[valid]
-        group_ids = group_ids[valid]
+    group_ids = group_ids[valid]
     if atoms.shape[0] == 0:
         raise ValueError("No records contain a finite feasible candidate.")
 
+    train_idx, val_idx, train_groups, val_groups = grouped_train_val_indices(
+        group_ids,
+        val_fraction=args.val_fraction,
+        seed=args.seed,
+    )
+    if train_idx.size == 0:
+        raise ValueError("Grouped split produced no training records.")
+
     atom_names = atom_names_for_dimension(atoms.shape[-1])
-    atom_scales = robust_atom_scales(atoms, args.scale_percentile)
+    atom_scales = robust_atom_scales(atoms[train_idx], args.scale_percentile)
     normalized_atoms = np.clip(
         np.nan_to_num(atoms / atom_scales.reshape(1, 1, -1)),
         0.0,
@@ -248,22 +257,15 @@ def main() -> None:
     feature_center = None
     feature_scale = None
     normalized_features = None
-    train_idx = np.arange(atoms.shape[0])
-    val_idx = np.asarray([], dtype=np.int64)
-    train_groups = 0
-    val_groups = 0
     if args.mode == "theta":
-        feature_center, feature_scale = robust_feature_normalization(features)
+        feature_center, feature_scale = robust_feature_normalization(
+            features[train_idx]
+        )
         normalized_features = normalize_features(
             features,
             feature_center,
             feature_scale,
             clip=args.feature_clip,
-        )
-        train_idx, val_idx, train_groups, val_groups = grouped_train_val_indices(
-            group_ids,
-            val_fraction=args.val_fraction,
-            seed=args.seed,
         )
 
     result = solve_robust_margin_cutting_plane(
@@ -396,6 +398,15 @@ def main() -> None:
         "feature_clip": None if features is None else float(args.feature_clip),
         "train_groups": train_groups,
         "val_groups": val_groups,
+        "train_selection_logs": [
+            str(args.selection_log[group_idx])
+            for group_idx in sorted(np.unique(group_ids[train_idx]).tolist())
+        ],
+        "val_selection_logs": [
+            str(args.selection_log[group_idx])
+            for group_idx in sorted(np.unique(group_ids[val_idx]).tolist())
+        ],
+        "normalization_fit_scope": "train_groups_only",
         "train_metrics": train_metrics,
         "val_metrics": val_metrics,
         "cuts_per_scene": result.cuts_per_scene,
