@@ -104,6 +104,12 @@ def parse_args() -> argparse.Namespace:
         choices=("context", "dp_reward"),
         default="dp_reward",
     )
+    parser.add_argument(
+        "--camp_fallback_mode",
+        choices=("uniform", "learned"),
+        default="uniform",
+        help="Fallback policy for all-infeasible CAMP candidate sets.",
+    )
     parser.add_argument("--camp_min_progress_ratio", type=float, default=0.8)
     parser.add_argument("--camp_reward_horizon_steps", type=int, default=30)
     parser.add_argument("--camp_collect_closed_loop_outcomes", action="store_true")
@@ -214,6 +220,8 @@ def _variant_command(
                 str(args.camp_lane_corridor_buffer),
                 "--camp_feasibility_source",
                 args.camp_feasibility_source,
+                "--camp_fallback_mode",
+                args.camp_fallback_mode,
                 "--camp_min_progress_ratio",
                 str(args.camp_min_progress_ratio),
                 "--camp_reward_horizon_steps",
