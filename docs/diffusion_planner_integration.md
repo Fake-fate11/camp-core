@@ -569,6 +569,30 @@ bash scripts/integrations/run_diffusion_planner_theta_remote.sh
 After training, rerun the same 144-run strict matrix with the v5 Static and
 Theta assets and regenerate paired bootstrap statistics.
 
+### V5 formal matrix result
+
+The v5 closed-loop outcome experiment completed the same strict 144-run
+matrix as v4: three routes, unseen seeds 11-13, two NPC caps, two
+traffic-light modes, and four selectors. The comparison audit reports
+36/36/36/36 runs for Top-1, Uniform, Static, and Theta, with
+`strictly_paired=true`. The local artifacts are stored under
+`results/diffusion_planner/v5_2082ad5/`.
+
+The result is still mixed, not a general CAMP win. Against DP Top-1, Static
+improves route completion by +0.0223 with 95% bootstrap CI [0.0129, 0.0333],
+and Theta improves it by +0.0221 with CI [0.0126, 0.0333]. All variants have
+zero OBB collision rate, so this run cannot support a collision-reduction
+claim. The tradeoff is that Static and Theta both worsen planned red-light
+violation rate by +0.0433, with CIs excluding zero, and worsen comfort:
+mean jerk magnitude increases by about +0.96 m/s^3 and mean lateral
+acceleration by about +0.048-0.049 m/s^2.
+
+Relative to Uniform, Static and Theta still improve route completion by about
++0.0086 to +0.0089, but also increase planned red-light violation rate by
++0.0201. Theta does not improve over Static: Theta-Static route completion
+delta is -0.00024 with CI [-0.00048, -0.00005], while the safety and comfort
+deltas are effectively tied.
+
 ## Current limitations
 
 - Dynamic-vehicle hard collision feasibility now uses oriented bounding-box
@@ -578,11 +602,12 @@ Theta assets and regenerate paired bootstrap statistics.
 - The current DP-compatible `Theta` uses a stable 96-dimensional summary of
   Diffusion Planner input tensors, not a learned adapter over private DP
   encoder features.
-- Static and Theta now use DP candidate-reward preferences after safety and
-  progress gating. These are model-based labels, not counterfactual
-  closed-loop outcomes or human preferences.
-- The formal matrix is complete, but selection p95 remains approximately
-  107-108 ms for CAMP variants, slightly above the simulator's 100 ms tick.
-- V5 closed-loop outcome label support is implemented, but the v5 collection,
-  retraining, and strict matrix rerun must complete before claiming a general
-  quality gain.
+- Static and Theta v5 now use short-horizon candidate-branch closed-loop
+  outcome labels. They are still simulator-derived labels, not human
+  preferences or full recursive re-planning rollouts.
+- The v5 formal matrix is complete, but selection p95 averages about 105 ms
+  for CAMP variants, with bootstrap upper bounds around 114 ms, slightly above
+  the simulator's 100 ms tick.
+- V5 collection, retraining, and strict matrix rerun are complete. The
+  evidence supports a route-completion gain, but not a general quality gain,
+  because red-light planning and comfort metrics regress.

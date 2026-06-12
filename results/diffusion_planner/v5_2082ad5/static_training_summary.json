@@ -1,0 +1,138 @@
+{
+  "training_type": "diffusion_planner_static_candidate_preference",
+  "label_source": "closed_loop_outcome",
+  "reward_key": null,
+  "outcome_key": "value",
+  "reward_progress_weight": null,
+  "selection_logs": [
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_1/npc_0/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_1/npc_0/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_1/npc_4/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_1/npc_4/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_2/npc_0/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_2/npc_0/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_2/npc_4/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_2/npc_4/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_3/npc_0/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_3/npc_0/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_3/npc_4/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/nishishinjuku/seed_3/npc_4/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_1/npc_0/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_1/npc_0/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_1/npc_4/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_1/npc_4/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_2/npc_0/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_2/npc_0/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_2/npc_4/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_2/npc_4/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_3/npc_0/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_3/npc_0/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_3/npc_4/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample2_104/seed_3/npc_4/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_1/npc_0/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_1/npc_0/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_1/npc_4/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_1/npc_4/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_2/npc_0/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_2/npc_0/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_2/npc_4/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_2/npc_4/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_3/npc_0/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_3/npc_0/spawn_0p3/tl_on/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_3/npc_4/spawn_0p3/tl_off/uniform/camp_selection_log.json",
+    "/root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5/sample59_86/seed_3/npc_4/spawn_0p3/tl_on/uniform/camp_selection_log.json"
+  ],
+  "num_records": 6658,
+  "dropped_records_without_feasible_candidate": 542,
+  "num_candidates": 8,
+  "num_atoms": 10,
+  "atom_names": [
+    "jerk_early",
+    "jerk_late",
+    "jerk_full",
+    "rms_acceleration",
+    "speed_limit_margin_0_0",
+    "speed_limit_margin_0_5",
+    "speed_limit_margin_1_0",
+    "lane_deviation",
+    "clearance",
+    "progress_shortfall"
+  ],
+  "scale_percentile": 95.0,
+  "proxy_weights_normalized": null,
+  "trained_weights": [
+    0.0037929632307444503,
+    0.0035933118885348976,
+    0.003615751632502343,
+    0.0036069104785558977,
+    0.003058851044408161,
+    0.0030812920885162497,
+    0.0032202794115560205,
+    0.0033653075637460803,
+    0.0035374386483724425,
+    0.9691278940130635
+  ],
+  "oracle_match_rate": 0.8248723340342445,
+  "feasible_candidate_rate": 0.9962075698407931,
+  "records_with_any_infeasible": 56,
+  "weights_path": "/root/autodl-tmp/camp_dp_assets/camp_dp_outcome_static_v5_2082ad5/offline_weights_dp_static.npy",
+  "atom_scales_path": "/root/autodl-tmp/camp_dp_assets/camp_dp_outcome_static_v5_2082ad5/atom_scales_dp_static.json",
+  "history": [
+    {
+      "epoch": 1.0,
+      "loss": 2.063981275169337,
+      "oracle_match_rate": 0.4044758185641334
+    },
+    {
+      "epoch": 100.0,
+      "loss": 2.0354227416879938,
+      "oracle_match_rate": 0.6234604986482427
+    },
+    {
+      "epoch": 200.0,
+      "loss": 1.9614461918492094,
+      "oracle_match_rate": 0.8050465605286873
+    },
+    {
+      "epoch": 300.0,
+      "loss": 1.8908162346871653,
+      "oracle_match_rate": 0.8251727245419045
+    },
+    {
+      "epoch": 400.0,
+      "loss": 1.8649106620996834,
+      "oracle_match_rate": 0.8274256533493541
+    },
+    {
+      "epoch": 500.0,
+      "loss": 1.854636570798745,
+      "oracle_match_rate": 0.8268248723340342
+    },
+    {
+      "epoch": 600.0,
+      "loss": 1.8494841365527503,
+      "oracle_match_rate": 0.8272754580955242
+    },
+    {
+      "epoch": 700.0,
+      "loss": 1.8464588911457367,
+      "oracle_match_rate": 0.8257735055572244
+    },
+    {
+      "epoch": 800.0,
+      "loss": 1.8444894977566093,
+      "oracle_match_rate": 0.8251727245419045
+    },
+    {
+      "epoch": 900.0,
+      "loss": 1.8431128876793699,
+      "oracle_match_rate": 0.8248723340342445
+    },
+    {
+      "epoch": 1000.0,
+      "loss": 1.8420997011498137,
+      "oracle_match_rate": 0.8248723340342445
+    }
+  ],
+  "caveat": "Closed-loop outcome labels are short-horizon candidate-branch evaluations. Matched closed-loop baselines remain required for final claims."
+}
