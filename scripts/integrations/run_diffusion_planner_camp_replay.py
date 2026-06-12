@@ -100,6 +100,15 @@ def parse_args() -> argparse.Namespace:
             "per-step Diffusion Planner scene features."
         ),
     )
+    parser.add_argument(
+        "--camp_fallback_mode",
+        choices=("uniform", "learned"),
+        default="uniform",
+        help=(
+            "Fallback policy when all candidates are infeasible. uniform keeps "
+            "the legacy average-atom fallback; learned reuses selector scores."
+        ),
+    )
     parser.add_argument("--camp_atom_clip", type=float, default=10.0)
     parser.add_argument("--camp_safety_radius", type=float, default=2.0)
     parser.add_argument("--camp_clearance_margin", type=float, default=1.0)
@@ -204,6 +213,7 @@ def _build_selector(args: argparse.Namespace) -> CAMPSelector | None:
             atom_scales,
             static_weights=np.ones_like(atom_scales, dtype=np.float64),
             mode="static",
+            fallback_mode=args.camp_fallback_mode,
             atom_clip=args.camp_atom_clip,
         )
     return CAMPSelector.from_files(
@@ -211,6 +221,7 @@ def _build_selector(args: argparse.Namespace) -> CAMPSelector | None:
         checkpoint_path=args.camp_checkpoint,
         static_weights_path=args.camp_static_weights,
         mode=args.camp_selector_mode,
+        fallback_mode=args.camp_fallback_mode,
         atom_clip=args.camp_atom_clip,
     )
 
@@ -674,6 +685,7 @@ def _install_camp_predictor(
         candidate_rewards = None
         candidate_outcomes = None
         candidate_progress = None
+        candidate_planned_red_light_cost = None
         external_feasible_mask = None
         external_infeasibility_reasons = None
         if feasibility_source == "dp_reward":
@@ -700,6 +712,10 @@ def _install_camp_predictor(
                 [reward["progress"] for reward in candidate_rewards],
                 dtype=np.float64,
             )
+            candidate_planned_red_light_cost = np.asarray(
+                [max(-float(reward.get("red_light", 0.0)), 0.0) for reward in candidate_rewards],
+                dtype=np.float64,
+            )
         if collect_closed_loop_outcomes:
             candidate_outcomes = compute_candidate_closed_loop_outcomes(
                 candidates,
@@ -719,6 +735,7 @@ def _install_camp_predictor(
             scene_embedding=scene_features if selector.mode == "linear" else None,
             candidate_obstacles=obstacles,
             candidate_progress=candidate_progress,
+            candidate_planned_red_light_cost=candidate_planned_red_light_cost,
             external_feasible_mask=external_feasible_mask,
             external_infeasibility_reasons=external_infeasibility_reasons,
             apply_context_feasibility=feasibility_source == "context",
@@ -756,6 +773,9 @@ def _install_camp_predictor(
                 "selected_index": selection.selected_index,
                 "num_candidates": int(num_candidates),
                 "used_fallback": selection.used_fallback,
+                "camp_fallback_mode": getattr(selector, "fallback_mode", "uniform")
+                if selector is not None
+                else None,
                 "feasible_mask": selection.feasible_mask.tolist(),
                 "infeasibility_reasons": [
                     list(reasons) for reasons in selection.infeasibility_reasons
@@ -950,11 +970,13 @@ def main() -> None:
             else None
         ),
         "selector_mode": args.camp_selector_mode,
+        "camp_fallback_mode": args.camp_fallback_mode,
         "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
         "model_args": str(args.model_args) if args.model_args is not None else None,
         "using_no_ros_projection_fallback": using_projection_fallback,
         "benchmark": {
             "variant": args.camp_selector_mode,
+            "fallback_mode": args.camp_fallback_mode,
             "route": str(args.route),
             "map_path": str(map_path),
             "model_path": str(args.model_path),
@@ -1002,6 +1024,7 @@ def main() -> None:
         f"max_npcs={args.max_npcs}|spawn_probability={args.spawn_probability}|"
         f"traffic_lights={bool(config.enable_traffic_lights)}"
     )
+    validation["camp_fallback_mode"] = args.camp_fallback_mode
     (args.output_dir / "camp_validation_summary.json").write_text(
         json.dumps(validation, indent=2), encoding="utf-8"
     )

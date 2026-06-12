@@ -39,6 +39,10 @@ CAMP_ATOM_NAMES = (
     "clearance",
 )
 DP_CAMP_ATOM_NAMES = CAMP_ATOM_NAMES + ("progress_shortfall",)
+DP_CAMP_ATOM_NAMES_V8 = DP_CAMP_ATOM_NAMES + (
+    "planned_red_light_cost",
+    "planned_lateral_acceleration_cost",
+)
 
 DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS = {
     "progress": 1.0,
@@ -1228,6 +1232,7 @@ class CAMPSelector:
         feature_clip: float = 5.0,
         linear_activation: str = "project_simplex",
         mode: str = "static",
+        fallback_mode: str = "uniform",
         atom_clip: float = 10.0,
     ) -> None:
         self.atom_scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
@@ -1249,6 +1254,12 @@ class CAMPSelector:
             )
         self.linear_activation = linear_activation
         self.feature_clip = float(feature_clip)
+        if fallback_mode not in {"uniform", "learned"}:
+            raise ValueError(
+                "fallback_mode must be 'uniform' or 'learned', "
+                f"got {fallback_mode!r}."
+            )
+        self.fallback_mode = fallback_mode
 
         self.static_weights = None
         if static_weights is not None:
@@ -1298,6 +1309,7 @@ class CAMPSelector:
         checkpoint_path: Optional[Union[str, Path]] = None,
         static_weights_path: Optional[Union[str, Path]] = None,
         mode: str = "static",
+        fallback_mode: str = "uniform",
         atom_clip: float = 10.0,
     ) -> "CAMPSelector":
         scales_path = Path(atom_scales_path)
@@ -1339,6 +1351,7 @@ class CAMPSelector:
             feature_clip=feature_clip,
             linear_activation=linear_activation,
             mode=mode,
+            fallback_mode=fallback_mode,
             atom_clip=atom_clip,
         )
 
@@ -1381,6 +1394,7 @@ class CAMPSelector:
         scene_embedding: Optional[np.ndarray] = None,
         candidate_obstacles: Optional[np.ndarray] = None,
         candidate_progress: Optional[np.ndarray] = None,
+        candidate_planned_red_light_cost: Optional[np.ndarray] = None,
         external_feasible_mask: Optional[np.ndarray] = None,
         external_infeasibility_reasons: Optional[Sequence[Sequence[str]]] = None,
         apply_context_feasibility: bool = True,
@@ -1523,11 +1537,60 @@ class CAMPSelector:
                 [atoms_arr, progress_shortfall.reshape(-1, 1)],
                 axis=1,
             )
+        elif self.num_atoms == len(DP_CAMP_ATOM_NAMES_V8):
+            if progress is None:
+                progress = np.linalg.norm(
+                    np.diff(candidates[:, :, :2], axis=1),
+                    axis=-1,
+                ).sum(axis=1)
+            progress = np.nan_to_num(progress, nan=0.0, posinf=0.0, neginf=0.0)
+            reference_progress = float(
+                np.max(progress[feasible_mask])
+                if feasible_mask.any()
+                else np.max(progress)
+            )
+            progress_shortfall = np.maximum(reference_progress - progress, 0.0)
+            if candidate_planned_red_light_cost is None:
+                raise ValueError(
+                    "DP v8 CAMP selection requires candidate_planned_red_light_cost."
+                )
+            red_light_cost = np.asarray(
+                candidate_planned_red_light_cost,
+                dtype=np.float64,
+            ).reshape(-1)
+            if red_light_cost.shape != (candidates.shape[0],):
+                raise ValueError(
+                    "candidate_planned_red_light_cost must match candidate count, "
+                    f"got {red_light_cost.shape}, expected ({candidates.shape[0]},)."
+                )
+            red_light_cost = np.nan_to_num(
+                red_light_cost, nan=0.0, posinf=0.0, neginf=0.0
+            )
+            red_light_cost = np.maximum(red_light_cost, 0.0)
+            lateral_acceleration_cost = np.asarray(
+                [_trajectory_comfort(candidate, context.dt)[1] for candidate in candidates],
+                dtype=np.float64,
+            )
+            lateral_acceleration_cost = np.nan_to_num(
+                lateral_acceleration_cost, nan=0.0, posinf=0.0, neginf=0.0
+            )
+            lateral_acceleration_cost = np.maximum(lateral_acceleration_cost, 0.0)
+            atoms_arr = np.concatenate(
+                [
+                    atoms_arr,
+                    progress_shortfall.reshape(-1, 1),
+                    red_light_cost.reshape(-1, 1),
+                    lateral_acceleration_cost.reshape(-1, 1),
+                ],
+                axis=1,
+            )
         elif self.num_atoms != len(CAMP_ATOM_NAMES):
             raise ValueError(
                 "Diffusion Planner CAMP scales must contain either "
                 f"{len(CAMP_ATOM_NAMES)} legacy atoms or "
-                f"{len(DP_CAMP_ATOM_NAMES)} atoms with progress_shortfall, "
+                f"{len(DP_CAMP_ATOM_NAMES)} atoms with progress_shortfall or "
+                f"{len(DP_CAMP_ATOM_NAMES_V8)} atoms with planned_red_light_cost "
+                f"and planned_lateral_acceleration_cost, "
                 f"got {self.num_atoms}."
             )
         normalized = atoms_arr / self.atom_scales.reshape(1, -1)
@@ -1543,8 +1606,11 @@ class CAMPSelector:
         scores = normalized @ weights
         used_fallback = not feasible_mask.any()
         if used_fallback:
-            fallback_weights = np.full(self.num_atoms, 1.0 / self.num_atoms)
-            selection_scores = normalized @ fallback_weights
+            if self.fallback_mode == "learned":
+                selection_scores = scores.copy()
+            else:
+                fallback_weights = np.full(self.num_atoms, 1.0 / self.num_atoms)
+                selection_scores = normalized @ fallback_weights
         else:
             selection_scores = scores.copy()
             selection_scores[~feasible_mask] = np.inf

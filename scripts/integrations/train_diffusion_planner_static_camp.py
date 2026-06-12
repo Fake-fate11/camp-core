@@ -20,6 +20,7 @@ for path in (ROOT, PACKAGE_ROOT):
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
     CAMP_ATOM_NAMES,
     DP_CAMP_ATOM_NAMES,
+    DP_CAMP_ATOM_NAMES_V8,
     DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS,
 )
 
@@ -36,6 +37,8 @@ DEFAULT_PROXY_WEIGHTS = np.array(
         2.00,
         3.00,
         2.00,
+        4.00,
+        1.50,
     ],
     dtype=np.float64,
 )
@@ -216,9 +219,12 @@ def atom_names_for_dimension(num_atoms: int) -> tuple[str, ...]:
         return CAMP_ATOM_NAMES
     if num_atoms == len(DP_CAMP_ATOM_NAMES):
         return DP_CAMP_ATOM_NAMES
+    if num_atoms == len(DP_CAMP_ATOM_NAMES_V8):
+        return DP_CAMP_ATOM_NAMES_V8
     raise ValueError(
         f"Expected {len(CAMP_ATOM_NAMES)} legacy atoms or "
-        f"{len(DP_CAMP_ATOM_NAMES)} DP atoms, got {num_atoms}."
+        f"{len(DP_CAMP_ATOM_NAMES)} DP atoms or "
+        f"{len(DP_CAMP_ATOM_NAMES_V8)} v8 atoms, got {num_atoms}."
     )
 
 

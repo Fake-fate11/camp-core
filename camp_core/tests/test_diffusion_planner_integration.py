@@ -13,6 +13,7 @@ from camp_core.integrations.diffusion_planner import (
     CAMP_ATOM_NAMES,
     DP_SCENE_FEATURE_NAMES,
     DP_CAMP_ATOM_NAMES,
+    DP_CAMP_ATOM_NAMES_V8,
     CAMPSelector,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
@@ -753,6 +754,42 @@ def test_dp_selector_appends_progress_shortfall_atom() -> None:
     assert result.selected_index == 1
 
 
+def test_dp_v8_selector_appends_red_light_and_lateral_atoms() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=5.0,
+        speed_limit=50.0,
+    )
+    x = np.linspace(0.5, 4.0, 8)
+    oscillating = np.column_stack(
+        [x, np.array([0.0, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.0])]
+    )
+    smooth = np.column_stack([x, np.zeros_like(x)])
+    candidates = np.stack([oscillating, smooth])
+    weights = np.zeros(len(DP_CAMP_ATOM_NAMES_V8))
+    weights[-2] = 1.0
+    selector = CAMPSelector(
+        atom_scales=np.ones(len(DP_CAMP_ATOM_NAMES_V8)),
+        static_weights=weights,
+        mode="static",
+        fallback_mode="learned",
+    )
+
+    result = selector.select(
+        candidates,
+        context,
+        candidate_progress=np.array([5.0, 10.0]),
+        candidate_planned_red_light_cost=np.array([5.0, 0.0]),
+    )
+
+    assert result.atoms.shape == (2, len(DP_CAMP_ATOM_NAMES_V8))
+    np.testing.assert_allclose(result.atoms[:, -3], np.array([5.0, 0.0]))
+    np.testing.assert_allclose(result.atoms[:, -2], np.array([5.0, 0.0]))
+    assert result.atoms[1, -1] == 0.0
+    assert result.selected_index == 1
+
+
 def test_selector_respects_configurable_lane_corridor_buffer() -> None:
     x = np.linspace(0.5, 4.0, 8)
     candidate = np.column_stack([x, np.full_like(x, 2.6)])
@@ -784,6 +821,46 @@ def test_selector_respects_configurable_lane_corridor_buffer() -> None:
     assert strict_result.infeasibility_reasons == (("lane_corridor",),)
     assert relaxed_result.feasible_mask.tolist() == [True]
     assert relaxed_result.infeasibility_reasons == ((),)
+
+
+def test_learned_fallback_only_changes_all_infeasible_branch() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=0.1,
+        lane_corridor_buffer=0.0,
+        speed_limit=2.0,
+        desired_speed=1.0,
+    )
+    x_fast = np.linspace(0.5, 8.0, 8)
+    x_slow = np.linspace(0.5, 1.2, 8)
+    candidate_fast = np.column_stack([x_fast, np.full_like(x_fast, 0.12)])
+    candidate_slow = np.column_stack([x_slow, np.full_like(x_slow, 0.5)])
+    candidates = np.stack([candidate_fast, candidate_slow])
+    learned_weights = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0])
+
+    uniform_selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=learned_weights,
+        mode="static",
+        fallback_mode="uniform",
+    )
+    learned_selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=learned_weights,
+        mode="static",
+        fallback_mode="learned",
+    )
+
+    uniform_result = uniform_selector.select(candidates, context)
+    learned_result = learned_selector.select(candidates, context)
+
+    assert uniform_result.used_fallback
+    assert learned_result.used_fallback
+    assert uniform_result.feasible_mask.tolist() == [False, False]
+    assert learned_result.feasible_mask.tolist() == [False, False]
+    assert learned_result.selected_index == 0
+    assert uniform_result.selected_index == 1
 
 
 def test_selector_accepts_external_feasibility_without_context_lane_gate() -> None:
