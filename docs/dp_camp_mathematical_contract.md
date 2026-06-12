@@ -119,6 +119,15 @@ set is empty. `uniform` and learned fallback remain separate ablations.
 Fallback outcomes cannot be used to claim that the normal feasible-branch
 problem has improved.
 
+Optional static atom-weight floors remain convex when declared before solving:
+\(w_r \ge \underline{w}_r \ge 0\) and
+\(\sum_r \underline{w}_r \le 1\). The implementation parameterizes
+\(w=\underline{w}+(1-\mathbf{1}^\top\underline{w})z\), where
+\(z\ge0\) and \(\mathbf{1}^\top z=1\). Candidate scores remain affine in the
+master variable, so every finite-candidate cut remains globally valid. Floors
+must be selected using training/validation evidence and recorded in the
+checkpoint summary; post-training weight editing is not certified.
+
 ## Required Gates
 
 Before an atom or training change reaches formal evaluation, it must pass:

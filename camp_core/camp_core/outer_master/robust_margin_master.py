@@ -16,6 +16,7 @@ class RobustMarginConfig:
     tolerance: float = 1e-6
     solver: str = "CLARABEL"
     verbose: bool = False
+    static_weight_lower_bounds: Optional[tuple[float, ...]] = None
 
     def validate(self) -> None:
         if self.mode not in {"static", "theta"}:
@@ -32,6 +33,24 @@ class RobustMarginConfig:
             raise ValueError("max_iter must be positive.")
         if self.tolerance < 0.0:
             raise ValueError("tolerance must be nonnegative.")
+        if self.static_weight_lower_bounds is not None:
+            lower = np.asarray(
+                self.static_weight_lower_bounds,
+                dtype=np.float64,
+            ).reshape(-1)
+            if self.mode != "static":
+                raise ValueError(
+                    "static_weight_lower_bounds require static mode."
+                )
+            if (
+                not np.all(np.isfinite(lower))
+                or np.any(lower < 0.0)
+                or float(np.sum(lower)) > 1.0 + 1e-12
+            ):
+                raise ValueError(
+                    "static_weight_lower_bounds must be finite, nonnegative, "
+                    "and sum to at most one."
+                )
 
 
 @dataclass
@@ -182,6 +201,23 @@ def _risk_value(losses: np.ndarray, config: RobustMarginConfig) -> float:
     return empirical_cvar(losses, config.alpha)[0]
 
 
+def _static_lower_bounds(
+    config: RobustMarginConfig,
+    num_atoms: int,
+) -> np.ndarray:
+    if config.static_weight_lower_bounds is None:
+        return np.zeros(num_atoms, dtype=np.float64)
+    lower = np.asarray(
+        config.static_weight_lower_bounds,
+        dtype=np.float64,
+    ).reshape(-1)
+    if lower.shape != (num_atoms,):
+        raise ValueError(
+            "static_weight_lower_bounds must match the atom dimension."
+        )
+    return lower
+
+
 def _solve_master(
     normalized_atoms: np.ndarray,
     oracle_indices: np.ndarray,
@@ -207,14 +243,19 @@ def _solve_master(
     theta_var = None
 
     if config.mode == "static":
+        lower = _static_lower_bounds(config, num_atoms)
+        residual = 1.0 - float(np.sum(lower))
         static_var = cp.Variable(num_atoms)
         constraints.extend([static_var >= 0.0, cp.sum(static_var) == 1.0])
+        static_weights_expr = lower + residual * static_var
 
         def weight_expr(record_idx: int):
-            return static_var
+            return static_weights_expr
 
         uniform = np.full(num_atoms, 1.0 / num_atoms, dtype=np.float64)
-        regularization = config.l2_reg * cp.sum_squares(static_var - uniform)
+        regularization = config.l2_reg * cp.sum_squares(
+            static_weights_expr - uniform
+        )
     else:
         if features is None:
             raise ValueError("Theta mode requires normalized scene features.")
@@ -281,7 +322,10 @@ def _solve_master(
             static_value = (
                 None
                 if static_var is None
-                else np.asarray(static_var.value, dtype=np.float64).reshape(-1)
+                else np.asarray(
+                    static_weights_expr.value,
+                    dtype=np.float64,
+                ).reshape(-1)
             )
             theta_value = (
                 None
@@ -343,6 +387,8 @@ def solve_robust_margin_cutting_plane(
         feature_values = None
 
     num_records, _, num_atoms = atoms.shape
+    if config.mode == "static":
+        _static_lower_bounds(config, num_atoms)
     cuts: list[set[int]] = [set() for _ in range(num_records)]
     static_weights: Optional[np.ndarray] = None
     theta: Optional[np.ndarray] = None

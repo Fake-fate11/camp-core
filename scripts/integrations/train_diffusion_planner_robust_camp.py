@@ -79,6 +79,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--feature_clip", type=float, default=5.0)
     parser.add_argument("--val_fraction", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument(
+        "--min_atom_weight",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help=(
+            "Static-mode simplex lower bound for a named atom. "
+            "Can be passed more than once."
+        ),
+    )
     parser.add_argument("--outcome_key", type=str, default="value")
     parser.add_argument("--outcome_weights", type=Path, default=None)
     parser.add_argument(
@@ -116,6 +126,40 @@ def grouped_train_val_indices(
         int(unique_groups.size - val_count),
         int(val_count),
     )
+
+
+def parse_atom_weight_lower_bounds(
+    specifications: list[str],
+    atom_names: tuple[str, ...],
+) -> np.ndarray:
+    lower = np.zeros(len(atom_names), dtype=np.float64)
+    seen: set[str] = set()
+    name_to_index = {name: idx for idx, name in enumerate(atom_names)}
+    for specification in specifications:
+        name, separator, raw_value = specification.partition("=")
+        if not separator or not name or not raw_value:
+            raise ValueError(
+                "Each --min_atom_weight must use NAME=VALUE syntax."
+            )
+        if name not in name_to_index:
+            raise ValueError(f"Unknown atom in --min_atom_weight: {name!r}.")
+        if name in seen:
+            raise ValueError(f"Duplicate --min_atom_weight for {name!r}.")
+        try:
+            value = float(raw_value)
+        except ValueError as exc:
+            raise ValueError(
+                f"Invalid minimum weight for atom {name!r}: {raw_value!r}."
+            ) from exc
+        if not np.isfinite(value) or value < 0.0 or value > 1.0:
+            raise ValueError(
+                f"Minimum weight for atom {name!r} must be in [0, 1]."
+            )
+        lower[name_to_index[name]] = value
+        seen.add(name)
+    if float(np.sum(lower)) > 1.0 + 1e-12:
+        raise ValueError("Minimum atom weights must sum to at most one.")
+    return lower
 
 
 def _selection_metrics(
@@ -257,6 +301,12 @@ def main() -> None:
         raise ValueError("Grouped split produced no training records.")
 
     atom_names = atom_names_for_dimension(atoms.shape[-1])
+    if args.min_atom_weight and args.mode != "static":
+        raise ValueError("--min_atom_weight currently requires static mode.")
+    minimum_atom_weights = parse_atom_weight_lower_bounds(
+        args.min_atom_weight,
+        atom_names,
+    )
     atom_schema = validate_atom_schema(
         args.selection_log,
         atom_names,
@@ -283,6 +333,7 @@ def main() -> None:
         tolerance=args.tolerance,
         solver=args.solver,
         verbose=args.solver_verbose,
+        static_weight_lower_bounds=tuple(minimum_atom_weights.tolist()),
     )
 
     feature_center = None
@@ -348,6 +399,10 @@ def main() -> None:
             else "offline_weights_dp_static.npy"
         )
         static_weights = project_simplex_rows(result.static_weights)[0]
+        if np.any(static_weights + 1e-8 < minimum_atom_weights):
+            raise RuntimeError(
+                "Saved static weights violate a configured atom lower bound."
+            )
         np.save(weights_path, static_weights.astype(np.float64))
         all_weights = np.broadcast_to(
             static_weights, (atoms.shape[0], atoms.shape[-1])
@@ -451,6 +506,11 @@ def main() -> None:
         "num_candidates": int(atoms.shape[1]),
         "num_atoms": int(atoms.shape[2]),
         "atom_names": list(atom_names),
+        "minimum_atom_weights": {
+            name: float(minimum_atom_weights[idx])
+            for idx, name in enumerate(atom_names)
+            if minimum_atom_weights[idx] > 0.0
+        },
         "atom_schema": atom_schema,
         "scale_percentile": float(args.scale_percentile),
         "feature_dim": None if features is None else int(features.shape[1]),

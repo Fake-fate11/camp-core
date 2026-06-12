@@ -64,6 +64,7 @@ from scripts.integrations.train_diffusion_planner_static_camp import (
 )
 from scripts.integrations.train_diffusion_planner_robust_camp import (
     grouped_train_val_indices,
+    parse_atom_weight_lower_bounds,
     main as train_robust_camp_main,
     save_theta_checkpoint,
 )
@@ -675,6 +676,23 @@ def test_grouped_split_rejects_invalid_validation_fraction() -> None:
         )
 
 
+def test_named_atom_weight_lower_bounds_are_validated() -> None:
+    lower = parse_atom_weight_lower_bounds(
+        ["jerk_early=0.1", "clearance=0.2"],
+        CAMP_ATOM_NAMES,
+    )
+
+    assert lower[CAMP_ATOM_NAMES.index("jerk_early")] == pytest.approx(0.1)
+    assert lower[CAMP_ATOM_NAMES.index("clearance")] == pytest.approx(0.2)
+    with pytest.raises(ValueError, match="Unknown atom"):
+        parse_atom_weight_lower_bounds(["missing=0.1"], CAMP_ATOM_NAMES)
+    with pytest.raises(ValueError, match="sum to at most one"):
+        parse_atom_weight_lower_bounds(
+            ["jerk_early=0.6", "clearance=0.5"],
+            CAMP_ATOM_NAMES,
+        )
+
+
 def test_static_robust_training_uses_grouped_validation_and_train_only_scales(
     tmp_path,
     monkeypatch,
@@ -727,6 +745,8 @@ def test_static_robust_training_uses_grouped_validation_and_train_only_scales(
         "7",
         "--max_iter",
         "5",
+        "--min_atom_weight",
+        "clearance=0.2",
     ]
     for log_path in log_paths:
         argv.extend(["--selection_log", str(log_path)])
@@ -750,6 +770,9 @@ def test_static_robust_training_uses_grouped_validation_and_train_only_scales(
     assert set(summary["train_selection_logs"]).isdisjoint(
         summary["val_selection_logs"]
     )
+    assert summary["minimum_atom_weights"] == {"clearance": 0.2}
+    saved_weights = np.load(output_dir / "offline_weights_dp_static.npy")
+    assert saved_weights[CAMP_ATOM_NAMES.index("clearance")] >= 0.2 - 1e-8
     np.testing.assert_allclose(saved_scales, expected_scales)
 
 
@@ -905,6 +928,37 @@ def test_robust_margin_master_outputs_simplex_static_and_theta() -> None:
     assert np.all(weights >= -1e-7)
     assert theta_result.converged
     assert theta_result.final_master_gap <= 1e-6
+
+
+def test_static_robust_margin_master_honors_affine_weight_lower_bounds() -> None:
+    pytest.importorskip("cvxpy")
+    atoms = np.array(
+        [
+            [[0.0, 1.0], [1.0, 0.0]],
+            [[0.0, 1.0], [1.0, 0.0]],
+        ]
+    )
+    oracle = np.array([0, 0])
+    margins = np.array([[0.0, 0.2], [0.0, 0.2]])
+    feasible = np.ones((2, 2), dtype=bool)
+
+    result = solve_robust_margin_cutting_plane(
+        atoms,
+        oracle,
+        margins,
+        feasible,
+        config=RobustMarginConfig(
+            mode="static",
+            max_iter=5,
+            static_weight_lower_bounds=(0.7, 0.2),
+        ),
+    )
+
+    assert result.converged
+    assert result.final_master_gap <= 1e-6
+    assert result.static_weights[0] >= 0.7 - 1e-8
+    assert result.static_weights[1] >= 0.2 - 1e-8
+    np.testing.assert_allclose(result.static_weights.sum(), 1.0, atol=1e-8)
 
 
 def test_static_cutting_plane_matches_full_epigraph_master() -> None:
