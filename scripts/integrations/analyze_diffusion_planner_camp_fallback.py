@@ -46,6 +46,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--root", type=Path, action="append", default=[])
     parser.add_argument("--selection_log", type=Path, action="append", default=[])
     parser.add_argument("--atom_scales", type=Path, required=True)
+    parser.add_argument(
+        "--uniform_atom_scales",
+        type=Path,
+        default=None,
+        help=(
+            "Primary selector scales used by the runtime uniform fallback. "
+            "Defaults to --atom_scales for backward compatibility."
+        ),
+    )
     parser.add_argument("--learned_weights", type=Path, required=True)
     parser.add_argument("--atom_clip", type=float, default=10.0)
     parser.add_argument("--require_atom_schema", action="store_true")
@@ -57,16 +66,25 @@ def compute_fallback_ablation_report(
     paths: list[Path],
     *,
     atom_scales: np.ndarray,
+    uniform_atom_scales: np.ndarray | None = None,
     learned_weights: np.ndarray,
     atom_clip: float = 10.0,
     require_atom_schema: bool = False,
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
+    uniform_scales = np.asarray(
+        scales if uniform_atom_scales is None else uniform_atom_scales,
+        dtype=np.float64,
+    ).reshape(-1)
     weights = np.asarray(learned_weights, dtype=np.float64).reshape(-1)
     if scales.size == 0 or scales.shape != weights.shape:
         raise ValueError("atom_scales and learned_weights must have equal nonzero shape.")
     if not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
         raise ValueError("atom_scales must contain finite positive values.")
+    if uniform_scales.shape != weights.shape:
+        raise ValueError("uniform_atom_scales must match learned_weights.")
+    if not np.all(np.isfinite(uniform_scales)) or np.any(uniform_scales <= 0.0):
+        raise ValueError("uniform_atom_scales must contain finite positive values.")
     if not np.all(np.isfinite(weights)) or np.any(weights < -1e-9):
         raise ValueError("learned_weights must contain finite nonnegative values.")
     if not np.isclose(np.sum(weights), 1.0, atol=1e-6):
@@ -119,15 +137,22 @@ def compute_fallback_ablation_report(
                     f"{log_path} record {record_idx} lacks complete candidate outcomes."
                 )
 
-            normalized = np.nan_to_num(
+            learned_normalized = np.nan_to_num(
                 atoms / scales.reshape(1, -1),
                 nan=0.0,
                 posinf=atom_clip,
                 neginf=0.0,
             )
-            normalized = np.clip(normalized, 0.0, atom_clip)
-            uniform_index = int(np.argmin(normalized @ uniform_weights))
-            learned_index = int(np.argmin(normalized @ weights))
+            learned_normalized = np.clip(learned_normalized, 0.0, atom_clip)
+            uniform_normalized = np.nan_to_num(
+                atoms / uniform_scales.reshape(1, -1),
+                nan=0.0,
+                posinf=atom_clip,
+                neginf=0.0,
+            )
+            uniform_normalized = np.clip(uniform_normalized, 0.0, atom_clip)
+            uniform_index = int(np.argmin(uniform_normalized @ uniform_weights))
+            learned_index = int(np.argmin(learned_normalized @ weights))
             outcome_values = np.asarray(
                 [float(outcome["value"]) for outcome in outcomes],
                 dtype=np.float64,
@@ -157,6 +182,7 @@ def compute_fallback_ablation_report(
             ),
             "atom_schema_version": schema_version,
             "atom_names": list(atom_names),
+            "separate_uniform_atom_scales": uniform_atom_scales is not None,
         },
         "records": {
             "total": total_records,
@@ -249,6 +275,11 @@ def main() -> None:
     report = compute_fallback_ablation_report(
         inputs,
         atom_scales=load_dp_camp_atom_scales(args.atom_scales),
+        uniform_atom_scales=(
+            None
+            if args.uniform_atom_scales is None
+            else load_dp_camp_atom_scales(args.uniform_atom_scales)
+        ),
         learned_weights=np.load(args.learned_weights),
         atom_clip=args.atom_clip,
         require_atom_schema=args.require_atom_schema,

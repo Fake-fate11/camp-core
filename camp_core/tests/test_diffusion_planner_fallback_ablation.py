@@ -82,6 +82,44 @@ def test_fallback_ablation_rejects_non_simplex_weights(tmp_path) -> None:
         )
 
 
+def test_fallback_ablation_uses_primary_scales_for_uniform_policy(tmp_path) -> None:
+    atoms = [
+        [1.0, 0.0] + [0.0] * 10,
+        [0.0, 2.0] + [0.0] * 10,
+    ]
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(
+        json.dumps(
+            [
+                _record(
+                    feasible=[False, False],
+                    atoms=atoms,
+                    values=[0.0, 3.0],
+                )
+            ]
+        ),
+        encoding="utf-8",
+    )
+    learned = np.zeros(12)
+    learned[0] = 1.0
+    uniform_scales = np.ones(12)
+    uniform_scales[0] = 0.1
+    uniform_scales[1] = 100.0
+
+    report = compute_fallback_ablation_report(
+        [log_path],
+        atom_scales=np.ones(12),
+        uniform_atom_scales=uniform_scales,
+        learned_weights=learned,
+        require_atom_schema=True,
+    )
+
+    assert report["analysis"]["separate_uniform_atom_scales"]
+    assert report["uniform"]["mean_outcome_value"] == 3.0
+    assert report["learned"]["mean_outcome_value"] == 3.0
+    assert report["paired"]["selection_disagreement_rate"] == 0.0
+
+
 def _record(
     *,
     feasible: list[bool],
