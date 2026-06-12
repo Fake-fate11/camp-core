@@ -10,6 +10,11 @@ import pytest
 
 import camp_core.integrations.diffusion_planner as diffusion_planner_module
 from camp_core.atoms.driver_atoms import DriverAtomContext
+from camp_core.atoms.driver_atoms import (
+    _project_onto_centerline,
+    _project_point_onto_polyline,
+    compute_atom_bank_vector,
+)
 from camp_core.integrations.diffusion_planner import (
     CAMP_ATOM_NAMES,
     DP_SCENE_FEATURE_NAMES,
@@ -75,6 +80,47 @@ def test_project_simplex_returns_probability_vector() -> None:
     projected = project_simplex(np.array([-1.0, 0.5, 2.0]))
     np.testing.assert_allclose(projected.sum(), 1.0)
     assert np.all(projected >= 0.0)
+
+
+def test_vectorized_centerline_projection_matches_pointwise_projection() -> None:
+    centerline = np.array(
+        [[0.0, 0.0], [4.0, 0.0], [7.0, 3.0], [10.0, 3.0]]
+    )
+    trajectory = np.array(
+        [[0.5, 0.2], [3.0, -0.4], [5.0, 1.2], [8.0, 3.5]]
+    )
+
+    _, vectorized_offsets = _project_onto_centerline(trajectory, centerline)
+    pointwise_offsets = np.asarray(
+        [
+            _project_point_onto_polyline(point, centerline)
+            for point in trajectory
+        ]
+    )
+
+    np.testing.assert_allclose(vectorized_offsets, pointwise_offsets, atol=1e-12)
+
+
+def test_vectorized_atom_clearance_matches_hinge_definition() -> None:
+    trajectory = np.array(
+        [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0]]
+    )
+    dynamic = {0: np.array([[3.0, 0.0], [2.5, 0.0], [2.5, 0.0], [3.5, 0.0]])}
+    static = np.array([[10.0, 10.0]])
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [10.0, 0.0]]),
+        static_obstacles=static,
+        dynamic_obstacles=dynamic,
+        safety_radius=1.0,
+        clearance_soft_margin=1.0,
+    )
+
+    atoms = compute_atom_bank_vector(context, trajectory)
+    distances = np.linalg.norm(trajectory - dynamic[0], axis=1)
+    expected = context.dt * np.sum(np.maximum(0.0, 2.0 - distances) ** 2)
+
+    assert atoms[-1] == pytest.approx(expected)
 
 
 def test_route_geometry_reports_endpoint_separation_and_repeats() -> None:

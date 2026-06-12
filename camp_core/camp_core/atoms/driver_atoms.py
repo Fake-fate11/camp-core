@@ -106,37 +106,34 @@ def _project_onto_centerline(
     traj_xy = np.asarray(traj_xy, dtype=float)
     centerline = np.asarray(centerline, dtype=float)
     
-    # Pre-compute segments
     seg_vecs = centerline[1:] - centerline[:-1]
     seg_lens = np.linalg.norm(seg_vecs, axis=1)
     seg_lens = np.maximum(seg_lens, 1e-6)
     seg_dirs = seg_vecs / seg_lens[:, None]
     cum_s = np.concatenate([[0.0], np.cumsum(seg_lens)])
-    
-    s_list = []
-    d_list = []
-    
-    for p in traj_xy:
-        rel = p - centerline[:-1]
-        t = np.einsum("md,md->m", rel, seg_dirs)
-        t_clamped = np.clip(t, 0.0, seg_lens)
-        
-        projs = centerline[:-1] + seg_dirs * t_clamped[:, None]
-        d2 = np.sum((p - projs)**2, axis=1)
-        idx = np.argmin(d2)
-        
-        best_diff = p - projs[idx]
-        best_dir = seg_dirs[idx]
-        
-        s_val = cum_s[idx] + t_clamped[idx]
-        
-        cross = best_dir[0]*best_diff[1] - best_dir[1]*best_diff[0]
-        d_val = np.sign(cross) * np.sqrt(d2[idx])
-        
-        s_list.append(s_val)
-        d_list.append(d_val)
-        
-    return np.array(s_list), np.array(d_list)
+
+    rel = traj_xy[:, np.newaxis, :] - centerline[np.newaxis, :-1, :]
+    along = np.einsum("hmd,md->hm", rel, seg_dirs)
+    along = np.clip(along, 0.0, seg_lens[np.newaxis, :])
+    projections = (
+        centerline[np.newaxis, :-1, :]
+        + seg_dirs[np.newaxis, :, :] * along[:, :, np.newaxis]
+    )
+    differences = traj_xy[:, np.newaxis, :] - projections
+    distance_sq = np.sum(differences**2, axis=2)
+    segment_indices = np.argmin(distance_sq, axis=1)
+    row_indices = np.arange(traj_xy.shape[0])
+    best_differences = differences[row_indices, segment_indices]
+    best_directions = seg_dirs[segment_indices]
+    cross = (
+        best_directions[:, 0] * best_differences[:, 1]
+        - best_directions[:, 1] * best_differences[:, 0]
+    )
+    s_values = cum_s[segment_indices] + along[row_indices, segment_indices]
+    d_values = np.sign(cross) * np.sqrt(
+        distance_sq[row_indices, segment_indices]
+    )
+    return s_values, d_values
 
 # ---------------------------------------------------------------------------
 # Strict Atom Bank Logic
@@ -248,16 +245,13 @@ def compute_atom_bank_vector(
     d_vals = []
     # Optimization: project only if centerline exists
     if ctx.lane_centerline is not None:
-        # Use simpler projection loop or vectorized if possible
-        # Reuse _project_point_onto_polyline
-        # (Assuming it's available in scope)
-        for p in traj_xy:
-             d = _project_point_onto_polyline(p, ctx.lane_centerline)
-             d_vals.append(abs(d))
+        _, signed_offsets = _project_onto_centerline(
+            traj_xy,
+            ctx.lane_centerline,
+        )
+        d_vals = np.abs(signed_offsets)
     else:
-        d_vals = [0.0] * T
-        
-    d_vals = np.array(d_vals)
+        d_vals = np.zeros(T, dtype=float)
     # Hinge
     lane_viol = np.maximum(0.0, d_vals - ctx.lane_half_width)
     atom_lane = dt * np.sum(lane_viol**2)
@@ -281,22 +275,39 @@ def compute_atom_bank_vector(
     has_dynamic = bool(ctx.dynamic_obstacles)
 
     if has_static or has_dynamic:
-        for t in range(T):
-            ego_p = traj_xy[t]
-            min_d_t = 999.0
-            
-            if has_dynamic:
-                for obs_traj in ctx.dynamic_obstacles.values():
-                    if t < len(obs_traj):
-                        d = np.linalg.norm(ego_p - obs_traj[t])
-                        min_d_t = min(min_d_t, d)
-            
-            if has_static:
-                 d_stat = np.linalg.norm(ctx.static_obstacles[:, :2] - ego_p, axis=1).min()
-                 min_d_t = min(min_d_t, d_stat)
-                 
-            intrusion = max(0.0, d_safe - min_d_t)
-            total_clearance_cost += (intrusion**2)
+        min_distances = np.full(T, 999.0, dtype=float)
+        if has_dynamic:
+            for obs_traj in ctx.dynamic_obstacles.values():
+                obstacle_xy = np.asarray(obs_traj, dtype=float)[:, :2]
+                horizon = min(T, len(obstacle_xy))
+                if horizon == 0:
+                    continue
+                distances = np.linalg.norm(
+                    traj_xy[:horizon] - obstacle_xy[:horizon],
+                    axis=1,
+                )
+                distances = np.where(np.isfinite(distances), distances, 999.0)
+                min_distances[:horizon] = np.minimum(
+                    min_distances[:horizon],
+                    distances,
+                )
+        if has_static:
+            static_distances = np.linalg.norm(
+                traj_xy[:, np.newaxis, :]
+                - np.asarray(ctx.static_obstacles, dtype=float)[
+                    np.newaxis, :, :2
+                ],
+                axis=2,
+            )
+            closest_static = np.min(static_distances, axis=1)
+            closest_static = np.where(
+                np.isfinite(closest_static),
+                closest_static,
+                999.0,
+            )
+            min_distances = np.minimum(min_distances, closest_static)
+        intrusions = np.maximum(0.0, d_safe - min_distances)
+        total_clearance_cost = float(np.sum(intrusions**2))
             
     atoms.append(total_clearance_cost * dt)
     
@@ -319,10 +330,11 @@ def compute_feasibility_mask(
     # Must stay within lane_width + buffer
     # Buffer: e.g. 0.5m extra
     if check_lane and ctx.lane_centerline is not None:
-        max_dev = 0.0
-        for p in traj_xy:
-             d = abs(_project_point_onto_polyline(p, ctx.lane_centerline))
-             max_dev = max(max_dev, d)
+        _, signed_offsets = _project_onto_centerline(
+            traj_xy,
+            ctx.lane_centerline,
+        )
+        max_dev = float(np.max(np.abs(signed_offsets), initial=0.0))
         
         if max_dev > (ctx.lane_half_width + ctx.lane_corridor_buffer):
             return False
@@ -370,11 +382,13 @@ def compute_aux_metrics(
     # 1. Lane
     d_vals = []
     if ctx.lane_centerline is not None:
-        for p in traj_xy:
-            d = _project_point_onto_polyline(p, ctx.lane_centerline)
-            d_vals.append(d)
+        _, signed_offsets = _project_onto_centerline(
+            traj_xy,
+            ctx.lane_centerline,
+        )
+        d_vals = signed_offsets
     else: 
-        d_vals = [0.0]*T
+        d_vals = np.zeros(T, dtype=float)
     d_vals = np.abs(np.array(d_vals))
     lane_mean = float(np.mean(d_vals))
     
