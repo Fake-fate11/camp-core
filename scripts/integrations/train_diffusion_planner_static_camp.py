@@ -20,6 +20,7 @@ for path in (ROOT, PACKAGE_ROOT):
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
     CAMP_ATOM_NAMES,
     DP_CAMP_ATOM_NAMES,
+    DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS,
 )
 
 
@@ -38,6 +39,16 @@ DEFAULT_PROXY_WEIGHTS = np.array(
     ],
     dtype=np.float64,
 )
+
+OUTCOME_WEIGHT_TO_FIELD = {
+    "progress": "progress_m",
+    "collision": "collision",
+    "near_miss": "near_miss",
+    "lane_violation": "lane_violation",
+    "red_light": "red_light_violation",
+    "mean_jerk": "mean_jerk_mps3",
+    "mean_lateral_acceleration": "mean_lateral_acceleration_mps2",
+}
 
 
 def _records_from_path(path: Path) -> list[dict[str, Any]]:
@@ -112,6 +123,7 @@ def load_candidate_reward_values(
 def load_candidate_closed_loop_outcomes(
     paths: list[Path],
     outcome_key: str = "value",
+    outcome_weights: dict[str, float] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     values = []
     feasible = []
@@ -126,17 +138,61 @@ def load_candidate_closed_loop_outcomes(
             record_values = []
             record_feasible = []
             for outcome in outcomes:
-                if outcome_key not in outcome:
-                    raise ValueError(
-                        f"Candidate outcome in {path} has no {outcome_key!r} field."
-                    )
-                record_values.append(float(outcome[outcome_key]))
+                if outcome_weights is None:
+                    if outcome_key not in outcome:
+                        raise ValueError(
+                            f"Candidate outcome in {path} has no {outcome_key!r} field."
+                        )
+                    value = float(outcome[outcome_key])
+                else:
+                    value = weighted_closed_loop_outcome_value(outcome, outcome_weights)
+                record_values.append(value)
                 record_feasible.append(bool(outcome.get("feasible", True)))
             values.append(record_values)
             feasible.append(record_feasible)
     if not values:
         raise ValueError("No candidate closed-loop outcome records were loaded.")
     return np.asarray(values, dtype=np.float64), np.asarray(feasible, dtype=bool)
+
+
+def load_outcome_weights(path: Path | None) -> dict[str, float] | None:
+    if path is None:
+        return None
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError(f"{path} must contain a JSON object.")
+    weights = dict(DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS)
+    for key, value in raw.items():
+        if key not in weights:
+            raise ValueError(
+                f"Unknown outcome weight {key!r}; expected one of "
+                f"{sorted(weights)}."
+            )
+        weights[key] = float(value)
+    return {key: float(value) for key, value in weights.items()}
+
+
+def weighted_closed_loop_outcome_value(
+    outcome: dict[str, Any],
+    weights: dict[str, float],
+) -> float:
+    missing = [
+        field
+        for key, field in OUTCOME_WEIGHT_TO_FIELD.items()
+        if key in weights and field not in outcome
+    ]
+    if missing:
+        raise ValueError(f"Candidate outcome is missing fields: {missing}.")
+    return (
+        weights["progress"] * float(outcome["progress_m"])
+        - weights["collision"] * float(bool(outcome["collision"]))
+        - weights["near_miss"] * float(bool(outcome["near_miss"]))
+        - weights["lane_violation"] * float(bool(outcome["lane_violation"]))
+        - weights["red_light"] * float(bool(outcome["red_light_violation"]))
+        - weights["mean_jerk"] * float(outcome["mean_jerk_mps3"])
+        - weights["mean_lateral_acceleration"]
+        * float(outcome["mean_lateral_acceleration_mps2"])
+    )
 
 
 def robust_atom_scales(atoms: np.ndarray, percentile: float) -> np.ndarray:
@@ -297,6 +353,17 @@ def parse_args() -> argparse.Namespace:
         help="Candidate closed-loop outcome field to maximize.",
     )
     parser.add_argument(
+        "--outcome_weights",
+        type=Path,
+        default=None,
+        help=(
+            "Optional JSON outcome-weight object. When set with "
+            "--label_source closed_loop_outcome, recomputes labels from "
+            "candidate_closed_loop_outcomes components instead of using "
+            "--outcome_key."
+        ),
+    )
+    parser.add_argument(
         "--proxy_weights",
         type=str,
         default="",
@@ -313,6 +380,9 @@ def main() -> None:
     proxy_weights = None
     candidate_rewards = None
     closed_loop_outcomes = None
+    outcome_weights = load_outcome_weights(args.outcome_weights)
+    if outcome_weights is not None and args.label_source != "closed_loop_outcome":
+        raise ValueError("--outcome_weights requires --label_source closed_loop_outcome.")
     dropped_records = 0
     if args.label_source == "dp_reward":
         candidate_rewards = load_candidate_reward_values(
@@ -336,6 +406,7 @@ def main() -> None:
         closed_loop_outcomes, outcome_feasible = load_candidate_closed_loop_outcomes(
             args.selection_log,
             outcome_key=args.outcome_key,
+            outcome_weights=outcome_weights,
         )
         if closed_loop_outcomes.shape != feasible.shape:
             raise ValueError(
@@ -406,7 +477,22 @@ def main() -> None:
         "label_source": args.label_source,
         "reward_key": args.reward_key if args.label_source == "dp_reward" else None,
         "outcome_key": (
-            args.outcome_key if args.label_source == "closed_loop_outcome" else None
+            (
+                args.outcome_key
+                if args.label_source == "closed_loop_outcome"
+                and outcome_weights is None
+                else None
+            )
+        ),
+        "outcome_weights_path": (
+            str(args.outcome_weights)
+            if args.label_source == "closed_loop_outcome" and outcome_weights is not None
+            else None
+        ),
+        "outcome_weights": (
+            outcome_weights
+            if args.label_source == "closed_loop_outcome" and outcome_weights is not None
+            else None
         ),
         "reward_progress_weight": (
             args.reward_progress_weight

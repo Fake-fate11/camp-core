@@ -25,6 +25,7 @@ from scripts.integrations.train_diffusion_planner_static_camp import (  # noqa: 
     atom_names_for_dimension,
     load_candidate_closed_loop_outcomes,
     load_candidate_reward_values,
+    load_outcome_weights,
     normalize_nonnegative,
     oracle_indices,
     reward_oracle_indices,
@@ -298,6 +299,17 @@ def parse_args() -> argparse.Namespace:
         help="Candidate closed-loop outcome field to maximize.",
     )
     parser.add_argument(
+        "--outcome_weights",
+        type=Path,
+        default=None,
+        help=(
+            "Optional JSON outcome-weight object. When set with "
+            "--label_source closed_loop_outcome, recomputes labels from "
+            "candidate_closed_loop_outcomes components instead of using "
+            "--outcome_key."
+        ),
+    )
+    parser.add_argument(
         "--proxy_weights",
         type=str,
         default="",
@@ -316,6 +328,9 @@ def main() -> None:
     dropped_records = 0
     candidate_rewards = None
     closed_loop_outcomes = None
+    outcome_weights = load_outcome_weights(args.outcome_weights)
+    if outcome_weights is not None and args.label_source != "closed_loop_outcome":
+        raise ValueError("--outcome_weights requires --label_source closed_loop_outcome.")
     if args.label_source == "dp_reward":
         candidate_rewards = load_candidate_reward_values(
             args.selection_log,
@@ -340,6 +355,7 @@ def main() -> None:
         closed_loop_outcomes, outcome_feasible = load_candidate_closed_loop_outcomes(
             args.selection_log,
             outcome_key=args.outcome_key,
+            outcome_weights=outcome_weights,
         )
         if closed_loop_outcomes.shape != feasible.shape:
             raise ValueError(
@@ -449,7 +465,22 @@ def main() -> None:
         "label_source": args.label_source,
         "reward_key": args.reward_key if args.label_source == "dp_reward" else None,
         "outcome_key": (
-            args.outcome_key if args.label_source == "closed_loop_outcome" else None
+            (
+                args.outcome_key
+                if args.label_source == "closed_loop_outcome"
+                and outcome_weights is None
+                else None
+            )
+        ),
+        "outcome_weights_path": (
+            str(args.outcome_weights)
+            if args.label_source == "closed_loop_outcome" and outcome_weights is not None
+            else None
+        ),
+        "outcome_weights": (
+            outcome_weights
+            if args.label_source == "closed_loop_outcome" and outcome_weights is not None
+            else None
         ),
         "reward_progress_weight": (
             args.reward_progress_weight

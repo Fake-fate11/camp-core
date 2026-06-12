@@ -391,6 +391,65 @@ def test_closed_loop_outcome_labels_prefer_best_feasible_candidate(tmp_path) -> 
     assert labels.tolist() == [2]
 
 
+def test_closed_loop_outcome_labels_can_be_reweighted(tmp_path) -> None:
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(
+        json.dumps(
+            [
+                {
+                    "atoms": [[0.0] * 9, [1.0] * 9],
+                    "feasible_mask": [True, True],
+                    "candidate_closed_loop_outcomes": [
+                        {
+                            "value": 1.0,
+                            "progress_m": 10.0,
+                            "collision": False,
+                            "near_miss": False,
+                            "lane_violation": False,
+                            "red_light_violation": False,
+                            "mean_jerk_mps3": 1.0,
+                            "mean_lateral_acceleration_mps2": 0.1,
+                            "feasible": True,
+                        },
+                        {
+                            "value": 100.0,
+                            "progress_m": 12.0,
+                            "collision": False,
+                            "near_miss": False,
+                            "lane_violation": False,
+                            "red_light_violation": True,
+                            "mean_jerk_mps3": 0.1,
+                            "mean_lateral_acceleration_mps2": 0.1,
+                            "feasible": True,
+                        },
+                    ],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    stored_values, feasible = load_candidate_closed_loop_outcomes([log_path])
+    stored_labels = reward_oracle_indices(stored_values, feasible)
+    weighted_values, weighted_feasible = load_candidate_closed_loop_outcomes(
+        [log_path],
+        outcome_weights={
+            "progress": 1.0,
+            "collision": 100.0,
+            "near_miss": 10.0,
+            "lane_violation": 20.0,
+            "red_light": 80.0,
+            "mean_jerk": 0.75,
+            "mean_lateral_acceleration": 3.0,
+        },
+    )
+    weighted_labels = reward_oracle_indices(weighted_values, weighted_feasible)
+
+    assert stored_labels.tolist() == [1]
+    assert weighted_feasible.tolist() == feasible.tolist()
+    assert weighted_labels.tolist() == [0]
+
+
 def test_train_diffusion_planner_scene_theta_from_selection_log(tmp_path) -> None:
     log_path = tmp_path / "camp_selection_log.json"
     feature_dim = len(DP_SCENE_FEATURE_NAMES)

@@ -1,0 +1,9 @@
+{
+  "progress": 1.0,
+  "collision": 100.0,
+  "near_miss": 15.0,
+  "lane_violation": 25.0,
+  "red_light": 80.0,
+  "mean_jerk": 0.75,
+  "mean_lateral_acceleration": 3.0
+}
