@@ -801,6 +801,14 @@ def _install_camp_predictor(
                 selection_done - outcome_collection_done
             )
             * 1000.0,
+            "latency_ms_camp_atom_computation": selection.timings_ms[
+                "atom_computation"
+            ],
+            "latency_ms_camp_feasibility": selection.timings_ms["feasibility"],
+            "latency_ms_camp_collision_checks": selection.timings_ms[
+                "collision_checks"
+            ],
+            "latency_ms_camp_scoring": selection.timings_ms["scoring"],
         }
 
         predictions[ego_id] = selection.selected_trajectory

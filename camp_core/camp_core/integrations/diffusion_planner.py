@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import math
 import sys
+import time
 import types
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, replace
@@ -1211,6 +1212,7 @@ class CAMPSelectionResult:
     selection_weights: np.ndarray
     selection_normalized_atoms: np.ndarray
     used_fallback: bool
+    timings_ms: dict[str, float]
 
 
 def summarize_selection_records(
@@ -1231,6 +1233,10 @@ def summarize_selection_records(
         "latency_ms_reward_scoring": "reward_scoring_latency_ms",
         "latency_ms_outcome_collection": "outcome_collection_latency_ms",
         "latency_ms_camp_selection": "camp_selection_latency_ms",
+        "latency_ms_camp_atom_computation": "camp_atom_computation_latency_ms",
+        "latency_ms_camp_feasibility": "camp_feasibility_latency_ms",
+        "latency_ms_camp_collision_checks": "camp_collision_checks_latency_ms",
+        "latency_ms_camp_scoring": "camp_scoring_latency_ms",
     }
     latencies: dict[str, list[float]] = {
         record_key: [] for record_key in latency_fields
@@ -1530,6 +1536,7 @@ class CAMPSelector:
         ``D >= 2`` uses point-distance collision. ``D >= 5`` is interpreted as
         ``x, y, heading, length, width[, wheelbase]`` and enables OBB checks.
         """
+        select_start = time.perf_counter()
         candidates = np.asarray(candidates, dtype=np.float64)
         if candidates.ndim != 3 or candidates.shape[0] < 1 or candidates.shape[2] < 2:
             raise ValueError(
@@ -1582,6 +1589,9 @@ class CAMPSelector:
         atoms = []
         feasible = []
         infeasibility_reasons = []
+        atom_computation_seconds = 0.0
+        feasibility_seconds = 0.0
+        collision_seconds = 0.0
         for candidate_idx, trajectory in enumerate(candidates):
             local_context = context
             if obstacles is not None:
@@ -1593,7 +1603,9 @@ class CAMPSelector:
                 local_context = replace(context, dynamic_obstacles=dynamic)
 
             trajectory_xy = trajectory[:, :2]
+            phase_start = time.perf_counter()
             atom_vector = compute_atom_bank_vector(local_context, trajectory_xy)
+            atom_computation_seconds += time.perf_counter() - phase_start
             if atom_vector.shape != (len(CAMP_ATOM_NAMES),):
                 raise ValueError(
                     f"Base CAMP atom dimension is {atom_vector.shape}, "
@@ -1601,6 +1613,7 @@ class CAMPSelector:
                 )
             atoms.append(atom_vector)
             reasons = []
+            phase_start = time.perf_counter()
             if apply_context_feasibility:
                 if not compute_feasibility_mask(
                     local_context,
@@ -1623,6 +1636,8 @@ class CAMPSelector:
                     reasons.extend(
                         str(reason) for reason in external_reasons[candidate_idx]
                     )
+            feasibility_seconds += time.perf_counter() - phase_start
+            phase_start = time.perf_counter()
             collision_reason = self._collision_failure_reason(
                 local_context,
                 trajectory,
@@ -1633,6 +1648,7 @@ class CAMPSelector:
                 ego_width=ego_width,
                 ego_wheelbase=ego_wheelbase,
             )
+            collision_seconds += time.perf_counter() - phase_start
             if collision_reason is not None:
                 reasons.append(collision_reason)
             reasons = list(dict.fromkeys(reasons))
@@ -1761,6 +1777,14 @@ class CAMPSelector:
             selection_scores[~feasible_mask] = np.inf
 
         selected_index = int(np.argmin(selection_scores))
+        select_done = time.perf_counter()
+        scoring_seconds = max(
+            (select_done - select_start)
+            - atom_computation_seconds
+            - feasibility_seconds
+            - collision_seconds,
+            0.0,
+        )
         return CAMPSelectionResult(
             selected_index=selected_index,
             selected_trajectory=candidates[selected_index].copy(),
@@ -1774,6 +1798,12 @@ class CAMPSelector:
             selection_weights=selection_weights,
             selection_normalized_atoms=selection_normalized,
             used_fallback=used_fallback,
+            timings_ms={
+                "atom_computation": atom_computation_seconds * 1000.0,
+                "feasibility": feasibility_seconds * 1000.0,
+                "collision_checks": collision_seconds * 1000.0,
+                "scoring": scoring_seconds * 1000.0,
+            },
         )
 
     @staticmethod

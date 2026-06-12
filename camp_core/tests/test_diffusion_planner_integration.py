@@ -1117,6 +1117,10 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_reward_scoring": 2.0,
             "latency_ms_outcome_collection": 0.0,
             "latency_ms_camp_selection": 1.0,
+            "latency_ms_camp_atom_computation": 0.3,
+            "latency_ms_camp_feasibility": 0.1,
+            "latency_ms_camp_collision_checks": 0.4,
+            "latency_ms_camp_scoring": 0.2,
         },
         {
             "selected_index": 1,
@@ -1128,6 +1132,10 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_reward_scoring": 4.0,
             "latency_ms_outcome_collection": 0.0,
             "latency_ms_camp_selection": 2.0,
+            "latency_ms_camp_atom_computation": 0.6,
+            "latency_ms_camp_feasibility": 0.2,
+            "latency_ms_camp_collision_checks": 0.8,
+            "latency_ms_camp_scoring": 0.4,
         },
     ]
 
@@ -1147,6 +1155,10 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
     assert summary["mean_reward_scoring_latency_ms"] == 3.0
     assert summary["mean_outcome_collection_latency_ms"] == 0.0
     assert summary["mean_camp_selection_latency_ms"] == 1.5
+    assert summary["mean_camp_atom_computation_latency_ms"] == pytest.approx(0.45)
+    assert summary["mean_camp_feasibility_latency_ms"] == pytest.approx(0.15)
+    assert summary["mean_camp_collision_checks_latency_ms"] == pytest.approx(0.6)
+    assert summary["mean_camp_scoring_latency_ms"] == pytest.approx(0.3)
     assert summary["replay_reason"] == "max_steps"
 
 
