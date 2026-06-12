@@ -22,6 +22,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     DP_CAMP_ATOM_NAMES,
     DP_CAMP_ATOM_NAMES_V8,
     DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS,
+    atom_schema_for_dimension,
 )
 
 
@@ -226,6 +227,52 @@ def atom_names_for_dimension(num_atoms: int) -> tuple[str, ...]:
         f"{len(DP_CAMP_ATOM_NAMES)} DP atoms or "
         f"{len(DP_CAMP_ATOM_NAMES_V8)} v8 atoms, got {num_atoms}."
     )
+
+
+def validate_atom_schema(
+    paths: list[Path],
+    expected_atom_names: tuple[str, ...],
+    *,
+    require: bool,
+) -> dict[str, Any]:
+    expected_version, canonical_names = atom_schema_for_dimension(
+        len(expected_atom_names)
+    )
+    if tuple(expected_atom_names) != canonical_names:
+        raise ValueError("Expected atom names do not match the canonical schema.")
+
+    verified_records = 0
+    missing_records = 0
+    for path in paths:
+        for record_idx, record in enumerate(_records_from_path(path)):
+            version = record.get("atom_schema_version")
+            names = record.get("atom_names")
+            if version is None and names is None:
+                missing_records += 1
+                if require:
+                    raise ValueError(
+                        f"{path} record {record_idx} has no atom schema metadata."
+                    )
+                continue
+            if version is None or names is None:
+                raise ValueError(
+                    f"{path} record {record_idx} has incomplete atom schema metadata."
+                )
+            if str(version) != expected_version or tuple(names) != canonical_names:
+                raise ValueError(
+                    f"{path} record {record_idx} uses atom schema "
+                    f"{version!r} with names {tuple(names)!r}; expected "
+                    f"{expected_version!r} with names {canonical_names!r}."
+                )
+            verified_records += 1
+
+    return {
+        "version": expected_version,
+        "atom_names": list(canonical_names),
+        "required": bool(require),
+        "verified_records": verified_records,
+        "missing_records": missing_records,
+    }
 
 
 def oracle_indices(

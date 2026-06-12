@@ -23,11 +23,13 @@ for path in (ROOT, PACKAGE_ROOT):
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
     DP_SCENE_FEATURE_NAMES,
     CAMPSelector,
+    atom_schema_for_dimension,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
     extract_dp_scene_features,
     generate_candidate_trajectories,
     install_lanelet2_projection_fallback,
+    load_dp_camp_atom_scales,
     red_route_points_from_scene,
     summarize_replay_artifacts,
 )
@@ -207,8 +209,7 @@ def _build_selector(args: argparse.Namespace) -> CAMPSelector | None:
     if args.camp_selector_mode == "top1":
         return None
     if args.camp_selector_mode == "uniform":
-        with args.camp_atom_scales.open("r", encoding="utf-8") as f:
-            atom_scales = np.asarray(json.load(f), dtype=np.float64)
+        atom_scales = load_dp_camp_atom_scales(args.camp_atom_scales)
         return CAMPSelector(
             atom_scales,
             static_weights=np.ones_like(atom_scales, dtype=np.float64),
@@ -784,6 +785,12 @@ def _install_camp_predictor(
                 "weights": selection.weights.tolist(),
                 "atoms": selection.atoms.tolist(),
                 "normalized_atoms": selection.normalized_atoms.tolist(),
+                "atom_schema_version": atom_schema_for_dimension(
+                    selection.atoms.shape[1]
+                )[0],
+                "atom_names": list(
+                    atom_schema_for_dimension(selection.atoms.shape[1])[1]
+                ),
                 "dp_candidate_rewards": candidate_rewards,
                 "dp_candidate_reward_horizon_steps": (
                     min(reward_horizon_steps, int(candidates.shape[1]))

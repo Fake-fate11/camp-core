@@ -15,6 +15,7 @@ from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES,
     DP_CAMP_ATOM_NAMES_V8,
     CAMPSelector,
+    atom_schema_for_dimension,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
     extract_dp_scene_features,
@@ -58,6 +59,7 @@ from scripts.integrations.train_diffusion_planner_static_camp import (
     reward_oracle_indices,
     robust_atom_scales,
     train_static_weights,
+    validate_atom_schema,
 )
 from scripts.integrations.train_diffusion_planner_robust_camp import (
     grouped_train_val_indices,
@@ -252,6 +254,27 @@ def test_linear_selector_loads_dp_theta_npz_with_normalization(tmp_path) -> None
 
     np.testing.assert_allclose(weights.sum(), 1.0)
     assert weights[0] > weights[1]
+
+
+def test_selector_rejects_structured_scale_schema_reordering(tmp_path) -> None:
+    version, names = atom_schema_for_dimension(len(CAMP_ATOM_NAMES))
+    scales_path = tmp_path / "scales.json"
+    scales_path.write_text(
+        json.dumps(
+            {
+                "atom_schema_version": version,
+                "atom_names": list(reversed(names)),
+                "scales": [1.0] * len(names),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Atom scales schema"):
+        CAMPSelector.from_files(
+            atom_scales_path=scales_path,
+            mode="static",
+        )
 
 
 def test_train_diffusion_planner_static_camp_from_selection_log(tmp_path) -> None:
@@ -566,6 +589,52 @@ def test_robust_margin_master_rejects_invalid_atom_contract() -> None:
         )
 
 
+def test_atom_schema_validation_rejects_same_dimension_reordering(tmp_path) -> None:
+    version, names = atom_schema_for_dimension(len(DP_CAMP_ATOM_NAMES_V8))
+    record = {
+        "atoms": np.zeros((2, len(names))).tolist(),
+        "feasible_mask": [True, True],
+        "atom_schema_version": version,
+        "atom_names": list(reversed(names)),
+    }
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(json.dumps([record]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="uses atom schema"):
+        validate_atom_schema(
+            [log_path],
+            DP_CAMP_ATOM_NAMES_V8,
+            require=True,
+        )
+
+    record["atom_names"] = list(names)
+    log_path.write_text(json.dumps([record]), encoding="utf-8")
+    summary = validate_atom_schema(
+        [log_path],
+        DP_CAMP_ATOM_NAMES_V8,
+        require=True,
+    )
+    assert summary["version"] == "dp_camp_v8_12d"
+    assert summary["verified_records"] == 1
+    assert summary["missing_records"] == 0
+
+
+def test_atom_schema_validation_can_require_metadata(tmp_path) -> None:
+    record = {
+        "atoms": np.zeros((2, len(DP_CAMP_ATOM_NAMES_V8))).tolist(),
+        "feasible_mask": [True, True],
+    }
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(json.dumps([record]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="no atom schema metadata"):
+        validate_atom_schema(
+            [log_path],
+            DP_CAMP_ATOM_NAMES_V8,
+            require=True,
+        )
+
+
 def test_grouped_split_keeps_selection_logs_disjoint() -> None:
     groups = np.repeat(np.arange(6), 4)
     train_idx, val_idx, train_groups, val_groups = grouped_train_val_indices(
@@ -653,15 +722,16 @@ def test_static_robust_training_uses_grouped_validation_and_train_only_scales(
     summary = json.loads(
         (output_dir / "training_summary.json").read_text(encoding="utf-8")
     )
-    saved_scales = np.asarray(
-        json.loads(
-            (output_dir / "atom_scales_dp_static.json").read_text(encoding="utf-8")
-        )
+    saved_scale_payload = json.loads(
+        (output_dir / "atom_scales_dp_static.json").read_text(encoding="utf-8")
     )
+    saved_scales = np.asarray(saved_scale_payload["scales"])
     assert summary["train_groups"] == 2
     assert summary["val_groups"] == 1
     assert summary["val_metrics"]["records"] == 1.0
     assert summary["normalization_fit_scope"] == "train_groups_only"
+    assert saved_scale_payload["atom_schema_version"] == "camp_legacy_v1_9d"
+    assert saved_scale_payload["atom_names"] == list(CAMP_ATOM_NAMES)
     assert set(summary["train_selection_logs"]).isdisjoint(
         summary["val_selection_logs"]
     )

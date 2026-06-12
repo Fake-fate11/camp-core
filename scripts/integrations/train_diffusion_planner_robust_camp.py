@@ -36,6 +36,7 @@ from scripts.integrations.train_diffusion_planner_static_camp import (  # noqa: 
     load_outcome_weights,
     load_training_records,
     robust_atom_scales,
+    validate_atom_schema,
 )
 from scripts.integrations.train_diffusion_planner_theta import (  # noqa: E402
     load_scene_training_groups,
@@ -75,6 +76,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--outcome_key", type=str, default="value")
     parser.add_argument("--outcome_weights", type=Path, default=None)
+    parser.add_argument(
+        "--require_atom_schema",
+        action="store_true",
+        help="Reject selection records without the exact ordered atom schema.",
+    )
     return parser.parse_args()
 
 
@@ -231,6 +237,11 @@ def main() -> None:
         raise ValueError("Grouped split produced no training records.")
 
     atom_names = atom_names_for_dimension(atoms.shape[-1])
+    atom_schema = validate_atom_schema(
+        args.selection_log,
+        atom_names,
+        require=args.require_atom_schema,
+    )
     atom_scales = robust_atom_scales(atoms[train_idx], args.scale_percentile)
     normalized_atoms = np.clip(
         np.nan_to_num(atoms / atom_scales.reshape(1, 1, -1)),
@@ -294,7 +305,15 @@ def main() -> None:
     )
     scales_path = args.output_dir / scales_name
     scales_path.write_text(
-        json.dumps(atom_scales.tolist(), indent=2) + "\n",
+        json.dumps(
+            {
+                "atom_schema_version": atom_schema["version"],
+                "atom_names": atom_schema["atom_names"],
+                "scales": atom_scales.tolist(),
+            },
+            indent=2,
+        )
+        + "\n",
         encoding="utf-8",
     )
 
@@ -401,6 +420,7 @@ def main() -> None:
         "num_candidates": int(atoms.shape[1]),
         "num_atoms": int(atoms.shape[2]),
         "atom_names": list(atom_names),
+        "atom_schema": atom_schema,
         "scale_percentile": float(args.scale_percentile),
         "feature_dim": None if features is None else int(features.shape[1]),
         "feature_clip": None if features is None else float(args.feature_clip),

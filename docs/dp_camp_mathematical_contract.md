@@ -80,6 +80,14 @@ Every deployed DP-compatible atom must:
    numerical tolerance.
 6. Preserve the affine score \(a_{ij}^{T}w\). An atom may not depend on
    learned CAMP weights, candidate rank, or the selected candidate.
+7. Carry a stable schema version and ordered atom names. Formal training must
+   reject a log whose schema is missing or differs from the checkpoint schema;
+   matching dimensionality alone is not sufficient.
+
+Robust v8 scale artifacts are self-describing and carry the same schema
+metadata. The runtime accepts legacy scale arrays for backward compatibility,
+but rejects a structured artifact whose version or ordered names differ from
+the canonical schema.
 
 `planned_red_light_cost` is admissible because it is the nonnegative magnitude
 of the online DP red-light penalty computed for each candidate before
@@ -112,6 +120,7 @@ normal feasible-branch Benders problem has improved.
 Before an atom or training change reaches formal evaluation, it must pass:
 
 - finite and nonnegative atom checks;
+- exact atom schema version and ordered-name checks;
 - simplex and affine-score checks;
 - numerical convexity checks for the finite-candidate ranking loss;
 - cutting-plane convergence and master-gap checks;

@@ -44,6 +44,48 @@ DP_CAMP_ATOM_NAMES_V8 = DP_CAMP_ATOM_NAMES + (
     "planned_lateral_acceleration_cost",
 )
 
+DP_CAMP_ATOM_SCHEMAS = {
+    len(CAMP_ATOM_NAMES): ("camp_legacy_v1_9d", CAMP_ATOM_NAMES),
+    len(DP_CAMP_ATOM_NAMES): ("dp_camp_v7_10d", DP_CAMP_ATOM_NAMES),
+    len(DP_CAMP_ATOM_NAMES_V8): ("dp_camp_v8_12d", DP_CAMP_ATOM_NAMES_V8),
+}
+
+
+def atom_schema_for_dimension(num_atoms: int) -> tuple[str, tuple[str, ...]]:
+    try:
+        version, names = DP_CAMP_ATOM_SCHEMAS[int(num_atoms)]
+    except KeyError as exc:
+        raise ValueError(
+            f"No DP CAMP atom schema is defined for {num_atoms} atoms."
+        ) from exc
+    return version, tuple(names)
+
+
+def load_dp_camp_atom_scales(path: Union[str, Path]) -> np.ndarray:
+    scales_path = Path(path)
+    with scales_path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    if not isinstance(payload, dict):
+        return np.asarray(payload, dtype=np.float64)
+    if "scales" not in payload:
+        raise ValueError(
+            f"Structured atom scales in {scales_path} need a 'scales' field."
+        )
+    atom_scales = np.asarray(payload["scales"], dtype=np.float64)
+    expected_version, expected_names = atom_schema_for_dimension(atom_scales.size)
+    declared_version = payload.get("atom_schema_version")
+    declared_names = payload.get("atom_names")
+    if (
+        declared_version != expected_version
+        or tuple(declared_names or ()) != expected_names
+    ):
+        raise ValueError(
+            f"Atom scales schema in {scales_path} does not match "
+            f"{expected_version!r} with names {expected_names!r}."
+        )
+    return atom_scales
+
+
 DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS = {
     "progress": 1.0,
     "collision": 100.0,
@@ -1313,8 +1355,7 @@ class CAMPSelector:
         atom_clip: float = 10.0,
     ) -> "CAMPSelector":
         scales_path = Path(atom_scales_path)
-        with scales_path.open("r", encoding="utf-8") as f:
-            atom_scales = np.asarray(json.load(f), dtype=np.float64)
+        atom_scales = load_dp_camp_atom_scales(scales_path)
 
         static_weights = None
         theta = None
