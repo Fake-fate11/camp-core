@@ -593,6 +593,31 @@ Relative to Uniform, Static and Theta still improve route completion by about
 delta is -0.00024 with CI [-0.00048, -0.00005], while the safety and comfort
 deltas are effectively tied.
 
+### V6 red/comfort label reweighting
+
+Because v5 was still mixed, v6 tunes only the closed-loop outcome label
+weights, not the CAMP selector. The training scripts can now pass
+`--outcome_weights configs/integrations/dp_camp_outcome_weights_v6_red_comfort.json`
+to recompute candidate labels from the already-collected outcome components.
+The v6 weights increase near-miss, lane, red-light, jerk, and lateral
+acceleration penalties while keeping the same progress and collision terms.
+
+The v6 strict matrix also completed 144/144 runs with `strictly_paired=true`;
+artifacts are stored under `results/diffusion_planner/v6_red_comfort_726f7f1/`.
+It does not change the overall conclusion. Static route completion is still
++0.0223 over Top-1 with CI [0.0128, 0.0333], and Theta is +0.0218 with CI
+[0.0123, 0.0332]. Planned red-light violation still regresses versus Top-1:
+Static is +0.0433 and Theta is +0.0408, both with CIs excluding zero. Comfort
+also remains worse: mean jerk magnitude is about +0.96 m/s^3 and mean lateral
+acceleration is about +0.046-0.049 m/s^2 versus Top-1.
+
+The reweighting did make Theta slightly less aggressive than Static:
+Theta-Static planned red-light delta is -0.0025 with CI [-0.0054, -0.0004],
+and mean lateral acceleration delta is -0.0033 with CI [-0.0063, -0.0003].
+That small improvement comes with a small route-completion loss
+(-0.00048, CI [-0.00081, -0.00019]). This is a label-design result, not a
+selector tuning result.
+
 ## Current limitations
 
 - Dynamic-vehicle hard collision feasibility now uses oriented bounding-box
@@ -608,6 +633,6 @@ deltas are effectively tied.
 - The v5 formal matrix is complete, but selection p95 averages about 105 ms
   for CAMP variants, with bootstrap upper bounds around 114 ms, slightly above
   the simulator's 100 ms tick.
-- V5 collection, retraining, and strict matrix rerun are complete. The
-  evidence supports a route-completion gain, but not a general quality gain,
-  because red-light planning and comfort metrics regress.
+- V5 and the v6 red/comfort label reweighting are complete. The evidence
+  supports a route-completion gain, but not a general quality gain, because
+  red-light planning and comfort metrics still regress.
