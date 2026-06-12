@@ -618,6 +618,68 @@ That small improvement comes with a small route-completion loss
 (-0.00048, CI [-0.00081, -0.00019]). This is a label-design result, not a
 selector tuning result.
 
+## V7 robust outcome-margin training
+
+The v7 training path keeps the v5 candidate branch outcomes and v6 outcome
+weights, but replaces supervised oracle imitation with a CAMP-style robust
+margin objective. For record `i`, the best finite feasible outcome defines
+the oracle candidate `k*`. Each feasible candidate receives the clipped
+outcome margin
+
+```text
+m_i,k = clip(beta * (V_i,k* - V_i,k), 0, margin_max)
+```
+
+and the scene loss is the largest nonnegative ranking violation:
+
+```text
+L_i = max_k max(0, m_i,k + w_i^T(A_i,k* - A_i,k))
+```
+
+Infeasible candidates participate in neither the oracle nor the maximum.
+Static training optimizes one simplex-constrained `w`. Theta training uses
+`w_i = Theta [phi_i; 1]`, with nonnegative unit-sum weights on every training
+scene. Both modes minimize either the empirical mean or CVaR of `L_i` plus
+L2 regularization. The master problem is solved by adding the current
+worst-candidate cut for each scene until no violated cut remains.
+
+Train Static and Theta from the existing v5 logs with:
+
+```bash
+COMMON_ARGS=(
+  --objective robust_margin_cvar
+  --risk_type cvar
+  --alpha 0.9
+  --margin_scale 0.1
+  --margin_clip 2.0
+  --l2_reg 1e-4
+  --outcome_weights \
+    configs/integrations/dp_camp_outcome_weights_v6_red_comfort.json
+)
+
+LOG_ARGS=()
+while IFS= read -r log; do
+  LOG_ARGS+=(--selection_log "$log")
+done < <(
+  find /root/autodl-tmp/camp_dp_outcome_collect_v5_2082ad5 \
+    -path '*/uniform/camp_selection_log.json' -print | sort
+)
+
+"$DP_PYTHON" scripts/integrations/train_diffusion_planner_robust_camp.py \
+  "${LOG_ARGS[@]}" "${COMMON_ARGS[@]}" \
+  --mode static \
+  --output_dir /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v7
+
+"$DP_PYTHON" scripts/integrations/train_diffusion_planner_robust_camp.py \
+  "${LOG_ARGS[@]}" "${COMMON_ARGS[@]}" \
+  --mode theta \
+  --output_dir /root/autodl-tmp/camp_dp_assets/camp_dp_robust_theta_v7
+```
+
+The generated Static and Theta artifacts use the existing selector filenames
+and checkpoint schema. They must still be evaluated with the unchanged
+strictly paired 144-run matrix before making performance claims.
+
 ## Current limitations
 
 - Dynamic-vehicle hard collision feasibility now uses oriented bounding-box
@@ -636,3 +698,5 @@ selector tuning result.
 - V5 and the v6 red/comfort label reweighting are complete. The evidence
   supports a route-completion gain, but not a general quality gain, because
   red-light planning and comfort metrics still regress.
+- V7 robust outcome-margin training is implemented, but its formal result is
+  pending the unchanged 144-run paired matrix.

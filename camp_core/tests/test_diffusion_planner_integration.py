@@ -6,6 +6,7 @@ import types
 from dataclasses import dataclass
 
 import numpy as np
+import pytest
 
 from camp_core.atoms.driver_atoms import DriverAtomContext
 from camp_core.integrations.diffusion_planner import (
@@ -21,6 +22,15 @@ from camp_core.integrations.diffusion_planner import (
     sanitize_lanelet2_map,
     summarize_replay_artifacts,
     summarize_selection_records,
+)
+from camp_core.outer_master.robust_margin_master import (
+    RobustMarginConfig,
+    candidate_ranking_violations,
+    empirical_cvar,
+    outcome_oracle_and_margins,
+    project_simplex_rows,
+    solve_robust_margin_cutting_plane,
+    theta_weights,
 )
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_feasibility_from_rewards,
@@ -47,6 +57,9 @@ from scripts.integrations.train_diffusion_planner_static_camp import (
     reward_oracle_indices,
     robust_atom_scales,
     train_static_weights,
+)
+from scripts.integrations.train_diffusion_planner_robust_camp import (
+    save_theta_checkpoint,
 )
 
 
@@ -448,6 +461,158 @@ def test_closed_loop_outcome_labels_can_be_reweighted(tmp_path) -> None:
     assert stored_labels.tolist() == [1]
     assert weighted_feasible.tolist() == feasible.tolist()
     assert weighted_labels.tolist() == [0]
+
+
+def test_robust_margin_oracle_and_margins_exclude_infeasible_candidates() -> None:
+    values = np.array([[10.0, 100.0, 4.0], [1.0, 3.0, 2.0]])
+    feasible = np.array([[True, False, True], [True, True, False]])
+
+    oracle, margins = outcome_oracle_and_margins(
+        values,
+        feasible,
+        margin_scale=0.5,
+        margin_clip=2.0,
+    )
+
+    assert oracle.tolist() == [0, 1]
+    np.testing.assert_allclose(margins[0], [0.0, 0.0, 2.0])
+    np.testing.assert_allclose(margins[1], [1.0, 0.0, 0.0])
+
+
+def test_robust_margin_violation_has_correct_ranking_direction() -> None:
+    atoms = np.array(
+        [
+            [
+                [0.0, 1.0],
+                [1.0, 0.0],
+                [10.0, 10.0],
+            ]
+        ]
+    )
+    oracle = np.array([0])
+    margins = np.array([[0.0, 0.5, 0.0]])
+    feasible = np.array([[True, True, False]])
+
+    _, safe_violation, safe_worst = candidate_ranking_violations(
+        atoms,
+        np.array([0.9, 0.1]),
+        oracle,
+        margins,
+        feasible,
+    )
+    candidate_values, bad_violation, bad_worst = candidate_ranking_violations(
+        atoms,
+        np.array([0.1, 0.9]),
+        oracle,
+        margins,
+        feasible,
+    )
+
+    assert safe_violation.tolist() == [0.0]
+    assert safe_worst.tolist() == [0]
+    assert bad_violation[0] > 1.0
+    assert bad_worst.tolist() == [1]
+    assert np.isneginf(candidate_values[0, 2])
+
+
+def test_empirical_cvar_emphasizes_worst_case_loss() -> None:
+    losses = np.array([0.0, 0.0, 1.0, 9.0])
+
+    cvar, eta = empirical_cvar(losses, alpha=0.75)
+
+    assert cvar == 9.0
+    assert eta in {1.0, 9.0}
+    assert cvar > float(np.mean(losses))
+
+
+def test_project_simplex_rows_enforces_nonnegative_unit_sum() -> None:
+    projected = project_simplex_rows(
+        np.array(
+            [
+                [-2.0, 0.5, 3.0],
+                [10.0, -1.0, -1.0],
+            ]
+        )
+    )
+
+    np.testing.assert_allclose(projected.sum(axis=1), 1.0)
+    assert np.all(projected >= 0.0)
+
+
+def test_robust_margin_master_outputs_simplex_static_and_theta() -> None:
+    pytest.importorskip("cvxpy")
+    atoms = np.array(
+        [
+            [[0.0, 1.0], [1.0, 0.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[0.0, 1.0], [1.0, 0.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+        ]
+    )
+    oracle = np.array([0, 1, 0, 1])
+    margins = np.array([[0.0, 0.2], [0.2, 0.0], [0.0, 0.2], [0.2, 0.0]])
+    feasible = np.ones((4, 2), dtype=bool)
+
+    static_result = solve_robust_margin_cutting_plane(
+        atoms,
+        oracle,
+        margins,
+        feasible,
+        config=RobustMarginConfig(
+            mode="static",
+            risk_type="cvar",
+            alpha=0.5,
+            l2_reg=1e-4,
+            max_iter=5,
+        ),
+    )
+    np.testing.assert_allclose(static_result.static_weights.sum(), 1.0, atol=1e-6)
+    assert np.all(static_result.static_weights >= -1e-7)
+
+    features = np.array([[-1.0], [1.0], [-1.0], [1.0]])
+    theta_result = solve_robust_margin_cutting_plane(
+        atoms,
+        oracle,
+        margins,
+        feasible,
+        features=features,
+        config=RobustMarginConfig(
+            mode="theta",
+            risk_type="cvar",
+            alpha=0.5,
+            l2_reg=1e-4,
+            max_iter=5,
+        ),
+    )
+    weights = theta_weights(theta_result.theta, features)
+    np.testing.assert_allclose(weights.sum(axis=1), 1.0, atol=1e-6)
+    assert np.all(weights >= -1e-7)
+
+
+def test_robust_theta_checkpoint_loads_in_existing_selector(tmp_path) -> None:
+    scales_path = tmp_path / "scales.json"
+    scales_path.write_text(json.dumps([1.0, 1.0]), encoding="utf-8")
+    checkpoint_path = tmp_path / "theta.npz"
+    theta = np.array([[0.5, 0.5], [-0.5, 0.5]])
+    save_theta_checkpoint(
+        checkpoint_path,
+        theta=theta,
+        offline_weights=np.array([0.5, 0.5]),
+        feature_center=np.array([0.0]),
+        feature_scale=np.array([1.0]),
+        feature_clip=5.0,
+    )
+
+    selector = CAMPSelector.from_files(
+        atom_scales_path=scales_path,
+        checkpoint_path=checkpoint_path,
+        mode="linear",
+    )
+    weights = selector.weights_for(np.array([1.0]))
+
+    np.testing.assert_allclose(weights.sum(), 1.0)
+    assert np.all(weights >= 0.0)
+    assert selector.linear_activation == "project_simplex"
 
 
 def test_train_diffusion_planner_scene_theta_from_selection_log(tmp_path) -> None:
