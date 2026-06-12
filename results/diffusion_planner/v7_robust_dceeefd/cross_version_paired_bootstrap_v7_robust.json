@@ -1,0 +1,293 @@
+{
+  "comparison_type": "paired_cross_version",
+  "source_files": {
+    "v5": "results\\diffusion_planner\\v5_2082ad5\\benchmark_comparison_bootstrap_v5.json",
+    "v6": "results\\diffusion_planner\\v6_red_comfort_726f7f1\\benchmark_comparison_bootstrap_v6_red_comfort.json",
+    "v7": "results\\diffusion_planner\\v7_robust_dceeefd\\benchmark_comparison_bootstrap_v7_robust.json"
+  },
+  "ci_method": "deterministic bootstrap percentile",
+  "bootstrap_resamples": 10000,
+  "comparisons": [
+    {
+      "reference": "v5",
+      "candidate": "v7",
+      "variant": "static",
+      "n_pairs": 36,
+      "delta_definition": "v7_static_minus_v5_static",
+      "route_completion_rate": {
+        "n": 36,
+        "mean": -0.0026699641572369612,
+        "std": 0.02165375803405783,
+        "ci95_low": -0.010538056277295017,
+        "ci95_high": 0.0022247156705205323,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "planned_red_light_violation_rate": {
+        "n": 36,
+        "mean": -0.018194444444444444,
+        "std": 0.07282221774174003,
+        "ci95_low": -0.046388888888888896,
+        "ci95_high": -0.0023611111111111072,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "mean_jerk_magnitude_mps3": {
+        "n": 36,
+        "mean": -0.2189780206273032,
+        "std": 0.7159845615933275,
+        "ci95_low": -0.46576426705365637,
+        "ci95_high": -0.014116887149551692,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "mean_lateral_acceleration_mps2": {
+        "n": 36,
+        "mean": 0.0010253562463311905,
+        "std": 0.04284240502954257,
+        "ci95_low": -0.010498148611853948,
+        "ci95_high": 0.01670717363530198,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "fallback_rate": {
+        "n": 36,
+        "mean": -0.0069444444444444415,
+        "std": 0.05043068478866777,
+        "ci95_low": -0.025277777777777774,
+        "ci95_high": 0.004722222222222223,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "candidate_feasible_rate": {
+        "n": 36,
+        "mean": 0.007222222222222241,
+        "std": 0.04772887632157952,
+        "ci95_low": -0.0028650173611110955,
+        "ci95_high": 0.02437500000000002,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "p95_selection_latency_ms": {
+        "n": 36,
+        "mean": 1.0666854524364051,
+        "std": 4.379493754642193,
+        "ci95_low": -0.15930534340441566,
+        "ci95_high": 2.626696850121429,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      }
+    },
+    {
+      "reference": "v5",
+      "candidate": "v7",
+      "variant": "theta",
+      "n_pairs": 36,
+      "delta_definition": "v7_theta_minus_v5_theta",
+      "route_completion_rate": {
+        "n": 36,
+        "mean": -0.005587250123589504,
+        "std": 0.02409290636754465,
+        "ci95_low": -0.014550403879363582,
+        "ci95_high": 0.00024027964886650876,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "planned_red_light_violation_rate": {
+        "n": 36,
+        "mean": -0.013472222222222222,
+        "std": 0.043075008406341014,
+        "ci95_low": -0.02930555555555556,
+        "ci95_high": -0.0029166666666666664,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "mean_jerk_magnitude_mps3": {
+        "n": 36,
+        "mean": 0.08627256044183562,
+        "std": 1.012755828644804,
+        "ci95_low": -0.18498705098338297,
+        "ci95_high": 0.4520075651453852,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "mean_lateral_acceleration_mps2": {
+        "n": 36,
+        "mean": -0.0015540106526810106,
+        "std": 0.015534892921694413,
+        "ci95_low": -0.007024555302965899,
+        "ci95_high": 0.0030225266035623444,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "fallback_rate": {
+        "n": 36,
+        "mean": -0.004027777777777773,
+        "std": 0.04942265883528735,
+        "ci95_low": -0.022499999999999996,
+        "ci95_high": 0.00902777777777778,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "candidate_feasible_rate": {
+        "n": 36,
+        "mean": 0.0021354166666666782,
+        "std": 0.036336834113511546,
+        "ci95_low": -0.009149739583333314,
+        "ci95_high": 0.015347222222222238,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "p95_selection_latency_ms": {
+        "n": 36,
+        "mean": -0.44115212642484125,
+        "std": 5.112831687898552,
+        "ci95_low": -2.0535404125176724,
+        "ci95_high": 1.2628644108513558,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      }
+    },
+    {
+      "reference": "v6",
+      "candidate": "v7",
+      "variant": "static",
+      "n_pairs": 36,
+      "delta_definition": "v7_static_minus_v6_static",
+      "route_completion_rate": {
+        "n": 36,
+        "mean": -0.00264859064388524,
+        "std": 0.021666420672907177,
+        "ci95_low": -0.01051006582088729,
+        "ci95_high": 0.002356780199141435,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "planned_red_light_violation_rate": {
+        "n": 36,
+        "mean": -0.018194444444444444,
+        "std": 0.07282221774174003,
+        "ci95_low": -0.04541666666666667,
+        "ci95_high": -0.0023611111111111085,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "mean_jerk_magnitude_mps3": {
+        "n": 36,
+        "mean": -0.22217012466487496,
+        "std": 0.7148328947295405,
+        "ci95_low": -0.4678645587913672,
+        "ci95_high": -0.015035567175252921,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "mean_lateral_acceleration_mps2": {
+        "n": 36,
+        "mean": 0.0014453537243111552,
+        "std": 0.042859124874262626,
+        "ci95_low": -0.010040130358577452,
+        "ci95_high": 0.017316646725561744,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "fallback_rate": {
+        "n": 36,
+        "mean": -0.0068055555555555525,
+        "std": 0.050457234760562714,
+        "ci95_low": -0.025277777777777767,
+        "ci95_high": 0.004861111111111114,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "candidate_feasible_rate": {
+        "n": 36,
+        "mean": 0.006770833333333347,
+        "std": 0.047844731199698766,
+        "ci95_low": -0.0035069444444444375,
+        "ci95_high": 0.023889322916666674,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "p95_selection_latency_ms": {
+        "n": 36,
+        "mean": 1.886088432123262,
+        "std": 5.327480914626301,
+        "ci95_low": 0.3896251932666144,
+        "ci95_high": 3.73658959016514,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      }
+    },
+    {
+      "reference": "v6",
+      "candidate": "v7",
+      "variant": "theta",
+      "n_pairs": 36,
+      "delta_definition": "v7_theta_minus_v6_theta",
+      "route_completion_rate": {
+        "n": 36,
+        "mean": -0.005323621866042502,
+        "std": 0.024145181661431387,
+        "ci95_low": -0.014320281443752473,
+        "ci95_high": 0.00048241609351156275,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "planned_red_light_violation_rate": {
+        "n": 36,
+        "mean": -0.010972222222222225,
+        "std": 0.04259140497539119,
+        "ci95_low": -0.027225694444444445,
+        "ci95_high": -0.0009722222222222231,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "mean_jerk_magnitude_mps3": {
+        "n": 36,
+        "mean": 0.09021687410101113,
+        "std": 1.0386659943598786,
+        "ci95_low": -0.20057674061510955,
+        "ci95_high": 0.45188034553999645,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "mean_lateral_acceleration_mps2": {
+        "n": 36,
+        "mean": 0.0008709570920145246,
+        "std": 0.015780759852638455,
+        "ci95_low": -0.004699730871291403,
+        "ci95_high": 0.005435175914675327,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "fallback_rate": {
+        "n": 36,
+        "mean": -0.00333333333333333,
+        "std": 0.04896062557957013,
+        "ci95_low": -0.02152777777777777,
+        "ci95_high": 0.009583333333333336,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "candidate_feasible_rate": {
+        "n": 36,
+        "mean": 0.0019444444444444476,
+        "std": 0.03629393205438415,
+        "ci95_low": -0.009236545138888887,
+        "ci95_high": 0.014948350694444435,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      },
+      "p95_selection_latency_ms": {
+        "n": 36,
+        "mean": -0.13796943239867568,
+        "std": 5.066322056471467,
+        "ci95_low": -1.821592989791592,
+        "ci95_high": 1.4664900035131736,
+        "bootstrap_resamples": 10000,
+        "ci_method": "bootstrap_percentile"
+      }
+    }
+  ],
+  "interpretation": "Positive route completion is better; negative red-light, jerk, lateral acceleration, fallback, and latency deltas are better."
+}

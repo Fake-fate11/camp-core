@@ -680,6 +680,21 @@ The generated Static and Theta artifacts use the existing selector filenames
 and checkpoint schema. They must still be evaluated with the unchanged
 strictly paired 144-run matrix before making performance claims.
 
+### V7 formal matrix result
+
+The v7 robust outcome-margin matrix completed 144/144 runs with
+`strictly_paired=true`. Robust Static significantly reduces planned
+red-light violations and mean jerk relative to v6 Static without a
+significant route-completion loss. It also improves route completion and jerk
+relative to Uniform in the same v7 matrix.
+
+The full target is not met. Static still significantly regresses planned
+red-light, jerk, and lateral acceleration relative to DP Top-1. Theta does
+not improve over Static and has significantly worse mean jerk. Exact training
+metrics, paired bootstrap intervals, cross-version comparisons, and the
+artifact inventory are recorded in
+[`diffusion_planner_v7_robust_results.md`](diffusion_planner_v7_robust_results.md).
+
 ## Current limitations
 
 - Dynamic-vehicle hard collision feasibility now uses oriented bounding-box
@@ -698,5 +713,6 @@ strictly paired 144-run matrix before making performance claims.
 - V5 and the v6 red/comfort label reweighting are complete. The evidence
   supports a route-completion gain, but not a general quality gain, because
   red-light planning and comfort metrics still regress.
-- V7 robust outcome-margin training is implemented, but its formal result is
-  pending the unchanged 144-run paired matrix.
+- V7 validates robust Static as an improvement over v5/v6 imitation, but not
+  as a general win over DP Top-1. The current robust Theta formulation has no
+  verified closed-loop benefit over Static.

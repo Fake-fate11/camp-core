@@ -37,4 +37,4 @@ shapely==1.8.2
 typing_extensions==4.3.0
 bokeh==2.4.3
 gym==0.25.0
-cvxpy>=1.5.0
+cvxpy==1.6.7
