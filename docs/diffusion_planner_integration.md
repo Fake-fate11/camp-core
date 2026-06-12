@@ -401,6 +401,22 @@ counterfactual diagnostic, not evidence of closed-loop policy improvement;
 the surviving fallback policy must still be evaluated in a matched replay
 matrix.
 
+Before robust training, produce a fail-closed dataset manifest:
+
+```bash
+"$DP_PYTHON" scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --root /root/autodl-tmp/camp_dp_v8_outcome_collect_uniform_5853d8c \
+  --atom_scales "$V8_INIT_DIR/atom_scales_dp_static_v8.json" \
+  --expected_logs 36 \
+  --expected_candidates 8 \
+  --output_json "$V8_ASSET_DIR/training_dataset_audit.json"
+```
+
+The audit requires completed-run summaries, exact schema metadata, finite
+nonnegative atoms, complete candidate outcomes, and exact agreement between
+the planned red-light atom and its online DP reward source. It records SHA-256
+digests for every selection log, validation summary, and scale artifact.
+
 Omit `--map_path` when routes from multiple maps are supplied; each route
 pickle then uses its own verified map. Enabled traffic lights use the same
 seed across all four variants, so NPC spawning and initial signal phases are
