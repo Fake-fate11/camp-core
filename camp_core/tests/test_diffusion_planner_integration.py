@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
+import camp_core.integrations.diffusion_planner as diffusion_planner_module
 from camp_core.atoms.driver_atoms import DriverAtomContext
 from camp_core.integrations.diffusion_planner import (
     CAMP_ATOM_NAMES,
@@ -1494,6 +1495,48 @@ def test_selector_uses_obb_collision_when_obstacle_shape_is_available() -> None:
     assert result.feasible_mask.tolist() == [False, True]
     assert result.infeasibility_reasons == (("dynamic_obb_collision",), ())
     assert result.selected_index == 1
+
+
+def test_selector_obb_broad_phase_skips_distant_sat_checks(monkeypatch) -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=20.0,
+        speed_limit=50.0,
+        desired_speed=5.0,
+        safety_radius=0.1,
+    )
+    x = np.linspace(0.5, 4.0, 8)
+    candidate = np.column_stack(
+        [x, np.zeros_like(x), np.ones_like(x), np.zeros_like(x)]
+    )
+    obstacles = np.zeros((1, 1, 8, 6), dtype=np.float64)
+    obstacles[0, 0, :, 0] = 100.0
+    obstacles[0, 0, :, 1] = 100.0
+    obstacles[0, 0, :, 3] = 4.5
+    obstacles[0, 0, :, 4] = 1.9
+    obstacles[0, 0, :, 5] = 2.9
+
+    def fail_sat(*args, **kwargs):
+        raise AssertionError("Distant OBBs must not reach exact SAT.")
+
+    monkeypatch.setattr(diffusion_planner_module, "_obb_collides", fail_sat)
+    selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=np.ones(9),
+        mode="static",
+    )
+
+    result = selector.select(
+        candidate[np.newaxis],
+        context,
+        candidate_obstacles=obstacles,
+        ego_length=4.5,
+        ego_width=1.9,
+        ego_wheelbase=2.9,
+    )
+
+    assert result.feasible_mask.tolist() == [True]
 
 
 def test_summarize_replay_artifacts_without_selection_log(tmp_path) -> None:

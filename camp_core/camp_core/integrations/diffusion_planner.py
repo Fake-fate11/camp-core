@@ -856,6 +856,30 @@ def _obb_corners(
     return local @ rotation.T + np.array([x, y], dtype=np.float64)
 
 
+def _obb_center_and_radius(
+    x: float,
+    y: float,
+    heading: float,
+    length: float,
+    width: float,
+    wheelbase: Optional[float] = None,
+) -> tuple[np.ndarray, float]:
+    offset = (
+        float(wheelbase) / 2.0
+        if wheelbase is not None and np.isfinite(wheelbase) and wheelbase > 0
+        else 0.0
+    )
+    center = np.array(
+        [
+            float(x) + offset * math.cos(float(heading)),
+            float(y) + offset * math.sin(float(heading)),
+        ],
+        dtype=np.float64,
+    )
+    radius = math.hypot(float(length) / 2.0, float(width) / 2.0)
+    return center, radius
+
+
 def _obb_collides(corners_a: np.ndarray, corners_b: np.ndarray) -> bool:
     for corners in (corners_a, corners_b):
         for idx in range(4):
@@ -1805,35 +1829,84 @@ class CAMPSelector:
                 )
             if obstacles.shape[-1] >= 5:
                 ego_headings = _trajectory_headings(trajectory)
-                for obstacle in obstacles:
-                    horizon = min(len(trajectory_xy), len(obstacle))
-                    for t in range(horizon):
-                        row = obstacle[t]
-                        if not np.all(np.isfinite(row[:5])):
-                            continue
-                        if np.linalg.norm(row[:2]) < 1e-8:
-                            continue
-                        obs_length = max(float(row[3]), 1e-3)
-                        obs_width = max(float(row[4]), 1e-3)
-                        obs_wheelbase = (
-                            float(row[5])
-                            if row.shape[0] >= 6 and np.isfinite(row[5]) and row[5] > 0
-                            else None
-                        )
-                        ego_box = _obb_corners(
+                ego_centers = np.asarray(
+                    [
+                        _obb_center_and_radius(
                             float(trajectory_xy[t, 0]),
                             float(trajectory_xy[t, 1]),
                             float(ego_headings[t]),
                             float(ego_length),
                             float(ego_width),
                             float(ego_wheelbase),
+                        )[0]
+                        for t in range(len(trajectory_xy))
+                    ],
+                    dtype=np.float64,
+                )
+                _, ego_radius = _obb_center_and_radius(
+                    0.0,
+                    0.0,
+                    0.0,
+                    float(ego_length),
+                    float(ego_width),
+                    float(ego_wheelbase),
+                )
+                ego_boxes: dict[int, np.ndarray] = {}
+                for obstacle in obstacles:
+                    horizon = min(len(trajectory_xy), len(obstacle))
+                    rows = obstacle[:horizon]
+                    valid = np.all(np.isfinite(rows[:, :5]), axis=1)
+                    valid &= np.linalg.norm(rows[:, :2], axis=1) >= 1e-8
+                    if not valid.any():
+                        continue
+                    obs_lengths = np.maximum(rows[:, 3], 1e-3)
+                    obs_widths = np.maximum(rows[:, 4], 1e-3)
+                    if rows.shape[1] >= 6:
+                        obs_wheelbases = np.where(
+                            np.isfinite(rows[:, 5]) & (rows[:, 5] > 0.0),
+                            rows[:, 5],
+                            0.0,
                         )
+                    else:
+                        obs_wheelbases = np.zeros(horizon, dtype=np.float64)
+                    obs_centers = rows[:, :2] + np.column_stack(
+                        [
+                            np.cos(rows[:, 2]),
+                            np.sin(rows[:, 2]),
+                        ]
+                    ) * (obs_wheelbases / 2.0)[:, np.newaxis]
+                    obs_radii = np.hypot(obs_lengths / 2.0, obs_widths / 2.0)
+                    center_distances = np.linalg.norm(
+                        ego_centers[:horizon] - obs_centers,
+                        axis=1,
+                    )
+                    possible = valid & (
+                        center_distances <= ego_radius + obs_radii + 1e-12
+                    )
+                    for t in np.flatnonzero(possible):
+                        row = rows[t]
+                        obs_wheelbase = (
+                            float(obs_wheelbases[t])
+                            if obs_wheelbases[t] > 0.0
+                            else None
+                        )
+                        ego_box = ego_boxes.get(int(t))
+                        if ego_box is None:
+                            ego_box = _obb_corners(
+                                float(trajectory_xy[t, 0]),
+                                float(trajectory_xy[t, 1]),
+                                float(ego_headings[t]),
+                                float(ego_length),
+                                float(ego_width),
+                                float(ego_wheelbase),
+                            )
+                            ego_boxes[int(t)] = ego_box
                         obs_box = _obb_corners(
                             float(row[0]),
                             float(row[1]),
                             float(row[2]),
-                            obs_length,
-                            obs_width,
+                            float(obs_lengths[t]),
+                            float(obs_widths[t]),
                             obs_wheelbase,
                         )
                         if _obb_collides(ego_box, obs_box):
