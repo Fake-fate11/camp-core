@@ -1462,3 +1462,98 @@ candidate v11 should first train static v10 weights from the same certified
 v10 dataset with stronger comfort penalties, for example increasing jerk and
 lateral-acceleration outcome weights, then run full-epigraph certification and
 only a small non-formal smoke before spending another 36-run matrix.
+
+## V10 comfort-reweighted objective audit
+
+The next cycle kept the deployable v10 schema fixed and changed only the
+robust static training objective. This preserves the finite-candidate convex
+contract: candidates, atom values, atom scales, labels, and margins are fixed
+before optimizing \(w\); the master problem remains the same simplex-constrained
+CVaR epigraph over finite affine losses. No new online atom or DP retraining is
+introduced.
+
+Two comfort-weighted checkpoints were trained from the certified v10 training
+view:
+
+| Candidate | Asset root | Outcome weight change | Weight SHA | Full epigraph SHA |
+| --- | --- | --- | --- | --- |
+| j1_lat2 | `/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_comfort_j1_lat2_f36c249` | mean jerk 1.0, lateral 2.0 | `c0e03dbf8065c852ee5e6bf3c6e592396156a37daab2fb1bfcce8e9f198d988f` | `694c49ba07bb848f2b2404fbb71795538fa9a5b74e339e2601ff456ce990eddb` |
+| j2_lat4 | `/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_comfort_j2_lat4_f36c249` | mean jerk 2.0, lateral 4.0 | `a4928f2ff3f347a180a52fe431a18be3fc283d2469a4649e6e764a621fa78ed9` | `6e015ea66fd1b9ca3745d1418e62e9c53c0cf05467134ba1a186a8cb14c4eca0` |
+
+Both candidates passed the full finite-candidate epigraph audit. The pilot
+matrix intentionally used only the sample59_86 route with non-formal seeds
+1--3, NPC counts 0/4, traffic lights on/off, 200 steps, 8 candidates, perfect
+advance, and no candidate closed-loop outcome collection.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| j1 pilot dataset audit | `e10f982800524a8e559b7cd184f6e3a14c498cc21d9a32f3d9345394ddb7c8a4` |
+| j2 pilot dataset audit | `20c5b1f018c92aa85c5d6c5512c1995d36caf6e8cd503683bb226dc0f0e5d2c6` |
+| strict pilot comparison JSON | `a9655aece3b4bd0b7ce5a5f9aa9d1d4556e5f0bb205f4fb4d9eac7570b74a333` |
+| strict pilot comparison markdown | `081f5d17ecc038775ff6899ccef40b9142aaa95947a334a3dd9f70fa33ca1470` |
+| mechanism diagnosis JSON | `9cab3d0dd0aeadacdd96fa81939b30269596924424d2b0b5da99c1ca0f6686bc` |
+| mechanism diagnosis markdown | `da9b278e21c797877dea08f437e51f5cbabea50f19c0e3615ec1aa7a9bfe0b9d` |
+
+The deployable dataset audits passed for both pilot roots:
+
+- 12 logs, 2,400 records, and 19,200 candidates per candidate;
+- `candidate_dp_prior_jerk_excess_cost` present for every candidate;
+- candidate 0 reference-zero check passed for all 2,400 records;
+- closed-loop outcome policy was `forbidden`;
+- formal seeds 11/12/13 were absent;
+- effective comfort-shadow horizon was 30.
+
+Strict paired comparison used the 12 common sample59_86 keys for top1, uniform,
+v7, v8, v9, v10, j1_lat2, and j2_lat4. Pairing audit: 12 common keys, 12 union
+keys, no missing or duplicate keys.
+
+Aggregate pilot metrics:
+
+| Variant | Completion | Planned red | Realized red | Near miss | Jerk | Lateral | Fallback | p95 selection latency |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| top1 | 0.145106 | 0.008750 | 0.000838 | 0.046250 | 6.382563 | 0.359492 | n/a | n/a |
+| v9_static | 0.154644 | 0.045833 | 0.019682 | 0.040000 | 15.404942 | 0.430507 | 0.196250 | 94.966910 |
+| v10_static | 0.154272 | 0.047500 | 0.019263 | 0.024167 | 14.460047 | 0.424298 | 0.197083 | 95.463059 |
+| j1_lat2 | 0.152934 | 0.045833 | 0.019263 | 0.056250 | 15.143158 | 0.419638 | 0.207083 | 94.512399 |
+| j2_lat4 | 0.152689 | 0.046250 | 0.018844 | 0.055833 | 15.197518 | 0.417019 | 0.205000 | 94.444249 |
+
+Key paired deltas on the 12-run pilot, using 10,000 deterministic bootstrap
+resamples:
+
+| Comparison | Completion | Planned red | Near miss | Jerk | Lateral | Fallback |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| j1 - v9 | -0.001710 [-0.003362, -0.000511] | +0.000000 [-0.002500, +0.003333] | +0.016250 [-0.010417, +0.059167] | -0.261784 [-1.465535, +0.896688] | -0.010869 [-0.019645, -0.004537] | +0.010833 [-0.007917, +0.042917] |
+| j2 - v9 | -0.001955 [-0.003505, -0.000788] | +0.000417 [-0.001667, +0.003750] | +0.015833 [-0.010833, +0.057917] | -0.207424 [-1.335349, +0.810927] | -0.013488 [-0.021957, -0.006428] | +0.008750 [-0.010000, +0.041250] |
+| j1 - v10 | -0.001338 [-0.002653, -0.000362] | -0.001667 [-0.003750, +0.000000] | +0.032083 [+0.000000, +0.078333] | +0.683111 [-0.567419, +2.141041] | -0.004660 [-0.009081, -0.001408] | +0.010000 [-0.013333, +0.045417] |
+| j2 - v10 | -0.001583 [-0.002891, -0.000577] | -0.001250 [-0.002500, +0.000000] | +0.031667 [+0.000000, +0.076667] | +0.737471 [-0.383954, +1.896679] | -0.007280 [-0.011171, -0.003866] | +0.007917 [-0.014583, +0.042500] |
+
+Mechanism diagnosis against v10_static:
+
+| Candidate | Selection change rate | Fallback delta | Selected feasible delta | DP-prior deviation delta | DP-prior jerk-excess delta |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| j1_lat2 | 0.306250 | +0.010000 | -0.010000 | +0.106194 | -0.075027 |
+| j2_lat4 | 0.404167 | +0.007917 | -0.007917 | +0.287247 | -0.065409 |
+
+Selected normalized atom deltas against v10_static show the tradeoff clearly:
+
+| Candidate | `progress_shortfall` | `lane_deviation` | `jerk_full` | `planned_lateral_acceleration_cost` | `dp_prior_jerk_excess_cost` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| j1_lat2 | +0.038703 | +0.040100 | -0.029735 | -0.023895 | -0.108146 |
+| j2_lat4 | +0.052815 | +0.028055 | -0.029990 | -0.025285 | -0.109353 |
+
+Gate decision:
+
+1. j1_lat2 and j2_lat4 remain mathematically valid deployable checkpoints;
+2. neither candidate passes the industrial pilot gate;
+3. both improve selected lateral acceleration cost, but both significantly
+   reduce completion on this paired pilot and increase near-miss/fallback risk;
+4. the mechanism is not random noise: the reweighted selectors trade lower
+   comfort atoms for higher `progress_shortfall` and greater DP-prior
+   deviation;
+5. do not spend a full 36-run matrix on either candidate;
+6. formal seeds remain frozen.
+
+The next hypothesis should be progress-preserving comfort, not stronger
+comfort reweighting. A valid next candidate may still keep the v10 schema fixed,
+but the objective must prevent the optimizer from buying small comfort gains
+with worse progress, lower selected feasibility, or larger DP-prior deviation.
