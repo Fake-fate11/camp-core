@@ -146,6 +146,28 @@ def test_dataset_audit_forbidden_outcomes_rejects_collected_outcomes(
         )
 
 
+def test_dataset_audit_forbidden_outcomes_allows_null_sentinel(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["candidate_closed_loop_outcomes"] = None
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    report = audit_training_dataset(
+        [log_path],
+        atom_scales=np.ones(12),
+        expected_logs=1,
+        expected_candidates=2,
+        closed_loop_outcome_policy="forbidden",
+    )
+
+    assert report["passed"]
+    assert not report["checks"]["complete_closed_loop_outcomes"]
+    assert report["checks"]["closed_loop_outcome_records"] == 0
+    assert report["checks"]["outcome_candidate_coverage"] == 0.0
+
+
 def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
     tmp_path,
     monkeypatch,

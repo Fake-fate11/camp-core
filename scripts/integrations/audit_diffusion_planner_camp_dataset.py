@@ -89,8 +89,8 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Controls candidate_closed_loop_outcomes validation. Training and "
             "label audits should keep the default 'required'. Deployable "
-            "latency audits should use 'forbidden' to certify that no "
-            "counterfactual outcome collection was active."
+            "latency audits should use 'forbidden' to certify that no collected "
+            "counterfactual outcome payload was stored."
         ),
     )
     parser.add_argument("--output_json", type=Path, required=True)
@@ -384,9 +384,9 @@ def _validate_closed_loop_outcomes(
     has_outcomes = "candidate_closed_loop_outcomes" in record
     outcomes = record.get("candidate_closed_loop_outcomes")
     if policy == "forbidden":
-        if has_outcomes:
+        if has_outcomes and outcomes is not None:
             raise ValueError(
-                f"{log_path} record {record_idx} contains forbidden "
+                f"{log_path} record {record_idx} contains forbidden collected "
                 "candidate_closed_loop_outcomes."
             )
         return []
