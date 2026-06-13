@@ -18,9 +18,6 @@ for path in (ROOT, PACKAGE_ROOT):
         sys.path.insert(0, path_str)
 
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
-    CAMP_ATOM_NAMES,
-    DP_CAMP_ATOM_NAMES,
-    DP_CAMP_ATOM_NAMES_V8,
     DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS,
     atom_schema_for_dimension,
 )
@@ -216,17 +213,7 @@ def normalize_nonnegative(values: np.ndarray) -> np.ndarray:
 
 
 def atom_names_for_dimension(num_atoms: int) -> tuple[str, ...]:
-    if num_atoms == len(CAMP_ATOM_NAMES):
-        return CAMP_ATOM_NAMES
-    if num_atoms == len(DP_CAMP_ATOM_NAMES):
-        return DP_CAMP_ATOM_NAMES
-    if num_atoms == len(DP_CAMP_ATOM_NAMES_V8):
-        return DP_CAMP_ATOM_NAMES_V8
-    raise ValueError(
-        f"Expected {len(CAMP_ATOM_NAMES)} legacy atoms or "
-        f"{len(DP_CAMP_ATOM_NAMES)} DP atoms or "
-        f"{len(DP_CAMP_ATOM_NAMES_V8)} v8 atoms, got {num_atoms}."
-    )
+    return atom_schema_for_dimension(num_atoms)[1]
 
 
 def validate_atom_schema(
@@ -520,7 +507,21 @@ def main() -> None:
     summary_path = args.output_dir / "training_summary.json"
 
     np.save(weights_path, weights.astype(np.float64))
-    scales_path.write_text(json.dumps(scales.tolist(), indent=2) + "\n", encoding="utf-8")
+    atom_schema_version, canonical_atom_names = atom_schema_for_dimension(
+        len(atom_names)
+    )
+    scales_path.write_text(
+        json.dumps(
+            {
+                "atom_schema_version": atom_schema_version,
+                "atom_names": list(canonical_atom_names),
+                "scales": scales.tolist(),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     costs = normalized @ weights
     masked_costs = costs.copy()
     masked_costs[~feasible] = np.inf
@@ -558,6 +559,7 @@ def main() -> None:
         "dropped_records_without_feasible_candidate": dropped_records,
         "num_candidates": int(normalized.shape[1]),
         "num_atoms": int(normalized.shape[2]),
+        "atom_schema_version": atom_schema_version,
         "atom_names": list(atom_names),
         "scale_percentile": float(args.scale_percentile),
         "proxy_weights_normalized": (

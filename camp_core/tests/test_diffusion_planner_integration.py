@@ -20,6 +20,7 @@ from camp_core.integrations.diffusion_planner import (
     DP_SCENE_FEATURE_NAMES,
     DP_CAMP_ATOM_NAMES,
     DP_CAMP_ATOM_NAMES_V8,
+    DP_CAMP_ATOM_NAMES_V9,
     CAMPSelector,
     atom_schema_for_dimension,
     build_context_from_scene,
@@ -738,6 +739,14 @@ def test_atom_schema_validation_rejects_same_dimension_reordering(tmp_path) -> N
     assert summary["missing_records"] == 0
 
 
+def test_v9_atom_schema_names_red_stopping_margin() -> None:
+    version, names = atom_schema_for_dimension(len(DP_CAMP_ATOM_NAMES_V9))
+
+    assert version == "dp_camp_v9_13d"
+    assert names == DP_CAMP_ATOM_NAMES_V9
+    assert names[-1] == "red_stopping_margin_cost"
+
+
 def test_atom_schema_validation_can_require_metadata(tmp_path) -> None:
     record = {
         "atoms": np.zeros((2, len(DP_CAMP_ATOM_NAMES_V8))).tolist(),
@@ -1357,6 +1366,71 @@ def test_dp_v8_selector_appends_red_light_and_lateral_atoms() -> None:
     np.testing.assert_allclose(result.atoms[:, -2], np.array([5.0, 0.0]))
     assert result.atoms[1, -1] == 0.0
     assert result.selected_index == 1
+
+
+def test_dp_v9_selector_appends_red_stopping_margin_atom() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=5.0,
+        speed_limit=50.0,
+    )
+    x = np.linspace(0.5, 4.0, 8)
+    candidates = np.stack(
+        [
+            np.column_stack([x, np.zeros_like(x)]),
+            np.column_stack([x, np.full_like(x, 0.1)]),
+        ]
+    )
+    weights = np.zeros(len(DP_CAMP_ATOM_NAMES_V9))
+    weights[-1] = 1.0
+    selector = CAMPSelector(
+        atom_scales=np.ones(len(DP_CAMP_ATOM_NAMES_V9)),
+        static_weights=weights,
+        mode="static",
+    )
+
+    result = selector.select(
+        candidates,
+        context,
+        candidate_progress=np.array([10.0, 10.0]),
+        candidate_planned_red_light_cost=np.array([0.0, 0.0]),
+        candidate_red_stopping_margin_cost=np.array([4.0, 0.0]),
+    )
+
+    assert result.atoms.shape == (2, len(DP_CAMP_ATOM_NAMES_V9))
+    np.testing.assert_allclose(result.atoms[:, -1], np.array([4.0, 0.0]))
+    assert result.selected_index == 1
+
+
+def test_dp_v9_selector_rejects_invalid_red_stopping_margin_atom() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=5.0,
+        speed_limit=50.0,
+    )
+    x = np.linspace(0.5, 4.0, 8)
+    candidates = np.stack(
+        [
+            np.column_stack([x, np.zeros_like(x)]),
+            np.column_stack([x, np.full_like(x, 0.1)]),
+        ]
+    )
+    selector = CAMPSelector(
+        atom_scales=np.ones(len(DP_CAMP_ATOM_NAMES_V9)),
+        static_weights=np.ones(len(DP_CAMP_ATOM_NAMES_V9)),
+        mode="static",
+    )
+
+    with pytest.raises(ValueError, match="finite nonnegative"):
+        selector.select(
+            candidates,
+            context,
+            candidate_progress=np.array([10.0, 10.0]),
+            candidate_planned_red_light_cost=np.array([0.0, 0.0]),
+            candidate_red_stopping_margin_cost=np.array([0.0, -1.0]),
+        )
 
 
 def test_selector_respects_configurable_lane_corridor_buffer() -> None:

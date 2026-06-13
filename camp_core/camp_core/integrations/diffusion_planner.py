@@ -44,11 +44,15 @@ DP_CAMP_ATOM_NAMES_V8 = DP_CAMP_ATOM_NAMES + (
     "planned_red_light_cost",
     "planned_lateral_acceleration_cost",
 )
+DP_CAMP_ATOM_NAMES_V9 = DP_CAMP_ATOM_NAMES_V8 + (
+    "red_stopping_margin_cost",
+)
 
 DP_CAMP_ATOM_SCHEMAS = {
     len(CAMP_ATOM_NAMES): ("camp_legacy_v1_9d", CAMP_ATOM_NAMES),
     len(DP_CAMP_ATOM_NAMES): ("dp_camp_v7_10d", DP_CAMP_ATOM_NAMES),
     len(DP_CAMP_ATOM_NAMES_V8): ("dp_camp_v8_12d", DP_CAMP_ATOM_NAMES_V8),
+    len(DP_CAMP_ATOM_NAMES_V9): ("dp_camp_v9_13d", DP_CAMP_ATOM_NAMES_V9),
 }
 
 
@@ -1353,6 +1357,9 @@ def summarize_selection_records(
         "latency_ms_context_and_obstacles": "context_and_obstacles_latency_ms",
         "latency_ms_reward_scoring": "reward_scoring_latency_ms",
         "latency_ms_outcome_collection": "outcome_collection_latency_ms",
+        "latency_ms_red_stopping_margin_atom": (
+            "red_stopping_margin_atom_latency_ms"
+        ),
         "latency_ms_camp_selection": "camp_selection_latency_ms",
         "latency_ms_camp_atom_computation": "camp_atom_computation_latency_ms",
         "latency_ms_camp_feasibility": "camp_feasibility_latency_ms",
@@ -1643,6 +1650,7 @@ class CAMPSelector:
         candidate_obstacles: Optional[np.ndarray] = None,
         candidate_progress: Optional[np.ndarray] = None,
         candidate_planned_red_light_cost: Optional[np.ndarray] = None,
+        candidate_red_stopping_margin_cost: Optional[np.ndarray] = None,
         external_feasible_mask: Optional[np.ndarray] = None,
         external_infeasibility_reasons: Optional[Sequence[Sequence[str]]] = None,
         apply_context_feasibility: bool = True,
@@ -1778,7 +1786,11 @@ class CAMPSelector:
 
         atoms_arr = np.asarray(atoms, dtype=np.float64)
         feasible_mask = np.asarray(feasible, dtype=bool)
-        if self.num_atoms == len(DP_CAMP_ATOM_NAMES):
+        if self.num_atoms in (
+            len(DP_CAMP_ATOM_NAMES),
+            len(DP_CAMP_ATOM_NAMES_V8),
+            len(DP_CAMP_ATOM_NAMES_V9),
+        ):
             if progress is None:
                 progress = np.linalg.norm(
                     np.diff(candidates[:, :, :2], axis=1),
@@ -1791,55 +1803,80 @@ class CAMPSelector:
                 else np.max(progress)
             )
             progress_shortfall = np.maximum(reference_progress - progress, 0.0)
-            atoms_arr = np.concatenate(
-                [atoms_arr, progress_shortfall.reshape(-1, 1)],
-                axis=1,
-            )
-        elif self.num_atoms == len(DP_CAMP_ATOM_NAMES_V8):
-            if progress is None:
-                progress = np.linalg.norm(
-                    np.diff(candidates[:, :, :2], axis=1),
-                    axis=-1,
-                ).sum(axis=1)
-            progress = np.nan_to_num(progress, nan=0.0, posinf=0.0, neginf=0.0)
-            reference_progress = float(
-                np.max(progress[feasible_mask])
-                if feasible_mask.any()
-                else np.max(progress)
-            )
-            progress_shortfall = np.maximum(reference_progress - progress, 0.0)
-            if candidate_planned_red_light_cost is None:
-                raise ValueError(
-                    "DP v8 CAMP selection requires candidate_planned_red_light_cost."
+            extra_atoms = [progress_shortfall.reshape(-1, 1)]
+            if self.num_atoms in (
+                len(DP_CAMP_ATOM_NAMES_V8),
+                len(DP_CAMP_ATOM_NAMES_V9),
+            ):
+                if candidate_planned_red_light_cost is None:
+                    raise ValueError(
+                        "DP v8/v9 CAMP selection requires "
+                        "candidate_planned_red_light_cost."
+                    )
+                red_light_cost = np.asarray(
+                    candidate_planned_red_light_cost,
+                    dtype=np.float64,
+                ).reshape(-1)
+                if red_light_cost.shape != (candidates.shape[0],):
+                    raise ValueError(
+                        "candidate_planned_red_light_cost must match candidate "
+                        "count, "
+                        f"got {red_light_cost.shape}, expected "
+                        f"({candidates.shape[0]},)."
+                    )
+                red_light_cost = np.nan_to_num(
+                    red_light_cost, nan=0.0, posinf=0.0, neginf=0.0
                 )
-            red_light_cost = np.asarray(
-                candidate_planned_red_light_cost,
-                dtype=np.float64,
-            ).reshape(-1)
-            if red_light_cost.shape != (candidates.shape[0],):
-                raise ValueError(
-                    "candidate_planned_red_light_cost must match candidate count, "
-                    f"got {red_light_cost.shape}, expected ({candidates.shape[0]},)."
+                red_light_cost = np.maximum(red_light_cost, 0.0)
+                phase_start = time.perf_counter()
+                lateral_acceleration_cost = np.asarray(
+                    [
+                        _trajectory_comfort(candidate, context.dt)[1]
+                        for candidate in candidates
+                    ],
+                    dtype=np.float64,
                 )
-            red_light_cost = np.nan_to_num(
-                red_light_cost, nan=0.0, posinf=0.0, neginf=0.0
-            )
-            red_light_cost = np.maximum(red_light_cost, 0.0)
-            lateral_acceleration_cost = np.asarray(
-                [_trajectory_comfort(candidate, context.dt)[1] for candidate in candidates],
-                dtype=np.float64,
-            )
-            lateral_acceleration_cost = np.nan_to_num(
-                lateral_acceleration_cost, nan=0.0, posinf=0.0, neginf=0.0
-            )
-            lateral_acceleration_cost = np.maximum(lateral_acceleration_cost, 0.0)
+                atom_computation_seconds += time.perf_counter() - phase_start
+                lateral_acceleration_cost = np.nan_to_num(
+                    lateral_acceleration_cost, nan=0.0, posinf=0.0, neginf=0.0
+                )
+                lateral_acceleration_cost = np.maximum(
+                    lateral_acceleration_cost, 0.0
+                )
+                extra_atoms.extend(
+                    [
+                        red_light_cost.reshape(-1, 1),
+                        lateral_acceleration_cost.reshape(-1, 1),
+                    ]
+                )
+            if self.num_atoms == len(DP_CAMP_ATOM_NAMES_V9):
+                if candidate_red_stopping_margin_cost is None:
+                    raise ValueError(
+                        "DP v9 CAMP selection requires "
+                        "candidate_red_stopping_margin_cost."
+                    )
+                red_stopping_margin_cost = np.asarray(
+                    candidate_red_stopping_margin_cost,
+                    dtype=np.float64,
+                ).reshape(-1)
+                if red_stopping_margin_cost.shape != (candidates.shape[0],):
+                    raise ValueError(
+                        "candidate_red_stopping_margin_cost must match candidate "
+                        "count, "
+                        f"got {red_stopping_margin_cost.shape}, expected "
+                        f"({candidates.shape[0]},)."
+                    )
+                if (
+                    not np.all(np.isfinite(red_stopping_margin_cost))
+                    or np.any(red_stopping_margin_cost < 0.0)
+                ):
+                    raise ValueError(
+                        "candidate_red_stopping_margin_cost must contain finite "
+                        "nonnegative costs."
+                    )
+                extra_atoms.append(red_stopping_margin_cost.reshape(-1, 1))
             atoms_arr = np.concatenate(
-                [
-                    atoms_arr,
-                    progress_shortfall.reshape(-1, 1),
-                    red_light_cost.reshape(-1, 1),
-                    lateral_acceleration_cost.reshape(-1, 1),
-                ],
+                [atoms_arr, *extra_atoms],
                 axis=1,
             )
         elif self.num_atoms != len(CAMP_ATOM_NAMES):
@@ -1848,7 +1885,8 @@ class CAMPSelector:
                 f"{len(CAMP_ATOM_NAMES)} legacy atoms or "
                 f"{len(DP_CAMP_ATOM_NAMES)} atoms with progress_shortfall or "
                 f"{len(DP_CAMP_ATOM_NAMES_V8)} atoms with planned_red_light_cost "
-                f"and planned_lateral_acceleration_cost, "
+                f"and planned_lateral_acceleration_cost or "
+                f"{len(DP_CAMP_ATOM_NAMES_V9)} atoms with red_stopping_margin_cost, "
                 f"got {self.num_atoms}."
             )
         normalized = atoms_arr / self.atom_scales.reshape(1, -1)

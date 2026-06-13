@@ -5,7 +5,13 @@ import json
 import numpy as np
 import pytest
 
-from camp_core.integrations.diffusion_planner import DP_CAMP_ATOM_NAMES_V8
+from camp_core.integrations.diffusion_planner import (
+    DP_CAMP_ATOM_NAMES_V8,
+    DP_CAMP_ATOM_NAMES_V9,
+)
+from scripts.integrations.augment_diffusion_planner_camp_v9_red_stopping import (
+    augment_logs,
+)
 from scripts.integrations.audit_diffusion_planner_camp_dataset import (
     audit_training_dataset,
 )
@@ -86,7 +92,39 @@ def test_dataset_audit_rejects_wrong_advance_mode(tmp_path) -> None:
         )
 
 
+def test_v9_red_stopping_augmentation_outputs_auditable_dataset(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path / "source")
+    output_root = tmp_path / "v9"
+
+    manifest = augment_logs(
+        [(log_path, log_path.parent)],
+        output_root=output_root,
+    )
+    augmented_log = output_root / "camp_selection_log.json"
+    records = json.loads(augmented_log.read_text(encoding="utf-8"))
+
+    assert manifest["schema"]["version"] == "dp_camp_v9_13d"
+    assert records[0]["atom_schema_version"] == "dp_camp_v9_13d"
+    assert records[0]["atom_names"] == list(DP_CAMP_ATOM_NAMES_V9)
+    assert records[0]["source_atom_schema_version"] == "dp_camp_v8_12d"
+    assert records[0]["atoms"][0][-1] == 1.5
+    assert "normalized_atoms" not in records[0]
+
+    report = audit_training_dataset(
+        [augmented_log],
+        atom_scales=np.ones(len(DP_CAMP_ATOM_NAMES_V9)),
+        expected_logs=1,
+        expected_candidates=2,
+        expected_advance_mode="perfect",
+    )
+
+    assert report["passed"]
+    assert report["schema"]["version"] == "dp_camp_v9_13d"
+    assert report["counts"]["records"] == 1
+
+
 def _write_completed_log(tmp_path):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     log_path = tmp_path / "camp_selection_log.json"
     atoms = np.zeros((2, 12), dtype=float)
     atoms[:, 10] = [3.0, 0.0]
@@ -111,6 +149,7 @@ def _write_completed_log(tmp_path):
         "feasible_mask": [False, False],
         "dp_candidate_rewards": [{"red_light": -3.0}, {"red_light": 0.0}],
         "candidate_closed_loop_outcomes": outcomes,
+        "candidate_red_stopping_margin_cost": [1.5, 0.0],
     }
     log_path.write_text(json.dumps([record]), encoding="utf-8")
     log_path.with_name("camp_validation_summary.json").write_text(

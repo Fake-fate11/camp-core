@@ -772,6 +772,16 @@ def _install_camp_predictor(
                 weights=outcome_weights,
             )
         outcome_collection_done = time.perf_counter()
+        red_stopping_margin_start = time.perf_counter()
+        candidate_red_stopping_margin_cost = compute_red_stopping_margin_costs(
+            candidates,
+            red_route_points,
+            context.dt,
+        )
+        red_stopping_margin_done = time.perf_counter()
+        shadow_red_stopping_margin_latency_ms = (
+            red_stopping_margin_done - red_stopping_margin_start
+        ) * 1000.0
         selection = selector.select(
             candidates,
             context,
@@ -779,6 +789,7 @@ def _install_camp_predictor(
             candidate_obstacles=obstacles,
             candidate_progress=candidate_progress,
             candidate_planned_red_light_cost=candidate_planned_red_light_cost,
+            candidate_red_stopping_margin_cost=candidate_red_stopping_margin_cost,
             external_feasible_mask=external_feasible_mask,
             external_infeasibility_reasons=external_infeasibility_reasons,
             apply_context_feasibility=feasibility_source == "context",
@@ -788,15 +799,6 @@ def _install_camp_predictor(
         )
         selection_done = time.perf_counter()
         elapsed_ms = (selection_done - start) * 1000.0
-        shadow_start = time.perf_counter()
-        candidate_red_stopping_margin_cost = compute_red_stopping_margin_costs(
-            candidates,
-            red_route_points,
-            context.dt,
-        )
-        shadow_red_stopping_margin_latency_ms = (
-            time.perf_counter() - shadow_start
-        ) * 1000.0
         phase_latencies_ms = {
             "latency_ms_candidate_generation": (
                 candidate_generation_done - start
@@ -814,8 +816,12 @@ def _install_camp_predictor(
                 outcome_collection_done - reward_scoring_done
             )
             * 1000.0,
+            "latency_ms_red_stopping_margin_atom": (
+                red_stopping_margin_done - outcome_collection_done
+            )
+            * 1000.0,
             "latency_ms_camp_selection": (
-                selection_done - outcome_collection_done
+                selection_done - red_stopping_margin_done
             )
             * 1000.0,
             "latency_ms_camp_atom_computation": selection.timings_ms[
@@ -891,6 +897,10 @@ def _install_camp_predictor(
                 "red_route_point_count": int(red_route_points.shape[0]),
                 "latency_ms_shadow_red_stopping_margin": (
                     shadow_red_stopping_margin_latency_ms
+                ),
+                "red_stopping_margin_used_as_atom": (
+                    "red_stopping_margin_cost"
+                    in atom_schema_for_dimension(selection.atoms.shape[1])[1]
                 ),
                 "candidate_closed_loop_outcome_horizon_steps": (
                     min(outcome_horizon_steps, int(candidates.shape[1]))

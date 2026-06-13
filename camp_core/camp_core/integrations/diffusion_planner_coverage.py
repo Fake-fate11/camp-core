@@ -8,9 +8,7 @@ from typing import Any, Sequence
 import numpy as np
 
 from camp_core.integrations.diffusion_planner import (
-    CAMP_ATOM_NAMES,
-    DP_CAMP_ATOM_NAMES,
-    DP_CAMP_ATOM_NAMES_V8,
+    atom_schema_for_dimension,
     summarize_selection_records,
 )
 
@@ -41,13 +39,10 @@ TARGET_SPECS: dict[str, tuple[str, str, bool]] = {
 
 
 def atom_names_for_dimension(num_atoms: int) -> tuple[str, ...]:
-    if num_atoms == len(CAMP_ATOM_NAMES):
-        return CAMP_ATOM_NAMES
-    if num_atoms == len(DP_CAMP_ATOM_NAMES):
-        return DP_CAMP_ATOM_NAMES
-    if num_atoms == len(DP_CAMP_ATOM_NAMES_V8):
-        return DP_CAMP_ATOM_NAMES_V8
-    return tuple(f"atom_{idx}" for idx in range(num_atoms))
+    try:
+        return atom_schema_for_dimension(num_atoms)[1]
+    except ValueError:
+        return tuple(f"atom_{idx}" for idx in range(num_atoms))
 
 
 def iter_selection_log_paths(paths: Sequence[Path]) -> list[Path]:
