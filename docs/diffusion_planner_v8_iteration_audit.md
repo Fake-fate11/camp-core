@@ -1067,3 +1067,85 @@ the sample contains only three ticks.
 Next gate: rerun the complete 36-run non-formal development shadow matrix with
 the 30-step online definition, then compare its coverage and Top-1-gap
 alignment directly against the frozen full-horizon artifacts above.
+
+## Online 30-step comfort-shadow development matrix
+
+The complete horizon-aligned matrix is:
+
+```text
+/root/autodl-tmp/camp_dp_development_shadow_v9_comfort_h30_8b4c66f
+```
+
+It reran the exact 36 non-formal development scenarios with v9 Static
+selection and the online 30-step shadow. All three routes contain 12 completed
+runs. The fail-closed audit passed for 7,200 records and 57,600 candidates:
+
+- perfect tracking in every completed-run summary;
+- complete closed-loop candidate outcomes;
+- exact v9 schema and atom metadata;
+- finite nonnegative atoms and all three shadow candidate fields;
+- summary/path seed provenance consistency;
+- seeds 11/12/13 absent;
+- comfort-shadow horizon 30 in every record and summary;
+- candidate 0 zero in all 7,200 records.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `h30_comfort_shadow_matrix_audit.json` | `83399bbd155d918859d2f3440803d71898e434c4cbafd8df3173dc2fb3e8171a` |
+| `h30_comfort_shadow_coverage.json` | `3bf9cc7311a84aa70c98058d0a51040003d7d05065da13ca31bd0a3a5522a970` |
+| `h30_comfort_shadow_coverage.md` | `2a483b47ba3de2a68052bec31e94d9b6e810928b7972a75b164168d377c3cdea` |
+| `benchmark_comparison_with_v7_v8_v9_h30_comfort_shadow.json` | `20ab20aa8ff01c6fe75dbe47ac65c447b8f7dbe292bbdce59704a186e99c97d9` |
+| `benchmark_comparison_with_v7_v8_v9_h30_comfort_shadow.md` | `36311803849163166d4ca6590ff00c246e331adf2f7f31d26eb3ead8b84aa8e0` |
+
+Horizon alignment materially improves the jerk diagnostic:
+
+| Metric | Full horizon | Online h30 |
+| --- | ---: | ---: |
+| Records with jerk variation | 7,155 | 7,166 |
+| Feasible records with jerk variation | 5,836 | 5,853 |
+| Mean selected jerk-excess cost | 0.243671 | 0.137301 |
+| p95 positive jerk-excess cost | 1.356544 | 1.235095 |
+| Mean shadow latency | 0.133 ms | 0.115 ms |
+| p95 shadow latency | 0.143 ms | 0.126 ms |
+| Global corr. with closed-loop jerk | 0.1580 | 0.2219 |
+| Feasible corr. with closed-loop jerk | 0.1400 | 0.2093 |
+| Top-1-gap jerk corr. | 0.7102 | 0.8829 |
+| Feasible Top-1-gap jerk corr. | 0.6736 | 0.9065 |
+| Positive cost on jerk-worse candidates | 70.4% | 100.0% |
+| Mean cost gap on non-worse candidates | 0.095605 | 0.0 |
+
+The 100% jerk-worse coverage and zero mean gap for non-worse candidates are
+expected from using the same first-30-step finite-difference jerk definition
+as the candidate outcome label. This is not label leakage: the online atom is
+computed directly from the current candidate coordinates before selection,
+while the outcome field is only an offline audit of the same kinematic
+quantity.
+
+The h30 jerk atom still carries useful but weaker lateral alignment:
+Top-1-gap correlation is 0.5525 over all candidates and 0.5668 over feasible
+candidates. Acceleration excess is not selected for promotion because its
+h30 Top-1-gap correlations are weaker for both jerk (0.5729/0.6015) and
+lateral acceleration (0.3046/0.2898).
+
+Strict pairing passed for Top-1, Uniform, v7 Static, v8 Static, v9 Static, and
+v9 h30 shadow: 36 common and union run keys, no missing keys, and no
+duplicates. As required for a shadow-only change, h30 shadow exactly matches
+v9 Static on completion, red-light metrics, jerk, lateral acceleration, and
+fallback. Its aggregate 523.069 ms p95 includes candidate outcome labeling;
+the unchanged deployable v9 p95 remains 87.966 ms.
+
+Promotion decision:
+
+1. promote only `dp_prior_jerk_excess_cost` into `dp_camp_v10_14d`;
+2. keep the first-30-step horizon fixed and provenance-checked;
+3. do not promote acceleration or a correlated relative lateral atom;
+4. train Robust Static on augmented v9 records with grouped validation;
+5. require final master gap at most 1e-6 and full-epigraph agreement before
+   any closed-loop v10 claim;
+6. keep formal seeds 11/12/13 frozen until the v10 development matrix passes.
+
+This decision authorizes a v10 training experiment only. It does not establish
+that adding the atom will receive nonzero robust weight or improve the
+industrial development gates.
