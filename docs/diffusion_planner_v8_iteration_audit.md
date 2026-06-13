@@ -291,6 +291,87 @@ The shadow report is under:
 /root/autodl-tmp/camp_dp_shadow_red_margin_matrix_seed1_20260613
 ```
 
+On the perfect-tracking Uniform collection, the shadow diagnostic has more
+coverage but is still not admitted automatically:
+
+- 7,200 records and 57,600 candidates audited;
+- 46,674 feasible candidates;
+- 862 feasible candidates have nonzero shadow stopping-margin cost;
+- 228 feasible records have candidate variation;
+- mean shadow latency is `0.247 ms`, p95 is `1.281 ms`.
+
+The persisted perfect coverage report is:
+
+```text
+/root/autodl-tmp/camp_dp_v8_outcome_collect_uniform_perfect_6225a37/atom_coverage_report.json
+```
+
+Its SHA-256 is
+`7e14b0422941967c26772c191adcaa35eeaea72a76be00967fa6ab6aafb37c34`.
+The diagnostic now has enough support to justify a future single-variable
+atom experiment, but it was not part of the certified 12D v8 checkpoint or the
+development matrix below.
+
+## Perfect Development Matrix
+
+The perfect-tracking development matrix is:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v8_a68dc48
+/root/autodl-tmp/camp_dp_development_perfect_v7_a68dc48
+```
+
+It covers the three development routes, seeds 1/2/3, NPC counts 0/4, traffic
+lights on/off, K=8, 200 steps, and `advance_mode=perfect`. The strict paired
+comparison includes 36 matched run keys for each of:
+
+- Top-1 DP;
+- Uniform CAMP;
+- v7 Static;
+- perfect v8 Static.
+
+The combined comparison is:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v8_a68dc48/benchmark_comparison_with_v7.json
+```
+
+Its SHA-256 is
+`380d71ad817783e6c0de1b660872c8710b623a11abc85dead451093451b3d030`.
+Pairing is strict: no missing or duplicate run keys, and all runs record
+`advance_mode=perfect`.
+
+Aggregate development metrics:
+
+| Variant | Completion | Planned red | Realized red | Jerk | Lateral acc. | Fallback | p95 selector |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Top-1 | 0.287765 | 0.011944 | 0.000279 | 8.362638 | 0.292413 | n/a | n/a |
+| Uniform | 0.299205 | 0.034028 | 0.011446 | 20.225194 | 0.336922 | 0.168333 | 88.706 ms |
+| v7 Static | 0.300491 | 0.027361 | 0.006561 | 21.202830 | 0.339689 | 0.167639 | 88.358 ms |
+| v8 Static | 0.300336 | 0.027917 | 0.006561 | 21.317561 | 0.339232 | 0.168750 | 89.409 ms |
+
+Paired deltas show that perfect v8 Static does not satisfy the formal gate:
+
+| Delta | Completion | Planned red | Realized red | Jerk | Lateral acc. | Fallback | p95 selector |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| v8 - v7 | -0.000155 [-0.000651, +0.000248] | +0.000556 [-0.000139, +0.001528] | 0 [0, 0] | +0.114731 [-0.262923, +0.510018] | -0.000457 [-0.003188, +0.002053] | +0.001111 [-0.001111, +0.004583] | +1.050942 [-0.080675, +2.229460] |
+| v8 - Top-1 | +0.012571 [+0.008658, +0.016847] | +0.015972 [+0.002083, +0.039726] | +0.006281 [0, +0.018844] | +12.954923 [+11.035148, +14.960182] | +0.046820 [+0.030504, +0.066454] | n/a | n/a |
+
+Interpretation:
+
+- v8 is not significantly worse than v7 on completion, but also does not
+  improve v7 on planned red-light violation, jerk, or fallback rate.
+- v8 is significantly worse than Top-1 on planned red-light violation, jerk,
+  and lateral acceleration, while improving route completion.
+- Runtime remains below the 100 ms tick budget on average and by aggregate
+  p95, but that is not sufficient to enter formal evaluation.
+
+Therefore the perfect 12D Static design is mathematically certified but not
+industrially accepted. The next iteration must be a single attributable design
+change, likely around red-light stopping-margin coverage or candidate-support
+alignment, and must be revalidated on development seeds before formal seeds
+are consumed.
+
 ## Accepted Runtime Optimization
 
 The exact OBB test was retained. The collected dataset contains 121
@@ -375,13 +456,16 @@ explicit perfect tracking before industrial acceptance.
 | perfect fallback scales | `ae0932d2e4d792405c634ed0de730a2cea92c5fefdd86fc5de7d5ea89c1586c2` |
 | perfect fallback weights | `25d7b652b7002008cb6e9d6c1601cc60ec8f25217a8bb703753cd9df6b0396d7` |
 | perfect fallback report | `bd740fc41f48e951f335cf19094ca30422980c338d9e004416ab98e50d05e032` |
+| perfect coverage report | `7e14b0422941967c26772c191adcaa35eeaea72a76be00967fa6ab6aafb37c34` |
+| perfect development comparison | `380d71ad817783e6c0de1b660872c8710b623a11abc85dead451093451b3d030` |
 
 ## Formal Evaluation Gate
 
 Do not run seeds 11, 12, and 13 yet. The perfect-tracking collection,
 training, dataset audit, full-epigraph audit, and fallback counterfactual are
-complete, but the matched development matrix is still required. Repeat the
-Top-1, Uniform, v7 Static, and perfect v8 Static comparison on development
-seeds 1, 2, and 3 with `advance_mode=perfect`, plus latency and selector
-determinism checks. Only a frozen design that improves development evidence
-without safety or completion regression may consume the formal seeds once.
+complete, and the matched development matrix has now been run. The current
+perfect 12D Static design fails the formal gate because it does not improve v7
+on planned red-light violation, jerk, or fallback rate, and is worse than
+Top-1 on planned red-light violation and comfort. Formal seeds remain frozen.
+Only a new frozen design that improves development evidence without safety or
+completion regression may consume the formal seeds once.
