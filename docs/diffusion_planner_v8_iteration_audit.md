@@ -1793,3 +1793,45 @@ gains. A mathematically admissible next step is a very small convex lower bound
 on `planned_lateral_acceleration_cost` combined with the `redstopfloor05`
 checkpoint structure, but prior failed lateral-floor evidence means it must be
 screened offline first and should not go directly to a 36-run matrix.
+
+## Lateral lower-bound screen after redstopfloor05
+
+A small lateral lower-bound candidate was screened offline:
+
+`/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstop05_latfloor02_e70f263`
+
+It keeps `red_stopping_margin_cost >= 0.05` and adds
+`planned_lateral_acceleration_cost >= 0.02`. This remains mathematically
+admissible because it adds only another linear lower bound to the static
+simplex.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `training_summary.json` | `b268f61aa813ab0b30b47f8145f3c8300e4c1e189c92e8ea49593f1dfa624e7c` |
+| `offline_weights_dp_static.npy` | `ff7ea27fadf2ef86930ce8490792ad1a34d2463969b430d88526b6a2d8773e65` |
+| `full_epigraph_consistency.json` | `c0c74f1947b721afa5f60ba8a22cf7a8788f9b21ea96a340ef8cba0f19835164` |
+| `offline_counterfactual_lateral_floor_screen.json` | `9bdd6f29997ba3d523946b5534004b00764a1edff8413ef2e7eff4f76501e84a` |
+
+The complete epigraph audit passed with 4,848 train records and 37,030 finite
+pieces:
+
+- saved-minus-full objective: \(-2.63\times10^{-11}\);
+- weight \(L_\infty\): \(7.81\times10^{-10}\);
+- active lower bounds: `red_stopping_margin_cost=0.05`,
+  `planned_lateral_acceleration_cost=0.02`.
+
+Offline fixed-candidate screen:
+
+| Variant | Change vs redstop05 | Planned lateral atom | Red-stopping atom | Progress shortfall | Jerk full | DP-prior deviation |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| redstopfloor05 | 0.000000 | 0.379326 | 4.835732 | 0.162012 | 2076.660782 | 3.184942 |
+| redstop05_latfloor02 | 0.003194 | 0.379277 | 4.835732 | 0.162054 | 2076.306916 | 3.184670 |
+
+Decision: reject `redstop05_latfloor02` before smoke/pilot. It changes only
+0.32% of fixed-candidate selections and gives a negligible lateral-atom
+improvement. The lateral bottleneck is not solved by a small static lower
+bound on the existing planned-lateral atom. The next lateral hypothesis should
+use a more informative online atom or diagnostic, not another tiny floor on the
+current atom.
