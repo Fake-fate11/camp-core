@@ -86,6 +86,65 @@ def test_dataset_audit_rejects_red_light_atom_mismatch(tmp_path) -> None:
         )
 
 
+def test_dataset_audit_default_requires_closed_loop_outcomes(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    del records[0]["candidate_closed_loop_outcomes"]
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="incomplete outcomes"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_advance_mode="perfect",
+        )
+
+
+def test_dataset_audit_forbidden_outcomes_certifies_deployable_logs(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    del records[0]["candidate_closed_loop_outcomes"]
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    report = audit_training_dataset(
+        [log_path],
+        atom_scales=np.ones(12),
+        expected_logs=1,
+        expected_candidates=2,
+        expected_advance_mode="perfect",
+        closed_loop_outcome_policy="forbidden",
+        required_candidate_fields=("candidate_dp_prior_jerk_excess_cost",),
+        reference_zero_candidate_fields=("candidate_dp_prior_jerk_excess_cost",),
+        expected_comfort_shadow_horizon_steps=30,
+    )
+
+    assert report["passed"]
+    assert report["checks"]["closed_loop_outcome_policy"] == "forbidden"
+    assert not report["checks"]["complete_closed_loop_outcomes"]
+    assert report["checks"]["closed_loop_outcomes_forbidden"]
+    assert report["checks"]["closed_loop_outcome_records"] == 0
+    assert report["checks"]["outcome_candidate_coverage"] == 0.0
+
+
+def test_dataset_audit_forbidden_outcomes_rejects_collected_outcomes(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+
+    with pytest.raises(ValueError, match="forbidden"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            closed_loop_outcome_policy="forbidden",
+        )
+
+
 def test_dataset_audit_requires_completed_run_summary(tmp_path) -> None:
     log_path = _write_completed_log(tmp_path)
     log_path.with_name("camp_validation_summary.json").unlink()

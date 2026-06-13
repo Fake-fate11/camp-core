@@ -82,6 +82,17 @@ def parse_args() -> argparse.Namespace:
             "effective DP-prior comfort-shadow horizon."
         ),
     )
+    parser.add_argument(
+        "--closed_loop_outcome_policy",
+        choices=("required", "optional", "forbidden"),
+        default="required",
+        help=(
+            "Controls candidate_closed_loop_outcomes validation. Training and "
+            "label audits should keep the default 'required'. Deployable "
+            "latency audits should use 'forbidden' to certify that no "
+            "counterfactual outcome collection was active."
+        ),
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -97,12 +108,18 @@ def audit_training_dataset(
     reference_zero_candidate_fields: tuple[str, ...] = (),
     forbidden_seeds: frozenset[int] = frozenset(),
     expected_comfort_shadow_horizon_steps: int | None = None,
+    closed_loop_outcome_policy: str = "required",
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
         raise ValueError("atom_scales must contain finite positive values.")
     if expected_candidates <= 0:
         raise ValueError("expected_candidates must be positive.")
+    if closed_loop_outcome_policy not in {"required", "optional", "forbidden"}:
+        raise ValueError(
+            "closed_loop_outcome_policy must be 'required', 'optional', "
+            "or 'forbidden'."
+        )
     if expected_comfort_shadow_horizon_steps is not None:
         if isinstance(expected_comfort_shadow_horizon_steps, bool) or not isinstance(
             expected_comfort_shadow_horizon_steps,
@@ -146,6 +163,7 @@ def audit_training_dataset(
     total_records = 0
     total_candidates = 0
     all_infeasible_records = 0
+    outcome_records = 0
     outcome_candidates = 0
     candidate_field_reports = {
         field: {
@@ -223,22 +241,13 @@ def audit_training_dataset(
                 raise ValueError(
                     f"{log_path} record {record_idx} has invalid feasible_mask."
                 )
-            outcomes = record.get("candidate_closed_loop_outcomes")
-            if not isinstance(outcomes, list) or len(outcomes) != expected_candidates:
-                raise ValueError(
-                    f"{log_path} record {record_idx} has incomplete outcomes."
-                )
-            for candidate_idx, outcome in enumerate(outcomes):
-                if (
-                    not isinstance(outcome, dict)
-                    or not REQUIRED_OUTCOME_FIELDS.issubset(outcome)
-                ):
-                    raise ValueError(
-                        f"{log_path} record {record_idx} candidate "
-                        f"{candidate_idx} has incomplete outcome fields."
-                    )
-                if not np.isfinite(float(outcome["value"])):
-                    raise ValueError("Outcome values must be finite.")
+            outcomes = _validate_closed_loop_outcomes(
+                log_path,
+                record_idx,
+                record,
+                expected_candidates=expected_candidates,
+                policy=closed_loop_outcome_policy,
+            )
             if red_atom_index is not None:
                 _validate_red_light_provenance(
                     log_path,
@@ -281,6 +290,7 @@ def audit_training_dataset(
 
             total_records += 1
             total_candidates += expected_candidates
+            outcome_records += int(len(outcomes) == expected_candidates)
             outcome_candidates += len(outcomes)
             all_infeasible_records += int(not feasible.any())
         log_reports.append(
@@ -314,7 +324,17 @@ def audit_training_dataset(
             "exact_candidate_and_atom_shapes": True,
             "finite_nonnegative_atoms": True,
             "exact_schema_metadata": True,
-            "complete_closed_loop_outcomes": True,
+            "closed_loop_outcome_policy": closed_loop_outcome_policy,
+            "complete_closed_loop_outcomes": (
+                outcome_candidates == total_candidates
+            ),
+            "closed_loop_outcomes_required": (
+                closed_loop_outcome_policy == "required"
+            ),
+            "closed_loop_outcomes_forbidden": (
+                closed_loop_outcome_policy == "forbidden"
+            ),
+            "closed_loop_outcome_records": outcome_records,
             "red_light_atom_matches_online_dp_reward": red_atom_index is not None,
             "outcome_candidate_coverage": (
                 outcome_candidates / total_candidates if total_candidates else 0.0
@@ -351,6 +371,47 @@ def _validate_record_schema(
         raise ValueError(
             f"{log_path} record {record_idx} does not match {schema_version}."
         )
+
+
+def _validate_closed_loop_outcomes(
+    log_path: Path,
+    record_idx: int,
+    record: dict[str, Any],
+    *,
+    expected_candidates: int,
+    policy: str,
+) -> list[dict[str, Any]]:
+    has_outcomes = "candidate_closed_loop_outcomes" in record
+    outcomes = record.get("candidate_closed_loop_outcomes")
+    if policy == "forbidden":
+        if has_outcomes:
+            raise ValueError(
+                f"{log_path} record {record_idx} contains forbidden "
+                "candidate_closed_loop_outcomes."
+            )
+        return []
+    if not has_outcomes:
+        if policy == "required":
+            raise ValueError(
+                f"{log_path} record {record_idx} has incomplete outcomes."
+            )
+        return []
+    if not isinstance(outcomes, list) or len(outcomes) != expected_candidates:
+        raise ValueError(
+            f"{log_path} record {record_idx} has incomplete outcomes."
+        )
+    for candidate_idx, outcome in enumerate(outcomes):
+        if (
+            not isinstance(outcome, dict)
+            or not REQUIRED_OUTCOME_FIELDS.issubset(outcome)
+        ):
+            raise ValueError(
+                f"{log_path} record {record_idx} candidate "
+                f"{candidate_idx} has incomplete outcome fields."
+            )
+        if not np.isfinite(float(outcome["value"])):
+            raise ValueError("Outcome values must be finite.")
+    return outcomes
 
 
 def _matches_expected_positive_integer(value: Any, expected: int) -> bool:
