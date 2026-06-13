@@ -164,6 +164,49 @@ def test_atom_coverage_report_keeps_all_infeasible_fallback_separate(
     )
 
 
+def test_shadow_alignment_reports_top1_centered_discrimination(
+    tmp_path: Path,
+) -> None:
+    log_path = _write_selection_log(
+        tmp_path,
+        [
+            _record(
+                scores=[0.1, 0.2, 0.3],
+                feasible=[True, True, True],
+                selected_index=2,
+                used_fallback=False,
+                reward_total=[1.0, 0.5, 0.0],
+                red_light_cost=[0.0, 0.0, 0.0],
+                outcome_value=[1.0, 0.5, 0.0],
+                red_light_violation=[False, False, False],
+                lateral_acceleration=[0.1, 0.2, 0.3],
+                mean_jerk=[1.0, 2.0, 3.0],
+                dp_prior_jerk_excess=[0.0, 1.0, 2.0],
+            )
+        ],
+    )
+
+    report = compute_atom_coverage_report([log_path], mode_filter={"static"})
+    alignment = report["shadow_dp_prior_jerk_excess"]["target_alignment"][
+        "closed_loop_jerk"
+    ]
+
+    assert alignment["top1_gap_candidate_pairs"] == 2
+    assert alignment["top1_gap_feasible_candidate_pairs"] == 2
+    assert alignment[
+        "top1_gap_preference_correlation_all_candidates"
+    ] == pytest.approx(1.0)
+    assert alignment[
+        "top1_gap_preference_correlation_feasible_candidates"
+    ] == pytest.approx(1.0)
+    assert alignment["candidate_worse_than_top1_rate"] == 1.0
+    assert alignment["positive_cost_on_worse_than_top1_rate"] == 1.0
+    assert alignment["mean_cost_gap_worse_than_top1"] == pytest.approx(1.5)
+    assert alignment["mean_cost_gap_not_worse_than_top1"] is None
+    assert alignment["mean_selected_cost_when_worse_than_top1"] == 2.0
+    assert alignment["mean_selected_cost_when_not_worse_than_top1"] is None
+
+
 def _write_selection_log(tmp_path: Path, records: list[dict]) -> Path:
     log_path = (
         tmp_path

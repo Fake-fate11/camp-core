@@ -256,8 +256,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"- Selected Top-1 rate: {_fmt(prior_shadow.get('selected_top1_rate'))}",
             f"- Mean selected deviation: {_fmt(prior_shadow.get('mean_selected_cost'))}",
             "",
-            "| target | all-candidate corr | feasible corr | selected worse than Top-1 | selected pref. gap |",
-            "| --- | ---: | ---: | ---: | ---: |",
+            "| target | global corr | feasible global corr | Top-1-gap corr | feasible Top-1-gap corr | selected worse than Top-1 | selected pref. gap |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
     )
     prior_target_alignment = prior_shadow.get("target_alignment", {})
@@ -276,6 +276,16 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                     target,
                     _fmt(row.get("preference_correlation_all_candidates")),
                     _fmt(row.get("preference_correlation_feasible_candidates")),
+                    _fmt(
+                        row.get(
+                            "top1_gap_preference_correlation_all_candidates"
+                        )
+                    ),
+                    _fmt(
+                        row.get(
+                            "top1_gap_preference_correlation_feasible_candidates"
+                        )
+                    ),
                     _fmt(row.get("selected_worse_than_top1_rate")),
                     _fmt(row.get("mean_selected_preference_minus_top1")),
                 ]
@@ -305,8 +315,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                 f"- Selected Top-1 rate: {_fmt(shadow_report.get('selected_top1_rate'))}",
                 f"- {selected_label}: {_fmt(shadow_report.get('mean_selected_cost'))}",
                 "",
-                "| target | all-candidate corr | feasible corr | selected worse than Top-1 | selected pref. gap |",
-                "| --- | ---: | ---: | ---: | ---: |",
+                "| target | global corr | feasible global corr | Top-1-gap corr | feasible Top-1-gap corr | selected worse than Top-1 | selected pref. gap |",
+                "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
             ]
         )
         target_alignment = shadow_report.get("target_alignment", {})
@@ -325,6 +335,16 @@ def render_markdown_report(report: dict[str, Any]) -> str:
                         target,
                         _fmt(row.get("preference_correlation_all_candidates")),
                         _fmt(row.get("preference_correlation_feasible_candidates")),
+                        _fmt(
+                            row.get(
+                                "top1_gap_preference_correlation_all_candidates"
+                            )
+                        ),
+                        _fmt(
+                            row.get(
+                                "top1_gap_preference_correlation_feasible_candidates"
+                            )
+                        ),
                         _fmt(row.get("selected_worse_than_top1_rate")),
                         _fmt(row.get("mean_selected_preference_minus_top1")),
                     ]
@@ -793,6 +813,12 @@ def _shadow_cost_target_alignment(
         top1_values = []
         selected_values = []
         worse_than_top1 = []
+        top1_gap_cost_chunks = []
+        top1_gap_preference_chunks = []
+        feasible_top1_gap_cost_chunks = []
+        feasible_top1_gap_preference_chunks = []
+        selected_worse_costs = []
+        selected_not_worse_costs = []
         for info in records:
             costs = info.get(feature_key)
             if costs is None:
@@ -818,6 +844,24 @@ def _shadow_cost_target_alignment(
             if feasible_valid.any():
                 feasible_cost_chunks.append(costs[feasible_valid])
                 feasible_preference_chunks.append(preference[feasible_valid])
+            if finite[0]:
+                top1_gap_valid = finite.copy()
+                top1_gap_valid[0] = False
+                if top1_gap_valid.any():
+                    top1_gap_cost_chunks.append(
+                        costs[top1_gap_valid] - costs[0]
+                    )
+                    top1_gap_preference_chunks.append(
+                        preference[top1_gap_valid] - preference[0]
+                    )
+                feasible_top1_gap_valid = top1_gap_valid & feasible
+                if feasible_top1_gap_valid.any():
+                    feasible_top1_gap_cost_chunks.append(
+                        costs[feasible_top1_gap_valid] - costs[0]
+                    )
+                    feasible_top1_gap_preference_chunks.append(
+                        preference[feasible_top1_gap_valid] - preference[0]
+                    )
 
             selected_idx = int(info["selected_index"])
             if selected_idx < 0 or selected_idx >= costs.size:
@@ -835,7 +879,12 @@ def _shadow_cost_target_alignment(
             raw_gaps.append(float(values[selected_idx] - values[0]))
             pref_gap = float(preference[selected_idx] - preference[0])
             preference_gaps.append(pref_gap)
-            worse_than_top1.append(float(pref_gap < -1e-12))
+            selected_worse = pref_gap < -1e-12
+            worse_than_top1.append(float(selected_worse))
+            if selected_worse:
+                selected_worse_costs.append(float(costs[selected_idx]))
+            else:
+                selected_not_worse_costs.append(float(costs[selected_idx]))
 
         all_costs = (
             np.concatenate(candidate_cost_chunks)
@@ -857,11 +906,37 @@ def _shadow_cost_target_alignment(
             if feasible_preference_chunks
             else np.asarray([], dtype=float)
         )
+        top1_gap_costs = (
+            np.concatenate(top1_gap_cost_chunks)
+            if top1_gap_cost_chunks
+            else np.asarray([], dtype=float)
+        )
+        top1_gap_preferences = (
+            np.concatenate(top1_gap_preference_chunks)
+            if top1_gap_preference_chunks
+            else np.asarray([], dtype=float)
+        )
+        feasible_top1_gap_costs = (
+            np.concatenate(feasible_top1_gap_cost_chunks)
+            if feasible_top1_gap_cost_chunks
+            else np.asarray([], dtype=float)
+        )
+        feasible_top1_gap_preferences = (
+            np.concatenate(feasible_top1_gap_preference_chunks)
+            if feasible_top1_gap_preference_chunks
+            else np.asarray([], dtype=float)
+        )
         selected_cost_arr = np.asarray(selected_costs, dtype=float)
         preference_gap_arr = np.asarray(preference_gaps, dtype=float)
         raw_gap_arr = np.asarray(raw_gaps, dtype=float)
         top1_arr = np.asarray(top1_values, dtype=float)
         selected_arr = np.asarray(selected_values, dtype=float)
+        top1_worse = top1_gap_preferences < -1e-12
+        selected_worse_cost_arr = np.asarray(selected_worse_costs, dtype=float)
+        selected_not_worse_cost_arr = np.asarray(
+            selected_not_worse_costs,
+            dtype=float,
+        )
         alignment[target_name] = {
             "candidate_pairs": int(all_costs.size),
             "feasible_candidate_pairs": int(feasible_costs.size),
@@ -874,9 +949,49 @@ def _shadow_cost_target_alignment(
                 -feasible_costs,
                 feasible_preferences,
             ),
+            "top1_gap_candidate_pairs": int(top1_gap_costs.size),
+            "top1_gap_feasible_candidate_pairs": int(
+                feasible_top1_gap_costs.size
+            ),
+            "top1_gap_preference_correlation_all_candidates": _safe_corr(
+                -top1_gap_costs,
+                top1_gap_preferences,
+            ),
+            "top1_gap_preference_correlation_feasible_candidates": _safe_corr(
+                -feasible_top1_gap_costs,
+                feasible_top1_gap_preferences,
+            ),
+            "candidate_worse_than_top1_rate": (
+                float(np.mean(top1_worse)) if top1_worse.size else None
+            ),
+            "positive_cost_on_worse_than_top1_rate": (
+                float(np.mean(top1_gap_costs[top1_worse] > 1e-12))
+                if top1_worse.any()
+                else None
+            ),
+            "mean_cost_gap_worse_than_top1": (
+                float(np.mean(top1_gap_costs[top1_worse]))
+                if top1_worse.any()
+                else None
+            ),
+            "mean_cost_gap_not_worse_than_top1": (
+                float(np.mean(top1_gap_costs[~top1_worse]))
+                if top1_worse.size and (~top1_worse).any()
+                else None
+            ),
             "selected_deviation_preference_gap_correlation": _safe_corr(
                 selected_cost_arr,
                 preference_gap_arr,
+            ),
+            "mean_selected_cost_when_worse_than_top1": (
+                float(np.mean(selected_worse_cost_arr))
+                if selected_worse_cost_arr.size
+                else None
+            ),
+            "mean_selected_cost_when_not_worse_than_top1": (
+                float(np.mean(selected_not_worse_cost_arr))
+                if selected_not_worse_cost_arr.size
+                else None
             ),
             "mean_top1_value": float(np.mean(top1_arr)) if top1_arr.size else None,
             "mean_selected_value": (
