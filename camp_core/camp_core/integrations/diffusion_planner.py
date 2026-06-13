@@ -1140,6 +1140,64 @@ def compute_dp_prior_deviation_costs(candidates: np.ndarray) -> np.ndarray:
     return costs
 
 
+def compute_dp_prior_comfort_excess_costs(
+    candidates: np.ndarray,
+    dt: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return jerk and acceleration-norm excess over DP Top-1.
+
+    Candidate 0 is the audited DP-prior reference. For each candidate this
+    shadow diagnostic computes mean finite-difference jerk norm and mean
+    finite-difference acceleration norm, then clips only the excess over the
+    reference to zero. For a fixed reference value, ``max(mean_norm(D y)-c, 0)``
+    is nonnegative and convex in the candidate coordinates, so these costs can
+    be audited before any schema promotion.
+    """
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if (
+        trajectories.ndim != 3
+        or trajectories.shape[0] < 1
+        or trajectories.shape[2] < 2
+    ):
+        raise ValueError(
+            "candidates must have shape [K,T,>=2], "
+            f"got {trajectories.shape}."
+        )
+    if not np.all(np.isfinite(trajectories)):
+        raise ValueError("candidates must contain only finite values.")
+    if not np.isfinite(dt) or dt <= 0.0:
+        raise ValueError("dt must be finite and positive.")
+
+    xy = trajectories[:, :, :2]
+    candidate_count = xy.shape[0]
+    if xy.shape[1] < 3:
+        zeros = np.zeros(candidate_count, dtype=np.float64)
+        return zeros, zeros
+
+    velocity = np.diff(xy, axis=1) / float(dt)
+    acceleration = np.diff(velocity, axis=1) / float(dt)
+    acceleration_norm = np.linalg.norm(acceleration, axis=2)
+    mean_acceleration_norm = np.mean(acceleration_norm, axis=1)
+
+    if acceleration.shape[1] < 2:
+        mean_jerk_norm = np.zeros(candidate_count, dtype=np.float64)
+    else:
+        jerk = np.diff(acceleration, axis=1) / float(dt)
+        mean_jerk_norm = np.mean(np.linalg.norm(jerk, axis=2), axis=1)
+
+    jerk_excess = np.maximum(mean_jerk_norm - float(mean_jerk_norm[0]), 0.0)
+    acceleration_excess = np.maximum(
+        mean_acceleration_norm - float(mean_acceleration_norm[0]),
+        0.0,
+    )
+    if (
+        not np.all(np.isfinite(jerk_excess))
+        or not np.all(np.isfinite(acceleration_excess))
+    ):
+        raise RuntimeError("DP-prior comfort excess costs must be finite.")
+    return jerk_excess, acceleration_excess
+
+
 def _trajectory_comfort(trajectory: np.ndarray, dt: float) -> tuple[float, float]:
     xy = np.asarray(trajectory, dtype=np.float64)[:, :2]
     if xy.shape[0] < 3:
@@ -1390,6 +1448,9 @@ def summarize_selection_records(
         "latency_ms_candidate_generation": "candidate_generation_latency_ms",
         "latency_ms_shadow_dp_prior_deviation": (
             "shadow_dp_prior_deviation_latency_ms"
+        ),
+        "latency_ms_shadow_dp_prior_comfort_excess": (
+            "shadow_dp_prior_comfort_excess_latency_ms"
         ),
         "latency_ms_context_and_obstacles": "context_and_obstacles_latency_ms",
         "latency_ms_reward_scoring": "reward_scoring_latency_ms",

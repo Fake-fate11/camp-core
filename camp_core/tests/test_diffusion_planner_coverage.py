@@ -72,6 +72,20 @@ def test_atom_coverage_report_detects_red_light_augmentation_gain(
     )
     assert prior_alignment["mean_selected_preference_minus_top1"] == 0.0
     assert prior_alignment["selected_worse_than_top1_rate"] == 0.0
+    jerk_shadow = report["shadow_dp_prior_jerk_excess"]
+    assert jerk_shadow["record_availability_rate"] == 1.0
+    assert jerk_shadow["reference_zero_records"] == 1
+    assert jerk_shadow["feasible_records_with_variation"] == 1
+    assert jerk_shadow["mean_shadow_latency_ms"] == pytest.approx(0.3)
+    jerk_alignment = jerk_shadow["target_alignment"]["closed_loop_value"]
+    assert jerk_alignment["candidate_pairs"] == 2
+    assert jerk_alignment["preference_correlation_all_candidates"] == pytest.approx(
+        -1.0
+    )
+    acceleration_shadow = report["shadow_dp_prior_acceleration_excess"]
+    assert acceleration_shadow["record_availability_rate"] == 1.0
+    assert acceleration_shadow["reference_zero_records"] == 1
+    assert acceleration_shadow["feasible_records_with_variation"] == 1
     closed_loop = report["alignment"]["closed_loop_value"]
     assert closed_loop["base"]["oracle_match_rate"] == 0.0
     assert closed_loop["plus_planned_red_light"]["oracle_match_rate"] == 1.0
@@ -181,6 +195,8 @@ def _record(
     lateral_acceleration: list[float],
     red_stopping_margin: list[float] | None = None,
     dp_prior_deviation: list[float] | None = None,
+    dp_prior_jerk_excess: list[float] | None = None,
+    dp_prior_acceleration_excess: list[float] | None = None,
 ) -> dict:
     candidate_count = len(scores)
     atoms = [[float(idx + 1)] * 10 for idx in range(candidate_count)]
@@ -216,7 +232,18 @@ def _record(
         if dp_prior_deviation is not None
         else [float(idx) for idx in range(candidate_count)]
     )
+    record["candidate_dp_prior_jerk_excess_cost"] = (
+        dp_prior_jerk_excess
+        if dp_prior_jerk_excess is not None
+        else [float(idx) for idx in range(candidate_count)]
+    )
+    record["candidate_dp_prior_acceleration_excess_cost"] = (
+        dp_prior_acceleration_excess
+        if dp_prior_acceleration_excess is not None
+        else [float(idx) for idx in range(candidate_count)]
+    )
     record["red_route_point_count"] = 3
     record["latency_ms_shadow_red_stopping_margin"] = 0.2
     record["latency_ms_shadow_dp_prior_deviation"] = 0.1
+    record["latency_ms_shadow_dp_prior_comfort_excess"] = 0.3
     return record

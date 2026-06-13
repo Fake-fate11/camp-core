@@ -26,6 +26,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     atom_schema_for_dimension,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
+    compute_dp_prior_comfort_excess_costs,
     compute_dp_prior_deviation_costs,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
@@ -717,6 +718,18 @@ def _install_camp_predictor(
         shadow_dp_prior_deviation_latency_ms = (
             dp_prior_deviation_done - dp_prior_deviation_start
         ) * 1000.0
+        dp_prior_comfort_start = time.perf_counter()
+        (
+            candidate_dp_prior_jerk_excess_cost,
+            candidate_dp_prior_acceleration_excess_cost,
+        ) = compute_dp_prior_comfort_excess_costs(
+            candidates,
+            float(getattr(scene, "dt", 0.1)),
+        )
+        dp_prior_comfort_done = time.perf_counter()
+        shadow_dp_prior_comfort_excess_latency_ms = (
+            dp_prior_comfort_done - dp_prior_comfort_start
+        ) * 1000.0
         context = build_context_from_scene(
             scene,
             ego_id,
@@ -817,7 +830,7 @@ def _install_camp_predictor(
                 shadow_dp_prior_deviation_latency_ms
             ),
             "latency_ms_context_and_obstacles": (
-                context_and_obstacles_done - dp_prior_deviation_done
+                context_and_obstacles_done - dp_prior_comfort_done
             )
             * 1000.0,
             "latency_ms_reward_scoring": (
@@ -909,9 +922,18 @@ def _install_camp_predictor(
                 "candidate_dp_prior_deviation_cost": (
                     candidate_dp_prior_deviation_cost.tolist()
                 ),
+                "candidate_dp_prior_jerk_excess_cost": (
+                    candidate_dp_prior_jerk_excess_cost.tolist()
+                ),
+                "candidate_dp_prior_acceleration_excess_cost": (
+                    candidate_dp_prior_acceleration_excess_cost.tolist()
+                ),
                 "red_route_point_count": int(red_route_points.shape[0]),
                 "latency_ms_shadow_red_stopping_margin": (
                     shadow_red_stopping_margin_latency_ms
+                ),
+                "latency_ms_shadow_dp_prior_comfort_excess": (
+                    shadow_dp_prior_comfort_excess_latency_ms
                 ),
                 "red_stopping_margin_used_as_atom": (
                     "red_stopping_margin_cost"

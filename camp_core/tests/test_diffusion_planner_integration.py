@@ -25,6 +25,7 @@ from camp_core.integrations.diffusion_planner import (
     atom_schema_for_dimension,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
+    compute_dp_prior_comfort_excess_costs,
     compute_dp_prior_deviation_costs,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
@@ -542,6 +543,35 @@ def test_dp_prior_deviation_rejects_nonfinite_candidates() -> None:
 
     with pytest.raises(ValueError, match="finite"):
         compute_dp_prior_deviation_costs(candidates)
+
+
+def test_dp_prior_comfort_excess_costs_anchor_deterministic_candidate() -> None:
+    candidates = np.array(
+        [
+            [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]],
+            [[0.0, 0.0], [1.0, 0.0], [3.0, 0.0], [6.0, 0.0], [10.0, 0.0]],
+            [[0.0, 0.0], [1.0, 0.0], [2.0, 1.0], [3.0, -1.0], [4.0, 0.0]],
+        ]
+    )
+
+    jerk_excess, acceleration_excess = compute_dp_prior_comfort_excess_costs(
+        candidates,
+        dt=1.0,
+    )
+
+    np.testing.assert_allclose(jerk_excess[0], 0.0)
+    np.testing.assert_allclose(acceleration_excess[0], 0.0)
+    assert np.all(jerk_excess >= 0.0)
+    assert np.all(acceleration_excess >= 0.0)
+    assert acceleration_excess[1] > acceleration_excess[0]
+    assert jerk_excess[2] > jerk_excess[1]
+
+
+def test_dp_prior_comfort_excess_rejects_nonfinite_candidates() -> None:
+    candidates = np.array([[[0.0, 0.0], [np.nan, 0.0], [1.0, 0.0]]])
+
+    with pytest.raises(ValueError, match="finite"):
+        compute_dp_prior_comfort_excess_costs(candidates, dt=0.1)
 
 
 def test_closed_loop_outcome_labels_prefer_best_feasible_candidate(tmp_path) -> None:
@@ -1248,6 +1278,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_including_candidate_generation": 10.0,
             "latency_ms_candidate_generation": 6.0,
             "latency_ms_shadow_dp_prior_deviation": 0.2,
+            "latency_ms_shadow_dp_prior_comfort_excess": 0.1,
             "latency_ms_context_and_obstacles": 1.0,
             "latency_ms_reward_scoring": 2.0,
             "latency_ms_outcome_collection": 0.0,
@@ -1264,6 +1295,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_including_candidate_generation": 20.0,
             "latency_ms_candidate_generation": 12.0,
             "latency_ms_shadow_dp_prior_deviation": 0.4,
+            "latency_ms_shadow_dp_prior_comfort_excess": 0.3,
             "latency_ms_context_and_obstacles": 2.0,
             "latency_ms_reward_scoring": 4.0,
             "latency_ms_outcome_collection": 0.0,
@@ -1289,6 +1321,9 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
     assert summary["mean_candidate_generation_latency_ms"] == 9.0
     assert summary["mean_shadow_dp_prior_deviation_latency_ms"] == pytest.approx(
         0.3
+    )
+    assert summary["mean_shadow_dp_prior_comfort_excess_latency_ms"] == pytest.approx(
+        0.2
     )
     assert summary["mean_context_and_obstacles_latency_ms"] == 1.5
     assert summary["mean_reward_scoring_latency_ms"] == 3.0

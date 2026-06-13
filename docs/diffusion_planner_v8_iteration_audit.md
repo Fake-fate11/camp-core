@@ -795,3 +795,101 @@ Interpretation:
   v10 candidate should prioritize a direct comfort-preserving atom computed
   from candidate kinematics, such as jerk/lateral/curvature smoothness, while
   preserving the same finite-candidate convex master contract.
+
+## V10 comfort-preserving shadow candidate
+
+Following the DP-prior shadow result, the next development candidate is a
+shadow-only DP-prior comfort-excess diagnostic. It does not change the v9
+schema, selector weights, checkpoint, hard feasible branch, or fallback policy.
+
+For each current-tick candidate trajectory \(y_k\), with candidate 0 as the
+audited DP-prior reference:
+
+\[
+j_k = \mathrm{mean}_t \lVert D^3 y_k(t) \rVert_2,
+\qquad
+a_k = \mathrm{mean}_t \lVert D^2 y_k(t) \rVert_2.
+\]
+
+The logged shadow costs are:
+
+\[
+c^{\mathrm{jerk}}_k = \max(j_k - j_0, 0),
+\qquad
+c^{\mathrm{accel}}_k = \max(a_k - a_0, 0).
+\]
+
+Mathematical contract check:
+
+- online inputs only: current candidate coordinates and simulator `dt`;
+- deterministic, finite, nonnegative, and "larger is worse";
+- independent of `w`, ranking, selected candidate, and closed-loop outcome;
+- candidate 0 is zero by construction, making the DP-prior reference auditable;
+- for fixed reference values \(j_0,a_0\), each term is
+  \(\max(\mathrm{mean}\lVert D^n y_k\rVert_2 - c, 0)\), a convex function of
+  candidate coordinates;
+- in the finite-candidate CAMP master, these would be fixed coefficients in
+  `score = a^T w`; therefore the robust margin loss remains a finite maximum
+  of affine functions in simplex weights if they are later promoted.
+
+Implementation status:
+
+- `compute_dp_prior_comfort_excess_costs(candidates, dt)` computes jerk-excess
+  and acceleration-excess shadow arrays;
+- replay logs now include `candidate_dp_prior_jerk_excess_cost`,
+  `candidate_dp_prior_acceleration_excess_cost`, and
+  `latency_ms_shadow_dp_prior_comfort_excess`;
+- coverage reports now include `shadow_dp_prior_jerk_excess` and
+  `shadow_dp_prior_acceleration_excess`, each with coverage, selected-vs-Top1
+  diagnostics, latency, and target-alignment correlations.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile camp_core/camp_core/integrations/diffusion_planner.py camp_core/camp_core/integrations/diffusion_planner_coverage.py scripts/integrations/run_diffusion_planner_camp_replay.py
+$env:PYTHONPATH='F:\camp_core-main\camp_core;F:\camp_core-main'; py -3.12 -m pytest camp_core/tests/test_diffusion_planner_integration.py camp_core/tests/test_diffusion_planner_coverage.py
+```
+
+Result: 58 passed, 5 skipped.
+
+AutoDL smoke verification:
+
+```text
+/root/autodl-tmp/camp_dp_shadow_comfort_smoke_seed101_83ef09b
+```
+
+This used non-formal seed 101, `advance_mode=perfect`, 3 replay steps, 4
+candidates, no NPCs, the certified v9 static weights, and
+`camp_collect_closed_loop_outcomes=true`. It is only a field/coverage smoke,
+not a performance claim.
+
+The replay summary contains:
+
+- `mean_shadow_dp_prior_comfort_excess_latency_ms = 0.123 ms`;
+- `p95_shadow_dp_prior_comfort_excess_latency_ms = 0.132 ms`;
+- `fallback_rate = 0.0`;
+- `candidate_feasible_rate = 0.666667`.
+
+Generated coverage artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `comfort_shadow_coverage.json` | `07f4c1abad173a90cca8aae3257e2ce636f0e2d59d301a7206fdc6320b7058c4` |
+| `comfort_shadow_coverage.md` | `7fb043eb051d5179dcf7a2cb865ca71ea53c841232fba93c16871357fcc4cd60` |
+
+Smoke coverage reported:
+
+| Shadow field | Availability | Records with variation | Feasible records with variation | Reference-zero records | Mean selected cost |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `shadow_dp_prior_jerk_excess` | 1.0 | 3 | 2 | 3 | 0.532076 |
+| `shadow_dp_prior_acceleration_excess` | 1.0 | 3 | 2 | 3 | 0.021693 |
+
+The 12-candidate smoke is too small for alignment conclusions, but it proves
+the new fields are produced by the real DP replay, summarized, parsed by the
+coverage report, and inexpensive relative to candidate generation and outcome
+collection.
+
+Next gate: run the 36-run development shadow matrix with these fields enabled.
+Promotion to a v10 schema is not justified until the shadow coverage shows high
+variation, low latency, and stronger alignment with the jerk/lateral failure
+modes than the prior DP-position deviation diagnostic.
