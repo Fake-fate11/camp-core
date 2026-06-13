@@ -20,10 +20,45 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 )
 
 
+REPLAY_METADATA_FIELDS = (
+    "camp_selection_log",
+    "camp_metric_log",
+    "camp_evaluation_state_log",
+    "num_candidates",
+    "candidate_noise_scale",
+    "camp_lane_corridor_buffer",
+    "camp_feasibility_source",
+    "camp_min_progress_ratio",
+    "camp_reward_horizon_steps",
+    "camp_collect_closed_loop_outcomes",
+    "camp_outcome_horizon_steps",
+    "camp_shadow_red_stopping_margin",
+    "camp_shadow_dp_prior_comfort_excess",
+    "selector_mode",
+    "camp_fallback_mode",
+    "advance_mode",
+    "dp_scene_feature_names",
+    "model_args",
+    "using_no_ros_projection_fallback",
+    "benchmark",
+)
+
+
 def _read_json(path: Path) -> Any:
     if not path.is_file():
         raise FileNotFoundError(f"Missing replay artifact: {path}")
     return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def merge_replay_metadata(
+    summary: dict[str, Any],
+    replay_summary: dict[str, Any],
+) -> dict[str, Any]:
+    merged = dict(summary)
+    for field in REPLAY_METADATA_FIELDS:
+        if field in replay_summary:
+            merged[field] = replay_summary[field]
+    return merged
 
 
 def main() -> None:
@@ -58,11 +93,7 @@ def main() -> None:
         evaluation_records=evaluation_records,
         near_miss_threshold_m=args.near_miss_threshold_m,
     )
-    summary["selector_mode"] = replay_summary.get("selector_mode")
-    summary["num_candidates"] = replay_summary.get("num_candidates")
-    summary["candidate_noise_scale"] = replay_summary.get("candidate_noise_scale")
-    if "benchmark" in replay_summary:
-        summary["benchmark"] = replay_summary["benchmark"]
+    summary = merge_replay_metadata(summary, replay_summary)
 
     summary_path = (
         args.summary_path

@@ -52,6 +52,7 @@ def test_dataset_audit_checks_schema_outcomes_and_red_light_provenance(
     assert report["checks"]["red_light_atom_matches_online_dp_reward"]
     assert report["checks"]["advance_mode_verified"]
     assert report["checks"]["forbidden_seed_check"]
+    assert report["checks"]["summary_seed_provenance_verified"]
     assert report["checks"]["comfort_shadow_horizon_verified"]
     assert report["checks"]["expected_comfort_shadow_horizon_steps"] == 30
     assert report["candidate_fields"][
@@ -98,8 +99,10 @@ def test_dataset_audit_requires_completed_run_summary(tmp_path) -> None:
 def test_dataset_audit_rejects_wrong_advance_mode(tmp_path) -> None:
     log_path = _write_completed_log(tmp_path)
     summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["advance_mode"] = "mpc"
     summary_path.write_text(
-        json.dumps({"selection_steps": 1, "advance_mode": "mpc"}),
+        json.dumps(summary),
         encoding="utf-8",
     )
 
@@ -143,7 +146,8 @@ def test_dataset_audit_rejects_forbidden_seed(tmp_path) -> None:
         / "npc_0"
         / "spawn_0p3"
         / "tl_on"
-        / "static"
+        / "static",
+        seed=11,
     )
 
     with pytest.raises(ValueError, match="forbidden seed 11"):
@@ -153,6 +157,28 @@ def test_dataset_audit_rejects_forbidden_seed(tmp_path) -> None:
             expected_logs=1,
             expected_candidates=2,
             forbidden_seeds=frozenset({11, 12, 13}),
+        )
+
+
+def test_dataset_audit_rejects_seed_provenance_mismatch(tmp_path) -> None:
+    log_path = _write_completed_log(
+        tmp_path
+        / "run"
+        / "route"
+        / "seed_2"
+        / "npc_0"
+        / "spawn_0p3"
+        / "tl_on"
+        / "static",
+        seed=1,
+    )
+
+    with pytest.raises(ValueError, match="does not match"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
         )
 
 
@@ -228,7 +254,7 @@ def test_v9_red_stopping_augmentation_outputs_auditable_dataset(tmp_path) -> Non
     assert report["counts"]["records"] == 1
 
 
-def _write_completed_log(tmp_path):
+def _write_completed_log(tmp_path, *, seed=1):
     tmp_path.mkdir(parents=True, exist_ok=True)
     log_path = tmp_path / "camp_selection_log.json"
     atoms = np.zeros((2, 12), dtype=float)
@@ -269,6 +295,7 @@ def _write_completed_log(tmp_path):
                 "camp_shadow_dp_prior_comfort_excess": {
                     "effective_horizon_steps": 30,
                 },
+                "benchmark": {"seed": seed},
             }
         ),
         encoding="utf-8",

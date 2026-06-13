@@ -159,16 +159,22 @@ def audit_training_dataset(
     log_reports = []
     for log_path in log_paths:
         metadata = parse_selection_log_metadata(log_path)
-        if metadata.seed in forbidden_seeds:
-            raise ValueError(
-                f"{log_path} uses forbidden seed {metadata.seed}."
-            )
         summary_path = log_path.with_name("camp_validation_summary.json")
         if not summary_path.is_file():
             raise ValueError(f"Missing completed-run summary for {log_path}.")
         validation_summary = json.loads(summary_path.read_text(encoding="utf-8"))
         if not isinstance(validation_summary, dict):
             raise ValueError(f"{summary_path} must contain a JSON object.")
+        summary_seed = _validation_summary_seed(summary_path, validation_summary)
+        if metadata.seed is not None and metadata.seed != summary_seed:
+            raise ValueError(
+                f"{summary_path} benchmark seed {summary_seed} does not match "
+                f"selection-log path seed {metadata.seed}."
+            )
+        if summary_seed in forbidden_seeds:
+            raise ValueError(
+                f"{log_path} uses forbidden seed {summary_seed}."
+            )
         advance_mode = validation_summary.get("advance_mode")
         if expected_advance_mode is not None and advance_mode != expected_advance_mode:
             raise ValueError(
@@ -285,7 +291,7 @@ def audit_training_dataset(
                 "selection_log_sha256": _sha256(log_path),
                 "validation_summary_sha256": _sha256(summary_path),
                 "advance_mode": advance_mode,
-                "seed": metadata.seed,
+                "seed": summary_seed,
             }
         )
 
@@ -317,6 +323,7 @@ def audit_training_dataset(
             "advance_mode_verified": expected_advance_mode is not None,
             "forbidden_seeds": sorted(forbidden_seeds),
             "forbidden_seed_check": bool(forbidden_seeds),
+            "summary_seed_provenance_verified": True,
             "expected_comfort_shadow_horizon_steps": (
                 expected_comfort_shadow_horizon_steps
             ),
@@ -353,6 +360,19 @@ def _matches_expected_positive_integer(value: Any, expected: int) -> bool:
         and value > 0
         and value == expected
     )
+
+
+def _validation_summary_seed(
+    summary_path: Path,
+    validation_summary: dict[str, Any],
+) -> int:
+    benchmark = validation_summary.get("benchmark")
+    seed = benchmark.get("seed") if isinstance(benchmark, dict) else None
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError(
+            f"{summary_path} must contain an integer benchmark seed."
+        )
+    return seed
 
 
 def _validate_red_light_provenance(
