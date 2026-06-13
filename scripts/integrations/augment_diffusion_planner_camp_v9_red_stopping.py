@@ -211,7 +211,7 @@ def augment_logs(
         augmented = augment_records(records, log_path=log_path)
         output_parent.mkdir(parents=True, exist_ok=True)
         output_log.write_text(
-            json.dumps(augmented, indent=2, allow_nan=False) + "\n",
+            json.dumps(augmented, indent=2) + "\n",
             encoding="utf-8",
         )
         source_summary = log_path.with_name(SUMMARY_NAME)

@@ -147,6 +147,7 @@ def _write_completed_log(tmp_path):
         "atom_names": list(DP_CAMP_ATOM_NAMES_V8),
         "atoms": atoms.tolist(),
         "feasible_mask": [False, False],
+        "selection_scores": [0.0, float("inf")],
         "dp_candidate_rewards": [{"red_light": -3.0}, {"red_light": 0.0}],
         "candidate_closed_loop_outcomes": outcomes,
         "candidate_red_stopping_margin_cost": [1.5, 0.0],
