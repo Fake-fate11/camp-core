@@ -47,12 +47,16 @@ DP_CAMP_ATOM_NAMES_V8 = DP_CAMP_ATOM_NAMES + (
 DP_CAMP_ATOM_NAMES_V9 = DP_CAMP_ATOM_NAMES_V8 + (
     "red_stopping_margin_cost",
 )
+DP_CAMP_ATOM_NAMES_V10 = DP_CAMP_ATOM_NAMES_V9 + (
+    "dp_prior_jerk_excess_cost",
+)
 
 DP_CAMP_ATOM_SCHEMAS = {
     len(CAMP_ATOM_NAMES): ("camp_legacy_v1_9d", CAMP_ATOM_NAMES),
     len(DP_CAMP_ATOM_NAMES): ("dp_camp_v7_10d", DP_CAMP_ATOM_NAMES),
     len(DP_CAMP_ATOM_NAMES_V8): ("dp_camp_v8_12d", DP_CAMP_ATOM_NAMES_V8),
     len(DP_CAMP_ATOM_NAMES_V9): ("dp_camp_v9_13d", DP_CAMP_ATOM_NAMES_V9),
+    len(DP_CAMP_ATOM_NAMES_V10): ("dp_camp_v10_14d", DP_CAMP_ATOM_NAMES_V10),
 }
 
 
@@ -1761,6 +1765,7 @@ class CAMPSelector:
         candidate_progress: Optional[np.ndarray] = None,
         candidate_planned_red_light_cost: Optional[np.ndarray] = None,
         candidate_red_stopping_margin_cost: Optional[np.ndarray] = None,
+        candidate_dp_prior_jerk_excess_cost: Optional[np.ndarray] = None,
         external_feasible_mask: Optional[np.ndarray] = None,
         external_infeasibility_reasons: Optional[Sequence[Sequence[str]]] = None,
         apply_context_feasibility: bool = True,
@@ -1900,6 +1905,7 @@ class CAMPSelector:
             len(DP_CAMP_ATOM_NAMES),
             len(DP_CAMP_ATOM_NAMES_V8),
             len(DP_CAMP_ATOM_NAMES_V9),
+            len(DP_CAMP_ATOM_NAMES_V10),
         ):
             if progress is None:
                 progress = np.linalg.norm(
@@ -1917,10 +1923,11 @@ class CAMPSelector:
             if self.num_atoms in (
                 len(DP_CAMP_ATOM_NAMES_V8),
                 len(DP_CAMP_ATOM_NAMES_V9),
+                len(DP_CAMP_ATOM_NAMES_V10),
             ):
                 if candidate_planned_red_light_cost is None:
                     raise ValueError(
-                        "DP v8/v9 CAMP selection requires "
+                        "DP v8/v9/v10 CAMP selection requires "
                         "candidate_planned_red_light_cost."
                     )
                 red_light_cost = np.asarray(
@@ -1959,10 +1966,13 @@ class CAMPSelector:
                         lateral_acceleration_cost.reshape(-1, 1),
                     ]
                 )
-            if self.num_atoms == len(DP_CAMP_ATOM_NAMES_V9):
+            if self.num_atoms in (
+                len(DP_CAMP_ATOM_NAMES_V9),
+                len(DP_CAMP_ATOM_NAMES_V10),
+            ):
                 if candidate_red_stopping_margin_cost is None:
                     raise ValueError(
-                        "DP v9 CAMP selection requires "
+                        "DP v9/v10 CAMP selection requires "
                         "candidate_red_stopping_margin_cost."
                     )
                 red_stopping_margin_cost = np.asarray(
@@ -1985,6 +1995,34 @@ class CAMPSelector:
                         "nonnegative costs."
                     )
                 extra_atoms.append(red_stopping_margin_cost.reshape(-1, 1))
+            if self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10):
+                if candidate_dp_prior_jerk_excess_cost is None:
+                    raise ValueError(
+                        "DP v10 CAMP selection requires "
+                        "candidate_dp_prior_jerk_excess_cost."
+                    )
+                dp_prior_jerk_excess_cost = np.asarray(
+                    candidate_dp_prior_jerk_excess_cost,
+                    dtype=np.float64,
+                ).reshape(-1)
+                if dp_prior_jerk_excess_cost.shape != (candidates.shape[0],):
+                    raise ValueError(
+                        "candidate_dp_prior_jerk_excess_cost must match "
+                        "candidate count, "
+                        f"got {dp_prior_jerk_excess_cost.shape}, expected "
+                        f"({candidates.shape[0]},)."
+                    )
+                if (
+                    not np.all(np.isfinite(dp_prior_jerk_excess_cost))
+                    or np.any(dp_prior_jerk_excess_cost < 0.0)
+                ):
+                    raise ValueError(
+                        "candidate_dp_prior_jerk_excess_cost must contain "
+                        "finite nonnegative costs."
+                    )
+                extra_atoms.append(
+                    dp_prior_jerk_excess_cost.reshape(-1, 1)
+                )
             atoms_arr = np.concatenate(
                 [atoms_arr, *extra_atoms],
                 axis=1,
@@ -1997,6 +2035,8 @@ class CAMPSelector:
                 f"{len(DP_CAMP_ATOM_NAMES_V8)} atoms with planned_red_light_cost "
                 f"and planned_lateral_acceleration_cost or "
                 f"{len(DP_CAMP_ATOM_NAMES_V9)} atoms with red_stopping_margin_cost, "
+                f"{len(DP_CAMP_ATOM_NAMES_V10)} atoms with "
+                "dp_prior_jerk_excess_cost, "
                 f"got {self.num_atoms}."
             )
         normalized = atoms_arr / self.atom_scales.reshape(1, -1)

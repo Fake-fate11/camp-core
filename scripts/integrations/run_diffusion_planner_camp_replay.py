@@ -817,6 +817,9 @@ def _install_camp_predictor(
             candidate_progress=candidate_progress,
             candidate_planned_red_light_cost=candidate_planned_red_light_cost,
             candidate_red_stopping_margin_cost=candidate_red_stopping_margin_cost,
+            candidate_dp_prior_jerk_excess_cost=(
+                candidate_dp_prior_jerk_excess_cost
+            ),
             external_feasible_mask=external_feasible_mask,
             external_infeasibility_reasons=external_infeasibility_reasons,
             apply_context_feasibility=feasibility_source == "context",
@@ -945,6 +948,10 @@ def _install_camp_predictor(
                 ),
                 "red_stopping_margin_used_as_atom": (
                     "red_stopping_margin_cost"
+                    in atom_schema_for_dimension(selection.atoms.shape[1])[1]
+                ),
+                "dp_prior_jerk_excess_used_as_atom": (
+                    "dp_prior_jerk_excess_cost"
                     in atom_schema_for_dimension(selection.atoms.shape[1])[1]
                 ),
                 "candidate_closed_loop_outcome_horizon_steps": (

@@ -8,9 +8,13 @@ import pytest
 from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES_V8,
     DP_CAMP_ATOM_NAMES_V9,
+    DP_CAMP_ATOM_NAMES_V10,
 )
 from scripts.integrations.augment_diffusion_planner_camp_v9_red_stopping import (
-    augment_logs,
+    augment_logs as augment_v9_logs,
+)
+from scripts.integrations.augment_diffusion_planner_camp_v10_jerk_excess import (
+    augment_logs as augment_v10_logs,
 )
 from scripts.integrations.audit_diffusion_planner_camp_dataset import (
     audit_training_dataset,
@@ -227,7 +231,7 @@ def test_v9_red_stopping_augmentation_outputs_auditable_dataset(tmp_path) -> Non
     log_path = _write_completed_log(tmp_path / "source")
     output_root = tmp_path / "v9"
 
-    manifest = augment_logs(
+    manifest = augment_v9_logs(
         [(log_path, log_path.parent)],
         output_root=output_root,
     )
@@ -251,6 +255,55 @@ def test_v9_red_stopping_augmentation_outputs_auditable_dataset(tmp_path) -> Non
 
     assert report["passed"]
     assert report["schema"]["version"] == "dp_camp_v9_13d"
+    assert report["counts"]["records"] == 1
+
+
+def test_v10_jerk_excess_augmentation_outputs_auditable_dataset(
+    tmp_path,
+) -> None:
+    source_log = _write_completed_log(tmp_path / "source")
+    v9_root = tmp_path / "v9"
+    augment_v9_logs(
+        [(source_log, source_log.parent)],
+        output_root=v9_root,
+    )
+    v9_log = v9_root / "camp_selection_log.json"
+    v10_root = tmp_path / "v10"
+
+    manifest = augment_v10_logs(
+        [(v9_log, v9_root)],
+        output_root=v10_root,
+        expected_horizon_steps=30,
+    )
+    augmented_log = v10_root / "camp_selection_log.json"
+    records = json.loads(augmented_log.read_text(encoding="utf-8"))
+
+    assert manifest["schema"]["version"] == "dp_camp_v10_14d"
+    assert manifest["contract"]["horizon_steps"] == 30
+    assert records[0]["atom_schema_version"] == "dp_camp_v10_14d"
+    assert records[0]["atom_names"] == list(DP_CAMP_ATOM_NAMES_V10)
+    assert records[0]["source_atom_schema_version"] == "dp_camp_v9_13d"
+    assert records[0]["atoms"][0][-1] == 0.0
+    assert records[0]["atoms"][1][-1] == 1.5
+    assert "normalized_atoms" not in records[0]
+
+    report = audit_training_dataset(
+        [augmented_log],
+        atom_scales=np.ones(len(DP_CAMP_ATOM_NAMES_V10)),
+        expected_logs=1,
+        expected_candidates=2,
+        expected_advance_mode="perfect",
+        required_candidate_fields=(
+            "candidate_dp_prior_jerk_excess_cost",
+        ),
+        reference_zero_candidate_fields=(
+            "candidate_dp_prior_jerk_excess_cost",
+        ),
+        expected_comfort_shadow_horizon_steps=30,
+    )
+
+    assert report["passed"]
+    assert report["schema"]["version"] == "dp_camp_v10_14d"
     assert report["counts"]["records"] == 1
 
 
