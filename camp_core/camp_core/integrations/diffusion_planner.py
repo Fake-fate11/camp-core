@@ -1143,6 +1143,8 @@ def compute_dp_prior_deviation_costs(candidates: np.ndarray) -> np.ndarray:
 def compute_dp_prior_comfort_excess_costs(
     candidates: np.ndarray,
     dt: float,
+    *,
+    horizon_steps: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return jerk and acceleration-norm excess over DP Top-1.
 
@@ -1151,7 +1153,8 @@ def compute_dp_prior_comfort_excess_costs(
     finite-difference acceleration norm, then clips only the excess over the
     reference to zero. For a fixed reference value, ``max(mean_norm(D y)-c, 0)``
     is nonnegative and convex in the candidate coordinates, so these costs can
-    be audited before any schema promotion.
+    be audited before any schema promotion. When provided, ``horizon_steps``
+    restricts the online diagnostic to the first requested candidate steps.
     """
     trajectories = np.asarray(candidates, dtype=np.float64)
     if (
@@ -1167,6 +1170,15 @@ def compute_dp_prior_comfort_excess_costs(
         raise ValueError("candidates must contain only finite values.")
     if not np.isfinite(dt) or dt <= 0.0:
         raise ValueError("dt must be finite and positive.")
+    if horizon_steps is not None:
+        if isinstance(horizon_steps, bool) or not isinstance(
+            horizon_steps,
+            (int, np.integer),
+        ):
+            raise ValueError("horizon_steps must be a positive integer.")
+        if int(horizon_steps) <= 0:
+            raise ValueError("horizon_steps must be a positive integer.")
+        trajectories = trajectories[:, : int(horizon_steps), :]
 
     xy = trajectories[:, :, :2]
     candidate_count = xy.shape[0]

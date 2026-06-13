@@ -73,6 +73,15 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="Reject selection logs whose benchmark path uses this seed.",
     )
+    parser.add_argument(
+        "--expected_comfort_shadow_horizon_steps",
+        type=int,
+        default=None,
+        help=(
+            "Require every record and completed-run summary to use this "
+            "effective DP-prior comfort-shadow horizon."
+        ),
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -87,12 +96,30 @@ def audit_training_dataset(
     required_candidate_fields: tuple[str, ...] = (),
     reference_zero_candidate_fields: tuple[str, ...] = (),
     forbidden_seeds: frozenset[int] = frozenset(),
+    expected_comfort_shadow_horizon_steps: int | None = None,
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
         raise ValueError("atom_scales must contain finite positive values.")
     if expected_candidates <= 0:
         raise ValueError("expected_candidates must be positive.")
+    if expected_comfort_shadow_horizon_steps is not None:
+        if isinstance(expected_comfort_shadow_horizon_steps, bool) or not isinstance(
+            expected_comfort_shadow_horizon_steps,
+            (int, np.integer),
+        ):
+            raise ValueError(
+                "expected_comfort_shadow_horizon_steps must be a positive "
+                "integer."
+            )
+        if int(expected_comfort_shadow_horizon_steps) <= 0:
+            raise ValueError(
+                "expected_comfort_shadow_horizon_steps must be a positive "
+                "integer."
+            )
+        expected_comfort_shadow_horizon_steps = int(
+            expected_comfort_shadow_horizon_steps
+        )
     required_fields = tuple(dict.fromkeys(required_candidate_fields))
     reference_zero_fields = tuple(dict.fromkeys(reference_zero_candidate_fields))
     unknown_reference_fields = set(reference_zero_fields) - set(required_fields)
@@ -148,6 +175,21 @@ def audit_training_dataset(
                 f"{summary_path} uses advance_mode={advance_mode!r}, "
                 f"expected {expected_advance_mode!r}."
             )
+        if expected_comfort_shadow_horizon_steps is not None:
+            shadow_metadata = validation_summary.get(
+                "camp_shadow_dp_prior_comfort_excess"
+            )
+            if (
+                not isinstance(shadow_metadata, dict)
+                or not _matches_expected_positive_integer(
+                    shadow_metadata.get("effective_horizon_steps"),
+                    expected_comfort_shadow_horizon_steps,
+                )
+            ):
+                raise ValueError(
+                    f"{summary_path} does not certify comfort-shadow horizon "
+                    f"{expected_comfort_shadow_horizon_steps}."
+                )
         records = json.loads(log_path.read_text(encoding="utf-8"))
         if not isinstance(records, list) or not records:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
@@ -199,6 +241,19 @@ def audit_training_dataset(
                     atoms[:, red_atom_index],
                     expected_candidates,
                 )
+            if expected_comfort_shadow_horizon_steps is not None:
+                actual_horizon = record.get(
+                    "candidate_dp_prior_comfort_excess_horizon_steps"
+                )
+                if not _matches_expected_positive_integer(
+                    actual_horizon,
+                    expected_comfort_shadow_horizon_steps,
+                ):
+                    raise ValueError(
+                        f"{log_path} record {record_idx} uses comfort-shadow "
+                        f"horizon {actual_horizon!r}, expected "
+                        f"{expected_comfort_shadow_horizon_steps}."
+                    )
             for field in required_fields:
                 values = _validate_candidate_field(
                     log_path,
@@ -262,6 +317,12 @@ def audit_training_dataset(
             "advance_mode_verified": expected_advance_mode is not None,
             "forbidden_seeds": sorted(forbidden_seeds),
             "forbidden_seed_check": bool(forbidden_seeds),
+            "expected_comfort_shadow_horizon_steps": (
+                expected_comfort_shadow_horizon_steps
+            ),
+            "comfort_shadow_horizon_verified": (
+                expected_comfort_shadow_horizon_steps is not None
+            ),
         },
         "candidate_fields": candidate_field_reports,
         "logs": log_reports,
@@ -283,6 +344,15 @@ def _validate_record_schema(
         raise ValueError(
             f"{log_path} record {record_idx} does not match {schema_version}."
         )
+
+
+def _matches_expected_positive_integer(value: Any, expected: int) -> bool:
+    return (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and value > 0
+        and value == expected
+    )
 
 
 def _validate_red_light_provenance(
@@ -359,6 +429,9 @@ def main() -> None:
             args.reference_zero_candidate_field
         ),
         forbidden_seeds=frozenset(args.forbid_seed),
+        expected_comfort_shadow_horizon_steps=(
+            args.expected_comfort_shadow_horizon_steps
+        ),
     )
     report["artifacts"] = {
         "atom_scales": str(args.atom_scales),

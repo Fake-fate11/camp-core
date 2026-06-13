@@ -725,6 +725,11 @@ def _install_camp_predictor(
         ) = compute_dp_prior_comfort_excess_costs(
             candidates,
             float(getattr(scene, "dt", 0.1)),
+            horizon_steps=outcome_horizon_steps,
+        )
+        dp_prior_comfort_horizon_steps = min(
+            outcome_horizon_steps,
+            int(candidates.shape[1]),
         )
         dp_prior_comfort_done = time.perf_counter()
         shadow_dp_prior_comfort_excess_latency_ms = (
@@ -928,6 +933,9 @@ def _install_camp_predictor(
                 "candidate_dp_prior_acceleration_excess_cost": (
                     candidate_dp_prior_acceleration_excess_cost.tolist()
                 ),
+                "candidate_dp_prior_comfort_excess_horizon_steps": (
+                    dp_prior_comfort_horizon_steps
+                ),
                 "red_route_point_count": int(red_route_points.shape[0]),
                 "latency_ms_shadow_red_stopping_margin": (
                     shadow_red_stopping_margin_latency_ms
@@ -1099,6 +1107,11 @@ def main() -> None:
         if records is not None and args.camp_feasibility_source == "dp_reward"
         else None
     )
+    effective_comfort_shadow_horizon_steps = (
+        records[0]["candidate_dp_prior_comfort_excess_horizon_steps"]
+        if records
+        else None
+    )
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
@@ -1129,6 +1142,23 @@ def main() -> None:
                 "lookahead_m": 40.0,
                 "heading_alignment_threshold": 0.5,
                 "unit": "m^2/s",
+            }
+            if records is not None
+            else None
+        ),
+        "camp_shadow_dp_prior_comfort_excess": (
+            {
+                "enabled": True,
+                "selection_effect": False,
+                "reference_candidate_index": 0,
+                "requested_horizon_steps": args.camp_outcome_horizon_steps,
+                "effective_horizon_steps": (
+                    effective_comfort_shadow_horizon_steps
+                ),
+                "definition": (
+                    "positive mean finite-difference jerk/acceleration "
+                    "norm excess over candidate 0"
+                ),
             }
             if records is not None
             else None
@@ -1184,6 +1214,9 @@ def main() -> None:
         if records is not None and args.camp_collect_closed_loop_outcomes
         else None
     )
+    validation["camp_shadow_dp_prior_comfort_excess"] = summary[
+        "camp_shadow_dp_prior_comfort_excess"
+    ]
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (
         f"route={args.route}|seed={args.seed}|steps={args.steps}|"

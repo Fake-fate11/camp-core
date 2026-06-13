@@ -574,6 +574,55 @@ def test_dp_prior_comfort_excess_rejects_nonfinite_candidates() -> None:
         compute_dp_prior_comfort_excess_costs(candidates, dt=0.1)
 
 
+def test_dp_prior_comfort_excess_respects_requested_horizon() -> None:
+    reference = np.column_stack(
+        [np.arange(8, dtype=np.float64), np.zeros(8, dtype=np.float64)]
+    )
+    late_oscillation = reference.copy()
+    late_oscillation[5:, 1] = [1.0, -1.0, 1.0]
+    candidates = np.stack([reference, late_oscillation])
+
+    full_jerk, full_acceleration = compute_dp_prior_comfort_excess_costs(
+        candidates,
+        dt=1.0,
+    )
+    truncated_jerk, truncated_acceleration = (
+        compute_dp_prior_comfort_excess_costs(
+            candidates,
+            dt=1.0,
+            horizon_steps=5,
+        )
+    )
+    overlong_jerk, overlong_acceleration = (
+        compute_dp_prior_comfort_excess_costs(
+            candidates,
+            dt=1.0,
+            horizon_steps=100,
+        )
+    )
+
+    assert full_jerk[1] > 0.0
+    assert full_acceleration[1] > 0.0
+    np.testing.assert_allclose(truncated_jerk, np.zeros(2))
+    np.testing.assert_allclose(truncated_acceleration, np.zeros(2))
+    np.testing.assert_allclose(overlong_jerk, full_jerk)
+    np.testing.assert_allclose(overlong_acceleration, full_acceleration)
+
+
+@pytest.mark.parametrize("horizon_steps", [0, -1, 2.5, True])
+def test_dp_prior_comfort_excess_rejects_invalid_horizon(
+    horizon_steps,
+) -> None:
+    candidates = np.zeros((2, 5, 2), dtype=np.float64)
+
+    with pytest.raises(ValueError, match="positive integer"):
+        compute_dp_prior_comfort_excess_costs(
+            candidates,
+            dt=0.1,
+            horizon_steps=horizon_steps,
+        )
+
+
 def test_closed_loop_outcome_labels_prefer_best_feasible_candidate(tmp_path) -> None:
     log_path = tmp_path / "camp_selection_log.json"
     log_path.write_text(
