@@ -1002,3 +1002,68 @@ No v10 schema promotion or formal-seed run is justified by the full-horizon
 matrix. The lateral-relative candidate is deliberately deferred because its
 30-step excess is highly correlated with jerk excess rather than demonstrably
 orthogonal.
+
+## Online 30-step comfort-shadow smoke
+
+The horizon-aligned implementation was verified in the real DP replay at:
+
+```text
+/root/autodl-tmp/camp_dp_shadow_comfort_h30_smoke_seed101_ae04845
+```
+
+Configuration:
+
+- non-formal seed 101;
+- route `sample_map_tl_route_59_to_86`;
+- perfect tracking and traffic lights enabled;
+- 3 replay steps, 4 candidates, candidate noise scale 1.0;
+- no NPCs;
+- DP-reward feasibility and uniform all-infeasible fallback;
+- certified v9 Static weights and scales;
+- candidate outcome horizon and online comfort-shadow horizon both 30.
+
+The first audit attempt exposed a post-processing integrity defect:
+`run_diffusion_planner_camp_remote.sh` ran the standalone summarizer after the
+replay, and that summarizer overwrote tracker, feasibility, seed, and shadow
+provenance in `camp_validation_summary.json`. The summarizer now merges an
+explicit allowlist of replay metadata into recomputed metrics. The dataset
+audit also treats the completed-run benchmark seed as authoritative and
+requires it to match any seed encoded in the directory hierarchy.
+
+Verification after resummarization:
+
+| Check | Result |
+| --- | ---: |
+| Completed logs | 1 |
+| Selection records | 3 |
+| Candidates | 12 |
+| Advance mode | `perfect` |
+| Summary seed | 101 |
+| Formal seeds 11/12/13 excluded | yes |
+| Outcome candidate coverage | 1.0 |
+| Effective comfort horizon | 30 in summary and every record |
+| Jerk reference-zero records | 3/3 |
+| Jerk records with variation | 3/3 |
+| Acceleration records with variation | 2/3 |
+| Jerk p95 shadow latency | 0.119 ms |
+| Acceleration selected mean cost | 0.0 |
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `h30_smoke_dataset_audit.json` | `6f6230072129589ea86a4bc478df002bf709365eecd2369cac7e165934a81ca1` |
+| `h30_comfort_shadow_coverage.json` | `82b70e439abfe67df07aa47dfaaadee6fb27edc9a2c2243d4988a4cf03eb7a31` |
+| `h30_comfort_shadow_coverage.md` | `a8f540bfc40b9ef9a6a5178083f48c48bffc7ca3a6804d3b5bd8551c78cb2a07` |
+
+Local DP tests passed with 85 passed and 5 skipped. AutoDL DP tests passed
+with 90 passed. The smoke proves that the horizon-aligned shadow is computed
+from current DP candidates online, remains nonnegative and candidate-0
+anchored, carries fail-closed provenance through post-processing, and adds
+negligible diagnostic latency. It is not evidence of a selection or
+closed-loop improvement because the shadow still has no selection effect and
+the sample contains only three ticks.
+
+Next gate: rerun the complete 36-run non-formal development shadow matrix with
+the 30-step online definition, then compare its coverage and Top-1-gap
+alignment directly against the frozen full-horizon artifacts above.
