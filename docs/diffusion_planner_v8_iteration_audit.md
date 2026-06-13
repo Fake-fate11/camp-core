@@ -1681,3 +1681,115 @@ lower bound on an online red-light atom, or redesign the red atom/labels so
 that red-light failures enter the active finite maximum. A small lower bound is
 mathematically admissible because it only adds convex linear constraints to the
 simplex; it must still pass full-epigraph audit before any deployable pilot.
+
+## Convex red-light atom lower-bound sweep
+
+The next cycle kept the v10 atom schema fixed and added only static simplex
+lower bounds. This preserves the finite-candidate convex contract: the atom
+values are still fixed before optimizing \(w\), and the feasible set is the
+simplex intersected with additional linear inequalities \(w_i \ge \epsilon\).
+
+Three lower-bound candidates were screened:
+
+| Candidate | Lower bound | Asset root |
+| --- | --- | --- |
+| `redfloor05` | `planned_red_light_cost >= 0.05` | `/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redfloor05_j1_lat2_e70f263` |
+| `redstopfloor02` | `red_stopping_margin_cost >= 0.02` | `/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor02_j1_lat2_e70f263` |
+| `redstopfloor05` | `red_stopping_margin_cost >= 0.05` | `/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263` |
+
+All three checkpoints converged with final master gap 0 and passed complete
+finite-candidate epigraph audits:
+
+| Candidate | Weights SHA | Training summary SHA | Full epigraph SHA | Saved-full objective delta | Weight \(L_\infty\) |
+| --- | --- | --- | --- | ---: | ---: |
+| `redfloor05` | `426785479ea311f1ba5505cdca6ccc55a36381a7964017bc4cb5258c06db4a61` | `e32d6a393d810aa791e113171de0f571cd38d6b2a3d35aaf34710d167041bed8` | `b67358d6bef31084a9920cdc569d2db3f3cc91890a1e169f4dda14654fb5a9a2` | -3.13e-12 | 2.04e-10 |
+| `redstopfloor02` | `fb9f02632314b01fc29b3269a09c08ef7cc49e511554910b57bd323e04c58d8a` | `4805b463faf2ddf4ad7a2ab5b710f2535a46cf669e510950a3b979f91c509b7f` | `7f5be618da89ae7787bb0031641d928be16428063c671745a87494db17304650` | -2.37e-11 | 8.54e-10 |
+| `redstopfloor05` | `dbfe8333c8a2f7944710003d1bcf39fda84626b9c5728c80bddf6f5d41be81b1` | `b6ced7c71240e9c8b3d1c6c47470ea7411069edeb48825d24ec2f8f693951e32` | `12733885d22a50308b52ec6090af49f6ab973300a33394b140a24e5776b3c0c3` | -5.16e-12 | 1.23e-10 |
+
+The planned-red lower bound was rejected after offline screening. It forced the
+weight but barely changed the fixed-candidate selections:
+
+| Variant | Change vs progress2 | Selected planned-red atom | Selected red-stopping atom | Progress shortfall | DP-prior deviation |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| progress2 | 0.000000 | 0.226111 | 5.401664 | 0.157986 | 3.479023 |
+| redfloor05 | 0.004583 | 0.226111 | 5.402096 | 0.157451 | 3.477529 |
+
+The red-stopping lower-bound sweep had a real mechanism:
+
+| Variant | Change vs progress2 | Selected red-stopping atom | Progress shortfall | Jerk full | DP-prior deviation |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| progress2 | 0.000000 | 5.401664 | 0.157986 | 2077.872269 | 3.479023 |
+| redstopfloor02 | 0.008750 | 5.045779 | 0.158911 | 2077.031772 | 3.303541 |
+| redstopfloor05 | 0.013889 | 4.835732 | 0.162012 | 2076.660782 | 3.184942 |
+
+`redstopfloor02` passed smoke and a 12-run sample59 pilot, but remained too weak
+on planned-red. `redstopfloor05` passed smoke, sample59 pilot, and was expanded
+to the full 36-run development matrix.
+
+Important artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `redstopfloor02` smoke dataset audit | `5d5e261f2972aaddab7424eb4da4384c2205ec0c6baf5f221b781c45e644779e` |
+| `redstopfloor02` pilot dataset audit | `ae36bf3cb1442d51dd6de204cfccf1b0c61fd87c3bb2cc004a7372adc278e646` |
+| red-stopping sweep pilot comparison JSON | `b6de822a817c06291f26c8117b5e4dca4ee7205e60dff67867e64795d5efb733` |
+| `redstopfloor05` smoke dataset audit | `42eb9111bd29884106bea3b01e27433042e82d86a6ad85adb72c8d3762aec7f5` |
+| `redstopfloor05` full36 dataset audit | `0081688e4ca0c525d7004401fd058035edee7c4801d973f5d0b9f90ae86579c9` |
+| `redstopfloor05` full36 comparison JSON | `df41383699e1e5a268160ec2dbd1f1294b07f6eceb75cc0d8746975dad77a9ca` |
+| `redstopfloor05` full36 comparison markdown | `3159d84b978c97e279f7dcd23313fc481bd81fb8c9b369ed90589eb0e1d5fb72` |
+
+The full36 dataset audit passed:
+
+- 36 logs, 7,200 records, and 57,600 candidates;
+- 1,202 all-infeasible records;
+- `candidate_dp_prior_jerk_excess_cost` present for every candidate;
+- candidate 0 reference-zero check passed for every record;
+- closed-loop outcome policy was `forbidden`;
+- formal seeds 11/12/13 were absent;
+- effective comfort-shadow horizon was 30.
+
+Strict 36-run comparison used 36 common keys for top1, uniform, v7, v8, v9,
+v10, and `v10_redstopfloor05`. Pairing audit: 36 common keys, 36 union keys,
+no missing or duplicate keys.
+
+Aggregate metrics:
+
+| Variant | Completion | Planned red | Realized red | Near miss | Jerk | Lateral | Fallback | p95 selection latency |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| top1 | 0.287765 | 0.011944 | 0.000279 | 0.028472 | 8.362638 | 0.292413 | n/a | n/a |
+| uniform | 0.299205 | 0.034028 | 0.011446 | 0.026944 | 20.225194 | 0.336922 | 0.168333 | 88.706442 |
+| v9_static | 0.300137 | 0.025972 | 0.006561 | 0.029722 | 21.246975 | 0.337275 | 0.167639 | 87.965748 |
+| v10_static | 0.300505 | 0.026944 | 0.006421 | 0.023889 | 21.537884 | 0.338346 | 0.165000 | 89.795503 |
+| redstopfloor05 | 0.299747 | 0.024444 | 0.006421 | 0.028889 | 20.479529 | 0.337342 | 0.166944 | 90.872458 |
+
+Key paired deltas, 10,000 deterministic bootstrap resamples:
+
+| Comparison | Completion | Planned red | Realized red | Near miss | Jerk | Lateral | Fallback | p95 latency |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| redstop05 - v9 | -0.000390 [-0.001582, +0.000783] | -0.001528 [-0.004861, +0.000694] | -0.000140 [-0.000419, +0.000000] | -0.000833 [-0.012083, +0.009028] | -0.767446 [-1.367895, -0.164735] | +0.000067 [-0.004715, +0.004468] | -0.000694 [-0.007361, +0.006111] | +2.906710 [+1.600361, +4.157821] |
+| redstop05 - v10 | -0.000758 [-0.002853, +0.000731] | -0.002500 [-0.005556, -0.000000] | +0.000000 [+0.000000, +0.000000] | +0.005000 [-0.000417, +0.013056] | -1.058355 [-2.359984, -0.125415] | -0.001004 [-0.003832, +0.001577] | +0.001944 [-0.001389, +0.006944] | +1.076956 [-0.062264, +2.228079] |
+| redstop05 - top1 | +0.011982 [+0.008380, +0.016005] | +0.012500 [-0.001667, +0.035000] | +0.006142 [+0.000000, +0.018425] | +0.000417 [-0.015278, +0.012361] | +12.116891 [+10.277971, +14.019839] | +0.044929 [+0.028234, +0.064603] | n/a | n/a |
+
+Gate decision:
+
+1. `redstopfloor05` is mathematically certified and deployable-smoke compatible.
+2. The full36 deployable audit and strict pairing checks pass.
+3. It is the first v10-family candidate that improves planned-red relative to
+   both v9 and v10 while also improving mean jerk relative to v9.
+4. p95 selection latency remains deployable at 90.872 ms, but it is slower than
+   v9 by about 2.91 ms.
+5. Completion, realized red, near-miss, and fallback do not show a clear
+   regression relative to v9, but the confidence intervals are not strong enough
+   to call these improvements.
+6. Lateral acceleration is essentially unchanged relative to v9 and remains far
+   worse than Top-1.
+7. The industrial development gate is therefore not complete: the red/jerk
+   side improved, but the lateral/comfort requirement is still open.
+8. formal seeds remain frozen.
+
+The next hypothesis should not increase the red-stopping lower bound further.
+The active bottleneck is now lateral acceleration without losing the red/jerk
+gains. A mathematically admissible next step is a very small convex lower bound
+on `planned_lateral_acceleration_cost` combined with the `redstopfloor05`
+checkpoint structure, but prior failed lateral-floor evidence means it must be
+screened offline first and should not go directly to a 36-run matrix.
