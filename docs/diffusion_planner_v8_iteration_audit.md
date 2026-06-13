@@ -1557,3 +1557,127 @@ The next hypothesis should be progress-preserving comfort, not stronger
 comfort reweighting. A valid next candidate may still keep the v10 schema fixed,
 but the objective must prevent the optimizer from buying small comfort gains
 with worse progress, lower selected feasibility, or larger DP-prior deviation.
+
+## Progress-preserving comfort follow-up
+
+The follow-up candidate `progress2_j1_lat2` keeps the v10 schema and the j1
+comfort penalties, but raises the closed-loop progress outcome weight from
+1.0 to 2.0. This is still the same finite-candidate convex optimization
+problem: only the offline utility labels are changed before the robust margin
+master is solved.
+
+Training asset:
+
+`/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_j1_lat2_7205895`
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `outcome_weights.json` | `9df61a4fbeeba3908113aedabf06fed1c92f0737613ccf9da93399902fa52425` |
+| `training_summary.json` | `4115f718c9d068d0ac7a3eb906b0b1e635e50cbc8776ae3cde0a7d3d0742174c` |
+| `offline_weights_dp_static.npy` | `44e278018ba4c21a54beb32d70d61fa3b59d695f6588a26e46a76b88643ddb8a` |
+| `atom_scales_dp_static.json` | `a50d6d5b26888bdc0d2715dbfce525d3725697fa6e6565b6dd7ae9e8dd105b15` |
+| `full_epigraph_consistency.json` | `c496aa979a37afab2b1ab23fbd688bb084f4ce2888aefc3078d67d2000865419` |
+| `offline_counterfactual_vs_v10_comfort.json` | `96fe3f82d1af1c89015aa2cbca023a9bb9e1330d8113b15043fa8415facd48c1` |
+
+The learned static weights moved back toward progress preservation:
+
+| Atom | Weight |
+| --- | ---: |
+| `jerk_early` | 0.452293 |
+| `jerk_full` | 0.018694 |
+| `speed_limit_margin_0_0` | 0.000300 |
+| `clearance` | 0.000069 |
+| `progress_shortfall` | 0.470494 |
+| `dp_prior_jerk_excess_cost` | 0.058149 |
+
+The complete finite-candidate epigraph audit passed:
+
+- train records: 4,848;
+- finite pieces: 37,030;
+- saved objective: 0.078752931479;
+- complete epigraph objective: 0.078752931686;
+- saved-minus-full objective: \(-2.07\times10^{-10}\);
+- weight \(L_\infty\) distance: \(9.60\times10^{-10}\).
+
+The real-DP smoke root
+`/root/autodl-tmp/camp_dp_v10_progress2_j1_lat2_smoke_seed101_7205895`
+passed schema, horizon, forbidden-outcome, and artifact checks:
+
+| Smoke artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `c443a2d0e52d3b06cfab099409a40422b6011b59b79e1fd8dec57fd176b37c18` |
+| `camp_validation_summary.json` | `7171736a82fa29cab7f62e11dc6f744f45e508e92226019778c802e4bfc4afb5` |
+| `smoke_dataset_audit.json` | `baa0da485214afbe82d8f89525a7b060921787acb7c3eeaa671d94094647e830` |
+
+The fixed-candidate offline counterfactual confirmed that the progress weight
+does what it was intended to do:
+
+| Variant | Selection change vs v10 | Progress shortfall | Jerk full | Lateral atom | DP-prior jerk excess |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| v10_default | 0.000000 | 0.138684 | 2090.725656 | 0.380324 | 0.181034 |
+| j1_lat2 | 0.220278 | 0.213094 | 2053.640704 | 0.376768 | 0.093676 |
+| j2_lat4 | 0.329444 | 0.276263 | 2044.300934 | 0.375661 | 0.063419 |
+| progress2_j1_lat2 | 0.078472 | 0.157986 | 2077.872269 | 0.379194 | 0.138045 |
+
+The 12-run sample59_86 pilot root is
+`/root/autodl-tmp/camp_dp_pilot_sample59_v10_progress2_j1_lat2_7205895`.
+Its deployable dataset audit passed:
+
+- 12 logs, 2,400 records, 19,200 candidates;
+- `candidate_dp_prior_jerk_excess_cost` present for every candidate;
+- candidate 0 reference-zero check passed for all records;
+- closed-loop outcome policy was `forbidden`;
+- formal seeds 11/12/13 were absent.
+
+| Pilot artifact | SHA-256 |
+| --- | --- |
+| `pilot_dataset_audit.json` | `0a00e07b80f283965720eb8a2e965c592fbd6ba5526e17641d3d5520c78df85d` |
+| strict comparison JSON | `0ae2a4e3c291c8c6ed6e63ebe33f0442d23821a511d491e65b02b4cb0cccea3c` |
+| strict comparison markdown | `c1412b4dbe869b42632dfcdf83872a418fa344479642849b07b47e9a48880a6c` |
+
+Pilot aggregate metrics:
+
+| Variant | Completion | Planned red | Realized red | Near miss | Jerk | Lateral | Fallback | p95 selection latency |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| v9_static | 0.154644 | 0.045833 | 0.019682 | 0.040000 | 15.404942 | 0.430507 | 0.196250 | 94.966910 |
+| v10_static | 0.154272 | 0.047500 | 0.019263 | 0.024167 | 14.460047 | 0.424298 | 0.197083 | 95.463059 |
+| j1_lat2 | 0.152934 | 0.045833 | 0.019263 | 0.056250 | 15.143158 | 0.419638 | 0.207083 | 94.512399 |
+| j2_lat4 | 0.152689 | 0.046250 | 0.018844 | 0.055833 | 15.197518 | 0.417019 | 0.205000 | 94.444249 |
+| progress2_j1_lat2 | 0.154120 | 0.047917 | 0.019263 | 0.024167 | 14.508181 | 0.425070 | 0.195000 | 94.758131 |
+
+Key paired deltas:
+
+| Comparison | Completion | Planned red | Near miss | Jerk | Lateral | Fallback |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| progress2 - v9 | -0.000524 [-0.002501, +0.000988] | +0.002083 [+0.000000, +0.005000] | -0.015833 [-0.040000, +0.000000] | -0.896762 [-1.552892, -0.285088] | -0.005437 [-0.015043, +0.000165] | -0.001250 [-0.010417, +0.007917] |
+| progress2 - v10 | -0.000152 [-0.000410, +0.000008] | +0.000417 [+0.000000, +0.001250] | +0.000000 [+0.000000, +0.000000] | +0.048133 [-0.368429, +0.449395] | +0.000772 [-0.000768, +0.002328] | -0.002083 [-0.005833, +0.000417] |
+
+Gate decision:
+
+1. `progress2_j1_lat2` is mathematically certified and deployable-smoke
+   compatible;
+2. it fixes the main j1/j2 failure mode by restoring progress and reducing
+   fallback pressure;
+3. it does not create a meaningful comfort improvement over v10;
+4. relative to v9, it improves jerk and near-miss on this pilot but still
+   worsens planned red-light rate;
+5. do not run the full 36-run matrix for this candidate yet;
+6. formal seeds remain frozen.
+
+A red-light follow-up, `progress2_red50_j1_lat2`, raised the red-light outcome
+penalty from 30 to 50 while keeping the other `progress2_j1_lat2` weights. It
+trained to the exact same static weights as `progress2_j1_lat2`:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `progress2_red50_j1_lat2/outcome_weights.json` | `c61a447c373ac5a18daa17492bc72e27e7ceedf2c3a12cd31c49be0795cc5fa4` |
+| `progress2_red50_j1_lat2/training_summary.json` | `65aebed4c83a12418f3c080626e81fe946614a2024e5a4022aeb1e1c3fe3e0f9` |
+| `progress2_red50_j1_lat2/offline_weights_dp_static.npy` | `44e278018ba4c21a54beb32d70d61fa3b59d695f6588a26e46a76b88643ddb8a` |
+
+This shows that increasing the red-light label penalty alone is inactive for
+the current robust master: it does not change the active cuts or the deployed
+weights. The next hypothesis should therefore use an explicit convex simplex
+lower bound on an online red-light atom, or redesign the red atom/labels so
+that red-light failures enter the active finite maximum. A small lower bound is
+mathematically admissible because it only adds convex linear constraints to the
+simplex; it must still pass full-epigraph audit before any deployable pilot.
