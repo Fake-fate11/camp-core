@@ -23,8 +23,8 @@ The current decision is therefore:
 - retain the old v8 artifacts only as an MPC-distribution development result;
 - require explicit `advance_mode="perfect"` in every new collection,
   validation, and formal run;
-- recollect the 36-run training matrix under perfect tracking and retrain
-  before any formal evaluation;
+- use the newly collected perfect-tracking v8 artifacts for the next
+  development matrix;
 - keep formal seeds untouched until the perfect-tracking design is frozen.
 
 The benchmark runner now defaults to `perfect`, each replay records the mode,
@@ -41,6 +41,11 @@ summaries contain no certified mode. A 5-step gate smoke at
 
 prints `Advance mode: perfect` and records
 `advance_mode=perfect` in both the summary and strict-pairing key.
+
+As of CAMP commit `6225a378c7b3f96a381347580dbd7481c5dc9f34`, the 36-run
+perfect-tracking Uniform collection, dataset audit, Robust Static training,
+full-epigraph consistency audit, and all-infeasible fallback counterfactual are
+complete on AutoDL.
 
 ## Dataset Gate
 
@@ -73,6 +78,38 @@ These checks establish schema and data integrity, but the old summaries do not
 record `advance_mode` and point directly to upstream `replay_default.json`,
 whose default is MPC. They do not establish perfect-tracking provenance.
 
+The perfect-tracking replacement collection is:
+
+```text
+/root/autodl-tmp/camp_dp_v8_outcome_collect_uniform_perfect_6225a37
+```
+
+The persisted audit is:
+
+```text
+/root/autodl-tmp/camp_dp_v8_outcome_collect_uniform_perfect_6225a37/camp_dataset_audit.json
+```
+
+Its SHA-256 is
+`59f61fd3d8ba9491ad3ab333fab8d1aa8251bd704497d23c5fab2e7d1c037a84`.
+
+| Item | Evidence |
+| --- | ---: |
+| Complete scenarios | 36/36 |
+| Routes | 12 each for `sample59_86`, `sample2_104`, `nishishinjuku` |
+| Planning records | 7,200 |
+| Candidates | 57,600 |
+| Candidate shape | 8 candidates x 12 atoms |
+| Schema | `dp_camp_v8_12d` |
+| All-infeasible records | 1,154 |
+| `advance_mode` | `perfect`, verified in every completed run |
+| Finite, nonnegative atoms | passed |
+| Complete candidate outcomes | passed |
+| Red atom equals online DP reward source | passed |
+
+This is now the only v8 training dataset with certified perfect-tracking
+provenance.
+
 ## Mathematical Certificate
 
 The trained problem is finite-candidate exact constraint generation, or a
@@ -103,6 +140,47 @@ The learned weights concentrate on `jerk_early` (0.662202),
 `progress_shortfall` (0.226413), `jerk_full` (0.063314), and
 `rms_acceleration` (0.044749). The red-light and lateral-acceleration weights
 are numerically zero.
+
+The perfect-tracking Robust Static v8 solve is stored at:
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v8_perfect_6225a37
+```
+
+It used the same convex objective and training contract: CVaR alpha 0.9,
+margin scale 0.1, margin clip 2.0, L2 `1e-4`, CLARABEL, train-only
+normalization, and tolerance `1e-6`. It terminated with solver status
+`optimal`, `converged=true`, and `final_master_gap=0`.
+
+Perfect-tracking training details:
+
+| Metric | Value |
+| --- | ---: |
+| Input records | 7,200 |
+| Feasible-ranking records | 6,026 |
+| Dropped all-infeasible records | 1,174 |
+| Train groups | 29 |
+| Validation groups | 7 |
+| Train oracle match | 0.844344 |
+| Train CVaR violation | 0.062039 |
+| Validation oracle match | 0.866315 |
+| Validation CVaR violation | 0.035350 |
+| Maximum simplex error | 0 |
+
+The learned perfect-tracking weights are approximately
+`[0.601314, 0, 0.017215, 0.164067, 0, 0, 0, 0, 0, 0.217404, 0, 0]`.
+
+The full-epigraph consistency audit is:
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v8_perfect_6225a37/full_epigraph_consistency.json
+```
+
+It solves the complete train-set epigraph master with all feasible candidate
+cuts. The full objective and cutting-plane final objective differ by
+`2.11e-10`; the static weights differ by L-infinity `1.94e-08`. This is direct
+dataset-level evidence that the saved checkpoint matches the complete convex
+finite-candidate master.
 
 ## Red-Light Identifiability
 
@@ -152,6 +230,22 @@ red-light outcome variation.
 A separate lateral-acceleration weight floor of 0.2 also worsened the fallback
 training/validation tradeoff. Uniform therefore remains the frozen fallback
 policy.
+
+On the perfect-tracking collection, a separate all-infeasible fallback master
+was trained at:
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_fallback_v8_perfect_6225a37
+```
+
+It is mathematically certified (`optimal`, `converged=true`,
+`final_master_gap=0`) on 1,154 all-infeasible records with a 23/6 grouped
+split. The paired counterfactual still rejects learned fallback deployment:
+learned fallback improves oracle match from 0.516464 to 0.766031 and mean
+outcome value by only `+0.004758`, but worsens collision by `+0.000867`,
+near-miss by `+0.006066`, and lateral acceleration by `+0.003083`. Red-light
+outcome is unchanged. Uniform remains the accepted fallback for perfect
+development runs.
 
 ## Rejected Single-Variable Iterations
 
@@ -273,13 +367,21 @@ explicit perfect tracking before industrial acceptance.
 | fallback scales | `1bfab40c94b0c162e0da25995c97c15259f1b095b272b7a0dbf1d4555cf4a406` |
 | fallback weights | `c578594bd82c737e58aca06856312cf4d211abc9b239aed7d12b480f331c3b67` |
 | fallback report | `65cd9756fc22775e874ca1f03d77aad47371357346492e23c866551e14cd2b40` |
+| perfect dataset audit | `59f61fd3d8ba9491ad3ab333fab8d1aa8251bd704497d23c5fab2e7d1c037a84` |
+| perfect v8 scales | `567a8ad3a0d3478c71ea1adcaf33de724efc516d64f7b38c8262146c9f3ee2d3` |
+| perfect v8 weights | `56bb392f4526072aa738d95f32a35fb142a719abe1839c80190c1f7af5163e85` |
+| perfect v8 training summary | `fdac11b5c4f142b4e2a2204facd60e55e360e5d3c488b9dfa302ed899bf5f24f` |
+| perfect full-epigraph audit | `be63d4a0ad946f0c4f37eece6658e562a2b655ee5b150f2effcf22a3150509af` |
+| perfect fallback scales | `ae0932d2e4d792405c634ed0de730a2cea92c5fefdd86fc5de7d5ea89c1586c2` |
+| perfect fallback weights | `25d7b652b7002008cb6e9d6c1601cc60ec8f25217a8bb703753cd9df6b0396d7` |
+| perfect fallback report | `bd740fc41f48e951f335cf19094ca30422980c338d9e004416ab98e50d05e032` |
 
 ## Formal Evaluation Gate
 
-Do not run seeds 11, 12, and 13 yet. First recollect the 36-run Uniform dataset
-with explicit perfect tracking, mode metadata, 12D schema checks, complete
-candidate outcomes, and the selection-neutral shadow diagnostic. Retrain and
-repeat the grouped validation, fallback ablation, development matrix, and
-latency/equivalence gates on that distribution. Only a frozen design that
-improves development evidence without safety or completion regression may
-consume the formal seeds once.
+Do not run seeds 11, 12, and 13 yet. The perfect-tracking collection,
+training, dataset audit, full-epigraph audit, and fallback counterfactual are
+complete, but the matched development matrix is still required. Repeat the
+Top-1, Uniform, v7 Static, and perfect v8 Static comparison on development
+seeds 1, 2, and 3 with `advance_mode=perfect`, plus latency and selector
+determinism checks. Only a frozen design that improves development evidence
+without safety or completion regression may consume the formal seeds once.
