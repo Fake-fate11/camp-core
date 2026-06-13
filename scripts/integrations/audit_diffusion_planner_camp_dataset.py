@@ -24,6 +24,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 )
 from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
     iter_selection_log_paths,
+    parse_selection_log_metadata,
 )
 
 
@@ -53,6 +54,25 @@ def parse_args() -> argparse.Namespace:
         choices=("perfect", "mpc", "teleport"),
         default=None,
     )
+    parser.add_argument(
+        "--required_candidate_field",
+        action="append",
+        default=[],
+        help="Require a finite nonnegative candidate array in every record.",
+    )
+    parser.add_argument(
+        "--reference_zero_candidate_field",
+        action="append",
+        default=[],
+        help="Also require candidate 0 to be zero for this candidate field.",
+    )
+    parser.add_argument(
+        "--forbid_seed",
+        type=int,
+        action="append",
+        default=[],
+        help="Reject selection logs whose benchmark path uses this seed.",
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -64,12 +84,23 @@ def audit_training_dataset(
     expected_logs: int | None,
     expected_candidates: int,
     expected_advance_mode: str | None = None,
+    required_candidate_fields: tuple[str, ...] = (),
+    reference_zero_candidate_fields: tuple[str, ...] = (),
+    forbidden_seeds: frozenset[int] = frozenset(),
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
         raise ValueError("atom_scales must contain finite positive values.")
     if expected_candidates <= 0:
         raise ValueError("expected_candidates must be positive.")
+    required_fields = tuple(dict.fromkeys(required_candidate_fields))
+    reference_zero_fields = tuple(dict.fromkeys(reference_zero_candidate_fields))
+    unknown_reference_fields = set(reference_zero_fields) - set(required_fields)
+    if unknown_reference_fields:
+        raise ValueError(
+            "reference_zero_candidate_fields must also be required fields: "
+            f"{sorted(unknown_reference_fields)}."
+        )
     schema_version, atom_names = atom_schema_for_dimension(scales.size)
     red_atom_index = (
         atom_names.index("planned_red_light_cost")
@@ -89,8 +120,22 @@ def audit_training_dataset(
     total_candidates = 0
     all_infeasible_records = 0
     outcome_candidates = 0
+    candidate_field_reports = {
+        field: {
+            "records": 0,
+            "candidates": 0,
+            "records_with_variation": 0,
+            "reference_zero_records": 0,
+        }
+        for field in required_fields
+    }
     log_reports = []
     for log_path in log_paths:
+        metadata = parse_selection_log_metadata(log_path)
+        if metadata.seed in forbidden_seeds:
+            raise ValueError(
+                f"{log_path} uses forbidden seed {metadata.seed}."
+            )
         summary_path = log_path.with_name("camp_validation_summary.json")
         if not summary_path.is_file():
             raise ValueError(f"Missing completed-run summary for {log_path}.")
@@ -154,6 +199,24 @@ def audit_training_dataset(
                     atoms[:, red_atom_index],
                     expected_candidates,
                 )
+            for field in required_fields:
+                values = _validate_candidate_field(
+                    log_path,
+                    record_idx,
+                    record,
+                    field=field,
+                    expected_candidates=expected_candidates,
+                    require_reference_zero=field in reference_zero_fields,
+                )
+                field_report = candidate_field_reports[field]
+                field_report["records"] += 1
+                field_report["candidates"] += expected_candidates
+                field_report["records_with_variation"] += int(
+                    float(np.ptp(values)) > 1e-12
+                )
+                field_report["reference_zero_records"] += int(
+                    abs(float(values[0])) <= 1e-12
+                )
 
             total_records += 1
             total_candidates += expected_candidates
@@ -167,6 +230,7 @@ def audit_training_dataset(
                 "selection_log_sha256": _sha256(log_path),
                 "validation_summary_sha256": _sha256(summary_path),
                 "advance_mode": advance_mode,
+                "seed": metadata.seed,
             }
         )
 
@@ -196,7 +260,10 @@ def audit_training_dataset(
             ),
             "expected_advance_mode": expected_advance_mode,
             "advance_mode_verified": expected_advance_mode is not None,
+            "forbidden_seeds": sorted(forbidden_seeds),
+            "forbidden_seed_check": bool(forbidden_seeds),
         },
+        "candidate_fields": candidate_field_reports,
         "logs": log_reports,
     }
 
@@ -240,6 +307,34 @@ def _validate_red_light_provenance(
         )
 
 
+def _validate_candidate_field(
+    log_path: Path,
+    record_idx: int,
+    record: dict[str, Any],
+    *,
+    field: str,
+    expected_candidates: int,
+    require_reference_zero: bool,
+) -> np.ndarray:
+    values = np.asarray(record.get(field), dtype=np.float64).reshape(-1)
+    if values.shape != (expected_candidates,):
+        raise ValueError(
+            f"{log_path} record {record_idx} field {field!r} has shape "
+            f"{values.shape}, expected ({expected_candidates},)."
+        )
+    if not np.all(np.isfinite(values)) or np.any(values < 0.0):
+        raise ValueError(
+            f"{log_path} record {record_idx} field {field!r} must contain "
+            "finite nonnegative values."
+        )
+    if require_reference_zero and abs(float(values[0])) > 1e-12:
+        raise ValueError(
+            f"{log_path} record {record_idx} field {field!r} candidate 0 "
+            "must be zero."
+        )
+    return values
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
@@ -259,6 +354,11 @@ def main() -> None:
         expected_logs=args.expected_logs,
         expected_candidates=args.expected_candidates,
         expected_advance_mode=args.expected_advance_mode,
+        required_candidate_fields=tuple(args.required_candidate_field),
+        reference_zero_candidate_fields=tuple(
+            args.reference_zero_candidate_field
+        ),
+        forbidden_seeds=frozenset(args.forbid_seed),
     )
     report["artifacts"] = {
         "atom_scales": str(args.atom_scales),

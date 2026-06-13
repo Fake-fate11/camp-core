@@ -28,6 +28,15 @@ def test_dataset_audit_checks_schema_outcomes_and_red_light_provenance(
         expected_logs=1,
         expected_candidates=2,
         expected_advance_mode="perfect",
+        required_candidate_fields=(
+            "candidate_dp_prior_jerk_excess_cost",
+            "candidate_dp_prior_acceleration_excess_cost",
+        ),
+        reference_zero_candidate_fields=(
+            "candidate_dp_prior_jerk_excess_cost",
+            "candidate_dp_prior_acceleration_excess_cost",
+        ),
+        forbidden_seeds=frozenset({11, 12, 13}),
     )
 
     assert report["passed"]
@@ -41,6 +50,15 @@ def test_dataset_audit_checks_schema_outcomes_and_red_light_provenance(
     assert report["checks"]["outcome_candidate_coverage"] == 1.0
     assert report["checks"]["red_light_atom_matches_online_dp_reward"]
     assert report["checks"]["advance_mode_verified"]
+    assert report["checks"]["forbidden_seed_check"]
+    assert report["candidate_fields"][
+        "candidate_dp_prior_jerk_excess_cost"
+    ] == {
+        "records": 1,
+        "candidates": 2,
+        "records_with_variation": 1,
+        "reference_zero_records": 1,
+    }
     assert len(report["logs"][0]["selection_log_sha256"]) == 64
 
 
@@ -89,6 +107,49 @@ def test_dataset_audit_rejects_wrong_advance_mode(tmp_path) -> None:
             expected_logs=1,
             expected_candidates=2,
             expected_advance_mode="perfect",
+        )
+
+
+def test_dataset_audit_rejects_nonzero_candidate_reference(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["candidate_dp_prior_jerk_excess_cost"][0] = 0.1
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="candidate 0 must be zero"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            required_candidate_fields=(
+                "candidate_dp_prior_jerk_excess_cost",
+            ),
+            reference_zero_candidate_fields=(
+                "candidate_dp_prior_jerk_excess_cost",
+            ),
+        )
+
+
+def test_dataset_audit_rejects_forbidden_seed(tmp_path) -> None:
+    log_path = _write_completed_log(
+        tmp_path
+        / "run"
+        / "route"
+        / "seed_11"
+        / "npc_0"
+        / "spawn_0p3"
+        / "tl_on"
+        / "static"
+    )
+
+    with pytest.raises(ValueError, match="forbidden seed 11"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            forbidden_seeds=frozenset({11, 12, 13}),
         )
 
 
@@ -151,6 +212,8 @@ def _write_completed_log(tmp_path):
         "dp_candidate_rewards": [{"red_light": -3.0}, {"red_light": 0.0}],
         "candidate_closed_loop_outcomes": outcomes,
         "candidate_red_stopping_margin_cost": [1.5, 0.0],
+        "candidate_dp_prior_jerk_excess_cost": [0.0, 1.5],
+        "candidate_dp_prior_acceleration_excess_cost": [0.0, 0.2],
     }
     log_path.write_text(json.dumps([record]), encoding="utf-8")
     log_path.with_name("camp_validation_summary.json").write_text(
