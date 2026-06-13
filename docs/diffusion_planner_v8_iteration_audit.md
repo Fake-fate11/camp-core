@@ -696,7 +696,102 @@ closed-loop lateral acceleration in 2 of 3 records:
 | `planned_red_light_cost` | n/a | n/a | 0 | 0 |
 | `closed_loop_lateral_acceleration` | +0.0298217 | -0.0348515 | 0.666667 | -0.0384753 |
 
-The next step is to run the development matrix with this shadow field enabled,
-analyze whether excessive DP-prior deviation explains the Top-1 comfort/red
-gap at scale, and only then decide whether to promote it into a v10 atom with
-a full train/audit cycle.
+The full development shadow matrix is:
+
+```text
+/root/autodl-tmp/camp_dp_development_shadow_v9_dp_prior_410ff5c
+```
+
+It reran v9 Static on the 36 development scenarios with the DP-prior shadow
+diagnostic and candidate closed-loop outcomes enabled. It used seeds 1/2/3,
+three routes, NPC counts 0/4, traffic-light modes on/off, `advance_mode=perfect`,
+8 candidates, and the certified v9 static checkpoint. Formal seeds 11, 12,
+and 13 were not used.
+
+Matrix integrity audit:
+
+| Item | Evidence |
+| --- | ---: |
+| Completed logs | 36/36 |
+| Selection records | 7,200 |
+| Candidates | 57,600 |
+| Routes | 12 each for `sample59_86`, `sample2_104`, `nishishinjuku` |
+| Seeds | 1/2/3 only |
+| NPC counts | 18 each for 0/4 |
+| Traffic-light modes | 18 each for on/off |
+| `advance_mode` | `perfect` in all 36 summaries |
+| Schema | `dp_camp_v9_13d` in all 7,200 records |
+| DP-prior shadow field | present in all 7,200 records |
+| Candidate outcomes | present in all 7,200 records |
+| Candidate 0 reference | zero in all 7,200 records |
+| Candidate variation | present in all 7,200 records |
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `dp_prior_shadow_matrix_audit.json` | `424f8ccdb67042773ae67613618a31df2993dce6acb924d82ddf1782fc86120a` |
+| `dp_prior_shadow_coverage.json` | `af0b0d568750ac306004c99f900894fbb52b5a585906bc5c6a0bc727e43303e8` |
+| `dp_prior_shadow_coverage.md` | `d5ce9701dc90e302a9f5af04e424974f92e0b4de89eab1127145d520c2fb46fe` |
+| `benchmark_comparison_with_v7_v8_v9_shadow.json` | `aeda15b15b6a722aed1fdde05673c8cc2d63c28b9062b79fbf5b5ff051192486` |
+| `benchmark_comparison_with_v7_v8_v9_shadow.md` | `880369252d9b2bc54173cd7717037ecfcd9a7e4462324ddf716fc50dd977dda7` |
+
+Full-matrix DP-prior coverage:
+
+| Metric | Value |
+| --- | ---: |
+| Record availability | 1.0 |
+| Records | 7,200 |
+| Candidates | 57,600 |
+| Records with variation | 7,200 |
+| Feasible records with variation | 5,906 |
+| Reference-zero records | 7,200 |
+| Selected Top-1 rate | 0.020833 |
+| Mean selected DP-prior deviation | 3.395307 |
+| Mean shadow latency | 0.182 ms |
+| p95 shadow latency | 0.224 ms |
+
+Target alignment:
+
+| Target | All-candidate corr | Feasible corr | Selected worse than Top-1 | Selected preference gap |
+| --- | ---: | ---: | ---: | ---: |
+| `closed_loop_value` | -0.003509 | -0.013334 | 0.0525 | +1.355214 |
+| `planned_red_light_cost` | -0.011121 | n/a | 0 | +0.002083 |
+| `closed_loop_red_light_violation` | -0.010157 | n/a | 0 | +0.000139 |
+| `closed_loop_lateral_acceleration` | -0.023736 | -0.002723 | 0.658889 | -0.003943 |
+
+The shadow matrix is strictly paired with existing Top-1, Uniform, v7 Static,
+v8 Static, and v9 Static development runs: 36 common run keys, no missing
+keys, and no duplicates for any variant.
+
+Aggregate comparison:
+
+| Variant | Completion | Planned red | Realized red | Jerk | Lateral acc. | Fallback | p95 selector |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Top-1 | 0.287765 | 0.011944 | 0.000279 | 8.362638 | 0.292413 | n/a | n/a |
+| Uniform | 0.299205 | 0.034028 | 0.011446 | 20.225194 | 0.336922 | 0.168333 | 88.706 ms |
+| v7 Static | 0.300491 | 0.027361 | 0.006561 | 21.202830 | 0.339689 | 0.167639 | 88.358 ms |
+| v8 Static | 0.300336 | 0.027917 | 0.006561 | 21.317561 | 0.339232 | 0.168750 | 89.409 ms |
+| v9 Static | 0.300137 | 0.025972 | 0.006561 | 21.246975 | 0.337275 | 0.167639 | 87.966 ms |
+| v9 Shadow Static | 0.300137 | 0.025972 | 0.006561 | 21.246975 | 0.337275 | 0.167639 | 505.670 ms |
+
+`v9_shadow_static` matches v9 Static on closed-loop metrics because the
+shadow field has no selection effect. Its p95 latency is not a deployable
+latency number because `camp_collect_closed_loop_outcomes=true` adds offline
+candidate outcome labeling to every step. The deployable v9 p95 selector
+latency remains the v9 Static value above.
+
+Interpretation:
+
+- DP-prior deviation is mathematically admissible as a fixed, finite,
+  nonnegative, convex candidate cost, but the full-matrix diagnostic does not
+  show strong target alignment.
+- The selected candidate is worse than Top-1 on lateral acceleration in
+  65.9% of records, while DP-prior deviation has near-zero correlation with
+  lateral preference among feasible candidates.
+- Planned-red and realized-red Top-1 gaps are not explained by DP-prior
+  deviation in a way strong enough to justify promoting this diagnostic alone.
+- Therefore DP-prior deviation should remain shadow-only for now. The next
+  v10 candidate should prioritize a direct comfort-preserving atom computed
+  from candidate kinematics, such as jerk/lateral/curvature smoothness, while
+  preserving the same finite-candidate convex master contract.
