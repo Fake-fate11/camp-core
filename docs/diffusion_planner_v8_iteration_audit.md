@@ -469,3 +469,129 @@ on planned red-light violation, jerk, or fallback rate, and is worse than
 Top-1 on planned red-light violation and comfort. Formal seeds remain frozen.
 Only a new frozen design that improves development evidence without safety or
 completion regression may consume the formal seeds once.
+
+## V9 Red Stopping-Margin Iteration
+
+CAMP commit `becfee8` adds a single attributable v9 atom,
+`red_stopping_margin_cost`, producing schema `dp_camp_v9_13d`. The atom is the
+previous v8 shadow diagnostic promoted into the deployable selector path:
+it is computed from current-tick candidates and red-route geometry before
+selection, is deterministic, finite, nonnegative, independent of `w`, and is
+appended to the fixed candidate atom matrix. The master objective therefore
+remains the same finite maximum of affine functions of simplex-constrained
+`w`; no lower-level dual or classical Benders claim is introduced.
+
+The v9 training-log view is:
+
+```text
+/root/autodl-tmp/camp_dp_v9_red_stopping_augmented_perfect_becfee8
+```
+
+It appends the logged shadow field to the certified perfect v8 Uniform logs
+without changing outcomes or using closed-loop labels as atom inputs. The
+dataset audit passed with 36 logs, 7,200 records, 57,600 candidates,
+8x13 atom shape, `advance_mode=perfect`, complete outcomes, finite
+nonnegative atoms, exact schema metadata, and red-light provenance intact.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| v9 augmentation manifest | `11ddb3f627c3c0009d95104f8603c8d4b8d86be687c777fc14197bd5bb38558d` |
+| v9 dataset audit | `1f59655bf1dc7dbbc956fc1d21618670e8e6fec9d5d03ede2e2d80304d402084` |
+| v9 audit unit scales | `ebb2468211e7e11c89c6233c8ec5403a4b64d805dd4414a3aec4888183dbd84b` |
+
+The v9 Robust Static checkpoint is:
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v9_red_stopping_perfect_becfee8
+```
+
+It used the same grouped training contract as v8: CVaR alpha 0.9, margin
+scale 0.1, margin clip 2.0, L2 `1e-4`, CLARABEL, train-only normalization,
+validation fraction 0.2, seed 7, and required atom schema metadata. The solve
+terminated with solver status `optimal`, `converged=true`, and
+`final_master_gap=0`.
+
+| Metric | Value |
+| --- | ---: |
+| Input records | 7,200 |
+| Feasible-ranking records | 6,026 |
+| Dropped all-infeasible records | 1,174 |
+| Train groups | 29 |
+| Validation groups | 7 |
+| Train oracle match | 0.845367 |
+| Train CVaR violation | 0.056191 |
+| Validation oracle match | 0.848725 |
+| Validation CVaR violation | 0.040754 |
+
+The learned v9 weights are approximately
+`[0.613724, 0, 0.118025, 0.026989, 0.000966, 0, 0, 0, 0, 0.228145, 0, 0, 0.012151]`.
+
+The full-epigraph audit at
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v9_red_stopping_perfect_becfee8/full_epigraph_consistency.json
+```
+
+passed. The complete train-set epigraph objective and saved cutting-plane
+objective differ by `2.07e-14`; the direct CVXPY value differs by
+`6.90e-12`; the static weights differ by L-infinity `5.95e-11`.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| v9 scales | `e4290010435333eaf53a14d1fb3080fba75f1acd30dcfd4b2354e8499d6984b1` |
+| v9 weights | `d8155ad12b5513f636464c3b9bca17b7da54d783431cc0d7f7ec2ec8d077a408` |
+| v9 training summary | `2e8539f2b8d11bed18e3a1232169e2bfb7ca1aa4a2e4b22cdb99a4a86015b4ad` |
+| v9 full-epigraph audit | `d64fccf29d18cf259722a346e36c43e56a3f9a7b77591205a08c9b1194fa6eaf` |
+
+The v9 perfect development matrix is:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v9_red_stopping_becfee8
+```
+
+It completed 36/36 v9 Static runs, all with `advance_mode=perfect` and
+200 selection steps. The combined strict comparison against existing Top-1,
+Uniform, v7 Static, and v8 Static development runs is:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v9_red_stopping_becfee8/benchmark_comparison_with_v7_v8.json
+```
+
+Its SHA-256 is
+`6f8f6e5b52b2090c36b425d144eb8737e9b1cc3d6e0700d06c22952996e78ea1`;
+the markdown SHA-256 is
+`b18ea1865fd3a673748a66d0369bd913022c3b4dadd1e24fb96fd59e75aacbe5`.
+Pairing is strict: 36 common run keys and no missing or duplicate keys for
+Top-1, Uniform, v7 Static, v8 Static, or v9 Static.
+
+Aggregate development metrics:
+
+| Variant | Completion | Planned red | Realized red | Jerk | Lateral acc. | Fallback | p95 selector |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Top-1 | 0.287765 | 0.011944 | 0.000279 | 8.362638 | 0.292413 | n/a | n/a |
+| Uniform | 0.299205 | 0.034028 | 0.011446 | 20.225194 | 0.336922 | 0.168333 | 88.706 ms |
+| v7 Static | 0.300491 | 0.027361 | 0.006561 | 21.202830 | 0.339689 | 0.167639 | 88.358 ms |
+| v8 Static | 0.300336 | 0.027917 | 0.006561 | 21.317561 | 0.339232 | 0.168750 | 89.409 ms |
+| v9 Static | 0.300137 | 0.025972 | 0.006561 | 21.246975 | 0.337275 | 0.167639 | 87.966 ms |
+
+Paired v9 deltas:
+
+| Delta | Completion | Planned red | Realized red | Jerk | Lateral acc. | Fallback | p95 selector |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| v9 - v8 | -0.000199 [-0.000523, +0.000045] | -0.001944 [-0.003889, -0.000417] | 0 [0, 0] | -0.070586 [-0.456877, +0.353474] | -0.001958 [-0.004600, +0.000363] | -0.001111 [-0.004167, +0.000833] | -1.443017 [-2.419381, -0.420481] |
+| v9 - v7 | -0.000354 [-0.000958, +0.000177] | -0.001389 [-0.002917, -0.000278] | 0 [0, 0] | +0.044145 [-0.283536, +0.390333] | -0.002414 [-0.005969, +0.000691] | 0 [-0.003056, +0.003889] | -0.392076 [-1.356464, +0.594637] |
+| v9 - Top-1 | +0.012372 [+0.008523, +0.016558] | +0.014028 [+0.001111, +0.036806] | +0.006281 [0, +0.018844] | +12.884337 [+11.027569, +14.987724] | +0.044862 [+0.028967, +0.064036] | n/a | n/a |
+
+Interpretation:
+
+- v9 gives an attributable improvement over v8 on planned red-light
+  violations and selector latency, with no realized-red regression and no
+  statistically significant completion loss.
+- v9 also improves planned red-light violations over v7, but does not improve
+  jerk over v7.
+- v9 remains significantly worse than Top-1 on planned red-light violation,
+  jerk, and lateral acceleration, despite improving route completion.
+
+Therefore v9 is a useful mathematically certified design iteration, but it
+still does not satisfy the industrial/formal acceptance gate. Formal seeds
+11, 12, and 13 remain frozen.
