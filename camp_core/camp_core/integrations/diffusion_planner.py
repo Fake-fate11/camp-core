@@ -981,6 +981,127 @@ def red_route_points_from_scene(scene: Any, ego_agent_id: str) -> np.ndarray:
     return np.column_stack([xy, dirs])
 
 
+def compute_red_stopping_margin_costs(
+    candidates: np.ndarray,
+    red_route_points: np.ndarray,
+    dt: float,
+    *,
+    comfort_deceleration_mps2: float = 2.0,
+    stop_buffer_m: float = 3.0,
+    lookahead_m: float = 40.0,
+    heading_alignment_threshold: float = 0.5,
+) -> np.ndarray:
+    """Return a continuous red-light stopping-envelope cost per candidate.
+
+    This is a shadow diagnostic, not part of the deployed v8 atom schema. For
+    each future step it measures squared speed above the comfortable stopping
+    envelope for the nearest aligned red route point ahead of the candidate:
+
+        v_safe(d) = sqrt(2 * a_comfort * max(d - d_buffer, 0)).
+
+    The excess is proximity-weighted and integrated over time. The resulting
+    cost is finite, deterministic, nonnegative, and uses only current-tick
+    route-light state and candidate geometry.
+    """
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.ndim != 3 or trajectories.shape[2] < 2:
+        raise ValueError(
+            "candidates must have shape [K,T,>=2], "
+            f"got {trajectories.shape}."
+        )
+    if not np.all(np.isfinite(trajectories)):
+        raise ValueError("candidates must contain only finite values.")
+    if not np.isfinite(dt) or dt <= 0.0:
+        raise ValueError("dt must be finite and positive.")
+    if (
+        not np.isfinite(comfort_deceleration_mps2)
+        or comfort_deceleration_mps2 <= 0.0
+    ):
+        raise ValueError("comfort_deceleration_mps2 must be finite and positive.")
+    if not np.isfinite(stop_buffer_m) or stop_buffer_m < 0.0:
+        raise ValueError("stop_buffer_m must be finite and nonnegative.")
+    if not np.isfinite(lookahead_m) or lookahead_m <= stop_buffer_m:
+        raise ValueError("lookahead_m must be finite and greater than stop_buffer_m.")
+    if (
+        not np.isfinite(heading_alignment_threshold)
+        or not -1.0 <= heading_alignment_threshold <= 1.0
+    ):
+        raise ValueError("heading_alignment_threshold must be in [-1, 1].")
+
+    red = np.asarray(red_route_points, dtype=np.float64)
+    if red.size == 0:
+        return np.zeros(trajectories.shape[0], dtype=np.float64)
+    if red.ndim != 2 or red.shape[1] < 4:
+        raise ValueError(
+            "red_route_points must have shape [R,>=4], "
+            f"got {red.shape}."
+        )
+    if not np.all(np.isfinite(red)):
+        raise ValueError("red_route_points must contain only finite values.")
+    if trajectories.shape[1] < 2:
+        return np.zeros(trajectories.shape[0], dtype=np.float64)
+
+    red_directions = red[:, 2:4]
+    red_direction_norms = np.linalg.norm(red_directions, axis=1)
+    valid_red = red_direction_norms > 1e-6
+    if not valid_red.any():
+        return np.zeros(trajectories.shape[0], dtype=np.float64)
+    red_xy = red[valid_red, :2]
+    red_directions = (
+        red_directions[valid_red]
+        / red_direction_norms[valid_red, np.newaxis]
+    )
+
+    costs = np.zeros(trajectories.shape[0], dtype=np.float64)
+    for candidate_index, trajectory in enumerate(trajectories):
+        xy = trajectory[:, :2]
+        speeds = np.linalg.norm(np.diff(xy, axis=0), axis=1) / float(dt)
+        headings = _trajectory_headings(trajectory)[1:]
+        heading_vectors = np.column_stack(
+            [np.cos(headings), np.sin(headings)]
+        )
+        relative = (
+            red_xy[np.newaxis, :, :]
+            - xy[1:, np.newaxis, :]
+        )
+        distances = np.linalg.norm(relative, axis=2)
+        aligned = (
+            heading_vectors @ red_directions.T
+            > float(heading_alignment_threshold)
+        )
+        ahead = np.einsum(
+            "trd,td->tr",
+            relative,
+            heading_vectors,
+        ) > 0.0
+        eligible = aligned & ahead & (distances <= float(lookahead_m))
+        nearest = np.min(
+            np.where(eligible, distances, np.inf),
+            axis=1,
+        )
+        active = np.isfinite(nearest)
+        if not active.any():
+            continue
+        stopping_distance = np.maximum(
+            nearest[active] - float(stop_buffer_m),
+            0.0,
+        )
+        safe_speed = np.sqrt(
+            2.0 * float(comfort_deceleration_mps2) * stopping_distance
+        )
+        speed_excess = np.maximum(speeds[active] - safe_speed, 0.0)
+        proximity_weight = np.maximum(
+            1.0 - nearest[active] / float(lookahead_m),
+            0.0,
+        )
+        costs[candidate_index] = float(
+            float(dt) * np.sum(proximity_weight * speed_excess**2)
+        )
+    if not np.all(np.isfinite(costs)) or np.any(costs < 0.0):
+        raise RuntimeError("Red stopping-margin costs violated the atom contract.")
+    return costs
+
+
 def _trajectory_comfort(trajectory: np.ndarray, dt: float) -> tuple[float, float]:
     xy = np.asarray(trajectory, dtype=np.float64)[:, :2]
     if xy.shape[0] < 3:

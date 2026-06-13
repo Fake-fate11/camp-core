@@ -48,6 +48,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--atom_scales", type=Path, required=True)
     parser.add_argument("--expected_logs", type=int, default=None)
     parser.add_argument("--expected_candidates", type=int, default=8)
+    parser.add_argument(
+        "--expected_advance_mode",
+        choices=("perfect", "mpc", "teleport"),
+        default=None,
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -58,6 +63,7 @@ def audit_training_dataset(
     atom_scales: np.ndarray,
     expected_logs: int | None,
     expected_candidates: int,
+    expected_advance_mode: str | None = None,
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
@@ -88,6 +94,15 @@ def audit_training_dataset(
         summary_path = log_path.with_name("camp_validation_summary.json")
         if not summary_path.is_file():
             raise ValueError(f"Missing completed-run summary for {log_path}.")
+        validation_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        if not isinstance(validation_summary, dict):
+            raise ValueError(f"{summary_path} must contain a JSON object.")
+        advance_mode = validation_summary.get("advance_mode")
+        if expected_advance_mode is not None and advance_mode != expected_advance_mode:
+            raise ValueError(
+                f"{summary_path} uses advance_mode={advance_mode!r}, "
+                f"expected {expected_advance_mode!r}."
+            )
         records = json.loads(log_path.read_text(encoding="utf-8"))
         if not isinstance(records, list) or not records:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
@@ -151,6 +166,7 @@ def audit_training_dataset(
                 "records": len(records),
                 "selection_log_sha256": _sha256(log_path),
                 "validation_summary_sha256": _sha256(summary_path),
+                "advance_mode": advance_mode,
             }
         )
 
@@ -178,6 +194,8 @@ def audit_training_dataset(
             "outcome_candidate_coverage": (
                 outcome_candidates / total_candidates if total_candidates else 0.0
             ),
+            "expected_advance_mode": expected_advance_mode,
+            "advance_mode_verified": expected_advance_mode is not None,
         },
         "logs": log_reports,
     }
@@ -240,6 +258,7 @@ def main() -> None:
         atom_scales=load_dp_camp_atom_scales(args.atom_scales),
         expected_logs=args.expected_logs,
         expected_candidates=args.expected_candidates,
+        expected_advance_mode=args.expected_advance_mode,
     )
     report["artifacts"] = {
         "atom_scales": str(args.atom_scales),

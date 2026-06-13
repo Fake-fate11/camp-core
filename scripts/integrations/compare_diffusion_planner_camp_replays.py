@@ -58,6 +58,7 @@ BENCHMARK_KEYS = (
     "max_npcs",
     "spawn_probability",
     "traffic_lights",
+    "advance_mode",
 )
 PAPER_METRICS = (
     "route_completion_rate",
@@ -121,6 +122,7 @@ def _run_key(summary: dict[str, Any], output_dir: Path) -> str:
             benchmark.get("max_npcs"),
             benchmark.get("spawn_probability"),
             benchmark.get("traffic_lights"),
+            benchmark.get("advance_mode"),
         ]
         if any(field is not None for field in fields):
             return "|".join(str(field) for field in fields)

@@ -155,6 +155,9 @@ def compute_atom_coverage_report(
             "mode_filter": sorted(mode_filter) if mode_filter else None,
         },
         "summary": _global_summary(logs, record_infos),
+        "shadow_red_stopping_margin": _shadow_red_stopping_margin_coverage(
+            record_infos
+        ),
         "extra_feature_scales": extra_scales,
         "alignment": score_variants,
         "atom_target_correlations": _atom_target_correlations(record_infos),
@@ -223,8 +226,17 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             + " |"
         )
 
+    shadow = report.get("shadow_red_stopping_margin", {})
     lines.extend(
         [
+            "",
+            "## Shadow Red Stopping-Margin Coverage",
+            "",
+            f"- Record availability: {_fmt(shadow.get('record_availability_rate'))}",
+            f"- Records with red route points: {shadow.get('red_route_exposed_records', 0)}",
+            f"- Feasible records with candidate variation: {shadow.get('feasible_records_with_variation', 0)}",
+            f"- Feasible candidates with nonzero cost: {shadow.get('feasible_candidates_nonzero', 0)}",
+            f"- All-infeasible records with candidate variation: {shadow.get('fallback_records_with_variation', 0)}",
             "",
             "## Scenario Breakdown",
             "",
@@ -329,6 +341,27 @@ def _record_info(
         selected_index = _select_index(scores, feasible_mask)
 
     red_light_cost = _candidate_cost_values(record, "reward", "red_light")
+    red_stopping_margin_cost = record.get(
+        "candidate_red_stopping_margin_cost"
+    )
+    if red_stopping_margin_cost is not None:
+        red_stopping_margin_cost = np.asarray(
+            red_stopping_margin_cost,
+            dtype=float,
+        ).reshape(-1)
+        if red_stopping_margin_cost.shape != scores.shape:
+            raise ValueError(
+                f"{metadata.log_path} record {record_idx} has red stopping-margin "
+                f"shape {red_stopping_margin_cost.shape}, expected {scores.shape}."
+            )
+        if (
+            not np.all(np.isfinite(red_stopping_margin_cost))
+            or np.any(red_stopping_margin_cost < 0.0)
+        ):
+            raise ValueError(
+                f"{metadata.log_path} record {record_idx} has invalid red "
+                "stopping-margin costs."
+            )
     lateral_acceleration = _candidate_values(
         record,
         "outcome",
@@ -370,12 +403,110 @@ def _record_info(
         "scores": scores,
         "atoms": atoms,
         "red_light_cost": red_light_cost,
+        "red_stopping_margin_cost": red_stopping_margin_cost,
+        "red_route_point_count": int(record.get("red_route_point_count", 0)),
         "lateral_acceleration_cost": lateral_acceleration,
         "closed_loop_value": closed_loop_value,
         "red_light_violation": red_light_violation,
         "red_light_exposed": red_light_exposed,
         "candidate_count": int(scores.size),
         "raw_record": record,
+    }
+
+
+def _shadow_red_stopping_margin_coverage(
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    available = [
+        info for info in records if info["red_stopping_margin_cost"] is not None
+    ]
+    if not records:
+        return {"record_availability_rate": None, "records": 0}
+    if not available:
+        return {
+            "record_availability_rate": 0.0,
+            "records": 0,
+            "candidate_count": 0,
+            "red_route_exposed_records": 0,
+            "records_with_nonzero_cost": 0,
+            "feasible_records_with_variation": 0,
+            "feasible_candidates_nonzero": 0,
+            "fallback_records_with_variation": 0,
+        }
+
+    candidate_count = 0
+    nonzero_candidates = 0
+    records_with_nonzero = 0
+    feasible_records = 0
+    feasible_candidates = 0
+    feasible_candidates_nonzero = 0
+    feasible_records_with_variation = 0
+    fallback_records = 0
+    fallback_records_with_variation = 0
+    all_values = []
+    latencies = []
+    for info in available:
+        values = np.asarray(info["red_stopping_margin_cost"], dtype=float)
+        feasible = np.asarray(info["feasible_mask"], dtype=bool)
+        all_values.append(values)
+        candidate_count += int(values.size)
+        nonzero_candidates += int(np.count_nonzero(values > 1e-12))
+        records_with_nonzero += int(np.any(values > 1e-12))
+        latency = info["raw_record"].get(
+            "latency_ms_shadow_red_stopping_margin"
+        )
+        if latency is not None and np.isfinite(float(latency)):
+            latencies.append(float(latency))
+        if feasible.any():
+            feasible_records += 1
+            feasible_values = values[feasible]
+            feasible_candidates += int(feasible_values.size)
+            feasible_candidates_nonzero += int(
+                np.count_nonzero(feasible_values > 1e-12)
+            )
+            feasible_records_with_variation += int(
+                float(np.ptp(feasible_values)) > 1e-12
+            )
+        else:
+            fallback_records += 1
+            fallback_records_with_variation += int(
+                float(np.ptp(values)) > 1e-12
+            )
+
+    flat = np.concatenate(all_values)
+    positive = flat[flat > 1e-12]
+    return {
+        "record_availability_rate": float(len(available) / len(records)),
+        "records": int(len(available)),
+        "candidate_count": int(candidate_count),
+        "red_route_exposed_records": int(
+            sum(info["red_route_point_count"] > 0 for info in available)
+        ),
+        "records_with_nonzero_cost": int(records_with_nonzero),
+        "nonzero_candidates": int(nonzero_candidates),
+        "feasible_records": int(feasible_records),
+        "feasible_candidates": int(feasible_candidates),
+        "feasible_candidates_nonzero": int(feasible_candidates_nonzero),
+        "feasible_records_with_variation": int(
+            feasible_records_with_variation
+        ),
+        "fallback_records": int(fallback_records),
+        "fallback_records_with_variation": int(
+            fallback_records_with_variation
+        ),
+        "positive_cost_p50": (
+            float(np.percentile(positive, 50)) if positive.size else None
+        ),
+        "positive_cost_p95": (
+            float(np.percentile(positive, 95)) if positive.size else None
+        ),
+        "maximum_cost": float(np.max(flat)) if flat.size else None,
+        "mean_shadow_latency_ms": (
+            float(np.mean(latencies)) if latencies else None
+        ),
+        "p95_shadow_latency_ms": (
+            float(np.percentile(latencies, 95)) if latencies else None
+        ),
     }
 
 

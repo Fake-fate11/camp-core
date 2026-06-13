@@ -16,6 +16,7 @@ def _make_args() -> SimpleNamespace:
         model_args=Path("F:/diffusion_planner/diffusion_planner.param.json"),
         config=Path("F:/diffusion_planner/scenario_generation/configs/replay_default.json"),
         device="cuda",
+        advance_mode="perfect",
         near_miss_threshold_m=2.0,
         steps=200,
         reward_config=Path("F:/camp_core-main/configs/integrations/dp_camp_reward_eval.json"),
@@ -64,6 +65,7 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert static_cmd[idx + 1] == "learned"
     assert "--camp_fallback_atom_scales" in static_cmd
     assert "--camp_fallback_static_weights" in static_cmd
+    assert static_cmd[static_cmd.index("--advance_mode") + 1] == "perfect"
 
     top1_cmd = _variant_command(
         variant="top1",

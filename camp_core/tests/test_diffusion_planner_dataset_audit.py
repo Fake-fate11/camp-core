@@ -21,6 +21,7 @@ def test_dataset_audit_checks_schema_outcomes_and_red_light_provenance(
         atom_scales=np.ones(12),
         expected_logs=1,
         expected_candidates=2,
+        expected_advance_mode="perfect",
     )
 
     assert report["passed"]
@@ -33,6 +34,7 @@ def test_dataset_audit_checks_schema_outcomes_and_red_light_provenance(
     }
     assert report["checks"]["outcome_candidate_coverage"] == 1.0
     assert report["checks"]["red_light_atom_matches_online_dp_reward"]
+    assert report["checks"]["advance_mode_verified"]
     assert len(report["logs"][0]["selection_log_sha256"]) == 64
 
 
@@ -48,6 +50,7 @@ def test_dataset_audit_rejects_red_light_atom_mismatch(tmp_path) -> None:
             atom_scales=np.ones(12),
             expected_logs=1,
             expected_candidates=2,
+            expected_advance_mode="perfect",
         )
 
 
@@ -61,6 +64,25 @@ def test_dataset_audit_requires_completed_run_summary(tmp_path) -> None:
             atom_scales=np.ones(12),
             expected_logs=1,
             expected_candidates=2,
+            expected_advance_mode="perfect",
+        )
+
+
+def test_dataset_audit_rejects_wrong_advance_mode(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path)
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary_path.write_text(
+        json.dumps({"selection_steps": 1, "advance_mode": "mpc"}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="advance_mode"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_advance_mode="perfect",
         )
 
 
@@ -92,7 +114,7 @@ def _write_completed_log(tmp_path):
     }
     log_path.write_text(json.dumps([record]), encoding="utf-8")
     log_path.with_name("camp_validation_summary.json").write_text(
-        json.dumps({"selection_steps": 1}),
+        json.dumps({"selection_steps": 1, "advance_mode": "perfect"}),
         encoding="utf-8",
     )
     return log_path

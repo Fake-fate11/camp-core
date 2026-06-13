@@ -77,6 +77,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--output_root", type=Path, required=True)
     parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument(
+        "--advance_mode",
+        choices=("perfect", "mpc", "teleport"),
+        default="perfect",
+        help="Closed-loop tracker. Formal DP+CAMP matrices default to perfect.",
+    )
     parser.add_argument("--steps", type=int, default=None)
     parser.add_argument("--seeds", type=_parse_int_list, required=True)
     parser.add_argument("--max_npcs", type=_parse_int_list, required=True)
@@ -166,6 +172,8 @@ def _append_common(cmd: list[str], args: argparse.Namespace, route: Path) -> Non
             str(args.config),
             "--device",
             args.device,
+            "--advance_mode",
+            args.advance_mode,
             "--near_miss_threshold_m",
             str(args.near_miss_threshold_m),
         ]

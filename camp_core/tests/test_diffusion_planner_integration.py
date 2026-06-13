@@ -24,6 +24,7 @@ from camp_core.integrations.diffusion_planner import (
     atom_schema_for_dimension,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
+    compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     install_lanelet2_projection_fallback,
     project_simplex,
@@ -462,6 +463,61 @@ def test_candidate_closed_loop_outcomes_capture_branch_metrics() -> None:
     assert outcomes[2]["lane_violation"]
     assert outcomes[1]["value"] < outcomes[0]["value"]
     assert outcomes[2]["value"] < outcomes[0]["value"]
+
+
+def test_red_stopping_margin_cost_is_continuous_before_hard_violation() -> None:
+    candidates = np.array(
+        [
+            [[0.0, 0.0], [8.0, 0.0], [14.0, 0.0]],
+            [[0.0, 0.0], [4.0, 0.0], [8.0, 0.0]],
+            [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
+        ]
+    )
+    red_points = np.array([[20.0, 0.0, 1.0, 0.0]])
+
+    costs = compute_red_stopping_margin_costs(
+        candidates,
+        red_points,
+        dt=1.0,
+    )
+
+    assert np.all(np.isfinite(costs))
+    assert np.all(costs >= 0.0)
+    assert costs[0] > costs[1]
+    assert costs[0] > 0.0
+    assert costs[2] == 0.0
+    assert (
+        np.min(
+            np.linalg.norm(
+                candidates[0, :, :2] - red_points[0, :2],
+                axis=1,
+            )
+        )
+        > 3.0
+    )
+
+
+def test_red_stopping_margin_ignores_unaligned_or_behind_red_points() -> None:
+    candidates = np.array([[[0.0, 0.0], [8.0, 0.0], [14.0, 0.0]]])
+    unaligned = np.array([[20.0, 0.0, 0.0, 1.0]])
+    behind = np.array([[-5.0, 0.0, 1.0, 0.0]])
+
+    np.testing.assert_array_equal(
+        compute_red_stopping_margin_costs(candidates, unaligned, dt=1.0),
+        np.zeros(1),
+    )
+    np.testing.assert_array_equal(
+        compute_red_stopping_margin_costs(candidates, behind, dt=1.0),
+        np.zeros(1),
+    )
+
+
+def test_red_stopping_margin_rejects_nonfinite_online_inputs() -> None:
+    candidates = np.array([[[0.0, 0.0], [np.nan, 0.0]]])
+    red_points = np.array([[20.0, 0.0, 1.0, 0.0]])
+
+    with pytest.raises(ValueError, match="finite"):
+        compute_red_stopping_margin_costs(candidates, red_points, dt=0.1)
 
 
 def test_closed_loop_outcome_labels_prefer_best_feasible_candidate(tmp_path) -> None:

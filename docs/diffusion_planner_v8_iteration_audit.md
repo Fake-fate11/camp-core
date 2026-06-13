@@ -2,7 +2,7 @@
 
 ## Decision
 
-The current certified development configuration is:
+The historical certified development configuration is:
 
 - Diffusion Planner commit
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`;
@@ -12,14 +12,39 @@ The current certified development configuration is:
 - exact OBB collision checks with the certified broad phase and vectorized
   lane/clearance atom implementation.
 
-The formal seeds 11, 12, and 13 remain unused. V8 is mathematically
-deployable, but it is not yet admitted to the one-shot formal performance
-evaluation because the required red-light improvement over v7 is not
-identifiable under the current feasible candidate support.
+The formal seeds 11, 12, and 13 remain unused. V8 is mathematically certified
+for its collected finite-candidate dataset, but it is not a deployable
+checkpoint for the requested perfect-tracking simulator. A June 13, 2026
+configuration audit found that the benchmark matrix inherited the upstream
+`SpawnConfig` default `advance_mode="mpc"` instead of forcing `perfect`.
+
+The current decision is therefore:
+
+- retain the old v8 artifacts only as an MPC-distribution development result;
+- require explicit `advance_mode="perfect"` in every new collection,
+  validation, and formal run;
+- recollect the 36-run training matrix under perfect tracking and retrain
+  before any formal evaluation;
+- keep formal seeds untouched until the perfect-tracking design is frozen.
+
+The benchmark runner now defaults to `perfect`, each replay records the mode,
+pairing keys include the mode, and dataset audit can fail closed unless the
+expected mode is present.
+
+AutoDL verification passes 67 Diffusion Planner integration tests. The old
+36-run dataset is rejected by `--expected_advance_mode perfect` because its
+summaries contain no certified mode. A 5-step gate smoke at
+
+```text
+/root/autodl-tmp/camp_dp_perfect_mode_gate_smoke_20260613
+```
+
+prints `Advance mode: perfect` and records
+`advance_mode=perfect` in both the summary and strict-pairing key.
 
 ## Dataset Gate
 
-The Uniform v8 collection is:
+The historical Uniform v8 collection is:
 
 ```text
 /root/autodl-tmp/camp_dp_v8_outcome_collect_uniform_5853d8c
@@ -43,6 +68,10 @@ The persisted audit passed all declared checks:
 All normalization scales were fitted on training groups only. The normal
 feasible-ranking dataset contains 5,854 records split into 27 training groups
 and 7 validation groups.
+
+These checks establish schema and data integrity, but the old summaries do not
+record `advance_mode` and point directly to upstream `replay_default.json`,
+whose default is MPC. They do not establish perfect-tracking provenance.
 
 ## Mathematical Certificate
 
@@ -140,6 +169,34 @@ The following certified solves were not promoted:
 These are valid negative results. Their checkpoints must not replace the
 frozen v8 artifacts.
 
+### Shadow red stopping-margin atom
+
+A continuous shadow diagnostic was implemented without changing the 12D
+selector or its decisions. For distance \(d_t\) to the nearest aligned red
+route point ahead of a candidate, it uses the comfortable stopping envelope
+
+\[
+v_{\mathrm{safe}}(d_t) =
+\sqrt{2a_{\mathrm{comfort}}\max(d_t-d_{\mathrm{buffer}},0)}
+\]
+
+and integrates the proximity-weighted squared positive speed excess. It is
+finite, deterministic, nonnegative, uses only current-tick online inputs, and
+would remain constant with respect to master weights.
+
+It is not admitted as an atom. A 12-run seed-1 MPC shadow matrix contains
+19,200 candidates, but only four have nonzero cost. All 14,197 feasible
+candidates have zero cost, so no feasible record has candidate variation.
+The definition therefore fails the coverage gate on the historical matrix.
+The diagnostic remains selection-neutral while perfect-tracking coverage is
+measured.
+
+The shadow report is under:
+
+```text
+/root/autodl-tmp/camp_dp_shadow_red_margin_matrix_seed1_20260613
+```
+
 ## Accepted Runtime Optimization
 
 The exact OBB test was retained. The collected dataset contains 121
@@ -188,7 +245,7 @@ Its SHA-256 is
 `1cafb68d963084e57b925a37d84454c387485e99b5a2e7c767165ddc511349b9`.
 The AutoDL Diffusion Planner integration test set passes 63 tests.
 
-The optimized 12-run development matrix reports:
+The optimized historical 12-run MPC development matrix reports:
 
 | Latency | Mean across runs | Worst run |
 | --- | ---: | ---: |
@@ -200,7 +257,8 @@ The optimized 12-run development matrix reports:
 | CAMP atom computation mean | 5.29 ms | 9.90 ms |
 
 All 12 run-level mean and p95 total planning-path measurements are below the
-100 ms simulator tick budget.
+100 ms simulator tick budget. This latency result must be repeated under
+explicit perfect tracking before industrial acceptance.
 
 ## Artifact Integrity
 
@@ -218,12 +276,10 @@ All 12 run-level mean and p95 total planning-path measurements are below the
 
 ## Formal Evaluation Gate
 
-Do not run seeds 11, 12, and 13 yet. The current acceptance criterion requires
-v8 to significantly reduce v7 planned red-light violations, but the hard gate
-makes that metric identically zero in the available feasible branch. The next
-iteration must be a single, attributable design change that improves
-identifiable risk or comfort without relaxing hard feasibility. Candidate
-coverage and atom/outcome variation must be demonstrated on training and
-validation seeds before retraining. Only a frozen design that improves the
-development evidence without safety or completion regression may consume the
-formal seeds once.
+Do not run seeds 11, 12, and 13 yet. First recollect the 36-run Uniform dataset
+with explicit perfect tracking, mode metadata, 12D schema checks, complete
+candidate outcomes, and the selection-neutral shadow diagnostic. Retrain and
+repeat the grouped validation, fallback ablation, development matrix, and
+latency/equivalence gates on that distribution. Only a frozen design that
+improves development evidence without safety or completion regression may
+consume the formal seeds once.

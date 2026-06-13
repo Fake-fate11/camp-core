@@ -106,6 +106,11 @@ def test_atom_coverage_report_keeps_all_infeasible_fallback_separate(
     report = compute_atom_coverage_report([log_path], mode_filter={"static"})
 
     assert report["summary"]["fallback_rate"] == 0.5
+    shadow = report["shadow_red_stopping_margin"]
+    assert shadow["record_availability_rate"] == 1.0
+    assert shadow["feasible_records_with_variation"] == 1
+    assert shadow["feasible_candidates_nonzero"] == 1
+    assert shadow["fallback_records_with_variation"] == 1
     assert (
         report["consistency_checks"]["fallback_flag_matches_all_infeasible_rate"]
         == 1.0
@@ -158,10 +163,11 @@ def _record(
     outcome_value: list[float],
     red_light_violation: list[bool],
     lateral_acceleration: list[float],
+    red_stopping_margin: list[float] | None = None,
 ) -> dict:
     candidate_count = len(scores)
     atoms = [[float(idx + 1)] * 10 for idx in range(candidate_count)]
-    return {
+    record = {
         "atoms": atoms,
         "normalized_atoms": atoms,
         "scores": scores,
@@ -183,3 +189,11 @@ def _record(
             for idx in range(candidate_count)
         ],
     }
+    record["candidate_red_stopping_margin_cost"] = (
+        red_stopping_margin
+        if red_stopping_margin is not None
+        else [float(idx) for idx in range(candidate_count)]
+    )
+    record["red_route_point_count"] = 3
+    record["latency_ms_shadow_red_stopping_margin"] = 0.2
+    return record

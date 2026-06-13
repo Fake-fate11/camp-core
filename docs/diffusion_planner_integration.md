@@ -596,10 +596,16 @@ For batched collection, use the matrix runner with the uniform variant:
 "$DP_PYTHON" scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
   --variants uniform \
   --skip_compare \
+  --advance_mode perfect \
   --camp_collect_closed_loop_outcomes \
   --camp_outcome_horizon_steps 30 \
   ...  # same route/seed/NPC/traffic-light/model arguments as the formal matrix
 ```
+
+The matrix runner defaults to `perfect`, records the effective mode in every
+summary, and includes it in strict-pairing keys. Historical matrix outputs
+created before this gate inherited the upstream `mpc` default and must not be
+used as perfect-tracking evidence.
 
 Train Static CAMP from the collected logs with:
 

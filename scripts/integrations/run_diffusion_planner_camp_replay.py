@@ -26,6 +26,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     atom_schema_for_dimension,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
+    compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     generate_candidate_trajectories,
     install_lanelet2_projection_fallback,
@@ -63,6 +64,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max_npcs", type=int, default=None)
     parser.add_argument("--spawn_probability", type=float, default=None)
+    parser.add_argument(
+        "--advance_mode",
+        choices=("config", "perfect", "mpc", "teleport"),
+        default="config",
+        help="Override SpawnConfig.advance_mode for an auditable tracker choice.",
+    )
     parser.add_argument(
         "--traffic_lights",
         choices=("config", "on", "off"),
@@ -719,6 +726,7 @@ def _install_camp_predictor(
         candidate_outcomes = None
         candidate_progress = None
         candidate_planned_red_light_cost = None
+        red_route_points = red_route_points_from_scene(scene, ego_id)
         external_feasible_mask = None
         external_infeasibility_reasons = None
         if feasibility_source == "dp_reward":
@@ -755,7 +763,7 @@ def _install_camp_predictor(
                 candidates,
                 context,
                 candidate_obstacles=obstacles,
-                red_route_points=red_route_points_from_scene(scene, ego_id),
+                red_route_points=red_route_points,
                 horizon_steps=outcome_horizon_steps,
                 near_miss_threshold_m=near_miss_threshold_m,
                 ego_length=ego_length,
@@ -780,6 +788,15 @@ def _install_camp_predictor(
         )
         selection_done = time.perf_counter()
         elapsed_ms = (selection_done - start) * 1000.0
+        shadow_start = time.perf_counter()
+        candidate_red_stopping_margin_cost = compute_red_stopping_margin_costs(
+            candidates,
+            red_route_points,
+            context.dt,
+        )
+        shadow_red_stopping_margin_latency_ms = (
+            time.perf_counter() - shadow_start
+        ) * 1000.0
         phase_latencies_ms = {
             "latency_ms_candidate_generation": (
                 candidate_generation_done - start
@@ -868,6 +885,13 @@ def _install_camp_predictor(
                     else None
                 ),
                 "candidate_closed_loop_outcomes": candidate_outcomes,
+                "candidate_red_stopping_margin_cost": (
+                    candidate_red_stopping_margin_cost.tolist()
+                ),
+                "red_route_point_count": int(red_route_points.shape[0]),
+                "latency_ms_shadow_red_stopping_margin": (
+                    shadow_red_stopping_margin_latency_ms
+                ),
                 "candidate_closed_loop_outcome_horizon_steps": (
                     min(outcome_horizon_steps, int(candidates.shape[1]))
                     if candidate_outcomes is not None
@@ -916,6 +940,8 @@ def main() -> None:
         config.max_active_npcs = args.max_npcs
     if args.spawn_probability is not None:
         config.spawn_probability = args.spawn_probability
+    if args.advance_mode != "config":
+        config.advance_mode = args.advance_mode
     if args.traffic_lights != "config":
         config.enable_traffic_lights = args.traffic_lights == "on"
     config.validate()
@@ -1047,8 +1073,22 @@ def main() -> None:
             if records is not None and args.camp_collect_closed_loop_outcomes
             else None
         ),
+        "camp_shadow_red_stopping_margin": (
+            {
+                "enabled": True,
+                "selection_effect": False,
+                "comfort_deceleration_mps2": 2.0,
+                "stop_buffer_m": 3.0,
+                "lookahead_m": 40.0,
+                "heading_alignment_threshold": 0.5,
+                "unit": "m^2/s",
+            }
+            if records is not None
+            else None
+        ),
         "selector_mode": args.camp_selector_mode,
         "camp_fallback_mode": args.camp_fallback_mode,
+        "advance_mode": config.advance_mode,
         "dp_scene_feature_names": list(DP_SCENE_FEATURE_NAMES),
         "model_args": str(args.model_args) if args.model_args is not None else None,
         "using_no_ros_projection_fallback": using_projection_fallback,
@@ -1064,6 +1104,7 @@ def main() -> None:
             "max_npcs": args.max_npcs,
             "spawn_probability": args.spawn_probability,
             "traffic_lights": bool(config.enable_traffic_lights),
+            "advance_mode": config.advance_mode,
             "reward_config": (
                 str(args.reward_config) if args.reward_config is not None else None
             ),
@@ -1100,9 +1141,11 @@ def main() -> None:
     validation["benchmark_key"] = (
         f"route={args.route}|seed={args.seed}|steps={args.steps}|"
         f"max_npcs={args.max_npcs}|spawn_probability={args.spawn_probability}|"
-        f"traffic_lights={bool(config.enable_traffic_lights)}"
+        f"traffic_lights={bool(config.enable_traffic_lights)}|"
+        f"advance_mode={config.advance_mode}"
     )
     validation["camp_fallback_mode"] = args.camp_fallback_mode
+    validation["advance_mode"] = config.advance_mode
     (args.output_dir / "camp_validation_summary.json").write_text(
         json.dumps(validation, indent=2), encoding="utf-8"
     )
