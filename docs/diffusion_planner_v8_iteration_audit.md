@@ -893,3 +893,112 @@ Next gate: run the 36-run development shadow matrix with these fields enabled.
 Promotion to a v10 schema is not justified until the shadow coverage shows high
 variation, low latency, and stronger alignment with the jerk/lateral failure
 modes than the prior DP-position deviation diagnostic.
+
+## Full comfort-shadow matrix and horizon decision
+
+The complete non-formal development matrix is:
+
+```text
+/root/autodl-tmp/camp_dp_development_shadow_v9_comfort_d6703f6
+```
+
+It contains 36/36 completed perfect-tracking runs over routes
+`sample59_86`, `sample2_104`, and `nishishinjuku`; seeds 1/2/3; NPC counts
+0/4; and traffic lights off/on. Each run used 200 steps, 8 candidates,
+candidate noise scale 1.0, the certified v9 Static checkpoint, and candidate
+closed-loop outcome collection. Formal seeds 11/12/13 were not used.
+
+The fail-closed matrix audit passed:
+
+| Item | Evidence |
+| --- | ---: |
+| Selection records | 7,200 |
+| Candidates | 57,600 |
+| All-infeasible records | 1,207 |
+| Complete candidate outcomes | yes |
+| Exact v9 schema metadata | yes |
+| Finite nonnegative atoms | yes |
+| Forbidden-seed check | yes |
+| DP-prior jerk variation | 7,155 records |
+| DP-prior acceleration variation | 7,156 records |
+| Candidate-0 reference zero | 7,200 records for every shadow field |
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `comfort_shadow_matrix_audit.json` | `5f0bdfd47dfc509923a81d5dc46e7309862bea2315126b5b7edf8d90d8fd91dc` |
+| `comfort_shadow_coverage.json` | `a9f41a3ecf56b3f9832d67a1ad628ce25474dbe957d7e26df11905438561c505` |
+| `comfort_shadow_coverage.md` | `ad0842769f3e5f944ab7abe8ae41de95cb2a5e8527736f7f5915dda68d105e62` |
+| `benchmark_comparison_with_v7_v8_v9_comfort_shadow.json` | `ab246daae1ef1a9cd022bd001c9534286e7c0d70f284609963338a74ccd3eab5` |
+| `benchmark_comparison_with_v7_v8_v9_comfort_shadow.md` | `69d941b9ad9d6c9b941a7f9225bc157e7a3b9e757b8c3f8562a1286c5c3ea957` |
+
+The full-horizon jerk-excess shadow is substantially better aligned with
+Top-1 comfort gaps than raw DP-position deviation:
+
+| Shadow field and target | Global corr. | Feasible corr. | Top-1-gap corr. | Feasible Top-1-gap corr. |
+| --- | ---: | ---: | ---: | ---: |
+| DP deviation vs jerk | 0.0324 | 0.0567 | 0.2640 | 0.4487 |
+| DP deviation vs lateral | -0.0237 | -0.0027 | 0.1114 | 0.2494 |
+| Jerk excess vs jerk | 0.1580 | 0.1400 | 0.7102 | 0.6736 |
+| Jerk excess vs lateral | 0.0508 | 0.0758 | 0.5766 | 0.5893 |
+| Acceleration excess vs jerk | 0.1356 | 0.1216 | 0.6245 | 0.6045 |
+| Acceleration excess vs lateral | -0.0011 | 0.0250 | 0.4359 | 0.4074 |
+
+Jerk excess has 7,155 records with variation, 5,836 feasible records with
+variation, mean latency 0.133 ms, and p95 latency 0.143 ms. However, it is
+positive for only 70.4% of candidates whose 30-step closed-loop jerk is worse
+than Top-1. Acceleration excess is weaker on both target alignments and is not
+retained as the leading v10 candidate.
+
+The shadow run is strictly paired with Top-1, Uniform, v7 Static, v8 Static,
+and v9 Static: all six variants have 36 unique common run keys, with no
+missing or duplicate keys. Because the fields are shadow-only, v9 comfort
+shadow exactly matches v9 Static on closed-loop metrics:
+
+| Variant | Completion | Planned red | Realized red | Jerk | Lateral | Fallback |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Top-1 | 0.287765 | 0.011944 | 0.000279 | 8.362638 | 0.292413 | n/a |
+| v9 Static | 0.300137 | 0.025972 | 0.006561 | 21.246975 | 0.337275 | 0.167639 |
+| v9 comfort shadow | 0.300137 | 0.025972 | 0.006561 | 21.246975 | 0.337275 | 0.167639 |
+
+The shadow run's 518.868 ms aggregate p95 selector time includes offline
+candidate outcome labeling and is not deployable latency. The unchanged v9
+deployable p95 remains 87.966 ms.
+
+The current implementation computes comfort excess over the complete DP
+candidate horizon, while the candidate outcome labels and intended short-term
+comfort objective use the first 30 steps. An offline definition-screening
+probe recomputed exact 30-step relative costs from stored kinematic outcome
+fields:
+
+| Probe item | Value |
+| --- | ---: |
+| Jerk records with variation | 7,166 |
+| Jerk feasible records with variation | 5,853 |
+| Jerk positive candidates | 27,989 |
+| Jerk mean selected cost | 0.137301 |
+| Lateral records with variation | 7,167 |
+| Jerk/lateral excess corr., all candidates | 0.710072 |
+| Jerk/lateral excess corr., feasible candidates | 0.659315 |
+
+Artifact:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `comfort_horizon_alignment_probe.json` | `8180b50e19d9aebdbead2b035161921f477bfe7c6b6b45ddb4e71ceea87ca6cb` |
+
+This probe is not online-atom or promotion evidence because it is derived from
+stored outcome fields. It supports one narrower next experiment:
+
+1. align the online DP-relative jerk-excess shadow to the same first 30
+   candidate steps;
+2. log the actual horizon as provenance and reject invalid horizons;
+3. rerun a non-formal smoke and the complete 36-run shadow matrix;
+4. promote at most the jerk atom only if the online rerun preserves coverage,
+   low latency, and stronger Top-1-gap alignment.
+
+No v10 schema promotion or formal-seed run is justified by the full-horizon
+matrix. The lateral-relative candidate is deliberately deferred because its
+30-step excess is highly correlated with jerk excess rather than demonstrably
+orthogonal.
