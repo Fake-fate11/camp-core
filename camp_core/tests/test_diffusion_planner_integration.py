@@ -25,6 +25,7 @@ from camp_core.integrations.diffusion_planner import (
     atom_schema_for_dimension,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
+    compute_dp_prior_deviation_costs,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     install_lanelet2_projection_fallback,
@@ -519,6 +520,28 @@ def test_red_stopping_margin_rejects_nonfinite_online_inputs() -> None:
 
     with pytest.raises(ValueError, match="finite"):
         compute_red_stopping_margin_costs(candidates, red_points, dt=0.1)
+
+
+def test_dp_prior_deviation_cost_anchors_deterministic_candidate() -> None:
+    candidates = np.array(
+        [
+            [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]],
+            [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]],
+            [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]],
+        ]
+    )
+
+    costs = compute_dp_prior_deviation_costs(candidates)
+
+    np.testing.assert_allclose(costs, np.array([0.0, 5.0 / 3.0, 0.0]))
+    assert np.all(costs >= 0.0)
+
+
+def test_dp_prior_deviation_rejects_nonfinite_candidates() -> None:
+    candidates = np.array([[[0.0, 0.0], [np.inf, 0.0]]])
+
+    with pytest.raises(ValueError, match="finite"):
+        compute_dp_prior_deviation_costs(candidates)
 
 
 def test_closed_loop_outcome_labels_prefer_best_feasible_candidate(tmp_path) -> None:
@@ -1224,6 +1247,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "feasible_mask": [True, False],
             "latency_ms_including_candidate_generation": 10.0,
             "latency_ms_candidate_generation": 6.0,
+            "latency_ms_shadow_dp_prior_deviation": 0.2,
             "latency_ms_context_and_obstacles": 1.0,
             "latency_ms_reward_scoring": 2.0,
             "latency_ms_outcome_collection": 0.0,
@@ -1239,6 +1263,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "feasible_mask": [False, False],
             "latency_ms_including_candidate_generation": 20.0,
             "latency_ms_candidate_generation": 12.0,
+            "latency_ms_shadow_dp_prior_deviation": 0.4,
             "latency_ms_context_and_obstacles": 2.0,
             "latency_ms_reward_scoring": 4.0,
             "latency_ms_outcome_collection": 0.0,
@@ -1262,6 +1287,9 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
     assert summary["candidate_feasible_rate"] == 0.25
     assert summary["mean_selection_latency_ms"] == 15.0
     assert summary["mean_candidate_generation_latency_ms"] == 9.0
+    assert summary["mean_shadow_dp_prior_deviation_latency_ms"] == pytest.approx(
+        0.3
+    )
     assert summary["mean_context_and_obstacles_latency_ms"] == 1.5
     assert summary["mean_reward_scoring_latency_ms"] == 3.0
     assert summary["mean_outcome_collection_latency_ms"] == 0.0

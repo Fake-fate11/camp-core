@@ -60,6 +60,10 @@ def test_atom_coverage_report_detects_red_light_augmentation_gain(
     assert report["summary"]["log_count"] == 1
     assert report["summary"]["record_count"] == 1
     assert report["summary"]["atom_dimensions"] == [10]
+    prior_shadow = report["shadow_dp_prior_deviation"]
+    assert prior_shadow["record_availability_rate"] == 1.0
+    assert prior_shadow["reference_zero_records"] == 1
+    assert prior_shadow["feasible_records_with_variation"] == 1
     closed_loop = report["alignment"]["closed_loop_value"]
     assert closed_loop["base"]["oracle_match_rate"] == 0.0
     assert closed_loop["plus_planned_red_light"]["oracle_match_rate"] == 1.0
@@ -111,6 +115,10 @@ def test_atom_coverage_report_keeps_all_infeasible_fallback_separate(
     assert shadow["feasible_records_with_variation"] == 1
     assert shadow["feasible_candidates_nonzero"] == 1
     assert shadow["fallback_records_with_variation"] == 1
+    prior_shadow = report["shadow_dp_prior_deviation"]
+    assert prior_shadow["selected_top1_rate"] == 0.5
+    assert prior_shadow["mean_selected_cost"] == pytest.approx(0.5)
+    assert prior_shadow["fallback_records_with_variation"] == 1
     assert (
         report["consistency_checks"]["fallback_flag_matches_all_infeasible_rate"]
         == 1.0
@@ -164,6 +172,7 @@ def _record(
     red_light_violation: list[bool],
     lateral_acceleration: list[float],
     red_stopping_margin: list[float] | None = None,
+    dp_prior_deviation: list[float] | None = None,
 ) -> dict:
     candidate_count = len(scores)
     atoms = [[float(idx + 1)] * 10 for idx in range(candidate_count)]
@@ -194,6 +203,12 @@ def _record(
         if red_stopping_margin is not None
         else [float(idx) for idx in range(candidate_count)]
     )
+    record["candidate_dp_prior_deviation_cost"] = (
+        dp_prior_deviation
+        if dp_prior_deviation is not None
+        else [float(idx) for idx in range(candidate_count)]
+    )
     record["red_route_point_count"] = 3
     record["latency_ms_shadow_red_stopping_margin"] = 0.2
+    record["latency_ms_shadow_dp_prior_deviation"] = 0.1
     return record

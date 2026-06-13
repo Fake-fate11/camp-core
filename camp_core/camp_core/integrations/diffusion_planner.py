@@ -1106,6 +1106,40 @@ def compute_red_stopping_margin_costs(
     return costs
 
 
+def compute_dp_prior_deviation_costs(candidates: np.ndarray) -> np.ndarray:
+    """Return each candidate's mean squared xy deviation from DP Top-1.
+
+    Diffusion-Planner's deterministic simulator prediction uses a zero latent
+    trajectory. CAMP candidate generation keeps candidate 0 at the same zero
+    latent and samples only the remaining candidates, so candidate 0 is the
+    DP-prior reference for the current tick. For a fixed reference trajectory,
+    this nonnegative quadratic cost is convex in a candidate trajectory and can
+    be audited as a potential Benders-compatible atom.
+    """
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if (
+        trajectories.ndim != 3
+        or trajectories.shape[0] < 1
+        or trajectories.shape[2] < 2
+    ):
+        raise ValueError(
+            "candidates must have shape [K,T,>=2], "
+            f"got {trajectories.shape}."
+        )
+    if not np.all(np.isfinite(trajectories)):
+        raise ValueError("candidates must contain only finite values.")
+    reference_xy = trajectories[0:1, :, :2]
+    squared_deviation = np.sum(
+        (trajectories[:, :, :2] - reference_xy) ** 2,
+        axis=2,
+    )
+    costs = np.mean(squared_deviation, axis=1)
+    costs = np.maximum(costs, 0.0)
+    if not np.all(np.isfinite(costs)):
+        raise RuntimeError("DP-prior deviation costs must be finite.")
+    return costs
+
+
 def _trajectory_comfort(trajectory: np.ndarray, dt: float) -> tuple[float, float]:
     xy = np.asarray(trajectory, dtype=np.float64)[:, :2]
     if xy.shape[0] < 3:
@@ -1354,6 +1388,9 @@ def summarize_selection_records(
     latency_fields = {
         "latency_ms_including_candidate_generation": "selection_latency_ms",
         "latency_ms_candidate_generation": "candidate_generation_latency_ms",
+        "latency_ms_shadow_dp_prior_deviation": (
+            "shadow_dp_prior_deviation_latency_ms"
+        ),
         "latency_ms_context_and_obstacles": "context_and_obstacles_latency_ms",
         "latency_ms_reward_scoring": "reward_scoring_latency_ms",
         "latency_ms_outcome_collection": "outcome_collection_latency_ms",

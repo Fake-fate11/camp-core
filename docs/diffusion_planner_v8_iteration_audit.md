@@ -595,3 +595,86 @@ Interpretation:
 Therefore v9 is a useful mathematically certified design iteration, but it
 still does not satisfy the industrial/formal acceptance gate. Formal seeds
 11, 12, and 13 remain frozen.
+
+## Post-v9 Shadow DP-Prior Deviation Diagnostic
+
+After the v9 gate failure, the next industrially relevant hypothesis is that
+CAMP's sampled candidates can drift too far from Diffusion Planner's
+deterministic low-comfort Top-1 behavior. This is evaluated as a shadow
+diagnostic before any v10 schema change.
+
+The diagnostic cost is the mean squared xy deviation from candidate 0:
+
+```text
+dp_prior_deviation(y_k) = mean_t || y_k(t) - y_0(t) ||_2^2
+```
+
+The TIER IV simulator initializes `sampled_trajectories` to zeros for the
+deterministic replay prediction. CAMP candidate generation preserves that same
+zero latent for candidate 0 and samples only candidates 1..K-1, so candidate 0
+is the audited DP-prior reference for the current tick.
+
+For a fixed reference trajectory `y_0`, this diagnostic is a finite
+nonnegative quadratic function of `y_k`, hence convex. If promoted later, it
+can be appended to the fixed candidate atom matrix and scored by the same
+simplex-constrained linear master/epigraph objective. It is not currently a
+v10 atom and has no selection effect.
+
+Implemented shadow fields:
+
+- `candidate_dp_prior_deviation_cost` in `camp_selection_log.json`;
+- `latency_ms_shadow_dp_prior_deviation` per selection record;
+- mean and p95 shadow latency in `camp_validation_summary.json`;
+- `shadow_dp_prior_deviation` in atom-coverage reports, including record
+  availability, candidate variation, reference-zero count, selected Top-1 rate,
+  selected deviation, and fallback variation.
+
+Local verification on June 13, 2026:
+
+```text
+py -3.12 -m py_compile camp_core/camp_core/integrations/diffusion_planner.py \
+  camp_core/camp_core/integrations/diffusion_planner_coverage.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  camp_core/tests/test_diffusion_planner_integration.py \
+  camp_core/tests/test_diffusion_planner_coverage.py
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main \
+  py -3.12 -m pytest camp_core/tests/test_diffusion_planner_coverage.py \
+  camp_core/tests/test_diffusion_planner_integration.py -q
+```
+
+The targeted local result was `56 passed, 5 skipped`; the local
+Diffusion-Planner test file set was `68 passed, 5 skipped`.
+
+AutoDL verification:
+
+```text
+/root/miniconda3/envs/camp/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_coverage.py \
+  camp_core/tests/test_diffusion_planner_integration.py -q
+/root/miniconda3/envs/camp/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner*.py -q
+```
+
+The targeted remote result was `61 passed`; the remote DP test set was
+`73 passed`.
+
+An AutoDL two-step smoke replay wrote the new field at:
+
+```text
+/root/autodl-tmp/camp_dp_shadow_smoke_dp_prior_6527cc5
+```
+
+The first record contained:
+
+```text
+candidate_dp_prior_deviation_cost =
+[0.0, 0.7581458668836335, 0.4297319921916435, 0.10006400833566129]
+```
+
+Coverage over the smoke replay reported record availability `1.0`,
+reference-zero records `2`, records with variation `2`, and selected Top-1
+rate `0.0`. This confirms the diagnostic is logged and auditable, but it is
+not evidence of performance improvement. The next step is to run the
+development matrix with this shadow field enabled, analyze whether excessive
+DP-prior deviation explains the Top-1 comfort/red-light gap, and only then
+decide whether to promote it into a v10 atom with a full train/audit cycle.

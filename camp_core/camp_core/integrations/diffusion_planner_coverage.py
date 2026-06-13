@@ -153,6 +153,9 @@ def compute_atom_coverage_report(
         "shadow_red_stopping_margin": _shadow_red_stopping_margin_coverage(
             record_infos
         ),
+        "shadow_dp_prior_deviation": _shadow_dp_prior_deviation_coverage(
+            record_infos
+        ),
         "extra_feature_scales": extra_scales,
         "alignment": score_variants,
         "atom_target_correlations": _atom_target_correlations(record_infos),
@@ -222,6 +225,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         )
 
     shadow = report.get("shadow_red_stopping_margin", {})
+    prior_shadow = report.get("shadow_dp_prior_deviation", {})
     lines.extend(
         [
             "",
@@ -232,6 +236,14 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"- Feasible records with candidate variation: {shadow.get('feasible_records_with_variation', 0)}",
             f"- Feasible candidates with nonzero cost: {shadow.get('feasible_candidates_nonzero', 0)}",
             f"- All-infeasible records with candidate variation: {shadow.get('fallback_records_with_variation', 0)}",
+            "",
+            "## Shadow DP-Prior Deviation Coverage",
+            "",
+            f"- Record availability: {_fmt(prior_shadow.get('record_availability_rate'))}",
+            f"- Reference-zero records: {prior_shadow.get('reference_zero_records', 0)}",
+            f"- Feasible records with candidate variation: {prior_shadow.get('feasible_records_with_variation', 0)}",
+            f"- Selected Top-1 rate: {_fmt(prior_shadow.get('selected_top1_rate'))}",
+            f"- Mean selected deviation: {_fmt(prior_shadow.get('mean_selected_cost'))}",
             "",
             "## Scenario Breakdown",
             "",
@@ -357,6 +369,28 @@ def _record_info(
                 f"{metadata.log_path} record {record_idx} has invalid red "
                 "stopping-margin costs."
             )
+    dp_prior_deviation_cost = record.get(
+        "candidate_dp_prior_deviation_cost"
+    )
+    if dp_prior_deviation_cost is not None:
+        dp_prior_deviation_cost = np.asarray(
+            dp_prior_deviation_cost,
+            dtype=float,
+        ).reshape(-1)
+        if dp_prior_deviation_cost.shape != scores.shape:
+            raise ValueError(
+                f"{metadata.log_path} record {record_idx} has DP-prior "
+                f"deviation shape {dp_prior_deviation_cost.shape}, expected "
+                f"{scores.shape}."
+            )
+        if (
+            not np.all(np.isfinite(dp_prior_deviation_cost))
+            or np.any(dp_prior_deviation_cost < 0.0)
+        ):
+            raise ValueError(
+                f"{metadata.log_path} record {record_idx} has invalid "
+                "DP-prior deviation costs."
+            )
     lateral_acceleration = _candidate_values(
         record,
         "outcome",
@@ -399,6 +433,7 @@ def _record_info(
         "atoms": atoms,
         "red_light_cost": red_light_cost,
         "red_stopping_margin_cost": red_stopping_margin_cost,
+        "dp_prior_deviation_cost": dp_prior_deviation_cost,
         "red_route_point_count": int(record.get("red_route_point_count", 0)),
         "lateral_acceleration_cost": lateral_acceleration,
         "closed_loop_value": closed_loop_value,
@@ -406,6 +441,112 @@ def _record_info(
         "red_light_exposed": red_light_exposed,
         "candidate_count": int(scores.size),
         "raw_record": record,
+    }
+
+
+def _shadow_dp_prior_deviation_coverage(
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    available = [
+        info for info in records if info["dp_prior_deviation_cost"] is not None
+    ]
+    if not records:
+        return {"record_availability_rate": None, "records": 0}
+    if not available:
+        return {
+            "record_availability_rate": 0.0,
+            "records": 0,
+            "candidate_count": 0,
+            "records_with_variation": 0,
+            "feasible_records_with_variation": 0,
+            "feasible_candidates_nonzero": 0,
+            "reference_zero_records": 0,
+            "selected_top1_rate": None,
+        }
+
+    candidate_count = 0
+    records_with_variation = 0
+    feasible_records = 0
+    feasible_candidates = 0
+    feasible_candidates_nonzero = 0
+    feasible_records_with_variation = 0
+    fallback_records = 0
+    fallback_records_with_variation = 0
+    reference_zero_records = 0
+    selected_top1 = 0
+    selected_costs = []
+    all_values = []
+    latencies = []
+    for info in available:
+        values = np.asarray(info["dp_prior_deviation_cost"], dtype=float)
+        feasible = np.asarray(info["feasible_mask"], dtype=bool)
+        all_values.append(values)
+        candidate_count += int(values.size)
+        records_with_variation += int(float(np.ptp(values)) > 1e-12)
+        reference_zero_records += int(
+            values.size > 0 and abs(values[0]) <= 1e-12
+        )
+        selected_index = int(info["selected_index"])
+        selected_top1 += int(selected_index == 0)
+        if 0 <= selected_index < values.size:
+            selected_costs.append(float(values[selected_index]))
+        latency = info["raw_record"].get(
+            "latency_ms_shadow_dp_prior_deviation"
+        )
+        if latency is not None and np.isfinite(float(latency)):
+            latencies.append(float(latency))
+        if feasible.any():
+            feasible_records += 1
+            feasible_values = values[feasible]
+            feasible_candidates += int(feasible_values.size)
+            feasible_candidates_nonzero += int(
+                np.count_nonzero(feasible_values > 1e-12)
+            )
+            feasible_records_with_variation += int(
+                float(np.ptp(feasible_values)) > 1e-12
+            )
+        else:
+            fallback_records += 1
+            fallback_records_with_variation += int(
+                float(np.ptp(values)) > 1e-12
+            )
+
+    flat = np.concatenate(all_values)
+    positive = flat[flat > 1e-12]
+    selected_arr = np.asarray(selected_costs, dtype=float)
+    return {
+        "record_availability_rate": float(len(available) / len(records)),
+        "records": int(len(available)),
+        "candidate_count": int(candidate_count),
+        "records_with_variation": int(records_with_variation),
+        "feasible_records": int(feasible_records),
+        "feasible_candidates": int(feasible_candidates),
+        "feasible_candidates_nonzero": int(feasible_candidates_nonzero),
+        "feasible_records_with_variation": int(
+            feasible_records_with_variation
+        ),
+        "fallback_records": int(fallback_records),
+        "fallback_records_with_variation": int(
+            fallback_records_with_variation
+        ),
+        "reference_zero_records": int(reference_zero_records),
+        "selected_top1_rate": float(selected_top1 / len(available)),
+        "mean_selected_cost": (
+            float(np.mean(selected_arr)) if selected_arr.size else None
+        ),
+        "positive_cost_p50": (
+            float(np.percentile(positive, 50)) if positive.size else None
+        ),
+        "positive_cost_p95": (
+            float(np.percentile(positive, 95)) if positive.size else None
+        ),
+        "maximum_cost": float(np.max(flat)) if flat.size else None,
+        "mean_shadow_latency_ms": (
+            float(np.mean(latencies)) if latencies else None
+        ),
+        "p95_shadow_latency_ms": (
+            float(np.percentile(latencies, 95)) if latencies else None
+        ),
     }
 
 

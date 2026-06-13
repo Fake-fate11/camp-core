@@ -26,6 +26,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     atom_schema_for_dimension,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
+    compute_dp_prior_deviation_costs,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     generate_candidate_trajectories,
@@ -708,6 +709,14 @@ def _install_camp_predictor(
             deterministic_first=True,
         )
         candidate_generation_done = time.perf_counter()
+        dp_prior_deviation_start = time.perf_counter()
+        candidate_dp_prior_deviation_cost = compute_dp_prior_deviation_costs(
+            candidates
+        )
+        dp_prior_deviation_done = time.perf_counter()
+        shadow_dp_prior_deviation_latency_ms = (
+            dp_prior_deviation_done - dp_prior_deviation_start
+        ) * 1000.0
         context = build_context_from_scene(
             scene,
             ego_id,
@@ -804,8 +813,11 @@ def _install_camp_predictor(
                 candidate_generation_done - start
             )
             * 1000.0,
+            "latency_ms_shadow_dp_prior_deviation": (
+                shadow_dp_prior_deviation_latency_ms
+            ),
             "latency_ms_context_and_obstacles": (
-                context_and_obstacles_done - candidate_generation_done
+                context_and_obstacles_done - dp_prior_deviation_done
             )
             * 1000.0,
             "latency_ms_reward_scoring": (
@@ -893,6 +905,9 @@ def _install_camp_predictor(
                 "candidate_closed_loop_outcomes": candidate_outcomes,
                 "candidate_red_stopping_margin_cost": (
                     candidate_red_stopping_margin_cost.tolist()
+                ),
+                "candidate_dp_prior_deviation_cost": (
+                    candidate_dp_prior_deviation_cost.tolist()
                 ),
                 "red_route_point_count": int(red_route_points.shape[0]),
                 "latency_ms_shadow_red_stopping_margin": (
