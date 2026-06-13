@@ -513,6 +513,7 @@ def main() -> None:
         expected_comfort_shadow_horizon_steps=(
             args.expected_comfort_shadow_horizon_steps
         ),
+        closed_loop_outcome_policy=args.closed_loop_outcome_policy,
     )
     report["artifacts"] = {
         "atom_scales": str(args.atom_scales),

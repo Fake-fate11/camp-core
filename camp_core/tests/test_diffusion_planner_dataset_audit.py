@@ -18,6 +18,7 @@ from scripts.integrations.augment_diffusion_planner_camp_v10_jerk_excess import 
 )
 from scripts.integrations.audit_diffusion_planner_camp_dataset import (
     audit_training_dataset,
+    main as audit_dataset_main,
 )
 
 
@@ -143,6 +144,56 @@ def test_dataset_audit_forbidden_outcomes_rejects_collected_outcomes(
             expected_candidates=2,
             closed_loop_outcome_policy="forbidden",
         )
+
+
+def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    del records[0]["candidate_closed_loop_outcomes"]
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+    scales_path = tmp_path / "atom_scales.json"
+    scales_path.write_text(
+        json.dumps(
+            {
+                "atom_schema_version": "dp_camp_v8_12d",
+                "atom_names": list(DP_CAMP_ATOM_NAMES_V8),
+                "scales": [1.0] * len(DP_CAMP_ATOM_NAMES_V8),
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_path = tmp_path / "audit.json"
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "audit_diffusion_planner_camp_dataset.py",
+            "--selection_log",
+            str(log_path),
+            "--atom_scales",
+            str(scales_path),
+            "--expected_logs",
+            "1",
+            "--expected_candidates",
+            "2",
+            "--expected_advance_mode",
+            "perfect",
+            "--closed_loop_outcome_policy",
+            "forbidden",
+            "--output_json",
+            str(output_path),
+        ],
+    )
+
+    audit_dataset_main()
+
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["passed"]
+    assert report["checks"]["closed_loop_outcome_policy"] == "forbidden"
+    assert report["checks"]["outcome_candidate_coverage"] == 0.0
 
 
 def test_dataset_audit_requires_completed_run_summary(tmp_path) -> None:
