@@ -82,6 +82,11 @@ def test_atom_coverage_report_detects_red_light_augmentation_gain(
     assert jerk_alignment["preference_correlation_all_candidates"] == pytest.approx(
         -1.0
     )
+    jerk_target_alignment = jerk_shadow["target_alignment"]["closed_loop_jerk"]
+    assert jerk_target_alignment["candidate_pairs"] == 2
+    assert jerk_target_alignment[
+        "preference_correlation_all_candidates"
+    ] == pytest.approx(1.0)
     acceleration_shadow = report["shadow_dp_prior_acceleration_excess"]
     assert acceleration_shadow["record_availability_rate"] == 1.0
     assert acceleration_shadow["reference_zero_records"] == 1
@@ -193,6 +198,7 @@ def _record(
     outcome_value: list[float],
     red_light_violation: list[bool],
     lateral_acceleration: list[float],
+    mean_jerk: list[float] | None = None,
     red_stopping_margin: list[float] | None = None,
     dp_prior_deviation: list[float] | None = None,
     dp_prior_jerk_excess: list[float] | None = None,
@@ -217,6 +223,9 @@ def _record(
             {
                 "value": outcome_value[idx],
                 "red_light_violation": red_light_violation[idx],
+                "mean_jerk_mps3": (
+                    mean_jerk[idx] if mean_jerk is not None else float(idx)
+                ),
                 "mean_lateral_acceleration_mps2": lateral_acceleration[idx],
             }
             for idx in range(candidate_count)

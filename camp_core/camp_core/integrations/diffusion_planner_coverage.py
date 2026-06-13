@@ -30,6 +30,7 @@ TARGET_SPECS: dict[str, tuple[str, str, bool]] = {
     "dp_total_reward": ("reward", "total", True),
     "planned_red_light_cost": ("reward", "red_light", False),
     "closed_loop_red_light_violation": ("outcome", "red_light_violation", False),
+    "closed_loop_jerk": ("outcome", "mean_jerk_mps3", False),
     "closed_loop_lateral_acceleration": (
         "outcome",
         "mean_lateral_acceleration_mps2",
@@ -264,6 +265,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "closed_loop_value",
         "planned_red_light_cost",
         "closed_loop_red_light_violation",
+        "closed_loop_jerk",
         "closed_loop_lateral_acceleration",
     ]:
         row = prior_target_alignment.get(target, {})
@@ -312,6 +314,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             "closed_loop_value",
             "planned_red_light_cost",
             "closed_loop_red_light_violation",
+            "closed_loop_jerk",
             "closed_loop_lateral_acceleration",
         ]:
             row = target_alignment.get(target, {})
