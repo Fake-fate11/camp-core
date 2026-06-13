@@ -1149,3 +1149,316 @@ Promotion decision:
 This decision authorizes a v10 training experiment only. It does not establish
 that adding the atom will receive nonzero robust weight or improve the
 industrial development gates.
+
+## V10 jerk-excess schema, training, and certification
+
+Commit `3a18db0` promotes the online h30 jerk-excess shadow into the deployed
+static selector schema:
+
+```text
+dp_camp_v10_14d
+```
+
+The new ordered atom appends `dp_prior_jerk_excess_cost` to the certified v9
+schema. The atom is computed from the current DP candidate coordinates before
+selection, uses the same fixed first-30-step horizon as the training outcome
+audit, is finite, nonnegative, and candidate-0 anchored. It is independent of
+the selector weights, the final ranking, the selected trajectory, and any
+closed-loop outcome labels. For fixed candidates it is just one more fixed
+coefficient in `score = a^T w`, so the Robust Static CVaR master remains a
+finite maximum of affine functions over the simplex.
+
+The v10 training view is:
+
+```text
+/root/autodl-tmp/camp_dp_training_v10_jerk_h30_3a18db0
+```
+
+It augments the h30 v9 shadow matrix into 36 logs, 7,200 records, and 57,600
+candidates. The augmentation contract requires:
+
+- source schema `dp_camp_v9_13d`;
+- target schema `dp_camp_v10_14d`;
+- effective comfort-shadow horizon 30 in every record and summary;
+- finite nonnegative `candidate_dp_prior_jerk_excess_cost`;
+- candidate 0 jerk-excess cost equal to zero;
+- no closed-loop outcome value as an atom input;
+- no stale normalized atoms or weights copied from the source logs.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `v10_jerk_excess_augmentation_manifest.json` | `96238cc4824ee0c4f7981681b0334e41a09556ca1d12596f561dce8effc50c3d` |
+| `v10_training_dataset_audit.json` | `fe7aa905d51ec182b4044f72989af3d5adc38bfb85bb890d7bf16fd29335eb01` |
+
+The certified Robust Static v10 checkpoint is:
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_jerk_h30_3a18db0
+```
+
+Training configuration:
+
+- label source: closed-loop outcome value over the h30 candidate branch;
+- objective: feasible ranking with CVaR alpha 0.9;
+- margin scale 0.1, margin clip 2.0, L2 1e-4;
+- CLARABEL solver, maximum 20 cutting-plane iterations, tolerance 1e-6;
+- p95 train-group-only atom scaling;
+- grouped validation split 0.2 with seed 7;
+- exact `dp_camp_v10_14d` schema required.
+
+Training result:
+
+| Item | Value |
+| --- | ---: |
+| Solver status | optimal |
+| Final master gap | 0 |
+| Input records | 7,200 |
+| Eligible records | 5,979 |
+| Dropped records | 1,221 |
+| Train records | 4,848 |
+| Validation records | 1,131 |
+| Train groups | 29 |
+| Validation groups | 7 |
+| Train oracle match | 0.944926 |
+| Train CVaR | 0.027241 |
+| Validation oracle match | 0.953139 |
+| Validation CVaR | 0.022911 |
+
+Learned nonzero weights:
+
+| Atom | Weight |
+| --- | ---: |
+| `jerk_early_cost` | 0.275082 |
+| `rms_acceleration_cost` | 0.045287 |
+| `speed_limit_margin_1p0_cost` | 0.007063 |
+| `lane_deviation_cost` | 0.001509 |
+| `progress_shortfall_cost` | 0.392047 |
+| `planned_red_light_cost` | 0.115296 |
+| `planned_lateral_acceleration_cost` | 0.151589 |
+| `dp_prior_jerk_excess_cost` | 0.012127 |
+
+Checkpoint artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `atom_scales_dp_static.json` | `a50d6d5b26888bdc0d2715dbfce525d3725697fa6e6565b6dd7ae9e8dd105b15` |
+| `offline_weights_dp_static.npy` | `d5eabf5ce488bf46221353d1ed591ec5e4cbbb3395d10f13cf0c68b773415fb7` |
+| `training_summary.json` | `7293f1da95d8662de5f8a90e75a29c83c43d059db22b233ebbbcdac8e15e6ef4` |
+
+The full finite-candidate epigraph audit reconstructs all 37,030 train-group
+finite feasible candidate constraints in one convex CVaR problem and verifies
+the saved cutting-plane solution against the complete master:
+
+| Check | Value |
+| --- | ---: |
+| Saved exact objective | 0.027260725971086915 |
+| Full problem objective | 0.02726072606688107 |
+| Full exact objective | 0.027260725969639413 |
+| Saved vs full problem diff | 9.58e-11 |
+| Full exact vs problem diff | 9.72e-11 |
+| Weight L-infinity diff | 4.006e-8 |
+
+Artifact:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `full_epigraph_consistency.json` | `d8c0f700589d43bb98cc1a16343f8b1d0cb4ea7622b1b73d452975ec2156223f` |
+
+## V10 real-DP smoke
+
+The first v10 selector smoke in real Diffusion Planner replay is:
+
+```text
+/root/autodl-tmp/camp_dp_v10_jerk_h30_smoke_seed101_3a18db0
+```
+
+Configuration:
+
+- non-formal seed 101;
+- route `sample_map_tl_route_59_to_86`;
+- perfect tracking and traffic lights enabled;
+- 3 replay steps, 4 candidates, candidate noise scale 1.0;
+- no NPCs;
+- v10 static weights and scales;
+- candidate closed-loop outcomes collected only for smoke/audit labeling.
+
+The dataset audit passed. Every record has schema `dp_camp_v10_14d`, 14 atom
+dimensions, `dp_prior_jerk_excess_used_as_atom = true`, and comfort-shadow
+horizon 30. Selected candidate indices were `[0, 2, 1]`. The p95 runtime in
+this smoke is not deployable evidence because candidate outcome collection was
+enabled.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `v10_smoke_dataset_audit.json` | `bbb64af9e3c23d903c4eafc973f2801faf265fd537ff54dc2d4977c90fa32958` |
+| `camp_selection_log.json` | `2a3b62ac370fde6c221f36e888f8609c262c03a48bd95b1141e813c55a7b1663` |
+| `camp_validation_summary.json` | `78a715a22d593088deb6334754ba18ab858ac0a25f5178beff551cacb727afca` |
+
+Commit `ac76541` adds an explicit dataset-audit outcome policy:
+`required`, `optional`, or `forbidden`. Training and label audits keep the
+default `required` behavior. Deployable latency audits must use
+`--closed_loop_outcome_policy forbidden`, which rejects any collected
+`candidate_closed_loop_outcomes` payload while allowing the replay's explicit
+`null` sentinel for "not collected"; it must report zero outcome-candidate
+coverage. This separates certification datasets from deployable runtime
+measurements without weakening the fail-closed checks for schema, atoms, seeds,
+DP red-light provenance, and h30 jerk-excess provenance.
+
+The next gate is the complete non-formal v10 deployable matrix:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_jerk_h30_ac76541
+```
+
+This run intentionally omits `--camp_collect_closed_loop_outcomes`. It must be
+audited with forbidden candidate outcomes, strict schema/provenance checks, and
+then paired against Top-1, Uniform, v7, v8, and v9 before any industrial
+improvement claim.
+
+## V10 deployable development matrix
+
+The first v10 deployable matrix was launched as three concurrent route shards:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_jerk_h30_ac76541
+```
+
+It completed all 36 non-formal scenarios and passed the forbidden-outcome
+dataset audit and strict pairing. Its aggregate latency was rejected as a
+measurement artifact, not a selector result: mean per-run p95 selection latency
+was 195.338 ms, while phase decomposition showed candidate generation and DP
+reward scoring roughly doubled relative to v9. The v10 atom itself remained
+cheap (`p95_shadow_dp_prior_comfort_excess_latency_ms` about 0.128 ms). Because
+the run used three simultaneous DP replay processes on one GPU, it is retained
+only as a concurrency-contaminated diagnostic.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `v10_deployable_dataset_audit.json` | `39d9123bce03d43cb3d4ab03f944e4ede6de811f73a73866241b33aad862dab2` |
+| `benchmark_comparison_with_v7_v8_v9_v10.json` | `7af6faf6c35a8bd9082d856c66f3c6913a80d8c1f92a949278daba3555146570` |
+| `benchmark_comparison_with_v7_v8_v9_v10.md` | `52dad1978cff5eadea8dec41092458c43e4a072b001cb3f483a017beb1fad55d` |
+
+The accepted latency evidence is the sequential rerun:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_jerk_h30_seq_f36c249
+```
+
+Configuration:
+
+- 36 non-formal development scenarios;
+- routes `sample59_86`, `sample2_104`, and `nishishinjuku`;
+- seeds 1/2/3 only; formal seeds 11/12/13 absent;
+- max NPCs 0 and 4;
+- traffic lights on and off;
+- perfect tracking, 200 steps, 8 candidates;
+- v10 Static weights and scales;
+- no `--camp_collect_closed_loop_outcomes`;
+- one replay process at a time.
+
+The deployable dataset audit passed for 7,200 records and 57,600 candidates:
+
+| Check | Value |
+| --- | ---: |
+| Logs | 36 |
+| Records | 7,200 |
+| Candidates | 57,600 |
+| All-infeasible records | 1,188 |
+| Closed-loop outcome policy | `forbidden` |
+| Closed-loop outcome records | 0 |
+| Outcome candidate coverage | 0.0 |
+| Comfort-shadow horizon verified | yes |
+| Formal seeds 11/12/13 excluded | yes |
+| Jerk-excess records with variation | 7,164 |
+| Jerk-excess candidate-0 zero records | 7,200 |
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `v10_deployable_dataset_audit.json` | `217115cd46979ec521c9a010ec724858a15dcfdabbb86e4ce7111e3298ce9f73` |
+| `benchmark_comparison_with_v7_v8_v9_v10.json` | `22635adb6685ed134ff61b21bdaf3d90aeaea50bba3657c49fc3bcc2d36284f2` |
+| `benchmark_comparison_with_v7_v8_v9_v10.md` | `80621d16d2572c6a97b15db7d723506887a03f316caff1052faa8082e46590d6` |
+
+Strict pairing passed for Top-1, Uniform, v7 Static, v8 Static, v9 Static, and
+v10 Static: each variant has 36 runs, the common and union run counts are 36,
+and there are no missing or duplicate run keys. Confidence intervals use the
+deterministic 10,000-resample paired bootstrap.
+
+Aggregate metrics:
+
+| Variant | Completion | Planned red | Realized red | Jerk | Lateral acc. | Fallback | p95 latency |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Top-1 | 0.287765 | 0.011944 | 0.000279 | 8.362638 | 0.292413 | n/a | n/a |
+| Uniform | 0.299205 | 0.034028 | 0.011446 | 20.225194 | 0.336922 | 0.168333 | 88.706443 |
+| v7 Static | 0.300491 | 0.027361 | 0.006561 | 21.202830 | 0.339689 | 0.167639 | 88.357823 |
+| v8 Static | 0.300336 | 0.027917 | 0.006561 | 21.317561 | 0.339232 | 0.168750 | 89.408765 |
+| v9 Static | 0.300137 | 0.025972 | 0.006561 | 21.246975 | 0.337275 | 0.167639 | 87.965748 |
+| v10 Static | 0.300505 | 0.026944 | 0.006421 | 21.537884 | 0.338346 | 0.165000 | 89.795503 |
+
+The sequential latency gate is acceptable at the aggregate comparison level:
+mean per-run p95 selection latency is 89.796 ms with bootstrap interval
+[88.016, 91.615]. One individual run has p95 101.919 ms, so the next accepted
+version should still keep a per-scenario latency audit, but v10 is not rejected
+for the concurrent-root 195 ms artifact.
+
+Phase decomposition confirms the new atom is not the latency driver:
+
+| Phase | Mean run p95 latency |
+| --- | ---: |
+| Total selection path | 89.795503 ms |
+| Candidate generation | 59.436115 ms |
+| DP reward scoring | 20.945521 ms |
+| CAMP selection | 9.431915 ms |
+| h30 jerk-excess shadow | 0.127519 ms |
+| Outcome collection | 0.000720 ms |
+
+Paired v10-minus-v9 deltas:
+
+| Metric | Mean delta | 95% bootstrap CI |
+| --- | ---: | ---: |
+| Completion | +0.000368 | [-0.000963, +0.001852] |
+| Planned red | +0.000972 | [-0.000972, +0.003333] |
+| Realized red | -0.000140 | [-0.000419, 0.000000] |
+| Mean jerk | +0.290909 | [-0.599873, +1.356313] |
+| Mean lateral acceleration | +0.001071 | [-0.004174, +0.006679] |
+| Fallback | -0.002639 | [-0.008056, +0.002083] |
+| Candidate feasible rate | +0.003073 | [-0.003785, +0.011892] |
+| p95 selection latency | +1.829755 | [+0.658901, +2.972222] |
+
+Paired v10-minus-Top-1 deltas:
+
+| Metric | Mean delta | 95% bootstrap CI |
+| --- | ---: | ---: |
+| Completion | +0.012740 | [+0.008624, +0.017184] |
+| Planned red | +0.015000 | [+0.000694, +0.039167] |
+| Realized red | +0.006142 | [0.000000, +0.018425] |
+| Mean jerk | +13.175246 | [+10.866447, +15.891541] |
+| Mean lateral acceleration | +0.045933 | [+0.029604, +0.065144] |
+
+Gate decision:
+
+1. v10 is mathematically certified and deployable-latency feasible under a
+   sequential replay measurement;
+2. v10 does not improve the industrial development gate over v9;
+3. relative to Top-1, v10 remains significantly worse on planned red, jerk,
+   and lateral acceleration;
+4. formal seeds remain frozen;
+5. v10 should be archived as a mathematically valid but industrially
+   ineffective schema upgrade.
+
+The next iteration should not add another correlated comfort atom by default.
+The h30 jerk-excess atom received only a small learned weight and did not move
+closed-loop behavior. The higher-value next hypothesis is to audit the robust
+training objective and label weighting: the current outcome value still rewards
+progress enough that the optimizer accepts Top-1 comfort degradation. A
+candidate v11 should first train static v10 weights from the same certified
+v10 dataset with stronger comfort penalties, for example increasing jerk and
+lateral-acceleration outcome weights, then run full-epigraph certification and
+only a small non-formal smoke before spending another 36-run matrix.
