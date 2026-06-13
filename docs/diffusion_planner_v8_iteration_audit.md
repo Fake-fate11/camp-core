@@ -627,7 +627,8 @@ Implemented shadow fields:
 - mean and p95 shadow latency in `camp_validation_summary.json`;
 - `shadow_dp_prior_deviation` in atom-coverage reports, including record
   availability, candidate variation, reference-zero count, selected Top-1 rate,
-  selected deviation, and fallback variation.
+  selected deviation, fallback variation, candidate-level target correlation,
+  and selected-vs-Top-1 target gaps.
 
 Local verification on June 13, 2026:
 
@@ -658,23 +659,44 @@ AutoDL verification:
 The targeted remote result was `61 passed`; the remote DP test set was
 `73 passed`.
 
-An AutoDL two-step smoke replay wrote the new field at:
+After adding target-alignment analysis for the shadow diagnostic, the updated
+local Diffusion-Planner test file set passed with `68 passed, 5 skipped`; the
+updated remote DP test set passed with `73 passed`.
+
+An exploratory smoke accidentally used seed 11 and is excluded from the
+evidence below because formal seeds 11, 12, and 13 are frozen. The valid
+AutoDL outcome smoke used non-formal seed 101 and wrote the new field at:
 
 ```text
-/root/autodl-tmp/camp_dp_shadow_smoke_dp_prior_6527cc5
+/root/autodl-tmp/camp_dp_shadow_outcome_smoke_dp_prior_seed101_cb14a4a
 ```
 
-The first record contained:
+It used `advance_mode=perfect`, `camp_collect_closed_loop_outcomes=true`,
+3 replay steps, 4 candidates, no NPCs, and the certified v9 static checkpoint.
+The generated coverage artifacts are:
 
-```text
-candidate_dp_prior_deviation_cost =
-[0.0, 0.7581458668836335, 0.4297319921916435, 0.10006400833566129]
-```
+| Artifact | SHA-256 |
+| --- | --- |
+| `dp_prior_shadow_coverage.json` | `abb127a00ea4159a6ee431d2c93a9457da5bfeb04e975f13649a2f4b42b84690` |
+| `dp_prior_shadow_coverage.md` | `9c99f18da1c94134338b941a5b5621e30a53cfb3ce33e908dad82dfc7bb4d087` |
 
-Coverage over the smoke replay reported record availability `1.0`,
-reference-zero records `2`, records with variation `2`, and selected Top-1
-rate `0.0`. This confirms the diagnostic is logged and auditable, but it is
-not evidence of performance improvement. The next step is to run the
-development matrix with this shadow field enabled, analyze whether excessive
-DP-prior deviation explains the Top-1 comfort/red-light gap, and only then
-decide whether to promote it into a v10 atom with a full train/audit cycle.
+Coverage over the seed-101 smoke replay reported record availability `1.0`,
+reference-zero records `3`, records with variation `3`, selected Top-1 rate
+`0.333333`, and mean selected deviation `25.0845`. Candidate outcomes were
+present.
+
+The small smoke is not a performance claim, but it verifies that the new
+diagnostic can expose the intended failure mode. Selected candidates improved
+closed-loop value over Top-1 on all 3 records, but were worse than Top-1 on
+closed-loop lateral acceleration in 2 of 3 records:
+
+| Target | All-candidate corr | Feasible corr | Selected worse than Top-1 | Selected preference gap |
+| --- | ---: | ---: | ---: | ---: |
+| `closed_loop_value` | -0.980871 | -0.993403 | 0 | +72.8869 |
+| `planned_red_light_cost` | n/a | n/a | 0 | 0 |
+| `closed_loop_lateral_acceleration` | +0.0298217 | -0.0348515 | 0.666667 | -0.0384753 |
+
+The next step is to run the development matrix with this shadow field enabled,
+analyze whether excessive DP-prior deviation explains the Top-1 comfort/red
+gap at scale, and only then decide whether to promote it into a v10 atom with
+a full train/audit cycle.

@@ -64,6 +64,14 @@ def test_atom_coverage_report_detects_red_light_augmentation_gain(
     assert prior_shadow["record_availability_rate"] == 1.0
     assert prior_shadow["reference_zero_records"] == 1
     assert prior_shadow["feasible_records_with_variation"] == 1
+    prior_alignment = prior_shadow["target_alignment"]["closed_loop_value"]
+    assert prior_alignment["candidate_pairs"] == 2
+    assert prior_alignment["selection_records"] == 1
+    assert prior_alignment["preference_correlation_all_candidates"] == pytest.approx(
+        -1.0
+    )
+    assert prior_alignment["mean_selected_preference_minus_top1"] == 0.0
+    assert prior_alignment["selected_worse_than_top1_rate"] == 0.0
     closed_loop = report["alignment"]["closed_loop_value"]
     assert closed_loop["base"]["oracle_match_rate"] == 0.0
     assert closed_loop["plus_planned_red_light"]["oracle_match_rate"] == 1.0

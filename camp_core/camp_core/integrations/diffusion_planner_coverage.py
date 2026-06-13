@@ -245,6 +245,34 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"- Selected Top-1 rate: {_fmt(prior_shadow.get('selected_top1_rate'))}",
             f"- Mean selected deviation: {_fmt(prior_shadow.get('mean_selected_cost'))}",
             "",
+            "| target | all-candidate corr | feasible corr | selected worse than Top-1 | selected pref. gap |",
+            "| --- | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    prior_target_alignment = prior_shadow.get("target_alignment", {})
+    for target in [
+        "closed_loop_value",
+        "planned_red_light_cost",
+        "closed_loop_red_light_violation",
+        "closed_loop_lateral_acceleration",
+    ]:
+        row = prior_target_alignment.get(target, {})
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    target,
+                    _fmt(row.get("preference_correlation_all_candidates")),
+                    _fmt(row.get("preference_correlation_feasible_candidates")),
+                    _fmt(row.get("selected_worse_than_top1_rate")),
+                    _fmt(row.get("mean_selected_preference_minus_top1")),
+                ]
+            )
+            + " |"
+        )
+    lines.extend(
+        [
+            "",
             "## Scenario Breakdown",
             "",
             "| group | value | records | fallback rate | selected red-light | selected lateral accel |",
@@ -547,7 +575,131 @@ def _shadow_dp_prior_deviation_coverage(
         "p95_shadow_latency_ms": (
             float(np.percentile(latencies, 95)) if latencies else None
         ),
+        "target_alignment": _shadow_cost_target_alignment(
+            available,
+            "dp_prior_deviation_cost",
+        ),
     }
+
+
+def _shadow_cost_target_alignment(
+    records: list[dict[str, Any]],
+    feature_key: str,
+) -> dict[str, dict[str, Any]]:
+    alignment: dict[str, dict[str, Any]] = {}
+    for target_name, (source, key, maximize) in TARGET_SPECS.items():
+        candidate_cost_chunks = []
+        candidate_preference_chunks = []
+        feasible_cost_chunks = []
+        feasible_preference_chunks = []
+        selected_costs = []
+        preference_gaps = []
+        raw_gaps = []
+        top1_values = []
+        selected_values = []
+        worse_than_top1 = []
+        for info in records:
+            costs = info.get(feature_key)
+            if costs is None:
+                continue
+            values = _target_values(info["raw_record"], source, key)
+            if values is None:
+                continue
+            costs = np.asarray(costs, dtype=float).reshape(-1)
+            values = np.asarray(values, dtype=float).reshape(-1)
+            if costs.shape != values.shape or costs.size == 0:
+                continue
+            finite = np.isfinite(costs) & np.isfinite(values)
+            if not finite.any():
+                continue
+            preference = values if maximize else -values
+            candidate_cost_chunks.append(costs[finite])
+            candidate_preference_chunks.append(preference[finite])
+
+            feasible = np.asarray(info["feasible_mask"], dtype=bool)
+            feasible_valid = (
+                finite & feasible if feasible.shape == costs.shape else finite
+            )
+            if feasible_valid.any():
+                feasible_cost_chunks.append(costs[feasible_valid])
+                feasible_preference_chunks.append(preference[feasible_valid])
+
+            selected_idx = int(info["selected_index"])
+            if selected_idx < 0 or selected_idx >= costs.size:
+                continue
+            if not (
+                finite[0]
+                and finite[selected_idx]
+                and np.isfinite(preference[0])
+                and np.isfinite(preference[selected_idx])
+            ):
+                continue
+            selected_costs.append(float(costs[selected_idx]))
+            selected_values.append(float(values[selected_idx]))
+            top1_values.append(float(values[0]))
+            raw_gaps.append(float(values[selected_idx] - values[0]))
+            pref_gap = float(preference[selected_idx] - preference[0])
+            preference_gaps.append(pref_gap)
+            worse_than_top1.append(float(pref_gap < -1e-12))
+
+        all_costs = (
+            np.concatenate(candidate_cost_chunks)
+            if candidate_cost_chunks
+            else np.asarray([], dtype=float)
+        )
+        all_preferences = (
+            np.concatenate(candidate_preference_chunks)
+            if candidate_preference_chunks
+            else np.asarray([], dtype=float)
+        )
+        feasible_costs = (
+            np.concatenate(feasible_cost_chunks)
+            if feasible_cost_chunks
+            else np.asarray([], dtype=float)
+        )
+        feasible_preferences = (
+            np.concatenate(feasible_preference_chunks)
+            if feasible_preference_chunks
+            else np.asarray([], dtype=float)
+        )
+        selected_cost_arr = np.asarray(selected_costs, dtype=float)
+        preference_gap_arr = np.asarray(preference_gaps, dtype=float)
+        raw_gap_arr = np.asarray(raw_gaps, dtype=float)
+        top1_arr = np.asarray(top1_values, dtype=float)
+        selected_arr = np.asarray(selected_values, dtype=float)
+        alignment[target_name] = {
+            "candidate_pairs": int(all_costs.size),
+            "feasible_candidate_pairs": int(feasible_costs.size),
+            "selection_records": int(preference_gap_arr.size),
+            "preference_correlation_all_candidates": _safe_corr(
+                -all_costs,
+                all_preferences,
+            ),
+            "preference_correlation_feasible_candidates": _safe_corr(
+                -feasible_costs,
+                feasible_preferences,
+            ),
+            "selected_deviation_preference_gap_correlation": _safe_corr(
+                selected_cost_arr,
+                preference_gap_arr,
+            ),
+            "mean_top1_value": float(np.mean(top1_arr)) if top1_arr.size else None,
+            "mean_selected_value": (
+                float(np.mean(selected_arr)) if selected_arr.size else None
+            ),
+            "mean_selected_minus_top1_raw": (
+                float(np.mean(raw_gap_arr)) if raw_gap_arr.size else None
+            ),
+            "mean_selected_preference_minus_top1": (
+                float(np.mean(preference_gap_arr))
+                if preference_gap_arr.size
+                else None
+            ),
+            "selected_worse_than_top1_rate": (
+                float(np.mean(worse_than_top1)) if worse_than_top1 else None
+            ),
+        }
+    return alignment
 
 
 def _shadow_red_stopping_margin_coverage(
