@@ -14,7 +14,7 @@ import numpy as np
 
 from camp_core.atoms.driver_atoms import (
     DriverAtomContext,
-    compute_atom_bank_matrix,
+    compute_atom_bank_vector,
     compute_feasibility_mask,
 )
 
@@ -2428,23 +2428,12 @@ class CAMPSelector:
                     f"got {progress.shape}, expected ({candidates.shape[0]},)."
                 )
 
+        atoms = []
         feasible = []
         infeasibility_reasons = []
         atom_computation_seconds = 0.0
         feasibility_seconds = 0.0
         collision_seconds = 0.0
-        phase_start = time.perf_counter()
-        atoms_arr = compute_atom_bank_matrix(
-            context,
-            candidates[:, :, :2],
-            candidate_dynamic_obstacles=obstacles,
-        )
-        atom_computation_seconds += time.perf_counter() - phase_start
-        if atoms_arr.shape != (candidates.shape[0], len(CAMP_ATOM_NAMES)):
-            raise ValueError(
-                f"Base CAMP atom matrix shape is {atoms_arr.shape}, "
-                f"expected ({candidates.shape[0]}, {len(CAMP_ATOM_NAMES)})."
-            )
         for candidate_idx, trajectory in enumerate(candidates):
             local_context = context
             if obstacles is not None:
@@ -2456,6 +2445,15 @@ class CAMPSelector:
                 local_context = replace(context, dynamic_obstacles=dynamic)
 
             trajectory_xy = trajectory[:, :2]
+            phase_start = time.perf_counter()
+            atom_vector = compute_atom_bank_vector(local_context, trajectory_xy)
+            atom_computation_seconds += time.perf_counter() - phase_start
+            if atom_vector.shape != (len(CAMP_ATOM_NAMES),):
+                raise ValueError(
+                    f"Base CAMP atom dimension is {atom_vector.shape}, "
+                    f"expected ({len(CAMP_ATOM_NAMES)},)."
+                )
+            atoms.append(atom_vector)
             reasons = []
             phase_start = time.perf_counter()
             if apply_context_feasibility:
@@ -2499,6 +2497,7 @@ class CAMPSelector:
             feasible.append(not reasons)
             infeasibility_reasons.append(tuple(reasons))
 
+        atoms_arr = np.asarray(atoms, dtype=np.float64)
         feasible_mask = np.asarray(feasible, dtype=bool)
         if self.num_atoms in (
             len(DP_CAMP_ATOM_NAMES),
