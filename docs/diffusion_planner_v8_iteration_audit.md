@@ -2294,3 +2294,70 @@ Decision:
    A sufficiently long non-formal profile must pass the `<100 ms` p95 gate,
    and fixed-candidate logs must show progress-preserving Pareto opportunities
    before any paired sample59 pilot is launched.
+
+## Candidate-count latency and opportunity screen
+
+The next screen changed only the number of stochastic DP candidates. It kept
+the official DP checkpoint, certified `redstopfloor05` CAMP weights and
+scales, noise scale `1.0`, DP-reward feasibility, h30 reward and comfort
+horizons, perfect tracking, sample59 route, seed 1, no NPCs, traffic lights
+off, and 200 steps fixed.
+
+| Candidate count | p95 total | p95 generation | p95 reward | p95 CAMP | Completion | Jerk | Lateral | Fallback |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 8 | 94.395 ms | 56.635 ms | 18.252 ms | 14.537 ms | 0.156785 | 10.128817 | 0.426936 | 0.120 |
+| 9, first run | 99.185 ms | 63.364 ms | 22.931 ms | 17.604 ms | 0.156941 | 11.009428 | 0.428313 | 0.120 |
+| 9, audited rerun | 100.256 ms | 62.698 ms | 23.333 ms | 18.199 ms | 0.156941 | 11.009428 | 0.428313 | 0.120 |
+| 10 | 108.882 ms | 67.241 ms | 25.344 ms | 19.088 ms | 0.156981 | 11.095556 | 0.428930 | 0.120 |
+| 12 | 116.161 ms | 69.300 ms | 25.937 ms | 22.114 ms | 0.157059 | 9.060290 | 0.430164 | 0.130 |
+
+K=10 and K=12 clearly failed the latency gate. K=9 had no deployable margin:
+the same deterministic run moved from `99.185 ms` to `100.256 ms` p95 across
+two executions. Its comfort metrics were also worse than K=8.
+
+The audited K=9 rerun logged candidate step reach for every candidate. A new
+outcome-free fixed-candidate audit used zero tolerance and required each
+alternative to have:
+
+1. step reach and DP progress no lower than the CAMP-selected candidate;
+2. planned-red cost no higher;
+3. jerk and lateral cost both no higher, with at least one strictly lower.
+
+Among 176 non-fallback ticks, candidate index 8 was selected on 28 ticks, but
+there were zero weak or joint-strict comfort-Pareto opportunities from any
+candidate. Therefore the extra random sample changed ranking without supplying
+the required progress-preserving comfort alternative.
+
+A predefined diagnostic grid used step-reach tolerances `{0, 0.001, 0.002}` m
+and DP-progress tolerances `{0, 0.05, 0.10}` m, with planned-red tolerance
+fixed at zero. The ninth candidate supplied an opportunity unavailable among
+the first eight candidates on at most `1.136%` of non-fallback ticks, and only
+after allowing progress loss. At `0.05 m` progress tolerance the
+expanded-only rate was `0.568%`; at `0.10 m` it was at most `1.136%`.
+This is too sparse to justify the measured latency regression or a paired
+closed-loop pilot.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| K=9 diagnostic dataset audit | `8a75100b8fa6ac4a5dd1467c5dbd23f5e7d7be31723d07324e490c04084d0ef1` |
+| K=9 strict opportunity JSON | `5ea27931e964405a8723857fff66eb801a70e32a01baff490ef640772f952b08` |
+| K=9 strict opportunity markdown | `760379193501e89d4370e739d220791f531f7844eb5e4cba64c47fddc83a32ad` |
+| K=9 tolerance-grid summary | `016d02e69bf83ca4b7738abcd386244e91cb55737edf7f60954d5f538f826ddc` |
+
+Verification for this milestone was `122 passed, 5 skipped` locally and
+`127 passed` on AutoDL.
+
+Decision:
+
+1. Reject K=9, K=10, and K=12 random candidate-count expansion. Do not run a
+   sample59 matrix or formal seeds.
+2. Do not optimize the CAMP robust master or retrain weights from this screen.
+   The missing object is a suitable candidate, not a convexity or solver
+   failure.
+3. The next candidate-generation experiment should keep K=8 and preserve the
+   perfect tracker's first-step execution quantity by construction. A fixed,
+   outcome-free prefix blend between candidate 0 and each stochastic DP sample
+   is a suitable screen: it changes only the finite candidate set, then
+   re-applies the existing reward, safety, atom, and CAMP checks.

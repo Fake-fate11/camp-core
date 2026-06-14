@@ -1169,7 +1169,7 @@ def _install_camp_predictor(
         candidate_outcomes = None
         candidate_progress = None
         candidate_route_progress = None
-        candidate_step_reach = None
+        candidate_step_reach = _candidate_step_reach(candidates)
         candidate_step_reach_guard_relaxed = False
         lexicographic_stage_counts = None
         candidate_planned_red_light_cost = None
@@ -1206,7 +1206,6 @@ def _install_camp_predictor(
                 dtype=np.float64,
             )
         if min_candidate0_step_reach_ratio is not None:
-            candidate_step_reach = _candidate_step_reach(candidates)
             (
                 external_feasible_mask,
                 external_infeasibility_reasons,
@@ -1417,7 +1416,7 @@ def _install_camp_predictor(
                 ),
                 "candidate_step_reach_guard_relaxed": (
                     bool(candidate_step_reach_guard_relaxed)
-                    if candidate_step_reach is not None
+                    if min_candidate0_step_reach_ratio is not None
                     else None
                 ),
                 "lexicographic_stage_counts": lexicographic_stage_counts,
