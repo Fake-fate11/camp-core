@@ -98,8 +98,10 @@ def compute_perfect_tracker_command_report(
     feasible_values = {name: [] for name in COMMAND_FIELDS}
     dominance_candidate_counts: list[int] = []
     joint_strict_candidate_counts: list[int] = []
+    horizon_preserving_candidate_counts: list[int] = []
     shadow_latencies_ms: list[float] = []
     counterfactual_rows: list[dict[str, float]] = []
+    horizon_preserving_rows: list[dict[str, float]] = []
 
     for log_path in iter_selection_log_paths(paths):
         log_count += 1
@@ -239,6 +241,20 @@ def compute_perfect_tracker_command_report(
             joint_strict = admissible & jerk_strict & lateral_strict
             dominance_candidate_counts.append(int(dominance.sum()))
             joint_strict_candidate_counts.append(int(joint_strict.sum()))
+            horizon_preserving = (
+                dominance
+                & (
+                    metrics["old_jerk"]
+                    <= selected["old_jerk"] + 1e-12
+                )
+                & (
+                    metrics["old_lateral"]
+                    <= selected["old_lateral"] + 1e-12
+                )
+            )
+            horizon_preserving_candidate_counts.append(
+                int(horizon_preserving.sum())
+            )
             dominance_records += int(dominance.any())
             joint_strict_records += int(joint_strict.any())
             counterfactual_index = selected_index
@@ -270,40 +286,35 @@ def compute_perfect_tracker_command_report(
                 counterfactual_index = int(indices[order[0]])
             if counterfactual_index != selected_index:
                 counterfactual_rows.append(
-                    {
-                        "target_speed": float(
-                            metrics["target_speed"][counterfactual_index]
-                            - metrics["target_speed"][selected_index]
-                        ),
-                        "progress": float(
-                            progress[counterfactual_index]
-                            - progress[selected_index]
-                        ),
-                        "planned_red": float(
-                            planned_red[counterfactual_index]
-                            - planned_red[selected_index]
-                        ),
-                        "jerk": float(
-                            metrics["jerk"][counterfactual_index]
-                            - metrics["jerk"][selected_index]
-                        ),
-                        "lateral": float(
-                            metrics["lateral"][counterfactual_index]
-                            - metrics["lateral"][selected_index]
-                        ),
-                        "old_jerk": float(
-                            metrics["old_jerk"][counterfactual_index]
-                            - metrics["old_jerk"][selected_index]
-                        ),
-                        "old_lateral": float(
-                            metrics["old_lateral"][counterfactual_index]
-                            - metrics["old_lateral"][selected_index]
-                        ),
-                        "camp_score": float(
-                            selection_scores[counterfactual_index]
-                            - selection_scores[selected_index]
-                        ),
-                    }
+                    _counterfactual_delta_row(
+                        counterfactual_index,
+                        selected_index,
+                        metrics=metrics,
+                        progress=progress,
+                        planned_red=planned_red,
+                        selection_scores=selection_scores,
+                    )
+                )
+            if horizon_preserving.any():
+                indices = np.flatnonzero(horizon_preserving)
+                order = np.lexsort(
+                    (
+                        indices,
+                        selection_scores[indices],
+                        metrics["lateral"][indices],
+                        metrics["jerk"][indices],
+                    )
+                )
+                horizon_index = int(indices[order[0]])
+                horizon_preserving_rows.append(
+                    _counterfactual_delta_row(
+                        horizon_index,
+                        selected_index,
+                        metrics=metrics,
+                        progress=progress,
+                        planned_red=planned_red,
+                        selection_scores=selection_scores,
+                    )
                 )
 
     if not log_count:
@@ -343,6 +354,13 @@ def compute_perfect_tracker_command_report(
             "mean_joint_strict_candidates": _mean(
                 joint_strict_candidate_counts
             ),
+            "horizon_preserving_records": len(horizon_preserving_rows),
+            "horizon_preserving_rate": (
+                len(horizon_preserving_rows) / feasible_denominator
+            ),
+            "mean_horizon_preserving_candidates": _mean(
+                horizon_preserving_candidate_counts
+            ),
         },
         "selection_behavior": {
             "selected_restart_rate": (
@@ -367,6 +385,29 @@ def compute_perfect_tracker_command_report(
             "change_rate": len(counterfactual_rows) / feasible_denominator,
             "mean_deltas_on_changed_records": {
                 name: _mean([row[name] for row in counterfactual_rows])
+                for name in (
+                    "target_speed",
+                    "progress",
+                    "planned_red",
+                    "jerk",
+                    "lateral",
+                    "old_jerk",
+                    "old_lateral",
+                    "camp_score",
+                )
+            },
+        },
+        "horizon_preserving_postselection": {
+            "definition": (
+                "command dominance plus nonworse existing horizon jerk "
+                "excess and horizon lateral acceleration"
+            ),
+            "changed_records": len(horizon_preserving_rows),
+            "change_rate": (
+                len(horizon_preserving_rows) / feasible_denominator
+            ),
+            "mean_deltas_on_changed_records": {
+                name: _mean([row[name] for row in horizon_preserving_rows])
                 for name in (
                     "target_speed",
                     "progress",
@@ -417,6 +458,49 @@ def compute_perfect_tracker_command_report(
             ),
             "max": max(shadow_latencies_ms) if shadow_latencies_ms else None,
         },
+    }
+
+
+def _counterfactual_delta_row(
+    candidate_index: int,
+    selected_index: int,
+    *,
+    metrics: dict[str, np.ndarray],
+    progress: np.ndarray,
+    planned_red: np.ndarray,
+    selection_scores: np.ndarray,
+) -> dict[str, float]:
+    return {
+        "target_speed": float(
+            metrics["target_speed"][candidate_index]
+            - metrics["target_speed"][selected_index]
+        ),
+        "progress": float(
+            progress[candidate_index] - progress[selected_index]
+        ),
+        "planned_red": float(
+            planned_red[candidate_index] - planned_red[selected_index]
+        ),
+        "jerk": float(
+            metrics["jerk"][candidate_index]
+            - metrics["jerk"][selected_index]
+        ),
+        "lateral": float(
+            metrics["lateral"][candidate_index]
+            - metrics["lateral"][selected_index]
+        ),
+        "old_jerk": float(
+            metrics["old_jerk"][candidate_index]
+            - metrics["old_jerk"][selected_index]
+        ),
+        "old_lateral": float(
+            metrics["old_lateral"][candidate_index]
+            - metrics["old_lateral"][selected_index]
+        ),
+        "camp_score": float(
+            selection_scores[candidate_index]
+            - selection_scores[selected_index]
+        ),
     }
 
 
@@ -588,6 +672,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     opportunities = report["opportunities"]
     behavior = report["selection_behavior"]
     counterfactual = report["counterfactual_postselection"]
+    horizon_preserving = report["horizon_preserving_postselection"]
     correlations = report["feasible_correlations"]
     latency = report["latency_ms"]
     lines = [
@@ -604,6 +689,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"`{opportunities['joint_strict_rate']:.6f}`",
         f"- Counterfactual postselection change rate: "
         f"`{counterfactual['change_rate']:.6f}`",
+        f"- Horizon-preserving change rate: "
+        f"`{horizon_preserving['change_rate']:.6f}`",
         f"- Selected target below candidate 0 rate: "
         f"`{behavior['selected_target_below_candidate0_rate']:.6f}`",
         f"- Restart-change rate: `{behavior['restart_changed_rate']:.6f}`",

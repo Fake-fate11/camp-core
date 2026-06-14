@@ -23,6 +23,7 @@ def test_command_shadow_analysis_finds_joint_strict_opportunity(tmp_path) -> Non
     assert report["opportunities"]["dominance_records"] == 1
     assert report["opportunities"]["joint_strict_records"] == 1
     assert report["counterfactual_postselection"]["changed_records"] == 1
+    assert report["horizon_preserving_postselection"]["changed_records"] == 0
     assert report["counterfactual_postselection"][
         "mean_deltas_on_changed_records"
     ]["progress"] == 0.0
@@ -30,6 +31,25 @@ def test_command_shadow_analysis_finds_joint_strict_opportunity(tmp_path) -> Non
         "selected_target_below_candidate0_rate"
     ] == 0.0
     assert report["latency_ms"]["p95"] == pytest.approx(0.25)
+
+
+def test_command_shadow_analysis_finds_horizon_preserving_opportunity(
+    tmp_path,
+) -> None:
+    record = _record()
+    record["candidate_dp_prior_jerk_excess_cost"][1] = 0.0
+    log_path = _write_log(tmp_path, [record])
+
+    report = compute_perfect_tracker_command_report([log_path])
+
+    assert report["opportunities"]["horizon_preserving_records"] == 1
+    assert report["horizon_preserving_postselection"]["changed_records"] == 1
+    assert report["horizon_preserving_postselection"][
+        "mean_deltas_on_changed_records"
+    ]["old_jerk"] == 0.0
+    assert report["horizon_preserving_postselection"][
+        "mean_deltas_on_changed_records"
+    ]["old_lateral"] < 0.0
 
 
 def test_command_shadow_analysis_excludes_fallback_from_opportunities(
