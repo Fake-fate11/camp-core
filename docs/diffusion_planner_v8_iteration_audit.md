@@ -3268,3 +3268,75 @@ current underprogress-only rule intentionally refuses those cases, so any
 candidate-set safety override that handles them must be analyzed separately
 with progress, H3 distance, stopping-margin, jerk, lateral, fallback, and latency
 budgets before any new implementation.
+
+### Base-feasible lower-red override diagnostic
+
+The rejected underprogress pilot was audited for runtime ticks where the
+underprogress helper reported `lower_red_base_feasible_candidate_exists`. These
+are cases where the baseline selected candidate had positive union-red cost and
+at least one lower-red candidate was already feasible under the normal DP reward
+gates. They are not underprogress-relaxation opportunities; they would require a
+separate base-feasible safety override.
+
+Artifact root:
+
+```text
+/root/autodl-tmp/camp_dp_underprogress_sample59_pilot_259bc60_compare
+```
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `base_feasible_safety_override_diagnosis.json` | `733849826ed6c2baf301614bd18e4456c4cf607943f121e1adb714473c387ae9` |
+| `base_feasible_safety_override_diagnosis.md` | `c22206d88e1d2917b60417afe1beb618773281d7cedeef1189ebe11c6ccebdbc` |
+
+Across the 2400 selection ticks, runtime underprogress reasons were:
+
+| Reason | Count |
+| --- | ---: |
+| `baseline_union_red_zero` | 1884 |
+| `fallback_or_no_base_feasible_candidate` | 484 |
+| `lower_red_base_feasible_candidate_exists` | 22 |
+| `underprogress_relaxed_lower_red_candidate` | 8 |
+| `no_underprogress_relaxed_candidate` | 2 |
+
+The 22 base-feasible lower-red opportunities were concentrated in only two
+runs:
+
+| Run | Events |
+| --- | ---: |
+| `sample59_86/seed_2/npc_0/spawn_0p3/tl_on/static` | 4 |
+| `sample59_86/seed_2/npc_4/spawn_0p3/tl_on/static` | 18 |
+
+Using the same budget family as the underprogress screen, with red
+stopping-margin nonworse and absolute H3 max lateral `<= 2.0 m/s^2`, the
+base-feasible candidate screen was:
+
+| Progress loss | H3 distance loss | Covered | Union red | Progress | H3 distance | H3 mean jerk | H3 max jerk |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.5 m | 0.05 m | 5/22 | -0.600000 | -0.419675 | -0.023867 | +0.489044 | -0.521638 |
+| 0.5 m | 0.1 m | 6/22 | -0.583333 | -0.393493 | -0.034909 | +3.146894 | +3.167237 |
+| 1.0 m | 0.05 m | 8/22 | -1.125000 | -0.536327 | -0.026273 | +0.947411 | +0.477641 |
+| 1.0 m | 0.1 m | 9/22 | -1.111111 | -0.578932 | -0.043124 | +2.486502 | +1.084511 |
+| 1.5 m | 0.05 m | 8/22 | -1.250000 | -0.595235 | -0.028835 | +1.531220 | +0.626101 |
+| 1.5 m | 0.1 m | 11/22 | -1.636364 | -0.820927 | -0.058403 | +3.554947 | +4.480754 |
+
+A pure diagnostic comfort-nonworse filter at the widest budget reduces coverage
+substantially:
+
+| Jerk guard | Covered | Union red | Progress | H3 mean jerk | H3 max jerk |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| none | 11/22 | -1.636364 | -0.820927 | +3.554947 | +4.480754 |
+| mean nonworse | 3/22 | -1.500000 | -0.892818 | -3.818584 | -6.418135 |
+| max nonworse | 5/22 | -1.400000 | -0.887451 | -1.054926 | -6.363177 |
+| mean and max nonworse | 3/22 | -1.500000 | -0.892818 | -3.818584 | -6.418135 |
+
+Decision: do not implement a base-feasible safety override yet. The candidate
+constants remain valid finite current-tick diagnostics, but the opportunity is
+too localized, the red reduction is small, and the no-jerk-guard version has a
+large H3 jerk regression. Adding a jerk-nonworse guard makes the screen more
+comfortable but leaves only `3/22` to `5/22` covered events before any closed-loop
+validation. This is not enough evidence to justify another online selector
+variant. The next useful direction is not wider safety override logic; it is to
+reduce latency overhead and improve the candidate generator or atom/safety
+certificate so lower-red choices are available without paying progress and jerk
+taxes. Formal seeds remain frozen.
