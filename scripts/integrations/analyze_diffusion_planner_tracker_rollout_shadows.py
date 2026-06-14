@@ -23,6 +23,10 @@ from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
 
 
 HORIZONS = (3, 5, 10)
+SAFETY_DETAIL_HORIZON = 3
+PROGRESS_LOSS_BUDGETS_M = (0.5, 1.0, 1.5)
+H3_DISTANCE_LOSS_BUDGETS_M = (0.05, 0.1)
+H3_MAX_LATERAL_GUARD_MPS2 = 2.0
 ROLLOUT_METRICS = (
     "distance_m",
     "mean_vector_jerk_mps3",
@@ -57,6 +61,24 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
     short_red_full_safe_candidates = 0
     selected_short_safe_full_red_records = 0
     selected_full_red_records = 0
+    selected_short_safe_full_red_events: list[dict[str, Any]] = []
+    selected_short_safe_full_red_breakdown = {
+        "fallback": 0,
+        "nonfallback": 0,
+        "with_lower_union_red_feasible_candidate": 0,
+        "without_lower_union_red_feasible_candidate": 0,
+        "fallback_with_lower_union_red_feasible_candidate": 0,
+        "nonfallback_with_lower_union_red_feasible_candidate": 0,
+    }
+    budget_rows = {
+        (progress_budget, distance_budget): []
+        for progress_budget in PROGRESS_LOSS_BUDGETS_M
+        for distance_budget in H3_DISTANCE_LOSS_BUDGETS_M
+    }
+    budget_candidate_counts = {
+        key: []
+        for key in budget_rows
+    }
     horizon_rows = {
         horizon: {
             "rollout_pareto": [],
@@ -83,6 +105,7 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
     }
 
     for log_path in log_paths:
+        log_context = _load_log_context(log_path)
         records = json.loads(log_path.read_text(encoding="utf-8"))
         if not isinstance(records, list) or not records:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
@@ -128,9 +151,47 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                 short_red[selected] <= 0.0 and full_red[selected] > 0.0
             )
             selected_full_red_records += int(full_red[selected] > 0.0)
+            selected_is_h30_missed = (
+                short_red[selected] <= 0.0 and full_red[selected] > 0.0
+            )
+            lower_union_red_feasible = feasible & (
+                red_certificate < red_certificate[selected]
+            )
+            lower_union_red_feasible[selected] = False
+            lower_union_red_indices = np.flatnonzero(
+                lower_union_red_feasible
+            )
 
             if bool(record.get("used_fallback", False)):
                 fallback_records += 1
+                if selected_is_h30_missed:
+                    selected_short_safe_full_red_breakdown["fallback"] += 1
+                    if lower_union_red_indices.size:
+                        selected_short_safe_full_red_breakdown[
+                            "with_lower_union_red_feasible_candidate"
+                        ] += 1
+                        selected_short_safe_full_red_breakdown[
+                            "fallback_with_lower_union_red_feasible_candidate"
+                        ] += 1
+                    else:
+                        selected_short_safe_full_red_breakdown[
+                            "without_lower_union_red_feasible_candidate"
+                        ] += 1
+                    selected_short_safe_full_red_events.append(
+                        _red_miss_event_row(
+                            log_path=log_path,
+                            log_context=log_context,
+                            record_index=record_index,
+                            record=record,
+                            selected=selected,
+                            used_fallback=True,
+                            progress=progress,
+                            short_red=short_red,
+                            full_red=full_red,
+                            red_certificate=red_certificate,
+                            lower_union_red_indices=lower_union_red_indices,
+                        )
+                    )
                 continue
             nonfallback_records += 1
             scores = _selection_scores(
@@ -162,29 +223,118 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
             rollout = record.get("candidate_perfect_tracker_open_loop_rollout")
             if not isinstance(rollout, dict):
                 raise ValueError(f"{label} lacks rollout metrics.")
+            detail_metrics = _rollout_metrics(
+                rollout,
+                SAFETY_DETAIL_HORIZON,
+                count,
+                label,
+            )
+            if selected_is_h30_missed:
+                selected_short_safe_full_red_breakdown["nonfallback"] += 1
+                if lower_union_red_indices.size:
+                    selected_short_safe_full_red_breakdown[
+                        "with_lower_union_red_feasible_candidate"
+                    ] += 1
+                    selected_short_safe_full_red_breakdown[
+                        "nonfallback_with_lower_union_red_feasible_candidate"
+                    ] += 1
+                else:
+                    selected_short_safe_full_red_breakdown[
+                        "without_lower_union_red_feasible_candidate"
+                    ] += 1
+                selected_short_safe_full_red_events.append(
+                    _red_miss_event_row(
+                        log_path=log_path,
+                        log_context=log_context,
+                        record_index=record_index,
+                        record=record,
+                        selected=selected,
+                        used_fallback=False,
+                        progress=progress,
+                        short_red=short_red,
+                        full_red=full_red,
+                        red_certificate=red_certificate,
+                        lower_union_red_indices=lower_union_red_indices,
+                        scores=scores,
+                        command_target=command_target,
+                        command_jerk=command_jerk,
+                        command_lateral=command_lateral,
+                        h3_metrics=detail_metrics,
+                    )
+                )
+                for progress_budget in PROGRESS_LOSS_BUDGETS_M:
+                    for distance_budget in H3_DISTANCE_LOSS_BUDGETS_M:
+                        admissible = (
+                            lower_union_red_feasible
+                            & (
+                                progress
+                                >= progress[selected] - progress_budget
+                            )
+                            & (
+                                detail_metrics["distance_m"]
+                                >= (
+                                    detail_metrics["distance_m"][selected]
+                                    - distance_budget
+                                )
+                            )
+                            & (
+                                detail_metrics[
+                                    "max_lateral_acceleration_mps2"
+                                ]
+                                <= H3_MAX_LATERAL_GUARD_MPS2
+                            )
+                        )
+                        admissible_indices = np.flatnonzero(admissible)
+                        key = (progress_budget, distance_budget)
+                        budget_candidate_counts[key].append(
+                            int(admissible_indices.size)
+                        )
+                        if admissible_indices.size:
+                            chosen = min(
+                                admissible_indices.tolist(),
+                                key=lambda idx: (
+                                    float(red_certificate[idx]),
+                                    float(scores[idx]),
+                                    int(idx),
+                                ),
+                            )
+                            budget_rows[key].append(
+                                _delta_row(
+                                    selected,
+                                    chosen,
+                                    progress=progress,
+                                    full_red=red_certificate,
+                                    distance=detail_metrics["distance_m"],
+                                    jerk=detail_metrics[
+                                        "mean_vector_jerk_mps3"
+                                    ],
+                                    lateral=detail_metrics[
+                                        "mean_lateral_acceleration_mps2"
+                                    ],
+                                    command_target=command_target,
+                                    command_jerk=command_jerk,
+                                    command_lateral=command_lateral,
+                                )
+                                | {
+                                    "selected_full_red": float(
+                                        full_red[selected]
+                                    ),
+                                    "chosen_full_red": float(
+                                        full_red[chosen]
+                                    ),
+                                    "chosen_h3_max_lateral": float(
+                                        detail_metrics[
+                                            "max_lateral_acceleration_mps2"
+                                        ][chosen]
+                                    ),
+                                }
+                            )
 
             for horizon in HORIZONS:
-                metrics = rollout.get(str(horizon))
-                if not isinstance(metrics, dict):
-                    raise ValueError(f"{label} lacks rollout horizon {horizon}.")
-                distance = _vector(
-                    metrics.get("distance_m"),
-                    count,
-                    f"{label} H{horizon} distance",
-                    nonnegative=True,
-                )
-                jerk = _vector(
-                    metrics.get("mean_vector_jerk_mps3"),
-                    count,
-                    f"{label} H{horizon} vector jerk",
-                    nonnegative=True,
-                )
-                lateral = _vector(
-                    metrics.get("mean_lateral_acceleration_mps2"),
-                    count,
-                    f"{label} H{horizon} lateral",
-                    nonnegative=True,
-                )
+                metrics = _rollout_metrics(rollout, horizon, count, label)
+                distance = metrics["distance_m"]
+                jerk = metrics["mean_vector_jerk_mps3"]
+                lateral = metrics["mean_lateral_acceleration_mps2"]
                 feasible_indices = np.flatnonzero(feasible)
                 correlations[horizon]["command_jerk"].extend(
                     command_jerk[feasible_indices].tolist()
@@ -470,6 +620,19 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                 selected_short_safe_full_red_records
             ),
             "selected_full_red_records": selected_full_red_records,
+            "selected_short_safe_full_red_breakdown": (
+                selected_short_safe_full_red_breakdown
+            ),
+            "selected_short_safe_full_red_events": (
+                selected_short_safe_full_red_events
+            ),
+            "predeclared_budget_sensitivity_h3": (
+                _summarize_budget_sensitivity(
+                    rows_by_budget=budget_rows,
+                    candidate_counts_by_budget=budget_candidate_counts,
+                    event_count=selected_short_safe_full_red_records,
+                )
+            ),
         },
         "horizons": horizon_reports,
     }
@@ -497,6 +660,71 @@ def _reward_metrics(
     if not np.all(np.isfinite(progress)) or not np.all(np.isfinite(red)):
         raise ValueError(f"{label} has nonfinite DP reward metrics.")
     return progress, red
+
+
+def _rollout_metrics(
+    rollout: dict[str, Any],
+    horizon: int,
+    candidate_count: int,
+    label: str,
+) -> dict[str, np.ndarray]:
+    metrics = rollout.get(str(horizon))
+    if not isinstance(metrics, dict):
+        raise ValueError(f"{label} lacks rollout horizon {horizon}.")
+    return {
+        "distance_m": _vector(
+            metrics.get("distance_m"),
+            candidate_count,
+            f"{label} H{horizon} distance",
+            nonnegative=True,
+        ),
+        "mean_vector_jerk_mps3": _vector(
+            metrics.get("mean_vector_jerk_mps3"),
+            candidate_count,
+            f"{label} H{horizon} vector jerk",
+            nonnegative=True,
+        ),
+        "max_vector_jerk_mps3": _vector(
+            metrics.get("max_vector_jerk_mps3"),
+            candidate_count,
+            f"{label} H{horizon} max vector jerk",
+            nonnegative=True,
+        ),
+        "mean_lateral_acceleration_mps2": _vector(
+            metrics.get("mean_lateral_acceleration_mps2"),
+            candidate_count,
+            f"{label} H{horizon} lateral",
+            nonnegative=True,
+        ),
+        "max_lateral_acceleration_mps2": _vector(
+            metrics.get("max_lateral_acceleration_mps2"),
+            candidate_count,
+            f"{label} H{horizon} max lateral",
+            nonnegative=True,
+        ),
+    }
+
+
+def _load_log_context(log_path: Path) -> dict[str, Any]:
+    summary_path = log_path.parent / "camp_replay_summary.json"
+    if not summary_path.exists():
+        return {}
+    try:
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    benchmark = summary.get("benchmark")
+    if not isinstance(benchmark, dict):
+        return {}
+    keys = (
+        "variant",
+        "route",
+        "seed",
+        "max_npcs",
+        "traffic_lights",
+        "advance_mode",
+    )
+    return {key: benchmark.get(key) for key in keys}
 
 
 def _vector(
@@ -541,6 +769,182 @@ def _delta_row(
         name: float(values[candidate] - values[baseline])
         for name, values in metrics.items()
     }
+
+
+def _red_miss_event_row(
+    *,
+    log_path: Path,
+    log_context: dict[str, Any],
+    record_index: int,
+    record: dict[str, Any],
+    selected: int,
+    used_fallback: bool,
+    progress: np.ndarray,
+    short_red: np.ndarray,
+    full_red: np.ndarray,
+    red_certificate: np.ndarray,
+    lower_union_red_indices: np.ndarray,
+    scores: np.ndarray | None = None,
+    command_target: np.ndarray | None = None,
+    command_jerk: np.ndarray | None = None,
+    command_lateral: np.ndarray | None = None,
+    h3_metrics: dict[str, np.ndarray] | None = None,
+) -> dict[str, Any]:
+    best_lower_red: dict[str, Any] | None = None
+    if lower_union_red_indices.size:
+        chosen = min(
+            lower_union_red_indices.tolist(),
+            key=lambda idx: (
+                float(red_certificate[idx]),
+                (
+                    float(scores[idx])
+                    if scores is not None and np.isfinite(scores[idx])
+                    else 0.0
+                ),
+                int(idx),
+            ),
+        )
+        best_lower_red = {
+            "candidate_index": int(chosen),
+            "delta": _delta_row(
+                selected,
+                chosen,
+                progress=progress,
+                full_red=red_certificate,
+                **(
+                    {
+                        "distance": h3_metrics["distance_m"],
+                        "jerk": h3_metrics["mean_vector_jerk_mps3"],
+                        "lateral": h3_metrics[
+                            "mean_lateral_acceleration_mps2"
+                        ],
+                    }
+                    if h3_metrics is not None
+                    else {}
+                ),
+                **(
+                    {
+                        "command_target": command_target,
+                        "command_jerk": command_jerk,
+                        "command_lateral": command_lateral,
+                    }
+                    if command_target is not None
+                    and command_jerk is not None
+                    and command_lateral is not None
+                    else {}
+                ),
+            ),
+            "absolute": _candidate_absolute_row(
+                chosen,
+                progress=progress,
+                short_red=short_red,
+                full_red=full_red,
+                red_certificate=red_certificate,
+                scores=scores,
+                command_target=command_target,
+                command_jerk=command_jerk,
+                command_lateral=command_lateral,
+                h3_metrics=h3_metrics,
+            ),
+        }
+    return {
+        "selection_log": str(log_path),
+        "record_index": int(record_index),
+        "selection_step": record.get("selection_step"),
+        "context": log_context,
+        "selected_index": int(selected),
+        "used_fallback": bool(used_fallback),
+        "current_speed_mps": _nested_number(
+            record,
+            ("perfect_tracker_command_inputs", "current_speed_mps"),
+        ),
+        "lower_union_red_feasible_candidates": int(
+            lower_union_red_indices.size
+        ),
+        "selected": _candidate_absolute_row(
+            selected,
+            progress=progress,
+            short_red=short_red,
+            full_red=full_red,
+            red_certificate=red_certificate,
+            scores=scores,
+            command_target=command_target,
+            command_jerk=command_jerk,
+            command_lateral=command_lateral,
+            h3_metrics=h3_metrics,
+        ),
+        "best_lower_union_red_feasible_candidate": best_lower_red,
+    }
+
+
+def _candidate_absolute_row(
+    index: int,
+    *,
+    progress: np.ndarray,
+    short_red: np.ndarray,
+    full_red: np.ndarray,
+    red_certificate: np.ndarray,
+    scores: np.ndarray | None,
+    command_target: np.ndarray | None,
+    command_jerk: np.ndarray | None,
+    command_lateral: np.ndarray | None,
+    h3_metrics: dict[str, np.ndarray] | None,
+) -> dict[str, float | None]:
+    row: dict[str, float | None] = {
+        "progress": float(progress[index]),
+        "short_horizon_red": float(short_red[index]),
+        "full_horizon_red": float(full_red[index]),
+        "union_red_certificate": float(red_certificate[index]),
+        "selection_score": (
+            float(scores[index])
+            if scores is not None and np.isfinite(scores[index])
+            else None
+        ),
+    }
+    if (
+        command_target is not None
+        and command_jerk is not None
+        and command_lateral is not None
+    ):
+        row.update(
+            {
+                "command_target_speed_mps": float(command_target[index]),
+                "command_jerk_mps3": float(command_jerk[index]),
+                "command_lateral_mps2": float(command_lateral[index]),
+            }
+        )
+    if h3_metrics is not None:
+        row.update(
+            {
+                "h3_distance_m": float(h3_metrics["distance_m"][index]),
+                "h3_mean_vector_jerk_mps3": float(
+                    h3_metrics["mean_vector_jerk_mps3"][index]
+                ),
+                "h3_max_vector_jerk_mps3": float(
+                    h3_metrics["max_vector_jerk_mps3"][index]
+                ),
+                "h3_mean_lateral_mps2": float(
+                    h3_metrics["mean_lateral_acceleration_mps2"][index]
+                ),
+                "h3_max_lateral_mps2": float(
+                    h3_metrics["max_lateral_acceleration_mps2"][index]
+                ),
+            }
+        )
+    return row
+
+
+def _nested_number(record: dict[str, Any], keys: tuple[str, ...]) -> float | None:
+    value: Any = record
+    for key in keys:
+        if not isinstance(value, dict) or key not in value:
+            return None
+        value = value[key]
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if np.isfinite(number) else None
 
 
 def _summarize_screen(
@@ -595,6 +999,61 @@ def _summarize_screen(
     }
 
 
+def _summarize_budget_sensitivity(
+    *,
+    rows_by_budget: dict[tuple[float, float], list[dict[str, float]]],
+    candidate_counts_by_budget: dict[tuple[float, float], list[int]],
+    event_count: int,
+) -> dict[str, Any]:
+    cells = []
+    for progress_budget, distance_budget in sorted(rows_by_budget):
+        rows = rows_by_budget[(progress_budget, distance_budget)]
+        candidate_counts = candidate_counts_by_budget[
+            (progress_budget, distance_budget)
+        ]
+        summary = _summarize_screen(rows, event_count, candidate_counts)
+        cells.append(
+            {
+                "progress_loss_budget_m": float(progress_budget),
+                "h3_distance_loss_budget_m": float(distance_budget),
+                "h3_max_lateral_guard_mps2": H3_MAX_LATERAL_GUARD_MPS2,
+                "selection_rule": "min_union_red_then_camp_score_then_index",
+                **summary,
+                "selected_full_red_mean": (
+                    float(np.mean([row["selected_full_red"] for row in rows]))
+                    if rows
+                    else None
+                ),
+                "chosen_full_red_mean": (
+                    float(np.mean([row["chosen_full_red"] for row in rows]))
+                    if rows
+                    else None
+                ),
+                "chosen_h3_max_lateral_mean": (
+                    float(
+                        np.mean(
+                            [row["chosen_h3_max_lateral"] for row in rows]
+                        )
+                    )
+                    if rows
+                    else None
+                ),
+            }
+        )
+    return {
+        "event_denominator": event_count,
+        "progress_loss_budgets_m": list(PROGRESS_LOSS_BUDGETS_M),
+        "h3_distance_loss_budgets_m": list(H3_DISTANCE_LOSS_BUDGETS_M),
+        "h3_max_lateral_guard_mps2": H3_MAX_LATERAL_GUARD_MPS2,
+        "jerk_guard": None,
+        "jerk_guard_note": (
+            "No physical jerk threshold is applied here; jerk remains a "
+            "reported tradeoff until a specification-backed limit is chosen."
+        ),
+        "cells": cells,
+    }
+
+
 def _correlation(left: list[float], right: list[float]) -> float | None:
     if len(left) < 2 or len(right) != len(left):
         return None
@@ -622,6 +1081,15 @@ def render_markdown(report: dict[str, Any]) -> str:
             "- Selected h30-safe records with a full-horizon red violation: "
             f"{red['selected_short_safe_full_red_records']}"
         ),
+        (
+            "- Selected h30-safe/full-red records with a lower union-red "
+            "base-feasible candidate: "
+            f"{red['selected_short_safe_full_red_breakdown']['with_lower_union_red_feasible_candidate']}"
+        ),
+        (
+            "- Selected h30-safe/full-red fallback records: "
+            f"{red['selected_short_safe_full_red_breakdown']['fallback']}"
+        ),
         "",
         "| Horizon | Screen | Changes | Rate | Progress | Full red | Distance | "
         "Vector jerk | Lateral |",
@@ -643,8 +1111,39 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"{_fmt(delta['full_red'])} | {_fmt(delta['distance'])} | "
                 f"{_fmt(delta['jerk'])} | {_fmt(delta['lateral'])} |"
             )
+    budget = red["predeclared_budget_sensitivity_h3"]
     lines.extend(
         [
+            "",
+            "## H3 Safety Budget Sensitivity",
+            "",
+            (
+                "Rows are predeclared offline sensitivity checks for h30-safe "
+                "selected records with full-horizon red exposure. The rule is "
+                "safety-first over the union-red certificate, then original "
+                "CAMP score and candidate index. Jerk is reported as a "
+                "tradeoff, not hard-filtered."
+            ),
+            "",
+            "| Progress loss budget | H3 distance loss budget | Changes | Rate | "
+            "Union red | Progress | H3 distance | H3 vector jerk | H3 lateral |",
+            "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for cell in budget["cells"]:
+        delta = cell["mean_deltas_on_changed_records"]
+        lines.append(
+            f"| {cell['progress_loss_budget_m']:.2f} m | "
+            f"{cell['h3_distance_loss_budget_m']:.2f} m | "
+            f"{cell['changed_records']} | {cell['change_rate']:.6f} | "
+            f"{_fmt(delta['full_red'])} | {_fmt(delta['progress'])} | "
+            f"{_fmt(delta['distance'])} | {_fmt(delta['jerk'])} | "
+            f"{_fmt(delta['lateral'])} |"
+        )
+    lines.extend(
+        [
+            "",
+            budget["jerk_guard_note"],
             "",
             "This is an outcome-free fixed-candidate screen, not a guarantee "
             "about future Diffusion Planner replanning.",

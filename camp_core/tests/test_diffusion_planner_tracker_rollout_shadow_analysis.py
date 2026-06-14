@@ -12,6 +12,21 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
     tmp_path,
 ) -> None:
     log_path = tmp_path / "camp_selection_log.json"
+    summary_path = tmp_path / "camp_replay_summary.json"
+    summary_path.write_text(
+        json.dumps(
+            {
+                "benchmark": {
+                    "route": "sample59_86",
+                    "seed": 1,
+                    "max_npcs": 0,
+                    "traffic_lights": True,
+                    "advance_mode": "perfect",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
     log_path.write_text(json.dumps([_record()]), encoding="utf-8")
 
     report = analyze([log_path])
@@ -23,6 +38,36 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
     assert report["full_horizon_red_light"][
         "selected_short_safe_full_red_records"
     ] == 1
+    breakdown = report["full_horizon_red_light"][
+        "selected_short_safe_full_red_breakdown"
+    ]
+    assert breakdown["nonfallback"] == 1
+    assert breakdown["fallback"] == 0
+    assert breakdown["with_lower_union_red_feasible_candidate"] == 1
+    event = report["full_horizon_red_light"][
+        "selected_short_safe_full_red_events"
+    ][0]
+    assert event["context"]["traffic_lights"] is True
+    assert event["current_speed_mps"] == 1.5
+    assert event["selected"]["full_horizon_red"] == 2.0
+    assert event["selected"]["h3_max_lateral_mps2"] == 1.2
+    assert event["best_lower_union_red_feasible_candidate"][
+        "candidate_index"
+    ] == 1
+    assert event["best_lower_union_red_feasible_candidate"]["delta"][
+        "full_red"
+    ] < 0.0
+    budget = report["full_horizon_red_light"][
+        "predeclared_budget_sensitivity_h3"
+    ]
+    assert budget["event_denominator"] == 1
+    assert budget["jerk_guard"] is None
+    assert len(budget["cells"]) == 6
+    assert all(cell["changed_records"] == 1 for cell in budget["cells"])
+    assert all(
+        cell["selection_rule"] == "min_union_red_then_camp_score_then_index"
+        for cell in budget["cells"]
+    )
     for horizon in ("3", "5", "10"):
         assert report["horizons"][horizon]["rollout_pareto"][
             "changed_records"
@@ -96,4 +141,7 @@ def _record() -> dict:
             "lateral_acceleration_magnitude_mps2"
         ): [1.0, 0.9, 0.8],
         "candidate_perfect_tracker_open_loop_rollout": rollout,
+        "perfect_tracker_command_inputs": {
+            "current_speed_mps": 1.5,
+        },
     }
