@@ -2697,3 +2697,68 @@ Artifacts:
 | Dataset audit | `postselection_dataset_audit.json` | `73490b3a99b6a28158dc6f28161fe158996057c9e3449e66b36884e4362bfd0e` |
 | Paired comparison | `paired_comparison.json` | `586a859e2b97b4b75ba469294be5f510fbadd021a12147ffd607dcdf82183503` |
 | Paired comparison markdown | `paired_comparison.md` | `320fc2a3b7c843a32fd2da911176191faa2c30c1680cbce3b1b49f202d972bdd` |
+
+## Full-red safety budget audit
+
+Commit `6980b628356df560133ebe8a47d5549cfc617ffa` extends the
+PerfectTracker rollout shadow analyzer without changing the online selector,
+atom schema, CAMP weights, DP weights, feasibility, or simulator execution.
+The new report records every selected h30-safe candidate that is unsafe under
+the full-horizon red-light shadow, then evaluates predeclared H3 safety
+budgets:
+
+- progress loss budgets: `0.5`, `1.0`, and `1.5 m`;
+- H3 distance loss budgets: `0.05` and `0.1 m`;
+- H3 max lateral acceleration guard: `2.0 m/s^2`;
+- no hard jerk guard, because no specification-backed jerk threshold has been
+  selected yet.
+
+The budget screen is a development sensitivity analysis, not an online
+selector and not parameter tuning. It uses the union red certificate
+`max(h30_red, h80_red)` and chooses among admissible lower-red candidates by
+minimum union-red, original CAMP score, then candidate index. The computation
+uses only current-tick candidate constants and remains outcome-free.
+
+AutoDL verification at this commit passed the full CAMP test set:
+`166 passed`. The same commit also passes locally with `161 passed, 5 skipped`.
+
+The real sample59 non-formal v3 shadow artifact was re-analyzed at:
+
+`/root/autodl-tmp/camp_dp_tracker_rollout_shadow_sample59_acba493`
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Budget analysis JSON | `c2958b8fa057f510d2909e287f7192da9034153ffc50333b8c8d28da97c04d46` |
+| Budget analysis markdown | `982669b0587ecec382f7e8d8c9f2144a1efb27e48515c90c5fb66eaa060572b8` |
+
+The selected h30-safe/full-red misses are now attributed as:
+
+| Count | Value |
+| --- | ---: |
+| Selected h30-safe/full-red records | 32 |
+| Fallback misses | 0 |
+| Nonfallback misses | 32 |
+| With a lower union-red base-feasible candidate | 20 |
+| Without a lower union-red base-feasible candidate | 12 |
+| Selected full-horizon red records, regardless h30 status | 107 |
+
+The predeclared H3 budget sensitivity is:
+
+| Progress loss budget | H3 distance loss budget | Covered records | Coverage | Union-red delta | Progress delta | H3 distance delta | H3 vector jerk delta | H3 lateral delta |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.5 m | 0.05 m | 10/32 | 0.312500 | -0.650000 | -0.313686 | -0.008459 | +1.928413 | +0.014726 |
+| 0.5 m | 0.1 m | 10/32 | 0.312500 | -0.650000 | -0.313686 | -0.008459 | +1.928413 | +0.014726 |
+| 1.0 m | 0.05 m | 14/32 | 0.437500 | -1.071429 | -0.505146 | -0.020840 | +2.086067 | +0.021312 |
+| 1.0 m | 0.1 m | 15/32 | 0.468750 | -1.133333 | -0.591974 | -0.034521 | +1.292091 | +0.016710 |
+| 1.5 m | 0.05 m | 14/32 | 0.437500 | -1.142857 | -0.538808 | -0.022304 | +2.419672 | +0.018773 |
+| 1.5 m | 0.1 m | 17/32 | 0.531250 | -1.529412 | -0.776554 | -0.047694 | +2.743974 | -0.012755 |
+
+Decision: keep this as shadow analysis and do not implement the safety
+override yet. The analysis confirms a real h30/full-horizon blind spot, but it
+also shows that even the widest predeclared budget covers only `17/32` misses
+and materially worsens H3 vector jerk. The remaining `12/32` misses have no
+lower union-red base-feasible candidate, so a finite selector alone cannot
+repair them without changing candidate generation or feasibility. The next
+design step is therefore a mathematically explicit lexicographic safety rule
+with state-dependent progress/comfort budgets, plus a separate answer for the
+no-lower-red-candidate cases. Formal seeds remain frozen.
