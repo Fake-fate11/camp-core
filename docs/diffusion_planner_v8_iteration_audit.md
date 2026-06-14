@@ -1967,3 +1967,79 @@ Decision:
    non-formal scenarios while keeping DP weights, CAMP weights, feasibility,
    schema, and formal seeds fixed. Any candidate-pool change must pass the
    existing `<100 ms` deployable latency gate before a development matrix.
+
+## Candidate-Pool And Progress-Guard Screen
+
+This screen kept the certified `redstopfloor05` CAMP weights, atom schema,
+DP checkpoint, sample59 route, seeds 1/2/3, NPC counts 0/4, traffic lights
+off/on, perfect tracking, and no closed-loop outcome labels. Formal seeds
+11/12/13 remained frozen.
+
+Two fail-closed issues were fixed before interpreting the new artifacts:
+
+1. `camp_validation_summary.json` now carries the same
+   `camp_shadow_lateral_comfort` metadata as `camp_replay_summary.json`, so
+   lateral-shadow horizon certification is available to the dataset audit.
+2. The comparison script now canonicalizes run keys from benchmark fields
+   before falling back to legacy `benchmark_key` strings, avoiding false
+   strict-pairing failures when old and new summaries are compared.
+
+The standalone resummarizer was also made conservative: when a completed
+validation summary already exists, it preserves existing non-null metrics that
+cannot be recomputed without a route centerline, such as
+`route_completion_rate`, and then merges replay metadata.
+
+All candidate-pool and guard artifacts below passed the deployable dataset
+audit: 12 logs, 2,400 records, 8 candidates, perfect advance mode, forbidden
+closed-loop outcomes, forbidden formal seeds, h30 comfort-shadow horizon, and
+h30 lateral-shadow horizon.
+
+| Config | Completion delta | Planned red delta | Realized red delta | Near-miss delta | Jerk delta | Lateral delta | Fallback delta | p95 latency delta | Decision |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `noise0p5` | -0.006746 [-0.013698, -0.001591] | -0.030833 | -0.018425 | +0.001667 | -4.475678 | -0.053655 | -0.038333 | -1.375799 | reject: completion loss |
+| `noise0p75` | -0.000679 [-0.000897, -0.000477] | -0.002917 | -0.000838 | +0.000833 | -1.745514 | -0.006744 | -0.005417 | +1.682255 | reject: completion loss |
+| `noise0p75_progress0p90` | -0.000661 [-0.000845, -0.000492] | -0.002917 | -0.000838 | +0.001250 | -1.856721 | -0.006720 | -0.004167 | +0.851429 | reject: completion loss |
+| `noise0p75_progress0p95` | -0.001367 [-0.002507, -0.000663] | -0.002083 | -0.000838 | +0.013333 | -2.531749 | -0.008638 | -0.007500 | +1.433509 | reject: completion and near-miss |
+| `noise0p75_c0progress0p98` | -0.000724 [-0.000985, -0.000476] | -0.002917 | -0.000838 | +0.000833 | -2.141276 | -0.007159 | +0.000000 | -2.315476 | reject: completion loss |
+| `noise0p75_c0progress1p00` | -0.000725 [-0.000984, -0.000475] | -0.002500 | -0.000838 | +0.000833 | -2.489813 | -0.006967 | +0.007917 | +0.615702 | reject: completion and fallback |
+| `noise0p75_routec0progress0p98` | -0.000679 [-0.000894, -0.000482] | -0.002917 | -0.000838 | +0.000833 | -1.745514 | -0.006744 | -0.005417 | +17.177267 | reject: completion and latency |
+| `noise0p75_routec0progress1p00` | -0.000822 [-0.001467, -0.000286] | -0.000833 | -0.000838 | +0.000833 | -2.650780 | -0.006628 | +0.000417 | +18.176821 | reject: completion and latency |
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `noise0p5` dataset audit | `466a2037b0e0032f3e3483791dd296405c4a5f56e596f9c93da350b40466b6e4` |
+| `noise0p5` comparison JSON | `921e8180cbc1959d9e4fe3724213594a49211e918faae2728e3d64812c08c07e` |
+| `noise0p75` dataset audit | `16a9c3bb1f20d9ffc068affb29aa366a36490b5a2a53e1c3816bc5e52ca986f4` |
+| `noise0p75` comparison JSON | `1cd9c323ec175ac5d1fae9e1298c4b066ce7728402a32c3cd39d91aad9648a96` |
+| `noise0p75_progress0p90` dataset audit | `37d2851a09c8f51dce4fbac2dcb40dd592bde5b2fdd617c5f0091e8f6d91d69e` |
+| `noise0p75_progress0p90` comparison JSON | `c6d237f7e1ee651e0fda7583fb3dd5aaff5473ee94064dbf48b29cbfd061a012` |
+| `noise0p75_progress0p95` dataset audit | `05e2e5a32aaaa7b693f819672b3ad511352fd2be51d8442e292410856032dcd3` |
+| `noise0p75_progress0p95` comparison JSON | `302d0ff6ffd8079df405a0b74c4950b0a9f71b5cde105b90dd8a1203c8939718` |
+| `noise0p75_c0progress0p98` dataset audit | `9ddb5cfbcaea97f3a5224d08d262225b65621f29e33f9824e0d3d3de0d6724f8` |
+| `noise0p75_c0progress0p98` comparison JSON | `888c5bdb12f408ff3fdb8af5229a17d2651a5af314056568b5badd5adc3f58dc` |
+| `noise0p75_c0progress1p00` dataset audit | `24229b11600a042388e0130a600bab46ec04fdbfd2ee23c72c2c8ee8ef8666d7` |
+| `noise0p75_c0progress1p00` comparison JSON | `8777a52899b07a4c261464898a39fc26b996db7a68c8017b3c87cdcdc130793b` |
+| `noise0p75_routec0progress0p98` dataset audit | `be136d7ea0387956dd416ca1ed374d8fcbc168d8402d2fcd4518f5a4565a39ee` |
+| `noise0p75_routec0progress0p98` comparison JSON | `84efc5302b3078ba676ecb60b7ac87ca617bed731c1a2dd738c19c5199c3b271` |
+| `noise0p75_routec0progress1p00` dataset audit | `e3814f36ac5c0da137c08fa29bf32bb223112495ee85f39c5b63f588e98cd376` |
+| `noise0p75_routec0progress1p00` comparison JSON | `98cb58fab2f96ffcf908fcf7e797809e37185fbc04cd25ad9b14a09377ca301a` |
+
+Decision:
+
+1. Do not expand any screened candidate-pool or progress-guard setting to a
+   36-run development matrix. Every screened setting has a strictly negative
+   paired completion delta on sample59.
+2. Do not run formal seeds. The development gate is still not satisfied.
+3. Do not retrain DP. DP remains the frozen official checkpoint.
+4. Do not retrain CAMP yet from these scalar screens alone. The failure mode is
+   not a missing lateral/yaw atom and not solved by lower noise or simple
+   progress guards.
+5. The next useful design should be a two-stage selector or Pareto feasibility
+   filter that enforces route-progress non-regression before comfort/red-light
+   improvements are allowed, then reuses the existing CAMP affine score within
+   the admissible set. This preserves the finite-candidate mathematical
+   contract because the admissible set is fixed before optimizing or applying
+   weights, but it needs a cheap online route-progress surrogate before it can
+   be considered deployable.

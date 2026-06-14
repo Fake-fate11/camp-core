@@ -4,6 +4,7 @@ import json
 import sys
 import types
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -47,6 +48,8 @@ from camp_core.outer_master.robust_margin_master import (
     theta_weights,
 )
 from scripts.integrations.run_diffusion_planner_camp_replay import (
+    _apply_candidate0_route_progress_guard,
+    _candidate_route_progress,
     _candidate_feasibility_from_rewards,
 )
 from scripts.integrations.create_diffusion_planner_smoke_route import (
@@ -56,6 +59,7 @@ from scripts.integrations.compare_diffusion_planner_camp_replays import (
     _all_pairwise_deltas,
     _mean_ci,
     _pairing_audit,
+    _run_key,
     require_strict_pairing,
 )
 from scripts.integrations.train_diffusion_planner_theta import (
@@ -190,6 +194,28 @@ def test_formal_comparison_rejects_incomplete_pairing() -> None:
     assert not audit["strictly_paired"]
     with pytest.raises(ValueError, match="identical run keys"):
         require_strict_pairing(audit)
+
+
+def test_comparison_run_key_prefers_canonical_benchmark_fields() -> None:
+    summary = {
+        "benchmark_key": (
+            "route=/tmp/route.pkl|seed=1|steps=200|max_npcs=4|"
+            "spawn_probability=0.3|traffic_lights=True|advance_mode=perfect"
+        ),
+        "benchmark": {
+            "route": "/tmp/route.pkl",
+            "seed": 1,
+            "steps": 200,
+            "max_npcs": 4,
+            "spawn_probability": 0.3,
+            "traffic_lights": True,
+            "advance_mode": "perfect",
+        },
+    }
+
+    assert _run_key(summary, Path("/unused")) == (
+        "/tmp/route.pkl|1|200|4|0.3|True|perfect"
+    )
 
 
 def test_no_ros_projection_fallback_installs_utm_factory(
@@ -1844,6 +1870,48 @@ def test_dp_reward_feasibility_applies_safety_and_progress_gates() -> None:
 
     assert feasible.tolist() == [True, False, False]
     assert reasons == ((), ("dp_underprogress",), ("dp_collision",))
+
+
+def test_dp_reward_feasibility_applies_candidate0_progress_guard() -> None:
+    rewards = [
+        {"progress": 10.0, "red_light": 0.0},
+        {"progress": 9.8, "red_light": 0.0},
+        {"progress": 9.0, "red_light": 0.0},
+    ]
+
+    feasible, reasons = _candidate_feasibility_from_rewards(
+        rewards,
+        min_progress_ratio=0.0,
+        min_candidate0_progress_ratio=0.95,
+    )
+
+    assert feasible.tolist() == [True, True, False]
+    assert reasons == ((), (), ("dp_candidate0_underprogress",))
+
+
+def test_candidate0_route_progress_guard_uses_route_projection() -> None:
+    route = np.array([[0.0, 0.0], [20.0, 0.0]], dtype=np.float64)
+    candidates = np.array(
+        [
+            [[0.0, 0.0], [10.0, 0.0]],
+            [[0.0, 0.0], [9.9, 0.5]],
+            [[0.0, 0.0], [9.0, 0.0]],
+        ],
+        dtype=np.float64,
+    )
+
+    progress = _candidate_route_progress(candidates, route)
+    feasible, reasons = _apply_candidate0_route_progress_guard(
+        np.ones(3, dtype=bool),
+        ((), (), ()),
+        progress,
+        min_candidate0_route_progress_ratio=0.98,
+    )
+
+    assert progress is not None
+    assert progress.tolist() == pytest.approx([10.0, 9.9, 9.0])
+    assert feasible.tolist() == [True, True, False]
+    assert reasons == ((), (), ("route_candidate0_underprogress",))
 
 
 def test_selector_masks_candidate_that_collides_with_predicted_neighbor() -> None:

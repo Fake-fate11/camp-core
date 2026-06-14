@@ -382,6 +382,25 @@ def test_dataset_audit_rejects_wrong_lateral_comfort_shadow_horizon(
         )
 
 
+def test_dataset_audit_rejects_wrong_summary_lateral_comfort_shadow_horizon(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["camp_shadow_lateral_comfort"]["effective_horizon_steps"] = 80
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="does not certify"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_lateral_comfort_horizon_steps=30,
+        )
+
+
 def test_v9_red_stopping_augmentation_outputs_auditable_dataset(tmp_path) -> None:
     log_path = _write_completed_log(tmp_path / "source")
     output_root = tmp_path / "v9"

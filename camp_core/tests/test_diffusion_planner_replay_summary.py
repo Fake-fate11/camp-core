@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from scripts.integrations.summarize_diffusion_planner_camp_replay import (
+    merge_existing_summary,
     merge_replay_metadata,
 )
 
@@ -41,3 +42,23 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
         "effective_horizon_steps"
     ] == 30
     assert merged["benchmark"]["seed"] == 101
+
+
+def test_existing_summary_metrics_survive_partial_resummarization() -> None:
+    existing_summary = {
+        "route_completion_rate": 0.42,
+        "route_progress_m": 123.0,
+        "p95_selection_latency_ms": 95.0,
+    }
+    recomputed_summary = {
+        "selection_steps": 3,
+        "p95_selection_latency_ms": 90.0,
+        "route_completion_rate": None,
+    }
+
+    merged = merge_existing_summary(existing_summary, recomputed_summary)
+
+    assert merged["selection_steps"] == 3
+    assert merged["p95_selection_latency_ms"] == 90.0
+    assert merged["route_completion_rate"] == 0.42
+    assert merged["route_progress_m"] == 123.0

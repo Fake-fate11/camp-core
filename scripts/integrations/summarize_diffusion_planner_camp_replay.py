@@ -29,6 +29,8 @@ REPLAY_METADATA_FIELDS = (
     "camp_lane_corridor_buffer",
     "camp_feasibility_source",
     "camp_min_progress_ratio",
+    "camp_min_candidate0_progress_ratio",
+    "camp_min_candidate0_route_progress_ratio",
     "camp_reward_horizon_steps",
     "camp_collect_closed_loop_outcomes",
     "camp_outcome_horizon_steps",
@@ -62,6 +64,19 @@ def merge_replay_metadata(
     return merged
 
 
+def merge_existing_summary(
+    existing_summary: dict[str, Any] | None,
+    recomputed_summary: dict[str, Any],
+) -> dict[str, Any]:
+    if existing_summary is None:
+        return dict(recomputed_summary)
+    merged = dict(existing_summary)
+    for key, value in recomputed_summary.items():
+        if value is not None:
+            merged[key] = value
+    return merged
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Summarize CAMP selection behavior from a replay output directory."
@@ -86,6 +101,14 @@ def main() -> None:
     evaluation_records = (
         _read_json(evaluation_log) if evaluation_log.is_file() else None
     )
+    summary_path = (
+        args.summary_path
+        if args.summary_path is not None
+        else args.output_dir / "camp_validation_summary.json"
+    )
+    existing_summary = (
+        _read_json(summary_path) if summary_path.is_file() else None
+    )
     summary = summarize_replay_artifacts(
         args.output_dir,
         selection_records=records,
@@ -94,13 +117,8 @@ def main() -> None:
         evaluation_records=evaluation_records,
         near_miss_threshold_m=args.near_miss_threshold_m,
     )
+    summary = merge_existing_summary(existing_summary, summary)
     summary = merge_replay_metadata(summary, replay_summary)
-
-    summary_path = (
-        args.summary_path
-        if args.summary_path is not None
-        else args.output_dir / "camp_validation_summary.json"
-    )
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))

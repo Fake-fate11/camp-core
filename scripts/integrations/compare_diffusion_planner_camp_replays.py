@@ -110,9 +110,6 @@ def _load_or_build_summary(output_dir: Path) -> dict[str, Any]:
 
 
 def _run_key(summary: dict[str, Any], output_dir: Path) -> str:
-    explicit = summary.get("benchmark_key")
-    if explicit:
-        return str(explicit)
     benchmark = summary.get("benchmark")
     if isinstance(benchmark, dict):
         fields = [
@@ -126,6 +123,9 @@ def _run_key(summary: dict[str, Any], output_dir: Path) -> str:
         ]
         if any(field is not None for field in fields):
             return "|".join(str(field) for field in fields)
+    explicit = summary.get("benchmark_key")
+    if explicit:
+        return str(explicit)
     return str(output_dir)
 
 
