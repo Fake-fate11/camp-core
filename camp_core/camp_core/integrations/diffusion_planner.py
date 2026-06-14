@@ -1704,6 +1704,9 @@ def summarize_selection_records(
         "latency_ms_shadow_lateral_comfort": (
             "shadow_lateral_comfort_latency_ms"
         ),
+        "latency_ms_shadow_perfect_tracker_command": (
+            "shadow_perfect_tracker_command_latency_ms"
+        ),
         "latency_ms_context_and_obstacles": "context_and_obstacles_latency_ms",
         "latency_ms_reward_scoring": "reward_scoring_latency_ms",
         "latency_ms_outcome_collection": "outcome_collection_latency_ms",

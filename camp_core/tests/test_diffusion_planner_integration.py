@@ -1452,6 +1452,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_shadow_dp_prior_deviation": 0.2,
             "latency_ms_shadow_dp_prior_comfort_excess": 0.1,
             "latency_ms_shadow_lateral_comfort": 0.2,
+            "latency_ms_shadow_perfect_tracker_command": 0.25,
             "latency_ms_context_and_obstacles": 1.0,
             "latency_ms_reward_scoring": 2.0,
             "latency_ms_outcome_collection": 0.0,
@@ -1470,6 +1471,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_shadow_dp_prior_deviation": 0.4,
             "latency_ms_shadow_dp_prior_comfort_excess": 0.3,
             "latency_ms_shadow_lateral_comfort": 0.4,
+            "latency_ms_shadow_perfect_tracker_command": 0.35,
             "latency_ms_context_and_obstacles": 2.0,
             "latency_ms_reward_scoring": 4.0,
             "latency_ms_outcome_collection": 0.0,
@@ -1502,6 +1504,9 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
     assert summary["mean_shadow_lateral_comfort_latency_ms"] == pytest.approx(
         0.3
     )
+    assert summary[
+        "mean_shadow_perfect_tracker_command_latency_ms"
+    ] == pytest.approx(0.3)
     assert summary["mean_context_and_obstacles_latency_ms"] == 1.5
     assert summary["mean_reward_scoring_latency_ms"] == 3.0
     assert summary["mean_outcome_collection_latency_ms"] == 0.0
