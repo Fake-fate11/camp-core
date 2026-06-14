@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sys
 import types
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +14,7 @@ from camp_core.atoms.driver_atoms import DriverAtomContext
 from camp_core.atoms.driver_atoms import (
     _project_onto_centerline,
     _project_point_onto_polyline,
+    compute_atom_bank_matrix,
     compute_atom_bank_vector,
 )
 from camp_core.integrations.diffusion_planner import (
@@ -142,6 +143,58 @@ def test_vectorized_atom_clearance_matches_hinge_definition() -> None:
     expected = context.dt * np.sum(np.maximum(0.0, 2.0 - distances) ** 2)
 
     assert atoms[-1] == pytest.approx(expected)
+
+
+def test_batch_atom_bank_matches_per_candidate_vector_path() -> None:
+    trajectories = np.array(
+        [
+            [[0.0, 0.0], [0.6, 0.1], [1.3, 0.2], [2.1, 0.2], [3.0, 0.3]],
+            [[0.0, 0.2], [0.4, 0.3], [0.9, 0.5], [1.5, 0.8], [2.2, 1.1]],
+        ],
+        dtype=np.float64,
+    )
+    obstacles = np.array(
+        [
+            [[[3.0, 0.0], [2.5, 0.0], [2.5, 0.0], [3.5, 0.0], [4.0, 0.0]]],
+            [[[2.0, 0.8], [2.0, 0.8], [2.0, 0.8], [2.0, 0.8], [2.0, 0.8]]],
+        ],
+        dtype=np.float64,
+    )
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [1.5, 0.0], [3.0, 0.5]]),
+        static_obstacles=np.array([[10.0, 10.0], [2.4, 0.2]], dtype=np.float64),
+        safety_radius=1.0,
+        clearance_soft_margin=1.0,
+        speed_limit=7.0,
+        lane_half_width=0.5,
+    )
+
+    batched = compute_atom_bank_matrix(
+        context,
+        trajectories,
+        candidate_dynamic_obstacles=obstacles,
+    )
+    expected = []
+    for trajectory, candidate_obstacles in zip(trajectories, obstacles):
+        dynamic = {
+            obstacle_idx: obstacle
+            for obstacle_idx, obstacle in enumerate(candidate_obstacles)
+            if np.any(np.abs(obstacle[:, :2]) > 1e-8)
+        }
+        expected.append(
+            compute_atom_bank_vector(
+                replace(context, dynamic_obstacles=dynamic),
+                trajectory,
+            )
+        )
+
+    np.testing.assert_allclose(
+        batched,
+        np.vstack(expected),
+        rtol=1e-12,
+        atol=1e-12,
+    )
 
 
 def test_route_geometry_reports_endpoint_separation_and_repeats() -> None:
