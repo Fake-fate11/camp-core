@@ -63,10 +63,12 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
             "command_and_rollout_pareto": [],
             "red_improving_progress_distance": [],
             "red_improving_rollout_pareto": [],
+            "red_minimum_best_progress": [],
             "eligible_candidates": [],
             "strict_eligible_candidates": [],
             "red_improving_candidates": [],
             "red_improving_pareto_candidates": [],
+            "red_minimum_candidates": [],
         }
         for horizon in HORIZONS
     }
@@ -226,16 +228,21 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                     & (jerk <= jerk[selected])
                     & (lateral <= lateral[selected])
                 )
+                red_minimum = feasible & (
+                    red_certificate < red_certificate[selected]
+                )
                 common[selected] = False
                 strict[selected] = False
                 red_improving[selected] = False
                 red_improving_pareto[selected] = False
+                red_minimum[selected] = False
                 common_indices = np.flatnonzero(common)
                 strict_indices = np.flatnonzero(strict)
                 red_improving_indices = np.flatnonzero(red_improving)
                 red_improving_pareto_indices = np.flatnonzero(
                     red_improving_pareto
                 )
+                red_minimum_indices = np.flatnonzero(red_minimum)
                 horizon_rows[horizon]["eligible_candidates"].append(
                     int(common_indices.size)
                 )
@@ -248,6 +255,9 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                 horizon_rows[horizon][
                     "red_improving_pareto_candidates"
                 ].append(int(red_improving_pareto_indices.size))
+                horizon_rows[horizon]["red_minimum_candidates"].append(
+                    int(red_minimum_indices.size)
+                )
                 if common_indices.size:
                     chosen = min(
                         common_indices.tolist(),
@@ -354,6 +364,40 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                             command_lateral=command_lateral,
                         )
                     )
+                if red_minimum_indices.size:
+                    minimum_red = float(
+                        np.min(red_certificate[red_minimum_indices])
+                    )
+                    minimum_indices = red_minimum_indices[
+                        red_certificate[red_minimum_indices] == minimum_red
+                    ]
+                    chosen = min(
+                        minimum_indices.tolist(),
+                        key=lambda idx: (
+                            -float(progress[idx]),
+                            -float(distance[idx]),
+                            float(jerk[idx]),
+                            float(lateral[idx]),
+                            float(scores[idx]),
+                            int(idx),
+                        ),
+                    )
+                    horizon_rows[horizon][
+                        "red_minimum_best_progress"
+                    ].append(
+                        _delta_row(
+                            selected,
+                            chosen,
+                            progress=progress,
+                            full_red=red_certificate,
+                            distance=distance,
+                            jerk=jerk,
+                            lateral=lateral,
+                            command_target=command_target,
+                            command_jerk=command_jerk,
+                            command_lateral=command_lateral,
+                        )
+                    )
 
     horizon_reports = {}
     for horizon in HORIZONS:
@@ -378,6 +422,11 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                 rows["red_improving_rollout_pareto"],
                 nonfallback_records,
                 rows["red_improving_pareto_candidates"],
+            ),
+            "red_minimum_best_progress": _summarize_screen(
+                rows["red_minimum_best_progress"],
+                nonfallback_records,
+                rows["red_minimum_candidates"],
             ),
             "feasible_correlations": {
                 "command_jerk_vs_rollout_vector_jerk": _correlation(
@@ -525,6 +574,24 @@ def _summarize_screen(
             )
             for name in metric_names
         },
+        "delta_quantiles_on_changed_records": {
+            name: (
+                {
+                    "p10": float(
+                        np.percentile([row[name] for row in rows], 10)
+                    ),
+                    "p50": float(
+                        np.percentile([row[name] for row in rows], 50)
+                    ),
+                    "p90": float(
+                        np.percentile([row[name] for row in rows], 90)
+                    ),
+                }
+                if rows
+                else None
+            )
+            for name in metric_names
+        },
     }
 
 
@@ -566,6 +633,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             "command_and_rollout_pareto",
             "red_improving_progress_distance",
             "red_improving_rollout_pareto",
+            "red_minimum_best_progress",
         ):
             row = horizon_report[screen]
             delta = row["mean_deltas_on_changed_records"]

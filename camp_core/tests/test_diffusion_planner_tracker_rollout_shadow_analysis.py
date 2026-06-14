@@ -36,6 +36,9 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
         assert report["horizons"][horizon][
             "red_improving_rollout_pareto"
         ]["changed_records"] == 1
+        assert report["horizons"][horizon][
+            "red_minimum_best_progress"
+        ]["changed_records"] == 1
         deltas = report["horizons"][horizon]["rollout_pareto"][
             "mean_deltas_on_changed_records"
         ]
@@ -44,6 +47,9 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
         assert deltas["distance"] > 0.0
         assert deltas["jerk"] < 0.0
         assert deltas["lateral"] < 0.0
+        assert report["horizons"][horizon]["red_minimum_best_progress"][
+            "delta_quantiles_on_changed_records"
+        ]["full_red"]["p50"] < 0.0
     assert "not a guarantee" in render_markdown(report)
 
 
