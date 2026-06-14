@@ -127,9 +127,9 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                 fallback_records += 1
                 continue
             nonfallback_records += 1
-            scores = _vector(
+            scores = _selection_scores(
                 record.get("selection_scores"),
-                count,
+                feasible,
                 f"{label} selection scores",
             )
             command_target = _vector(
@@ -371,6 +371,22 @@ def _vector(
         array.shape != (candidate_count,)
         or not np.all(np.isfinite(array))
         or (nonnegative and np.any(array < 0.0))
+    ):
+        raise ValueError(f"{label} is invalid.")
+    return array
+
+
+def _selection_scores(
+    values: Any,
+    feasible: np.ndarray,
+    label: str,
+) -> np.ndarray:
+    array = np.asarray(values, dtype=np.float64).reshape(-1)
+    if (
+        array.shape != feasible.shape
+        or np.any(np.isnan(array))
+        or np.any(np.isneginf(array))
+        or not np.all(np.isfinite(array[feasible]))
     ):
         raise ValueError(f"{label} is invalid.")
     return array

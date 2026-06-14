@@ -65,8 +65,8 @@ def _record() -> dict:
     return {
         "selected_index": 0,
         "used_fallback": False,
-        "feasible_mask": [True, True, True],
-        "selection_scores": [0.0, 0.2, 0.1],
+        "feasible_mask": [True, True, False],
+        "selection_scores": [0.0, 0.2, float("inf")],
         "dp_candidate_rewards": [
             {"progress": 5.0, "red_light": 0.0},
             {"progress": 5.2, "red_light": 0.0},
