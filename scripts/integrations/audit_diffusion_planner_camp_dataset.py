@@ -888,7 +888,8 @@ def _validate_perfect_tracker_candidate_preprocessing(
     label: str,
 ) -> dict[str, Any]:
     expected_keys = {
-        "implementation",
+        "reference_implementation",
+        "shadow_implementation",
         "application_stage",
         "savgol_enabled",
         "savgol_window",
@@ -897,8 +898,13 @@ def _validate_perfect_tracker_candidate_preprocessing(
     if not isinstance(preprocessing, dict) or set(preprocessing) != expected_keys:
         raise ValueError(f"{label} is invalid.")
     if (
-        preprocessing["implementation"]
+        preprocessing["reference_implementation"]
         != "rlvr.grpo_sft_trainer._smooth_trajectory"
+        or preprocessing["shadow_implementation"]
+        != (
+            "scripts.integrations.run_diffusion_planner_camp_replay."
+            "_prepare_perfect_tracker_reference_candidates"
+        )
         or preprocessing["application_stage"]
         != "replay_after_predict_before_advance_scene_mpc"
         or not isinstance(preprocessing["savgol_enabled"], bool)

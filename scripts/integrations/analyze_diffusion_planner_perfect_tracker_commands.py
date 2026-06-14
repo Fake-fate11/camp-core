@@ -441,8 +441,13 @@ def _validate_shadow_summary(log_path: Path) -> dict[str, Any]:
         or metadata.get("tracker_class")
         != "scenario_generation.mpc_tracker.PerfectTracker"
         or not isinstance(preprocessing, dict)
-        or preprocessing.get("implementation")
+        or preprocessing.get("reference_implementation")
         != "rlvr.grpo_sft_trainer._smooth_trajectory"
+        or preprocessing.get("shadow_implementation")
+        != (
+            "scripts.integrations.run_diffusion_planner_camp_replay."
+            "_prepare_perfect_tracker_reference_candidates"
+        )
         or preprocessing.get("application_stage")
         != "replay_after_predict_before_advance_scene_mpc"
         or not isinstance(preprocessing.get("savgol_enabled"), bool)

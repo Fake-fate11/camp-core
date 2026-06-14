@@ -834,7 +834,13 @@ def _evaluation_state(scene: Any, ego_id: str) -> dict[str, Any]:
 def _perfect_tracker_candidate_preprocessing(spawn_config: Any) -> dict[str, Any]:
     enabled = bool(getattr(spawn_config, "sg_smooth_enabled", False))
     return {
-        "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+        "reference_implementation": (
+            "rlvr.grpo_sft_trainer._smooth_trajectory"
+        ),
+        "shadow_implementation": (
+            "scripts.integrations.run_diffusion_planner_camp_replay."
+            "_prepare_perfect_tracker_reference_candidates"
+        ),
         "application_stage": (
             "replay_after_predict_before_advance_scene_mpc"
         ),
@@ -853,24 +859,32 @@ def _perfect_tracker_candidate_preprocessing(spawn_config: Any) -> dict[str, Any
 
 
 def _prepare_perfect_tracker_reference_candidates(
-    replay_module: Any,
     candidates: np.ndarray,
     spawn_config: Any,
 ) -> np.ndarray:
-    """Apply the candidate preprocessing executed by DP after prediction."""
+    """Vectorize DP's per-trajectory Savitzky-Golay preprocessing."""
     trajectories = np.asarray(candidates)
     if not bool(getattr(spawn_config, "sg_smooth_enabled", False)):
         return trajectories
-    smoothed = np.stack(
-        [
-            replay_module._sg_smooth_trajectory(
-                candidate,
-                int(spawn_config.sg_filter_window),
-                int(spawn_config.sg_filter_order),
-            )
-            for candidate in trajectories
-        ]
+    from scipy.signal import savgol_filter
+
+    horizon_steps = int(trajectories.shape[1])
+    window = min(int(spawn_config.sg_filter_window), horizon_steps)
+    if window % 2 == 0:
+        window -= 1
+    order = int(spawn_config.sg_filter_order)
+    if window < order + 2:
+        return trajectories
+    smoothed = np.copy(trajectories)
+    smoothed[:, :, :4] = savgol_filter(
+        trajectories[:, :, :4],
+        window,
+        order,
+        axis=1,
     )
+    heading_norm = np.linalg.norm(smoothed[:, :, 2:4], axis=2)
+    heading_norm = np.clip(heading_norm, 1e-6, None)
+    smoothed[:, :, 2:4] /= heading_norm[:, :, np.newaxis]
     if smoothed.shape != trajectories.shape or not np.all(np.isfinite(smoothed)):
         raise RuntimeError(
             "Diffusion Planner trajectory smoothing returned invalid candidates."
@@ -1275,7 +1289,6 @@ def _install_camp_predictor(
         ) = _current_perfect_tracker_state(ego_agent)
         perfect_tracker_reference_candidates = (
             _prepare_perfect_tracker_reference_candidates(
-                replay_module,
                 candidates,
                 spawn_config,
             )

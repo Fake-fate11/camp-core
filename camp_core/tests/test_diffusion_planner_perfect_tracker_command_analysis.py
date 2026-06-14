@@ -81,8 +81,13 @@ def _write_log(tmp_path, records):
                         "scenario_generation.mpc_tracker.PerfectTracker"
                     ),
                     "candidate_preprocessing": {
-                        "implementation": (
+                        "reference_implementation": (
                             "rlvr.grpo_sft_trainer._smooth_trajectory"
+                        ),
+                        "shadow_implementation": (
+                            "scripts.integrations."
+                            "run_diffusion_planner_camp_replay."
+                            "_prepare_perfect_tracker_reference_candidates"
                         ),
                         "application_stage": (
                             "replay_after_predict_before_advance_scene_mpc"
@@ -106,7 +111,13 @@ def _record() -> dict:
         "feasible_mask": [True, True, True],
         "candidate_closed_loop_outcomes": None,
         "perfect_tracker_candidate_preprocessing": {
-            "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+            "reference_implementation": (
+                "rlvr.grpo_sft_trainer._smooth_trajectory"
+            ),
+            "shadow_implementation": (
+                "scripts.integrations.run_diffusion_planner_camp_replay."
+                "_prepare_perfect_tracker_reference_candidates"
+            ),
             "application_stage": (
                 "replay_after_predict_before_advance_scene_mpc"
             ),

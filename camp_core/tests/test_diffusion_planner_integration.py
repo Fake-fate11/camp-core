@@ -2037,17 +2037,12 @@ def test_perfect_tracker_command_diagnostics_reproduce_normal_command() -> None:
 
 
 def test_tracker_reference_candidates_apply_replay_savgol_preprocessing() -> None:
-    candidates = np.zeros((2, 5, 4), dtype=np.float64)
-    candidates[:, :, 2] = 1.0
-    calls = []
+    from scipy.signal import savgol_filter
 
-    def smooth(candidate, window, order):
-        calls.append((window, order))
-        result = candidate.copy()
-        result[:, 0] += 0.25
-        return result
-
-    replay_module = types.SimpleNamespace(_sg_smooth_trajectory=smooth)
+    rng = np.random.default_rng(4)
+    candidates = rng.normal(size=(2, 15, 4))
+    heading_norm = np.linalg.norm(candidates[:, :, 2:4], axis=2)
+    candidates[:, :, 2:4] /= heading_norm[:, :, np.newaxis]
     config = types.SimpleNamespace(
         sg_smooth_enabled=True,
         sg_filter_window=11,
@@ -2055,16 +2050,30 @@ def test_tracker_reference_candidates_apply_replay_savgol_preprocessing() -> Non
     )
 
     prepared = _prepare_perfect_tracker_reference_candidates(
-        replay_module,
         candidates,
         config,
     )
+    expected = candidates.copy()
+    for candidate_idx, candidate in enumerate(candidates):
+        for column in range(4):
+            expected[candidate_idx, :, column] = savgol_filter(
+                candidate[:, column],
+                11,
+                3,
+            )
+    expected_heading_norm = np.linalg.norm(expected[:, :, 2:4], axis=2)
+    expected[:, :, 2:4] /= expected_heading_norm[:, :, np.newaxis]
 
-    assert calls == [(11, 3), (11, 3)]
-    np.testing.assert_allclose(prepared[:, :, 0], 0.25)
-    np.testing.assert_allclose(candidates[:, :, 0], 0.0)
+    np.testing.assert_allclose(prepared, expected, atol=1e-12, rtol=1e-12)
+    assert not np.shares_memory(prepared, candidates)
     assert _perfect_tracker_candidate_preprocessing(config) == {
-        "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+        "reference_implementation": (
+            "rlvr.grpo_sft_trainer._smooth_trajectory"
+        ),
+        "shadow_implementation": (
+            "scripts.integrations.run_diffusion_planner_camp_replay."
+            "_prepare_perfect_tracker_reference_candidates"
+        ),
         "application_stage": (
             "replay_after_predict_before_advance_scene_mpc"
         ),
@@ -2079,14 +2088,19 @@ def test_tracker_reference_candidates_preserve_disabled_preprocessing() -> None:
     config = types.SimpleNamespace(sg_smooth_enabled=False)
 
     prepared = _prepare_perfect_tracker_reference_candidates(
-        types.SimpleNamespace(),
         candidates,
         config,
     )
 
     assert prepared is candidates
     assert _perfect_tracker_candidate_preprocessing(config) == {
-        "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+        "reference_implementation": (
+            "rlvr.grpo_sft_trainer._smooth_trajectory"
+        ),
+        "shadow_implementation": (
+            "scripts.integrations.run_diffusion_planner_camp_replay."
+            "_prepare_perfect_tracker_reference_candidates"
+        ),
         "application_stage": (
             "replay_after_predict_before_advance_scene_mpc"
         ),

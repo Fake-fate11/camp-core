@@ -911,7 +911,13 @@ def _add_perfect_tracker_command_contract(log_path) -> None:
         "first_step_reach_m"
     ].tolist()
     record["perfect_tracker_candidate_preprocessing"] = {
-        "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+        "reference_implementation": (
+            "rlvr.grpo_sft_trainer._smooth_trajectory"
+        ),
+        "shadow_implementation": (
+            "scripts.integrations.run_diffusion_planner_camp_replay."
+            "_prepare_perfect_tracker_reference_candidates"
+        ),
         "application_stage": (
             "replay_after_predict_before_advance_scene_mpc"
         ),
