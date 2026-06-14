@@ -2762,3 +2762,39 @@ repair them without changing candidate generation or feasibility. The next
 design step is therefore a mathematically explicit lexicographic safety rule
 with state-dependent progress/comfort budgets, plus a separate answer for the
 no-lower-red-candidate cases. Formal seeds remain frozen.
+
+## Safety override mathematical contract
+
+The proposed next rule is now specified in
+`docs/dp_camp_mathematical_contract.md` under "Full-Horizon Safety Override".
+It is intentionally not implemented yet. The contract keeps the unchanged
+CAMP candidate unless all of the following are true:
+
+1. the baseline selected candidate has positive union-red exposure;
+2. a base-feasible candidate has strictly lower union-red exposure;
+3. that candidate satisfies predeclared progress, H-step tracker distance,
+   and absolute comfort budgets;
+4. deterministic tie-breaking selects among the remaining candidates by
+   union-red certificate, original CAMP score, then index.
+
+The nonempty/fail-closed proof is baseline retention: if the strict
+override set is empty, the unchanged CAMP choice is used. Therefore the rule
+cannot create fallback by itself and cannot restore candidates rejected by
+hard feasibility. If it overrides, it proves only fixed-current-candidate
+union-red improvement under the declared budgets. It does not prove future
+Diffusion Planner replanning improvement.
+
+The contract also records an impossibility result: if no base-feasible
+candidate has lower union-red exposure than the selected candidate, no
+finite-candidate selector can repair that tick by reordering alone. The
+sample59 v3 evidence contains `12/32` selected h30-safe/full-red misses in
+that category. Those cases require a candidate-generation, feasibility,
+horizon, fallback, or planner-interface change rather than another CAMP score
+tie-break.
+
+Decision: the next coding step is not an online selector. First choose
+specification-backed or state-derived progress/comfort budgets and justify
+whether jerk can be a hard cap. If no such budget can cover enough of the
+`20/32` repairable misses without material comfort regression, the safety
+override remains rejected and the investigation moves to candidate-pool or
+feasibility changes. Formal seeds remain frozen.

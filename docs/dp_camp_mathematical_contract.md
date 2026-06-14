@@ -128,6 +128,82 @@ master variable, so every finite-candidate cut remains globally valid. Floors
 must be selected using training/validation evidence and recorded in the
 checkpoint summary; post-training weight editing is not certified.
 
+## Full-Horizon Safety Override
+
+The full-horizon red-light shadow and fixed-candidate PerfectTracker rollout
+diagnostics may be used only as current-tick finite-candidate data unless a
+separate continuous-trajectory proof is supplied. Let \(F\) be the existing
+base-feasible candidate set, \(b\in F\) be the candidate selected by the
+unchanged CAMP score, and let
+
+\[
+R_k=\max(r^{30}_k,r^{80}_k)
+\]
+
+be the nonnegative union red-light certificate for candidate \(k\). Let
+\(p_k\) denote the current DP progress reward, \(d^H_k\) the fixed-candidate
+PerfectTracker open-loop distance over horizon \(H\), \(j^H_k\) the
+corresponding mean vector jerk magnitude, and \(\ell^H_k\) the corresponding
+lateral acceleration magnitude. These quantities are admissible for an
+online preselection rule only if they are computed before selection from the
+current tick's candidate trajectories, map, route, traffic-light state, and
+tracker state. Future closed-loop outcomes and future DP replanning outputs
+are forbidden.
+
+A certified safety override must keep the unchanged CAMP candidate unless the
+current candidate has positive union-red exposure and a strictly lower-risk
+base-feasible candidate exists. For declared nonnegative budgets
+\(\epsilon_p(x,b)\), \(\epsilon_d(x,b)\), and declared absolute comfort caps
+\(\bar j(x,b)\), \(\bar \ell(x,b)\), define
+
+\[
+S_b=\{k\in F:
+R_k < R_b,\;
+p_k \ge p_b-\epsilon_p(x,b),\;
+d^H_k \ge d^H_b-\epsilon_d(x,b),\;
+j^H_k \le \bar j(x,b),\;
+\ell^H_k \le \bar \ell(x,b)\}.
+\]
+
+The deployed rule is:
+
+1. if \(F\) is empty, use the existing all-infeasible fallback path;
+2. if \(R_b=0\), return \(b\);
+3. if \(S_b\) is empty, return \(b\);
+4. otherwise choose deterministically from \(S_b\) by minimum \(R_k\), then
+   original CAMP score \(a_k^\top w\), then candidate index.
+
+This construction is fail-closed and nonempty because the baseline candidate
+is retained whenever the strict safety-override set is empty. Whenever it
+does override, it proves \(R_{k^*}<R_b\) for the fixed current candidate set
+and preserves the declared progress, distance, and comfort budgets. It does
+not prove that future Diffusion Planner replanning, future candidate pools, or
+closed-loop scene evolution will improve. Those claims require a matched
+closed-loop simulator matrix.
+
+The budgets and comfort caps are part of the rule definition, not learned
+post-hoc from formal evaluation. A budget may depend on current state
+\(x\), the baseline \(b\), simulator time step, speed, stopping envelope, or
+published vehicle comfort limits, but it must be declared before running the
+paired pilot and audited from the selection log. If a jerk cap has no
+specification-backed value, jerk must remain a reported tradeoff rather than
+a hard industrial guarantee.
+
+The override is a finite-candidate selector. It leaves the robust
+simplex/CVaR/L2 master unchanged and does not add a Benders subproblem. If
+\(R_k\), \(d^H_k\), \(j^H_k\), or \(\ell^H_k\) are later promoted to atoms,
+their logged values are fixed candidate constants in \(a_k^\top w\), so the
+master remains affine in \(w\). No global convexity in trajectory coordinates
+is implied by this finite-candidate argument.
+
+There is also an impossibility condition. If
+\(\{k\in F:R_k<R_b\}=\emptyset\), then no selector that only reorders or
+filters the current base-feasible candidate set can strictly reduce the
+union-red certificate at that tick. Repairing such a case requires changing
+candidate generation, hard feasibility, horizon construction, fallback
+policy, or the upstream planner/simulator configuration. It cannot be claimed
+as a CAMP selector improvement.
+
 ## Required Gates
 
 Before an atom or training change reaches formal evaluation, it must pass:
