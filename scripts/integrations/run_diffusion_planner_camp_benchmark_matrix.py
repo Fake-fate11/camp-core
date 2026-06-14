@@ -138,6 +138,26 @@ def parse_args() -> argparse.Namespace:
         "--camp_candidate0_step_reach_preserve_feasible",
         action="store_true",
     )
+    parser.add_argument(
+        "--camp_lexicographic_progress_epsilon_m",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--camp_lexicographic_red_epsilon",
+        type=float,
+        default=0.0,
+    )
+    parser.add_argument(
+        "--camp_lexicographic_jerk_epsilon",
+        type=float,
+        default=0.0,
+    )
+    parser.add_argument(
+        "--camp_lexicographic_lateral_epsilon",
+        type=float,
+        default=0.0,
+    )
     parser.add_argument("--camp_reward_horizon_steps", type=int, default=30)
     parser.add_argument("--camp_collect_closed_loop_outcomes", action="store_true")
     parser.add_argument("--camp_outcome_horizon_steps", type=int, default=30)
@@ -280,6 +300,19 @@ def _variant_command(
             )
             if args.camp_candidate0_step_reach_preserve_feasible:
                 cmd.append("--camp_candidate0_step_reach_preserve_feasible")
+        if args.camp_lexicographic_progress_epsilon_m is not None:
+            cmd.extend(
+                [
+                    "--camp_lexicographic_progress_epsilon_m",
+                    str(args.camp_lexicographic_progress_epsilon_m),
+                    "--camp_lexicographic_red_epsilon",
+                    str(args.camp_lexicographic_red_epsilon),
+                    "--camp_lexicographic_jerk_epsilon",
+                    str(args.camp_lexicographic_jerk_epsilon),
+                    "--camp_lexicographic_lateral_epsilon",
+                    str(args.camp_lexicographic_lateral_epsilon),
+                ]
+            )
         if args.camp_collect_closed_loop_outcomes:
             cmd.append("--camp_collect_closed_loop_outcomes")
             cmd.extend(

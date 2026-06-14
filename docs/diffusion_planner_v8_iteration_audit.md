@@ -2157,3 +2157,140 @@ Decision:
    retaining candidate 0 as a feasible fallback. This remains a fixed
    finite-candidate admissible-set construction and does not require DP
    retraining.
+
+## Nonempty lexicographic preselection screen
+
+The scalar first-step guard was followed by a default-off, staged
+finite-candidate preselection. This implementation keeps the certified
+`redstopfloor05` CAMP checkpoint, v10 atom schema and scales, affine CAMP
+score, robust master, DP checkpoint, and DP training fixed.
+
+Let \(F_0\) be the set accepted by the existing DP-reward hard constraints.
+For fixed nonnegative tolerances, the staged sets are
+
+\[
+\begin{aligned}
+F_1 &= \{k\in F_0:p_k\geq \max_{j\in F_0}p_j-\epsilon_p\},\\
+F_2 &= \{k\in F_1:r_k\leq \min_{j\in F_1}r_j+\epsilon_r\},\\
+F_3 &= \{k\in F_2:j_k\leq \min_{j\in F_2}j_j+\epsilon_j\},\\
+F_4 &= \{k\in F_3:l_k\leq \min_{j\in F_3}l_j+\epsilon_l\},
+\end{aligned}
+\]
+
+where \(p\) is current-tick DP candidate progress, \(r\) is planned-red
+cost, \(j\) is DP-prior jerk-excess cost, and \(l\) is h30 absolute lateral
+acceleration. The original CAMP score \(a_k^\top w\) selects within \(F_4\).
+The screened configuration was
+
+```text
+progress epsilon = 2.0 m
+planned-red epsilon = 0.0
+jerk epsilon = 1.0
+lateral epsilon = 0.05
+```
+
+### Mathematical contract
+
+Each \(F_i\) is a subset of the finite DP candidate index set. If \(F_{i-1}\)
+is nonempty, its finite maximum or minimum is attained. The attaining
+candidate satisfies the corresponding inequality for every nonnegative
+epsilon, so \(F_i\) is nonempty. Therefore a nonempty \(F_0\) cannot be
+emptied by these four stages.
+
+The construction is deterministic for fixed candidate fields and epsilons,
+is evaluated before CAMP weights and final ranking, and uses neither the
+selected trajectory nor a closed-loop outcome. Since
+\(F_4\subseteq F_0\), it cannot restore a candidate rejected by an existing
+hard constraint. If \(F_0\) is empty, the existing fallback path is retained.
+This proves that the preselection itself creates no new all-infeasible case;
+it does not claim that a later independent collision check can never cause a
+fallback.
+
+The atom values remain finite constants on the selected finite candidate set,
+so \(a_k^\top w\) remains affine in \(w\). The CVaR/simplex/L2 robust master
+and its convexity are unchanged. This is finite-candidate preselection, not
+classical Benders decomposition.
+
+The dataset audit now optionally verifies this contract fail closed. It
+requires exact summary metadata and fixed stage order, finite nonnegative
+epsilons, integer stage counts in `[0,K]`, monotonically nonincreasing stage
+counts, all-zero stages for an empty base set, and a nonempty final stage for
+every nonempty base set.
+
+### Offline fixed-candidate screen
+
+The offline definition screen combined two independent sample59 log roots and
+reconstructed the base feasible set by removing only the experimental
+first-step-guard reason. Every other safety reason remained hard.
+
+| Quantity | Result |
+| --- | ---: |
+| Logs / records | 24 / 4,800 |
+| Base-feasible / base-empty records | 3,826 / 974 |
+| Selection change versus base | 0.123366 |
+| Mean base / final-stage candidates | 7.567956 / 6.845008 |
+| Step-reach delta | -0.000517 |
+| DP progress delta | -0.047745 |
+| Planned-red delta | 0.000000 |
+| Jerk-excess delta | -0.018796 |
+| Absolute lateral delta | -0.007309 |
+
+This was definition-screen evidence only. It showed the intended comfort
+tradeoff and structural nonemptiness, but the progress and step-reach losses
+prevented treating it as closed-loop improvement evidence.
+
+### Sample59 paired pilot
+
+The online pilot used seeds 1/2/3, NPC counts 0/4, traffic lights off/on,
+200 steps, perfect tracking, eight candidates, no collected outcome labels,
+and no formal seeds. Coverage and strict pairing passed with 12 common and 12
+union keys. The new fail-closed audit certified all 2,400 stage-count records;
+409 records had an already-empty base set.
+
+| Metric: lexicographic minus `redstopfloor05` | Mean paired delta | 95% bootstrap CI |
+| --- | ---: | ---: |
+| Route completion | -0.002000 | [-0.003377, -0.000990] |
+| Planned red-light violation | -0.002500 | [-0.008750, +0.001250] |
+| Realized red-light violation | -0.001256 | [-0.003769, 0.000000] |
+| Near miss | +0.001250 | [0.000000, +0.003333] |
+| Mean jerk | -1.738080 | [-2.684234, -0.778644] |
+| Mean lateral acceleration | -0.019114 | [-0.033407, -0.007297] |
+| Fallback | -0.031667 | [-0.086667, 0.000000] |
+| Candidate feasible rate | -0.044687 | [-0.080626, +0.005366] |
+| Mean per-run p95 latency | +0.066943 ms | [-1.939409, +2.171649] |
+
+The variant's aggregate mean per-run p95 latency was `95.941132 ms`, with
+bootstrap interval `[93.160839, 99.237584]`. Latency was therefore not the
+rejection reason. Completion was strictly worse and near miss did not improve,
+so the variant was rejected before the 36-run matrix. Formal seeds remain
+frozen.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Offline counterfactual JSON | `a04d82ccf107443ba3e4cd0cd66fa7bd4abded0cc139a806b9ff375e09a01e06` |
+| Offline counterfactual markdown | `89627c6462a46ece666c037d8c53e7fbb91991833d25a3b740d30e8ba2b74356` |
+| Pilot fail-closed dataset audit | `db6ff63c6c5f6941845e8f2ce26f6e5ef5e8a2da91847c960a066b6e7f76de4b` |
+| Pilot coverage JSON | `3e5e3cc1f7952ce37358bdb88f41b7ce12a0335d96b686a0af19205701bc2ca3` |
+| Pilot coverage markdown | `1925938d4470c1a6574cfcef8787135a3cf3871df8a66122bce7a7b551410631` |
+| Pilot comparison JSON | `2ccb43d52d6dcdf9ce2da1e8d2f0724a6f478232be1546ed8be2ebf4e375d6f6` |
+| Pilot comparison markdown | `47fa96433429f68719677e5f35b2581e25d78c742eb451a7bcc44ab2332be8e9` |
+
+Verification for this milestone was `118 passed, 5 skipped` locally and
+`123 passed` on AutoDL.
+
+Decision:
+
+1. Reject this lexicographic configuration. Do not run the 36-run matrix or
+   formal seeds.
+2. Do not retrain DP or CAMP from this result. The preselection changed the
+   admissible set, not the CAMP robust-training problem.
+3. The current evidence supports a working diagnosis that the eight-candidate
+   pool lacks enough progress-preserving comfort alternatives. It is not a
+   theorem that no possible K=8 rule can pass.
+4. The next controlled variable is candidate count. Screen K=12 first while
+   keeping DP/CAMP weights, noise, feasibility, route, schema, and seeds fixed.
+   A sufficiently long non-formal profile must pass the `<100 ms` p95 gate,
+   and fixed-candidate logs must show progress-preserving Pareto opportunities
+   before any paired sample59 pilot is launched.

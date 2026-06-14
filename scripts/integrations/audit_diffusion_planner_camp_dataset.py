@@ -39,6 +39,14 @@ REQUIRED_OUTCOME_FIELDS = {
     "mean_lateral_acceleration_mps2",
 }
 
+LEXICOGRAPHIC_STAGE_ORDER = (
+    "progress",
+    "planned_red",
+    "jerk",
+    "lateral",
+)
+LEXICOGRAPHIC_COUNT_ORDER = ("base",) + LEXICOGRAPHIC_STAGE_ORDER
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -102,6 +110,26 @@ def parse_args() -> argparse.Namespace:
             "counterfactual outcome payload was stored."
         ),
     )
+    parser.add_argument(
+        "--expected_lexicographic_progress_epsilon_m",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--expected_lexicographic_red_epsilon",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--expected_lexicographic_jerk_epsilon",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--expected_lexicographic_lateral_epsilon",
+        type=float,
+        default=None,
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -119,6 +147,7 @@ def audit_training_dataset(
     expected_comfort_shadow_horizon_steps: int | None = None,
     expected_lateral_comfort_horizon_steps: int | None = None,
     closed_loop_outcome_policy: str = "required",
+    expected_lexicographic_preselection: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
@@ -130,6 +159,9 @@ def audit_training_dataset(
             "closed_loop_outcome_policy must be 'required', 'optional', "
             "or 'forbidden'."
         )
+    expected_lexicographic = _validate_expected_lexicographic_config(
+        expected_lexicographic_preselection
+    )
     if expected_comfort_shadow_horizon_steps is not None:
         if isinstance(expected_comfort_shadow_horizon_steps, bool) or not isinstance(
             expected_comfort_shadow_horizon_steps,
@@ -192,6 +224,7 @@ def audit_training_dataset(
     all_infeasible_records = 0
     outcome_records = 0
     outcome_candidates = 0
+    lexicographic_stage_records = 0
     candidate_field_reports = {
         field: {
             "records": 0,
@@ -256,6 +289,12 @@ def audit_training_dataset(
                     f"{summary_path} does not certify lateral-comfort shadow "
                     f"horizon {expected_lateral_comfort_horizon_steps}."
                 )
+        if expected_lexicographic is not None:
+            _validate_lexicographic_summary(
+                summary_path,
+                validation_summary.get("camp_lexicographic_preselection"),
+                expected_lexicographic,
+            )
         records = json.loads(log_path.read_text(encoding="utf-8"))
         if not isinstance(records, list) or not records:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
@@ -324,6 +363,15 @@ def audit_training_dataset(
                         f"shadow horizon {actual_horizon!r}, expected "
                         f"{expected_lateral_comfort_horizon_steps}."
                     )
+            if expected_lexicographic is not None:
+                _validate_lexicographic_stage_counts(
+                    log_path,
+                    record_idx,
+                    record.get("lexicographic_stage_counts"),
+                    expected_candidates=expected_candidates,
+                    final_feasible_count=int(feasible.sum()),
+                )
+                lexicographic_stage_records += 1
             for field in required_fields:
                 values = _validate_candidate_field(
                     log_path,
@@ -411,10 +459,140 @@ def audit_training_dataset(
             "lateral_comfort_horizon_verified": (
                 expected_lateral_comfort_horizon_steps is not None
             ),
+            "expected_lexicographic_preselection": expected_lexicographic,
+            "lexicographic_preselection_verified": (
+                expected_lexicographic is not None
+            ),
+            "lexicographic_stage_records": lexicographic_stage_records,
         },
         "candidate_fields": candidate_field_reports,
         "logs": log_reports,
     }
+
+
+def _validate_expected_lexicographic_config(
+    config: dict[str, float] | None,
+) -> dict[str, float] | None:
+    if config is None:
+        return None
+    expected_keys = {
+        "progress_epsilon_m",
+        "planned_red_epsilon",
+        "jerk_epsilon",
+        "lateral_epsilon",
+    }
+    if not isinstance(config, dict) or set(config) != expected_keys:
+        raise ValueError(
+            "expected_lexicographic_preselection must contain exactly "
+            f"{sorted(expected_keys)}."
+        )
+    normalized = {}
+    for key in sorted(expected_keys):
+        value = config[key]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float, np.integer, np.floating))
+            or not np.isfinite(value)
+            or value < 0.0
+        ):
+            raise ValueError(
+                "Expected lexicographic epsilons must be finite and nonnegative."
+            )
+        normalized[key] = float(value)
+    return normalized
+
+
+def _validate_lexicographic_summary(
+    summary_path: Path,
+    metadata: Any,
+    expected: dict[str, float],
+) -> None:
+    if not isinstance(metadata, dict):
+        raise ValueError(
+            f"{summary_path} does not certify lexicographic preselection."
+        )
+    if (
+        metadata.get("enabled") is not True
+        or metadata.get("selection_effect") is not True
+        or metadata.get("order") != list(LEXICOGRAPHIC_STAGE_ORDER)
+    ):
+        raise ValueError(
+            f"{summary_path} has invalid lexicographic preselection metadata."
+        )
+    for key, expected_value in expected.items():
+        actual = metadata.get(key)
+        if (
+            isinstance(actual, bool)
+            or not isinstance(actual, (int, float))
+            or not np.isfinite(actual)
+            or not np.isclose(
+                float(actual),
+                expected_value,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+        ):
+            raise ValueError(
+                f"{summary_path} lexicographic {key}={actual!r}, "
+                f"expected {expected_value!r}."
+            )
+
+
+def _validate_lexicographic_stage_counts(
+    log_path: Path,
+    record_idx: int,
+    counts: Any,
+    *,
+    expected_candidates: int,
+    final_feasible_count: int,
+) -> None:
+    if not isinstance(counts, dict) or set(counts) != set(
+        LEXICOGRAPHIC_COUNT_ORDER
+    ):
+        raise ValueError(
+            f"{log_path} record {record_idx} has invalid lexicographic "
+            "stage-count fields."
+        )
+    ordered_counts = []
+    for stage in LEXICOGRAPHIC_COUNT_ORDER:
+        value = counts[stage]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, np.integer))
+            or not 0 <= int(value) <= expected_candidates
+        ):
+            raise ValueError(
+                f"{log_path} record {record_idx} has invalid lexicographic "
+                f"{stage} count {value!r}."
+            )
+        ordered_counts.append(int(value))
+    if any(
+        next_count > current_count
+        for current_count, next_count in zip(
+            ordered_counts,
+            ordered_counts[1:],
+        )
+    ):
+        raise ValueError(
+            f"{log_path} record {record_idx} lexicographic stage counts "
+            "must be monotonically nonincreasing."
+        )
+    base_count = ordered_counts[0]
+    if base_count == 0 and any(ordered_counts[1:]):
+        raise ValueError(
+            f"{log_path} record {record_idx} has candidates after an empty "
+            "lexicographic base set."
+        )
+    if base_count > 0 and any(count < 1 for count in ordered_counts[1:]):
+        raise ValueError(
+            f"{log_path} record {record_idx} lexicographic preselection "
+            "emptied a nonempty base set."
+        )
+    if final_feasible_count > ordered_counts[-1]:
+        raise ValueError(
+            f"{log_path} record {record_idx} final feasible count exceeds "
+            "the lexicographic lateral-stage count."
+        )
 
 
 def _validate_record_schema(
@@ -560,6 +738,29 @@ def main() -> None:
     inputs = list(args.root) + list(args.selection_log)
     if not inputs:
         raise SystemExit("Provide at least one --root or --selection_log.")
+    lexicographic_values = (
+        args.expected_lexicographic_progress_epsilon_m,
+        args.expected_lexicographic_red_epsilon,
+        args.expected_lexicographic_jerk_epsilon,
+        args.expected_lexicographic_lateral_epsilon,
+    )
+    if any(value is not None for value in lexicographic_values) and any(
+        value is None for value in lexicographic_values
+    ):
+        raise ValueError(
+            "All expected lexicographic epsilon arguments must be provided "
+            "together."
+        )
+    expected_lexicographic = (
+        {
+            "progress_epsilon_m": args.expected_lexicographic_progress_epsilon_m,
+            "planned_red_epsilon": args.expected_lexicographic_red_epsilon,
+            "jerk_epsilon": args.expected_lexicographic_jerk_epsilon,
+            "lateral_epsilon": args.expected_lexicographic_lateral_epsilon,
+        }
+        if all(value is not None for value in lexicographic_values)
+        else None
+    )
     report = audit_training_dataset(
         inputs,
         atom_scales=load_dp_camp_atom_scales(args.atom_scales),
@@ -578,6 +779,7 @@ def main() -> None:
             args.expected_lateral_comfort_horizon_steps
         ),
         closed_loop_outcome_policy=args.closed_loop_outcome_policy,
+        expected_lexicographic_preselection=expected_lexicographic,
     )
     report["artifacts"] = {
         "atom_scales": str(args.atom_scales),

@@ -176,6 +176,7 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
     monkeypatch,
 ) -> None:
     log_path = _write_completed_log(tmp_path)
+    _add_lexicographic_contract(log_path)
     records = json.loads(log_path.read_text(encoding="utf-8"))
     del records[0]["candidate_closed_loop_outcomes"]
     log_path.write_text(json.dumps(records), encoding="utf-8")
@@ -208,6 +209,14 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
             "perfect",
             "--closed_loop_outcome_policy",
             "forbidden",
+            "--expected_lexicographic_progress_epsilon_m",
+            "2.0",
+            "--expected_lexicographic_red_epsilon",
+            "0.0",
+            "--expected_lexicographic_jerk_epsilon",
+            "1.0",
+            "--expected_lexicographic_lateral_epsilon",
+            "0.05",
             "--output_json",
             str(output_path),
         ],
@@ -219,6 +228,106 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
     assert report["passed"]
     assert report["checks"]["closed_loop_outcome_policy"] == "forbidden"
     assert report["checks"]["outcome_candidate_coverage"] == 0.0
+    assert report["checks"]["lexicographic_preselection_verified"]
+    assert report["checks"]["lexicographic_stage_records"] == 1
+
+
+def test_dataset_audit_certifies_lexicographic_preselection(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_lexicographic_contract(log_path)
+
+    report = audit_training_dataset(
+        [log_path],
+        atom_scales=np.ones(12),
+        expected_logs=1,
+        expected_candidates=2,
+        expected_lexicographic_preselection={
+            "progress_epsilon_m": 2.0,
+            "planned_red_epsilon": 0.0,
+            "jerk_epsilon": 1.0,
+            "lateral_epsilon": 0.05,
+        },
+    )
+
+    assert report["passed"]
+    assert report["checks"]["lexicographic_preselection_verified"]
+    assert report["checks"]["lexicographic_stage_records"] == 1
+
+
+def test_dataset_audit_rejects_wrong_lexicographic_summary_epsilon(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_lexicographic_contract(log_path)
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["camp_lexicographic_preselection"]["jerk_epsilon"] = 0.5
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="jerk_epsilon"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_lexicographic_preselection={
+                "progress_epsilon_m": 2.0,
+                "planned_red_epsilon": 0.0,
+                "jerk_epsilon": 1.0,
+                "lateral_epsilon": 0.05,
+            },
+        )
+
+
+@pytest.mark.parametrize(
+    "stage_counts,error",
+    [
+        (
+            {
+                "base": 2,
+                "progress": 1,
+                "planned_red": 2,
+                "jerk": 1,
+                "lateral": 1,
+            },
+            "monotonically nonincreasing",
+        ),
+        (
+            {
+                "base": 2,
+                "progress": 1,
+                "planned_red": 1,
+                "jerk": 1,
+                "lateral": 0,
+            },
+            "emptied a nonempty base set",
+        ),
+    ],
+)
+def test_dataset_audit_rejects_invalid_lexicographic_stage_counts(
+    tmp_path,
+    stage_counts,
+    error,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_lexicographic_contract(log_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["lexicographic_stage_counts"] = stage_counts
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=error):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_lexicographic_preselection={
+                "progress_epsilon_m": 2.0,
+                "planned_red_epsilon": 0.0,
+                "jerk_epsilon": 1.0,
+                "lateral_epsilon": 0.05,
+            },
+        )
 
 
 def test_dataset_audit_requires_completed_run_summary(tmp_path) -> None:
@@ -536,3 +645,28 @@ def _write_completed_log(tmp_path, *, seed=1):
         encoding="utf-8",
     )
     return log_path
+
+
+def _add_lexicographic_contract(log_path) -> None:
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["lexicographic_stage_counts"] = {
+        "base": 2,
+        "progress": 2,
+        "planned_red": 2,
+        "jerk": 2,
+        "lateral": 2,
+    }
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["camp_lexicographic_preselection"] = {
+        "enabled": True,
+        "order": ["progress", "planned_red", "jerk", "lateral"],
+        "progress_epsilon_m": 2.0,
+        "planned_red_epsilon": 0.0,
+        "jerk_epsilon": 1.0,
+        "lateral_epsilon": 0.05,
+        "selection_effect": True,
+    }
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")

@@ -190,6 +190,33 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--camp_lexicographic_progress_epsilon_m",
+        type=float,
+        default=None,
+        help=(
+            "Enable a nonempty finite-candidate preselection that first keeps "
+            "candidates within this many meters of the best feasible DP progress."
+        ),
+    )
+    parser.add_argument(
+        "--camp_lexicographic_red_epsilon",
+        type=float,
+        default=0.0,
+        help="Planned-red cost tolerance for lexicographic preselection.",
+    )
+    parser.add_argument(
+        "--camp_lexicographic_jerk_epsilon",
+        type=float,
+        default=0.0,
+        help="DP-prior jerk-excess tolerance for lexicographic preselection.",
+    )
+    parser.add_argument(
+        "--camp_lexicographic_lateral_epsilon",
+        type=float,
+        default=0.0,
+        help="Horizon lateral-acceleration tolerance for lexicographic preselection.",
+    )
+    parser.add_argument(
         "--camp_reward_horizon_steps",
         type=int,
         default=30,
@@ -275,6 +302,27 @@ def _validate_args(args: argparse.Namespace) -> None:
         0.0 <= args.camp_min_candidate0_step_reach_ratio <= 1.0
     ):
         raise ValueError("--camp_min_candidate0_step_reach_ratio must be in [0, 1].")
+    lexicographic_epsilons = (
+        args.camp_lexicographic_progress_epsilon_m,
+        args.camp_lexicographic_red_epsilon,
+        args.camp_lexicographic_jerk_epsilon,
+        args.camp_lexicographic_lateral_epsilon,
+    )
+    if any(
+        value is not None and (not np.isfinite(value) or value < 0.0)
+        for value in lexicographic_epsilons
+    ):
+        raise ValueError(
+            "CAMP lexicographic epsilons must be finite and nonnegative."
+        )
+    if (
+        args.camp_lexicographic_progress_epsilon_m is not None
+        and args.camp_feasibility_source != "dp_reward"
+    ):
+        raise ValueError(
+            "CAMP lexicographic preselection requires "
+            "--camp_feasibility_source dp_reward."
+        )
     if args.camp_reward_horizon_steps < 2:
         raise ValueError("--camp_reward_horizon_steps must be >= 2.")
     if args.camp_outcome_horizon_steps < 2:
@@ -575,6 +623,140 @@ def _apply_candidate0_step_reach_guard(
     return feasible_arr, tuple(tuple(row) for row in reason_rows), False
 
 
+def _apply_lexicographic_admissible_filter(
+    feasible: np.ndarray | None,
+    reasons: tuple[tuple[str, ...], ...] | None,
+    *,
+    candidate_progress: np.ndarray,
+    candidate_planned_red_light_cost: np.ndarray,
+    candidate_dp_prior_jerk_excess_cost: np.ndarray,
+    candidate_horizon_lateral_acceleration_cost: np.ndarray,
+    progress_epsilon_m: float | None,
+    red_epsilon: float,
+    jerk_epsilon: float,
+    lateral_epsilon: float,
+) -> tuple[
+    np.ndarray | None,
+    tuple[tuple[str, ...], ...] | None,
+    dict[str, int] | None,
+]:
+    if progress_epsilon_m is None:
+        return feasible, reasons, None
+    epsilons = (
+        progress_epsilon_m,
+        red_epsilon,
+        jerk_epsilon,
+        lateral_epsilon,
+    )
+    if any(not np.isfinite(value) or value < 0.0 for value in epsilons):
+        raise ValueError(
+            "Lexicographic epsilons must be finite and nonnegative."
+        )
+    arrays = {
+        "progress": np.asarray(candidate_progress, dtype=np.float64).reshape(-1),
+        "planned_red": np.asarray(
+            candidate_planned_red_light_cost, dtype=np.float64
+        ).reshape(-1),
+        "jerk": np.asarray(
+            candidate_dp_prior_jerk_excess_cost, dtype=np.float64
+        ).reshape(-1),
+        "lateral": np.asarray(
+            candidate_horizon_lateral_acceleration_cost, dtype=np.float64
+        ).reshape(-1),
+    }
+    candidate_count = arrays["progress"].size
+    if candidate_count == 0:
+        raise ValueError("Lexicographic preselection requires candidates.")
+    if any(values.shape != (candidate_count,) for values in arrays.values()):
+        raise ValueError(
+            "Lexicographic preselection fields must have equal candidate count."
+        )
+    if any(not np.all(np.isfinite(values)) for values in arrays.values()):
+        raise ValueError("Lexicographic preselection fields must be finite.")
+    if np.any(arrays["planned_red"] < 0.0):
+        raise ValueError("Lexicographic planned-red costs must be nonnegative.")
+    if np.any(arrays["jerk"] < 0.0):
+        raise ValueError("Lexicographic jerk costs must be nonnegative.")
+    if np.any(arrays["lateral"] < 0.0):
+        raise ValueError("Lexicographic lateral costs must be nonnegative.")
+    if feasible is None:
+        feasible_arr = np.ones(candidate_count, dtype=bool)
+    else:
+        feasible_arr = np.asarray(feasible, dtype=bool).reshape(-1).copy()
+    if feasible_arr.shape != (candidate_count,):
+        raise ValueError(
+            "Lexicographic fields must match feasible candidate count."
+        )
+    reason_rows = (
+        [[] for _ in range(candidate_count)]
+        if reasons is None
+        else [list(row) for row in reasons]
+    )
+    if len(reason_rows) != candidate_count:
+        raise ValueError(
+            "Lexicographic reasons must match feasible candidate count."
+        )
+    stage_counts = {"base": int(feasible_arr.sum())}
+    if not feasible_arr.any():
+        stage_counts.update({"progress": 0, "planned_red": 0, "jerk": 0, "lateral": 0})
+        return feasible_arr, tuple(tuple(row) for row in reason_rows), stage_counts
+
+    stages = (
+        (
+            "progress",
+            arrays["progress"],
+            float(np.max(arrays["progress"][feasible_arr]))
+            - float(progress_epsilon_m),
+            "min",
+            "lexicographic_progress",
+        ),
+        (
+            "planned_red",
+            arrays["planned_red"],
+            None,
+            "max",
+            "lexicographic_planned_red",
+        ),
+        (
+            "jerk",
+            arrays["jerk"],
+            None,
+            "max",
+            "lexicographic_jerk",
+        ),
+        (
+            "lateral",
+            arrays["lateral"],
+            None,
+            "max",
+            "lexicographic_lateral",
+        ),
+    )
+    tolerances = {
+        "planned_red": float(red_epsilon),
+        "jerk": float(jerk_epsilon),
+        "lateral": float(lateral_epsilon),
+    }
+    for stage_name, values, threshold, comparison, reason in stages:
+        active = feasible_arr.copy()
+        if threshold is None:
+            threshold = float(np.min(values[active])) + tolerances[stage_name]
+        if comparison == "min":
+            keep = values >= threshold - 1e-12
+        else:
+            keep = values <= threshold + 1e-12
+        removed = active & ~keep
+        feasible_arr[removed] = False
+        for idx in np.flatnonzero(removed):
+            reason_rows[int(idx)].append(reason)
+        if not feasible_arr.any():
+            raise RuntimeError(
+                f"Lexicographic stage {stage_name} unexpectedly removed all candidates."
+            )
+        stage_counts[stage_name] = int(feasible_arr.sum())
+    return feasible_arr, tuple(tuple(row) for row in reason_rows), stage_counts
+
+
 def _evaluation_state(scene: Any, ego_id: str) -> dict[str, Any]:
     ego = scene.get_agent(ego_id)
     route_lanes = np.asarray(ego.route_lanes, dtype=np.float64)
@@ -848,6 +1030,10 @@ def _install_camp_predictor(
     min_candidate0_route_progress_ratio: float | None,
     min_candidate0_step_reach_ratio: float | None,
     candidate0_step_reach_preserve_feasible: bool,
+    lexicographic_progress_epsilon_m: float | None,
+    lexicographic_red_epsilon: float,
+    lexicographic_jerk_epsilon: float,
+    lexicographic_lateral_epsilon: float,
     reward_horizon_steps: int,
     collect_closed_loop_outcomes: bool,
     outcome_horizon_steps: int,
@@ -985,6 +1171,7 @@ def _install_camp_predictor(
         candidate_route_progress = None
         candidate_step_reach = None
         candidate_step_reach_guard_relaxed = False
+        lexicographic_stage_counts = None
         candidate_planned_red_light_cost = None
         red_route_points = red_route_points_from_scene(scene, ego_id)
         external_feasible_mask = None
@@ -1051,6 +1238,33 @@ def _install_camp_predictor(
                 external_infeasibility_reasons,
                 candidate_route_progress,
                 min_candidate0_route_progress_ratio,
+            )
+        if lexicographic_progress_epsilon_m is not None:
+            if candidate_progress is None or candidate_planned_red_light_cost is None:
+                raise RuntimeError(
+                    "Lexicographic preselection requires DP reward candidate fields."
+                )
+            (
+                external_feasible_mask,
+                external_infeasibility_reasons,
+                lexicographic_stage_counts,
+            ) = _apply_lexicographic_admissible_filter(
+                external_feasible_mask,
+                external_infeasibility_reasons,
+                candidate_progress=candidate_progress,
+                candidate_planned_red_light_cost=(
+                    candidate_planned_red_light_cost
+                ),
+                candidate_dp_prior_jerk_excess_cost=(
+                    candidate_dp_prior_jerk_excess_cost
+                ),
+                candidate_horizon_lateral_acceleration_cost=(
+                    candidate_horizon_lateral_acceleration_cost
+                ),
+                progress_epsilon_m=lexicographic_progress_epsilon_m,
+                red_epsilon=lexicographic_red_epsilon,
+                jerk_epsilon=lexicographic_jerk_epsilon,
+                lateral_epsilon=lexicographic_lateral_epsilon,
             )
         reward_scoring_done = time.perf_counter()
         if collect_closed_loop_outcomes:
@@ -1206,6 +1420,7 @@ def _install_camp_predictor(
                     if candidate_step_reach is not None
                     else None
                 ),
+                "lexicographic_stage_counts": lexicographic_stage_counts,
                 "candidate_closed_loop_outcomes": candidate_outcomes,
                 "candidate_red_stopping_margin_cost": (
                     candidate_red_stopping_margin_cost.tolist()
@@ -1349,6 +1564,14 @@ def main() -> None:
             candidate0_step_reach_preserve_feasible=(
                 bool(args.camp_candidate0_step_reach_preserve_feasible)
             ),
+            lexicographic_progress_epsilon_m=(
+                args.camp_lexicographic_progress_epsilon_m
+            ),
+            lexicographic_red_epsilon=args.camp_lexicographic_red_epsilon,
+            lexicographic_jerk_epsilon=args.camp_lexicographic_jerk_epsilon,
+            lexicographic_lateral_epsilon=(
+                args.camp_lexicographic_lateral_epsilon
+            ),
             reward_horizon_steps=args.camp_reward_horizon_steps,
             collect_closed_loop_outcomes=args.camp_collect_closed_loop_outcomes,
             outcome_horizon_steps=args.camp_outcome_horizon_steps,
@@ -1443,6 +1666,22 @@ def main() -> None:
         if records is not None and args.camp_min_candidate0_step_reach_ratio is not None
         else None
     )
+    effective_lexicographic_preselection = (
+        {
+            "enabled": True,
+            "order": ["progress", "planned_red", "jerk", "lateral"],
+            "progress_epsilon_m": float(
+                args.camp_lexicographic_progress_epsilon_m
+            ),
+            "planned_red_epsilon": float(args.camp_lexicographic_red_epsilon),
+            "jerk_epsilon": float(args.camp_lexicographic_jerk_epsilon),
+            "lateral_epsilon": float(args.camp_lexicographic_lateral_epsilon),
+            "selection_effect": True,
+        }
+        if records is not None
+        and args.camp_lexicographic_progress_epsilon_m is not None
+        else None
+    )
     effective_reward_horizon_steps = (
         args.camp_reward_horizon_steps
         if records is not None and args.camp_feasibility_source == "dp_reward"
@@ -1480,6 +1719,7 @@ def main() -> None:
         "camp_candidate0_step_reach_preserve_feasible": (
             effective_candidate0_step_reach_preserve_feasible
         ),
+        "camp_lexicographic_preselection": effective_lexicographic_preselection,
         "camp_reward_horizon_steps": effective_reward_horizon_steps,
         "camp_collect_closed_loop_outcomes": (
             bool(args.camp_collect_closed_loop_outcomes)
@@ -1593,6 +1833,9 @@ def main() -> None:
     )
     validation["camp_candidate0_step_reach_preserve_feasible"] = (
         effective_candidate0_step_reach_preserve_feasible
+    )
+    validation["camp_lexicographic_preselection"] = (
+        effective_lexicographic_preselection
     )
     validation["camp_reward_horizon_steps"] = effective_reward_horizon_steps
     validation["camp_collect_closed_loop_outcomes"] = (

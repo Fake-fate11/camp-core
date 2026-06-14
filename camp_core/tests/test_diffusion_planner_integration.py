@@ -50,6 +50,7 @@ from camp_core.outer_master.robust_margin_master import (
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     _apply_candidate0_route_progress_guard,
     _apply_candidate0_step_reach_guard,
+    _apply_lexicographic_admissible_filter,
     _candidate_route_progress,
     _candidate_step_reach,
     _candidate_feasibility_from_rewards,
@@ -1954,6 +1955,63 @@ def test_candidate0_step_reach_guard_can_preserve_existing_feasible_set() -> Non
     assert feasible.tolist() == [False, True, True]
     assert reasons == (("dp_reward_underprogress",), (), ())
     assert relaxed is True
+
+
+def test_lexicographic_admissible_filter_is_nonempty_and_fail_closed() -> None:
+    feasible, reasons, stage_counts = _apply_lexicographic_admissible_filter(
+        np.array([True, True, True, False], dtype=bool),
+        ((), (), (), ("dp_lane_crossing",)),
+        candidate_progress=np.array([5.0, 6.0, 5.5, 9.0]),
+        candidate_planned_red_light_cost=np.array([0.0, 1.0, 0.0, 0.0]),
+        candidate_dp_prior_jerk_excess_cost=np.array([0.8, 0.0, 0.2, 0.0]),
+        candidate_horizon_lateral_acceleration_cost=np.array(
+            [0.20, 0.10, 0.15, 0.0]
+        ),
+        progress_epsilon_m=2.0,
+        red_epsilon=0.0,
+        jerk_epsilon=1.0,
+        lateral_epsilon=0.05,
+    )
+
+    assert feasible.tolist() == [True, False, True, False]
+    assert reasons == (
+        (),
+        ("lexicographic_planned_red",),
+        (),
+        ("dp_lane_crossing",),
+    )
+    assert stage_counts == {
+        "base": 3,
+        "progress": 3,
+        "planned_red": 2,
+        "jerk": 2,
+        "lateral": 2,
+    }
+
+
+def test_lexicographic_admissible_filter_does_not_create_fallback() -> None:
+    feasible, reasons, stage_counts = _apply_lexicographic_admissible_filter(
+        np.array([False, True], dtype=bool),
+        (("dp_collision",), ()),
+        candidate_progress=np.array([10.0, 1.0]),
+        candidate_planned_red_light_cost=np.array([0.0, 2.0]),
+        candidate_dp_prior_jerk_excess_cost=np.array([0.0, 3.0]),
+        candidate_horizon_lateral_acceleration_cost=np.array([0.0, 4.0]),
+        progress_epsilon_m=0.0,
+        red_epsilon=0.0,
+        jerk_epsilon=0.0,
+        lateral_epsilon=0.0,
+    )
+
+    assert feasible.tolist() == [False, True]
+    assert reasons == (("dp_collision",), ())
+    assert stage_counts == {
+        "base": 1,
+        "progress": 1,
+        "planned_red": 1,
+        "jerk": 1,
+        "lateral": 1,
+    }
 
 
 def test_selector_masks_candidate_that_collides_with_predicted_neighbor() -> None:
