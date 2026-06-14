@@ -61,8 +61,12 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
         horizon: {
             "rollout_pareto": [],
             "command_and_rollout_pareto": [],
+            "red_improving_progress_distance": [],
+            "red_improving_rollout_pareto": [],
             "eligible_candidates": [],
             "strict_eligible_candidates": [],
+            "red_improving_candidates": [],
+            "red_improving_pareto_candidates": [],
         }
         for horizon in HORIZONS
     }
@@ -211,16 +215,39 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                     & (command_jerk <= command_jerk[selected])
                     & (command_lateral <= command_lateral[selected])
                 )
+                red_improving = (
+                    feasible
+                    & (red_certificate < red_certificate[selected])
+                    & (progress >= progress[selected])
+                    & (distance >= distance[selected])
+                )
+                red_improving_pareto = (
+                    red_improving
+                    & (jerk <= jerk[selected])
+                    & (lateral <= lateral[selected])
+                )
                 common[selected] = False
                 strict[selected] = False
+                red_improving[selected] = False
+                red_improving_pareto[selected] = False
                 common_indices = np.flatnonzero(common)
                 strict_indices = np.flatnonzero(strict)
+                red_improving_indices = np.flatnonzero(red_improving)
+                red_improving_pareto_indices = np.flatnonzero(
+                    red_improving_pareto
+                )
                 horizon_rows[horizon]["eligible_candidates"].append(
                     int(common_indices.size)
                 )
                 horizon_rows[horizon]["strict_eligible_candidates"].append(
                     int(strict_indices.size)
                 )
+                horizon_rows[horizon]["red_improving_candidates"].append(
+                    int(red_improving_indices.size)
+                )
+                horizon_rows[horizon][
+                    "red_improving_pareto_candidates"
+                ].append(int(red_improving_pareto_indices.size))
                 if common_indices.size:
                     chosen = min(
                         common_indices.tolist(),
@@ -273,6 +300,60 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                             command_lateral=command_lateral,
                         )
                     )
+                if red_improving_indices.size:
+                    chosen = min(
+                        red_improving_indices.tolist(),
+                        key=lambda idx: (
+                            float(red_certificate[idx]),
+                            float(jerk[idx]),
+                            float(lateral[idx]),
+                            float(scores[idx]),
+                            int(idx),
+                        ),
+                    )
+                    horizon_rows[horizon][
+                        "red_improving_progress_distance"
+                    ].append(
+                        _delta_row(
+                            selected,
+                            chosen,
+                            progress=progress,
+                            full_red=red_certificate,
+                            distance=distance,
+                            jerk=jerk,
+                            lateral=lateral,
+                            command_target=command_target,
+                            command_jerk=command_jerk,
+                            command_lateral=command_lateral,
+                        )
+                    )
+                if red_improving_pareto_indices.size:
+                    chosen = min(
+                        red_improving_pareto_indices.tolist(),
+                        key=lambda idx: (
+                            float(red_certificate[idx]),
+                            float(jerk[idx]),
+                            float(lateral[idx]),
+                            float(scores[idx]),
+                            int(idx),
+                        ),
+                    )
+                    horizon_rows[horizon][
+                        "red_improving_rollout_pareto"
+                    ].append(
+                        _delta_row(
+                            selected,
+                            chosen,
+                            progress=progress,
+                            full_red=red_certificate,
+                            distance=distance,
+                            jerk=jerk,
+                            lateral=lateral,
+                            command_target=command_target,
+                            command_jerk=command_jerk,
+                            command_lateral=command_lateral,
+                        )
+                    )
 
     horizon_reports = {}
     for horizon in HORIZONS:
@@ -287,6 +368,16 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                 rows["command_and_rollout_pareto"],
                 nonfallback_records,
                 rows["strict_eligible_candidates"],
+            ),
+            "red_improving_progress_distance": _summarize_screen(
+                rows["red_improving_progress_distance"],
+                nonfallback_records,
+                rows["red_improving_candidates"],
+            ),
+            "red_improving_rollout_pareto": _summarize_screen(
+                rows["red_improving_rollout_pareto"],
+                nonfallback_records,
+                rows["red_improving_pareto_candidates"],
             ),
             "feasible_correlations": {
                 "command_jerk_vs_rollout_vector_jerk": _correlation(
@@ -470,7 +561,12 @@ def render_markdown(report: dict[str, Any]) -> str:
         "| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for horizon, horizon_report in report["horizons"].items():
-        for screen in ("rollout_pareto", "command_and_rollout_pareto"):
+        for screen in (
+            "rollout_pareto",
+            "command_and_rollout_pareto",
+            "red_improving_progress_distance",
+            "red_improving_rollout_pareto",
+        ):
             row = horizon_report[screen]
             delta = row["mean_deltas_on_changed_records"]
             lines.append(

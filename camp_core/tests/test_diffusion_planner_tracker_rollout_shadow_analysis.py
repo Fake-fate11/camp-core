@@ -19,6 +19,9 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
     assert report["records"]["nonfallback"] == 1
     assert report["full_horizon_red_light"][
         "short_safe_full_red_candidates"
+    ] == 2
+    assert report["full_horizon_red_light"][
+        "selected_short_safe_full_red_records"
     ] == 1
     for horizon in ("3", "5", "10"):
         assert report["horizons"][horizon]["rollout_pareto"][
@@ -27,11 +30,17 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
         assert report["horizons"][horizon][
             "command_and_rollout_pareto"
         ]["changed_records"] == 1
+        assert report["horizons"][horizon][
+            "red_improving_progress_distance"
+        ]["changed_records"] == 1
+        assert report["horizons"][horizon][
+            "red_improving_rollout_pareto"
+        ]["changed_records"] == 1
         deltas = report["horizons"][horizon]["rollout_pareto"][
             "mean_deltas_on_changed_records"
         ]
         assert deltas["progress"] > 0.0
-        assert deltas["full_red"] == 0.0
+        assert deltas["full_red"] < 0.0
         assert deltas["distance"] > 0.0
         assert deltas["jerk"] < 0.0
         assert deltas["lateral"] < 0.0
@@ -72,8 +81,8 @@ def _record() -> dict:
             {"progress": 5.2, "red_light": 0.0},
             {"progress": 5.1, "red_light": 0.0},
         ],
-        "candidate_full_horizon_planned_red_light_cost": [0.0, 0.0, 2.0],
-        "candidate_horizon_union_planned_red_light_cost": [0.0, 0.0, 2.0],
+        "candidate_full_horizon_planned_red_light_cost": [2.0, 0.0, 2.0],
+        "candidate_horizon_union_planned_red_light_cost": [2.0, 0.0, 2.0],
         "candidate_perfect_tracker_target_speed_mps": [1.0, 1.1, 1.1],
         "candidate_perfect_tracker_jerk_magnitude_mps3": [3.0, 2.5, 2.0],
         (
