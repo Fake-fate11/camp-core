@@ -2798,3 +2798,32 @@ whether jerk can be a hard cap. If no such budget can cover enough of the
 `20/32` repairable misses without material comfort regression, the safety
 override remains rejected and the investigation moves to candidate-pool or
 feasibility changes. Formal seeds remain frozen.
+
+### State budget diagnosis
+
+The same sample59 v3 artifact was summarized by state to separate the
+`20/32` repairable misses from the `12/32` no-lower-red misses.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| State budget diagnosis JSON | `002e90e8f39c02e8d78dce5029e7c344c43ad4fc82904b3862c98706a3824e8f` |
+| State budget diagnosis markdown | `55705100dbc694000a42d5e43b27be80ed1e9f137b3dcf7a2f2d75302400ef96` |
+
+| Group | Speed p50 | Progress p50 | H3 distance p50 | Union-red p50 | H3 jerk p50 | H3 max lateral p50 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Repairable by finite selector | 5.001160 | 12.262799 | 1.455898 | 29.250000 | 19.653819 | 0.326900 |
+| No lower-red feasible candidate | 0.715262 | 1.556463 | 0.145918 | 32.750000 | 24.829574 | 0.025714 |
+
+For the repairable group, the best lower-red candidate reduces union-red by a
+mean `-3.1`, but the mean progress delta is `-1.270539 m` and the mean H3
+vector-jerk delta is `+3.154113 m/s^3`. The absolute progress loss normalized
+by one-tick travel has mean `2.647902`, median `2.584709`, and p90
+`4.504409`. Therefore a one-step-travel progress budget is too strict for
+most currently repairable red-light misses; a larger budget would need a
+separate stopping-envelope or safety-distance justification rather than a
+simple kinematic one-tick argument.
+
+The no-lower-red group is mostly low-speed, low-progress, low-H3-distance
+behavior. That supports the current impossibility diagnosis: these cases are
+more likely candidate-pool or stopping/candidate-generation failures than
+ranking failures inside the existing base-feasible set.
