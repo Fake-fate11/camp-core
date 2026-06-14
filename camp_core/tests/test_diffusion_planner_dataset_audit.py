@@ -323,6 +323,51 @@ def test_dataset_audit_rejects_wrong_perfect_tracker_target_speed(
         )
 
 
+def test_dataset_audit_rejects_legacy_unaligned_tracker_shadow(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_perfect_tracker_command_contract(log_path)
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    metadata = summary["camp_shadow_perfect_tracker_command"]
+    metadata.pop("schema_version")
+    metadata.pop("candidate_preprocessing")
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="does not certify"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_advance_mode="perfect",
+            require_perfect_tracker_command_shadow=True,
+        )
+
+
+def test_dataset_audit_rejects_tracker_preprocessing_mismatch(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_perfect_tracker_command_contract(log_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["perfect_tracker_candidate_preprocessing"][
+        "savgol_window"
+    ] = 9
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="does not match its summary"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_advance_mode="perfect",
+            require_perfect_tracker_command_shadow=True,
+        )
+
+
 def test_dataset_audit_certifies_perfect_tracker_command_postselection(
     tmp_path,
 ) -> None:
@@ -853,16 +898,27 @@ def _add_perfect_tracker_command_contract(log_path) -> None:
     records = json.loads(log_path.read_text(encoding="utf-8"))
     record = records[0]
     record["candidate_trajectory_horizon_steps"] = 4
-    record["candidate_first_reference_xy"] = diagnostics[
+    record["candidate_perfect_tracker_reference_first_xy"] = diagnostics[
         "first_reference_xy"
     ].tolist()
-    record["candidate_first_reference_heading_rad"] = diagnostics[
-        "first_reference_heading_rad"
-    ].tolist()
+    record[
+        "candidate_perfect_tracker_reference_first_heading_rad"
+    ] = diagnostics["first_reference_heading_rad"].tolist()
     record["candidate_perfect_tracker_postprocessed_tail_xy"] = diagnostics[
         "postprocessed_tail_reference_xy"
     ].tolist()
-    record["candidate_step_reach"] = diagnostics["first_step_reach_m"].tolist()
+    record["candidate_perfect_tracker_first_step_reach_m"] = diagnostics[
+        "first_step_reach_m"
+    ].tolist()
+    record["perfect_tracker_candidate_preprocessing"] = {
+        "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+        "application_stage": (
+            "replay_after_predict_before_advance_scene_mpc"
+        ),
+        "savgol_enabled": True,
+        "savgol_window": 11,
+        "savgol_order": 3,
+    }
     record["perfect_tracker_command_inputs"] = {
         "dt": 0.1,
         "current_speed_mps": 0.0,
@@ -903,6 +959,7 @@ def _add_perfect_tracker_command_contract(log_path) -> None:
     summary_path = log_path.with_name("camp_validation_summary.json")
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     summary["camp_shadow_perfect_tracker_command"] = {
+        "schema_version": "perfect_tracker_command_shadow_v2",
         "enabled": True,
         "selection_effect": False,
         "tracker_class": "scenario_generation.mpc_tracker.PerfectTracker",
@@ -910,12 +967,18 @@ def _add_perfect_tracker_command_contract(log_path) -> None:
             "scenario_generation.mpc_tracker.postprocess_reference"
         ),
         "candidate_frame": "ego",
+        "candidate_preprocessing": dict(
+            record["perfect_tracker_candidate_preprocessing"]
+        ),
         "max_speed_mps": 20.0,
         "velocity_smooth_window": 8,
         "stop_threshold_mps": 0.3,
         "restart_speed_threshold_mps": 0.1,
         "restart_plan_speed_threshold_mps": 0.5,
         "fields": [
+            "candidate_perfect_tracker_reference_first_xy",
+            "candidate_perfect_tracker_reference_first_heading_rad",
+            "candidate_perfect_tracker_first_step_reach_m",
             "candidate_perfect_tracker_tail_average_speed_mps",
             "candidate_perfect_tracker_restart_push",
             "candidate_perfect_tracker_target_speed_mps",

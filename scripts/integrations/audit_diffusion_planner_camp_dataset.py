@@ -48,6 +48,7 @@ LEXICOGRAPHIC_STAGE_ORDER = (
 )
 LEXICOGRAPHIC_COUNT_ORDER = ("base",) + LEXICOGRAPHIC_STAGE_ORDER
 PERFECT_TRACKER_COMMAND_METADATA = {
+    "schema_version": "perfect_tracker_command_shadow_v2",
     "enabled": True,
     "selection_effect": False,
     "tracker_class": "scenario_generation.mpc_tracker.PerfectTracker",
@@ -61,6 +62,9 @@ PERFECT_TRACKER_COMMAND_METADATA = {
     "restart_speed_threshold_mps": 0.1,
     "restart_plan_speed_threshold_mps": 0.5,
     "fields": [
+        "candidate_perfect_tracker_reference_first_xy",
+        "candidate_perfect_tracker_reference_first_heading_rad",
+        "candidate_perfect_tracker_first_step_reach_m",
         "candidate_perfect_tracker_tail_average_speed_mps",
         "candidate_perfect_tracker_restart_push",
         "candidate_perfect_tracker_target_speed_mps",
@@ -398,17 +402,23 @@ def audit_training_dataset(
                 validation_summary.get("candidate_reference_blend"),
                 expected_candidate_reference_blend_steps,
             )
-        if require_perfect_tracker_command_shadow:
+        perfect_tracker_preprocessing = None
+        if (
+            require_perfect_tracker_command_shadow
+            or require_perfect_tracker_command_postselection
+        ):
             if advance_mode != "perfect":
                 raise ValueError(
                     f"{summary_path} uses advance_mode={advance_mode!r}; "
                     "PerfectTracker command shadow requires 'perfect'."
                 )
-            _validate_perfect_tracker_command_summary(
-                summary_path,
-                validation_summary.get(
-                    "camp_shadow_perfect_tracker_command"
-                ),
+            perfect_tracker_preprocessing = (
+                _validate_perfect_tracker_command_summary(
+                    summary_path,
+                    validation_summary.get(
+                        "camp_shadow_perfect_tracker_command"
+                    ),
+                )
             )
         if require_perfect_tracker_command_postselection:
             if advance_mode != "perfect":
@@ -416,12 +426,6 @@ def audit_training_dataset(
                     f"{summary_path} uses advance_mode={advance_mode!r}; "
                     "PerfectTracker command postselection requires 'perfect'."
                 )
-            _validate_perfect_tracker_command_summary(
-                summary_path,
-                validation_summary.get(
-                    "camp_shadow_perfect_tracker_command"
-                ),
-            )
             _validate_perfect_tracker_command_postselection_summary(
                 summary_path,
                 validation_summary.get(
@@ -519,6 +523,7 @@ def audit_training_dataset(
                     record_idx,
                     record,
                     expected_candidates=expected_candidates,
+                    expected_preprocessing=perfect_tracker_preprocessing,
                 )
                 perfect_tracker_command_records += 1
             if require_perfect_tracker_command_postselection:
@@ -528,6 +533,7 @@ def audit_training_dataset(
                         record_idx,
                         record,
                         expected_candidates=expected_candidates,
+                        expected_preprocessing=perfect_tracker_preprocessing,
                     )
                 _validate_perfect_tracker_command_postselection_record(
                     log_path,
@@ -856,12 +862,68 @@ def _validate_candidate_reference_blend_record(
 def _validate_perfect_tracker_command_summary(
     summary_path: Path,
     metadata: Any,
-) -> None:
-    if metadata != PERFECT_TRACKER_COMMAND_METADATA:
+) -> dict[str, Any]:
+    if not isinstance(metadata, dict):
         raise ValueError(
             f"{summary_path} does not certify the expected PerfectTracker "
             "command shadow."
         )
+    preprocessing = metadata.get("candidate_preprocessing")
+    metadata_without_preprocessing = dict(metadata)
+    metadata_without_preprocessing.pop("candidate_preprocessing", None)
+    if metadata_without_preprocessing != PERFECT_TRACKER_COMMAND_METADATA:
+        raise ValueError(
+            f"{summary_path} does not certify the expected PerfectTracker "
+            "command shadow."
+        )
+    return _validate_perfect_tracker_candidate_preprocessing(
+        preprocessing,
+        label=f"{summary_path} PerfectTracker candidate preprocessing",
+    )
+
+
+def _validate_perfect_tracker_candidate_preprocessing(
+    preprocessing: Any,
+    *,
+    label: str,
+) -> dict[str, Any]:
+    expected_keys = {
+        "implementation",
+        "application_stage",
+        "savgol_enabled",
+        "savgol_window",
+        "savgol_order",
+    }
+    if not isinstance(preprocessing, dict) or set(preprocessing) != expected_keys:
+        raise ValueError(f"{label} is invalid.")
+    if (
+        preprocessing["implementation"]
+        != "rlvr.grpo_sft_trainer._smooth_trajectory"
+        or preprocessing["application_stage"]
+        != "replay_after_predict_before_advance_scene_mpc"
+        or not isinstance(preprocessing["savgol_enabled"], bool)
+    ):
+        raise ValueError(f"{label} is invalid.")
+    if preprocessing["savgol_enabled"]:
+        window = preprocessing["savgol_window"]
+        order = preprocessing["savgol_order"]
+        if (
+            isinstance(window, bool)
+            or not isinstance(window, int)
+            or window < 3
+            or window % 2 == 0
+            or isinstance(order, bool)
+            or not isinstance(order, int)
+            or order < 0
+            or order + 2 > window
+        ):
+            raise ValueError(f"{label} has invalid Savitzky-Golay settings.")
+    elif (
+        preprocessing["savgol_window"] is not None
+        or preprocessing["savgol_order"] is not None
+    ):
+        raise ValueError(f"{label} must omit disabled Savitzky-Golay settings.")
+    return dict(preprocessing)
 
 
 def _validate_perfect_tracker_command_postselection_summary(
@@ -962,8 +1024,19 @@ def _validate_perfect_tracker_command_record(
     record: dict[str, Any],
     *,
     expected_candidates: int,
+    expected_preprocessing: dict[str, Any] | None,
 ) -> None:
     label = f"{log_path} record {record_idx} PerfectTracker command shadow"
+    if expected_preprocessing is None:
+        raise ValueError(f"{label} lacks certified candidate preprocessing.")
+    record_preprocessing = _validate_perfect_tracker_candidate_preprocessing(
+        record.get("perfect_tracker_candidate_preprocessing"),
+        label=f"{label} candidate preprocessing",
+    )
+    if record_preprocessing != expected_preprocessing:
+        raise ValueError(
+            f"{label} candidate preprocessing does not match its summary."
+        )
     inputs = record.get("perfect_tracker_command_inputs")
     expected_input_keys = {
         "dt",
@@ -1004,7 +1077,7 @@ def _validate_perfect_tracker_command_record(
         raise ValueError(f"{label} has an invalid dt or current speed.")
 
     first_xy = _finite_candidate_matrix(
-        record.get("candidate_first_reference_xy"),
+        record.get("candidate_perfect_tracker_reference_first_xy"),
         expected_candidates,
         2,
         label=f"{label} first-reference xy",
@@ -1016,7 +1089,9 @@ def _validate_perfect_tracker_command_record(
         label=f"{label} postprocessed-tail xy",
     )
     first_heading = _finite_candidate_vector(
-        record.get("candidate_first_reference_heading_rad"),
+        record.get(
+            "candidate_perfect_tracker_reference_first_heading_rad"
+        ),
         expected_candidates,
         label=f"{label} first-reference heading",
     )
@@ -1068,9 +1143,9 @@ def _validate_perfect_tracker_command_record(
 
     expected_step_reach = np.linalg.norm(first_xy, axis=1)
     logged_step_reach = _finite_candidate_vector(
-        record.get("candidate_step_reach"),
+        record.get("candidate_perfect_tracker_first_step_reach_m"),
         expected_candidates,
-        label=f"{label} first-step reach",
+        label=f"{label} tracker first-step reach",
         nonnegative=True,
     )
     expected_tail_average_speed = np.linalg.norm(

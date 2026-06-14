@@ -831,6 +831,53 @@ def _evaluation_state(scene: Any, ego_id: str) -> dict[str, Any]:
     }
 
 
+def _perfect_tracker_candidate_preprocessing(spawn_config: Any) -> dict[str, Any]:
+    enabled = bool(getattr(spawn_config, "sg_smooth_enabled", False))
+    return {
+        "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+        "application_stage": (
+            "replay_after_predict_before_advance_scene_mpc"
+        ),
+        "savgol_enabled": enabled,
+        "savgol_window": (
+            int(getattr(spawn_config, "sg_filter_window"))
+            if enabled
+            else None
+        ),
+        "savgol_order": (
+            int(getattr(spawn_config, "sg_filter_order"))
+            if enabled
+            else None
+        ),
+    }
+
+
+def _prepare_perfect_tracker_reference_candidates(
+    replay_module: Any,
+    candidates: np.ndarray,
+    spawn_config: Any,
+) -> np.ndarray:
+    """Apply the candidate preprocessing executed by DP after prediction."""
+    trajectories = np.asarray(candidates)
+    if not bool(getattr(spawn_config, "sg_smooth_enabled", False)):
+        return trajectories
+    smoothed = np.stack(
+        [
+            replay_module._sg_smooth_trajectory(
+                candidate,
+                int(spawn_config.sg_filter_window),
+                int(spawn_config.sg_filter_order),
+            )
+            for candidate in trajectories
+        ]
+    )
+    if smoothed.shape != trajectories.shape or not np.all(np.isfinite(smoothed)):
+        raise RuntimeError(
+            "Diffusion Planner trajectory smoothing returned invalid candidates."
+        )
+    return smoothed
+
+
 def _append_metric_record(
     *,
     replay_module: Any,
@@ -1226,8 +1273,15 @@ def _install_camp_predictor(
             perfect_tracker_current_speed_mps,
             perfect_tracker_current_longitudinal_acceleration_mps2,
         ) = _current_perfect_tracker_state(ego_agent)
+        perfect_tracker_reference_candidates = (
+            _prepare_perfect_tracker_reference_candidates(
+                replay_module,
+                candidates,
+                spawn_config,
+            )
+        )
         perfect_tracker_command = compute_perfect_tracker_command_diagnostics(
-            candidates,
+            perfect_tracker_reference_candidates,
             dt=float(getattr(scene, "dt", 0.1)),
             current_speed_mps=perfect_tracker_current_speed_mps,
             current_longitudinal_acceleration_mps2=(
@@ -1496,10 +1550,18 @@ def _install_camp_predictor(
                 "candidate_first_reference_xy": (
                     candidates[:, 0, :2].tolist()
                 ),
-                "candidate_first_reference_heading_rad": (
+                "candidate_perfect_tracker_reference_first_xy": (
+                    perfect_tracker_command[
+                        "first_reference_xy"
+                    ].tolist()
+                ),
+                "candidate_perfect_tracker_reference_first_heading_rad": (
                     perfect_tracker_command[
                         "first_reference_heading_rad"
                     ].tolist()
+                ),
+                "candidate_perfect_tracker_first_step_reach_m": (
+                    perfect_tracker_command["first_step_reach_m"].tolist()
                 ),
                 "candidate_perfect_tracker_postprocessed_tail_xy": (
                     perfect_tracker_command[
@@ -1518,6 +1580,9 @@ def _install_camp_predictor(
                     "restart_speed_threshold_mps": 0.1,
                     "restart_plan_speed_threshold_mps": 0.5,
                 },
+                "perfect_tracker_candidate_preprocessing": (
+                    _perfect_tracker_candidate_preprocessing(spawn_config)
+                ),
                 "candidate_perfect_tracker_tail_average_speed_mps": (
                     perfect_tracker_command["tail_average_speed_mps"].tolist()
                 ),
@@ -2016,6 +2081,7 @@ def main() -> None:
         ),
         "camp_shadow_perfect_tracker_command": (
             {
+                "schema_version": "perfect_tracker_command_shadow_v2",
                 "enabled": True,
                 "selection_effect": False,
                 "tracker_class": (
@@ -2025,12 +2091,21 @@ def main() -> None:
                     "scenario_generation.mpc_tracker.postprocess_reference"
                 ),
                 "candidate_frame": "ego",
+                "candidate_preprocessing": (
+                    _perfect_tracker_candidate_preprocessing(config)
+                ),
                 "max_speed_mps": 20.0,
                 "velocity_smooth_window": 8,
                 "stop_threshold_mps": 0.3,
                 "restart_speed_threshold_mps": 0.1,
                 "restart_plan_speed_threshold_mps": 0.5,
                 "fields": [
+                    "candidate_perfect_tracker_reference_first_xy",
+                    (
+                        "candidate_perfect_tracker_"
+                        "reference_first_heading_rad"
+                    ),
+                    "candidate_perfect_tracker_first_step_reach_m",
                     "candidate_perfect_tracker_tail_average_speed_mps",
                     "candidate_perfect_tracker_restart_push",
                     "candidate_perfect_tracker_target_speed_mps",

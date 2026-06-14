@@ -74,11 +74,23 @@ def _write_log(tmp_path, records):
             {
                 "advance_mode": "perfect",
                 "camp_shadow_perfect_tracker_command": {
+                    "schema_version": "perfect_tracker_command_shadow_v2",
                     "enabled": True,
                     "selection_effect": False,
                     "tracker_class": (
                         "scenario_generation.mpc_tracker.PerfectTracker"
                     ),
+                    "candidate_preprocessing": {
+                        "implementation": (
+                            "rlvr.grpo_sft_trainer._smooth_trajectory"
+                        ),
+                        "application_stage": (
+                            "replay_after_predict_before_advance_scene_mpc"
+                        ),
+                        "savgol_enabled": True,
+                        "savgol_window": 11,
+                        "savgol_order": 3,
+                    },
                 },
             }
         ),
@@ -93,6 +105,15 @@ def _record() -> dict:
         "used_fallback": False,
         "feasible_mask": [True, True, True],
         "candidate_closed_loop_outcomes": None,
+        "perfect_tracker_candidate_preprocessing": {
+            "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+            "application_stage": (
+                "replay_after_predict_before_advance_scene_mpc"
+            ),
+            "savgol_enabled": True,
+            "savgol_window": 11,
+            "savgol_order": 3,
+        },
         "selection_scores": [0.0, 1.0, float("inf")],
         "dp_candidate_rewards": [
             {"progress": 5.0, "red_light": 0.0},

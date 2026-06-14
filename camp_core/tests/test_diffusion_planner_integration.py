@@ -57,6 +57,8 @@ from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_route_progress,
     _candidate_step_reach,
     _candidate_feasibility_from_rewards,
+    _perfect_tracker_candidate_preprocessing,
+    _prepare_perfect_tracker_reference_candidates,
 )
 from scripts.integrations.create_diffusion_planner_smoke_route import (
     _route_geometry,
@@ -2032,6 +2034,66 @@ def test_perfect_tracker_command_diagnostics_reproduce_normal_command() -> None:
     assert diagnostics[
         "lateral_acceleration_magnitude_mps2"
     ].tolist() == pytest.approx([0.0, 6.0])
+
+
+def test_tracker_reference_candidates_apply_replay_savgol_preprocessing() -> None:
+    candidates = np.zeros((2, 5, 4), dtype=np.float64)
+    candidates[:, :, 2] = 1.0
+    calls = []
+
+    def smooth(candidate, window, order):
+        calls.append((window, order))
+        result = candidate.copy()
+        result[:, 0] += 0.25
+        return result
+
+    replay_module = types.SimpleNamespace(_sg_smooth_trajectory=smooth)
+    config = types.SimpleNamespace(
+        sg_smooth_enabled=True,
+        sg_filter_window=11,
+        sg_filter_order=3,
+    )
+
+    prepared = _prepare_perfect_tracker_reference_candidates(
+        replay_module,
+        candidates,
+        config,
+    )
+
+    assert calls == [(11, 3), (11, 3)]
+    np.testing.assert_allclose(prepared[:, :, 0], 0.25)
+    np.testing.assert_allclose(candidates[:, :, 0], 0.0)
+    assert _perfect_tracker_candidate_preprocessing(config) == {
+        "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+        "application_stage": (
+            "replay_after_predict_before_advance_scene_mpc"
+        ),
+        "savgol_enabled": True,
+        "savgol_window": 11,
+        "savgol_order": 3,
+    }
+
+
+def test_tracker_reference_candidates_preserve_disabled_preprocessing() -> None:
+    candidates = np.zeros((1, 3, 4), dtype=np.float64)
+    config = types.SimpleNamespace(sg_smooth_enabled=False)
+
+    prepared = _prepare_perfect_tracker_reference_candidates(
+        types.SimpleNamespace(),
+        candidates,
+        config,
+    )
+
+    assert prepared is candidates
+    assert _perfect_tracker_candidate_preprocessing(config) == {
+        "implementation": "rlvr.grpo_sft_trainer._smooth_trajectory",
+        "application_stage": (
+            "replay_after_predict_before_advance_scene_mpc"
+        ),
+        "savgol_enabled": False,
+        "savgol_window": None,
+        "savgol_order": None,
+    }
 
 
 def test_perfect_tracker_command_diagnostics_apply_postprocess_and_restart() -> None:

@@ -103,12 +103,20 @@ def compute_perfect_tracker_command_report(
 
     for log_path in iter_selection_log_paths(paths):
         log_count += 1
-        _validate_shadow_summary(log_path)
+        expected_preprocessing = _validate_shadow_summary(log_path)
         records = json.loads(log_path.read_text(encoding="utf-8"))
         if not isinstance(records, list) or not records:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
         for record_idx, record in enumerate(records):
             record_count += 1
+            if (
+                record.get("perfect_tracker_candidate_preprocessing")
+                != expected_preprocessing
+            ):
+                raise ValueError(
+                    f"{log_path} record {record_idx} does not match the "
+                    "certified tracker candidate preprocessing."
+                )
             if record.get("candidate_closed_loop_outcomes") is not None:
                 raise ValueError(
                     f"{log_path} record {record_idx} contains closed-loop "
@@ -412,24 +420,38 @@ def compute_perfect_tracker_command_report(
     }
 
 
-def _validate_shadow_summary(log_path: Path) -> None:
+def _validate_shadow_summary(log_path: Path) -> dict[str, Any]:
     summary_path = log_path.with_name("camp_validation_summary.json")
     if not summary_path.is_file():
         raise ValueError(f"Missing completed-run summary for {log_path}.")
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     metadata = summary.get("camp_shadow_perfect_tracker_command")
+    preprocessing = (
+        metadata.get("candidate_preprocessing")
+        if isinstance(metadata, dict)
+        else None
+    )
     if (
         summary.get("advance_mode") != "perfect"
         or not isinstance(metadata, dict)
+        or metadata.get("schema_version")
+        != "perfect_tracker_command_shadow_v2"
         or metadata.get("enabled") is not True
         or metadata.get("selection_effect") is not False
         or metadata.get("tracker_class")
         != "scenario_generation.mpc_tracker.PerfectTracker"
+        or not isinstance(preprocessing, dict)
+        or preprocessing.get("implementation")
+        != "rlvr.grpo_sft_trainer._smooth_trajectory"
+        or preprocessing.get("application_stage")
+        != "replay_after_predict_before_advance_scene_mpc"
+        or not isinstance(preprocessing.get("savgol_enabled"), bool)
     ):
         raise ValueError(
             f"{summary_path} does not certify an outcome-free "
             "PerfectTracker command shadow."
         )
+    return preprocessing
 
 
 def _selected_index(
