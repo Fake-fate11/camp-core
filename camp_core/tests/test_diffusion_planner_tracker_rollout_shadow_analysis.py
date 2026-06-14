@@ -50,6 +50,7 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
     assert event["context"]["traffic_lights"] is True
     assert event["current_speed_mps"] == 1.5
     assert event["selected"]["full_horizon_red"] == 2.0
+    assert event["selected"]["red_stopping_margin_cost"] == 3.0
     assert event["selected"]["h3_max_lateral_mps2"] == 1.2
     assert event["best_lower_union_red_feasible_candidate"][
         "candidate_index"
@@ -67,6 +68,23 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
     assert all(
         cell["selection_rule"] == "min_union_red_then_camp_score_then_index"
         for cell in budget["cells"]
+    )
+    stopping_budget = report["full_horizon_red_light"][
+        "stopping_margin_nonworse_budget_sensitivity_h3"
+    ]
+    assert len(stopping_budget["cells"]) == 6
+    assert stopping_budget["requires_stopping_margin_nonworse"] is True
+    assert all(
+        cell["changed_records"] == 1 for cell in stopping_budget["cells"]
+    )
+    assert all(
+        cell["mean_deltas_on_changed_records"]["stopping_margin"] < 0.0
+        for cell in stopping_budget["cells"]
+    )
+    assert all(
+        cell["selection_rule"]
+        == "min_union_red_then_stopping_margin_then_camp_score_then_index"
+        for cell in stopping_budget["cells"]
     )
     for horizon in ("3", "5", "10"):
         assert report["horizons"][horizon]["rollout_pareto"][
@@ -134,6 +152,7 @@ def _record() -> dict:
         ],
         "candidate_full_horizon_planned_red_light_cost": [2.0, 0.0, 2.0],
         "candidate_horizon_union_planned_red_light_cost": [2.0, 0.0, 2.0],
+        "candidate_red_stopping_margin_cost": [3.0, 1.0, 4.0],
         "candidate_perfect_tracker_target_speed_mps": [1.0, 1.1, 1.1],
         "candidate_perfect_tracker_jerk_magnitude_mps3": [3.0, 2.5, 2.0],
         (
