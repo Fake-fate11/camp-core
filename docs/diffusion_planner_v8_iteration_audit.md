@@ -2827,3 +2827,50 @@ The no-lower-red group is mostly low-speed, low-progress, low-H3-distance
 behavior. That supports the current impossibility diagnosis: these cases are
 more likely candidate-pool or stopping/candidate-generation failures than
 ranking failures inside the existing base-feasible set.
+
+### Stopping-margin consistency screen
+
+Commit `42a29394b2cd3a80557891ed3a4425d5bf6ad3a3` extends the rollout shadow
+analyzer with an additional stricter budget table. It reuses the existing
+`candidate_red_stopping_margin_cost`, which is computed from current route
+red-light points, a `2.0 m/s^2` comfort deceleration envelope, a `3 m` stop
+buffer, and the current candidate trajectory. This is still a shadow-only
+fixed-candidate screen.
+
+The analyzer now reports two tables:
+
+1. lower union-red plus progress/H3-distance/H3-lateral budgets;
+2. the same budgets plus red stopping-margin nonworse relative to the selected
+   candidate.
+
+AutoDL verification at this commit passed the full CAMP test set:
+`166 passed`. Local verification passed with `161 passed, 5 skipped`.
+
+The real sample59 non-formal v3 shadow artifact was re-analyzed at:
+
+`/root/autodl-tmp/camp_dp_tracker_rollout_shadow_sample59_acba493`
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Stopping-margin analysis JSON | `add077a63a7c10261f6f158b4fcf0439a7e3b3d35dd90c1020298cb311cfa92b` |
+| Stopping-margin analysis markdown | `39e1c47ff8868be462eb5741d692d68400fd19ccb6c33eb7ee07f10d19da2e0c` |
+
+The stricter stopping-margin-nonworse budget sensitivity is:
+
+| Progress loss budget | H3 distance loss budget | Covered records | Coverage | Union-red delta | Stopping-margin delta | Progress delta | H3 vector jerk delta |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.5 m | 0.05 m | 5/32 | 0.156250 | -0.600000 | -4.618275 | -0.419675 | +0.489044 |
+| 0.5 m | 0.1 m | 5/32 | 0.156250 | -0.600000 | -4.618275 | -0.419675 | +0.489044 |
+| 1.0 m | 0.05 m | 8/32 | 0.250000 | -1.125000 | -4.918167 | -0.536327 | +0.947411 |
+| 1.0 m | 0.1 m | 8/32 | 0.250000 | -1.187500 | -5.086774 | -0.618475 | +0.742798 |
+| 1.5 m | 0.05 m | 8/32 | 0.250000 | -1.250000 | -4.100930 | -0.595235 | +1.531220 |
+| 1.5 m | 0.1 m | 10/32 | 0.312500 | -1.750000 | -4.415187 | -0.876761 | +2.266827 |
+
+Decision: do not implement this as an online safety override. The
+stopping-margin condition makes the selected alternatives more safety
+consistent, but it reduces coverage to at most `10/32` selected h30-safe/full
+red misses and still worsens H3 vector jerk. The evidence now points away
+from another selector-only iteration and toward candidate-generation or
+feasibility changes for the low-speed no-lower-red cases, plus a
+specification-backed jerk/comfort cap before any deployable safety override.
+Formal seeds remain frozen.
