@@ -44,6 +44,10 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
     assert breakdown["nonfallback"] == 1
     assert breakdown["fallback"] == 0
     assert breakdown["with_lower_union_red_feasible_candidate"] == 1
+    diagnosis = report["full_horizon_red_light"][
+        "no_lower_union_red_feasible_diagnosis"
+    ]
+    assert diagnosis["events"] == 0
     event = report["full_horizon_red_light"][
         "selected_short_safe_full_red_events"
     ][0]
@@ -55,6 +59,9 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
     assert event["best_lower_union_red_feasible_candidate"][
         "candidate_index"
     ] == 1
+    assert event["best_lower_union_red_candidate_any_feasibility"][
+        "feasible"
+    ] is True
     assert event["best_lower_union_red_feasible_candidate"]["delta"][
         "full_red"
     ] < 0.0
@@ -116,6 +123,51 @@ def test_rollout_shadow_analysis_screens_full_red_and_pareto_candidates(
     assert "not a guarantee" in render_markdown(report)
 
 
+def test_rollout_shadow_analysis_attributes_infeasible_lower_red_candidates(
+    tmp_path,
+) -> None:
+    record = _record()
+    record["feasible_mask"] = [True, False, True]
+    record["selection_scores"] = [0.0, float("inf"), 0.3]
+    record["candidate_full_horizon_planned_red_light_cost"] = [2.0, 0.5, 3.0]
+    record["candidate_horizon_union_planned_red_light_cost"] = [2.0, 0.5, 3.0]
+    record["candidate_red_stopping_margin_cost"] = [3.0, 1.0, 4.0]
+    record["infeasibility_reasons"] = [
+        [],
+        ["unit_route_progress_gate", "unit_lateral_gate"],
+        [],
+    ]
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(json.dumps([record]), encoding="utf-8")
+
+    report = analyze([log_path])
+
+    red = report["full_horizon_red_light"]
+    assert red["selected_short_safe_full_red_records"] == 1
+    assert red["selected_short_safe_full_red_breakdown"][
+        "without_lower_union_red_feasible_candidate"
+    ] == 1
+    diagnosis = red["no_lower_union_red_feasible_diagnosis"]
+    assert diagnosis["events"] == 1
+    assert diagnosis["with_lower_union_red_infeasible_candidate"] == 1
+    assert diagnosis["with_no_lower_union_red_candidate_anywhere"] == 0
+    assert diagnosis["infeasible_lower_union_red_reason_counts"] == {
+        "unit_lateral_gate": 1,
+        "unit_route_progress_gate": 1,
+    }
+    event = red["selected_short_safe_full_red_events"][0]
+    assert event["lower_union_red_feasible_candidates"] == 0
+    assert event["lower_union_red_candidate_count"] == 1
+    assert event["lower_union_red_infeasible_candidates"] == 1
+    assert event["best_lower_union_red_feasible_candidate"] is None
+    assert event["best_lower_union_red_candidate_any_feasibility"][
+        "candidate_index"
+    ] == 1
+    assert event["best_lower_union_red_candidate_any_feasibility"][
+        "feasible"
+    ] is False
+
+
 def test_rollout_shadow_analysis_rejects_missing_full_red(tmp_path) -> None:
     record = _record()
     del record["candidate_full_horizon_planned_red_light_cost"]
@@ -144,6 +196,7 @@ def _record() -> dict:
         "selected_index": 0,
         "used_fallback": False,
         "feasible_mask": [True, True, False],
+        "infeasibility_reasons": [[], [], ["unit_infeasible"]],
         "selection_scores": [0.0, 0.2, float("inf")],
         "dp_candidate_rewards": [
             {"progress": 5.0, "red_light": 0.0},

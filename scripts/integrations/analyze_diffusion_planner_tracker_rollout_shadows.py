@@ -70,6 +70,12 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
         "fallback_with_lower_union_red_feasible_candidate": 0,
         "nonfallback_with_lower_union_red_feasible_candidate": 0,
     }
+    no_lower_feasible_diagnosis = {
+        "events": 0,
+        "with_lower_union_red_infeasible_candidate": 0,
+        "with_no_lower_union_red_candidate_anywhere": 0,
+        "infeasible_lower_union_red_reason_counts": {},
+    }
     budget_rows = {
         (progress_budget, distance_budget): []
         for progress_budget in PROGRESS_LOSS_BUDGETS_M
@@ -168,6 +174,13 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
             selected_is_h30_missed = (
                 short_red[selected] <= 0.0 and full_red[selected] > 0.0
             )
+            infeasibility_reasons = _infeasibility_reasons(
+                record,
+                count,
+                label,
+            )
+            lower_union_red_all = red_certificate < red_certificate[selected]
+            lower_union_red_all[selected] = False
             lower_union_red_feasible = feasible & (
                 red_certificate < red_certificate[selected]
             )
@@ -175,6 +188,27 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
             lower_union_red_indices = np.flatnonzero(
                 lower_union_red_feasible
             )
+            lower_union_red_all_indices = np.flatnonzero(lower_union_red_all)
+            lower_union_red_infeasible_indices = np.flatnonzero(
+                lower_union_red_all & ~feasible
+            )
+            if selected_is_h30_missed and not lower_union_red_indices.size:
+                no_lower_feasible_diagnosis["events"] += 1
+                if lower_union_red_infeasible_indices.size:
+                    no_lower_feasible_diagnosis[
+                        "with_lower_union_red_infeasible_candidate"
+                    ] += 1
+                    _add_reason_counts(
+                        no_lower_feasible_diagnosis[
+                            "infeasible_lower_union_red_reason_counts"
+                        ],
+                        infeasibility_reasons,
+                        lower_union_red_infeasible_indices,
+                    )
+                else:
+                    no_lower_feasible_diagnosis[
+                        "with_no_lower_union_red_candidate_anywhere"
+                    ] += 1
 
             if bool(record.get("used_fallback", False)):
                 fallback_records += 1
@@ -205,6 +239,14 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                             red_certificate=red_certificate,
                             red_stopping_margin=red_stopping_margin,
                             lower_union_red_indices=lower_union_red_indices,
+                            lower_union_red_all_indices=(
+                                lower_union_red_all_indices
+                            ),
+                            lower_union_red_infeasible_indices=(
+                                lower_union_red_infeasible_indices
+                            ),
+                            feasible=feasible,
+                            infeasibility_reasons=infeasibility_reasons,
                         )
                     )
                 continue
@@ -271,6 +313,12 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                         red_certificate=red_certificate,
                         red_stopping_margin=red_stopping_margin,
                         lower_union_red_indices=lower_union_red_indices,
+                        lower_union_red_all_indices=lower_union_red_all_indices,
+                        lower_union_red_infeasible_indices=(
+                            lower_union_red_infeasible_indices
+                        ),
+                        feasible=feasible,
+                        infeasibility_reasons=infeasibility_reasons,
                         scores=scores,
                         command_target=command_target,
                         command_jerk=command_jerk,
@@ -718,6 +766,9 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                     require_stopping_margin_nonworse=True,
                 )
             ),
+            "no_lower_union_red_feasible_diagnosis": (
+                no_lower_feasible_diagnosis
+            ),
         },
         "horizons": horizon_reports,
     }
@@ -845,6 +896,41 @@ def _selection_scores(
     return array
 
 
+def _infeasibility_reasons(
+    record: dict[str, Any],
+    candidate_count: int,
+    label: str,
+) -> list[tuple[str, ...]]:
+    reasons = record.get("infeasibility_reasons")
+    if not isinstance(reasons, list) or len(reasons) != candidate_count:
+        raise ValueError(f"{label} lacks candidate infeasibility reasons.")
+    normalized: list[tuple[str, ...]] = []
+    for candidate_reasons in reasons:
+        if not isinstance(candidate_reasons, list):
+            raise ValueError(f"{label} has invalid infeasibility reasons.")
+        normalized.append(tuple(str(reason) for reason in candidate_reasons))
+    return normalized
+
+
+def _add_reason_counts(
+    counts: dict[str, int],
+    reasons: list[tuple[str, ...]],
+    indices: np.ndarray,
+) -> None:
+    for index in indices.tolist():
+        for reason in reasons[int(index)]:
+            counts[reason] = counts.get(reason, 0) + 1
+
+
+def _reason_counts_for_indices(
+    reasons: list[tuple[str, ...]],
+    indices: np.ndarray,
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    _add_reason_counts(counts, reasons, indices)
+    return counts
+
+
 def _delta_row(
     baseline: int,
     candidate: int,
@@ -870,6 +956,10 @@ def _red_miss_event_row(
     red_certificate: np.ndarray,
     red_stopping_margin: np.ndarray,
     lower_union_red_indices: np.ndarray,
+    lower_union_red_all_indices: np.ndarray,
+    lower_union_red_infeasible_indices: np.ndarray,
+    feasible: np.ndarray,
+    infeasibility_reasons: list[tuple[str, ...]],
     scores: np.ndarray | None = None,
     command_target: np.ndarray | None = None,
     command_jerk: np.ndarray | None = None,
@@ -935,6 +1025,69 @@ def _red_miss_event_row(
                 h3_metrics=h3_metrics,
             ),
         }
+    best_lower_red_any: dict[str, Any] | None = None
+    if lower_union_red_all_indices.size:
+        chosen_any = min(
+            lower_union_red_all_indices.tolist(),
+            key=lambda idx: (
+                float(red_certificate[idx]),
+                (
+                    float(scores[idx])
+                    if scores is not None and np.isfinite(scores[idx])
+                    else np.inf
+                ),
+                int(idx),
+            ),
+        )
+        best_lower_red_any = {
+            "candidate_index": int(chosen_any),
+            "feasible": bool(feasible[chosen_any]),
+            "infeasibility_reasons": list(
+                infeasibility_reasons[chosen_any]
+            ),
+            "delta": _delta_row(
+                selected,
+                chosen_any,
+                progress=progress,
+                full_red=red_certificate,
+                stopping_margin=red_stopping_margin,
+                **(
+                    {
+                        "distance": h3_metrics["distance_m"],
+                        "jerk": h3_metrics["mean_vector_jerk_mps3"],
+                        "lateral": h3_metrics[
+                            "mean_lateral_acceleration_mps2"
+                        ],
+                    }
+                    if h3_metrics is not None
+                    else {}
+                ),
+                **(
+                    {
+                        "command_target": command_target,
+                        "command_jerk": command_jerk,
+                        "command_lateral": command_lateral,
+                    }
+                    if command_target is not None
+                    and command_jerk is not None
+                    and command_lateral is not None
+                    else {}
+                ),
+            ),
+            "absolute": _candidate_absolute_row(
+                chosen_any,
+                progress=progress,
+                short_red=short_red,
+                full_red=full_red,
+                red_certificate=red_certificate,
+                red_stopping_margin=red_stopping_margin,
+                scores=scores,
+                command_target=command_target,
+                command_jerk=command_jerk,
+                command_lateral=command_lateral,
+                h3_metrics=h3_metrics,
+            ),
+        }
     return {
         "selection_log": str(log_path),
         "record_index": int(record_index),
@@ -948,6 +1101,18 @@ def _red_miss_event_row(
         ),
         "lower_union_red_feasible_candidates": int(
             lower_union_red_indices.size
+        ),
+        "lower_union_red_candidate_count": int(
+            lower_union_red_all_indices.size
+        ),
+        "lower_union_red_infeasible_candidates": int(
+            lower_union_red_infeasible_indices.size
+        ),
+        "lower_union_red_infeasible_reason_counts": (
+            _reason_counts_for_indices(
+                infeasibility_reasons,
+                lower_union_red_infeasible_indices,
+            )
         ),
         "selected": _candidate_absolute_row(
             selected,
@@ -963,6 +1128,7 @@ def _red_miss_event_row(
             h3_metrics=h3_metrics,
         ),
         "best_lower_union_red_feasible_candidate": best_lower_red,
+        "best_lower_union_red_candidate_any_feasibility": best_lower_red_any,
     }
 
 
