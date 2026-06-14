@@ -37,6 +37,7 @@ def _make_args() -> SimpleNamespace:
         camp_min_progress_ratio=0.8,
         camp_min_candidate0_progress_ratio=0.95,
         camp_min_candidate0_route_progress_ratio=0.98,
+        camp_min_candidate0_step_reach_ratio=0.99,
         camp_reward_horizon_steps=30,
         camp_collect_closed_loop_outcomes=True,
         camp_outcome_horizon_steps=30,
@@ -71,6 +72,9 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_min_candidate0_route_progress_ratio" in static_cmd
     route_guard_idx = static_cmd.index("--camp_min_candidate0_route_progress_ratio")
     assert static_cmd[route_guard_idx + 1] == "0.98"
+    assert "--camp_min_candidate0_step_reach_ratio" in static_cmd
+    step_guard_idx = static_cmd.index("--camp_min_candidate0_step_reach_ratio")
+    assert static_cmd[step_guard_idx + 1] == "0.99"
     assert "--camp_fallback_atom_scales" in static_cmd
     assert "--camp_fallback_static_weights" in static_cmd
     assert static_cmd[static_cmd.index("--advance_mode") + 1] == "perfect"
@@ -88,4 +92,5 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_fallback_mode" not in top1_cmd
     assert "--camp_min_candidate0_progress_ratio" not in top1_cmd
     assert "--camp_min_candidate0_route_progress_ratio" not in top1_cmd
+    assert "--camp_min_candidate0_step_reach_ratio" not in top1_cmd
     assert "--camp_fallback_atom_scales" not in top1_cmd

@@ -1913,6 +1913,21 @@ It contains 36 logs, 7,200 records, and 57,600 candidates with complete h30
 candidate outcome labels. The labels were used only for offline
 definition-screening and are not online atom provenance.
 
+A refreshed coverage pass with the current scripts wrote:
+
+```text
+/root/autodl-tmp/camp_dp_development_shadow_v9_comfort_h30_8b4c66f/lateral_definition_screen_with_offline_proxy_20260614.json
+/root/autodl-tmp/camp_dp_development_shadow_v9_comfort_h30_8b4c66f/lateral_definition_screen_with_offline_proxy_20260614.md
+```
+
+This existing matrix predates the deployable h30 shadow candidate fields, so
+`shadow_horizon_lateral_acceleration`,
+`shadow_dp_prior_lateral_acceleration_excess`,
+`shadow_horizon_yaw_rate`, and `shadow_dp_prior_yaw_rate_excess` all have
+zero record availability in this artifact. It can therefore screen offline
+label definitions and redundancy, but it cannot prove the deployable h30
+planned-shadow atom.
+
 The candidate-0-relative h30 lateral label proxy had variation in 7,167
 records and 5,854 feasible records. Its lateral Top-1-gap correlation was
 `0.7801` over all candidates and `0.8636` over feasible candidates. However,
@@ -1947,7 +1962,7 @@ Artifacts:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| lateral definition screen JSON | `d80981208d2fb1eb05fe471c0e16982564a8ebecf2c2d5774fd2204a55a9734c` |
+| lateral definition screen JSON | `39b30cb14d385a8a986b6e9d9f2dbec6831f7393289789613dff749d2f1efa22` |
 | lateral definition screen markdown | `8cb3f0e5a04ca8fcf1a0aad71cf1779beca043db7aa04c2444c8602fa550f91a` |
 
 Decision:
@@ -1993,6 +2008,14 @@ All candidate-pool and guard artifacts below passed the deployable dataset
 audit: 12 logs, 2,400 records, 8 candidates, perfect advance mode, forbidden
 closed-loop outcomes, forbidden formal seeds, h30 comfort-shadow horizon, and
 h30 lateral-shadow horizon.
+
+Correction: the two `routec0progress` rows in the table are retained only as
+obsolete evidence. A later code audit found that those runs projected
+ego-frame candidate trajectories onto the world-frame route centerline. The
+current implementation transforms the route centerline into the ego frame and
+limits the projection horizon before applying the route-progress guard, but
+the old `routec0progress` artifacts below must not be used as valid gate
+evidence.
 
 | Config | Completion delta | Planned red delta | Realized red delta | Near-miss delta | Jerk delta | Lateral delta | Fallback delta | p95 latency delta | Decision |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
@@ -2043,3 +2066,82 @@ Decision:
    contract because the admissible set is fixed before optimizing or applying
    weights, but it needs a cheap online route-progress surrogate before it can
    be considered deployable.
+
+## Perfect-tracker first-step reach screen
+
+A follow-up audit of the Diffusion Planner simulator showed that
+`PerfectTracker.track()` sets the target speed from the first reference point,
+`ref_world[0] - current_pose`, and only uses the longer horizon for the
+resume-from-rest push. A new default-off deploy-time guard was therefore added:
+
+```text
+--camp_min_candidate0_step_reach_ratio
+```
+
+For candidate set \(X=\{x_k\}_{k=0}^{K-1}\), with each trajectory already in
+the ego frame, define
+
+\[
+r_k = \left\|x_{k,0}^{xy}\right\|_2.
+\]
+
+The guard keeps candidate 0 and rejects candidate \(k>0\) when
+\[
+r_k < \rho r_0,\quad \rho\in[0,1].
+\]
+
+This is not a CAMP atom and is not part of \(a^\top w\). It is a
+selection-precomputed feasibility filter: deterministic, finite, nonnegative,
+fixed before applying CAMP weights, independent of candidate ranking and
+closed-loop outcome, and therefore compatible with the finite-candidate
+robust-selection contract. It is a closer online surrogate for the perfect
+tracker's executed progress than the rejected route-progress artifacts above.
+
+The screen used the same sample59 paired setup as the candidate-pool screen:
+seeds 1/2/3, NPC counts 0/4, traffic lights off/on, perfect tracking,
+forbidden closed-loop outcome labels, frozen DP checkpoint
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, and frozen `redstopfloor05`
+CAMP weights. All listed runs passed dataset audit with 12 logs, 2,400
+records, 8 candidates, h30 comfort/lateral shadow horizons, and forbidden
+formal seeds.
+
+| Config | Completion delta | Planned red delta | Realized red delta | Near-miss delta | Jerk delta | Lateral delta | Fallback delta | Feasible-rate delta | p95 latency delta | Decision |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `noise0p75_stepreach0p98` | -0.000286 [-0.000513, -0.000061] | -0.002917 | -0.000419 | +0.000833 | -2.661177 | -0.001925 | +0.002917 | -0.037135 | -0.352523 | reject: completion and fallback |
+| `noise0p75_stepreach0p99` | -0.000163 [-0.000360, +0.000026] | -0.002917 | -0.000419 | +0.000417 | -2.941414 | -0.000380 | +0.008750 | -0.095000 | -2.657798 | reject: fallback |
+| `noise0p75_stepreach0p995` | -0.000179 [-0.000421, +0.000054] | -0.002500 | -0.000419 | +0.000000 | -3.093988 | +0.001026 | +0.012917 | -0.155052 | +0.370795 | reject: fallback and lateral |
+| `noise0p75_stepreach1p00` | -0.000082 [-0.000266, +0.000106] | -0.002917 | +0.000000 | +0.000000 | -3.242133 | +0.001720 | +0.014167 | -0.310417 | -2.314045 | reject: fallback and lateral |
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `noise0p75_stepreach0p98` comparison JSON | `7efc3a2a82801995d419ac54bd5c2af57605ba42f78773b03750795d99a0f24d` |
+| `noise0p75_stepreach0p99` dataset audit | `12545f3ab764ea6d9c66372452c08380a96032b9c20a91f5f5778302d074fa1d` |
+| `noise0p75_stepreach0p99` coverage JSON | `a06caa8eb157b83a052dc43da87bc99475a140632b98210b93e6093d7cbf81ea` |
+| `noise0p75_stepreach0p99` coverage markdown | `6d1a5039e0243ef8d6688eb5531ea13f517b11051ffaff18d53402c7964688a4` |
+| `noise0p75_stepreach0p99` comparison JSON | `db44864b8d9934e104c8e4a4ba435efbd961b5c693e535b35e8c1e3ce9172c71` |
+| `noise0p75_stepreach0p99` comparison markdown | `696085e12b4a57a584de074849d27cb7e7ed7a537bd91820864a4a84f74ee39a` |
+| `noise0p75_stepreach0p995` dataset audit | `8f70f7d9dc2067c10118679b799dfa486a4b47cc63a56304d15dcbf8e92e0898` |
+| `noise0p75_stepreach0p995` coverage JSON | `f7509f533bc88ec4acb57b7e7e9031229159370e4e65bbd15b8899d9b2285c9e` |
+| `noise0p75_stepreach0p995` coverage markdown | `ef7b4e46d93482d354dfe49b3338e5353fad97b4675375b8124d8c7574746828` |
+| `noise0p75_stepreach0p995` comparison JSON | `aa1dedd786ec43f1f049305bdbac239733366f5d993283b4b7a6f66bccb90a6f` |
+| `noise0p75_stepreach0p995` comparison markdown | `36b7cbca5fa54774295e56fe89ce1554ed89b62e79728c563fb5d28d9e7ce60f` |
+| `noise0p75_stepreach1p00` comparison JSON | `161ede35e4b5e13c08cf86f6ae4d517a99c6281b0dc05029a5a010ae36868034` |
+
+Decision:
+
+1. First-step reach is the best-tested online surrogate for the current
+   perfect tracker, but alone it still does not satisfy the development gate.
+2. Ratios near 0.99 make completion nearly non-regressive on this small
+   sample, but they do so by shrinking the feasible set and increasing
+   fallback. Ratios at 0.995 and 1.0 also worsen mean lateral acceleration.
+3. Do not expand any first-step reach setting to the 36-run development matrix
+   yet and do not run formal seeds.
+4. The next design should preserve candidate-0 execution progress without
+   causing fallback: for example, a lexicographic or Pareto filter that first
+   keeps candidates within a small first-step reach tolerance, then applies
+   CAMP among non-dominated candidates on red, jerk, and lateral, while always
+   retaining candidate 0 as a feasible fallback. This remains a fixed
+   finite-candidate admissible-set construction and does not require DP
+   retraining.

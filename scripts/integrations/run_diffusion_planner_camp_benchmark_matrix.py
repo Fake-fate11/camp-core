@@ -129,6 +129,11 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=None,
     )
+    parser.add_argument(
+        "--camp_min_candidate0_step_reach_ratio",
+        type=float,
+        default=None,
+    )
     parser.add_argument("--camp_reward_horizon_steps", type=int, default=30)
     parser.add_argument("--camp_collect_closed_loop_outcomes", action="store_true")
     parser.add_argument("--camp_outcome_horizon_steps", type=int, default=30)
@@ -260,6 +265,13 @@ def _variant_command(
                 [
                     "--camp_min_candidate0_route_progress_ratio",
                     str(args.camp_min_candidate0_route_progress_ratio),
+                ]
+            )
+        if args.camp_min_candidate0_step_reach_ratio is not None:
+            cmd.extend(
+                [
+                    "--camp_min_candidate0_step_reach_ratio",
+                    str(args.camp_min_candidate0_step_reach_ratio),
                 ]
             )
         if args.camp_collect_closed_loop_outcomes:

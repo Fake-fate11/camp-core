@@ -49,7 +49,9 @@ from camp_core.outer_master.robust_margin_master import (
 )
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     _apply_candidate0_route_progress_guard,
+    _apply_candidate0_step_reach_guard,
     _candidate_route_progress,
+    _candidate_step_reach,
     _candidate_feasibility_from_rewards,
 )
 from scripts.integrations.create_diffusion_planner_smoke_route import (
@@ -1912,6 +1914,29 @@ def test_candidate0_route_progress_guard_uses_route_projection() -> None:
     assert progress.tolist() == pytest.approx([10.0, 9.9, 9.0])
     assert feasible.tolist() == [True, True, False]
     assert reasons == ((), (), ("route_candidate0_underprogress",))
+
+
+def test_candidate0_step_reach_guard_matches_perfect_tracker_speed_target() -> None:
+    candidates = np.array(
+        [
+            [[1.0, 0.0], [2.0, 0.0]],
+            [[0.99, 0.1], [2.0, 0.0]],
+            [[0.8, 0.0], [2.0, 0.0]],
+        ],
+        dtype=np.float64,
+    )
+
+    reach = _candidate_step_reach(candidates)
+    feasible, reasons = _apply_candidate0_step_reach_guard(
+        np.ones(3, dtype=bool),
+        ((), (), ()),
+        reach,
+        min_candidate0_step_reach_ratio=0.98,
+    )
+
+    assert reach.tolist() == pytest.approx([1.0, 0.995037, 0.8])
+    assert feasible.tolist() == [True, True, False]
+    assert reasons == ((), (), ("candidate0_step_reach_underprogress",))
 
 
 def test_selector_masks_candidate_that_collides_with_predicted_neighbor() -> None:

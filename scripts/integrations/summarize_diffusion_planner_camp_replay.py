@@ -31,6 +31,7 @@ REPLAY_METADATA_FIELDS = (
     "camp_min_progress_ratio",
     "camp_min_candidate0_progress_ratio",
     "camp_min_candidate0_route_progress_ratio",
+    "camp_min_candidate0_step_reach_ratio",
     "camp_reward_horizon_steps",
     "camp_collect_closed_loop_outcomes",
     "camp_outcome_horizon_steps",
