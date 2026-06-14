@@ -84,6 +84,20 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
         "events_with_lower_union_red_candidate_after_ignoring_dp_underprogress": 0,
         "events_still_without_lower_union_red_candidate": 0,
     }
+    underprogress_budget_rows = {
+        (progress_budget, distance_budget): []
+        for progress_budget in PROGRESS_LOSS_BUDGETS_M
+        for distance_budget in H3_DISTANCE_LOSS_BUDGETS_M
+    }
+    underprogress_budget_candidate_counts = {
+        key: [] for key in underprogress_budget_rows
+    }
+    underprogress_stopping_budget_rows = {
+        key: [] for key in underprogress_budget_rows
+    }
+    underprogress_stopping_budget_candidate_counts = {
+        key: [] for key in underprogress_budget_rows
+    }
     budget_rows = {
         (progress_budget, distance_budget): []
         for progress_budget in PROGRESS_LOSS_BUDGETS_M
@@ -387,6 +401,140 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                         underprogress_relaxation_diagnosis[
                             "events_still_without_lower_union_red_candidate"
                         ] += 1
+                    for progress_budget in PROGRESS_LOSS_BUDGETS_M:
+                        for distance_budget in H3_DISTANCE_LOSS_BUDGETS_M:
+                            key = (progress_budget, distance_budget)
+                            admissible = (
+                                lower_union_red_all
+                                & underprogress_relaxed_feasible
+                                & (
+                                    progress
+                                    >= progress[selected] - progress_budget
+                                )
+                                & (
+                                    detail_metrics["distance_m"]
+                                    >= (
+                                        detail_metrics["distance_m"][selected]
+                                        - distance_budget
+                                    )
+                                )
+                                & (
+                                    detail_metrics[
+                                        "max_lateral_acceleration_mps2"
+                                    ]
+                                    <= H3_MAX_LATERAL_GUARD_MPS2
+                                )
+                            )
+                            admissible_indices = np.flatnonzero(admissible)
+                            underprogress_budget_candidate_counts[
+                                key
+                            ].append(int(admissible_indices.size))
+                            if admissible_indices.size:
+                                chosen = min(
+                                    admissible_indices.tolist(),
+                                    key=lambda idx: (
+                                        float(red_certificate[idx]),
+                                        (
+                                            float(scores[idx])
+                                            if np.isfinite(scores[idx])
+                                            else np.inf
+                                        ),
+                                        int(idx),
+                                    ),
+                                )
+                                underprogress_budget_rows[key].append(
+                                    _delta_row(
+                                        selected,
+                                        chosen,
+                                        progress=progress,
+                                        full_red=red_certificate,
+                                        distance=detail_metrics["distance_m"],
+                                        jerk=detail_metrics[
+                                            "mean_vector_jerk_mps3"
+                                        ],
+                                        lateral=detail_metrics[
+                                            "mean_lateral_acceleration_mps2"
+                                        ],
+                                        command_target=command_target,
+                                        command_jerk=command_jerk,
+                                        command_lateral=command_lateral,
+                                    )
+                                    | {
+                                        "selected_full_red": float(
+                                            red_certificate[selected]
+                                        ),
+                                        "chosen_full_red": float(
+                                            red_certificate[chosen]
+                                        ),
+                                        "chosen_h3_max_lateral": float(
+                                            detail_metrics[
+                                                "max_lateral_acceleration_mps2"
+                                            ][chosen]
+                                        ),
+                                    }
+                                )
+                            stopping_admissible = admissible & (
+                                red_stopping_margin
+                                <= red_stopping_margin[selected] + 1e-12
+                            )
+                            stopping_indices = np.flatnonzero(
+                                stopping_admissible
+                            )
+                            underprogress_stopping_budget_candidate_counts[
+                                key
+                            ].append(int(stopping_indices.size))
+                            if stopping_indices.size:
+                                chosen = min(
+                                    stopping_indices.tolist(),
+                                    key=lambda idx: (
+                                        float(red_certificate[idx]),
+                                        float(red_stopping_margin[idx]),
+                                        (
+                                            float(scores[idx])
+                                            if np.isfinite(scores[idx])
+                                            else np.inf
+                                        ),
+                                        int(idx),
+                                    ),
+                                )
+                                underprogress_stopping_budget_rows[key].append(
+                                    _delta_row(
+                                        selected,
+                                        chosen,
+                                        progress=progress,
+                                        full_red=red_certificate,
+                                        stopping_margin=red_stopping_margin,
+                                        distance=detail_metrics["distance_m"],
+                                        jerk=detail_metrics[
+                                            "mean_vector_jerk_mps3"
+                                        ],
+                                        lateral=detail_metrics[
+                                            "mean_lateral_acceleration_mps2"
+                                        ],
+                                        command_target=command_target,
+                                        command_jerk=command_jerk,
+                                        command_lateral=command_lateral,
+                                    )
+                                    | {
+                                        "selected_full_red": float(
+                                            red_certificate[selected]
+                                        ),
+                                        "chosen_full_red": float(
+                                            red_certificate[chosen]
+                                        ),
+                                        "chosen_h3_max_lateral": float(
+                                            detail_metrics[
+                                                "max_lateral_acceleration_mps2"
+                                            ][chosen]
+                                        ),
+                                        "selected_stopping_margin": float(
+                                            red_stopping_margin[selected]
+                                        ),
+                                        "chosen_stopping_margin": float(
+                                            red_stopping_margin[chosen]
+                                        ),
+                                    }
+                                )
                 for progress_budget in PROGRESS_LOSS_BUDGETS_M:
                     for distance_budget in H3_DISTANCE_LOSS_BUDGETS_M:
                         admissible = (
@@ -840,6 +988,29 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                     extra_metric_names=("stopping_margin",),
                 ),
             },
+            "dp_underprogress_relaxation_budget_sensitivity_h3": (
+                _summarize_budget_sensitivity(
+                    rows_by_budget=underprogress_budget_rows,
+                    candidate_counts_by_budget=(
+                        underprogress_budget_candidate_counts
+                    ),
+                    event_count=(
+                        underprogress_relaxation_diagnosis["events"]
+                    ),
+                )
+            ),
+            "dp_underprogress_relaxation_stopping_margin_nonworse_budget_sensitivity_h3": (
+                _summarize_budget_sensitivity(
+                    rows_by_budget=underprogress_stopping_budget_rows,
+                    candidate_counts_by_budget=(
+                        underprogress_stopping_budget_candidate_counts
+                    ),
+                    event_count=(
+                        underprogress_relaxation_diagnosis["events"]
+                    ),
+                    require_stopping_margin_nonworse=True,
+                )
+            ),
         },
         "horizons": horizon_reports,
     }
@@ -1574,6 +1745,55 @@ def render_markdown(report: dict[str, Any]) -> str:
             ),
         ]
     )
+    underprogress_budget = red[
+        "dp_underprogress_relaxation_budget_sensitivity_h3"
+    ]
+    lines.extend(
+        [
+            "",
+            "### Underprogress-Relaxed H3 Budget Sensitivity",
+            "",
+            "| Progress loss budget | H3 distance loss budget | Changes | Rate | "
+            "Union red | Progress | H3 distance | H3 vector jerk | "
+            "H3 lateral |",
+            "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for cell in underprogress_budget["cells"]:
+        delta = cell["mean_deltas_on_changed_records"]
+        lines.append(
+            f"| {cell['progress_loss_budget_m']:.2f} m | "
+            f"{cell['h3_distance_loss_budget_m']:.2f} m | "
+            f"{cell['changed_records']} | {cell['change_rate']:.6f} | "
+            f"{_fmt(delta['full_red'])} | {_fmt(delta['progress'])} | "
+            f"{_fmt(delta['distance'])} | {_fmt(delta['jerk'])} | "
+            f"{_fmt(delta['lateral'])} |"
+        )
+    underprogress_stopping_budget = red[
+        "dp_underprogress_relaxation_stopping_margin_nonworse_budget_sensitivity_h3"
+    ]
+    lines.extend(
+        [
+            "",
+            "### Underprogress-Relaxed H3 Budget With Stopping-Margin Nonworse",
+            "",
+            "| Progress loss budget | H3 distance loss budget | Changes | Rate | "
+            "Union red | Stopping margin | Progress | H3 distance | "
+            "H3 vector jerk | H3 lateral |",
+            "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for cell in underprogress_stopping_budget["cells"]:
+        delta = cell["mean_deltas_on_changed_records"]
+        lines.append(
+            f"| {cell['progress_loss_budget_m']:.2f} m | "
+            f"{cell['h3_distance_loss_budget_m']:.2f} m | "
+            f"{cell['changed_records']} | {cell['change_rate']:.6f} | "
+            f"{_fmt(delta['full_red'])} | "
+            f"{_fmt(delta['stopping_margin'])} | "
+            f"{_fmt(delta['progress'])} | {_fmt(delta['distance'])} | "
+            f"{_fmt(delta['jerk'])} | {_fmt(delta['lateral'])} |"
+        )
     lines.extend(
         [
             "",

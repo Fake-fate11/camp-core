@@ -178,7 +178,7 @@ def test_rollout_shadow_analysis_quantifies_underprogress_relaxation(
     record = _record()
     record["feasible_mask"] = [True, False, True]
     record["selection_scores"] = [0.0, float("inf"), 0.3]
-    record["dp_candidate_rewards"][1]["progress"] = 3.0
+    record["dp_candidate_rewards"][1]["progress"] = 4.2
     record["candidate_full_horizon_planned_red_light_cost"] = [2.0, 0.5, 3.0]
     record["candidate_horizon_union_planned_red_light_cost"] = [2.0, 0.5, 3.0]
     record["candidate_red_stopping_margin_cost"] = [3.0, 1.0, 4.0]
@@ -206,11 +206,35 @@ def test_rollout_shadow_analysis_quantifies_underprogress_relaxation(
     assert diagnosis["changed_records"] == 1
     deltas = diagnosis["mean_deltas_on_changed_records"]
     assert deltas["full_red"] == -1.5
-    assert deltas["progress"] == -2.0
+    assert deltas["progress"] == -0.7999999999999998
     assert deltas["stopping_margin"] == -2.0
+    budget = report["full_horizon_red_light"][
+        "dp_underprogress_relaxation_budget_sensitivity_h3"
+    ]
+    cells = {
+        (
+            cell["progress_loss_budget_m"],
+            cell["h3_distance_loss_budget_m"],
+        ): cell
+        for cell in budget["cells"]
+    }
+    assert cells[(0.5, 0.1)]["changed_records"] == 0
+    assert cells[(1.0, 0.1)]["changed_records"] == 1
+    stopping_budget = report["full_horizon_red_light"][
+        "dp_underprogress_relaxation_stopping_margin_nonworse_budget_sensitivity_h3"
+    ]
+    stopping_cells = {
+        (
+            cell["progress_loss_budget_m"],
+            cell["h3_distance_loss_budget_m"],
+        ): cell
+        for cell in stopping_budget["cells"]
+    }
+    assert stopping_cells[(1.0, 0.1)]["changed_records"] == 1
     markdown = render_markdown(report)
     assert "## DP Underprogress Relaxation Diagnosis" in markdown
     assert "ignores only `dp_underprogress`" in markdown
+    assert "### Underprogress-Relaxed H3 Budget Sensitivity" in markdown
 
 
 def test_rollout_shadow_analysis_rejects_missing_full_red(tmp_path) -> None:
