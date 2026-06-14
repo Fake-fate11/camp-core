@@ -2874,3 +2874,78 @@ from another selector-only iteration and toward candidate-generation or
 feasibility changes for the low-speed no-lower-red cases, plus a
 specification-backed jerk/comfort cap before any deployable safety override.
 Formal seeds remain frozen.
+
+### Infeasible lower-red candidate attribution
+
+Commit `75daf6a7544c3eda451b0052e778d107a94a014a` extends the rollout
+shadow analyzer with a no-lower-feasible attribution pass and exposes the
+result in both JSON and markdown reports. For every selected h30-safe/full-red
+miss with no lower union-red base-feasible alternative, the analyzer now
+separates two cases:
+
+1. a lower union-red candidate was generated, but base feasibility rejected it;
+2. no lower union-red candidate existed anywhere in the generated candidate
+   pool.
+
+The analysis remains shadow-only and outcome-free. It uses current-tick fixed
+candidate constants: union-red certificates, base feasibility masks, original
+CAMP scores, and already logged infeasibility reasons. It does not change the
+online selector, atom schema, CAMP weights, Diffusion Planner weights, or any
+formal seed.
+
+Verification:
+
+| Environment | Result |
+| --- | --- |
+| Local Windows, Python 3.12 | `162 passed, 5 skipped` |
+| AutoDL, Python 3.9 | `167 passed` |
+
+The real sample59 non-formal v3 shadow artifact was re-analyzed at:
+
+`/root/autodl-tmp/camp_dp_tracker_rollout_shadow_sample59_acba493`
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Infeasible-lower-red analysis JSON | `59962861e181d8104e0795e2782dd88eb12ae9356b07fb6261ebb9ec9d831fbb` |
+| Infeasible-lower-red analysis markdown | `d968b330972abb0111ba47918188d19f57d263eb224f428773317166535f0990` |
+
+The selected h30-safe/full-red misses are unchanged:
+
+| Count | Value |
+| --- | ---: |
+| Records | 2,400 |
+| Candidates | 19,200 |
+| Fallback records | 484 |
+| Nonfallback records | 1,916 |
+| Selected h30-safe/full-red records | 32 |
+| With lower union-red base-feasible candidate | 20 |
+| Without lower union-red base-feasible candidate | 12 |
+
+The new attribution resolves the `12/32` no-lower-feasible cases:
+
+| Diagnosis | Count |
+| --- | ---: |
+| Events without lower union-red base-feasible candidate | 12 |
+| Events with lower union-red candidates blocked by feasibility | 12 |
+| Events with no lower union-red candidate in the generated pool | 0 |
+
+The infeasible lower-red candidate reason counts are:
+
+| Reason | Count |
+| --- | ---: |
+| `dp_underprogress` | 51 |
+| `dp_kinematic` | 13 |
+| `dynamic_obb_collision` | 4 |
+
+Decision: keep the online safety override rejected for now. The new evidence
+shows that the generated pool does contain lower-red alternatives for all
+previously unexplained misses, but those alternatives are excluded by the base
+feasibility contract. A finite-candidate selector cannot legally select them
+without changing the feasibility definition. `dynamic_obb_collision` must stay
+hard. `dp_kinematic` should also be treated as hard unless a separate
+trajectory-validity argument proves otherwise. The only plausible next
+investigation is therefore a narrowly scoped, shadow-only feasibility audit of
+`dp_underprogress`: determine whether low-speed red-light approach states need
+a state-dependent progress relaxation, a stopping-specific candidate branch,
+or no change. Formal seeds remain frozen, and no new CAMP training or online
+selector implementation is justified by the current evidence.
