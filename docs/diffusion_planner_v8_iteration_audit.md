@@ -3180,3 +3180,91 @@ After syncing this fix to AutoDL, rerun remote tests and a short
 underprogress-relaxation smoke before launching the remaining sample59 paired
 12-run. The completed baseline root can still be reused because it finished
 before the relaxation-side failure. Formal seeds remain frozen.
+
+### Underprogress relaxation sample59 pilot result
+
+Commit `259bc6031622ee55cba7d85668c4f99baadbf6ff` was synced to AutoDL. CAMP
+was fast-forwarded to that commit and DP was rechecked at the fixed commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Remote verification:
+
+```text
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests
+173 passed
+```
+
+A 2-step runtime smoke with `--camp_underprogress_relaxation` completed under:
+
+```text
+/root/autodl-tmp/camp_dp_underprogress_smoke_259bc60
+```
+
+The smoke confirmed that the H3 open-loop rollout metrics are available at
+runtime and that `underprogress_relaxation_latency_ms` is recorded. The smoke
+is not used as performance evidence.
+
+The predeclared sample59 non-formal paired relaxation side was then run under:
+
+```text
+/root/autodl-tmp/camp_dp_underprogress_sample59_pilot_259bc60_relax
+```
+
+It completed all `12/12` runs. The strict paired comparison reused the already
+completed baseline root:
+
+```text
+Baseline: /root/autodl-tmp/camp_dp_underprogress_sample59_pilot_9527721_base
+Relaxed: /root/autodl-tmp/camp_dp_underprogress_sample59_pilot_259bc60_relax
+Compare: /root/autodl-tmp/camp_dp_underprogress_sample59_pilot_259bc60_compare
+```
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `paired_comparison.json` | `5c101a05074ec77a76a75d84f4e353ead692a16d1d7e7ccd5b101cc2d72efafb` |
+| `paired_comparison.md` | `ca3510a9194cc70815de76ee167d9c7a2dd5ca96b36975f8fd9e26a2c0c81ef5` |
+
+Strict pairing passed with `12` baseline runs and `12` relaxed runs. Aggregate
+paired deltas for `underprogress_relaxation - redstopfloor05` were:
+
+| Metric | Mean delta | 95% bootstrap CI |
+| --- | ---: | ---: |
+| Route completion rate | `-0.000018` | `[-0.000055, 0.000000]` |
+| OBB collision rate | `0.000000` | `[0.000000, 0.000000]` |
+| Near-miss rate | `0.000000` | `[0.000000, 0.000000]` |
+| Lane-violation rate | `0.000000` | `[0.000000, 0.000000]` |
+| Realized red-light violation rate | `0.000000` | `[0.000000, 0.000000]` |
+| Planned red-light violation rate | `-0.002500` | `[-0.007500, 0.000000]` |
+| Mean jerk magnitude | `+0.058318 m/s^3` | `[0.000000, +0.174955]` |
+| Fallback rate | `0.000000` | `[0.000000, 0.000000]` |
+| p95 selection latency | `-0.529243 ms` | `[-3.016653, +2.008160]` |
+
+Only one run changed behavior: seed `2`, npc `0`, traffic lights on. It had
+`8` changed ticks and `29` total admissible relaxed candidates. That run reduced
+planned-red violation rate by `0.03`, but did not change realized red-light
+violation rate, collision rate, near-miss rate, lane-violation rate, or fallback
+rate. It reduced route completion by `0.000222` and increased mean jerk by
+`0.699822 m/s^3`.
+
+The aggregate p95 selection latency means were:
+
+| Variant | Mean per-run p95 |
+| --- | ---: |
+| `redstopfloor05` | `102.635467 ms` |
+| `underprogress_relaxation` | `102.106224 ms` |
+
+Decision: reject promotion to 36-run. The pilot is strictly paired and
+runtime-valid, but it does not satisfy the development gate: realized safety is
+unchanged, planned-red improvement is small and localized, mean jerk regresses,
+route completion weakly regresses, and average per-run p95 latency remains above
+`100 ms` with no industrial margin. This does not invalidate the mathematical
+contract for the finite-candidate relaxation, but it shows the current online
+rule has insufficient useful coverage. Formal seeds `11/12/13` remain frozen.
+
+Next diagnostic target: explain why most positive offline opportunities did not
+translate into behavior. In particular, audit baseline-red-positive ticks where
+the runtime stats reported `lower_red_base_feasible_candidate_exists`; the
+current underprogress-only rule intentionally refuses those cases, so any
+candidate-set safety override that handles them must be analyzed separately
+with progress, H3 distance, stopping-margin, jerk, lateral, fallback, and latency
+budgets before any new implementation.
