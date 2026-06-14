@@ -248,6 +248,15 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
+    parser.add_argument(
+        "--candidate_reference_blend_steps",
+        type=int,
+        default=None,
+        help=(
+            "Blend stochastic candidates from candidate 0 at t=0 to their "
+            "original trajectories after this many fixed steps."
+        ),
+    )
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     return parser.parse_args()
 
@@ -284,6 +293,11 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--num_candidates must be >= 2 for CAMP candidate selection.")
     if args.candidate_noise_scale <= 0:
         raise ValueError("--candidate_noise_scale must be > 0.")
+    if (
+        args.candidate_reference_blend_steps is not None
+        and args.candidate_reference_blend_steps < 1
+    ):
+        raise ValueError("--candidate_reference_blend_steps must be >= 1.")
     if args.camp_lane_corridor_buffer < 0:
         raise ValueError("--camp_lane_corridor_buffer must be non-negative.")
     if not 0.0 <= args.camp_min_progress_ratio <= 1.0:
@@ -1021,6 +1035,7 @@ def _install_camp_predictor(
     *,
     num_candidates: int,
     noise_scale: float,
+    reference_blend_steps: int | None,
     safety_radius: float,
     clearance_margin: float,
     lane_corridor_buffer: float,
@@ -1105,6 +1120,7 @@ def _install_camp_predictor(
             num_candidates=num_candidates,
             noise_scale=noise_scale,
             deterministic_first=True,
+            reference_blend_steps=reference_blend_steps,
         )
         candidate_generation_done = time.perf_counter()
         dp_prior_deviation_start = time.perf_counter()
@@ -1375,6 +1391,10 @@ def _install_camp_predictor(
                 "selection_step": len(records),
                 "selected_index": selection.selected_index,
                 "num_candidates": int(num_candidates),
+                "candidate_reference_blend_steps": reference_blend_steps,
+                "candidate_first_reference_xy": (
+                    candidates[:, 0, :2].tolist()
+                ),
                 "used_fallback": selection.used_fallback,
                 "camp_fallback_mode": getattr(selector, "fallback_mode", "uniform")
                 if selector is not None
@@ -1548,6 +1568,7 @@ def main() -> None:
             selector,
             num_candidates=args.num_candidates,
             noise_scale=args.candidate_noise_scale,
+            reference_blend_steps=args.candidate_reference_blend_steps,
             safety_radius=args.camp_safety_radius,
             clearance_margin=args.camp_clearance_margin,
             lane_corridor_buffer=args.camp_lane_corridor_buffer,
@@ -1633,6 +1654,19 @@ def main() -> None:
     )
     effective_num_candidates = args.num_candidates if records is not None else 1
     effective_noise_scale = args.candidate_noise_scale if records is not None else None
+    effective_reference_blend = (
+        {
+            "enabled": True,
+            "steps": int(args.candidate_reference_blend_steps),
+            "reference_candidate_index": 0,
+            "weight_definition": "min(t / steps, 1)",
+            "first_reference_xy_preserved": True,
+            "selection_effect": True,
+        }
+        if records is not None
+        and args.candidate_reference_blend_steps is not None
+        else None
+    )
     effective_lane_buffer = (
         args.camp_lane_corridor_buffer if records is not None else None
     )
@@ -1703,6 +1737,7 @@ def main() -> None:
         "camp_evaluation_state_log": str(evaluation_log),
         "num_candidates": effective_num_candidates,
         "candidate_noise_scale": effective_noise_scale,
+        "candidate_reference_blend": effective_reference_blend,
         "camp_lane_corridor_buffer": effective_lane_buffer,
         "camp_feasibility_source": effective_feasibility_source,
         "camp_min_progress_ratio": effective_min_progress_ratio,
@@ -1818,6 +1853,7 @@ def main() -> None:
     validation["selector_mode"] = args.camp_selector_mode
     validation["num_candidates"] = effective_num_candidates
     validation["candidate_noise_scale"] = effective_noise_scale
+    validation["candidate_reference_blend"] = effective_reference_blend
     validation["camp_lane_corridor_buffer"] = effective_lane_buffer
     validation["camp_feasibility_source"] = effective_feasibility_source
     validation["camp_min_progress_ratio"] = effective_min_progress_ratio

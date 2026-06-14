@@ -2465,6 +2465,7 @@ def generate_candidate_trajectories(
     num_candidates: int,
     noise_scale: float,
     deterministic_first: bool = True,
+    reference_blend_steps: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
     """Generate K Diffusion-Planner candidates in one batched forward pass.
 
@@ -2524,4 +2525,79 @@ def generate_candidate_trajectories(
     turn_logits = outputs.get("turn_indicator_logit")
     if turn_logits is not None:
         turn_logits = turn_logits.detach().cpu().numpy()
-    return predictions[:, 0], predictions[:, 1:], turn_logits
+    ego_candidates = predictions[:, 0]
+    if reference_blend_steps is not None:
+        ego_candidates = blend_candidate_prefix_with_reference(
+            ego_candidates,
+            reference_blend_steps,
+        )
+    return ego_candidates, predictions[:, 1:], turn_logits
+
+
+def blend_candidate_prefix_with_reference(
+    candidates: np.ndarray,
+    blend_steps: int,
+) -> np.ndarray:
+    """Blend stochastic candidate prefixes toward deterministic candidate 0.
+
+    The fixed schedule is ``lambda_t = min(t / blend_steps, 1)``. Candidate 0
+    is unchanged, every other candidate has exactly the same first reference
+    pose as candidate 0, and the original sample is recovered from
+    ``t >= blend_steps``. This transforms only the finite candidate set; all
+    downstream reward, safety, atom, and CAMP checks remain unchanged.
+    """
+    trajectories = np.asarray(candidates)
+    if (
+        trajectories.ndim != 3
+        or trajectories.shape[0] < 1
+        or trajectories.shape[1] < 2
+        or trajectories.shape[2] < 2
+    ):
+        raise ValueError(
+            "candidates must have shape [K,T,D>=2] with T>=2, "
+            f"got {trajectories.shape}."
+        )
+    if not np.all(np.isfinite(trajectories)):
+        raise ValueError("candidates must contain only finite values.")
+    if (
+        isinstance(blend_steps, bool)
+        or not isinstance(blend_steps, (int, np.integer))
+        or not 1 <= int(blend_steps) < trajectories.shape[1]
+    ):
+        raise ValueError(
+            "blend_steps must be an integer in [1, trajectory_length - 1]."
+        )
+
+    blended = trajectories.copy()
+    weights = np.minimum(
+        np.arange(trajectories.shape[1], dtype=np.float64)
+        / float(blend_steps),
+        1.0,
+    )
+    reference = trajectories[0:1]
+    blended[1:] = (
+        reference
+        + weights[np.newaxis, :, np.newaxis]
+        * (trajectories[1:] - reference)
+    )
+    if trajectories.shape[2] >= 4:
+        orientation = blended[1:, :, 2:4]
+        norms = np.linalg.norm(orientation, axis=2, keepdims=True)
+        reference_orientation = np.broadcast_to(
+            reference[:, :, 2:4],
+            orientation.shape,
+        )
+        orientation = np.where(
+            norms > 1e-12,
+            orientation / np.maximum(norms, 1e-12),
+            reference_orientation,
+        )
+        blended[1:, :, 2:4] = orientation
+    blended[1:, 0] = reference[0, 0]
+    blended[1:, int(blend_steps) :] = trajectories[
+        1:,
+        int(blend_steps) :,
+    ]
+    if not np.all(np.isfinite(blended)):
+        raise RuntimeError("Reference-prefix blend produced nonfinite candidates.")
+    return blended

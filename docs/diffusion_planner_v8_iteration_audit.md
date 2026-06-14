@@ -2361,3 +2361,103 @@ Decision:
    outcome-free prefix blend between candidate 0 and each stochastic DP sample
    is a suitable screen: it changes only the finite candidate set, then
    re-applies the existing reward, safety, atom, and CAMP checks.
+
+## Perfect-tracker prefix-blend screen
+
+A default-off structured candidate transform was implemented for K=8. For
+candidate \(k>0\), fixed blend length \(m\), and trajectory index \(t\),
+
+\[
+y'_{k,t}=(1-\lambda_t)y_{0,t}+\lambda_t y_{k,t},
+\qquad
+\lambda_t=\min(t/m,1).
+\]
+
+Candidate 0 is unchanged. Every stochastic candidate has exactly the same
+first reference pose as candidate 0 and recovers its original DP sample from
+`t >= m`. Orientation vectors are normalized only inside the blend interval;
+the exact first pose and post-blend suffix are explicitly restored afterward.
+The transform is deterministic, finite, independent of CAMP weights and
+closed-loop outcomes, and default-off.
+
+For xy coordinates this is an affine map with fixed coefficients. No atom,
+schema, scale, CAMP weight, CVaR/simplex/L2 term, or robust-master constraint
+was changed. The transformed candidate set is fully rescored by the existing
+DP reward, safety, atom, and CAMP paths. Therefore the robust master continues
+to optimize affine candidate scores \(a_k^\top w\). This is candidate
+construction, not Benders decomposition.
+
+The dataset audit was extended to require exact blend metadata and, for every
+record, the configured blend length, finite `[K,2]` first-reference
+coordinates, equality of all first-reference coordinates to candidate 0, and
+equal candidate step reach. All three profiles passed this fail-closed audit.
+
+### Tracker-source audit
+
+The fixed DP commit's `PerfectTracker.track()` uses:
+
+1. first-reference displacement magnitude for target speed;
+2. first-reference orientation for the next yaw;
+3. when current speed is below `0.1 m/s`, full-horizon tail reach for a
+   resume-from-rest speed override.
+
+The prefix blend preserved items 1 and 2 exactly but restored the stochastic
+tail after \(m\), so item 3 remained candidate-dependent. This is the only
+tracker path through which the transformed middle/tail can alter execution
+when the first pose is fixed.
+
+### Non-formal profiles
+
+The screen kept the same sample59 seed-1, no-NPC, traffic-light-off,
+200-step configuration as the candidate-count screen. No outcome labels or
+formal seeds were used.
+
+| Config | p95 latency | Completion | Completion delta | Jerk | Jerk delta | Lateral | Lateral delta | Fallback |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 94.395 ms | 0.156785 | 0.000000 | 10.128817 | 0.000000 | 0.426936 | 0.000000 | 0.120 |
+| blend 3 | 99.331 ms | 0.154933 | -0.001852 | 5.763921 | -4.364896 | 0.411095 | -0.015841 | 0.110 |
+| blend 5 | 94.572 ms | 0.155294 | -0.001491 | 5.468463 | -4.660354 | 0.415439 | -0.011497 | 0.110 |
+| blend 10 | 98.316 ms | 0.155489 | -0.001296 | 5.166127 | -4.962690 | 0.416899 | -0.010036 | 0.110 |
+
+Planned-red and near-miss rates remained zero in this scenario. Every blend
+length strongly improved realized jerk and lateral acceleration and reduced
+fallback, but every one also reduced route completion. Since first pose was
+certified equal, the source audit identifies the candidate-dependent
+resume-from-rest tail-speed override as the remaining execution mechanism.
+
+The strict fixed-candidate opportunity audit found weak comfort-Pareto
+opportunities on only `1.685%`, `2.247%`, and `1.124%` of non-fallback ticks
+for blend lengths 3, 5, and 10 respectively. Joint-strict opportunities were
+zero for blend 3 and 10 and `1.124%` for blend 5.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Blend-3 dataset audit | `874cd4170dc9df8e39548d41874afdb584127163cde995f416d9b3bdae0d7c2f` |
+| Blend-3 opportunity JSON | `87e2c668b54262fe531667885feef17d71e7bd656ca28fd9870247d6098da84f` |
+| Blend-3 opportunity markdown | `3c657f4dc59bf12d13743276e1b98d3d9418cd42fa6725ae1a63c3be3ae5bd1e` |
+| Blend-5 dataset audit | `eade31cafbcbccf8e326648848dda36bdffbdbfab94ca7a11d4a8b23ebbc83ee` |
+| Blend-5 opportunity JSON | `d5b3f3814af5447c240882898d440c4a78d101f14518733eb9d6a160df505602` |
+| Blend-5 opportunity markdown | `55781676bf383dd2bce3a1c6e50e35e74866094874c1fe99a84f5cb90ef2de0d` |
+| Blend-10 dataset audit | `4d5a30fff187ce11380cc1e134e923f509bd3ce98e02c81461078aa1ec203f57` |
+| Blend-10 opportunity JSON | `018b827c80902ef27d5f50f041d9bb2d2d8827aa0519e8666319f05fe5ad9476` |
+| Blend-10 opportunity markdown | `357104f16d65f51c6a85e1c4405afa1960c5ddd640f2b4d8498943d832be8c56` |
+
+Verification for this milestone was `130 passed, 5 skipped` locally and
+`135 passed` on AutoDL.
+
+Decision:
+
+1. Reject all three prefix-blend settings before a paired sample59 matrix.
+   Completion regressed in the first deterministic profile.
+2. Keep the transform default-off as an audited diagnostic, not a promoted
+   deployment policy.
+3. The next atom/selector diagnosis must model the actual PerfectTracker
+   command: first-step target speed and heading, plus the tail-based restart
+   override. Planned full-trajectory jerk/lateral costs alone are not aligned
+   with the simulator's realized one-step command.
+4. Tracker-aligned diagnostics may be introduced as fixed, outcome-free
+   candidate constants. They do not alter convexity in \(w\); they must remain
+   shadow-only until their relationship to realized completion and comfort is
+   established on non-formal data.

@@ -31,6 +31,7 @@ def _make_args() -> SimpleNamespace:
         ),
         num_candidates=8,
         candidate_noise_scale=1.0,
+        candidate_reference_blend_steps=5,
         camp_lane_corridor_buffer=1.0,
         camp_feasibility_source="dp_reward",
         camp_fallback_mode="learned",
@@ -81,6 +82,8 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     step_guard_idx = static_cmd.index("--camp_min_candidate0_step_reach_ratio")
     assert static_cmd[step_guard_idx + 1] == "0.99"
     assert "--camp_candidate0_step_reach_preserve_feasible" in static_cmd
+    blend_idx = static_cmd.index("--candidate_reference_blend_steps")
+    assert static_cmd[blend_idx + 1] == "5"
     lexicographic_idx = static_cmd.index(
         "--camp_lexicographic_progress_epsilon_m"
     )
@@ -107,5 +110,6 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_min_candidate0_route_progress_ratio" not in top1_cmd
     assert "--camp_min_candidate0_step_reach_ratio" not in top1_cmd
     assert "--camp_candidate0_step_reach_preserve_feasible" not in top1_cmd
+    assert "--candidate_reference_blend_steps" not in top1_cmd
     assert "--camp_lexicographic_progress_epsilon_m" not in top1_cmd
     assert "--camp_fallback_atom_scales" not in top1_cmd

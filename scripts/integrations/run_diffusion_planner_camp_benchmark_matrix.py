@@ -106,6 +106,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camp_fallback_static_weights", type=Path, default=None)
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
+    parser.add_argument(
+        "--candidate_reference_blend_steps",
+        type=int,
+        default=None,
+    )
     parser.add_argument("--camp_lane_corridor_buffer", type=float, default=1.0)
     parser.add_argument(
         "--camp_feasibility_source",
@@ -277,6 +282,13 @@ def _variant_command(
                 str(args.camp_reward_horizon_steps),
             ]
         )
+        if args.candidate_reference_blend_steps is not None:
+            cmd.extend(
+                [
+                    "--candidate_reference_blend_steps",
+                    str(args.candidate_reference_blend_steps),
+                ]
+            )
         if args.camp_min_candidate0_progress_ratio is not None:
             cmd.extend(
                 [

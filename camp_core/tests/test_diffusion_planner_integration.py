@@ -25,6 +25,7 @@ from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES_V10,
     CAMPSelector,
     atom_schema_for_dimension,
+    blend_candidate_prefix_with_reference,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
     compute_dp_prior_comfort_excess_costs,
@@ -603,6 +604,48 @@ def test_dp_prior_comfort_excess_rejects_nonfinite_candidates() -> None:
 
     with pytest.raises(ValueError, match="finite"):
         compute_dp_prior_comfort_excess_costs(candidates, dt=0.1)
+
+
+def test_candidate_reference_blend_preserves_reference_and_recovers_sample() -> None:
+    reference = np.array(
+        [
+            [1.0, 0.0, 1.0, 0.0],
+            [2.0, 0.0, 1.0, 0.0],
+            [3.0, 0.0, 1.0, 0.0],
+            [4.0, 0.0, 1.0, 0.0],
+        ]
+    )
+    sample = np.array(
+        [
+            [0.0, 1.0, 0.0, 1.0],
+            [0.0, 2.0, 0.0, 1.0],
+            [0.0, 3.0, 0.0, 1.0],
+            [0.0, 4.0, 0.0, 1.0],
+        ]
+    )
+    candidates = np.stack([reference, sample])
+
+    blended = blend_candidate_prefix_with_reference(candidates, blend_steps=2)
+
+    np.testing.assert_allclose(blended[0], reference)
+    np.testing.assert_allclose(blended[1, 0], reference[0])
+    np.testing.assert_allclose(blended[1, 2:], sample[2:])
+    np.testing.assert_allclose(
+        blended[1, 1, :2],
+        0.5 * reference[1, :2] + 0.5 * sample[1, :2],
+    )
+    np.testing.assert_allclose(
+        np.linalg.norm(blended[1, :, 2:4], axis=1),
+        np.ones(4),
+    )
+
+
+@pytest.mark.parametrize("blend_steps", [0, -1, 4, 1.5, True])
+def test_candidate_reference_blend_rejects_invalid_steps(blend_steps) -> None:
+    candidates = np.zeros((2, 4, 4), dtype=np.float64)
+
+    with pytest.raises(ValueError, match="blend_steps"):
+        blend_candidate_prefix_with_reference(candidates, blend_steps)
 
 
 def test_dp_prior_comfort_excess_respects_requested_horizon() -> None:

@@ -130,6 +130,11 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=None,
     )
+    parser.add_argument(
+        "--expected_candidate_reference_blend_steps",
+        type=int,
+        default=None,
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -148,6 +153,7 @@ def audit_training_dataset(
     expected_lateral_comfort_horizon_steps: int | None = None,
     closed_loop_outcome_policy: str = "required",
     expected_lexicographic_preselection: dict[str, float] | None = None,
+    expected_candidate_reference_blend_steps: int | None = None,
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
@@ -162,6 +168,22 @@ def audit_training_dataset(
     expected_lexicographic = _validate_expected_lexicographic_config(
         expected_lexicographic_preselection
     )
+    if expected_candidate_reference_blend_steps is not None:
+        if (
+            isinstance(expected_candidate_reference_blend_steps, bool)
+            or not isinstance(
+                expected_candidate_reference_blend_steps,
+                (int, np.integer),
+            )
+            or int(expected_candidate_reference_blend_steps) < 1
+        ):
+            raise ValueError(
+                "expected_candidate_reference_blend_steps must be a "
+                "positive integer."
+            )
+        expected_candidate_reference_blend_steps = int(
+            expected_candidate_reference_blend_steps
+        )
     if expected_comfort_shadow_horizon_steps is not None:
         if isinstance(expected_comfort_shadow_horizon_steps, bool) or not isinstance(
             expected_comfort_shadow_horizon_steps,
@@ -295,6 +317,12 @@ def audit_training_dataset(
                 validation_summary.get("camp_lexicographic_preselection"),
                 expected_lexicographic,
             )
+        if expected_candidate_reference_blend_steps is not None:
+            _validate_candidate_reference_blend_summary(
+                summary_path,
+                validation_summary.get("candidate_reference_blend"),
+                expected_candidate_reference_blend_steps,
+            )
         records = json.loads(log_path.read_text(encoding="utf-8"))
         if not isinstance(records, list) or not records:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
@@ -372,6 +400,14 @@ def audit_training_dataset(
                     final_feasible_count=int(feasible.sum()),
                 )
                 lexicographic_stage_records += 1
+            if expected_candidate_reference_blend_steps is not None:
+                _validate_candidate_reference_blend_record(
+                    log_path,
+                    record_idx,
+                    record,
+                    expected_candidates=expected_candidates,
+                    expected_steps=expected_candidate_reference_blend_steps,
+                )
             for field in required_fields:
                 values = _validate_candidate_field(
                     log_path,
@@ -464,6 +500,12 @@ def audit_training_dataset(
                 expected_lexicographic is not None
             ),
             "lexicographic_stage_records": lexicographic_stage_records,
+            "expected_candidate_reference_blend_steps": (
+                expected_candidate_reference_blend_steps
+            ),
+            "candidate_reference_blend_verified": (
+                expected_candidate_reference_blend_steps is not None
+            ),
         },
         "candidate_fields": candidate_field_reports,
         "logs": log_reports,
@@ -592,6 +634,78 @@ def _validate_lexicographic_stage_counts(
         raise ValueError(
             f"{log_path} record {record_idx} final feasible count exceeds "
             "the lexicographic lateral-stage count."
+        )
+
+
+def _validate_candidate_reference_blend_summary(
+    summary_path: Path,
+    metadata: Any,
+    expected_steps: int,
+) -> None:
+    expected = {
+        "enabled": True,
+        "steps": expected_steps,
+        "reference_candidate_index": 0,
+        "weight_definition": "min(t / steps, 1)",
+        "first_reference_xy_preserved": True,
+        "selection_effect": True,
+    }
+    if not isinstance(metadata, dict) or metadata != expected:
+        raise ValueError(
+            f"{summary_path} does not certify candidate reference blend "
+            f"steps={expected_steps}."
+        )
+
+
+def _validate_candidate_reference_blend_record(
+    log_path: Path,
+    record_idx: int,
+    record: dict[str, Any],
+    *,
+    expected_candidates: int,
+    expected_steps: int,
+) -> None:
+    if record.get("candidate_reference_blend_steps") != expected_steps:
+        raise ValueError(
+            f"{log_path} record {record_idx} does not use candidate "
+            f"reference blend steps={expected_steps}."
+        )
+    first_xy = np.asarray(
+        record.get("candidate_first_reference_xy"),
+        dtype=np.float64,
+    )
+    if (
+        first_xy.shape != (expected_candidates, 2)
+        or not np.all(np.isfinite(first_xy))
+        or not np.allclose(
+            first_xy,
+            first_xy[0:1],
+            atol=1e-12,
+            rtol=1e-12,
+        )
+    ):
+        raise ValueError(
+            f"{log_path} record {record_idx} does not preserve candidate "
+            "first-reference xy."
+        )
+    step_reach = np.asarray(
+        record.get("candidate_step_reach"),
+        dtype=np.float64,
+    ).reshape(-1)
+    if (
+        step_reach.shape != (expected_candidates,)
+        or not np.all(np.isfinite(step_reach))
+        or np.any(step_reach < 0.0)
+        or not np.allclose(
+            step_reach,
+            step_reach[0],
+            atol=1e-12,
+            rtol=1e-12,
+        )
+    ):
+        raise ValueError(
+            f"{log_path} record {record_idx} does not preserve candidate "
+            "step reach."
         )
 
 
@@ -780,6 +894,9 @@ def main() -> None:
         ),
         closed_loop_outcome_policy=args.closed_loop_outcome_policy,
         expected_lexicographic_preselection=expected_lexicographic,
+        expected_candidate_reference_blend_steps=(
+            args.expected_candidate_reference_blend_steps
+        ),
     )
     report["artifacts"] = {
         "atom_scales": str(args.atom_scales),

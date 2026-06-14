@@ -177,6 +177,7 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
 ) -> None:
     log_path = _write_completed_log(tmp_path)
     _add_lexicographic_contract(log_path)
+    _add_candidate_reference_blend_contract(log_path)
     records = json.loads(log_path.read_text(encoding="utf-8"))
     del records[0]["candidate_closed_loop_outcomes"]
     log_path.write_text(json.dumps(records), encoding="utf-8")
@@ -217,6 +218,8 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
             "1.0",
             "--expected_lexicographic_lateral_epsilon",
             "0.05",
+            "--expected_candidate_reference_blend_steps",
+            "5",
             "--output_json",
             str(output_path),
         ],
@@ -230,6 +233,7 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
     assert report["checks"]["outcome_candidate_coverage"] == 0.0
     assert report["checks"]["lexicographic_preselection_verified"]
     assert report["checks"]["lexicographic_stage_records"] == 1
+    assert report["checks"]["candidate_reference_blend_verified"]
 
 
 def test_dataset_audit_certifies_lexicographic_preselection(tmp_path) -> None:
@@ -252,6 +256,42 @@ def test_dataset_audit_certifies_lexicographic_preselection(tmp_path) -> None:
     assert report["passed"]
     assert report["checks"]["lexicographic_preselection_verified"]
     assert report["checks"]["lexicographic_stage_records"] == 1
+
+
+def test_dataset_audit_certifies_candidate_reference_blend(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_candidate_reference_blend_contract(log_path)
+
+    report = audit_training_dataset(
+        [log_path],
+        atom_scales=np.ones(12),
+        expected_logs=1,
+        expected_candidates=2,
+        expected_candidate_reference_blend_steps=5,
+    )
+
+    assert report["passed"]
+    assert report["checks"]["candidate_reference_blend_verified"]
+    assert report["checks"]["expected_candidate_reference_blend_steps"] == 5
+
+
+def test_dataset_audit_rejects_unpreserved_blended_first_reference(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_candidate_reference_blend_contract(log_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["candidate_first_reference_xy"][1][0] = 0.6
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="first-reference xy"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_candidate_reference_blend_steps=5,
+        )
 
 
 def test_dataset_audit_rejects_wrong_lexicographic_summary_epsilon(
@@ -667,6 +707,26 @@ def _add_lexicographic_contract(log_path) -> None:
         "planned_red_epsilon": 0.0,
         "jerk_epsilon": 1.0,
         "lateral_epsilon": 0.05,
+        "selection_effect": True,
+    }
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+
+def _add_candidate_reference_blend_contract(log_path) -> None:
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["candidate_reference_blend_steps"] = 5
+    records[0]["candidate_first_reference_xy"] = [[0.5, 0.0], [0.5, 0.0]]
+    records[0]["candidate_step_reach"] = [0.5, 0.5]
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["candidate_reference_blend"] = {
+        "enabled": True,
+        "steps": 5,
+        "reference_candidate_index": 0,
+        "weight_definition": "min(t / steps, 1)",
+        "first_reference_xy_preserved": True,
         "selection_effect": True,
     }
     summary_path.write_text(json.dumps(summary), encoding="utf-8")
