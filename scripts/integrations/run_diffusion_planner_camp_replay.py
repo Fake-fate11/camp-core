@@ -6,7 +6,7 @@ import json
 import math
 import sys
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +22,7 @@ for path in (ROOT, PACKAGE_ROOT):
 
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
     DP_SCENE_FEATURE_NAMES,
+    CAMPSelectionResult,
     CAMPSelector,
     atom_schema_for_dimension,
     build_context_from_scene,
@@ -232,6 +233,33 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--camp_underprogress_relaxation",
+        action="store_true",
+        help=(
+            "Default-off safety relaxation for red-light approach states. "
+            "Only candidates blocked solely by dp_underprogress can be "
+            "admitted, and hard feasibility reasons remain hard."
+        ),
+    )
+    parser.add_argument(
+        "--camp_underprogress_progress_loss_budget_m",
+        type=float,
+        default=1.5,
+        help="Maximum DP progress loss for --camp_underprogress_relaxation.",
+    )
+    parser.add_argument(
+        "--camp_underprogress_h3_distance_loss_budget_m",
+        type=float,
+        default=0.1,
+        help="Maximum H3 PerfectTracker distance loss for underprogress relaxation.",
+    )
+    parser.add_argument(
+        "--camp_underprogress_lateral_limit_mps2",
+        type=float,
+        default=2.0,
+        help="Absolute H3 max lateral acceleration limit for underprogress relaxation.",
+    )
+    parser.add_argument(
         "--camp_reward_horizon_steps",
         type=int,
         default=30,
@@ -359,6 +387,39 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError(
             "PerfectTracker command postselection requires "
             "--camp_feasibility_source dp_reward."
+        )
+    underprogress_budgets = (
+        args.camp_underprogress_progress_loss_budget_m,
+        args.camp_underprogress_h3_distance_loss_budget_m,
+        args.camp_underprogress_lateral_limit_mps2,
+    )
+    if any(not np.isfinite(value) or value < 0.0 for value in underprogress_budgets):
+        raise ValueError(
+            "CAMP underprogress relaxation budgets must be finite and nonnegative."
+        )
+    if (
+        args.camp_underprogress_relaxation
+        and args.camp_feasibility_source != "dp_reward"
+    ):
+        raise ValueError(
+            "CAMP underprogress relaxation requires "
+            "--camp_feasibility_source dp_reward."
+        )
+    if (
+        args.camp_underprogress_relaxation
+        and args.camp_lexicographic_progress_epsilon_m is not None
+    ):
+        raise ValueError(
+            "CAMP underprogress relaxation cannot be combined with "
+            "lexicographic preselection in the same run."
+        )
+    if (
+        args.camp_underprogress_relaxation
+        and args.camp_perfect_tracker_command_postselection
+    ):
+        raise ValueError(
+            "CAMP underprogress relaxation cannot be combined with "
+            "PerfectTracker command postselection in the same run."
         )
     if args.camp_reward_horizon_steps < 2:
         raise ValueError("--camp_reward_horizon_steps must be >= 2.")
@@ -842,6 +903,150 @@ def _apply_lexicographic_admissible_filter(
     return feasible_arr, tuple(tuple(row) for row in reason_rows), stage_counts
 
 
+def _apply_underprogress_relaxation_override(
+    selection: CAMPSelectionResult,
+    candidates: np.ndarray,
+    *,
+    candidate_progress: np.ndarray,
+    candidate_union_red_cost: np.ndarray,
+    candidate_red_stopping_margin_cost: np.ndarray,
+    perfect_tracker_open_loop: dict[str, dict[str, np.ndarray]],
+    progress_loss_budget_m: float,
+    h3_distance_loss_budget_m: float,
+    lateral_limit_mps2: float,
+) -> tuple[CAMPSelectionResult, dict[str, Any]]:
+    selected = int(selection.selected_index)
+    feasible = np.asarray(selection.feasible_mask, dtype=bool).reshape(-1)
+    candidate_count = feasible.size
+    reasons = [tuple(row) for row in selection.infeasibility_reasons]
+    if len(reasons) != candidate_count:
+        raise ValueError("Underprogress relaxation reasons must match candidates.")
+    progress = np.asarray(candidate_progress, dtype=np.float64).reshape(-1)
+    union_red = np.asarray(candidate_union_red_cost, dtype=np.float64).reshape(-1)
+    stopping_margin = np.asarray(
+        candidate_red_stopping_margin_cost,
+        dtype=np.float64,
+    ).reshape(-1)
+    h3 = perfect_tracker_open_loop.get("3")
+    if not isinstance(h3, dict):
+        raise ValueError("Underprogress relaxation requires H3 rollout metrics.")
+    distance = np.asarray(h3["distance_m"], dtype=np.float64).reshape(-1)
+    h3_lateral = np.asarray(
+        h3["max_lateral_acceleration_mps2"],
+        dtype=np.float64,
+    ).reshape(-1)
+    arrays = (progress, union_red, stopping_margin, distance, h3_lateral)
+    if any(array.shape != (candidate_count,) for array in arrays):
+        raise ValueError("Underprogress relaxation fields must match candidates.")
+    if any(not np.all(np.isfinite(array)) for array in arrays):
+        raise ValueError("Underprogress relaxation fields must be finite.")
+    if np.any(union_red < 0.0) or np.any(stopping_margin < 0.0):
+        raise ValueError("Underprogress relaxation costs must be nonnegative.")
+
+    stats: dict[str, Any] = {
+        "enabled": True,
+        "changed": False,
+        "baseline_selected_index": selected,
+        "selected_index": selected,
+        "candidate_count": candidate_count,
+        "budget": {
+            "progress_loss_m": float(progress_loss_budget_m),
+            "h3_distance_loss_m": float(h3_distance_loss_budget_m),
+            "h3_max_lateral_limit_mps2": float(lateral_limit_mps2),
+            "requires_stopping_margin_nonworse": True,
+            "ignored_reason": "dp_underprogress",
+        },
+        "reason": "not_evaluated",
+    }
+    if selection.used_fallback or not feasible.any():
+        stats["reason"] = "fallback_or_no_base_feasible_candidate"
+        return selection, stats
+    if union_red[selected] <= 0.0:
+        stats["reason"] = "baseline_union_red_zero"
+        return selection, stats
+
+    lower_base_feasible = feasible & (union_red < union_red[selected])
+    lower_base_feasible[selected] = False
+    if lower_base_feasible.any():
+        stats["reason"] = "lower_red_base_feasible_candidate_exists"
+        stats["lower_red_base_feasible_candidates"] = int(
+            lower_base_feasible.sum()
+        )
+        return selection, stats
+
+    only_underprogress = np.asarray(
+        [row == ("dp_underprogress",) for row in reasons],
+        dtype=bool,
+    )
+    admissible = (
+        only_underprogress
+        & (union_red < union_red[selected])
+        & (progress >= progress[selected] - float(progress_loss_budget_m))
+        & (distance >= distance[selected] - float(h3_distance_loss_budget_m))
+        & (stopping_margin <= stopping_margin[selected] + 1e-12)
+        & (h3_lateral <= float(lateral_limit_mps2))
+    )
+    admissible[selected] = False
+    indices = np.flatnonzero(admissible)
+    stats["admissible_candidates"] = int(indices.size)
+    if not indices.size:
+        stats["reason"] = "no_underprogress_relaxed_candidate"
+        return selection, stats
+
+    chosen = min(
+        indices.tolist(),
+        key=lambda idx: (
+            float(union_red[idx]),
+            float(stopping_margin[idx]),
+            float(selection.scores[idx]),
+            int(idx),
+        ),
+    )
+    effective_feasible = feasible.copy()
+    effective_feasible[indices] = True
+    effective_reasons = [list(row) for row in reasons]
+    for idx in indices.tolist():
+        effective_reasons[idx] = []
+    effective_selection_scores = np.asarray(
+        selection.selection_scores,
+        dtype=np.float64,
+    ).copy()
+    effective_selection_scores[indices] = selection.scores[indices]
+    stats.update(
+        {
+            "changed": True,
+            "reason": "underprogress_relaxed_lower_red_candidate",
+            "selected_index": int(chosen),
+            "admissible_indices": [int(idx) for idx in indices.tolist()],
+            "delta": {
+                "union_red": float(union_red[chosen] - union_red[selected]),
+                "progress_m": float(progress[chosen] - progress[selected]),
+                "h3_distance_m": float(distance[chosen] - distance[selected]),
+                "red_stopping_margin": float(
+                    stopping_margin[chosen] - stopping_margin[selected]
+                ),
+                "h3_max_lateral_mps2": float(
+                    h3_lateral[chosen] - h3_lateral[selected]
+                ),
+            },
+        }
+    )
+    return (
+        replace(
+            selection,
+            selected_index=int(chosen),
+            selected_trajectory=candidates[chosen].copy(),
+            feasible_mask=effective_feasible,
+            infeasibility_reasons=tuple(
+                tuple(row) for row in effective_reasons
+            ),
+            selection_scores=effective_selection_scores,
+            used_fallback=False,
+        ),
+        stats,
+    )
+
+
 def _evaluation_state(scene: Any, ego_id: str) -> dict[str, Any]:
     ego = scene.get_agent(ego_id)
     route_lanes = np.asarray(ego.route_lanes, dtype=np.float64)
@@ -1194,6 +1399,10 @@ def _install_camp_predictor(
     lexicographic_jerk_epsilon: float,
     lexicographic_lateral_epsilon: float,
     perfect_tracker_command_postselection: bool,
+    underprogress_relaxation: bool,
+    underprogress_progress_loss_budget_m: float,
+    underprogress_h3_distance_loss_budget_m: float,
+    underprogress_lateral_limit_mps2: float,
     reward_horizon_steps: int,
     collect_closed_loop_outcomes: bool,
     outcome_horizon_steps: int,
@@ -1537,6 +1746,36 @@ def _install_camp_predictor(
             ego_wheelbase=ego_wheelbase,
         )
         camp_selection_done = time.perf_counter()
+        underprogress_relaxation_stats = None
+        if underprogress_relaxation:
+            if (
+                candidate_progress is None
+                or candidate_horizon_union_planned_red_light_cost is None
+            ):
+                raise RuntimeError(
+                    "Underprogress relaxation requires DP reward candidate fields."
+                )
+            (
+                selection,
+                underprogress_relaxation_stats,
+            ) = _apply_underprogress_relaxation_override(
+                selection,
+                candidates,
+                candidate_progress=candidate_progress,
+                candidate_union_red_cost=(
+                    candidate_horizon_union_planned_red_light_cost
+                ),
+                candidate_red_stopping_margin_cost=(
+                    candidate_red_stopping_margin_cost
+                ),
+                perfect_tracker_open_loop=perfect_tracker_open_loop,
+                progress_loss_budget_m=underprogress_progress_loss_budget_m,
+                h3_distance_loss_budget_m=(
+                    underprogress_h3_distance_loss_budget_m
+                ),
+                lateral_limit_mps2=underprogress_lateral_limit_mps2,
+            )
+        underprogress_relaxation_done = time.perf_counter()
         baseline_selected_index = int(selection.selected_index)
         selected_index = baseline_selected_index
         perfect_tracker_command_postselection_stats = None
@@ -1608,8 +1847,12 @@ def _install_camp_predictor(
                 camp_selection_done - red_stopping_margin_done
             )
             * 1000.0,
+            "latency_ms_underprogress_relaxation": (
+                underprogress_relaxation_done - camp_selection_done
+            )
+            * 1000.0,
             "latency_ms_perfect_tracker_command_postselection": (
-                selection_done - camp_selection_done
+                selection_done - underprogress_relaxation_done
             )
             * 1000.0,
             "latency_ms_camp_atom_computation": selection.timings_ms[
@@ -1657,6 +1900,7 @@ def _install_camp_predictor(
                 "perfect_tracker_command_postselection": (
                     perfect_tracker_command_postselection_stats
                 ),
+                "underprogress_relaxation": underprogress_relaxation_stats,
                 "num_candidates": int(num_candidates),
                 "candidate_reference_blend_steps": reference_blend_steps,
                 "candidate_trajectory_horizon_steps": int(candidates.shape[1]),
@@ -1972,6 +2216,16 @@ def main() -> None:
             perfect_tracker_command_postselection=(
                 bool(args.camp_perfect_tracker_command_postselection)
             ),
+            underprogress_relaxation=bool(args.camp_underprogress_relaxation),
+            underprogress_progress_loss_budget_m=(
+                args.camp_underprogress_progress_loss_budget_m
+            ),
+            underprogress_h3_distance_loss_budget_m=(
+                args.camp_underprogress_h3_distance_loss_budget_m
+            ),
+            underprogress_lateral_limit_mps2=(
+                args.camp_underprogress_lateral_limit_mps2
+            ),
             reward_horizon_steps=args.camp_reward_horizon_steps,
             collect_closed_loop_outcomes=args.camp_collect_closed_loop_outcomes,
             outcome_horizon_steps=args.camp_outcome_horizon_steps,
@@ -2131,6 +2385,32 @@ def main() -> None:
         and args.camp_perfect_tracker_command_postselection
         else None
     )
+    effective_underprogress_relaxation = (
+        {
+            "enabled": True,
+            "selection_effect": True,
+            "ignored_reason": "dp_underprogress",
+            "requires_stopping_margin_nonworse": True,
+            "hard_reasons_remain_hard": True,
+            "order": [
+                "union_red",
+                "red_stopping_margin",
+                "camp_score",
+                "candidate_index",
+            ],
+            "progress_loss_budget_m": float(
+                args.camp_underprogress_progress_loss_budget_m
+            ),
+            "h3_distance_loss_budget_m": float(
+                args.camp_underprogress_h3_distance_loss_budget_m
+            ),
+            "h3_max_lateral_limit_mps2": float(
+                args.camp_underprogress_lateral_limit_mps2
+            ),
+        }
+        if records is not None and args.camp_underprogress_relaxation
+        else None
+    )
     effective_reward_horizon_steps = (
         args.camp_reward_horizon_steps
         if records is not None and args.camp_feasibility_source == "dp_reward"
@@ -2173,6 +2453,7 @@ def main() -> None:
         "camp_perfect_tracker_command_postselection": (
             effective_perfect_tracker_command_postselection
         ),
+        "camp_underprogress_relaxation": effective_underprogress_relaxation,
         "camp_reward_horizon_steps": effective_reward_horizon_steps,
         "camp_collect_closed_loop_outcomes": (
             bool(args.camp_collect_closed_loop_outcomes)
@@ -2398,6 +2679,7 @@ def main() -> None:
     validation["camp_perfect_tracker_command_postselection"] = (
         effective_perfect_tracker_command_postselection
     )
+    validation["camp_underprogress_relaxation"] = effective_underprogress_relaxation
     validation["camp_reward_horizon_steps"] = effective_reward_horizon_steps
     validation["camp_collect_closed_loop_outcomes"] = (
         bool(args.camp_collect_closed_loop_outcomes) if records is not None else None

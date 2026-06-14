@@ -23,6 +23,7 @@ from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES_V8,
     DP_CAMP_ATOM_NAMES_V9,
     DP_CAMP_ATOM_NAMES_V10,
+    CAMPSelectionResult,
     CAMPSelector,
     atom_schema_for_dimension,
     blend_candidate_prefix_with_reference,
@@ -55,6 +56,7 @@ from scripts.integrations.run_diffusion_planner_camp_replay import (
     _apply_candidate0_route_progress_guard,
     _apply_candidate0_step_reach_guard,
     _apply_lexicographic_admissible_filter,
+    _apply_underprogress_relaxation_override,
     _candidate_route_progress,
     _candidate_step_reach,
     _candidate_feasibility_from_rewards,
@@ -1931,6 +1933,96 @@ def test_dp_reward_feasibility_applies_safety_and_progress_gates() -> None:
 
     assert feasible.tolist() == [True, False, False]
     assert reasons == ((), ("dp_underprogress",), ("dp_collision",))
+
+
+def test_underprogress_relaxation_selects_only_soft_blocked_lower_red() -> None:
+    candidates = np.zeros((3, 4, 2), dtype=np.float64)
+    selection = CAMPSelectionResult(
+        selected_index=0,
+        selected_trajectory=candidates[0].copy(),
+        atoms=np.ones((3, 2), dtype=np.float64),
+        normalized_atoms=np.ones((3, 2), dtype=np.float64),
+        feasible_mask=np.array([True, False, False]),
+        infeasibility_reasons=((), ("dp_underprogress",), ("dp_kinematic",)),
+        scores=np.array([0.0, 0.4, 0.1], dtype=np.float64),
+        weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_scores=np.array([0.0, np.inf, np.inf], dtype=np.float64),
+        selection_weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_normalized_atoms=np.ones((3, 2), dtype=np.float64),
+        used_fallback=False,
+        timings_ms={},
+    )
+    rollout = {
+        "3": {
+            "distance_m": np.array([1.0, 0.95, 1.0], dtype=np.float64),
+            "max_lateral_acceleration_mps2": np.array(
+                [0.1, 0.2, 0.1], dtype=np.float64
+            ),
+        }
+    }
+
+    relaxed, stats = _apply_underprogress_relaxation_override(
+        selection,
+        candidates,
+        candidate_progress=np.array([5.0, 4.2, 4.9], dtype=np.float64),
+        candidate_union_red_cost=np.array([10.0, 0.0, 0.0], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.array(
+            [5.0, 1.0, 1.0], dtype=np.float64
+        ),
+        perfect_tracker_open_loop=rollout,
+        progress_loss_budget_m=1.0,
+        h3_distance_loss_budget_m=0.1,
+        lateral_limit_mps2=2.0,
+    )
+
+    assert stats["changed"] is True
+    assert stats["selected_index"] == 1
+    assert relaxed.selected_index == 1
+    assert relaxed.feasible_mask.tolist() == [True, True, False]
+    assert relaxed.infeasibility_reasons == ((), (), ("dp_kinematic",))
+    assert relaxed.selection_scores[:2].tolist() == pytest.approx([0.0, 0.4])
+    assert np.isinf(relaxed.selection_scores[2])
+
+
+def test_underprogress_relaxation_keeps_hard_blocked_candidates_infeasible() -> None:
+    candidates = np.zeros((2, 4, 2), dtype=np.float64)
+    selection = CAMPSelectionResult(
+        selected_index=0,
+        selected_trajectory=candidates[0].copy(),
+        atoms=np.ones((2, 2), dtype=np.float64),
+        normalized_atoms=np.ones((2, 2), dtype=np.float64),
+        feasible_mask=np.array([True, False]),
+        infeasibility_reasons=((), ("dp_underprogress", "dynamic_obb_collision")),
+        scores=np.array([0.0, 0.1], dtype=np.float64),
+        weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_scores=np.array([0.0, np.inf], dtype=np.float64),
+        selection_weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_normalized_atoms=np.ones((2, 2), dtype=np.float64),
+        used_fallback=False,
+        timings_ms={},
+    )
+    rollout = {
+        "3": {
+            "distance_m": np.array([1.0, 1.0], dtype=np.float64),
+            "max_lateral_acceleration_mps2": np.array([0.1, 0.1], dtype=np.float64),
+        }
+    }
+
+    relaxed, stats = _apply_underprogress_relaxation_override(
+        selection,
+        candidates,
+        candidate_progress=np.array([5.0, 4.9], dtype=np.float64),
+        candidate_union_red_cost=np.array([10.0, 0.0], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.array([5.0, 1.0], dtype=np.float64),
+        perfect_tracker_open_loop=rollout,
+        progress_loss_budget_m=1.0,
+        h3_distance_loss_budget_m=0.1,
+        lateral_limit_mps2=2.0,
+    )
+
+    assert stats["changed"] is False
+    assert stats["reason"] == "no_underprogress_relaxed_candidate"
+    assert relaxed is selection
 
 
 def test_dp_reward_feasibility_applies_candidate0_progress_guard() -> None:

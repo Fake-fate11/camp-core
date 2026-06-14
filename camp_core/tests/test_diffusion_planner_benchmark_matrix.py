@@ -45,6 +45,10 @@ def _make_args() -> SimpleNamespace:
         camp_lexicographic_jerk_epsilon=1.0,
         camp_lexicographic_lateral_epsilon=0.05,
         camp_perfect_tracker_command_postselection=True,
+        camp_underprogress_relaxation=False,
+        camp_underprogress_progress_loss_budget_m=1.5,
+        camp_underprogress_h3_distance_loss_budget_m=0.1,
+        camp_underprogress_lateral_limit_mps2=2.0,
         camp_reward_horizon_steps=30,
         camp_collect_closed_loop_outcomes=True,
         camp_outcome_horizon_steps=30,
@@ -115,4 +119,34 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--candidate_reference_blend_steps" not in top1_cmd
     assert "--camp_lexicographic_progress_epsilon_m" not in top1_cmd
     assert "--camp_perfect_tracker_command_postselection" not in top1_cmd
+    assert "--camp_underprogress_relaxation" not in top1_cmd
     assert "--camp_fallback_atom_scales" not in top1_cmd
+
+
+def test_variant_command_threads_underprogress_relaxation_when_enabled() -> None:
+    args = _make_args()
+    args.camp_lexicographic_progress_epsilon_m = None
+    args.camp_perfect_tracker_command_postselection = False
+    args.camp_underprogress_relaxation = True
+    static_cmd = _variant_command(
+        variant="static",
+        output_dir=Path("F:/out/static"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+
+    assert "--camp_underprogress_relaxation" in static_cmd
+    progress_idx = static_cmd.index(
+        "--camp_underprogress_progress_loss_budget_m"
+    )
+    assert static_cmd[progress_idx + 1] == "1.5"
+    distance_idx = static_cmd.index(
+        "--camp_underprogress_h3_distance_loss_budget_m"
+    )
+    assert static_cmd[distance_idx + 1] == "0.1"
+    lateral_idx = static_cmd.index("--camp_underprogress_lateral_limit_mps2")
+    assert static_cmd[lateral_idx + 1] == "2.0"

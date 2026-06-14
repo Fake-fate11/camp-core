@@ -167,6 +167,22 @@ def parse_args() -> argparse.Namespace:
         "--camp_perfect_tracker_command_postselection",
         action="store_true",
     )
+    parser.add_argument("--camp_underprogress_relaxation", action="store_true")
+    parser.add_argument(
+        "--camp_underprogress_progress_loss_budget_m",
+        type=float,
+        default=1.5,
+    )
+    parser.add_argument(
+        "--camp_underprogress_h3_distance_loss_budget_m",
+        type=float,
+        default=0.1,
+    )
+    parser.add_argument(
+        "--camp_underprogress_lateral_limit_mps2",
+        type=float,
+        default=2.0,
+    )
     parser.add_argument("--camp_reward_horizon_steps", type=int, default=30)
     parser.add_argument("--camp_collect_closed_loop_outcomes", action="store_true")
     parser.add_argument("--camp_outcome_horizon_steps", type=int, default=30)
@@ -331,6 +347,18 @@ def _variant_command(
             )
         if args.camp_perfect_tracker_command_postselection:
             cmd.append("--camp_perfect_tracker_command_postselection")
+        if args.camp_underprogress_relaxation:
+            cmd.append("--camp_underprogress_relaxation")
+            cmd.extend(
+                [
+                    "--camp_underprogress_progress_loss_budget_m",
+                    str(args.camp_underprogress_progress_loss_budget_m),
+                    "--camp_underprogress_h3_distance_loss_budget_m",
+                    str(args.camp_underprogress_h3_distance_loss_budget_m),
+                    "--camp_underprogress_lateral_limit_mps2",
+                    str(args.camp_underprogress_lateral_limit_mps2),
+                ]
+            )
         if args.camp_collect_closed_loop_outcomes:
             cmd.append("--camp_collect_closed_loop_outcomes")
             cmd.extend(

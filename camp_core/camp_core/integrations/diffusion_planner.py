@@ -2067,6 +2067,9 @@ def summarize_selection_records(
             "red_stopping_margin_atom_latency_ms"
         ),
         "latency_ms_camp_selection": "camp_selection_latency_ms",
+        "latency_ms_underprogress_relaxation": (
+            "underprogress_relaxation_latency_ms"
+        ),
         "latency_ms_perfect_tracker_command_postselection": (
             "perfect_tracker_command_postselection_latency_ms"
         ),
