@@ -30,6 +30,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     compute_dp_prior_deviation_costs,
     compute_lateral_comfort_shadow_costs,
     compute_perfect_tracker_command_diagnostics,
+    compute_perfect_tracker_open_loop_rollout_diagnostics,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     generate_candidate_trajectories,
@@ -39,6 +40,9 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     select_perfect_tracker_command_dominating_candidate,
     summarize_replay_artifacts,
 )
+
+
+PERFECT_TRACKER_OPEN_LOOP_HORIZONS = (3, 5, 10)
 
 
 def parse_args() -> argparse.Namespace:
@@ -623,6 +627,40 @@ def _current_perfect_tracker_state(agent: Any) -> tuple[float, float]:
     return speed, longitudinal_acceleration
 
 
+def _current_acceleration_ego_xy(agent: Any, dt: float) -> np.ndarray:
+    if not np.isfinite(dt) or dt <= 0.0:
+        raise ValueError("PerfectTracker dt must be finite and positive.")
+    heading = float(agent.current_heading)
+    acceleration = None
+    velocities = np.asarray(
+        getattr(agent, "past_velocities", []),
+        dtype=np.float64,
+    )
+    if (
+        velocities.ndim == 2
+        and velocities.shape[0] >= 2
+        and velocities.shape[1] >= 2
+        and np.all(np.isfinite(velocities[-2:, :2]))
+    ):
+        acceleration = (velocities[-1, :2] - velocities[-2, :2]) / float(dt)
+    if acceleration is None:
+        acceleration = np.asarray(
+            agent.acceleration,
+            dtype=np.float64,
+        ).reshape(-1)
+    if acceleration.size < 2 or not np.all(np.isfinite(acceleration[:2])):
+        raise ValueError("Agent acceleration must contain finite xy values.")
+    forward = np.array([math.cos(heading), math.sin(heading)], dtype=np.float64)
+    lateral = np.array([-math.sin(heading), math.cos(heading)], dtype=np.float64)
+    return np.array(
+        [
+            float(np.dot(acceleration[:2], forward)),
+            float(np.dot(acceleration[:2], lateral)),
+        ],
+        dtype=np.float64,
+    )
+
+
 def _apply_candidate0_step_reach_guard(
     feasible: np.ndarray | None,
     reasons: tuple[tuple[str, ...], ...] | None,
@@ -946,12 +984,12 @@ def _score_candidate_batch(
     reward_config: Any,
     spawn_config: Any,
     reward_horizon_steps: int,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], np.ndarray, float]:
     if map_cache is None:
         raise RuntimeError("Candidate reward scoring requires Diffusion Planner map_cache.")
 
     import torch
-    from rlvr.reward import compute_reward_batch
+    from rlvr.reward import compute_red_light_score_batch, compute_reward_batch
 
     npz_data = tensor_converter_module.dump_step_npz(
         scene,
@@ -998,16 +1036,28 @@ def _score_candidate_batch(
                 for candidate in scored_candidates
             ]
         )
-    scored_candidates = scored_candidates[:, :reward_horizon_steps]
-    trajectories = torch.from_numpy(scored_candidates).float().to(device)
-    return [
+    full_trajectories = torch.from_numpy(scored_candidates).float().to(device)
+    reward_trajectories = full_trajectories[:, :reward_horizon_steps]
+    reward_breakdowns = [
         asdict(breakdown)
         for breakdown in compute_reward_batch(
-            trajectories,
+            reward_trajectories,
             reward_data,
             reward_config,
         )
     ]
+    full_red_start = time.perf_counter()
+    full_red_scores = compute_red_light_score_batch(
+        full_trajectories,
+        reward_data,
+        reward_config,
+    )
+    full_red_cost = np.maximum(
+        -full_red_scores.detach().cpu().numpy().astype(np.float64),
+        0.0,
+    )
+    full_red_latency_ms = (time.perf_counter() - full_red_start) * 1000.0
+    return reward_breakdowns, full_red_cost, full_red_latency_ms
 
 
 def _candidate_feasibility_from_rewards(
@@ -1279,6 +1329,9 @@ def _install_camp_predictor(
         candidate_rewards = None
         candidate_outcomes = None
         candidate_progress = None
+        candidate_full_horizon_planned_red_light_cost = None
+        candidate_horizon_union_planned_red_light_cost = None
+        full_horizon_red_light_latency_ms = 0.0
         candidate_route_progress = None
         candidate_step_reach = _candidate_step_reach(candidates)
         perfect_tracker_command_start = time.perf_counter()
@@ -1287,6 +1340,12 @@ def _install_camp_predictor(
             perfect_tracker_current_speed_mps,
             perfect_tracker_current_longitudinal_acceleration_mps2,
         ) = _current_perfect_tracker_state(ego_agent)
+        perfect_tracker_current_acceleration_ego_xy = (
+            _current_acceleration_ego_xy(
+                ego_agent,
+                float(getattr(scene, "dt", 0.1)),
+            )
+        )
         perfect_tracker_reference_candidates = (
             _prepare_perfect_tracker_reference_candidates(
                 candidates,
@@ -1305,6 +1364,33 @@ def _install_camp_predictor(
         shadow_perfect_tracker_command_latency_ms = (
             perfect_tracker_command_done - perfect_tracker_command_start
         ) * 1000.0
+        if candidates.shape[1] < PERFECT_TRACKER_OPEN_LOOP_HORIZONS[-1]:
+            raise RuntimeError(
+                "PerfectTracker open-loop shadow requires at least "
+                f"{PERFECT_TRACKER_OPEN_LOOP_HORIZONS[-1]} candidate steps."
+            )
+        perfect_tracker_open_loop_start = time.perf_counter()
+        perfect_tracker_open_loop = (
+            compute_perfect_tracker_open_loop_rollout_diagnostics(
+                perfect_tracker_command["postprocessed_reference"][
+                    :, : PERFECT_TRACKER_OPEN_LOOP_HORIZONS[-1]
+                ],
+                postprocessed_tail_reference_xy=perfect_tracker_command[
+                    "postprocessed_tail_reference_xy"
+                ],
+                full_horizon_steps=int(candidates.shape[1]),
+                dt=float(getattr(scene, "dt", 0.1)),
+                current_speed_mps=perfect_tracker_current_speed_mps,
+                current_acceleration_ego_xy=(
+                    perfect_tracker_current_acceleration_ego_xy
+                ),
+                horizons=PERFECT_TRACKER_OPEN_LOOP_HORIZONS,
+            )
+        )
+        perfect_tracker_open_loop_done = time.perf_counter()
+        shadow_perfect_tracker_open_loop_latency_ms = (
+            perfect_tracker_open_loop_done - perfect_tracker_open_loop_start
+        ) * 1000.0
         candidate_step_reach_guard_relaxed = False
         lexicographic_stage_counts = None
         candidate_planned_red_light_cost = None
@@ -1312,7 +1398,11 @@ def _install_camp_predictor(
         external_feasible_mask = None
         external_infeasibility_reasons = None
         if feasibility_source == "dp_reward":
-            candidate_rewards = _score_candidate_batch(
+            (
+                candidate_rewards,
+                candidate_full_horizon_planned_red_light_cost,
+                full_horizon_red_light_latency_ms,
+            ) = _score_candidate_batch(
                 replay_module=replay_module,
                 tensor_converter_module=tensor_converter_module,
                 scene=scene,
@@ -1339,6 +1429,10 @@ def _install_camp_predictor(
             candidate_planned_red_light_cost = np.asarray(
                 [max(-float(reward.get("red_light", 0.0)), 0.0) for reward in candidate_rewards],
                 dtype=np.float64,
+            )
+            candidate_horizon_union_planned_red_light_cost = np.maximum(
+                candidate_planned_red_light_cost,
+                candidate_full_horizon_planned_red_light_cost,
             )
         if min_candidate0_step_reach_ratio is not None:
             (
@@ -1490,11 +1584,17 @@ def _install_camp_predictor(
             )
             * 1000.0,
             "latency_ms_reward_scoring": (
-                reward_scoring_done - perfect_tracker_command_done
+                reward_scoring_done - perfect_tracker_open_loop_done
             )
             * 1000.0,
             "latency_ms_shadow_perfect_tracker_command": (
                 shadow_perfect_tracker_command_latency_ms
+            ),
+            "latency_ms_shadow_perfect_tracker_open_loop": (
+                shadow_perfect_tracker_open_loop_latency_ms
+            ),
+            "latency_ms_shadow_full_horizon_red_light": (
+                full_horizon_red_light_latency_ms
             ),
             "latency_ms_outcome_collection": (
                 outcome_collection_done - reward_scoring_done
@@ -1581,6 +1681,11 @@ def _install_camp_predictor(
                         "postprocessed_tail_reference_xy"
                     ].tolist()
                 ),
+                "candidate_perfect_tracker_postprocessed_reference_prefix": (
+                    perfect_tracker_command["postprocessed_reference"][
+                        :, : PERFECT_TRACKER_OPEN_LOOP_HORIZONS[-1]
+                    ].tolist()
+                ),
                 "perfect_tracker_command_inputs": {
                     "dt": float(getattr(scene, "dt", 0.1)),
                     "current_speed_mps": perfect_tracker_current_speed_mps,
@@ -1592,6 +1697,27 @@ def _install_camp_predictor(
                     "stop_threshold_mps": 0.3,
                     "restart_speed_threshold_mps": 0.1,
                     "restart_plan_speed_threshold_mps": 0.5,
+                },
+                "perfect_tracker_open_loop_rollout_inputs": {
+                    "full_horizon_steps": int(candidates.shape[1]),
+                    "horizons": list(PERFECT_TRACKER_OPEN_LOOP_HORIZONS),
+                    "dt": float(getattr(scene, "dt", 0.1)),
+                    "current_speed_mps": perfect_tracker_current_speed_mps,
+                    "current_acceleration_ego_xy": (
+                        perfect_tracker_current_acceleration_ego_xy.tolist()
+                    ),
+                    "max_speed_mps": 20.0,
+                    "restart_speed_threshold_mps": 0.1,
+                    "restart_plan_speed_threshold_mps": 0.5,
+                },
+                "candidate_perfect_tracker_open_loop_rollout": {
+                    horizon: {
+                        metric: values.tolist()
+                        for metric, values in metrics.items()
+                    }
+                    for horizon, metrics in perfect_tracker_open_loop[
+                        "horizons"
+                    ].items()
                 },
                 "perfect_tracker_candidate_preprocessing": (
                     _perfect_tracker_candidate_preprocessing(spawn_config)
@@ -1650,6 +1776,21 @@ def _install_camp_predictor(
                 "dp_candidate_reward_horizon_steps": (
                     min(reward_horizon_steps, int(candidates.shape[1]))
                     if candidate_rewards is not None
+                    else None
+                ),
+                "candidate_full_horizon_planned_red_light_cost": (
+                    candidate_full_horizon_planned_red_light_cost.tolist()
+                    if candidate_full_horizon_planned_red_light_cost is not None
+                    else None
+                ),
+                "candidate_full_horizon_red_light_horizon_steps": (
+                    int(candidates.shape[1])
+                    if candidate_full_horizon_planned_red_light_cost is not None
+                    else None
+                ),
+                "candidate_horizon_union_planned_red_light_cost": (
+                    candidate_horizon_union_planned_red_light_cost.tolist()
+                    if candidate_horizon_union_planned_red_light_cost is not None
                     else None
                 ),
                 "candidate_route_progress": (
@@ -2134,6 +2275,68 @@ def main() -> None:
             if records is not None
             else None
         ),
+        "camp_shadow_perfect_tracker_open_loop_rollout": (
+            {
+                "schema_version": "perfect_tracker_open_loop_rollout_v1",
+                "enabled": True,
+                "selection_effect": False,
+                "online_feature_eligible": True,
+                "closed_loop_guarantee": False,
+                "tracker_class": (
+                    "scenario_generation.mpc_tracker.PerfectTracker"
+                ),
+                "reference_postprocessing": (
+                    "scenario_generation.mpc_tracker.postprocess_reference"
+                ),
+                "candidate_preprocessing": (
+                    _perfect_tracker_candidate_preprocessing(config)
+                ),
+                "candidate_frame": "ego",
+                "horizons": list(PERFECT_TRACKER_OPEN_LOOP_HORIZONS),
+                "definition": (
+                    "fixed-candidate PerfectTracker commit rollout without "
+                    "Diffusion Planner replanning"
+                ),
+                "metrics": [
+                    "distance_m",
+                    "mean_vector_jerk_mps3",
+                    "max_vector_jerk_mps3",
+                    "mean_lateral_acceleration_mps2",
+                    "max_lateral_acceleration_mps2",
+                ],
+            }
+            if records is not None
+            else None
+        ),
+        "camp_shadow_full_horizon_red_light": (
+            {
+                "schema_version": "full_horizon_red_light_shadow_v1",
+                "enabled": True,
+                "selection_effect": False,
+                "online_feature_eligible": True,
+                "source": "rlvr.reward.compute_red_light_score_batch",
+                "candidate_preprocessing": (
+                    _perfect_tracker_candidate_preprocessing(config)
+                ),
+                "candidate_frame": "ego",
+                "horizon_steps": (
+                    records[0][
+                        "candidate_full_horizon_red_light_horizon_steps"
+                    ]
+                    if records
+                    else None
+                ),
+                "raw_full_horizon_field": (
+                    "candidate_full_horizon_planned_red_light_cost"
+                ),
+                "horizon_union_certificate_field": (
+                    "candidate_horizon_union_planned_red_light_cost"
+                ),
+            }
+            if records is not None
+            and args.camp_feasibility_source == "dp_reward"
+            else None
+        ),
         "selector_mode": args.camp_selector_mode,
         "camp_fallback_mode": args.camp_fallback_mode,
         "advance_mode": config.advance_mode,
@@ -2212,6 +2415,12 @@ def main() -> None:
     ]
     validation["camp_shadow_perfect_tracker_command"] = summary[
         "camp_shadow_perfect_tracker_command"
+    ]
+    validation["camp_shadow_perfect_tracker_open_loop_rollout"] = summary[
+        "camp_shadow_perfect_tracker_open_loop_rollout"
+    ]
+    validation["camp_shadow_full_horizon_red_light"] = summary[
+        "camp_shadow_full_horizon_red_light"
     ]
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (

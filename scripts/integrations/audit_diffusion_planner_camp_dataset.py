@@ -20,6 +20,7 @@ for path in (ROOT, PACKAGE_ROOT):
 
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
     atom_schema_for_dimension,
+    compute_perfect_tracker_open_loop_rollout_diagnostics,
     load_dp_camp_atom_scales,
     select_perfect_tracker_command_dominating_candidate,
 )
@@ -104,6 +105,44 @@ PERFECT_TRACKER_COMMAND_POSTSELECTION_METADATA = {
         "lateral_acceleration_mps2": 0.0,
     },
     "new_fallback_possible": False,
+}
+PERFECT_TRACKER_OPEN_LOOP_METADATA = {
+    "schema_version": "perfect_tracker_open_loop_rollout_v1",
+    "enabled": True,
+    "selection_effect": False,
+    "online_feature_eligible": True,
+    "closed_loop_guarantee": False,
+    "tracker_class": "scenario_generation.mpc_tracker.PerfectTracker",
+    "reference_postprocessing": (
+        "scenario_generation.mpc_tracker.postprocess_reference"
+    ),
+    "candidate_frame": "ego",
+    "horizons": [3, 5, 10],
+    "definition": (
+        "fixed-candidate PerfectTracker commit rollout without "
+        "Diffusion Planner replanning"
+    ),
+    "metrics": [
+        "distance_m",
+        "mean_vector_jerk_mps3",
+        "max_vector_jerk_mps3",
+        "mean_lateral_acceleration_mps2",
+        "max_lateral_acceleration_mps2",
+    ],
+}
+FULL_HORIZON_RED_LIGHT_METADATA = {
+    "schema_version": "full_horizon_red_light_shadow_v1",
+    "enabled": True,
+    "selection_effect": False,
+    "online_feature_eligible": True,
+    "source": "rlvr.reward.compute_red_light_score_batch",
+    "candidate_frame": "ego",
+    "raw_full_horizon_field": (
+        "candidate_full_horizon_planned_red_light_cost"
+    ),
+    "horizon_union_certificate_field": (
+        "candidate_horizon_union_planned_red_light_cost"
+    ),
 }
 
 
@@ -210,6 +249,22 @@ def parse_args() -> argparse.Namespace:
             "PerfectTracker command postselection in every record."
         ),
     )
+    parser.add_argument(
+        "--require_perfect_tracker_open_loop_rollout",
+        action="store_true",
+        help=(
+            "Require and independently recompute the fixed-candidate "
+            "PerfectTracker H-step open-loop rollout shadow."
+        ),
+    )
+    parser.add_argument(
+        "--require_full_horizon_red_light_shadow",
+        action="store_true",
+        help=(
+            "Require the exact upstream full-candidate-horizon red-light "
+            "shadow and its h30 monotonicity contract."
+        ),
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -231,6 +286,8 @@ def audit_training_dataset(
     expected_candidate_reference_blend_steps: int | None = None,
     require_perfect_tracker_command_shadow: bool = False,
     require_perfect_tracker_command_postselection: bool = False,
+    require_perfect_tracker_open_loop_rollout: bool = False,
+    require_full_horizon_red_light_shadow: bool = False,
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
@@ -326,6 +383,8 @@ def audit_training_dataset(
     lexicographic_stage_records = 0
     perfect_tracker_command_records = 0
     perfect_tracker_command_postselection_records = 0
+    perfect_tracker_open_loop_records = 0
+    full_horizon_red_light_records = 0
     candidate_field_reports = {
         field: {
             "records": 0,
@@ -406,6 +465,8 @@ def audit_training_dataset(
         if (
             require_perfect_tracker_command_shadow
             or require_perfect_tracker_command_postselection
+            or require_perfect_tracker_open_loop_rollout
+            or require_full_horizon_red_light_shadow
         ):
             if advance_mode != "perfect":
                 raise ValueError(
@@ -418,6 +479,28 @@ def audit_training_dataset(
                     validation_summary.get(
                         "camp_shadow_perfect_tracker_command"
                     ),
+                )
+            )
+        perfect_tracker_open_loop_horizons = None
+        if require_perfect_tracker_open_loop_rollout:
+            perfect_tracker_open_loop_horizons = (
+                _validate_perfect_tracker_open_loop_summary(
+                    summary_path,
+                    validation_summary.get(
+                        "camp_shadow_perfect_tracker_open_loop_rollout"
+                    ),
+                    expected_preprocessing=perfect_tracker_preprocessing,
+                )
+            )
+        full_horizon_red_light_steps = None
+        if require_full_horizon_red_light_shadow:
+            full_horizon_red_light_steps = (
+                _validate_full_horizon_red_light_summary(
+                    summary_path,
+                    validation_summary.get(
+                        "camp_shadow_full_horizon_red_light"
+                    ),
+                    expected_preprocessing=perfect_tracker_preprocessing,
                 )
             )
         if require_perfect_tracker_command_postselection:
@@ -542,6 +625,24 @@ def audit_training_dataset(
                     expected_candidates=expected_candidates,
                 )
                 perfect_tracker_command_postselection_records += 1
+            if require_perfect_tracker_open_loop_rollout:
+                _validate_perfect_tracker_open_loop_record(
+                    log_path,
+                    record_idx,
+                    record,
+                    expected_candidates=expected_candidates,
+                    expected_horizons=perfect_tracker_open_loop_horizons,
+                )
+                perfect_tracker_open_loop_records += 1
+            if require_full_horizon_red_light_shadow:
+                _validate_full_horizon_red_light_record(
+                    log_path,
+                    record_idx,
+                    record,
+                    expected_candidates=expected_candidates,
+                    expected_horizon_steps=full_horizon_red_light_steps,
+                )
+                full_horizon_red_light_records += 1
             for field in required_fields:
                 values = _validate_candidate_field(
                     log_path,
@@ -655,6 +756,24 @@ def audit_training_dataset(
             ),
             "perfect_tracker_command_postselection_records": (
                 perfect_tracker_command_postselection_records
+            ),
+            "perfect_tracker_open_loop_rollout_required": (
+                require_perfect_tracker_open_loop_rollout
+            ),
+            "perfect_tracker_open_loop_rollout_verified": (
+                require_perfect_tracker_open_loop_rollout
+            ),
+            "perfect_tracker_open_loop_rollout_records": (
+                perfect_tracker_open_loop_records
+            ),
+            "full_horizon_red_light_shadow_required": (
+                require_full_horizon_red_light_shadow
+            ),
+            "full_horizon_red_light_shadow_verified": (
+                require_full_horizon_red_light_shadow
+            ),
+            "full_horizon_red_light_shadow_records": (
+                full_horizon_red_light_records
             ),
         },
         "candidate_fields": candidate_field_reports,
@@ -943,6 +1062,72 @@ def _validate_perfect_tracker_command_postselection_summary(
         )
 
 
+def _validate_perfect_tracker_open_loop_summary(
+    summary_path: Path,
+    metadata: Any,
+    *,
+    expected_preprocessing: dict[str, Any] | None,
+) -> tuple[int, ...]:
+    if expected_preprocessing is None:
+        raise ValueError(
+            f"{summary_path} PerfectTracker open-loop shadow lacks certified "
+            "candidate preprocessing."
+        )
+    if not isinstance(metadata, dict):
+        raise ValueError(
+            f"{summary_path} does not certify the expected PerfectTracker "
+            "open-loop rollout shadow."
+        )
+    preprocessing = _validate_perfect_tracker_candidate_preprocessing(
+        metadata.get("candidate_preprocessing"),
+        label=f"{summary_path} PerfectTracker open-loop preprocessing",
+    )
+    metadata_without_preprocessing = dict(metadata)
+    metadata_without_preprocessing.pop("candidate_preprocessing", None)
+    if (
+        metadata_without_preprocessing != PERFECT_TRACKER_OPEN_LOOP_METADATA
+        or preprocessing != expected_preprocessing
+    ):
+        raise ValueError(
+            f"{summary_path} does not certify the expected PerfectTracker "
+            "open-loop rollout shadow."
+        )
+    return tuple(PERFECT_TRACKER_OPEN_LOOP_METADATA["horizons"])
+
+
+def _validate_full_horizon_red_light_summary(
+    summary_path: Path,
+    metadata: Any,
+    *,
+    expected_preprocessing: dict[str, Any] | None,
+) -> int:
+    if expected_preprocessing is None or not isinstance(metadata, dict):
+        raise ValueError(
+            f"{summary_path} does not certify the expected full-horizon "
+            "red-light shadow."
+        )
+    preprocessing = _validate_perfect_tracker_candidate_preprocessing(
+        metadata.get("candidate_preprocessing"),
+        label=f"{summary_path} full-horizon red-light preprocessing",
+    )
+    horizon_steps = metadata.get("horizon_steps")
+    metadata_without_dynamic = dict(metadata)
+    metadata_without_dynamic.pop("candidate_preprocessing", None)
+    metadata_without_dynamic.pop("horizon_steps", None)
+    if (
+        metadata_without_dynamic != FULL_HORIZON_RED_LIGHT_METADATA
+        or preprocessing != expected_preprocessing
+        or isinstance(horizon_steps, bool)
+        or not isinstance(horizon_steps, (int, np.integer))
+        or int(horizon_steps) < 2
+    ):
+        raise ValueError(
+            f"{summary_path} does not certify the expected full-horizon "
+            "red-light shadow."
+        )
+    return int(horizon_steps)
+
+
 def _validate_perfect_tracker_command_postselection_record(
     log_path: Path,
     record_idx: int,
@@ -1204,6 +1389,178 @@ def _validate_perfect_tracker_command_record(
         raise ValueError(f"{label} restart flags do not match their formula.")
 
 
+def _validate_perfect_tracker_open_loop_record(
+    log_path: Path,
+    record_idx: int,
+    record: dict[str, Any],
+    *,
+    expected_candidates: int,
+    expected_horizons: tuple[int, ...] | None,
+) -> None:
+    label = f"{log_path} record {record_idx} PerfectTracker open-loop shadow"
+    if expected_horizons is None:
+        raise ValueError(f"{label} lacks certified horizons.")
+    inputs = record.get("perfect_tracker_open_loop_rollout_inputs")
+    expected_input_keys = {
+        "full_horizon_steps",
+        "horizons",
+        "dt",
+        "current_speed_mps",
+        "current_acceleration_ego_xy",
+        "max_speed_mps",
+        "restart_speed_threshold_mps",
+        "restart_plan_speed_threshold_mps",
+    }
+    if not isinstance(inputs, dict) or set(inputs) != expected_input_keys:
+        raise ValueError(f"{label} has invalid inputs.")
+    if inputs["horizons"] != list(expected_horizons):
+        raise ValueError(f"{label} has invalid horizons.")
+    full_horizon_steps = inputs["full_horizon_steps"]
+    if (
+        isinstance(full_horizon_steps, bool)
+        or not isinstance(full_horizon_steps, (int, np.integer))
+        or int(full_horizon_steps) != record.get("candidate_trajectory_horizon_steps")
+    ):
+        raise ValueError(f"{label} has an invalid full horizon.")
+    prefix = np.asarray(
+        record.get(
+            "candidate_perfect_tracker_postprocessed_reference_prefix"
+        ),
+        dtype=np.float64,
+    )
+    expected_prefix_shape = (
+        expected_candidates,
+        expected_horizons[-1],
+        3,
+    )
+    if prefix.shape != expected_prefix_shape or not np.all(np.isfinite(prefix)):
+        raise ValueError(f"{label} has an invalid reference prefix.")
+    tail_xy = _finite_candidate_matrix(
+        record.get("candidate_perfect_tracker_postprocessed_tail_xy"),
+        expected_candidates,
+        2,
+        label=f"{label} postprocessed-tail xy",
+    )
+    current_acceleration = np.asarray(
+        inputs["current_acceleration_ego_xy"],
+        dtype=np.float64,
+    ).reshape(-1)
+    if current_acceleration.shape != (2,) or not np.all(
+        np.isfinite(current_acceleration)
+    ):
+        raise ValueError(f"{label} has invalid current acceleration.")
+
+    expected = compute_perfect_tracker_open_loop_rollout_diagnostics(
+        prefix,
+        postprocessed_tail_reference_xy=tail_xy,
+        full_horizon_steps=int(full_horizon_steps),
+        dt=float(inputs["dt"]),
+        current_speed_mps=float(inputs["current_speed_mps"]),
+        current_acceleration_ego_xy=current_acceleration,
+        horizons=expected_horizons,
+        max_speed_mps=float(inputs["max_speed_mps"]),
+        restart_speed_threshold_mps=float(
+            inputs["restart_speed_threshold_mps"]
+        ),
+        restart_plan_speed_threshold_mps=float(
+            inputs["restart_plan_speed_threshold_mps"]
+        ),
+    )
+    actual = record.get("candidate_perfect_tracker_open_loop_rollout")
+    if not isinstance(actual, dict) or set(actual) != {
+        str(value) for value in expected_horizons
+    }:
+        raise ValueError(f"{label} has invalid metric horizons.")
+    expected_metric_keys = set(PERFECT_TRACKER_OPEN_LOOP_METADATA["metrics"])
+    for horizon in expected_horizons:
+        actual_metrics = actual[str(horizon)]
+        expected_metrics = expected["horizons"][str(horizon)]
+        if (
+            not isinstance(actual_metrics, dict)
+            or set(actual_metrics) != expected_metric_keys
+        ):
+            raise ValueError(f"{label} horizon {horizon} has invalid metrics.")
+        for metric in sorted(expected_metric_keys):
+            values = _finite_candidate_vector(
+                actual_metrics[metric],
+                expected_candidates,
+                label=f"{label} horizon {horizon} {metric}",
+                nonnegative=True,
+            )
+            if not np.allclose(
+                values,
+                expected_metrics[metric],
+                atol=1e-9,
+                rtol=1e-9,
+            ):
+                raise ValueError(
+                    f"{label} horizon {horizon} {metric} does not match "
+                    "its formula."
+                )
+
+
+def _validate_full_horizon_red_light_record(
+    log_path: Path,
+    record_idx: int,
+    record: dict[str, Any],
+    *,
+    expected_candidates: int,
+    expected_horizon_steps: int | None,
+) -> None:
+    label = f"{log_path} record {record_idx} full-horizon red-light shadow"
+    actual_horizon = record.get(
+        "candidate_full_horizon_red_light_horizon_steps"
+    )
+    if (
+        expected_horizon_steps is None
+        or actual_horizon != expected_horizon_steps
+        or actual_horizon != record.get("candidate_trajectory_horizon_steps")
+    ):
+        raise ValueError(f"{label} has an invalid horizon.")
+    full_cost = _finite_candidate_vector(
+        record.get("candidate_full_horizon_planned_red_light_cost"),
+        expected_candidates,
+        label=f"{label} cost",
+        nonnegative=True,
+    )
+    rewards = record.get("dp_candidate_rewards")
+    reward_horizon = record.get("dp_candidate_reward_horizon_steps")
+    if (
+        not isinstance(rewards, list)
+        or len(rewards) != expected_candidates
+        or isinstance(reward_horizon, bool)
+        or not isinstance(reward_horizon, (int, np.integer))
+        or int(reward_horizon) > int(actual_horizon)
+    ):
+        raise ValueError(f"{label} lacks valid h30 reward provenance.")
+    short_cost = np.asarray(
+        [
+            max(-float(reward.get("red_light", 0.0)), 0.0)
+            for reward in rewards
+        ],
+        dtype=np.float64,
+    )
+    union_cost = _finite_candidate_vector(
+        record.get("candidate_horizon_union_planned_red_light_cost"),
+        expected_candidates,
+        label=f"{label} horizon-union certificate",
+        nonnegative=True,
+    )
+    expected_union = np.maximum(short_cost, full_cost)
+    if (
+        not np.all(np.isfinite(short_cost))
+        or not np.allclose(
+            union_cost,
+            expected_union,
+            atol=1e-9,
+            rtol=1e-9,
+        )
+    ):
+        raise ValueError(
+            f"{label} horizon-union certificate does not match its formula."
+        )
+
+
 def _record_horizon_time(record: dict[str, Any], dt: float) -> float:
     horizon_steps = record.get("candidate_trajectory_horizon_steps")
     if (
@@ -1444,6 +1801,12 @@ def main() -> None:
         ),
         require_perfect_tracker_command_postselection=(
             args.require_perfect_tracker_command_postselection
+        ),
+        require_perfect_tracker_open_loop_rollout=(
+            args.require_perfect_tracker_open_loop_rollout
+        ),
+        require_full_horizon_red_light_shadow=(
+            args.require_full_horizon_red_light_shadow
         ),
     )
     report["artifacts"] = {

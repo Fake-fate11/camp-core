@@ -842,6 +842,244 @@ def _trajectory_headings(trajectory: np.ndarray) -> np.ndarray:
     return np.concatenate([headings[:1], headings])
 
 
+def _postprocess_perfect_tracker_reference_candidates(
+    candidates: np.ndarray,
+    *,
+    dt: float,
+    velocity_smooth_window: int,
+    stop_threshold_mps: float,
+) -> np.ndarray:
+    """Vectorize DP's PerfectTracker reference postprocessing over candidates."""
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    candidate_count, horizon_steps = trajectories.shape[:2]
+    headings = np.arctan2(trajectories[:, :, 3], trajectories[:, :, 2])
+    references = np.concatenate(
+        [trajectories[:, :, :2], headings[:, :, np.newaxis]],
+        axis=2,
+    )
+    if horizon_steps < 2:
+        return references
+
+    differences = np.diff(trajectories[:, :, :2], axis=1)
+    velocities = np.linalg.norm(differences, axis=2) / float(dt)
+    velocities = np.concatenate([velocities[:, :1], velocities], axis=1)
+    smoothed = velocities.copy()
+    window = int(velocity_smooth_window)
+    if horizon_steps >= window:
+        cumulative = np.pad(
+            np.cumsum(velocities, axis=1),
+            ((0, 0), (1, 0)),
+        )
+        smoothed[:, : horizon_steps - window + 1] = (
+            cumulative[:, window:] - cumulative[:, :-window]
+        ) / window
+
+    crossings = (
+        (smoothed[:, :-1] > float(stop_threshold_mps))
+        & (smoothed[:, 1:] <= float(stop_threshold_mps))
+    )
+    for candidate_index in range(candidate_count):
+        crossing_steps = np.flatnonzero(crossings[candidate_index])
+        if crossing_steps.size:
+            stop_step = int(crossing_steps[0]) + 1
+            references[candidate_index, stop_step:] = references[
+                candidate_index,
+                stop_step - 1,
+            ]
+    return references
+
+
+def compute_perfect_tracker_open_loop_rollout_diagnostics(
+    reference_prefix: np.ndarray,
+    *,
+    postprocessed_tail_reference_xy: np.ndarray,
+    full_horizon_steps: int,
+    dt: float,
+    current_speed_mps: float,
+    current_acceleration_ego_xy: np.ndarray,
+    horizons: Sequence[int] = (3, 5, 10),
+    max_speed_mps: float = 20.0,
+    restart_speed_threshold_mps: float = 0.1,
+    restart_plan_speed_threshold_mps: float = 0.5,
+) -> dict[str, Any]:
+    """Roll out a fixed reference through PerfectTracker without replanning.
+
+    This is an outcome-free open-loop proxy. It intentionally does not claim
+    to reproduce the future candidate pools or state transitions produced by
+    closed-loop Diffusion Planner replanning.
+    """
+    references = np.asarray(reference_prefix, dtype=np.float64)
+    tails = np.asarray(postprocessed_tail_reference_xy, dtype=np.float64)
+    acceleration0 = np.asarray(
+        current_acceleration_ego_xy,
+        dtype=np.float64,
+    ).reshape(-1)
+    if (
+        references.ndim != 3
+        or references.shape[0] < 1
+        or references.shape[1] < 1
+        or references.shape[2] != 3
+    ):
+        raise ValueError("reference_prefix must have shape [K, H, 3].")
+    if not np.all(np.isfinite(references)):
+        raise ValueError("reference_prefix must contain only finite values.")
+    if tails.shape != (references.shape[0], 2) or not np.all(np.isfinite(tails)):
+        raise ValueError(
+            "postprocessed_tail_reference_xy must have shape [K, 2] "
+            "with finite values."
+        )
+    if acceleration0.shape != (2,) or not np.all(np.isfinite(acceleration0)):
+        raise ValueError(
+            "current_acceleration_ego_xy must contain two finite values."
+        )
+    scalar_values = (
+        dt,
+        current_speed_mps,
+        max_speed_mps,
+        restart_speed_threshold_mps,
+        restart_plan_speed_threshold_mps,
+    )
+    if any(not np.isfinite(float(value)) for value in scalar_values):
+        raise ValueError("PerfectTracker rollout inputs must be finite.")
+    if dt <= 0.0:
+        raise ValueError("dt must be positive.")
+    if current_speed_mps < 0.0:
+        raise ValueError("current_speed_mps must be nonnegative.")
+    if max_speed_mps <= 0.0:
+        raise ValueError("max_speed_mps must be positive.")
+    if (
+        restart_speed_threshold_mps < 0.0
+        or restart_plan_speed_threshold_mps < 0.0
+    ):
+        raise ValueError("PerfectTracker restart thresholds must be nonnegative.")
+    if (
+        isinstance(full_horizon_steps, bool)
+        or not isinstance(full_horizon_steps, (int, np.integer))
+        or int(full_horizon_steps) < references.shape[1]
+    ):
+        raise ValueError(
+            "full_horizon_steps must be an integer no smaller than the "
+            "reference prefix."
+        )
+
+    normalized_horizons = tuple(int(value) for value in horizons)
+    if (
+        not normalized_horizons
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, np.integer))
+            or int(value) < 1
+            for value in horizons
+        )
+        or tuple(sorted(set(normalized_horizons))) != normalized_horizons
+        or normalized_horizons[-1] > references.shape[1]
+    ):
+        raise ValueError(
+            "horizons must be unique increasing positive integers within "
+            "the reference prefix."
+        )
+
+    candidate_count = references.shape[0]
+    rollout_steps = normalized_horizons[-1]
+    target_speeds = np.zeros((candidate_count, rollout_steps), dtype=np.float64)
+    restart_pushes = np.zeros((candidate_count, rollout_steps), dtype=bool)
+    vector_jerks = np.zeros((candidate_count, rollout_steps), dtype=np.float64)
+    lateral_accelerations = np.zeros(
+        (candidate_count, rollout_steps),
+        dtype=np.float64,
+    )
+    distance_increments = np.zeros(
+        (candidate_count, rollout_steps),
+        dtype=np.float64,
+    )
+
+    for candidate_index in range(candidate_count):
+        position = np.zeros(2, dtype=np.float64)
+        heading = 0.0
+        speed = float(current_speed_mps)
+        velocity = np.array([speed, 0.0], dtype=np.float64)
+        previous_acceleration = acceleration0.copy()
+        tail_xy = tails[candidate_index]
+        for step in range(rollout_steps):
+            target_xy = references[candidate_index, step, :2]
+            target_heading = float(references[candidate_index, step, 2])
+            target_speed = min(
+                float(np.linalg.norm(target_xy - position)) / float(dt),
+                float(max_speed_mps),
+            )
+            remaining_steps = int(full_horizon_steps) - step
+            tail_average_speed = (
+                float(np.linalg.norm(tail_xy - position))
+                / (remaining_steps * float(dt))
+            )
+            restart_push = (
+                speed < float(restart_speed_threshold_mps)
+                and tail_average_speed > float(restart_plan_speed_threshold_mps)
+            )
+            if restart_push:
+                target_speed = max(
+                    target_speed,
+                    min(float(max_speed_mps), tail_average_speed),
+                )
+
+            heading_delta = math.atan2(
+                math.sin(target_heading - heading),
+                math.cos(target_heading - heading),
+            )
+            position = position + target_speed * np.array(
+                [math.cos(heading), math.sin(heading)],
+                dtype=np.float64,
+            ) * float(dt)
+            new_velocity = target_speed * np.array(
+                [math.cos(target_heading), math.sin(target_heading)],
+                dtype=np.float64,
+            )
+            acceleration = (new_velocity - velocity) / float(dt)
+            vector_jerk = float(
+                np.linalg.norm(acceleration - previous_acceleration) / float(dt)
+            )
+
+            target_speeds[candidate_index, step] = target_speed
+            restart_pushes[candidate_index, step] = restart_push
+            vector_jerks[candidate_index, step] = vector_jerk
+            lateral_accelerations[candidate_index, step] = (
+                abs(target_speed * heading_delta / float(dt))
+            )
+            distance_increments[candidate_index, step] = target_speed * float(dt)
+
+            heading = target_heading
+            speed = target_speed
+            velocity = new_velocity
+            previous_acceleration = acceleration
+
+    horizon_metrics = {}
+    for horizon in normalized_horizons:
+        horizon_metrics[str(horizon)] = {
+            "distance_m": np.sum(distance_increments[:, :horizon], axis=1),
+            "mean_vector_jerk_mps3": np.mean(
+                vector_jerks[:, :horizon],
+                axis=1,
+            ),
+            "max_vector_jerk_mps3": np.max(
+                vector_jerks[:, :horizon],
+                axis=1,
+            ),
+            "mean_lateral_acceleration_mps2": np.mean(
+                lateral_accelerations[:, :horizon],
+                axis=1,
+            ),
+            "max_lateral_acceleration_mps2": np.max(
+                lateral_accelerations[:, :horizon],
+                axis=1,
+            ),
+        }
+    return {
+        "horizons": horizon_metrics,
+        "target_speed_mps": target_speeds,
+        "restart_push": restart_pushes,
+    }
+
+
 def compute_perfect_tracker_command_diagnostics(
     candidates: np.ndarray,
     *,
@@ -909,33 +1147,13 @@ def compute_perfect_tracker_command_diagnostics(
         raise ValueError("velocity_smooth_window must be a positive integer.")
 
     candidate_count, horizon_steps = trajectories.shape[:2]
-    postprocessed_tail_xy = trajectories[:, -1, :2].copy()
-    if horizon_steps >= 2:
-        differences = np.diff(trajectories[:, :, :2], axis=1)
-        velocities = np.linalg.norm(differences, axis=2) / float(dt)
-        velocities = np.concatenate([velocities[:, :1], velocities], axis=1)
-        smoothed = velocities.copy()
-        window = int(velocity_smooth_window)
-        if horizon_steps >= window:
-            cumulative = np.pad(
-                np.cumsum(velocities, axis=1),
-                ((0, 0), (1, 0)),
-            )
-            smoothed[:, : horizon_steps - window + 1] = (
-                cumulative[:, window:] - cumulative[:, :-window]
-            ) / window
-        crossings = (
-            (smoothed[:, :-1] > float(stop_threshold_mps))
-            & (smoothed[:, 1:] <= float(stop_threshold_mps))
-        )
-        has_crossing = crossings.any(axis=1)
-        first_crossing_step = np.argmax(crossings, axis=1) + 1
-        rows = np.flatnonzero(has_crossing)
-        postprocessed_tail_xy[rows] = trajectories[
-            rows,
-            first_crossing_step[rows] - 1,
-            :2,
-        ]
+    postprocessed_references = _postprocess_perfect_tracker_reference_candidates(
+        trajectories,
+        dt=float(dt),
+        velocity_smooth_window=int(velocity_smooth_window),
+        stop_threshold_mps=float(stop_threshold_mps),
+    )
+    postprocessed_tail_xy = postprocessed_references[:, -1, :2]
 
     first_reference_xy = trajectories[:, 0, :2]
     first_step_reach_m = np.linalg.norm(first_reference_xy, axis=1)
@@ -982,6 +1200,7 @@ def compute_perfect_tracker_command_diagnostics(
         "first_reference_xy": first_reference_xy.copy(),
         "first_reference_heading_rad": first_heading_rad,
         "postprocessed_tail_reference_xy": postprocessed_tail_xy,
+        "postprocessed_reference": postprocessed_references,
         "first_step_reach_m": first_step_reach_m,
         "tail_average_speed_mps": tail_average_speed_mps,
         "restart_push": restart_push,
@@ -1834,6 +2053,12 @@ def summarize_selection_records(
         ),
         "latency_ms_shadow_perfect_tracker_command": (
             "shadow_perfect_tracker_command_latency_ms"
+        ),
+        "latency_ms_shadow_perfect_tracker_open_loop": (
+            "shadow_perfect_tracker_open_loop_latency_ms"
+        ),
+        "latency_ms_shadow_full_horizon_red_light": (
+            "shadow_full_horizon_red_light_latency_ms"
         ),
         "latency_ms_context_and_obstacles": "context_and_obstacles_latency_ms",
         "latency_ms_reward_scoring": "reward_scoring_latency_ms",

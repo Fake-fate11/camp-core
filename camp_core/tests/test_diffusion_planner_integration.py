@@ -32,6 +32,7 @@ from camp_core.integrations.diffusion_planner import (
     compute_dp_prior_deviation_costs,
     compute_lateral_comfort_shadow_costs,
     compute_perfect_tracker_command_diagnostics,
+    compute_perfect_tracker_open_loop_rollout_diagnostics,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     install_lanelet2_projection_fallback,
@@ -2149,6 +2150,57 @@ def test_perfect_tracker_command_diagnostics_apply_postprocess_and_restart() -> 
     )
 
 
+def test_perfect_tracker_open_loop_rollout_matches_fixed_reference_dynamics() -> None:
+    reference = np.array(
+        [[[1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [3.0, 0.0, 0.0]]],
+        dtype=np.float64,
+    )
+
+    diagnostics = compute_perfect_tracker_open_loop_rollout_diagnostics(
+        reference,
+        postprocessed_tail_reference_xy=np.array([[3.0, 0.0]]),
+        full_horizon_steps=3,
+        dt=1.0,
+        current_speed_mps=0.0,
+        current_acceleration_ego_xy=np.zeros(2),
+        horizons=(1, 3),
+    )
+
+    np.testing.assert_allclose(
+        diagnostics["target_speed_mps"],
+        [[1.0, 1.0, 1.0]],
+    )
+    assert diagnostics["restart_push"].tolist() == [[True, False, False]]
+    horizon3 = diagnostics["horizons"]["3"]
+    assert horizon3["distance_m"][0] == pytest.approx(3.0)
+    assert horizon3["mean_vector_jerk_mps3"][0] == pytest.approx(2.0 / 3.0)
+    assert horizon3["max_vector_jerk_mps3"][0] == pytest.approx(1.0)
+    assert horizon3["mean_lateral_acceleration_mps2"][0] == 0.0
+
+
+def test_perfect_tracker_open_loop_rollout_uses_vector_jerk_and_heading_snap() -> None:
+    reference = np.array(
+        [[[1.0, 0.0, np.pi / 2], [1.0, 1.0, np.pi / 2]]],
+        dtype=np.float64,
+    )
+
+    diagnostics = compute_perfect_tracker_open_loop_rollout_diagnostics(
+        reference,
+        postprocessed_tail_reference_xy=np.array([[1.0, 1.0]]),
+        full_horizon_steps=2,
+        dt=1.0,
+        current_speed_mps=1.0,
+        current_acceleration_ego_xy=np.zeros(2),
+        horizons=(1, 2),
+    )
+
+    horizon1 = diagnostics["horizons"]["1"]
+    assert horizon1["mean_vector_jerk_mps3"][0] == pytest.approx(np.sqrt(2.0))
+    assert horizon1["mean_lateral_acceleration_mps2"][0] == pytest.approx(
+        np.pi / 2
+    )
+
+
 @pytest.mark.parametrize(
     "kwargs,error",
     [
@@ -2168,6 +2220,19 @@ def test_perfect_tracker_command_diagnostics_fail_closed(kwargs, error) -> None:
         compute_perfect_tracker_command_diagnostics(
             np.zeros((1, 2, 4), dtype=np.float64),
             **arguments,
+        )
+
+
+def test_perfect_tracker_open_loop_rollout_rejects_uncovered_horizon() -> None:
+    with pytest.raises(ValueError, match="within the reference prefix"):
+        compute_perfect_tracker_open_loop_rollout_diagnostics(
+            np.zeros((1, 2, 3), dtype=np.float64),
+            postprocessed_tail_reference_xy=np.zeros((1, 2)),
+            full_horizon_steps=2,
+            dt=0.1,
+            current_speed_mps=0.0,
+            current_acceleration_ego_xy=np.zeros(2),
+            horizons=(3,),
         )
 
 

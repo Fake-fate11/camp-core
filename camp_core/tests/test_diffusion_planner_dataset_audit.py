@@ -10,6 +10,7 @@ from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES_V9,
     DP_CAMP_ATOM_NAMES_V10,
     compute_perfect_tracker_command_diagnostics,
+    compute_perfect_tracker_open_loop_rollout_diagnostics,
     select_perfect_tracker_command_dominating_candidate,
 )
 from scripts.integrations.augment_diffusion_planner_camp_v9_red_stopping import (
@@ -301,6 +302,69 @@ def test_dataset_audit_certifies_perfect_tracker_command_shadow(tmp_path) -> Non
     assert report["passed"]
     assert report["checks"]["perfect_tracker_command_shadow_verified"]
     assert report["checks"]["perfect_tracker_command_records"] == 1
+
+
+def test_dataset_audit_certifies_tracker_rollout_and_full_red_shadows(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_perfect_tracker_command_contract(log_path)
+
+    report = audit_training_dataset(
+        [log_path],
+        atom_scales=np.ones(12),
+        expected_logs=1,
+        expected_candidates=2,
+        expected_advance_mode="perfect",
+        require_perfect_tracker_open_loop_rollout=True,
+        require_full_horizon_red_light_shadow=True,
+    )
+
+    assert report["passed"]
+    assert report["checks"]["perfect_tracker_open_loop_rollout_verified"]
+    assert report["checks"]["perfect_tracker_open_loop_rollout_records"] == 1
+    assert report["checks"]["full_horizon_red_light_shadow_verified"]
+    assert report["checks"]["full_horizon_red_light_shadow_records"] == 1
+
+
+def test_dataset_audit_rejects_wrong_tracker_rollout_metric(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_perfect_tracker_command_contract(log_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["candidate_perfect_tracker_open_loop_rollout"]["5"][
+        "mean_vector_jerk_mps3"
+    ][1] += 0.1
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="does not match its formula"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_advance_mode="perfect",
+            require_perfect_tracker_open_loop_rollout=True,
+        )
+
+
+def test_dataset_audit_rejects_wrong_red_horizon_union_certificate(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_perfect_tracker_command_contract(log_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["candidate_full_horizon_planned_red_light_cost"][0] = 2.0
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="certificate"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_advance_mode="perfect",
+            require_full_horizon_red_light_shadow=True,
+        )
 
 
 def test_dataset_audit_rejects_wrong_perfect_tracker_target_speed(
@@ -872,23 +936,11 @@ def _add_candidate_reference_blend_contract(log_path) -> None:
 
 
 def _add_perfect_tracker_command_contract(log_path) -> None:
-    candidates = np.array(
-        [
-            [
-                [0.2, 0.0, 1.0, 0.0],
-                [0.4, 0.0, 1.0, 0.0],
-                [0.6, 0.0, 1.0, 0.0],
-                [0.8, 0.0, 1.0, 0.0],
-            ],
-            [
-                [0.2, 0.0, 1.0, 0.0],
-                [0.3, 0.1, 1.0, 0.0],
-                [0.5, 0.1, 1.0, 0.0],
-                [0.7, 0.1, 1.0, 0.0],
-            ],
-        ],
-        dtype=np.float64,
-    )
+    candidates = np.zeros((2, 10, 4), dtype=np.float64)
+    candidates[:, :, 2] = 1.0
+    candidates[0, :, 0] = np.linspace(0.2, 2.0, 10)
+    candidates[1, :, 0] = np.linspace(0.2, 1.8, 10)
+    candidates[1, 1:, 1] = 0.1
     diagnostics = compute_perfect_tracker_command_diagnostics(
         candidates,
         dt=0.1,
@@ -897,7 +949,7 @@ def _add_perfect_tracker_command_contract(log_path) -> None:
     )
     records = json.loads(log_path.read_text(encoding="utf-8"))
     record = records[0]
-    record["candidate_trajectory_horizon_steps"] = 4
+    record["candidate_trajectory_horizon_steps"] = 10
     record["candidate_perfect_tracker_reference_first_xy"] = diagnostics[
         "first_reference_xy"
     ].tolist()
@@ -907,6 +959,9 @@ def _add_perfect_tracker_command_contract(log_path) -> None:
     record["candidate_perfect_tracker_postprocessed_tail_xy"] = diagnostics[
         "postprocessed_tail_reference_xy"
     ].tolist()
+    record["candidate_perfect_tracker_postprocessed_reference_prefix"] = (
+        diagnostics["postprocessed_reference"].tolist()
+    )
     record["candidate_perfect_tracker_first_step_reach_m"] = diagnostics[
         "first_step_reach_m"
     ].tolist()
@@ -935,6 +990,38 @@ def _add_perfect_tracker_command_contract(log_path) -> None:
         "restart_speed_threshold_mps": 0.1,
         "restart_plan_speed_threshold_mps": 0.5,
     }
+    rollout = compute_perfect_tracker_open_loop_rollout_diagnostics(
+        diagnostics["postprocessed_reference"],
+        postprocessed_tail_reference_xy=diagnostics[
+            "postprocessed_tail_reference_xy"
+        ],
+        full_horizon_steps=10,
+        dt=0.1,
+        current_speed_mps=0.0,
+        current_acceleration_ego_xy=np.zeros(2),
+        horizons=(3, 5, 10),
+    )
+    record["perfect_tracker_open_loop_rollout_inputs"] = {
+        "full_horizon_steps": 10,
+        "horizons": [3, 5, 10],
+        "dt": 0.1,
+        "current_speed_mps": 0.0,
+        "current_acceleration_ego_xy": [0.0, 0.0],
+        "max_speed_mps": 20.0,
+        "restart_speed_threshold_mps": 0.1,
+        "restart_plan_speed_threshold_mps": 0.5,
+    }
+    record["candidate_perfect_tracker_open_loop_rollout"] = {
+        horizon: {
+            metric: values.tolist()
+            for metric, values in metrics.items()
+        }
+        for horizon, metrics in rollout["horizons"].items()
+    }
+    record["dp_candidate_reward_horizon_steps"] = 10
+    record["candidate_full_horizon_planned_red_light_cost"] = [4.0, 0.0]
+    record["candidate_full_horizon_red_light_horizon_steps"] = 10
+    record["candidate_horizon_union_planned_red_light_cost"] = [4.0, 0.0]
     for field, diagnostic_key in (
         (
             "candidate_perfect_tracker_tail_average_speed_mps",
@@ -996,6 +1083,51 @@ def _add_perfect_tracker_command_contract(log_path) -> None:
                 "lateral_acceleration_magnitude_mps2"
             ),
         ],
+    }
+    summary["camp_shadow_perfect_tracker_open_loop_rollout"] = {
+        "schema_version": "perfect_tracker_open_loop_rollout_v1",
+        "enabled": True,
+        "selection_effect": False,
+        "online_feature_eligible": True,
+        "closed_loop_guarantee": False,
+        "tracker_class": "scenario_generation.mpc_tracker.PerfectTracker",
+        "reference_postprocessing": (
+            "scenario_generation.mpc_tracker.postprocess_reference"
+        ),
+        "candidate_preprocessing": dict(
+            record["perfect_tracker_candidate_preprocessing"]
+        ),
+        "candidate_frame": "ego",
+        "horizons": [3, 5, 10],
+        "definition": (
+            "fixed-candidate PerfectTracker commit rollout without "
+            "Diffusion Planner replanning"
+        ),
+        "metrics": [
+            "distance_m",
+            "mean_vector_jerk_mps3",
+            "max_vector_jerk_mps3",
+            "mean_lateral_acceleration_mps2",
+            "max_lateral_acceleration_mps2",
+        ],
+    }
+    summary["camp_shadow_full_horizon_red_light"] = {
+        "schema_version": "full_horizon_red_light_shadow_v1",
+        "enabled": True,
+        "selection_effect": False,
+        "online_feature_eligible": True,
+        "source": "rlvr.reward.compute_red_light_score_batch",
+        "candidate_preprocessing": dict(
+            record["perfect_tracker_candidate_preprocessing"]
+        ),
+        "candidate_frame": "ego",
+        "horizon_steps": 10,
+        "raw_full_horizon_field": (
+            "candidate_full_horizon_planned_red_light_cost"
+        ),
+        "horizon_union_certificate_field": (
+            "candidate_horizon_union_planned_red_light_cost"
+        ),
     }
     summary_path.write_text(json.dumps(summary), encoding="utf-8")
 
