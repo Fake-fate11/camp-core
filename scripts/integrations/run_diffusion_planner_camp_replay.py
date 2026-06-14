@@ -927,7 +927,9 @@ def _apply_underprogress_relaxation_override(
         candidate_red_stopping_margin_cost,
         dtype=np.float64,
     ).reshape(-1)
-    h3 = perfect_tracker_open_loop.get("3")
+    h3 = perfect_tracker_open_loop.get(3)
+    if h3 is None:
+        h3 = perfect_tracker_open_loop.get("3")
     if not isinstance(h3, dict):
         raise ValueError("Underprogress relaxation requires H3 rollout metrics.")
     distance = np.asarray(h3["distance_m"], dtype=np.float64).reshape(-1)

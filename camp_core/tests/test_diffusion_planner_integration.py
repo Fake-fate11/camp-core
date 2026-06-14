@@ -1953,7 +1953,7 @@ def test_underprogress_relaxation_selects_only_soft_blocked_lower_red() -> None:
         timings_ms={},
     )
     rollout = {
-        "3": {
+        3: {
             "distance_m": np.array([1.0, 0.95, 1.0], dtype=np.float64),
             "max_lateral_acceleration_mps2": np.array(
                 [0.1, 0.2, 0.1], dtype=np.float64
@@ -2002,7 +2002,7 @@ def test_underprogress_relaxation_keeps_hard_blocked_candidates_infeasible() -> 
         timings_ms={},
     )
     rollout = {
-        "3": {
+        3: {
             "distance_m": np.array([1.0, 1.0], dtype=np.float64),
             "max_lateral_acceleration_mps2": np.array([0.1, 0.1], dtype=np.float64),
         }
