@@ -2111,6 +2111,7 @@ formal seeds.
 | `noise0p75_stepreach0p99` | -0.000163 [-0.000360, +0.000026] | -0.002917 | -0.000419 | +0.000417 | -2.941414 | -0.000380 | +0.008750 | -0.095000 | -2.657798 | reject: fallback |
 | `noise0p75_stepreach0p995` | -0.000179 [-0.000421, +0.000054] | -0.002500 | -0.000419 | +0.000000 | -3.093988 | +0.001026 | +0.012917 | -0.155052 | +0.370795 | reject: fallback and lateral |
 | `noise0p75_stepreach1p00` | -0.000082 [-0.000266, +0.000106] | -0.002917 | +0.000000 | +0.000000 | -3.242133 | +0.001720 | +0.014167 | -0.310417 | -2.314045 | reject: fallback and lateral |
+| `noise0p75_stepreach0p99_preservefeasible` | -0.000274 [-0.000493, -0.000058] | -0.002500 | -0.000419 | +0.000417 | -2.713757 | -0.001618 | +0.001250 | -0.093802 | -3.013839 | reject: completion |
 
 Artifacts:
 
@@ -2128,6 +2129,11 @@ Artifacts:
 | `noise0p75_stepreach0p995` comparison JSON | `aa1dedd786ec43f1f049305bdbac239733366f5d993283b4b7a6f66bccb90a6f` |
 | `noise0p75_stepreach0p995` comparison markdown | `36b7cbca5fa54774295e56fe89ce1554ed89b62e79728c563fb5d28d9e7ce60f` |
 | `noise0p75_stepreach1p00` comparison JSON | `161ede35e4b5e13c08cf86f6ae4d517a99c6281b0dc05029a5a010ae36868034` |
+| `noise0p75_stepreach0p99_preservefeasible` dataset audit | `f05247dae7dc51e97173a5178fd44a492ed47e5e829667b4bfaaae7f6b93f621` |
+| `noise0p75_stepreach0p99_preservefeasible` coverage JSON | `5f487b4e8ab6621fa658365b5f5fea20cdfb89ea3bea702d7de6b661d6e8792a` |
+| `noise0p75_stepreach0p99_preservefeasible` coverage markdown | `cc863841265af92d2519e111b2997c2538c41b8637a9e8556e4b57640746397f` |
+| `noise0p75_stepreach0p99_preservefeasible` comparison JSON | `88a4ed0a681a24a9f634065ba3899d0084b7a055bd91c8f0ce0a98abec88ea0a` |
+| `noise0p75_stepreach0p99_preservefeasible` comparison markdown | `03b284d68194a7bff009b678ce9558b29a6e44484491a640bbc097edf48cabb2` |
 
 Decision:
 
@@ -2136,9 +2142,15 @@ Decision:
 2. Ratios near 0.99 make completion nearly non-regressive on this small
    sample, but they do so by shrinking the feasible set and increasing
    fallback. Ratios at 0.995 and 1.0 also worsen mean lateral acceleration.
-3. Do not expand any first-step reach setting to the 36-run development matrix
+3. A default-off `--camp_candidate0_step_reach_preserve_feasible` safeguard was
+   also tested at ratio 0.99. It relaxed 19 of 2,400 guarded ticks
+   (`0.007917`) and reduced the fallback delta to nearly zero, but completion
+   became strictly negative again. The failure is therefore not only
+   all-infeasible fallback; it is also that the preserved candidates recover
+   insufficient executed progress.
+4. Do not expand any first-step reach setting to the 36-run development matrix
    yet and do not run formal seeds.
-4. The next design should preserve candidate-0 execution progress without
+5. The next design should preserve candidate-0 execution progress without
    causing fallback: for example, a lexicographic or Pareto filter that first
    keeps candidates within a small first-step reach tolerance, then applies
    CAMP among non-dominated candidates on red, jerk, and lateral, while always

@@ -1927,7 +1927,7 @@ def test_candidate0_step_reach_guard_matches_perfect_tracker_speed_target() -> N
     )
 
     reach = _candidate_step_reach(candidates)
-    feasible, reasons = _apply_candidate0_step_reach_guard(
+    feasible, reasons, relaxed = _apply_candidate0_step_reach_guard(
         np.ones(3, dtype=bool),
         ((), (), ()),
         reach,
@@ -1937,6 +1937,23 @@ def test_candidate0_step_reach_guard_matches_perfect_tracker_speed_target() -> N
     assert reach.tolist() == pytest.approx([1.0, 0.995037, 0.8])
     assert feasible.tolist() == [True, True, False]
     assert reasons == ((), (), ("candidate0_step_reach_underprogress",))
+    assert relaxed is False
+
+
+def test_candidate0_step_reach_guard_can_preserve_existing_feasible_set() -> None:
+    reach = np.array([1.0, 0.8, 0.7], dtype=np.float64)
+
+    feasible, reasons, relaxed = _apply_candidate0_step_reach_guard(
+        np.array([False, True, True], dtype=bool),
+        (("dp_reward_underprogress",), (), ()),
+        reach,
+        min_candidate0_step_reach_ratio=0.99,
+        preserve_any_feasible=True,
+    )
+
+    assert feasible.tolist() == [False, True, True]
+    assert reasons == (("dp_reward_underprogress",), (), ())
+    assert relaxed is True
 
 
 def test_selector_masks_candidate_that_collides_with_predicted_neighbor() -> None:

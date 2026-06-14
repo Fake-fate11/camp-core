@@ -179,6 +179,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--camp_candidate0_step_reach_preserve_feasible",
+        action="store_true",
+        help=(
+            "When --camp_min_candidate0_step_reach_ratio is enabled, relax the "
+            "step-reach guard for a tick if applying it would remove every "
+            "candidate that was feasible before the guard. This keeps the guard "
+            "from creating new all-infeasible fallback ticks and does not affect "
+            "CAMP atom scores or weights."
+        ),
+    )
+    parser.add_argument(
         "--camp_reward_horizon_steps",
         type=int,
         default=30,
@@ -522,26 +533,29 @@ def _apply_candidate0_step_reach_guard(
     reasons: tuple[tuple[str, ...], ...] | None,
     candidate_step_reach: np.ndarray,
     min_candidate0_step_reach_ratio: float | None,
-) -> tuple[np.ndarray | None, tuple[tuple[str, ...], ...] | None]:
+    preserve_any_feasible: bool = False,
+) -> tuple[np.ndarray | None, tuple[tuple[str, ...], ...] | None, bool]:
     if min_candidate0_step_reach_ratio is None:
-        return feasible, reasons
+        return feasible, reasons, False
     reach = np.asarray(candidate_step_reach, dtype=np.float64).reshape(-1)
     if reach.size == 0:
-        return feasible, reasons
+        return feasible, reasons, False
     if feasible is None:
         feasible_arr = np.ones(reach.shape[0], dtype=bool)
     else:
         feasible_arr = np.asarray(feasible, dtype=bool).reshape(-1).copy()
     if feasible_arr.shape != reach.shape:
         raise ValueError("candidate_step_reach must match feasible candidate count.")
+    original_feasible_arr = feasible_arr.copy()
     reason_rows = (
         [[] for _ in range(reach.shape[0])]
         if reasons is None
         else [list(row) for row in reasons]
     )
+    original_reason_rows = [list(row) for row in reason_rows]
     candidate0_reach = float(reach[0])
     if candidate0_reach <= 0.0 or not np.isfinite(candidate0_reach):
-        return feasible_arr, tuple(tuple(row) for row in reason_rows)
+        return feasible_arr, tuple(tuple(row) for row in reason_rows), False
     threshold = candidate0_reach * float(min_candidate0_step_reach_ratio)
     for idx, value in enumerate(reach):
         if idx == 0 or not feasible_arr[idx]:
@@ -549,7 +563,16 @@ def _apply_candidate0_step_reach_guard(
         if not np.isfinite(value) or float(value) < threshold:
             feasible_arr[idx] = False
             reason_rows[idx].append("candidate0_step_reach_underprogress")
-    return feasible_arr, tuple(tuple(row) for row in reason_rows)
+    relaxed = bool(
+        preserve_any_feasible and original_feasible_arr.any() and not feasible_arr.any()
+    )
+    if relaxed:
+        return (
+            original_feasible_arr,
+            tuple(tuple(row) for row in original_reason_rows),
+            True,
+        )
+    return feasible_arr, tuple(tuple(row) for row in reason_rows), False
 
 
 def _evaluation_state(scene: Any, ego_id: str) -> dict[str, Any]:
@@ -824,6 +847,7 @@ def _install_camp_predictor(
     min_candidate0_progress_ratio: float | None,
     min_candidate0_route_progress_ratio: float | None,
     min_candidate0_step_reach_ratio: float | None,
+    candidate0_step_reach_preserve_feasible: bool,
     reward_horizon_steps: int,
     collect_closed_loop_outcomes: bool,
     outcome_horizon_steps: int,
@@ -960,6 +984,7 @@ def _install_camp_predictor(
         candidate_progress = None
         candidate_route_progress = None
         candidate_step_reach = None
+        candidate_step_reach_guard_relaxed = False
         candidate_planned_red_light_cost = None
         red_route_points = red_route_points_from_scene(scene, ego_id)
         external_feasible_mask = None
@@ -998,11 +1023,13 @@ def _install_camp_predictor(
             (
                 external_feasible_mask,
                 external_infeasibility_reasons,
+                candidate_step_reach_guard_relaxed,
             ) = _apply_candidate0_step_reach_guard(
                 external_feasible_mask,
                 external_infeasibility_reasons,
                 candidate_step_reach,
                 min_candidate0_step_reach_ratio,
+                preserve_any_feasible=candidate0_step_reach_preserve_feasible,
             )
         if min_candidate0_route_progress_ratio is not None:
             ego_agent = scene.get_agent(ego_id)
@@ -1174,6 +1201,11 @@ def _install_camp_predictor(
                     if candidate_step_reach is not None
                     else None
                 ),
+                "candidate_step_reach_guard_relaxed": (
+                    bool(candidate_step_reach_guard_relaxed)
+                    if candidate_step_reach is not None
+                    else None
+                ),
                 "candidate_closed_loop_outcomes": candidate_outcomes,
                 "candidate_red_stopping_margin_cost": (
                     candidate_red_stopping_margin_cost.tolist()
@@ -1314,6 +1346,9 @@ def main() -> None:
             min_candidate0_step_reach_ratio=(
                 args.camp_min_candidate0_step_reach_ratio
             ),
+            candidate0_step_reach_preserve_feasible=(
+                bool(args.camp_candidate0_step_reach_preserve_feasible)
+            ),
             reward_horizon_steps=args.camp_reward_horizon_steps,
             collect_closed_loop_outcomes=args.camp_collect_closed_loop_outcomes,
             outcome_horizon_steps=args.camp_outcome_horizon_steps,
@@ -1403,6 +1438,11 @@ def main() -> None:
         if records is not None
         else None
     )
+    effective_candidate0_step_reach_preserve_feasible = (
+        bool(args.camp_candidate0_step_reach_preserve_feasible)
+        if records is not None and args.camp_min_candidate0_step_reach_ratio is not None
+        else None
+    )
     effective_reward_horizon_steps = (
         args.camp_reward_horizon_steps
         if records is not None and args.camp_feasibility_source == "dp_reward"
@@ -1436,6 +1476,9 @@ def main() -> None:
         ),
         "camp_min_candidate0_step_reach_ratio": (
             effective_min_candidate0_step_reach_ratio
+        ),
+        "camp_candidate0_step_reach_preserve_feasible": (
+            effective_candidate0_step_reach_preserve_feasible
         ),
         "camp_reward_horizon_steps": effective_reward_horizon_steps,
         "camp_collect_closed_loop_outcomes": (
@@ -1547,6 +1590,9 @@ def main() -> None:
     )
     validation["camp_min_candidate0_step_reach_ratio"] = (
         effective_min_candidate0_step_reach_ratio
+    )
+    validation["camp_candidate0_step_reach_preserve_feasible"] = (
+        effective_candidate0_step_reach_preserve_feasible
     )
     validation["camp_reward_horizon_steps"] = effective_reward_horizon_steps
     validation["camp_collect_closed_loop_outcomes"] = (
