@@ -21,6 +21,7 @@ for path in (ROOT, PACKAGE_ROOT):
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
     atom_schema_for_dimension,
     load_dp_camp_atom_scales,
+    select_perfect_tracker_command_dominating_candidate,
 )
 from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
     iter_selection_log_paths,
@@ -68,6 +69,37 @@ PERFECT_TRACKER_COMMAND_METADATA = {
         "candidate_perfect_tracker_yaw_rate_magnitude_rps",
         "candidate_perfect_tracker_lateral_acceleration_magnitude_mps2",
     ],
+}
+PERFECT_TRACKER_COMMAND_POSTSELECTION_METADATA = {
+    "enabled": True,
+    "selection_effect": True,
+    "baseline": "camp_selected_index",
+    "required_nonworse": [
+        "base_feasibility",
+        "perfect_tracker_target_speed",
+        "dp_progress",
+        "planned_red",
+        "perfect_tracker_command_jerk",
+        "perfect_tracker_command_lateral_acceleration",
+    ],
+    "required_strict_improvement": [
+        "perfect_tracker_command_jerk",
+        "perfect_tracker_command_lateral_acceleration",
+    ],
+    "order": [
+        "perfect_tracker_command_jerk",
+        "perfect_tracker_command_lateral_acceleration",
+        "camp_score",
+        "candidate_index",
+    ],
+    "epsilons": {
+        "target_speed_mps": 0.0,
+        "progress_m": 0.0,
+        "planned_red": 0.0,
+        "jerk_mps3": 0.0,
+        "lateral_acceleration_mps2": 0.0,
+    },
+    "new_fallback_possible": False,
 }
 
 
@@ -166,6 +198,14 @@ def parse_args() -> argparse.Namespace:
             "PerfectTracker command shadow in every record."
         ),
     )
+    parser.add_argument(
+        "--require_perfect_tracker_command_postselection",
+        action="store_true",
+        help=(
+            "Require and independently recompute the nonempty "
+            "PerfectTracker command postselection in every record."
+        ),
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -186,6 +226,7 @@ def audit_training_dataset(
     expected_lexicographic_preselection: dict[str, float] | None = None,
     expected_candidate_reference_blend_steps: int | None = None,
     require_perfect_tracker_command_shadow: bool = False,
+    require_perfect_tracker_command_postselection: bool = False,
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
@@ -280,6 +321,7 @@ def audit_training_dataset(
     outcome_candidates = 0
     lexicographic_stage_records = 0
     perfect_tracker_command_records = 0
+    perfect_tracker_command_postselection_records = 0
     candidate_field_reports = {
         field: {
             "records": 0,
@@ -366,6 +408,24 @@ def audit_training_dataset(
                 summary_path,
                 validation_summary.get(
                     "camp_shadow_perfect_tracker_command"
+                ),
+            )
+        if require_perfect_tracker_command_postselection:
+            if advance_mode != "perfect":
+                raise ValueError(
+                    f"{summary_path} uses advance_mode={advance_mode!r}; "
+                    "PerfectTracker command postselection requires 'perfect'."
+                )
+            _validate_perfect_tracker_command_summary(
+                summary_path,
+                validation_summary.get(
+                    "camp_shadow_perfect_tracker_command"
+                ),
+            )
+            _validate_perfect_tracker_command_postselection_summary(
+                summary_path,
+                validation_summary.get(
+                    "camp_perfect_tracker_command_postselection"
                 ),
             )
         records = json.loads(log_path.read_text(encoding="utf-8"))
@@ -461,6 +521,21 @@ def audit_training_dataset(
                     expected_candidates=expected_candidates,
                 )
                 perfect_tracker_command_records += 1
+            if require_perfect_tracker_command_postselection:
+                if not require_perfect_tracker_command_shadow:
+                    _validate_perfect_tracker_command_record(
+                        log_path,
+                        record_idx,
+                        record,
+                        expected_candidates=expected_candidates,
+                    )
+                _validate_perfect_tracker_command_postselection_record(
+                    log_path,
+                    record_idx,
+                    record,
+                    expected_candidates=expected_candidates,
+                )
+                perfect_tracker_command_postselection_records += 1
             for field in required_fields:
                 values = _validate_candidate_field(
                     log_path,
@@ -566,6 +641,15 @@ def audit_training_dataset(
                 require_perfect_tracker_command_shadow
             ),
             "perfect_tracker_command_records": perfect_tracker_command_records,
+            "perfect_tracker_command_postselection_required": (
+                require_perfect_tracker_command_postselection
+            ),
+            "perfect_tracker_command_postselection_verified": (
+                require_perfect_tracker_command_postselection
+            ),
+            "perfect_tracker_command_postselection_records": (
+                perfect_tracker_command_postselection_records
+            ),
         },
         "candidate_fields": candidate_field_reports,
         "logs": log_reports,
@@ -778,6 +862,98 @@ def _validate_perfect_tracker_command_summary(
             f"{summary_path} does not certify the expected PerfectTracker "
             "command shadow."
         )
+
+
+def _validate_perfect_tracker_command_postselection_summary(
+    summary_path: Path,
+    metadata: Any,
+) -> None:
+    if metadata != PERFECT_TRACKER_COMMAND_POSTSELECTION_METADATA:
+        raise ValueError(
+            f"{summary_path} does not certify the expected PerfectTracker "
+            "command postselection."
+        )
+
+
+def _validate_perfect_tracker_command_postselection_record(
+    log_path: Path,
+    record_idx: int,
+    record: dict[str, Any],
+    *,
+    expected_candidates: int,
+) -> None:
+    label = f"{log_path} record {record_idx} PerfectTracker postselection"
+    feasible = np.asarray(record.get("feasible_mask"), dtype=bool).reshape(-1)
+    if feasible.shape != (expected_candidates,):
+        raise ValueError(f"{label} has invalid feasible_mask.")
+    rewards = record.get("dp_candidate_rewards")
+    if not isinstance(rewards, list) or len(rewards) != expected_candidates:
+        raise ValueError(f"{label} lacks complete DP rewards.")
+    progress = np.asarray(
+        [float(reward["progress"]) for reward in rewards],
+        dtype=np.float64,
+    )
+    planned_red = np.asarray(
+        [
+            max(-float(reward.get("red_light", 0.0)), 0.0)
+            for reward in rewards
+        ],
+        dtype=np.float64,
+    )
+    if not np.all(np.isfinite(progress)) or not np.all(
+        np.isfinite(planned_red)
+    ):
+        raise ValueError(f"{label} has invalid DP reward fields.")
+    baseline = record.get("camp_selected_index_before_tracker_postselection")
+    final = record.get("selected_index")
+    if (
+        isinstance(baseline, bool)
+        or not isinstance(baseline, int)
+        or isinstance(final, bool)
+        or not isinstance(final, int)
+    ):
+        raise ValueError(f"{label} has invalid selected indices.")
+    expected_final, expected_stats = (
+        select_perfect_tracker_command_dominating_candidate(
+            baseline_selected_index=baseline,
+            feasible_mask=feasible,
+            selection_scores=np.asarray(
+                record.get("selection_scores"),
+                dtype=np.float64,
+            ),
+            candidate_progress=progress,
+            candidate_planned_red_light_cost=planned_red,
+            candidate_target_speed_mps=_finite_candidate_vector(
+                record.get("candidate_perfect_tracker_target_speed_mps"),
+                expected_candidates,
+                label=f"{label} target speed",
+                nonnegative=True,
+            ),
+            candidate_jerk_magnitude_mps3=_finite_candidate_vector(
+                record.get(
+                    "candidate_perfect_tracker_jerk_magnitude_mps3"
+                ),
+                expected_candidates,
+                label=f"{label} jerk",
+                nonnegative=True,
+            ),
+            candidate_lateral_acceleration_magnitude_mps2=(
+                _finite_candidate_vector(
+                    record.get(
+                        "candidate_perfect_tracker_"
+                        "lateral_acceleration_magnitude_mps2"
+                    ),
+                    expected_candidates,
+                    label=f"{label} lateral acceleration",
+                    nonnegative=True,
+                )
+            ),
+        )
+    )
+    if final != expected_final:
+        raise ValueError(f"{label} selected index does not match its formula.")
+    if record.get("perfect_tracker_command_postselection") != expected_stats:
+        raise ValueError(f"{label} stage statistics do not match their formula.")
 
 
 def _validate_perfect_tracker_command_record(
@@ -1184,6 +1360,9 @@ def main() -> None:
         ),
         require_perfect_tracker_command_shadow=(
             args.require_perfect_tracker_command_shadow
+        ),
+        require_perfect_tracker_command_postselection=(
+            args.require_perfect_tracker_command_postselection
         ),
     )
     report["artifacts"] = {

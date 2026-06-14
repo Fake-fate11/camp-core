@@ -37,6 +37,7 @@ from camp_core.integrations.diffusion_planner import (
     install_lanelet2_projection_fallback,
     project_simplex,
     sanitize_lanelet2_map,
+    select_perfect_tracker_command_dominating_candidate,
     summarize_replay_artifacts,
     summarize_selection_records,
 )
@@ -1457,6 +1458,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_reward_scoring": 2.0,
             "latency_ms_outcome_collection": 0.0,
             "latency_ms_camp_selection": 1.0,
+            "latency_ms_perfect_tracker_command_postselection": 0.05,
             "latency_ms_camp_atom_computation": 0.3,
             "latency_ms_camp_feasibility": 0.1,
             "latency_ms_camp_collision_checks": 0.4,
@@ -1476,6 +1478,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_reward_scoring": 4.0,
             "latency_ms_outcome_collection": 0.0,
             "latency_ms_camp_selection": 2.0,
+            "latency_ms_perfect_tracker_command_postselection": 0.15,
             "latency_ms_camp_atom_computation": 0.6,
             "latency_ms_camp_feasibility": 0.2,
             "latency_ms_camp_collision_checks": 0.8,
@@ -1511,6 +1514,9 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
     assert summary["mean_reward_scoring_latency_ms"] == 3.0
     assert summary["mean_outcome_collection_latency_ms"] == 0.0
     assert summary["mean_camp_selection_latency_ms"] == 1.5
+    assert summary[
+        "mean_perfect_tracker_command_postselection_latency_ms"
+    ] == pytest.approx(0.1)
     assert summary["mean_camp_atom_computation_latency_ms"] == pytest.approx(0.45)
     assert summary["mean_camp_feasibility_latency_ms"] == pytest.approx(0.15)
     assert summary["mean_camp_collision_checks_latency_ms"] == pytest.approx(0.6)
@@ -2087,6 +2093,75 @@ def test_perfect_tracker_command_diagnostics_fail_closed(kwargs, error) -> None:
             np.zeros((1, 2, 4), dtype=np.float64),
             **arguments,
         )
+
+
+def test_tracker_command_postselection_chooses_jointly_dominating_candidate() -> None:
+    selected, stats = select_perfect_tracker_command_dominating_candidate(
+        baseline_selected_index=0,
+        feasible_mask=np.array([True, True, True]),
+        selection_scores=np.array([0.0, 0.2, 0.1]),
+        candidate_progress=np.array([5.0, 5.1, 5.2]),
+        candidate_planned_red_light_cost=np.array([0.0, 0.0, 0.0]),
+        candidate_target_speed_mps=np.array([4.0, 4.1, 4.2]),
+        candidate_jerk_magnitude_mps3=np.array([10.0, 8.0, 7.0]),
+        candidate_lateral_acceleration_magnitude_mps2=np.array([0.5, 0.4, 0.6]),
+    )
+
+    assert selected == 1
+    assert stats == {
+        "base_feasible_count": 3,
+        "admissible_count": 3,
+        "weakly_dominating_count": 2,
+        "strict_improvement_count": 1,
+        "baseline_selected_index": 0,
+        "selected_index": 1,
+        "changed": True,
+    }
+
+
+def test_tracker_command_postselection_preserves_progress_and_fallback() -> None:
+    kwargs = {
+        "baseline_selected_index": 0,
+        "selection_scores": np.array([0.0, 0.2]),
+        "candidate_progress": np.array([5.0, 4.9]),
+        "candidate_planned_red_light_cost": np.array([0.0, 0.0]),
+        "candidate_target_speed_mps": np.array([4.0, 4.1]),
+        "candidate_jerk_magnitude_mps3": np.array([10.0, 8.0]),
+        "candidate_lateral_acceleration_magnitude_mps2": np.array([0.5, 0.4]),
+    }
+
+    selected, stats = select_perfect_tracker_command_dominating_candidate(
+        feasible_mask=np.array([True, True]),
+        **kwargs,
+    )
+    assert selected == 0
+    assert stats["admissible_count"] == 1
+    assert stats["changed"] is False
+
+    fallback_selected, fallback_stats = (
+        select_perfect_tracker_command_dominating_candidate(
+            feasible_mask=np.array([False, False]),
+            **kwargs,
+        )
+    )
+    assert fallback_selected == 0
+    assert fallback_stats["base_feasible_count"] == 0
+    assert fallback_stats["changed"] is False
+
+
+def test_tracker_command_postselection_uses_deterministic_tie_break() -> None:
+    selected, _ = select_perfect_tracker_command_dominating_candidate(
+        baseline_selected_index=0,
+        feasible_mask=np.array([True, True, True]),
+        selection_scores=np.array([0.0, 0.2, 0.2]),
+        candidate_progress=np.array([5.0, 5.0, 5.0]),
+        candidate_planned_red_light_cost=np.zeros(3),
+        candidate_target_speed_mps=np.array([4.0, 4.0, 4.0]),
+        candidate_jerk_magnitude_mps3=np.array([10.0, 8.0, 8.0]),
+        candidate_lateral_acceleration_magnitude_mps2=np.array([0.5, 0.4, 0.4]),
+    )
+
+    assert selected == 1
 
 
 def test_candidate0_step_reach_guard_can_preserve_existing_feasible_set() -> None:

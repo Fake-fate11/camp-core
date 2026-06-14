@@ -10,6 +10,7 @@ from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES_V9,
     DP_CAMP_ATOM_NAMES_V10,
     compute_perfect_tracker_command_diagnostics,
+    select_perfect_tracker_command_dominating_candidate,
 )
 from scripts.integrations.augment_diffusion_planner_camp_v9_red_stopping import (
     augment_logs as augment_v9_logs,
@@ -180,6 +181,7 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
     _add_lexicographic_contract(log_path)
     _add_candidate_reference_blend_contract(log_path)
     _add_perfect_tracker_command_contract(log_path)
+    _add_perfect_tracker_command_postselection_contract(log_path)
     records = json.loads(log_path.read_text(encoding="utf-8"))
     del records[0]["candidate_closed_loop_outcomes"]
     log_path.write_text(json.dumps(records), encoding="utf-8")
@@ -223,6 +225,7 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
             "--expected_candidate_reference_blend_steps",
             "5",
             "--require_perfect_tracker_command_shadow",
+            "--require_perfect_tracker_command_postselection",
             "--output_json",
             str(output_path),
         ],
@@ -238,6 +241,9 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
     assert report["checks"]["lexicographic_stage_records"] == 1
     assert report["checks"]["candidate_reference_blend_verified"]
     assert report["checks"]["perfect_tracker_command_shadow_verified"]
+    assert report["checks"][
+        "perfect_tracker_command_postselection_verified"
+    ]
 
 
 def test_dataset_audit_certifies_lexicographic_preselection(tmp_path) -> None:
@@ -314,6 +320,52 @@ def test_dataset_audit_rejects_wrong_perfect_tracker_target_speed(
             expected_candidates=2,
             expected_advance_mode="perfect",
             require_perfect_tracker_command_shadow=True,
+        )
+
+
+def test_dataset_audit_certifies_perfect_tracker_command_postselection(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_perfect_tracker_command_contract(log_path)
+    _add_perfect_tracker_command_postselection_contract(log_path)
+
+    report = audit_training_dataset(
+        [log_path],
+        atom_scales=np.ones(12),
+        expected_logs=1,
+        expected_candidates=2,
+        expected_advance_mode="perfect",
+        require_perfect_tracker_command_postselection=True,
+    )
+
+    assert report["passed"]
+    assert report["checks"][
+        "perfect_tracker_command_postselection_verified"
+    ]
+    assert report["checks"][
+        "perfect_tracker_command_postselection_records"
+    ] == 1
+
+
+def test_dataset_audit_rejects_wrong_tracker_postselection_index(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_perfect_tracker_command_contract(log_path)
+    _add_perfect_tracker_command_postselection_contract(log_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["selected_index"] = 1
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="selected index"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_advance_mode="perfect",
+            require_perfect_tracker_command_postselection=True,
         )
 
 
@@ -875,5 +927,73 @@ def _add_perfect_tracker_command_contract(log_path) -> None:
                 "lateral_acceleration_magnitude_mps2"
             ),
         ],
+    }
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+
+def _add_perfect_tracker_command_postselection_contract(log_path) -> None:
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    record = records[0]
+    record["feasible_mask"] = [True, True]
+    record["selection_scores"] = [0.0, 1.0]
+    record["dp_candidate_rewards"][0]["progress"] = 5.0
+    record["dp_candidate_rewards"][1]["progress"] = 5.0
+    baseline = 0
+    selected, stats = select_perfect_tracker_command_dominating_candidate(
+        baseline_selected_index=baseline,
+        feasible_mask=np.asarray(record["feasible_mask"], dtype=bool),
+        selection_scores=np.asarray(record["selection_scores"], dtype=float),
+        candidate_progress=np.asarray([5.0, 5.0]),
+        candidate_planned_red_light_cost=np.asarray([3.0, 0.0]),
+        candidate_target_speed_mps=np.asarray(
+            record["candidate_perfect_tracker_target_speed_mps"],
+        ),
+        candidate_jerk_magnitude_mps3=np.asarray(
+            record["candidate_perfect_tracker_jerk_magnitude_mps3"],
+        ),
+        candidate_lateral_acceleration_magnitude_mps2=np.asarray(
+            record[
+                "candidate_perfect_tracker_"
+                "lateral_acceleration_magnitude_mps2"
+            ],
+        ),
+    )
+    record["camp_selected_index_before_tracker_postselection"] = baseline
+    record["selected_index"] = selected
+    record["perfect_tracker_command_postselection"] = stats
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["camp_perfect_tracker_command_postselection"] = {
+        "enabled": True,
+        "selection_effect": True,
+        "baseline": "camp_selected_index",
+        "required_nonworse": [
+            "base_feasibility",
+            "perfect_tracker_target_speed",
+            "dp_progress",
+            "planned_red",
+            "perfect_tracker_command_jerk",
+            "perfect_tracker_command_lateral_acceleration",
+        ],
+        "required_strict_improvement": [
+            "perfect_tracker_command_jerk",
+            "perfect_tracker_command_lateral_acceleration",
+        ],
+        "order": [
+            "perfect_tracker_command_jerk",
+            "perfect_tracker_command_lateral_acceleration",
+            "camp_score",
+            "candidate_index",
+        ],
+        "epsilons": {
+            "target_speed_mps": 0.0,
+            "progress_m": 0.0,
+            "planned_red": 0.0,
+            "jerk_mps3": 0.0,
+            "lateral_acceleration_mps2": 0.0,
+        },
+        "new_fallback_possible": False,
     }
     summary_path.write_text(json.dumps(summary), encoding="utf-8")

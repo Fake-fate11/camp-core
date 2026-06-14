@@ -2537,3 +2537,97 @@ Maximum absolute errors were:
 Local verification for this implementation was `137 passed, 5 skipped`.
 The next step is an AutoDL test and non-formal K=8 baseline replay with the
 new shadow enabled. Formal seeds remain frozen.
+
+### AutoDL command-shadow baseline
+
+AutoDL verification passed with `142 passed`. The upstream parity artifact is:
+
+`/root/autodl-tmp/camp_dp_tracker_command_shadow/perfect_tracker_parity_20260614.json`
+
+Its SHA-256 is
+`33383fc18fec02f5dae1c226225147458ff37dec42f9700eeac8c6957debd53c`.
+
+Two non-formal sample59 K=8 profiles used the frozen `redstopfloor05`
+checkpoint, seed 1, no NPCs, traffic lights off, 200 steps, DP-reward
+feasibility, and no candidate outcome labels. Both dataset audits certified
+200 records and 1,600 candidates. Relative to the prior baseline, the first
+profile had exactly equal selected indices, feasible masks, atoms, candidate
+rewards, and closed-loop trajectory.
+
+| Profile | Total p95 | Command-shadow p95 | Completion | Jerk | Lateral | Fallback |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| First run | 104.908 ms | 0.320 ms | 0.156785 | 10.128817 | 0.426936 | 0.120 |
+| Independent rerun | 97.375 ms | 0.317 ms | 0.156785 | 10.128817 | 0.426936 | 0.120 |
+
+The first run exceeded the latency gate because candidate-generation p95 rose
+to `67.749 ms`; the command shadow itself remained below `0.321 ms`. The
+independent rerun passed the total gate with candidate-generation p95
+`62.867 ms`. This supports keeping the diagnostic, but a later paired matrix
+must still evaluate total latency rather than subtracting the shadow phase.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Rerun selection log | `a3cabcee084d5f56f07727a2c910c38937d56e8b3d82983ba6f26330f5624c73` |
+| Rerun validation summary | `0614dd5324cdb8d0d7ecab3ffe9ef5f84d3adf83b8371ced0bd1aa02bc2cec07` |
+| Rerun dataset audit | `076c181972a2d8949bb1f9479f8c387a49f26ef61d13ba82548c0f5504e5a833` |
+| Command opportunity JSON | `db2332011b9a739b669c8e574eb20aad1a245e0b457ea367e24bdeaf7ec37470` |
+| Command opportunity markdown | `20a987867cc2361071f0d4f4a69e04898197fcd18832a7bc9132622eedf9d4ae` |
+
+### Nonempty command-dominance postselection
+
+The outcome-free command audit initially found 24 of 176 non-fallback ticks
+with target-speed/red-preserving candidates that jointly improved command jerk
+and lateral acceleration. That definition was rejected because only `37.5%`
+of those changes preserved h30 DP progress and mean progress fell by
+`0.115 m`.
+
+The accepted offline definition additionally requires DP progress not to fall.
+Let \(b\) be the candidate selected by the unchanged CAMP selector and \(F\)
+the existing base-feasible set. Define
+
+\[
+D_b=\{k\in F:
+u_k\ge u_b,\ p_k\ge p_b,\ r_k\le r_b,\ j_k\le j_b,\
+a^{\mathrm{lat}}_k\le a^{\mathrm{lat}}_b\}.
+\]
+
+Candidate \(b\) is always in \(D_b\), so the set is nonempty whenever \(F\) is
+nonempty. A replacement is permitted only if some member strictly improves
+command jerk or lateral acceleration. Candidates in \(D_b\) are ordered
+deterministically by command jerk, command lateral acceleration, original CAMP
+score, then candidate index. If \(F\) is empty, the original fallback and
+selected index are retained.
+
+This finite postselection:
+
+1. never restores a candidate removed by base safety/reward feasibility;
+2. cannot create a new all-infeasible tick;
+3. preserves target speed, h30 progress, and planned-red cost relative to the
+   original CAMP selection;
+4. preserves command jerk and lateral acceleration and requires a strict
+   improvement before changing the selection;
+5. does not modify the atom schema, scales, CAMP weights, or robust master.
+
+The baseline-dependent finite rule is not classical Benders decomposition.
+It leaves the certified convex weight-training problem unchanged. Its mapping
+from trajectories to a selected discrete index is not claimed to be convex.
+
+The strict offline counterfactual changed 9 of 176 non-fallback ticks
+(`5.1136%`). Mean deltas on changed ticks were:
+
+| Quantity | Delta |
+| --- | ---: |
+| PerfectTracker target speed | +0.018265 m/s |
+| h30 DP progress | +0.045761 m |
+| Planned-red cost | 0.000000 |
+| Command jerk | -1.826506 m/s^3 |
+| Command lateral acceleration | -0.016396 m/s^2 |
+
+The rule is implemented behind
+`--camp_perfect_tracker_command_postselection`, which is default-off and
+requires DP-reward feasibility plus `advance_mode=perfect`. Summary metadata
+and every per-record baseline/final index and stage count are independently
+recomputed by the dataset audit. The next evidence step is a non-formal
+sample59 paired pilot. Formal seeds remain frozen.

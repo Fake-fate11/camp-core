@@ -995,6 +995,134 @@ def compute_perfect_tracker_command_diagnostics(
     }
 
 
+def select_perfect_tracker_command_dominating_candidate(
+    *,
+    baseline_selected_index: int,
+    feasible_mask: np.ndarray,
+    selection_scores: np.ndarray,
+    candidate_progress: np.ndarray,
+    candidate_planned_red_light_cost: np.ndarray,
+    candidate_target_speed_mps: np.ndarray,
+    candidate_jerk_magnitude_mps3: np.ndarray,
+    candidate_lateral_acceleration_magnitude_mps2: np.ndarray,
+) -> tuple[int, dict[str, int | bool]]:
+    """Choose a command-dominating candidate without shrinking feasibility.
+
+    The baseline CAMP selection is always retained in the weakly dominating
+    set. A different candidate is considered only when it is base-feasible,
+    preserves DP progress and planned-red cost, preserves PerfectTracker target
+    speed, and does not worsen command jerk or lateral acceleration. At least
+    one command-comfort quantity must improve strictly.
+    """
+    feasible = np.asarray(feasible_mask, dtype=bool).reshape(-1)
+    candidate_count = feasible.size
+    if candidate_count == 0:
+        raise ValueError("PerfectTracker postselection requires candidates.")
+    if (
+        isinstance(baseline_selected_index, bool)
+        or not isinstance(baseline_selected_index, (int, np.integer))
+        or not 0 <= int(baseline_selected_index) < candidate_count
+    ):
+        raise ValueError("baseline_selected_index is invalid.")
+    baseline = int(baseline_selected_index)
+    arrays = {
+        "selection_scores": np.asarray(
+            selection_scores, dtype=np.float64
+        ).reshape(-1),
+        "progress": np.asarray(
+            candidate_progress, dtype=np.float64
+        ).reshape(-1),
+        "planned_red": np.asarray(
+            candidate_planned_red_light_cost, dtype=np.float64
+        ).reshape(-1),
+        "target_speed": np.asarray(
+            candidate_target_speed_mps, dtype=np.float64
+        ).reshape(-1),
+        "jerk": np.asarray(
+            candidate_jerk_magnitude_mps3, dtype=np.float64
+        ).reshape(-1),
+        "lateral": np.asarray(
+            candidate_lateral_acceleration_magnitude_mps2,
+            dtype=np.float64,
+        ).reshape(-1),
+    }
+    if any(values.shape != (candidate_count,) for values in arrays.values()):
+        raise ValueError(
+            "PerfectTracker postselection fields must match candidate count."
+        )
+    for name in ("progress", "planned_red", "target_speed", "jerk", "lateral"):
+        if not np.all(np.isfinite(arrays[name])):
+            raise ValueError(
+                f"PerfectTracker postselection {name} values must be finite."
+            )
+    for name in ("planned_red", "target_speed", "jerk", "lateral"):
+        if np.any(arrays[name] < 0.0):
+            raise ValueError(
+                f"PerfectTracker postselection {name} values must be nonnegative."
+            )
+
+    base_feasible_count = int(feasible.sum())
+    empty_stats: dict[str, int | bool] = {
+        "base_feasible_count": base_feasible_count,
+        "admissible_count": 0,
+        "weakly_dominating_count": 0,
+        "strict_improvement_count": 0,
+        "baseline_selected_index": baseline,
+        "selected_index": baseline,
+        "changed": False,
+    }
+    if not feasible.any():
+        return baseline, empty_stats
+    if not feasible[baseline]:
+        raise ValueError(
+            "Baseline CAMP selection must be feasible outside fallback."
+        )
+    if not np.all(np.isfinite(arrays["selection_scores"][feasible])):
+        raise ValueError(
+            "PerfectTracker postselection scores must be finite for "
+            "feasible candidates."
+        )
+
+    admissible = feasible.copy()
+    admissible &= arrays["target_speed"] >= arrays["target_speed"][baseline] - 1e-12
+    admissible &= arrays["progress"] >= arrays["progress"][baseline] - 1e-12
+    admissible &= arrays["planned_red"] <= arrays["planned_red"][baseline] + 1e-12
+    weakly_dominating = admissible.copy()
+    weakly_dominating &= arrays["jerk"] <= arrays["jerk"][baseline] + 1e-12
+    weakly_dominating &= arrays["lateral"] <= arrays["lateral"][baseline] + 1e-12
+    strict_improvement = weakly_dominating & (
+        (arrays["jerk"] < arrays["jerk"][baseline] - 1e-12)
+        | (arrays["lateral"] < arrays["lateral"][baseline] - 1e-12)
+    )
+    if not weakly_dominating[baseline]:
+        raise RuntimeError(
+            "PerfectTracker postselection unexpectedly removed the baseline."
+        )
+
+    selected = baseline
+    if strict_improvement.any():
+        indices = np.flatnonzero(weakly_dominating)
+        order = np.lexsort(
+            (
+                indices,
+                arrays["selection_scores"][indices],
+                arrays["lateral"][indices],
+                arrays["jerk"][indices],
+            )
+        )
+        selected = int(indices[order[0]])
+    stats = {
+        "base_feasible_count": base_feasible_count,
+        "admissible_count": int(admissible.sum()),
+        "weakly_dominating_count": int(weakly_dominating.sum()),
+        "strict_improvement_count": int(strict_improvement.sum()),
+        "baseline_selected_index": baseline,
+        "selected_index": selected,
+        "changed": selected != baseline,
+    }
+    return selected, stats
+
+
 def _obb_corners(
     x: float,
     y: float,
@@ -1714,6 +1842,9 @@ def summarize_selection_records(
             "red_stopping_margin_atom_latency_ms"
         ),
         "latency_ms_camp_selection": "camp_selection_latency_ms",
+        "latency_ms_perfect_tracker_command_postselection": (
+            "perfect_tracker_command_postselection_latency_ms"
+        ),
         "latency_ms_camp_atom_computation": "camp_atom_computation_latency_ms",
         "latency_ms_camp_feasibility": "camp_feasibility_latency_ms",
         "latency_ms_camp_collision_checks": "camp_collision_checks_latency_ms",

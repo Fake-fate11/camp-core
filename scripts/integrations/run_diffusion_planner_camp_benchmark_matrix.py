@@ -163,6 +163,10 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.0,
     )
+    parser.add_argument(
+        "--camp_perfect_tracker_command_postselection",
+        action="store_true",
+    )
     parser.add_argument("--camp_reward_horizon_steps", type=int, default=30)
     parser.add_argument("--camp_collect_closed_loop_outcomes", action="store_true")
     parser.add_argument("--camp_outcome_horizon_steps", type=int, default=30)
@@ -325,6 +329,8 @@ def _variant_command(
                     str(args.camp_lexicographic_lateral_epsilon),
                 ]
             )
+        if args.camp_perfect_tracker_command_postselection:
+            cmd.append("--camp_perfect_tracker_command_postselection")
         if args.camp_collect_closed_loop_outcomes:
             cmd.append("--camp_collect_closed_loop_outcomes")
             cmd.extend(

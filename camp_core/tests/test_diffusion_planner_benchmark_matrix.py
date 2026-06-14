@@ -44,6 +44,7 @@ def _make_args() -> SimpleNamespace:
         camp_lexicographic_red_epsilon=0.0,
         camp_lexicographic_jerk_epsilon=1.0,
         camp_lexicographic_lateral_epsilon=0.05,
+        camp_perfect_tracker_command_postselection=True,
         camp_reward_horizon_steps=30,
         camp_collect_closed_loop_outcomes=True,
         camp_outcome_horizon_steps=30,
@@ -91,6 +92,7 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_lexicographic_red_epsilon" in static_cmd
     assert "--camp_lexicographic_jerk_epsilon" in static_cmd
     assert "--camp_lexicographic_lateral_epsilon" in static_cmd
+    assert "--camp_perfect_tracker_command_postselection" in static_cmd
     assert "--camp_fallback_atom_scales" in static_cmd
     assert "--camp_fallback_static_weights" in static_cmd
     assert static_cmd[static_cmd.index("--advance_mode") + 1] == "perfect"
@@ -112,4 +114,5 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_candidate0_step_reach_preserve_feasible" not in top1_cmd
     assert "--candidate_reference_blend_steps" not in top1_cmd
     assert "--camp_lexicographic_progress_epsilon_m" not in top1_cmd
+    assert "--camp_perfect_tracker_command_postselection" not in top1_cmd
     assert "--camp_fallback_atom_scales" not in top1_cmd

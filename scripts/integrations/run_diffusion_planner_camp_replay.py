@@ -36,6 +36,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     install_lanelet2_projection_fallback,
     load_dp_camp_atom_scales,
     red_route_points_from_scene,
+    select_perfect_tracker_command_dominating_candidate,
     summarize_replay_artifacts,
 )
 
@@ -218,6 +219,15 @@ def parse_args() -> argparse.Namespace:
         help="Horizon lateral-acceleration tolerance for lexicographic preselection.",
     )
     parser.add_argument(
+        "--camp_perfect_tracker_command_postselection",
+        action="store_true",
+        help=(
+            "After the normal CAMP selection, choose a base-feasible candidate "
+            "only when it preserves target speed, DP progress, and planned-red "
+            "cost while strictly improving PerfectTracker command comfort."
+        ),
+    )
+    parser.add_argument(
         "--camp_reward_horizon_steps",
         type=int,
         default=30,
@@ -336,6 +346,14 @@ def _validate_args(args: argparse.Namespace) -> None:
     ):
         raise ValueError(
             "CAMP lexicographic preselection requires "
+            "--camp_feasibility_source dp_reward."
+        )
+    if (
+        args.camp_perfect_tracker_command_postselection
+        and args.camp_feasibility_source != "dp_reward"
+    ):
+        raise ValueError(
+            "PerfectTracker command postselection requires "
             "--camp_feasibility_source dp_reward."
         )
     if args.camp_reward_horizon_steps < 2:
@@ -1064,6 +1082,7 @@ def _install_camp_predictor(
     lexicographic_red_epsilon: float,
     lexicographic_jerk_epsilon: float,
     lexicographic_lateral_epsilon: float,
+    perfect_tracker_command_postselection: bool,
     reward_horizon_steps: int,
     collect_closed_loop_outcomes: bool,
     outcome_horizon_steps: int,
@@ -1356,6 +1375,39 @@ def _install_camp_predictor(
             ego_width=ego_width,
             ego_wheelbase=ego_wheelbase,
         )
+        camp_selection_done = time.perf_counter()
+        baseline_selected_index = int(selection.selected_index)
+        selected_index = baseline_selected_index
+        perfect_tracker_command_postselection_stats = None
+        if perfect_tracker_command_postselection:
+            if candidate_progress is None or candidate_planned_red_light_cost is None:
+                raise RuntimeError(
+                    "PerfectTracker command postselection requires DP reward "
+                    "candidate fields."
+                )
+            (
+                selected_index,
+                perfect_tracker_command_postselection_stats,
+            ) = select_perfect_tracker_command_dominating_candidate(
+                baseline_selected_index=baseline_selected_index,
+                feasible_mask=selection.feasible_mask,
+                selection_scores=selection.selection_scores,
+                candidate_progress=candidate_progress,
+                candidate_planned_red_light_cost=(
+                    candidate_planned_red_light_cost
+                ),
+                candidate_target_speed_mps=perfect_tracker_command[
+                    "target_speed_mps"
+                ],
+                candidate_jerk_magnitude_mps3=perfect_tracker_command[
+                    "jerk_magnitude_mps3"
+                ],
+                candidate_lateral_acceleration_magnitude_mps2=(
+                    perfect_tracker_command[
+                        "lateral_acceleration_magnitude_mps2"
+                    ]
+                ),
+            )
         selection_done = time.perf_counter()
         elapsed_ms = (selection_done - start) * 1000.0
         phase_latencies_ms = {
@@ -1386,7 +1438,11 @@ def _install_camp_predictor(
             )
             * 1000.0,
             "latency_ms_camp_selection": (
-                selection_done - red_stopping_margin_done
+                camp_selection_done - red_stopping_margin_done
+            )
+            * 1000.0,
+            "latency_ms_perfect_tracker_command_postselection": (
+                selection_done - camp_selection_done
             )
             * 1000.0,
             "latency_ms_camp_atom_computation": selection.timings_ms[
@@ -1399,7 +1455,8 @@ def _install_camp_predictor(
             "latency_ms_camp_scoring": selection.timings_ms["scoring"],
         }
 
-        predictions[ego_id] = selection.selected_trajectory
+        selected_trajectory = candidates[selected_index]
+        predictions[ego_id] = selected_trajectory
         state = _evaluation_state(scene, ego_id)
         state["step"] = len(evaluation_records)
         evaluation_records.append(state)
@@ -1409,14 +1466,14 @@ def _install_camp_predictor(
             scene=scene,
             map_cache=map_cache,
             model_args=model_args,
-            prediction=selection.selected_trajectory,
+            prediction=selected_trajectory,
             device=device,
             reward_config=reward_config,
             spawn_config=spawn_config,
             records=metric_records,
         )
         if return_turn_indicators and turn_logits is not None:
-            chosen_logits = turn_logits[selection.selected_index].copy()
+            chosen_logits = turn_logits[selected_index].copy()
             if turn_indicator_keep_bias != 0.0 and chosen_logits.shape[-1] > 4:
                 chosen_logits[4] -= turn_indicator_keep_bias
             turn_indicators[ego_id] = int(np.argmax(chosen_logits))
@@ -1424,7 +1481,15 @@ def _install_camp_predictor(
         records.append(
             {
                 "selection_step": len(records),
-                "selected_index": selection.selected_index,
+                "selected_index": selected_index,
+                "camp_selected_index_before_tracker_postselection": (
+                    baseline_selected_index
+                    if perfect_tracker_command_postselection
+                    else None
+                ),
+                "perfect_tracker_command_postselection": (
+                    perfect_tracker_command_postselection_stats
+                ),
                 "num_candidates": int(num_candidates),
                 "candidate_reference_blend_steps": reference_blend_steps,
                 "candidate_trajectory_horizon_steps": int(candidates.shape[1]),
@@ -1627,6 +1692,14 @@ def main() -> None:
     if args.traffic_lights != "config":
         config.enable_traffic_lights = args.traffic_lights == "on"
     config.validate()
+    if (
+        args.camp_perfect_tracker_command_postselection
+        and config.advance_mode != "perfect"
+    ):
+        raise ValueError(
+            "PerfectTracker command postselection requires "
+            "advance_mode='perfect'."
+        )
 
     device = args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
     model, model_args = _load_model(args.model_path, args.model_args, device)
@@ -1676,6 +1749,9 @@ def main() -> None:
             lexicographic_jerk_epsilon=args.camp_lexicographic_jerk_epsilon,
             lexicographic_lateral_epsilon=(
                 args.camp_lexicographic_lateral_epsilon
+            ),
+            perfect_tracker_command_postselection=(
+                bool(args.camp_perfect_tracker_command_postselection)
             ),
             reward_horizon_steps=args.camp_reward_horizon_steps,
             collect_closed_loop_outcomes=args.camp_collect_closed_loop_outcomes,
@@ -1800,6 +1876,42 @@ def main() -> None:
         and args.camp_lexicographic_progress_epsilon_m is not None
         else None
     )
+    effective_perfect_tracker_command_postselection = (
+        {
+            "enabled": True,
+            "selection_effect": True,
+            "baseline": "camp_selected_index",
+            "required_nonworse": [
+                "base_feasibility",
+                "perfect_tracker_target_speed",
+                "dp_progress",
+                "planned_red",
+                "perfect_tracker_command_jerk",
+                "perfect_tracker_command_lateral_acceleration",
+            ],
+            "required_strict_improvement": [
+                "perfect_tracker_command_jerk",
+                "perfect_tracker_command_lateral_acceleration",
+            ],
+            "order": [
+                "perfect_tracker_command_jerk",
+                "perfect_tracker_command_lateral_acceleration",
+                "camp_score",
+                "candidate_index",
+            ],
+            "epsilons": {
+                "target_speed_mps": 0.0,
+                "progress_m": 0.0,
+                "planned_red": 0.0,
+                "jerk_mps3": 0.0,
+                "lateral_acceleration_mps2": 0.0,
+            },
+            "new_fallback_possible": False,
+        }
+        if records is not None
+        and args.camp_perfect_tracker_command_postselection
+        else None
+    )
     effective_reward_horizon_steps = (
         args.camp_reward_horizon_steps
         if records is not None and args.camp_feasibility_source == "dp_reward"
@@ -1839,6 +1951,9 @@ def main() -> None:
             effective_candidate0_step_reach_preserve_feasible
         ),
         "camp_lexicographic_preselection": effective_lexicographic_preselection,
+        "camp_perfect_tracker_command_postselection": (
+            effective_perfect_tracker_command_postselection
+        ),
         "camp_reward_horizon_steps": effective_reward_horizon_steps,
         "camp_collect_closed_loop_outcomes": (
             bool(args.camp_collect_closed_loop_outcomes)
@@ -1988,6 +2103,9 @@ def main() -> None:
     )
     validation["camp_lexicographic_preselection"] = (
         effective_lexicographic_preselection
+    )
+    validation["camp_perfect_tracker_command_postselection"] = (
+        effective_perfect_tracker_command_postselection
     )
     validation["camp_reward_horizon_steps"] = effective_reward_horizon_steps
     validation["camp_collect_closed_loop_outcomes"] = (
