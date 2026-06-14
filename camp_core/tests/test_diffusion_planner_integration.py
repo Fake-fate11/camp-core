@@ -1953,11 +1953,13 @@ def test_underprogress_relaxation_selects_only_soft_blocked_lower_red() -> None:
         timings_ms={},
     )
     rollout = {
-        3: {
-            "distance_m": np.array([1.0, 0.95, 1.0], dtype=np.float64),
-            "max_lateral_acceleration_mps2": np.array(
-                [0.1, 0.2, 0.1], dtype=np.float64
-            ),
+        "horizons": {
+            "3": {
+                "distance_m": np.array([1.0, 0.95, 1.0], dtype=np.float64),
+                "max_lateral_acceleration_mps2": np.array(
+                    [0.1, 0.2, 0.1], dtype=np.float64
+                ),
+            }
         }
     }
 
@@ -1982,6 +1984,93 @@ def test_underprogress_relaxation_selects_only_soft_blocked_lower_red() -> None:
     assert relaxed.infeasibility_reasons == ((), (), ("dp_kinematic",))
     assert relaxed.selection_scores[:2].tolist() == pytest.approx([0.0, 0.4])
     assert np.isinf(relaxed.selection_scores[2])
+
+
+def test_underprogress_relaxation_accepts_nested_integer_horizon_key() -> None:
+    candidates = np.zeros((2, 4, 2), dtype=np.float64)
+    selection = CAMPSelectionResult(
+        selected_index=0,
+        selected_trajectory=candidates[0].copy(),
+        atoms=np.ones((2, 2), dtype=np.float64),
+        normalized_atoms=np.ones((2, 2), dtype=np.float64),
+        feasible_mask=np.array([True, False]),
+        infeasibility_reasons=((), ("dp_underprogress",)),
+        scores=np.array([0.0, 0.1], dtype=np.float64),
+        weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_scores=np.array([0.0, np.inf], dtype=np.float64),
+        selection_weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_normalized_atoms=np.ones((2, 2), dtype=np.float64),
+        used_fallback=False,
+        timings_ms={},
+    )
+    rollout = {
+        "horizons": {
+            3: {
+                "distance_m": np.array([1.0, 0.98], dtype=np.float64),
+                "max_lateral_acceleration_mps2": np.array(
+                    [0.1, 0.1], dtype=np.float64
+                ),
+            }
+        }
+    }
+
+    relaxed, stats = _apply_underprogress_relaxation_override(
+        selection,
+        candidates,
+        candidate_progress=np.array([5.0, 4.9], dtype=np.float64),
+        candidate_union_red_cost=np.array([10.0, 0.0], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.array([5.0, 1.0], dtype=np.float64),
+        perfect_tracker_open_loop=rollout,
+        progress_loss_budget_m=1.0,
+        h3_distance_loss_budget_m=0.1,
+        lateral_limit_mps2=2.0,
+    )
+
+    assert stats["changed"] is True
+    assert relaxed.selected_index == 1
+
+
+def test_underprogress_relaxation_accepts_legacy_top_level_horizon_key() -> None:
+    candidates = np.zeros((2, 4, 2), dtype=np.float64)
+    selection = CAMPSelectionResult(
+        selected_index=0,
+        selected_trajectory=candidates[0].copy(),
+        atoms=np.ones((2, 2), dtype=np.float64),
+        normalized_atoms=np.ones((2, 2), dtype=np.float64),
+        feasible_mask=np.array([True, False]),
+        infeasibility_reasons=((), ("dp_underprogress",)),
+        scores=np.array([0.0, 0.1], dtype=np.float64),
+        weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_scores=np.array([0.0, np.inf], dtype=np.float64),
+        selection_weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_normalized_atoms=np.ones((2, 2), dtype=np.float64),
+        used_fallback=False,
+        timings_ms={},
+    )
+    rollout = {
+        "3": {
+            "distance_m": np.array([1.0, 0.95], dtype=np.float64),
+            "max_lateral_acceleration_mps2": np.array(
+                [0.1, 0.2], dtype=np.float64
+            ),
+        }
+    }
+
+    relaxed, stats = _apply_underprogress_relaxation_override(
+        selection,
+        candidates,
+        candidate_progress=np.array([5.0, 4.9], dtype=np.float64),
+        candidate_union_red_cost=np.array([10.0, 0.0], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.array([5.0, 1.0], dtype=np.float64),
+        perfect_tracker_open_loop=rollout,
+        progress_loss_budget_m=1.0,
+        h3_distance_loss_budget_m=0.1,
+        lateral_limit_mps2=2.0,
+    )
+
+    assert stats["changed"] is True
+    assert stats["selected_index"] == 1
+    assert relaxed.selected_index == 1
 
 
 def test_underprogress_relaxation_keeps_hard_blocked_candidates_infeasible() -> None:

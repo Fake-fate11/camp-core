@@ -3136,3 +3136,47 @@ sample59 seeds `1/2/3` non-formal 12-run, using the current fixed DP commit
 and frozen CAMP weights, comparing baseline `redstopfloor05` against the same
 configuration with underprogress relaxation enabled. Formal seeds `11/12/13`
 remain frozen.
+
+### Underprogress relaxation H3 rollout access fix
+
+The first AutoDL underprogress-relaxation pilot attempt after commit `06687c9`
+failed before completing the first relaxation run:
+
+```text
+ValueError: Underprogress relaxation requires H3 rollout metrics.
+```
+
+The failure was a replay implementation bug, not a selector result. The
+PerfectTracker open-loop diagnostic function returns horizon metrics under the
+runtime structure `perfect_tracker_open_loop["horizons"]["3"]`, while the new
+underprogress relaxation helper was reading only top-level horizon keys. The
+selection log writer already used the nested `horizons` structure, so the
+contract and stored artifact schema were unchanged.
+
+The follow-up fix makes the helper read H3 metrics from the nested `horizons`
+dictionary first, accepting both string and integer horizon keys, and keeps a
+legacy top-level fallback for unit-level compatibility. The new tests cover:
+
+- runtime-like nested string key `"horizons" -> "3"`;
+- nested integer key `"horizons" -> 3`;
+- legacy top-level `"3"`;
+- hard-blocked candidates remaining infeasible.
+
+Local verification:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core;F:\camp_core-main'
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_integration.py -k "underprogress_relaxation"
+4 passed, 99 deselected
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core;F:\camp_core-main'
+py -3.12 -m pytest camp_core\tests
+168 passed, 5 skipped
+```
+
+Decision: this restores the default-off pilot path to implementation-ready
+status, but the previous failed relaxation roots must not be reused as evidence.
+After syncing this fix to AutoDL, rerun remote tests and a short
+underprogress-relaxation smoke before launching the remaining sample59 paired
+12-run. The completed baseline root can still be reused because it finished
+before the relaxation-side failure. Formal seeds remain frozen.

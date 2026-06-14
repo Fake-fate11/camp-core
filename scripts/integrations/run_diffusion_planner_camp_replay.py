@@ -910,7 +910,7 @@ def _apply_underprogress_relaxation_override(
     candidate_progress: np.ndarray,
     candidate_union_red_cost: np.ndarray,
     candidate_red_stopping_margin_cost: np.ndarray,
-    perfect_tracker_open_loop: dict[str, dict[str, np.ndarray]],
+    perfect_tracker_open_loop: dict[Any, Any],
     progress_loss_budget_m: float,
     h3_distance_loss_budget_m: float,
     lateral_limit_mps2: float,
@@ -927,9 +927,16 @@ def _apply_underprogress_relaxation_override(
         candidate_red_stopping_margin_cost,
         dtype=np.float64,
     ).reshape(-1)
-    h3 = perfect_tracker_open_loop.get(3)
+    horizons = perfect_tracker_open_loop.get("horizons")
+    h3 = None
+    if isinstance(horizons, dict):
+        h3 = horizons.get("3")
+        if h3 is None:
+            h3 = horizons.get(3)
     if h3 is None:
         h3 = perfect_tracker_open_loop.get("3")
+    if h3 is None:
+        h3 = perfect_tracker_open_loop.get(3)
     if not isinstance(h3, dict):
         raise ValueError("Underprogress relaxation requires H3 rollout metrics.")
     distance = np.asarray(h3["distance_m"], dtype=np.float64).reshape(-1)
