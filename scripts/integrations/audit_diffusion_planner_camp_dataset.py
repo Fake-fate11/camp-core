@@ -46,6 +46,29 @@ LEXICOGRAPHIC_STAGE_ORDER = (
     "lateral",
 )
 LEXICOGRAPHIC_COUNT_ORDER = ("base",) + LEXICOGRAPHIC_STAGE_ORDER
+PERFECT_TRACKER_COMMAND_METADATA = {
+    "enabled": True,
+    "selection_effect": False,
+    "tracker_class": "scenario_generation.mpc_tracker.PerfectTracker",
+    "reference_postprocessing": (
+        "scenario_generation.mpc_tracker.postprocess_reference"
+    ),
+    "candidate_frame": "ego",
+    "max_speed_mps": 20.0,
+    "velocity_smooth_window": 8,
+    "stop_threshold_mps": 0.3,
+    "restart_speed_threshold_mps": 0.1,
+    "restart_plan_speed_threshold_mps": 0.5,
+    "fields": [
+        "candidate_perfect_tracker_tail_average_speed_mps",
+        "candidate_perfect_tracker_restart_push",
+        "candidate_perfect_tracker_target_speed_mps",
+        "candidate_perfect_tracker_acceleration_mps2",
+        "candidate_perfect_tracker_jerk_magnitude_mps3",
+        "candidate_perfect_tracker_yaw_rate_magnitude_rps",
+        "candidate_perfect_tracker_lateral_acceleration_magnitude_mps2",
+    ],
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -135,6 +158,14 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=None,
     )
+    parser.add_argument(
+        "--require_perfect_tracker_command_shadow",
+        action="store_true",
+        help=(
+            "Require and independently recompute the outcome-free "
+            "PerfectTracker command shadow in every record."
+        ),
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -154,6 +185,7 @@ def audit_training_dataset(
     closed_loop_outcome_policy: str = "required",
     expected_lexicographic_preselection: dict[str, float] | None = None,
     expected_candidate_reference_blend_steps: int | None = None,
+    require_perfect_tracker_command_shadow: bool = False,
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
@@ -247,6 +279,7 @@ def audit_training_dataset(
     outcome_records = 0
     outcome_candidates = 0
     lexicographic_stage_records = 0
+    perfect_tracker_command_records = 0
     candidate_field_reports = {
         field: {
             "records": 0,
@@ -322,6 +355,18 @@ def audit_training_dataset(
                 summary_path,
                 validation_summary.get("candidate_reference_blend"),
                 expected_candidate_reference_blend_steps,
+            )
+        if require_perfect_tracker_command_shadow:
+            if advance_mode != "perfect":
+                raise ValueError(
+                    f"{summary_path} uses advance_mode={advance_mode!r}; "
+                    "PerfectTracker command shadow requires 'perfect'."
+                )
+            _validate_perfect_tracker_command_summary(
+                summary_path,
+                validation_summary.get(
+                    "camp_shadow_perfect_tracker_command"
+                ),
             )
         records = json.loads(log_path.read_text(encoding="utf-8"))
         if not isinstance(records, list) or not records:
@@ -408,6 +453,14 @@ def audit_training_dataset(
                     expected_candidates=expected_candidates,
                     expected_steps=expected_candidate_reference_blend_steps,
                 )
+            if require_perfect_tracker_command_shadow:
+                _validate_perfect_tracker_command_record(
+                    log_path,
+                    record_idx,
+                    record,
+                    expected_candidates=expected_candidates,
+                )
+                perfect_tracker_command_records += 1
             for field in required_fields:
                 values = _validate_candidate_field(
                     log_path,
@@ -506,6 +559,13 @@ def audit_training_dataset(
             "candidate_reference_blend_verified": (
                 expected_candidate_reference_blend_steps is not None
             ),
+            "perfect_tracker_command_shadow_required": (
+                require_perfect_tracker_command_shadow
+            ),
+            "perfect_tracker_command_shadow_verified": (
+                require_perfect_tracker_command_shadow
+            ),
+            "perfect_tracker_command_records": perfect_tracker_command_records,
         },
         "candidate_fields": candidate_field_reports,
         "logs": log_reports,
@@ -709,6 +769,231 @@ def _validate_candidate_reference_blend_record(
         )
 
 
+def _validate_perfect_tracker_command_summary(
+    summary_path: Path,
+    metadata: Any,
+) -> None:
+    if metadata != PERFECT_TRACKER_COMMAND_METADATA:
+        raise ValueError(
+            f"{summary_path} does not certify the expected PerfectTracker "
+            "command shadow."
+        )
+
+
+def _validate_perfect_tracker_command_record(
+    log_path: Path,
+    record_idx: int,
+    record: dict[str, Any],
+    *,
+    expected_candidates: int,
+) -> None:
+    label = f"{log_path} record {record_idx} PerfectTracker command shadow"
+    inputs = record.get("perfect_tracker_command_inputs")
+    expected_input_keys = {
+        "dt",
+        "current_speed_mps",
+        "current_longitudinal_acceleration_mps2",
+        "max_speed_mps",
+        "velocity_smooth_window",
+        "stop_threshold_mps",
+        "restart_speed_threshold_mps",
+        "restart_plan_speed_threshold_mps",
+    }
+    if not isinstance(inputs, dict) or set(inputs) != expected_input_keys:
+        raise ValueError(f"{label} has invalid command inputs.")
+    numeric_inputs = {
+        key: float(value)
+        for key, value in inputs.items()
+        if key != "velocity_smooth_window"
+    }
+    if not all(np.isfinite(value) for value in numeric_inputs.values()):
+        raise ValueError(f"{label} has nonfinite command inputs.")
+    if inputs["velocity_smooth_window"] != 8:
+        raise ValueError(f"{label} has an invalid velocity smoothing window.")
+    expected_constants = {
+        "max_speed_mps": 20.0,
+        "stop_threshold_mps": 0.3,
+        "restart_speed_threshold_mps": 0.1,
+        "restart_plan_speed_threshold_mps": 0.5,
+    }
+    for key, expected in expected_constants.items():
+        if numeric_inputs[key] != expected:
+            raise ValueError(f"{label} has invalid {key}.")
+    dt = numeric_inputs["dt"]
+    current_speed = numeric_inputs["current_speed_mps"]
+    current_acceleration = numeric_inputs[
+        "current_longitudinal_acceleration_mps2"
+    ]
+    if dt <= 0.0 or current_speed < 0.0:
+        raise ValueError(f"{label} has an invalid dt or current speed.")
+
+    first_xy = _finite_candidate_matrix(
+        record.get("candidate_first_reference_xy"),
+        expected_candidates,
+        2,
+        label=f"{label} first-reference xy",
+    )
+    tail_xy = _finite_candidate_matrix(
+        record.get("candidate_perfect_tracker_postprocessed_tail_xy"),
+        expected_candidates,
+        2,
+        label=f"{label} postprocessed-tail xy",
+    )
+    first_heading = _finite_candidate_vector(
+        record.get("candidate_first_reference_heading_rad"),
+        expected_candidates,
+        label=f"{label} first-reference heading",
+    )
+    tail_average_speed = _finite_candidate_vector(
+        record.get("candidate_perfect_tracker_tail_average_speed_mps"),
+        expected_candidates,
+        label=f"{label} tail-average speed",
+        nonnegative=True,
+    )
+    target_speed = _finite_candidate_vector(
+        record.get("candidate_perfect_tracker_target_speed_mps"),
+        expected_candidates,
+        label=f"{label} target speed",
+        nonnegative=True,
+    )
+    acceleration = _finite_candidate_vector(
+        record.get("candidate_perfect_tracker_acceleration_mps2"),
+        expected_candidates,
+        label=f"{label} acceleration",
+    )
+    jerk = _finite_candidate_vector(
+        record.get("candidate_perfect_tracker_jerk_magnitude_mps3"),
+        expected_candidates,
+        label=f"{label} jerk magnitude",
+        nonnegative=True,
+    )
+    yaw_rate = _finite_candidate_vector(
+        record.get("candidate_perfect_tracker_yaw_rate_magnitude_rps"),
+        expected_candidates,
+        label=f"{label} yaw-rate magnitude",
+        nonnegative=True,
+    )
+    lateral_acceleration = _finite_candidate_vector(
+        record.get(
+            "candidate_perfect_tracker_lateral_acceleration_magnitude_mps2"
+        ),
+        expected_candidates,
+        label=f"{label} lateral-acceleration magnitude",
+        nonnegative=True,
+    )
+    restart_values = record.get("candidate_perfect_tracker_restart_push")
+    if (
+        not isinstance(restart_values, list)
+        or len(restart_values) != expected_candidates
+        or any(not isinstance(value, bool) for value in restart_values)
+    ):
+        raise ValueError(f"{label} has invalid restart flags.")
+    restart_push = np.asarray(restart_values, dtype=bool)
+
+    expected_step_reach = np.linalg.norm(first_xy, axis=1)
+    logged_step_reach = _finite_candidate_vector(
+        record.get("candidate_step_reach"),
+        expected_candidates,
+        label=f"{label} first-step reach",
+        nonnegative=True,
+    )
+    expected_tail_average_speed = np.linalg.norm(
+        tail_xy,
+        axis=1,
+    ) / _record_horizon_time(record, dt)
+    expected_restart = (
+        current_speed < numeric_inputs["restart_speed_threshold_mps"]
+    ) & (
+        expected_tail_average_speed
+        > numeric_inputs["restart_plan_speed_threshold_mps"]
+    )
+    expected_target = np.minimum(
+        expected_step_reach / dt,
+        numeric_inputs["max_speed_mps"],
+    )
+    expected_target[expected_restart] = np.maximum(
+        expected_target[expected_restart],
+        np.minimum(
+            numeric_inputs["max_speed_mps"],
+            expected_tail_average_speed[expected_restart],
+        ),
+    )
+    expected_acceleration = (expected_target - current_speed) / dt
+    expected_jerk = np.abs(expected_acceleration - current_acceleration) / dt
+    wrapped_heading = np.arctan2(
+        np.sin(first_heading),
+        np.cos(first_heading),
+    )
+    expected_yaw_rate = np.abs(wrapped_heading) / dt
+    expected_lateral_acceleration = expected_target * expected_yaw_rate
+
+    checks = (
+        ("first-step reach", logged_step_reach, expected_step_reach),
+        ("tail-average speed", tail_average_speed, expected_tail_average_speed),
+        ("target speed", target_speed, expected_target),
+        ("acceleration", acceleration, expected_acceleration),
+        ("jerk magnitude", jerk, expected_jerk),
+        ("yaw-rate magnitude", yaw_rate, expected_yaw_rate),
+        (
+            "lateral-acceleration magnitude",
+            lateral_acceleration,
+            expected_lateral_acceleration,
+        ),
+    )
+    for name, actual, expected in checks:
+        if not np.allclose(actual, expected, atol=1e-9, rtol=1e-9):
+            raise ValueError(f"{label} {name} does not match its formula.")
+    if not np.array_equal(restart_push, expected_restart):
+        raise ValueError(f"{label} restart flags do not match their formula.")
+
+
+def _record_horizon_time(record: dict[str, Any], dt: float) -> float:
+    horizon_steps = record.get("candidate_trajectory_horizon_steps")
+    if (
+        isinstance(horizon_steps, bool)
+        or not isinstance(horizon_steps, (int, np.integer))
+        or int(horizon_steps) < 1
+    ):
+        raise ValueError(
+            "PerfectTracker command shadow requires a positive "
+            "candidate_trajectory_horizon_steps."
+        )
+    return int(horizon_steps) * dt
+
+
+def _finite_candidate_vector(
+    values: Any,
+    expected_candidates: int,
+    *,
+    label: str,
+    nonnegative: bool = False,
+) -> np.ndarray:
+    array = np.asarray(values, dtype=np.float64).reshape(-1)
+    if (
+        array.shape != (expected_candidates,)
+        or not np.all(np.isfinite(array))
+        or (nonnegative and np.any(array < 0.0))
+    ):
+        raise ValueError(f"{label} is invalid.")
+    return array
+
+
+def _finite_candidate_matrix(
+    values: Any,
+    expected_candidates: int,
+    width: int,
+    *,
+    label: str,
+) -> np.ndarray:
+    array = np.asarray(values, dtype=np.float64)
+    if (
+        array.shape != (expected_candidates, width)
+        or not np.all(np.isfinite(array))
+    ):
+        raise ValueError(f"{label} is invalid.")
+    return array
+
+
 def _validate_record_schema(
     log_path: Path,
     record_idx: int,
@@ -896,6 +1181,9 @@ def main() -> None:
         expected_lexicographic_preselection=expected_lexicographic,
         expected_candidate_reference_blend_steps=(
             args.expected_candidate_reference_blend_steps
+        ),
+        require_perfect_tracker_command_shadow=(
+            args.require_perfect_tracker_command_shadow
         ),
     )
     report["artifacts"] = {

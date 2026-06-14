@@ -2461,3 +2461,79 @@ Decision:
    candidate constants. They do not alter convexity in \(w\); they must remain
    shadow-only until their relationship to realized completion and comfort is
    established on non-formal data.
+
+## PerfectTracker command-shadow certification
+
+The next default-on logging diagnostic reproduces the command path used by the
+fixed DP commit without changing feasibility, CAMP scores, or selection. The
+source path is:
+
+1. transform each ego-frame candidate to world coordinates;
+2. apply `scenario_generation.mpc_tracker.postprocess_reference`;
+3. call `scenario_generation.mpc_tracker.PerfectTracker.track`.
+
+The postprocessor leaves the first pose unchanged but can freeze the remaining
+positions after a smoothed-speed stop transition. The command shadow therefore
+reproduces the forward velocity smoothing and force-stop logic before using the
+postprocessed tail.
+
+For candidate \(k\), let \(q_{k,0}\) be its first ego-frame xy point,
+\(\bar q_{k,T}\) its postprocessed tail point, \(T\) its trajectory length,
+\(\Delta t\) the simulation step, \(s\) the nonnegative current longitudinal
+speed, and \(a_{\mathrm{prev}}\) the current longitudinal acceleration. With
+the upstream constants \(v_{\max}=20\), \(s_{\mathrm{restart}}=0.1\), and
+\(\bar v_{\mathrm{restart}}=0.5\),
+
+\[
+u_{k,0}=\min(\lVert q_{k,0}\rVert/\Delta t,v_{\max}),\qquad
+\bar v_k=\lVert\bar q_{k,T}\rVert/(T\Delta t),
+\]
+
+\[
+I_k=[s<0.1\land \bar v_k>0.5],\qquad
+u_k=
+\begin{cases}
+\max(u_{k,0},\min(v_{\max},\bar v_k)),&I_k,\\
+u_{k,0},&\text{otherwise}.
+\end{cases}
+\]
+
+The logged command-aligned comfort quantities are
+
+\[
+a_k=(u_k-s)/\Delta t,\quad
+j_k=\lvert a_k-a_{\mathrm{prev}}\rvert/\Delta t,\quad
+\omega_k=\lvert\operatorname{wrap}(\theta_{k,0})\rvert/\Delta t,\quad
+a^{\mathrm{lat}}_k=u_k\omega_k.
+\]
+
+The replay log includes all inputs needed to recompute these values. The
+dataset audit checks exact tracker metadata, fixed thresholds, candidate
+dimensions, finite values, strict restart inequalities, and every formula
+above. The shadow remains outcome-free and has `selection_effect=false`.
+
+These expressions are not claimed to be globally convex in trajectory
+coordinates: norm clipping and the restart branch contain `min`, `max`, and a
+discrete condition. For the existing finite-candidate CAMP master, however,
+their values are fixed constants before optimization. If a later version
+promotes one to a candidate atom, the score remains affine in \(w\), so the
+simplex/CVaR/L2 master remains convex. This does not constitute classical
+Benders decomposition.
+
+An upstream parity check used 72 random 80-step candidates at current speeds
+`0.0`, `0.05`, and `2.0 m/s`. It directly called the fixed DP commit's
+postprocessor and tracker, then compared their outputs with the CAMP helper.
+Maximum absolute errors were:
+
+| Quantity | Maximum absolute error |
+| --- | ---: |
+| Target speed | `4.440892098500626e-16` |
+| Signed acceleration | `7.105427357601002e-15` |
+| Yaw-rate magnitude | `1.7763568394002505e-15` |
+| Postprocessed tail xy | `0.0` |
+| Tail-average speed | `0.0` |
+| Jerk magnitude | `5.684341886080802e-14` |
+
+Local verification for this implementation was `137 passed, 5 skipped`.
+The next step is an AutoDL test and non-formal K=8 baseline replay with the
+new shadow enabled. Formal seeds remain frozen.

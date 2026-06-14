@@ -842,6 +842,159 @@ def _trajectory_headings(trajectory: np.ndarray) -> np.ndarray:
     return np.concatenate([headings[:1], headings])
 
 
+def compute_perfect_tracker_command_diagnostics(
+    candidates: np.ndarray,
+    *,
+    dt: float,
+    current_speed_mps: float,
+    current_longitudinal_acceleration_mps2: float,
+    max_speed_mps: float = 20.0,
+    velocity_smooth_window: int = 8,
+    stop_threshold_mps: float = 0.3,
+    restart_speed_threshold_mps: float = 0.1,
+    restart_plan_speed_threshold_mps: float = 0.5,
+) -> dict[str, np.ndarray]:
+    """Reproduce the command issued by DP's perfect tracker for each candidate.
+
+    Candidate trajectories are in the current ego frame. Rigid transforms do
+    not change the displacement norms used by ``postprocess_reference`` and
+    ``PerfectTracker.track``; the first relative heading is exactly the wrapped
+    world-frame heading change used by the tracker.
+
+    These values are fixed candidate diagnostics. They are not CAMP atoms and
+    do not affect candidate feasibility, scores, or selection.
+    """
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if (
+        trajectories.ndim != 3
+        or trajectories.shape[0] < 1
+        or trajectories.shape[1] < 1
+        or trajectories.shape[2] < 4
+    ):
+        raise ValueError("candidates must have shape [K, T, D>=4].")
+    if not np.all(np.isfinite(trajectories)):
+        raise ValueError("candidates must contain only finite values.")
+    scalar_values = {
+        "dt": dt,
+        "current_speed_mps": current_speed_mps,
+        "current_longitudinal_acceleration_mps2": (
+            current_longitudinal_acceleration_mps2
+        ),
+        "max_speed_mps": max_speed_mps,
+        "stop_threshold_mps": stop_threshold_mps,
+        "restart_speed_threshold_mps": restart_speed_threshold_mps,
+        "restart_plan_speed_threshold_mps": (
+            restart_plan_speed_threshold_mps
+        ),
+    }
+    if any(not np.isfinite(float(value)) for value in scalar_values.values()):
+        raise ValueError("Perfect-tracker diagnostic inputs must be finite.")
+    if dt <= 0.0:
+        raise ValueError("dt must be positive.")
+    if current_speed_mps < 0.0:
+        raise ValueError("current_speed_mps must be nonnegative.")
+    if max_speed_mps <= 0.0:
+        raise ValueError("max_speed_mps must be positive.")
+    if (
+        stop_threshold_mps < 0.0
+        or restart_speed_threshold_mps < 0.0
+        or restart_plan_speed_threshold_mps < 0.0
+    ):
+        raise ValueError("Perfect-tracker thresholds must be nonnegative.")
+    if (
+        isinstance(velocity_smooth_window, bool)
+        or not isinstance(velocity_smooth_window, (int, np.integer))
+        or int(velocity_smooth_window) < 1
+    ):
+        raise ValueError("velocity_smooth_window must be a positive integer.")
+
+    candidate_count, horizon_steps = trajectories.shape[:2]
+    postprocessed_tail_xy = trajectories[:, -1, :2].copy()
+    if horizon_steps >= 2:
+        differences = np.diff(trajectories[:, :, :2], axis=1)
+        velocities = np.linalg.norm(differences, axis=2) / float(dt)
+        velocities = np.concatenate([velocities[:, :1], velocities], axis=1)
+        smoothed = velocities.copy()
+        window = int(velocity_smooth_window)
+        if horizon_steps >= window:
+            cumulative = np.pad(
+                np.cumsum(velocities, axis=1),
+                ((0, 0), (1, 0)),
+            )
+            smoothed[:, : horizon_steps - window + 1] = (
+                cumulative[:, window:] - cumulative[:, :-window]
+            ) / window
+        crossings = (
+            (smoothed[:, :-1] > float(stop_threshold_mps))
+            & (smoothed[:, 1:] <= float(stop_threshold_mps))
+        )
+        has_crossing = crossings.any(axis=1)
+        first_crossing_step = np.argmax(crossings, axis=1) + 1
+        rows = np.flatnonzero(has_crossing)
+        postprocessed_tail_xy[rows] = trajectories[
+            rows,
+            first_crossing_step[rows] - 1,
+            :2,
+        ]
+
+    first_reference_xy = trajectories[:, 0, :2]
+    first_step_reach_m = np.linalg.norm(first_reference_xy, axis=1)
+    first_target_speed_mps = np.minimum(
+        first_step_reach_m / float(dt),
+        float(max_speed_mps),
+    )
+    tail_reach_m = np.linalg.norm(postprocessed_tail_xy, axis=1)
+    tail_average_speed_mps = tail_reach_m / (horizon_steps * float(dt))
+    restart_push = (
+        float(current_speed_mps) < float(restart_speed_threshold_mps)
+    ) & (
+        tail_average_speed_mps > float(restart_plan_speed_threshold_mps)
+    )
+    target_speed_mps = first_target_speed_mps.copy()
+    target_speed_mps[restart_push] = np.maximum(
+        target_speed_mps[restart_push],
+        np.minimum(
+            float(max_speed_mps),
+            tail_average_speed_mps[restart_push],
+        ),
+    )
+
+    acceleration_mps2 = (
+        target_speed_mps - float(current_speed_mps)
+    ) / float(dt)
+    jerk_magnitude_mps3 = np.abs(
+        acceleration_mps2 - float(current_longitudinal_acceleration_mps2)
+    ) / float(dt)
+    first_heading_rad = np.arctan2(
+        trajectories[:, 0, 3],
+        trajectories[:, 0, 2],
+    )
+    wrapped_first_heading_rad = np.arctan2(
+        np.sin(first_heading_rad),
+        np.cos(first_heading_rad),
+    )
+    yaw_rate_magnitude_rps = np.abs(wrapped_first_heading_rad) / float(dt)
+    lateral_acceleration_magnitude_mps2 = (
+        target_speed_mps * yaw_rate_magnitude_rps
+    )
+
+    return {
+        "first_reference_xy": first_reference_xy.copy(),
+        "first_reference_heading_rad": first_heading_rad,
+        "postprocessed_tail_reference_xy": postprocessed_tail_xy,
+        "first_step_reach_m": first_step_reach_m,
+        "tail_average_speed_mps": tail_average_speed_mps,
+        "restart_push": restart_push,
+        "target_speed_mps": target_speed_mps,
+        "acceleration_mps2": acceleration_mps2,
+        "jerk_magnitude_mps3": jerk_magnitude_mps3,
+        "yaw_rate_magnitude_rps": yaw_rate_magnitude_rps,
+        "lateral_acceleration_magnitude_mps2": (
+            lateral_acceleration_magnitude_mps2
+        ),
+    }
+
+
 def _obb_corners(
     x: float,
     y: float,

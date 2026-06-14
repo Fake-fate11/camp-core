@@ -31,6 +31,7 @@ from camp_core.integrations.diffusion_planner import (
     compute_dp_prior_comfort_excess_costs,
     compute_dp_prior_deviation_costs,
     compute_lateral_comfort_shadow_costs,
+    compute_perfect_tracker_command_diagnostics,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     install_lanelet2_projection_fallback,
@@ -1982,6 +1983,105 @@ def test_candidate0_step_reach_guard_matches_perfect_tracker_speed_target() -> N
     assert feasible.tolist() == [True, True, False]
     assert reasons == ((), (), ("candidate0_step_reach_underprogress",))
     assert relaxed is False
+
+
+def test_perfect_tracker_command_diagnostics_reproduce_normal_command() -> None:
+    candidates = np.array(
+        [
+            [
+                [0.2, 0.0, 1.0, 0.0],
+                [0.4, 0.0, 1.0, 0.0],
+                [0.6, 0.0, 1.0, 0.0],
+            ],
+            [
+                [0.3, 0.0, np.cos(0.2), np.sin(0.2)],
+                [0.5, 0.0, 1.0, 0.0],
+                [0.7, 0.0, 1.0, 0.0],
+            ],
+        ],
+        dtype=np.float64,
+    )
+
+    diagnostics = compute_perfect_tracker_command_diagnostics(
+        candidates,
+        dt=0.1,
+        current_speed_mps=2.0,
+        current_longitudinal_acceleration_mps2=1.0,
+    )
+
+    assert diagnostics["restart_push"].tolist() == [False, False]
+    assert diagnostics["target_speed_mps"].tolist() == pytest.approx([2.0, 3.0])
+    assert diagnostics["acceleration_mps2"].tolist() == pytest.approx([0.0, 10.0])
+    assert diagnostics["jerk_magnitude_mps3"].tolist() == pytest.approx(
+        [10.0, 90.0]
+    )
+    assert diagnostics["yaw_rate_magnitude_rps"].tolist() == pytest.approx(
+        [0.0, 2.0]
+    )
+    assert diagnostics[
+        "lateral_acceleration_magnitude_mps2"
+    ].tolist() == pytest.approx([0.0, 6.0])
+
+
+def test_perfect_tracker_command_diagnostics_apply_postprocess_and_restart() -> None:
+    candidates = np.array(
+        [
+            [
+                [0.0, 0.0, 1.0, 0.0],
+                [0.1, 0.0, 1.0, 0.0],
+                [0.1, 0.0, 1.0, 0.0],
+                [5.0, 0.0, 1.0, 0.0],
+            ],
+            [
+                [3.0, 0.0, np.cos(3.5), np.sin(3.5)],
+                [4.0, 0.0, 1.0, 0.0],
+                [5.0, 0.0, 1.0, 0.0],
+                [6.0, 0.0, 1.0, 0.0],
+            ],
+        ],
+        dtype=np.float64,
+    )
+
+    diagnostics = compute_perfect_tracker_command_diagnostics(
+        candidates,
+        dt=0.1,
+        current_speed_mps=0.0,
+        current_longitudinal_acceleration_mps2=0.0,
+        velocity_smooth_window=1,
+    )
+
+    np.testing.assert_allclose(
+        diagnostics["postprocessed_tail_reference_xy"][0],
+        [0.1, 0.0],
+    )
+    assert diagnostics["tail_average_speed_mps"][0] == pytest.approx(0.25)
+    assert diagnostics["restart_push"].tolist() == [False, True]
+    assert diagnostics["target_speed_mps"].tolist() == pytest.approx([0.0, 20.0])
+    assert diagnostics["yaw_rate_magnitude_rps"][1] == pytest.approx(
+        abs(np.arctan2(np.sin(3.5), np.cos(3.5))) / 0.1
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs,error",
+    [
+        ({"dt": 0.0}, "dt must be positive"),
+        ({"current_speed_mps": -1.0}, "must be nonnegative"),
+        ({"velocity_smooth_window": 0}, "positive integer"),
+    ],
+)
+def test_perfect_tracker_command_diagnostics_fail_closed(kwargs, error) -> None:
+    arguments = {
+        "dt": 0.1,
+        "current_speed_mps": 0.0,
+        "current_longitudinal_acceleration_mps2": 0.0,
+    }
+    arguments.update(kwargs)
+    with pytest.raises(ValueError, match=error):
+        compute_perfect_tracker_command_diagnostics(
+            np.zeros((1, 2, 4), dtype=np.float64),
+            **arguments,
+        )
 
 
 def test_candidate0_step_reach_guard_can_preserve_existing_feasible_set() -> None:

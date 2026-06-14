@@ -41,6 +41,7 @@ REPLAY_METADATA_FIELDS = (
     "camp_shadow_red_stopping_margin",
     "camp_shadow_dp_prior_comfort_excess",
     "camp_shadow_lateral_comfort",
+    "camp_shadow_perfect_tracker_command",
     "selector_mode",
     "camp_fallback_mode",
     "advance_mode",

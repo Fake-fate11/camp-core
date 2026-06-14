@@ -9,6 +9,7 @@ from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES_V8,
     DP_CAMP_ATOM_NAMES_V9,
     DP_CAMP_ATOM_NAMES_V10,
+    compute_perfect_tracker_command_diagnostics,
 )
 from scripts.integrations.augment_diffusion_planner_camp_v9_red_stopping import (
     augment_logs as augment_v9_logs,
@@ -178,6 +179,7 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
     log_path = _write_completed_log(tmp_path)
     _add_lexicographic_contract(log_path)
     _add_candidate_reference_blend_contract(log_path)
+    _add_perfect_tracker_command_contract(log_path)
     records = json.loads(log_path.read_text(encoding="utf-8"))
     del records[0]["candidate_closed_loop_outcomes"]
     log_path.write_text(json.dumps(records), encoding="utf-8")
@@ -220,6 +222,7 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
             "0.05",
             "--expected_candidate_reference_blend_steps",
             "5",
+            "--require_perfect_tracker_command_shadow",
             "--output_json",
             str(output_path),
         ],
@@ -234,6 +237,7 @@ def test_dataset_audit_cli_passes_closed_loop_outcome_policy(
     assert report["checks"]["lexicographic_preselection_verified"]
     assert report["checks"]["lexicographic_stage_records"] == 1
     assert report["checks"]["candidate_reference_blend_verified"]
+    assert report["checks"]["perfect_tracker_command_shadow_verified"]
 
 
 def test_dataset_audit_certifies_lexicographic_preselection(tmp_path) -> None:
@@ -273,6 +277,44 @@ def test_dataset_audit_certifies_candidate_reference_blend(tmp_path) -> None:
     assert report["passed"]
     assert report["checks"]["candidate_reference_blend_verified"]
     assert report["checks"]["expected_candidate_reference_blend_steps"] == 5
+
+
+def test_dataset_audit_certifies_perfect_tracker_command_shadow(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_perfect_tracker_command_contract(log_path)
+
+    report = audit_training_dataset(
+        [log_path],
+        atom_scales=np.ones(12),
+        expected_logs=1,
+        expected_candidates=2,
+        expected_advance_mode="perfect",
+        require_perfect_tracker_command_shadow=True,
+    )
+
+    assert report["passed"]
+    assert report["checks"]["perfect_tracker_command_shadow_verified"]
+    assert report["checks"]["perfect_tracker_command_records"] == 1
+
+
+def test_dataset_audit_rejects_wrong_perfect_tracker_target_speed(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_perfect_tracker_command_contract(log_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["candidate_perfect_tracker_target_speed_mps"][1] += 0.1
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="target speed"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_advance_mode="perfect",
+            require_perfect_tracker_command_shadow=True,
+        )
 
 
 def test_dataset_audit_rejects_unpreserved_blended_first_reference(
@@ -728,5 +770,110 @@ def _add_candidate_reference_blend_contract(log_path) -> None:
         "weight_definition": "min(t / steps, 1)",
         "first_reference_xy_preserved": True,
         "selection_effect": True,
+    }
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+
+def _add_perfect_tracker_command_contract(log_path) -> None:
+    candidates = np.array(
+        [
+            [
+                [0.2, 0.0, 1.0, 0.0],
+                [0.4, 0.0, 1.0, 0.0],
+                [0.6, 0.0, 1.0, 0.0],
+                [0.8, 0.0, 1.0, 0.0],
+            ],
+            [
+                [0.2, 0.0, 1.0, 0.0],
+                [0.3, 0.1, 1.0, 0.0],
+                [0.5, 0.1, 1.0, 0.0],
+                [0.7, 0.1, 1.0, 0.0],
+            ],
+        ],
+        dtype=np.float64,
+    )
+    diagnostics = compute_perfect_tracker_command_diagnostics(
+        candidates,
+        dt=0.1,
+        current_speed_mps=0.0,
+        current_longitudinal_acceleration_mps2=0.0,
+    )
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    record = records[0]
+    record["candidate_trajectory_horizon_steps"] = 4
+    record["candidate_first_reference_xy"] = diagnostics[
+        "first_reference_xy"
+    ].tolist()
+    record["candidate_first_reference_heading_rad"] = diagnostics[
+        "first_reference_heading_rad"
+    ].tolist()
+    record["candidate_perfect_tracker_postprocessed_tail_xy"] = diagnostics[
+        "postprocessed_tail_reference_xy"
+    ].tolist()
+    record["candidate_step_reach"] = diagnostics["first_step_reach_m"].tolist()
+    record["perfect_tracker_command_inputs"] = {
+        "dt": 0.1,
+        "current_speed_mps": 0.0,
+        "current_longitudinal_acceleration_mps2": 0.0,
+        "max_speed_mps": 20.0,
+        "velocity_smooth_window": 8,
+        "stop_threshold_mps": 0.3,
+        "restart_speed_threshold_mps": 0.1,
+        "restart_plan_speed_threshold_mps": 0.5,
+    }
+    for field, diagnostic_key in (
+        (
+            "candidate_perfect_tracker_tail_average_speed_mps",
+            "tail_average_speed_mps",
+        ),
+        ("candidate_perfect_tracker_restart_push", "restart_push"),
+        ("candidate_perfect_tracker_target_speed_mps", "target_speed_mps"),
+        (
+            "candidate_perfect_tracker_acceleration_mps2",
+            "acceleration_mps2",
+        ),
+        (
+            "candidate_perfect_tracker_jerk_magnitude_mps3",
+            "jerk_magnitude_mps3",
+        ),
+        (
+            "candidate_perfect_tracker_yaw_rate_magnitude_rps",
+            "yaw_rate_magnitude_rps",
+        ),
+        (
+            "candidate_perfect_tracker_lateral_acceleration_magnitude_mps2",
+            "lateral_acceleration_magnitude_mps2",
+        ),
+    ):
+        record[field] = diagnostics[diagnostic_key].tolist()
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["camp_shadow_perfect_tracker_command"] = {
+        "enabled": True,
+        "selection_effect": False,
+        "tracker_class": "scenario_generation.mpc_tracker.PerfectTracker",
+        "reference_postprocessing": (
+            "scenario_generation.mpc_tracker.postprocess_reference"
+        ),
+        "candidate_frame": "ego",
+        "max_speed_mps": 20.0,
+        "velocity_smooth_window": 8,
+        "stop_threshold_mps": 0.3,
+        "restart_speed_threshold_mps": 0.1,
+        "restart_plan_speed_threshold_mps": 0.5,
+        "fields": [
+            "candidate_perfect_tracker_tail_average_speed_mps",
+            "candidate_perfect_tracker_restart_push",
+            "candidate_perfect_tracker_target_speed_mps",
+            "candidate_perfect_tracker_acceleration_mps2",
+            "candidate_perfect_tracker_jerk_magnitude_mps3",
+            "candidate_perfect_tracker_yaw_rate_magnitude_rps",
+            (
+                "candidate_perfect_tracker_"
+                "lateral_acceleration_magnitude_mps2"
+            ),
+        ],
     }
     summary_path.write_text(json.dumps(summary), encoding="utf-8")

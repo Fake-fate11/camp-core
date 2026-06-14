@@ -29,6 +29,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     compute_dp_prior_comfort_excess_costs,
     compute_dp_prior_deviation_costs,
     compute_lateral_comfort_shadow_costs,
+    compute_perfect_tracker_command_diagnostics,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     generate_candidate_trajectories,
@@ -588,6 +589,20 @@ def _candidate_step_reach(candidates: np.ndarray) -> np.ndarray:
         raise ValueError("candidates must have shape [K, T, >=2].")
     reach = np.linalg.norm(candidate_xy[:, 0, :], axis=1)
     return np.nan_to_num(reach, nan=0.0, posinf=0.0, neginf=0.0)
+
+
+def _current_perfect_tracker_state(agent: Any) -> tuple[float, float]:
+    heading = float(agent.current_heading)
+    forward = np.array([math.cos(heading), math.sin(heading)], dtype=np.float64)
+    velocity = np.asarray(agent.current_velocity, dtype=np.float64).reshape(-1)
+    acceleration = np.asarray(agent.acceleration, dtype=np.float64).reshape(-1)
+    if velocity.size < 2 or acceleration.size < 2:
+        raise ValueError("Agent velocity and acceleration must contain xy values.")
+    speed = max(float(np.dot(velocity[:2], forward)), 0.0)
+    longitudinal_acceleration = float(np.dot(acceleration[:2], forward))
+    if not np.isfinite(speed) or not np.isfinite(longitudinal_acceleration):
+        raise ValueError("Perfect-tracker state must be finite.")
+    return speed, longitudinal_acceleration
 
 
 def _apply_candidate0_step_reach_guard(
@@ -1186,6 +1201,24 @@ def _install_camp_predictor(
         candidate_progress = None
         candidate_route_progress = None
         candidate_step_reach = _candidate_step_reach(candidates)
+        perfect_tracker_command_start = time.perf_counter()
+        ego_agent = scene.get_agent(ego_id)
+        (
+            perfect_tracker_current_speed_mps,
+            perfect_tracker_current_longitudinal_acceleration_mps2,
+        ) = _current_perfect_tracker_state(ego_agent)
+        perfect_tracker_command = compute_perfect_tracker_command_diagnostics(
+            candidates,
+            dt=float(getattr(scene, "dt", 0.1)),
+            current_speed_mps=perfect_tracker_current_speed_mps,
+            current_longitudinal_acceleration_mps2=(
+                perfect_tracker_current_longitudinal_acceleration_mps2
+            ),
+        )
+        perfect_tracker_command_done = time.perf_counter()
+        shadow_perfect_tracker_command_latency_ms = (
+            perfect_tracker_command_done - perfect_tracker_command_start
+        ) * 1000.0
         candidate_step_reach_guard_relaxed = False
         lexicographic_stage_counts = None
         candidate_planned_red_light_cost = None
@@ -1234,7 +1267,6 @@ def _install_camp_predictor(
                 preserve_any_feasible=candidate0_step_reach_preserve_feasible,
             )
         if min_candidate0_route_progress_ratio is not None:
-            ego_agent = scene.get_agent(ego_id)
             route_centerline_ego = _ego_frame_xy(
                 route_centerline,
                 np.asarray(ego_agent.current_position, dtype=np.float64),
@@ -1339,9 +1371,12 @@ def _install_camp_predictor(
             )
             * 1000.0,
             "latency_ms_reward_scoring": (
-                reward_scoring_done - context_and_obstacles_done
+                reward_scoring_done - perfect_tracker_command_done
             )
             * 1000.0,
+            "latency_ms_shadow_perfect_tracker_command": (
+                shadow_perfect_tracker_command_latency_ms
+            ),
             "latency_ms_outcome_collection": (
                 outcome_collection_done - reward_scoring_done
             )
@@ -1392,8 +1427,58 @@ def _install_camp_predictor(
                 "selected_index": selection.selected_index,
                 "num_candidates": int(num_candidates),
                 "candidate_reference_blend_steps": reference_blend_steps,
+                "candidate_trajectory_horizon_steps": int(candidates.shape[1]),
                 "candidate_first_reference_xy": (
                     candidates[:, 0, :2].tolist()
+                ),
+                "candidate_first_reference_heading_rad": (
+                    perfect_tracker_command[
+                        "first_reference_heading_rad"
+                    ].tolist()
+                ),
+                "candidate_perfect_tracker_postprocessed_tail_xy": (
+                    perfect_tracker_command[
+                        "postprocessed_tail_reference_xy"
+                    ].tolist()
+                ),
+                "perfect_tracker_command_inputs": {
+                    "dt": float(getattr(scene, "dt", 0.1)),
+                    "current_speed_mps": perfect_tracker_current_speed_mps,
+                    "current_longitudinal_acceleration_mps2": (
+                        perfect_tracker_current_longitudinal_acceleration_mps2
+                    ),
+                    "max_speed_mps": 20.0,
+                    "velocity_smooth_window": 8,
+                    "stop_threshold_mps": 0.3,
+                    "restart_speed_threshold_mps": 0.1,
+                    "restart_plan_speed_threshold_mps": 0.5,
+                },
+                "candidate_perfect_tracker_tail_average_speed_mps": (
+                    perfect_tracker_command["tail_average_speed_mps"].tolist()
+                ),
+                "candidate_perfect_tracker_restart_push": (
+                    perfect_tracker_command["restart_push"].tolist()
+                ),
+                "candidate_perfect_tracker_target_speed_mps": (
+                    perfect_tracker_command["target_speed_mps"].tolist()
+                ),
+                "candidate_perfect_tracker_acceleration_mps2": (
+                    perfect_tracker_command["acceleration_mps2"].tolist()
+                ),
+                "candidate_perfect_tracker_jerk_magnitude_mps3": (
+                    perfect_tracker_command[
+                        "jerk_magnitude_mps3"
+                    ].tolist()
+                ),
+                "candidate_perfect_tracker_yaw_rate_magnitude_rps": (
+                    perfect_tracker_command[
+                        "yaw_rate_magnitude_rps"
+                    ].tolist()
+                ),
+                "candidate_perfect_tracker_lateral_acceleration_magnitude_mps2": (
+                    perfect_tracker_command[
+                        "lateral_acceleration_magnitude_mps2"
+                    ].tolist()
                 ),
                 "used_fallback": selection.used_fallback,
                 "camp_fallback_mode": getattr(selector, "fallback_mode", "uniform")
@@ -1814,6 +1899,38 @@ def main() -> None:
             if records is not None
             else None
         ),
+        "camp_shadow_perfect_tracker_command": (
+            {
+                "enabled": True,
+                "selection_effect": False,
+                "tracker_class": (
+                    "scenario_generation.mpc_tracker.PerfectTracker"
+                ),
+                "reference_postprocessing": (
+                    "scenario_generation.mpc_tracker.postprocess_reference"
+                ),
+                "candidate_frame": "ego",
+                "max_speed_mps": 20.0,
+                "velocity_smooth_window": 8,
+                "stop_threshold_mps": 0.3,
+                "restart_speed_threshold_mps": 0.1,
+                "restart_plan_speed_threshold_mps": 0.5,
+                "fields": [
+                    "candidate_perfect_tracker_tail_average_speed_mps",
+                    "candidate_perfect_tracker_restart_push",
+                    "candidate_perfect_tracker_target_speed_mps",
+                    "candidate_perfect_tracker_acceleration_mps2",
+                    "candidate_perfect_tracker_jerk_magnitude_mps3",
+                    "candidate_perfect_tracker_yaw_rate_magnitude_rps",
+                    (
+                        "candidate_perfect_tracker_"
+                        "lateral_acceleration_magnitude_mps2"
+                    ),
+                ],
+            }
+            if records is not None
+            else None
+        ),
         "selector_mode": args.camp_selector_mode,
         "camp_fallback_mode": args.camp_fallback_mode,
         "advance_mode": config.advance_mode,
@@ -1886,6 +2003,9 @@ def main() -> None:
     ]
     validation["camp_shadow_lateral_comfort"] = summary[
         "camp_shadow_lateral_comfort"
+    ]
+    validation["camp_shadow_perfect_tracker_command"] = summary[
+        "camp_shadow_perfect_tracker_command"
     ]
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (
