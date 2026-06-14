@@ -3087,3 +3087,52 @@ candidate constants; remain deterministic; and state explicitly that changing
 the feasible set is outside the original CAMP convex master, while the CAMP
 score over any admitted finite set remains affine in the fixed weights. Formal
 seeds remain frozen.
+
+### Default-off underprogress relaxation implementation
+
+Commit `d10a18a916ea5eef4e6fcb73340138a1fc9daca3` implements the
+underprogress relaxation as a default-off replay selector feature. It is not
+enabled unless `--camp_underprogress_relaxation` is passed.
+
+The implementation follows the mathematical contract:
+
+- requires `--camp_feasibility_source dp_reward`;
+- cannot be combined with the older lexicographic preselection or
+  PerfectTracker command postselector;
+- preserves hard feasibility reasons, including `dp_kinematic` and
+  `dynamic_obb_collision`;
+- admits only candidates whose sole blocker was exactly `dp_underprogress`;
+- requires lower union-red, progress loss budget, H3 distance loss budget,
+  red stopping-margin nonworse, and an absolute H3 max lateral limit;
+- chooses by union-red, stopping margin, original CAMP score, then index;
+- is fail-closed: if the admissible set is empty, the original CAMP selection
+  remains unchanged.
+
+The new CLI knobs are:
+
+```text
+--camp_underprogress_relaxation
+--camp_underprogress_progress_loss_budget_m
+--camp_underprogress_h3_distance_loss_budget_m
+--camp_underprogress_lateral_limit_mps2
+```
+
+The benchmark matrix forwards these flags for non-Top1 variants. Replay
+summary and validation files record `camp_underprogress_relaxation`; each
+selection log record records `underprogress_relaxation` stats and the effective
+feasible mask/reasons after relaxation. The summary latency aggregator now
+tracks `underprogress_relaxation_latency_ms`.
+
+Verification:
+
+| Environment | Result |
+| --- | --- |
+| Local Windows, Python 3.12 | `166 passed, 5 skipped` |
+| AutoDL, Python 3.9 | `171 passed` |
+
+Decision: implementation gate is passed for a default-off pilot, not for
+formal evaluation. The next allowed experiment is the predeclared paired
+sample59 seeds `1/2/3` non-formal 12-run, using the current fixed DP commit
+and frozen CAMP weights, comparing baseline `redstopfloor05` against the same
+configuration with underprogress relaxation enabled. Formal seeds `11/12/13`
+remain frozen.
