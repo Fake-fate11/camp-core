@@ -2949,3 +2949,73 @@ investigation is therefore a narrowly scoped, shadow-only feasibility audit of
 a state-dependent progress relaxation, a stopping-specific candidate branch,
 or no change. Formal seeds remain frozen, and no new CAMP training or online
 selector implementation is justified by the current evidence.
+
+### Underprogress-blocked lower-red counterfactual
+
+Commit `a12282bff718a0e1e138b0d534e5a32aae87137b` adds the narrow
+shadow-only `dp_underprogress` counterfactual. It does not change the replay
+selector. For the no-lower-feasible h30-safe/full-red misses, it virtually
+ignores only `dp_underprogress` and leaves every other infeasibility reason
+hard. This is a feasibility audit, not a CAMP score change and not a Benders
+cut.
+
+Verification:
+
+| Environment | Result |
+| --- | --- |
+| Local Windows, Python 3.12 | `163 passed, 5 skipped` |
+| AutoDL, Python 3.9 | `168 passed` |
+
+The real sample59 non-formal v3 shadow artifact was re-analyzed at:
+
+`/root/autodl-tmp/camp_dp_tracker_rollout_shadow_sample59_acba493`
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Underprogress relaxation JSON | `6c20d0cbd6232a21a513643a071e9ae86cee90a4c12a2c6791ec2ecbd17b8068` |
+| Underprogress relaxation markdown | `bafeed0d0e8481842b5a1e1ca3a87f0b1e9747b7cfe52cf42f51efb056aea328` |
+
+The no-lower-feasible diagnosis remains:
+
+| Diagnosis | Count |
+| --- | ---: |
+| Events without lower union-red base-feasible candidate | 12 |
+| Events with lower union-red candidates blocked by feasibility | 12 |
+| Events with no lower union-red candidate in the generated pool | 0 |
+
+After virtually ignoring only `dp_underprogress`:
+
+| Metric | Value |
+| --- | ---: |
+| Event denominator | 12 |
+| Events with lower union-red candidate restored | 10 |
+| Events still without lower union-red candidate | 2 |
+| Mean eligible candidates | 4.25 |
+
+Mean deltas for the 10 restored events, chosen by minimum union-red then
+existing selection score/index, are:
+
+| Metric | Mean delta |
+| --- | ---: |
+| Union-red certificate | -31.800000 |
+| Red stopping-margin cost | -28.655999 |
+| Progress | -1.168156 m |
+| H3 distance | -0.035404 m |
+| H3 mean vector jerk | -11.011042 m/s^3 |
+| H3 mean lateral acceleration | -0.002860 m/s^2 |
+| PerfectTracker target speed | -0.219185 m/s |
+| PerfectTracker jerk command | +3.935407 m/s^3 |
+| PerfectTracker lateral command | -0.009176 m/s^2 |
+
+Decision: this overturns the earlier suspicion that the no-lower-feasible
+misses are mainly candidate-pool absence. They are mostly progress-gate
+misses: the lower-red candidates already exist and are often more stop-like
+under the full-horizon red and stopping-margin shadows. However, the
+counterfactual still changes the external feasible set, so it cannot be
+deployed as a selector-only override. The next acceptable step is another
+offline gate: evaluate predeclared progress/H3-distance/2.0 m/s^2 lateral
+budgets on the `dp_underprogress`-relaxed candidates, and separately inspect
+the remaining `2/12` hard-blocked cases. Only if that budget screen is
+coverage-positive, comfort-nonregressive, deterministic, and fail-closed
+should an online, default-off underprogress relaxation be specified. Formal
+seeds remain frozen.
