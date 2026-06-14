@@ -3340,3 +3340,74 @@ variant. The next useful direction is not wider safety override logic; it is to
 reduce latency overhead and improve the candidate generator or atom/safety
 certificate so lower-red choices are available without paying progress and jerk
 taxes. Formal seeds remain frozen.
+
+### Rejected batch atom evaluation
+
+Commit `412e248889a67624573921d86640592a33096687` replaced the per-candidate
+base atom loop with a vectorized batch implementation. The implementation kept
+the atom schema, weights, normalization, feasibility, collision checks, affine
+score, and selector tie-break unchanged. Unit tests compared the batch result
+against a stack of the original `compute_atom_bank_vector` calls with static and
+candidate-specific dynamic obstacles.
+
+Verification before the benchmark:
+
+| Environment | Result |
+| --- | --- |
+| Local Windows, Python 3.12 | `169 passed, 5 skipped` |
+| AutoDL, Python 3.9 | `174 passed` |
+
+The batch implementation was evaluated on the same sample59 non-formal 12-run:
+
+```text
+Old vector root:
+/root/autodl-tmp/camp_dp_underprogress_sample59_pilot_9527721_base
+
+Batch atom root:
+/root/autodl-tmp/camp_dp_batch_atom_sample59_412e248_base
+
+Comparison root:
+/root/autodl-tmp/camp_dp_batch_atom_sample59_412e248_compare
+```
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `paired_comparison.json` | `19634d0f9dcc5b3caae3f3127e630d77a41b5dcf6ab3ef97daca68b2cf439583` |
+| `paired_comparison.md` | `5168fafc821ddb68539c230fa073e86fd8aad9113a6eefd876ff8617db5ff85b` |
+
+Strict pairing passed for all `12/12` runs. Across all 2400 selection records,
+the following fields were exactly equal:
+
+- selected index and fallback state;
+- feasible mask and infeasibility reasons;
+- raw atoms and normalized atoms;
+- CAMP scores and selection scores;
+- selection weights and selection normalized atoms.
+
+All closed-loop paired deltas were exactly zero for route completion,
+collision, near miss, lane violation, realized red-light violation, planned
+red-light violation, jerk, and fallback. This confirms mathematical and
+behavioral equivalence.
+
+The performance result was negative:
+
+| Mean per-run p95 | Old vector | Batch atom |
+| --- | ---: | ---: |
+| Total selection | `102.635467 ms` | `101.370465 ms` |
+| Candidate generation | `63.497816 ms` | `60.867233 ms` |
+| DP reward scoring | `23.643619 ms` | `21.116328 ms` |
+| CAMP selection | `15.749189 ms` | `17.823681 ms` |
+| CAMP atom computation | `13.142379 ms` | `16.038219 ms` |
+| CAMP collision checks | `2.907745 ms` | `2.297451 ms` |
+
+The lower total selection mean is explained by unrelated candidate-generation
+and reward-scoring runtime variation. The controlled CAMP component regressed:
+atom computation increased by about `2.90 ms` p95 and CAMP selection increased
+by about `2.07 ms` p95. The batch implementation also increased code size and
+temporary array allocation.
+
+Decision: reject and revert the batch atom implementation. Commit `60604bf`
+reverts `412e248`. The exact-equivalence result remains useful evidence, but
+this implementation is not an industrial latency improvement and must not be
+reintroduced without a different memory/layout design and a pre-implementation
+microbenchmark. Formal seeds remain frozen.
