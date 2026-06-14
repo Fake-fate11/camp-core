@@ -204,6 +204,98 @@ candidate generation, hard feasibility, horizon construction, fallback
 policy, or the upstream planner/simulator configuration. It cannot be claimed
 as a CAMP selector improvement.
 
+## Underprogress Relaxation Candidate Set
+
+The `dp_underprogress` gate is an external replay feasibility filter derived
+from DP progress reward, not a CAMP atom and not a constraint in the convex
+robust-margin master. Relaxing it changes the finite candidate set that CAMP
+is allowed to select from. Therefore any deployed relaxation must be treated
+as a new selector contract and evaluated separately from the saved CAMP weight
+certificate.
+
+Let \(q_k\) be the finite set of logged infeasibility reasons for candidate
+\(k\). Split the reasons into:
+
+- hard reasons \(q^{hard}_k\), including collision, dynamic OBB collision,
+  road-border, lane-crossing, static-collision, kinematic, speed, context
+  lane/speed, and DP red-light violations;
+- the single soft progress reason \(u=\texttt{dp\_underprogress}\).
+
+No hard reason may be relaxed by this rule. Define the hard-clean set
+
+\[
+G=\{k:q^{hard}_k=\emptyset\},
+\]
+
+and the original base-feasible set
+
+\[
+F=\{k:q_k=\emptyset\}.
+\]
+
+The underprogress-relaxed set may only use candidates in \(G\setminus F\)
+whose only logged blocker is `dp_underprogress`. If \(F\) is empty, the
+existing all-infeasible fallback path remains responsible; underprogress
+relaxation must not create a separate fallback branch.
+
+Given the unchanged CAMP-selected baseline \(b\in F\), the default-off
+underprogress relaxation is allowed to form a candidate set only when all
+of the following are true:
+
+1. \(R_b>0\);
+2. no base-feasible safety override has already selected a lower-risk
+   candidate under the declared full-horizon override contract;
+3. a candidate \(k\in G\setminus F\) has \(q_k=\{u\}\);
+4. \(R_k<R_b\);
+5. \(p_k \ge p_b-\epsilon^u_p(x,b)\);
+6. \(d^H_k \ge d^H_b-\epsilon^u_d(x,b)\);
+7. the red stopping-margin cost is nonworse than the baseline;
+8. all declared absolute comfort caps hold, including the H-step lateral cap;
+9. every budget and cap was declared before the paired pilot.
+
+For a declared set of nonnegative budgets, define
+
+\[
+U_b=\{k\in G\setminus F:
+q_k=\{u\},\;
+R_k<R_b,\;
+p_k \ge p_b-\epsilon^u_p(x,b),\;
+d^H_k \ge d^H_b-\epsilon^u_d(x,b),\;
+s_k \le s_b,\;
+\ell^H_k \le \bar\ell^u(x,b)\}.
+\]
+
+Here \(s_k\) is the current-tick red stopping-margin cost. If a
+specification-backed jerk cap is available, it may be added as
+\(j^H_k \le \bar j^u(x,b)\); otherwise jerk remains an audited tradeoff and
+cannot be claimed as a hard comfort guarantee.
+
+The deployed rule must be fail-closed:
+
+1. if \(F\) is empty, use the existing all-infeasible fallback path;
+2. compute the ordinary CAMP baseline \(b\in F\);
+3. if \(R_b=0\), return \(b\);
+4. if the base-feasible safety override succeeds, use it;
+5. if \(U_b\) is empty, return \(b\);
+6. otherwise choose deterministically from \(U_b\) by minimum \(R_k\), then
+   minimum stopping-margin cost \(s_k\), then original unmasked CAMP affine
+   score \(a_k^\top w\), then candidate index.
+
+This rule proves only a fixed-current-candidate statement: when it changes
+the selection, the chosen candidate is hard-clean, was blocked only by
+`dp_underprogress`, has lower union-red exposure than the unchanged baseline,
+and satisfies the declared progress, distance, stopping-margin, and comfort
+budgets. It does not prove future closed-loop safety or future replanning
+improvement.
+
+Mathematically, underprogress relaxation is not Benders and does not modify
+the simplex/CVaR/L2 master. For any fixed admitted finite candidate set, the
+CAMP score remains affine in \(w\), and a future training run over that fixed
+contract would still have a convex finite-candidate robust-margin master.
+However, the existing checkpoint certificate cannot be reused to certify the
+changed feasible-set contract; the logs, schema/metadata, paired pilot, and
+formal evaluation gates must explicitly record that relaxation was enabled.
+
 ## Required Gates
 
 Before an atom or training change reaches formal evaluation, it must pass:
