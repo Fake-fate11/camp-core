@@ -2631,3 +2631,69 @@ requires DP-reward feasibility plus `advance_mode=perfect`. Summary metadata
 and every per-record baseline/final index and stage count are independently
 recomputed by the dataset audit. The next evidence step is a non-formal
 sample59 paired pilot. Formal seeds remain frozen.
+
+### Command-dominance paired pilot
+
+The non-formal paired pilot used the fixed DP commit, frozen
+`redstopfloor05` checkpoint, `sample59_86`, seeds 1/2/3, NPC counts 0/4,
+traffic lights on/off, 200 steps, K=8, candidate noise 1.0, h30 DP-reward
+feasibility, and PerfectTracker. The only intentional difference from the
+existing 12-run baseline was
+`--camp_perfect_tracker_command_postselection`.
+
+The fail-closed dataset audit passed all 12 logs and 2,400 records. It
+independently recomputed the command shadow and postselection, rejected
+candidate outcome payloads, and confirmed that formal seeds 11/12/13 were
+absent. Strict pairing found 12 common and 12 union keys with no missing or
+duplicate runs.
+
+The postselector changed 75 of 2,400 ticks (`3.125%`). Its own mean and p95
+latencies were `0.0713 ms` and `0.1020 ms`; the command shadow mean and p95
+latencies were `0.2371 ms` and `0.3070 ms`.
+
+| Postselection minus `redstopfloor05` | Mean paired delta | 95% bootstrap CI |
+| --- | ---: | ---: |
+| Route completion | +0.000212 | [+0.000037, +0.000422] |
+| OBB collision | 0.000000 | [0.000000, 0.000000] |
+| Near miss | 0.000000 | [0.000000, 0.000000] |
+| Lane violation | -0.001667 | [-0.005000, 0.000000] |
+| Realized red-light violation | 0.000000 | [0.000000, 0.000000] |
+| Planned red-light violation | +0.001250 | [0.000000, +0.002500] |
+| Mean jerk magnitude | -0.085687 | [-0.465913, +0.269498] |
+| Mean lateral acceleration | +0.001056 | [-0.000074, +0.002311] |
+| Fallback rate | -0.000833 | [-0.003750, +0.001250] |
+| Total selection p95 | +3.535447 ms | [+1.054654, +6.066308] |
+
+The variant's mean per-run total p95 was `99.4096 ms`, compared with
+`95.8742 ms` for the baseline. The variant therefore had almost no latency
+margin even though the postselection phase itself was inexpensive.
+
+Decision: reject before the 36-run matrix. Completion improved, but planned
+red-light violations and mean lateral acceleration increased, the jerk
+improvement was not statistically established, fallback non-increase was not
+established, and the total latency increment was strictly positive.
+
+The mathematical reason is important. Membership in \(D_b\) proves only
+one-tick, candidate-conditional dominance for the fixed state and candidate
+set at that tick. Once a different candidate is executed, the next state,
+future candidate sets, traffic-light exposure, and tracker history can differ.
+Consequently, the finite rule cannot imply monotonicity of closed-loop
+planned-red, jerk, or lateral metrics. The implementation remains useful as a
+default-off audited ablation, but it is not an industrial acceptance
+candidate.
+
+The next design must evaluate a short closed-loop state transition or a
+mathematically certified upper bound over that transition. It must keep all
+quantities outcome-free at online selection time, preserve the existing CAMP
+CVaR/simplex/L2 master unless a separately versioned convex atom is justified,
+and screen counterfactual definitions offline before another simulator
+matrix. Formal seeds remain frozen.
+
+Artifacts:
+
+| Artifact | Path | SHA-256 |
+| --- | --- | --- |
+| Pilot root | `/root/autodl-tmp/camp_dp_tracker_command_postselection_sample59_pilot_f6c2381` | n/a |
+| Dataset audit | `postselection_dataset_audit.json` | `73490b3a99b6a28158dc6f28161fe158996057c9e3449e66b36884e4362bfd0e` |
+| Paired comparison | `paired_comparison.json` | `586a859e2b97b4b75ba469294be5f510fbadd021a12147ffd607dcdf82183503` |
+| Paired comparison markdown | `paired_comparison.md` | `320fc2a3b7c843a32fd2da911176191faa2c30c1680cbce3b1b49f202d972bdd` |
