@@ -172,6 +172,47 @@ def test_rollout_shadow_analysis_attributes_infeasible_lower_red_candidates(
     assert "unit_lateral_gate" in markdown
 
 
+def test_rollout_shadow_analysis_quantifies_underprogress_relaxation(
+    tmp_path,
+) -> None:
+    record = _record()
+    record["feasible_mask"] = [True, False, True]
+    record["selection_scores"] = [0.0, float("inf"), 0.3]
+    record["dp_candidate_rewards"][1]["progress"] = 3.0
+    record["candidate_full_horizon_planned_red_light_cost"] = [2.0, 0.5, 3.0]
+    record["candidate_horizon_union_planned_red_light_cost"] = [2.0, 0.5, 3.0]
+    record["candidate_red_stopping_margin_cost"] = [3.0, 1.0, 4.0]
+    record["infeasibility_reasons"] = [
+        [],
+        ["dp_underprogress"],
+        [],
+    ]
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(json.dumps([record]), encoding="utf-8")
+
+    report = analyze([log_path])
+
+    diagnosis = report["full_horizon_red_light"][
+        "dp_underprogress_relaxation_diagnosis"
+    ]
+    assert diagnosis["events"] == 1
+    assert (
+        diagnosis[
+            "events_with_lower_union_red_candidate_after_ignoring_dp_underprogress"
+        ]
+        == 1
+    )
+    assert diagnosis["events_still_without_lower_union_red_candidate"] == 0
+    assert diagnosis["changed_records"] == 1
+    deltas = diagnosis["mean_deltas_on_changed_records"]
+    assert deltas["full_red"] == -1.5
+    assert deltas["progress"] == -2.0
+    assert deltas["stopping_margin"] == -2.0
+    markdown = render_markdown(report)
+    assert "## DP Underprogress Relaxation Diagnosis" in markdown
+    assert "ignores only `dp_underprogress`" in markdown
+
+
 def test_rollout_shadow_analysis_rejects_missing_full_red(tmp_path) -> None:
     record = _record()
     del record["candidate_full_horizon_planned_red_light_cost"]

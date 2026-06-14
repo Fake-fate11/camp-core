@@ -27,6 +27,7 @@ SAFETY_DETAIL_HORIZON = 3
 PROGRESS_LOSS_BUDGETS_M = (0.5, 1.0, 1.5)
 H3_DISTANCE_LOSS_BUDGETS_M = (0.05, 0.1)
 H3_MAX_LATERAL_GUARD_MPS2 = 2.0
+UNDERPROGRESS_SOFT_REASONS = frozenset(("dp_underprogress",))
 ROLLOUT_METRICS = (
     "distance_m",
     "mean_vector_jerk_mps3",
@@ -75,6 +76,13 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
         "with_lower_union_red_infeasible_candidate": 0,
         "with_no_lower_union_red_candidate_anywhere": 0,
         "infeasible_lower_union_red_reason_counts": {},
+    }
+    underprogress_relaxation_rows = []
+    underprogress_relaxation_candidate_counts = []
+    underprogress_relaxation_diagnosis = {
+        "events": 0,
+        "events_with_lower_union_red_candidate_after_ignoring_dp_underprogress": 0,
+        "events_still_without_lower_union_red_candidate": 0,
     }
     budget_rows = {
         (progress_budget, distance_budget): []
@@ -326,6 +334,59 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                         h3_metrics=detail_metrics,
                     )
                 )
+                if not lower_union_red_indices.size:
+                    underprogress_relaxation_diagnosis["events"] += 1
+                    underprogress_relaxed_feasible = (
+                        _feasible_after_ignoring_reasons(
+                            infeasibility_reasons,
+                            ignored_reasons=UNDERPROGRESS_SOFT_REASONS,
+                        )
+                    )
+                    relaxed_lower_union_red_indices = np.flatnonzero(
+                        lower_union_red_all & underprogress_relaxed_feasible
+                    )
+                    underprogress_relaxation_candidate_counts.append(
+                        int(relaxed_lower_union_red_indices.size)
+                    )
+                    if relaxed_lower_union_red_indices.size:
+                        underprogress_relaxation_diagnosis[
+                            "events_with_lower_union_red_candidate_after_ignoring_dp_underprogress"
+                        ] += 1
+                        chosen = min(
+                            relaxed_lower_union_red_indices.tolist(),
+                            key=lambda idx: (
+                                float(red_certificate[idx]),
+                                (
+                                    float(scores[idx])
+                                    if np.isfinite(scores[idx])
+                                    else np.inf
+                                ),
+                                int(idx),
+                            ),
+                        )
+                        underprogress_relaxation_rows.append(
+                            _delta_row(
+                                selected,
+                                chosen,
+                                progress=progress,
+                                full_red=red_certificate,
+                                stopping_margin=red_stopping_margin,
+                                distance=detail_metrics["distance_m"],
+                                jerk=detail_metrics[
+                                    "mean_vector_jerk_mps3"
+                                ],
+                                lateral=detail_metrics[
+                                    "mean_lateral_acceleration_mps2"
+                                ],
+                                command_target=command_target,
+                                command_jerk=command_jerk,
+                                command_lateral=command_lateral,
+                            )
+                        )
+                    else:
+                        underprogress_relaxation_diagnosis[
+                            "events_still_without_lower_union_red_candidate"
+                        ] += 1
                 for progress_budget in PROGRESS_LOSS_BUDGETS_M:
                     for distance_budget in H3_DISTANCE_LOSS_BUDGETS_M:
                         admissible = (
@@ -769,6 +830,16 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
             "no_lower_union_red_feasible_diagnosis": (
                 no_lower_feasible_diagnosis
             ),
+            "dp_underprogress_relaxation_diagnosis": {
+                "ignored_reasons": sorted(UNDERPROGRESS_SOFT_REASONS),
+                **underprogress_relaxation_diagnosis,
+                **_summarize_screen(
+                    underprogress_relaxation_rows,
+                    underprogress_relaxation_diagnosis["events"],
+                    underprogress_relaxation_candidate_counts,
+                    extra_metric_names=("stopping_margin",),
+                ),
+            },
         },
         "horizons": horizon_reports,
     }
@@ -929,6 +1000,20 @@ def _reason_counts_for_indices(
     counts: dict[str, int] = {}
     _add_reason_counts(counts, reasons, indices)
     return counts
+
+
+def _feasible_after_ignoring_reasons(
+    reasons: list[tuple[str, ...]],
+    *,
+    ignored_reasons: frozenset[str],
+) -> np.ndarray:
+    return np.asarray(
+        [
+            all(reason in ignored_reasons for reason in candidate_reasons)
+            for candidate_reasons in reasons
+        ],
+        dtype=bool,
+    )
 
 
 def _delta_row(
@@ -1443,6 +1528,52 @@ def render_markdown(report: dict[str, Any]) -> str:
             lines.append(f"| {reason} | {count} |")
     else:
         lines.append("| n/a | 0 |")
+    underprogress = red["dp_underprogress_relaxation_diagnosis"]
+    underprogress_delta = underprogress["mean_deltas_on_changed_records"]
+    lines.extend(
+        [
+            "",
+            "## DP Underprogress Relaxation Diagnosis",
+            "",
+            (
+                "This is a shadow-only counterfactual that ignores only "
+                "`dp_underprogress`; all other infeasibility reasons remain "
+                "hard."
+            ),
+            "",
+            (
+                "- No-lower-feasible event denominator: "
+                f"{underprogress['events']}"
+            ),
+            (
+                "- Events with a lower union-red candidate after ignoring "
+                "`dp_underprogress`: "
+                f"{underprogress['events_with_lower_union_red_candidate_after_ignoring_dp_underprogress']}"
+            ),
+            (
+                "- Events still without a lower union-red candidate: "
+                f"{underprogress['events_still_without_lower_union_red_candidate']}"
+            ),
+            (
+                "- Mean eligible candidates after ignoring `dp_underprogress`: "
+                f"{underprogress['mean_eligible_candidates']:.6f}"
+            ),
+            "",
+            "| Changes | Rate | Union red | Progress | Stopping margin | "
+            "H3 distance | H3 vector jerk | H3 lateral |",
+            "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+            (
+                f"| {underprogress['changed_records']} | "
+                f"{underprogress['change_rate']:.6f} | "
+                f"{_fmt(underprogress_delta['full_red'])} | "
+                f"{_fmt(underprogress_delta['progress'])} | "
+                f"{_fmt(underprogress_delta['stopping_margin'])} | "
+                f"{_fmt(underprogress_delta['distance'])} | "
+                f"{_fmt(underprogress_delta['jerk'])} | "
+                f"{_fmt(underprogress_delta['lateral'])} |"
+            ),
+        ]
+    )
     lines.extend(
         [
             "",
