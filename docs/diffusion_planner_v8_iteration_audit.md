@@ -1835,3 +1835,135 @@ improvement. The lateral bottleneck is not solved by a small static lower
 bound on the existing planned-lateral atom. The next lateral hypothesis should
 use a more informative online atom or diagnostic, not another tiny floor on the
 current atom.
+
+## Horizon-aligned lateral shadow diagnosis
+
+The next diagnostic cycle tested whether the lateral bottleneck came from the
+existing planned-lateral atom using the complete DP candidate horizon while
+the training outcome and intended short-term comfort objective use the first
+30 steps.
+
+Four current-tick, pre-selection, shadow-only candidate fields were added:
+
+- first-30-step mean lateral acceleration;
+- positive lateral-acceleration excess over deterministic candidate 0;
+- first-30-step mean absolute yaw rate;
+- positive yaw-rate excess over deterministic candidate 0.
+
+All fields are deterministic, finite, nonnegative costs computed from the
+current candidate coordinates before CAMP selection. They do not depend on
+the CAMP weights, candidate rank, selected trajectory, or closed-loop outcome.
+They are therefore admissible finite-candidate diagnostics. They are not
+included in the affine CAMP score and do not change the v10 schema.
+
+The replay metadata records the requested/effective horizon, field names, and
+diagnostic latency. The dataset audit can require the horizon and finite
+candidate arrays and can require candidate 0 to be zero for relative fields.
+The coverage report also compares candidate-level and Top-1-gap correlations
+between the diagnostics and existing atoms.
+
+Relevant local/AutoDL tests passed:
+
+```text
+101 passed
+```
+
+### Real-DP smoke
+
+The non-formal smoke used the certified `redstopfloor05` checkpoint:
+
+```text
+/root/autodl-tmp/camp_dp_shadow_lateral_smoke_seed101_20260614
+```
+
+Configuration: seed 101, sample59 route, traffic lights on, no NPCs, perfect
+tracking, three replay steps, four candidates, noise scale 1.0, h30 candidate
+outcomes, and the unchanged upstream DP commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The fail-closed smoke audit passed. Every field had candidate variation in all
+three records, both relative fields were candidate-0 anchored, and the
+effective lateral-shadow horizon was 30. Mean added diagnostic latency was
+`0.427 ms`; p95 was `0.461 ms`.
+
+A field-by-field comparison with the prior `redstopfloor05` smoke showed exact
+equality for selected index, fallback flag, feasibility, infeasibility reasons,
+scores, weights, selection scores/weights, raw atoms, and normalized atoms.
+The new fields therefore had no selection effect.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| smoke dataset audit | `fdee414621dc6f8452442de1f54b6e395f14af26e49a2191821f2fdbde5b75d3` |
+| smoke coverage JSON | `9238ed9a64468dd28aa1fc8b50b053bfd9e7c19bdf7d233ddddd056c9f7b6913` |
+| smoke coverage markdown | `36569ae462c6743ec651be57a7ea16d520302525136b12787d906572d4bc9c34` |
+| smoke selection log | `b9bc55d627ac27bc3d04f7fd0440839c22c88c63690b97769c9b837f157f9346` |
+
+### Existing-matrix definition screen
+
+Before spending a new 36-run matrix, the updated coverage analysis was run on
+the existing non-formal h30 comfort matrix:
+
+```text
+/root/autodl-tmp/camp_dp_development_shadow_v9_comfort_h30_8b4c66f
+```
+
+It contains 36 logs, 7,200 records, and 57,600 candidates with complete h30
+candidate outcome labels. The labels were used only for offline
+definition-screening and are not online atom provenance.
+
+The candidate-0-relative h30 lateral label proxy had variation in 7,167
+records and 5,854 feasible records. Its lateral Top-1-gap correlation was
+`0.7801` over all candidates and `0.8636` over feasible candidates. However,
+it was not orthogonal:
+
+- Top-1-gap correlation with the existing full-horizon planned-lateral atom:
+  `0.7228` overall and `0.7203` feasible;
+- Top-1-gap correlation with h30 jerk excess: `0.7071` overall and `0.6554`
+  feasible;
+- absolute h30 lateral and the existing planned-lateral atom had candidate
+  correlation `0.8687` and feasible correlation `0.8296`.
+
+The report also audited whether the candidate set offered a lower-lateral
+alternative without sacrificing the metrics already protected by
+`redstopfloor05`:
+
+| Opportunity definition | Records | Feasible-record rate | Mean lateral gain | p95 lateral gain |
+| --- | ---: | ---: | ---: | ---: |
+| progress/red/jerk all non-worse | 22 | 0.003671 | 0.014056 | 0.099451 |
+| progress within 0.01 m | 682 | 0.113799 | 0.007178 | 0.023544 |
+| progress within 0.05 m | 1,072 | 0.178875 | 0.006407 | 0.019774 |
+| progress within 0.05 m, red non-worse | 1,072 | 0.178875 | 0.006407 | 0.019774 |
+| progress within 0.05 m, red/jerk non-worse | 167 | 0.027866 | 0.005254 | 0.015626 |
+
+Although the selected candidate was laterally worse than candidate 0 in
+69.58% of feasible records, a strictly non-worse progress/red/jerk alternative
+existed in only 0.37% of feasible records. Even allowing 0.05 m progress loss
+left a red/jerk-preserving lower-lateral alternative in only 2.79% of records,
+with a small mean lateral gain.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| lateral definition screen JSON | `d80981208d2fb1eb05fe471c0e16982564a8ebecf2c2d5774fd2204a55a9734c` |
+| lateral definition screen markdown | `8cb3f0e5a04ca8fcf1a0aad71cf1779beca043db7aa04c2444c8602fa550f91a` |
+
+Decision:
+
+1. Do not promote h30 absolute lateral, relative lateral, absolute yaw rate, or
+   relative yaw rate into a new schema from this evidence.
+2. Do not retrain CAMP or run a new 36-run matrix for these candidate fields.
+3. The lateral failure is not primarily missing atom information. The existing
+   planned-lateral atom already aligns strongly with the h30 lateral label, and
+   the relative definition is substantially redundant with both it and the
+   jerk-excess atom.
+4. The stronger falsifiable root-cause hypothesis is candidate-pool
+   limitation: the current `K=8`, noise-scale-1.0 pool rarely contains an
+   alternative that improves lateral while preserving progress, red, and jerk.
+5. The next controlled variable should therefore be candidate generation, not
+   another atom. Screen lower diffusion noise or a larger candidate pool on
+   non-formal scenarios while keeping DP weights, CAMP weights, feasibility,
+   schema, and formal seeds fixed. Any candidate-pool change must pass the
+   existing `<100 ms` deployable latency gate before a development matrix.

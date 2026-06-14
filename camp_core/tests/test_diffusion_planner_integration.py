@@ -28,6 +28,7 @@ from camp_core.integrations.diffusion_planner import (
     compute_candidate_closed_loop_outcomes,
     compute_dp_prior_comfort_excess_costs,
     compute_dp_prior_deviation_costs,
+    compute_lateral_comfort_shadow_costs,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     install_lanelet2_projection_fallback,
@@ -618,6 +619,46 @@ def test_dp_prior_comfort_excess_rejects_invalid_horizon(
 
     with pytest.raises(ValueError, match="positive integer"):
         compute_dp_prior_comfort_excess_costs(
+            candidates,
+            dt=0.1,
+            horizon_steps=horizon_steps,
+        )
+
+
+def test_lateral_comfort_shadow_costs_are_horizon_aligned_and_anchored() -> None:
+    reference = np.column_stack(
+        [np.arange(8, dtype=np.float64), np.zeros(8, dtype=np.float64)]
+    )
+    early_turn = reference.copy()
+    early_turn[2:5, 1] = [0.5, 1.0, 0.5]
+    late_turn = reference.copy()
+    late_turn[5:, 1] = [0.5, 1.0, 1.5]
+    candidates = np.stack([reference, early_turn, late_turn])
+
+    lateral, lateral_excess, yaw_rate, yaw_rate_excess = (
+        compute_lateral_comfort_shadow_costs(
+            candidates,
+            dt=1.0,
+            horizon_steps=5,
+        )
+    )
+
+    np.testing.assert_allclose(lateral_excess[0], 0.0)
+    np.testing.assert_allclose(yaw_rate_excess[0], 0.0)
+    assert lateral[1] > lateral[0]
+    assert yaw_rate[1] > yaw_rate[0]
+    np.testing.assert_allclose(lateral[2], lateral[0])
+    np.testing.assert_allclose(yaw_rate[2], yaw_rate[0])
+    assert np.all(lateral >= 0.0)
+    assert np.all(yaw_rate >= 0.0)
+
+
+@pytest.mark.parametrize("horizon_steps", [0, -1, 2.5, True])
+def test_lateral_comfort_shadow_rejects_invalid_horizon(horizon_steps) -> None:
+    candidates = np.zeros((2, 5, 2), dtype=np.float64)
+
+    with pytest.raises(ValueError, match="positive integer"):
+        compute_lateral_comfort_shadow_costs(
             candidates,
             dt=0.1,
             horizon_steps=horizon_steps,
@@ -1337,6 +1378,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_candidate_generation": 6.0,
             "latency_ms_shadow_dp_prior_deviation": 0.2,
             "latency_ms_shadow_dp_prior_comfort_excess": 0.1,
+            "latency_ms_shadow_lateral_comfort": 0.2,
             "latency_ms_context_and_obstacles": 1.0,
             "latency_ms_reward_scoring": 2.0,
             "latency_ms_outcome_collection": 0.0,
@@ -1354,6 +1396,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_candidate_generation": 12.0,
             "latency_ms_shadow_dp_prior_deviation": 0.4,
             "latency_ms_shadow_dp_prior_comfort_excess": 0.3,
+            "latency_ms_shadow_lateral_comfort": 0.4,
             "latency_ms_context_and_obstacles": 2.0,
             "latency_ms_reward_scoring": 4.0,
             "latency_ms_outcome_collection": 0.0,
@@ -1382,6 +1425,9 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
     )
     assert summary["mean_shadow_dp_prior_comfort_excess_latency_ms"] == pytest.approx(
         0.2
+    )
+    assert summary["mean_shadow_lateral_comfort_latency_ms"] == pytest.approx(
+        0.3
     )
     assert summary["mean_context_and_obstacles_latency_ms"] == 1.5
     assert summary["mean_reward_scoring_latency_ms"] == 3.0

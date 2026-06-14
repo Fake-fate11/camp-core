@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
+from itertools import combinations
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -167,6 +168,46 @@ def compute_atom_coverage_report(
             feature_key="dp_prior_acceleration_excess_cost",
             latency_field="latency_ms_shadow_dp_prior_comfort_excess",
         ),
+        "offline_horizon_lateral_label_proxy": (
+            _shadow_candidate_cost_coverage(
+                record_infos,
+                feature_key="lateral_acceleration_cost",
+            )
+        ),
+        "offline_dp_prior_lateral_label_excess_proxy": (
+            _shadow_candidate_cost_coverage(
+                record_infos,
+                feature_key="offline_dp_prior_lateral_label_excess_cost",
+            )
+        ),
+        "shadow_horizon_lateral_acceleration": _shadow_candidate_cost_coverage(
+            record_infos,
+            feature_key="horizon_lateral_acceleration_cost",
+            latency_field="latency_ms_shadow_lateral_comfort",
+        ),
+        "shadow_dp_prior_lateral_acceleration_excess": (
+            _shadow_candidate_cost_coverage(
+                record_infos,
+                feature_key="dp_prior_lateral_acceleration_excess_cost",
+                latency_field="latency_ms_shadow_lateral_comfort",
+            )
+        ),
+        "shadow_horizon_yaw_rate": _shadow_candidate_cost_coverage(
+            record_infos,
+            feature_key="horizon_yaw_rate_cost",
+            latency_field="latency_ms_shadow_lateral_comfort",
+        ),
+        "shadow_dp_prior_yaw_rate_excess": _shadow_candidate_cost_coverage(
+            record_infos,
+            feature_key="dp_prior_yaw_rate_excess_cost",
+            latency_field="latency_ms_shadow_lateral_comfort",
+        ),
+        "shadow_feature_correlations": _shadow_feature_correlations(
+            record_infos
+        ),
+        "offline_lateral_opportunity": _offline_lateral_opportunity(
+            record_infos
+        ),
         "extra_feature_scales": extra_scales,
         "alignment": score_variants,
         "atom_target_correlations": _atom_target_correlations(record_infos),
@@ -303,6 +344,39 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             report.get("shadow_dp_prior_acceleration_excess", {}),
             "Mean selected acceleration excess",
         ),
+        (
+            "Offline Horizon Lateral Label Proxy",
+            report.get("offline_horizon_lateral_label_proxy", {}),
+            "Mean selected lateral label",
+        ),
+        (
+            "Offline DP-Prior Lateral Label-Excess Proxy",
+            report.get(
+                "offline_dp_prior_lateral_label_excess_proxy",
+                {},
+            ),
+            "Mean selected lateral label excess",
+        ),
+        (
+            "Shadow Horizon Lateral-Acceleration Coverage",
+            report.get("shadow_horizon_lateral_acceleration", {}),
+            "Mean selected lateral acceleration",
+        ),
+        (
+            "Shadow DP-Prior Lateral-Acceleration-Excess Coverage",
+            report.get("shadow_dp_prior_lateral_acceleration_excess", {}),
+            "Mean selected lateral excess",
+        ),
+        (
+            "Shadow Horizon Yaw-Rate Coverage",
+            report.get("shadow_horizon_yaw_rate", {}),
+            "Mean selected yaw rate",
+        ),
+        (
+            "Shadow DP-Prior Yaw-Rate-Excess Coverage",
+            report.get("shadow_dp_prior_yaw_rate_excess", {}),
+            "Mean selected yaw-rate excess",
+        ),
     ]:
         lines.extend(
             [
@@ -354,6 +428,57 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
+            "## Shadow Feature Redundancy",
+            "",
+            "| feature A | feature B | candidate corr | feasible corr | Top-1-gap corr | feasible Top-1-gap corr |",
+            "| --- | --- | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for row in report.get("shadow_feature_correlations", []):
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    str(row["feature_a"]),
+                    str(row["feature_b"]),
+                    _fmt(row.get("candidate_correlation")),
+                    _fmt(row.get("feasible_candidate_correlation")),
+                    _fmt(row.get("top1_gap_correlation")),
+                    _fmt(row.get("feasible_top1_gap_correlation")),
+                ]
+            )
+            + " |"
+        )
+    opportunity = report.get("offline_lateral_opportunity", {})
+    lines.extend(
+        [
+            "",
+            "## Offline Lateral Opportunity",
+            "",
+            f"- Feasible records with complete labels: {opportunity.get('feasible_records', 0)}",
+            f"- Selected worse than candidate 0 on lateral: {_fmt(opportunity.get('selected_worse_than_top1_rate'))}",
+            "",
+            "| definition | records | feasible-record rate | mean lateral gain | p95 lateral gain |",
+            "| --- | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for name, row in opportunity.get("opportunities", {}).items():
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    name,
+                    str(row.get("records", 0)),
+                    _fmt(row.get("feasible_record_rate")),
+                    _fmt(row.get("mean_lateral_gain")),
+                    _fmt(row.get("p95_lateral_gain")),
+                ]
+            )
+            + " |"
+        )
+    lines.extend(
+        [
+            "",
             "## Scenario Breakdown",
             "",
             "| group | value | records | fallback rate | selected red-light | selected lateral accel |",
@@ -391,6 +516,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             "",
             "- `plus_planned_red_light` uses the online DP `red_light` penalty magnitude (negative reward clipped to severity) as a diagnostic cost.",
             "- `plus_lateral_acceleration_proxy` uses the logged closed-loop lateral acceleration label only as an offline proxy; the deployable v8 atom must be computed from candidate trajectory kinematics.",
+            "- The two `Offline ... Lateral Label` sections are definition-screening evidence derived from logged candidate outcomes. They are not online atom provenance or deployment evidence.",
             "- Closed-loop outcomes are treated as labels for evaluation/oracle construction, not as online selector inputs.",
             "",
         ]
@@ -522,10 +648,53 @@ def _record_info(
         record_idx=record_idx,
         label="DP-prior acceleration-excess",
     )
+    horizon_lateral_acceleration_cost = _candidate_shadow_cost(
+        record.get("candidate_horizon_lateral_acceleration_cost"),
+        scores=scores,
+        metadata=metadata,
+        record_idx=record_idx,
+        label="horizon lateral acceleration",
+    )
+    dp_prior_lateral_acceleration_excess_cost = _candidate_shadow_cost(
+        record.get("candidate_dp_prior_lateral_acceleration_excess_cost"),
+        scores=scores,
+        metadata=metadata,
+        record_idx=record_idx,
+        label="DP-prior lateral-acceleration excess",
+    )
+    horizon_yaw_rate_cost = _candidate_shadow_cost(
+        record.get("candidate_horizon_yaw_rate_cost"),
+        scores=scores,
+        metadata=metadata,
+        record_idx=record_idx,
+        label="horizon yaw rate",
+    )
+    dp_prior_yaw_rate_excess_cost = _candidate_shadow_cost(
+        record.get("candidate_dp_prior_yaw_rate_excess_cost"),
+        scores=scores,
+        metadata=metadata,
+        record_idx=record_idx,
+        label="DP-prior yaw-rate excess",
+    )
     lateral_acceleration = _candidate_values(
         record,
         "outcome",
         "mean_lateral_acceleration_mps2",
+    )
+    candidate_progress = _candidate_values(
+        record,
+        "outcome",
+        "progress_m",
+    )
+    candidate_jerk = _candidate_values(
+        record,
+        "outcome",
+        "mean_jerk_mps3",
+    )
+    offline_dp_prior_lateral_label_excess_cost = (
+        np.maximum(lateral_acceleration - float(lateral_acceleration[0]), 0.0)
+        if lateral_acceleration is not None and lateral_acceleration.size
+        else None
     )
     closed_loop_value = _candidate_values(record, "outcome", "value")
     red_light_violation = _candidate_values(record, "outcome", "red_light_violation")
@@ -544,6 +713,19 @@ def _record_info(
             f"{metadata.log_path} record {record_idx} has invalid atoms shape "
             f"{atoms.shape} for scores {scores.shape}."
         )
+    atom_names = tuple(
+        record.get("atom_names") or atom_names_for_dimension(atoms.shape[1])
+    )
+    if len(atom_names) != atoms.shape[1]:
+        raise ValueError(
+            f"{metadata.log_path} record {record_idx} has {len(atom_names)} "
+            f"atom names for shape {atoms.shape}."
+        )
+    planned_lateral_atom = (
+        atoms[:, atom_names.index("planned_lateral_acceleration_cost")]
+        if "planned_lateral_acceleration_cost" in atom_names
+        else None
+    )
     return {
         "log_path": metadata.log_path,
         "run_root": metadata.run_root,
@@ -567,14 +749,254 @@ def _record_info(
         "dp_prior_deviation_cost": dp_prior_deviation_cost,
         "dp_prior_jerk_excess_cost": dp_prior_jerk_excess_cost,
         "dp_prior_acceleration_excess_cost": dp_prior_acceleration_excess_cost,
+        "horizon_lateral_acceleration_cost": (
+            horizon_lateral_acceleration_cost
+        ),
+        "dp_prior_lateral_acceleration_excess_cost": (
+            dp_prior_lateral_acceleration_excess_cost
+        ),
+        "horizon_yaw_rate_cost": horizon_yaw_rate_cost,
+        "dp_prior_yaw_rate_excess_cost": dp_prior_yaw_rate_excess_cost,
+        "planned_lateral_acceleration_atom": planned_lateral_atom,
         "red_route_point_count": int(record.get("red_route_point_count", 0)),
         "lateral_acceleration_cost": lateral_acceleration,
+        "candidate_progress": candidate_progress,
+        "candidate_jerk": candidate_jerk,
+        "offline_dp_prior_lateral_label_excess_cost": (
+            offline_dp_prior_lateral_label_excess_cost
+        ),
         "closed_loop_value": closed_loop_value,
         "red_light_violation": red_light_violation,
         "red_light_exposed": red_light_exposed,
         "candidate_count": int(scores.size),
         "raw_record": record,
     }
+
+
+def _shadow_feature_correlations(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    feature_keys = {
+        "planned_lateral_acceleration_atom": (
+            "planned_lateral_acceleration_cost"
+        ),
+        "dp_prior_jerk_excess_cost": "dp_prior_jerk_excess_cost",
+        "dp_prior_acceleration_excess_cost": (
+            "dp_prior_acceleration_excess_cost"
+        ),
+        "lateral_acceleration_cost": "offline_horizon_lateral_label_proxy",
+        "offline_dp_prior_lateral_label_excess_cost": (
+            "offline_dp_prior_lateral_label_excess_proxy"
+        ),
+        "horizon_lateral_acceleration_cost": (
+            "horizon_lateral_acceleration_cost"
+        ),
+        "dp_prior_lateral_acceleration_excess_cost": (
+            "dp_prior_lateral_acceleration_excess_cost"
+        ),
+        "horizon_yaw_rate_cost": "horizon_yaw_rate_cost",
+        "dp_prior_yaw_rate_excess_cost": "dp_prior_yaw_rate_excess_cost",
+    }
+    rows = []
+    for (key_a, label_a), (key_b, label_b) in combinations(
+        feature_keys.items(),
+        2,
+    ):
+        all_a = []
+        all_b = []
+        feasible_a = []
+        feasible_b = []
+        gap_a = []
+        gap_b = []
+        feasible_gap_a = []
+        feasible_gap_b = []
+        for info in records:
+            values_a = info.get(key_a)
+            values_b = info.get(key_b)
+            if values_a is None or values_b is None:
+                continue
+            values_a = np.asarray(values_a, dtype=float).reshape(-1)
+            values_b = np.asarray(values_b, dtype=float).reshape(-1)
+            if values_a.shape != values_b.shape or values_a.size == 0:
+                continue
+            finite = np.isfinite(values_a) & np.isfinite(values_b)
+            if finite.any():
+                all_a.append(values_a[finite])
+                all_b.append(values_b[finite])
+            feasible = np.asarray(info["feasible_mask"], dtype=bool)
+            feasible_valid = finite & feasible
+            if feasible_valid.any():
+                feasible_a.append(values_a[feasible_valid])
+                feasible_b.append(values_b[feasible_valid])
+            if finite[0]:
+                gap_valid = finite.copy()
+                gap_valid[0] = False
+                if gap_valid.any():
+                    gap_a.append(values_a[gap_valid] - values_a[0])
+                    gap_b.append(values_b[gap_valid] - values_b[0])
+                feasible_gap_valid = gap_valid & feasible
+                if feasible_gap_valid.any():
+                    feasible_gap_a.append(
+                        values_a[feasible_gap_valid] - values_a[0]
+                    )
+                    feasible_gap_b.append(
+                        values_b[feasible_gap_valid] - values_b[0]
+                    )
+
+        candidate_a = _concatenate_or_empty(all_a)
+        candidate_b = _concatenate_or_empty(all_b)
+        feasible_candidate_a = _concatenate_or_empty(feasible_a)
+        feasible_candidate_b = _concatenate_or_empty(feasible_b)
+        top1_gap_a = _concatenate_or_empty(gap_a)
+        top1_gap_b = _concatenate_or_empty(gap_b)
+        feasible_top1_gap_a = _concatenate_or_empty(feasible_gap_a)
+        feasible_top1_gap_b = _concatenate_or_empty(feasible_gap_b)
+        if candidate_a.size == 0:
+            continue
+        rows.append(
+            {
+                "feature_a": label_a,
+                "feature_b": label_b,
+                "candidate_pairs": int(candidate_a.size),
+                "candidate_correlation": _safe_corr(
+                    candidate_a,
+                    candidate_b,
+                ),
+                "feasible_candidate_correlation": _safe_corr(
+                    feasible_candidate_a,
+                    feasible_candidate_b,
+                ),
+                "top1_gap_correlation": _safe_corr(
+                    top1_gap_a,
+                    top1_gap_b,
+                ),
+                "feasible_top1_gap_correlation": _safe_corr(
+                    feasible_top1_gap_a,
+                    feasible_top1_gap_b,
+                ),
+            }
+        )
+    return rows
+
+
+def _offline_lateral_opportunity(
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    definitions = {
+        "strict_progress_red_jerk": {
+            "progress_tolerance_m": 0.0,
+            "require_red_not_worse": True,
+            "require_jerk_not_worse": True,
+        },
+        "progress_tolerance_0p01m": {
+            "progress_tolerance_m": 0.01,
+            "require_red_not_worse": False,
+            "require_jerk_not_worse": False,
+        },
+        "progress_tolerance_0p05m": {
+            "progress_tolerance_m": 0.05,
+            "require_red_not_worse": False,
+            "require_jerk_not_worse": False,
+        },
+        "progress_red_tolerance_0p05m": {
+            "progress_tolerance_m": 0.05,
+            "require_red_not_worse": True,
+            "require_jerk_not_worse": False,
+        },
+        "progress_red_jerk_tolerance_0p05m": {
+            "progress_tolerance_m": 0.05,
+            "require_red_not_worse": True,
+            "require_jerk_not_worse": True,
+        },
+    }
+    gains = {name: [] for name in definitions}
+    feasible_records = 0
+    selected_worse_than_top1 = 0
+    complete_label_records = 0
+
+    for info in records:
+        lateral = info.get("lateral_acceleration_cost")
+        progress = info.get("candidate_progress")
+        jerk = info.get("candidate_jerk")
+        red = info.get("red_light_cost")
+        if any(value is None for value in (lateral, progress, jerk, red)):
+            continue
+        lateral = np.asarray(lateral, dtype=float).reshape(-1)
+        progress = np.asarray(progress, dtype=float).reshape(-1)
+        jerk = np.asarray(jerk, dtype=float).reshape(-1)
+        red = np.asarray(red, dtype=float).reshape(-1)
+        if not (
+            lateral.shape == progress.shape == jerk.shape == red.shape
+            and lateral.size > 0
+            and np.all(np.isfinite(lateral))
+            and np.all(np.isfinite(progress))
+            and np.all(np.isfinite(jerk))
+            and np.all(np.isfinite(red))
+        ):
+            continue
+        complete_label_records += 1
+        feasible = np.asarray(info["feasible_mask"], dtype=bool)
+        if feasible.shape != lateral.shape or not feasible.any():
+            continue
+        selected = int(info["selected_index"])
+        if selected < 0 or selected >= lateral.size:
+            continue
+        feasible_records += 1
+        selected_worse_than_top1 += int(
+            lateral[selected] > lateral[0] + 1e-12
+        )
+        lower_lateral = feasible & (lateral < lateral[selected] - 1e-12)
+        for name, definition in definitions.items():
+            eligible = lower_lateral & (
+                progress
+                >= progress[selected] - definition["progress_tolerance_m"]
+            )
+            if definition["require_red_not_worse"]:
+                eligible &= red <= red[selected] + 1e-12
+            if definition["require_jerk_not_worse"]:
+                eligible &= jerk <= jerk[selected] + 1e-12
+            if eligible.any():
+                gains[name].append(
+                    float(lateral[selected] - np.min(lateral[eligible]))
+                )
+
+    opportunities = {}
+    for name, definition in definitions.items():
+        values = np.asarray(gains[name], dtype=float)
+        opportunities[name] = {
+            **definition,
+            "records": int(values.size),
+            "feasible_record_rate": (
+                float(values.size / feasible_records)
+                if feasible_records
+                else None
+            ),
+            "mean_lateral_gain": (
+                float(np.mean(values)) if values.size else None
+            ),
+            "p95_lateral_gain": (
+                float(np.percentile(values, 95)) if values.size else None
+            ),
+        }
+    return {
+        "label_source": "candidate_closed_loop_outcomes",
+        "selection_effect": False,
+        "complete_label_records": int(complete_label_records),
+        "feasible_records": int(feasible_records),
+        "selected_worse_than_top1_records": int(
+            selected_worse_than_top1
+        ),
+        "selected_worse_than_top1_rate": (
+            float(selected_worse_than_top1 / feasible_records)
+            if feasible_records
+            else None
+        ),
+        "opportunities": opportunities,
+    }
+
+
+def _concatenate_or_empty(chunks: list[np.ndarray]) -> np.ndarray:
+    return np.concatenate(chunks) if chunks else np.asarray([], dtype=float)
 
 
 def _shadow_dp_prior_deviation_coverage(

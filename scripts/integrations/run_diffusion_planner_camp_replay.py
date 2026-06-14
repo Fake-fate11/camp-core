@@ -28,6 +28,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     compute_candidate_closed_loop_outcomes,
     compute_dp_prior_comfort_excess_costs,
     compute_dp_prior_deviation_costs,
+    compute_lateral_comfort_shadow_costs,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
     generate_candidate_trajectories,
@@ -735,6 +736,25 @@ def _install_camp_predictor(
         shadow_dp_prior_comfort_excess_latency_ms = (
             dp_prior_comfort_done - dp_prior_comfort_start
         ) * 1000.0
+        lateral_comfort_start = time.perf_counter()
+        (
+            candidate_horizon_lateral_acceleration_cost,
+            candidate_dp_prior_lateral_acceleration_excess_cost,
+            candidate_horizon_yaw_rate_cost,
+            candidate_dp_prior_yaw_rate_excess_cost,
+        ) = compute_lateral_comfort_shadow_costs(
+            candidates,
+            float(getattr(scene, "dt", 0.1)),
+            horizon_steps=outcome_horizon_steps,
+        )
+        lateral_comfort_horizon_steps = min(
+            outcome_horizon_steps,
+            int(candidates.shape[1]),
+        )
+        lateral_comfort_done = time.perf_counter()
+        shadow_lateral_comfort_latency_ms = (
+            lateral_comfort_done - lateral_comfort_start
+        ) * 1000.0
         context = build_context_from_scene(
             scene,
             ego_id,
@@ -838,7 +858,7 @@ def _install_camp_predictor(
                 shadow_dp_prior_deviation_latency_ms
             ),
             "latency_ms_context_and_obstacles": (
-                context_and_obstacles_done - dp_prior_comfort_done
+                context_and_obstacles_done - lateral_comfort_done
             )
             * 1000.0,
             "latency_ms_reward_scoring": (
@@ -939,12 +959,30 @@ def _install_camp_predictor(
                 "candidate_dp_prior_comfort_excess_horizon_steps": (
                     dp_prior_comfort_horizon_steps
                 ),
+                "candidate_horizon_lateral_acceleration_cost": (
+                    candidate_horizon_lateral_acceleration_cost.tolist()
+                ),
+                "candidate_dp_prior_lateral_acceleration_excess_cost": (
+                    candidate_dp_prior_lateral_acceleration_excess_cost.tolist()
+                ),
+                "candidate_horizon_yaw_rate_cost": (
+                    candidate_horizon_yaw_rate_cost.tolist()
+                ),
+                "candidate_dp_prior_yaw_rate_excess_cost": (
+                    candidate_dp_prior_yaw_rate_excess_cost.tolist()
+                ),
+                "candidate_lateral_comfort_horizon_steps": (
+                    lateral_comfort_horizon_steps
+                ),
                 "red_route_point_count": int(red_route_points.shape[0]),
                 "latency_ms_shadow_red_stopping_margin": (
                     shadow_red_stopping_margin_latency_ms
                 ),
                 "latency_ms_shadow_dp_prior_comfort_excess": (
                     shadow_dp_prior_comfort_excess_latency_ms
+                ),
+                "latency_ms_shadow_lateral_comfort": (
+                    shadow_lateral_comfort_latency_ms
                 ),
                 "red_stopping_margin_used_as_atom": (
                     "red_stopping_margin_cost"
@@ -1119,6 +1157,11 @@ def main() -> None:
         if records
         else None
     )
+    effective_lateral_comfort_horizon_steps = (
+        records[0]["candidate_lateral_comfort_horizon_steps"]
+        if records
+        else None
+    )
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
@@ -1166,6 +1209,25 @@ def main() -> None:
                     "positive mean finite-difference jerk/acceleration "
                     "norm excess over candidate 0"
                 ),
+            }
+            if records is not None
+            else None
+        ),
+        "camp_shadow_lateral_comfort": (
+            {
+                "enabled": True,
+                "selection_effect": False,
+                "reference_candidate_index": 0,
+                "requested_horizon_steps": args.camp_outcome_horizon_steps,
+                "effective_horizon_steps": (
+                    effective_lateral_comfort_horizon_steps
+                ),
+                "fields": [
+                    "candidate_horizon_lateral_acceleration_cost",
+                    "candidate_dp_prior_lateral_acceleration_excess_cost",
+                    "candidate_horizon_yaw_rate_cost",
+                    "candidate_dp_prior_yaw_rate_excess_cost",
+                ],
             }
             if records is not None
             else None

@@ -43,6 +43,7 @@ def test_dataset_audit_checks_schema_outcomes_and_red_light_provenance(
         ),
         forbidden_seeds=frozenset({11, 12, 13}),
         expected_comfort_shadow_horizon_steps=30,
+        expected_lateral_comfort_horizon_steps=30,
     )
 
     assert report["passed"]
@@ -60,6 +61,8 @@ def test_dataset_audit_checks_schema_outcomes_and_red_light_provenance(
     assert report["checks"]["summary_seed_provenance_verified"]
     assert report["checks"]["comfort_shadow_horizon_verified"]
     assert report["checks"]["expected_comfort_shadow_horizon_steps"] == 30
+    assert report["checks"]["lateral_comfort_horizon_verified"]
+    assert report["checks"]["expected_lateral_comfort_horizon_steps"] == 30
     assert report["candidate_fields"][
         "candidate_dp_prior_jerk_excess_cost"
     ] == {
@@ -359,6 +362,26 @@ def test_dataset_audit_rejects_wrong_summary_comfort_shadow_horizon(
         )
 
 
+@pytest.mark.parametrize("invalid_horizon", [80, 30.0, True, None])
+def test_dataset_audit_rejects_wrong_lateral_comfort_shadow_horizon(
+    tmp_path,
+    invalid_horizon,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    records[0]["candidate_lateral_comfort_horizon_steps"] = invalid_horizon
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="lateral-comfort shadow horizon"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            expected_lateral_comfort_horizon_steps=30,
+        )
+
+
 def test_v9_red_stopping_augmentation_outputs_auditable_dataset(tmp_path) -> None:
     log_path = _write_completed_log(tmp_path / "source")
     output_root = tmp_path / "v9"
@@ -470,6 +493,11 @@ def _write_completed_log(tmp_path, *, seed=1):
         "candidate_dp_prior_jerk_excess_cost": [0.0, 1.5],
         "candidate_dp_prior_acceleration_excess_cost": [0.0, 0.2],
         "candidate_dp_prior_comfort_excess_horizon_steps": 30,
+        "candidate_horizon_lateral_acceleration_cost": [0.2, 0.3],
+        "candidate_dp_prior_lateral_acceleration_excess_cost": [0.0, 0.1],
+        "candidate_horizon_yaw_rate_cost": [0.05, 0.08],
+        "candidate_dp_prior_yaw_rate_excess_cost": [0.0, 0.03],
+        "candidate_lateral_comfort_horizon_steps": 30,
     }
     log_path.write_text(json.dumps([record]), encoding="utf-8")
     log_path.with_name("camp_validation_summary.json").write_text(
@@ -478,6 +506,9 @@ def _write_completed_log(tmp_path, *, seed=1):
                 "selection_steps": 1,
                 "advance_mode": "perfect",
                 "camp_shadow_dp_prior_comfort_excess": {
+                    "effective_horizon_steps": 30,
+                },
+                "camp_shadow_lateral_comfort": {
                     "effective_horizon_steps": 30,
                 },
                 "benchmark": {"seed": seed},

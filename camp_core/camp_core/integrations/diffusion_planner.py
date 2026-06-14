@@ -1214,6 +1214,86 @@ def compute_dp_prior_comfort_excess_costs(
     return jerk_excess, acceleration_excess
 
 
+def compute_lateral_comfort_shadow_costs(
+    candidates: np.ndarray,
+    dt: float,
+    *,
+    horizon_steps: int | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Return horizon-aligned lateral acceleration and yaw-rate diagnostics.
+
+    The absolute costs are computed only from the current candidate
+    trajectories. The relative costs clip each candidate's excess over
+    deterministic candidate 0 to zero. These values are fixed before CAMP
+    selection and remain shadow-only until dataset evidence justifies a schema
+    change.
+    """
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if (
+        trajectories.ndim != 3
+        or trajectories.shape[0] < 1
+        or trajectories.shape[2] < 2
+    ):
+        raise ValueError(
+            "candidates must have shape [K,T,>=2], "
+            f"got {trajectories.shape}."
+        )
+    if not np.all(np.isfinite(trajectories)):
+        raise ValueError("candidates must contain only finite values.")
+    if not np.isfinite(dt) or dt <= 0.0:
+        raise ValueError("dt must be finite and positive.")
+    if horizon_steps is not None:
+        if isinstance(horizon_steps, bool) or not isinstance(
+            horizon_steps,
+            (int, np.integer),
+        ):
+            raise ValueError("horizon_steps must be a positive integer.")
+        if int(horizon_steps) <= 0:
+            raise ValueError("horizon_steps must be a positive integer.")
+        trajectories = trajectories[:, : int(horizon_steps), :]
+
+    candidate_count = trajectories.shape[0]
+    lateral_acceleration = np.asarray(
+        [
+            _trajectory_comfort(trajectory, float(dt))[1]
+            for trajectory in trajectories
+        ],
+        dtype=np.float64,
+    )
+    mean_abs_yaw_rate = np.zeros(candidate_count, dtype=np.float64)
+    if trajectories.shape[1] >= 2:
+        for candidate_idx, trajectory in enumerate(trajectories):
+            headings = np.unwrap(_trajectory_headings(trajectory))
+            yaw_rate = np.diff(headings) / float(dt)
+            if yaw_rate.size:
+                mean_abs_yaw_rate[candidate_idx] = float(
+                    np.mean(np.abs(yaw_rate))
+                )
+
+    lateral_excess = np.maximum(
+        lateral_acceleration - float(lateral_acceleration[0]),
+        0.0,
+    )
+    yaw_rate_excess = np.maximum(
+        mean_abs_yaw_rate - float(mean_abs_yaw_rate[0]),
+        0.0,
+    )
+    diagnostics = (
+        lateral_acceleration,
+        lateral_excess,
+        mean_abs_yaw_rate,
+        yaw_rate_excess,
+    )
+    if any(
+        not np.all(np.isfinite(values)) or np.any(values < 0.0)
+        for values in diagnostics
+    ):
+        raise RuntimeError(
+            "Lateral comfort shadow costs must be finite and nonnegative."
+        )
+    return diagnostics
+
+
 def _trajectory_comfort(trajectory: np.ndarray, dt: float) -> tuple[float, float]:
     xy = np.asarray(trajectory, dtype=np.float64)[:, :2]
     if xy.shape[0] < 3:
@@ -1467,6 +1547,9 @@ def summarize_selection_records(
         ),
         "latency_ms_shadow_dp_prior_comfort_excess": (
             "shadow_dp_prior_comfort_excess_latency_ms"
+        ),
+        "latency_ms_shadow_lateral_comfort": (
+            "shadow_lateral_comfort_latency_ms"
         ),
         "latency_ms_context_and_obstacles": "context_and_obstacles_latency_ms",
         "latency_ms_reward_scoring": "reward_scoring_latency_ms",

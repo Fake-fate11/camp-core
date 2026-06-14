@@ -83,6 +83,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--expected_lateral_comfort_horizon_steps",
+        type=int,
+        default=None,
+        help=(
+            "Require every record and completed-run summary to use this "
+            "effective lateral-comfort shadow horizon."
+        ),
+    )
+    parser.add_argument(
         "--closed_loop_outcome_policy",
         choices=("required", "optional", "forbidden"),
         default="required",
@@ -108,6 +117,7 @@ def audit_training_dataset(
     reference_zero_candidate_fields: tuple[str, ...] = (),
     forbidden_seeds: frozenset[int] = frozenset(),
     expected_comfort_shadow_horizon_steps: int | None = None,
+    expected_lateral_comfort_horizon_steps: int | None = None,
     closed_loop_outcome_policy: str = "required",
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
@@ -136,6 +146,23 @@ def audit_training_dataset(
             )
         expected_comfort_shadow_horizon_steps = int(
             expected_comfort_shadow_horizon_steps
+        )
+    if expected_lateral_comfort_horizon_steps is not None:
+        if isinstance(expected_lateral_comfort_horizon_steps, bool) or not isinstance(
+            expected_lateral_comfort_horizon_steps,
+            (int, np.integer),
+        ):
+            raise ValueError(
+                "expected_lateral_comfort_horizon_steps must be a positive "
+                "integer."
+            )
+        if int(expected_lateral_comfort_horizon_steps) <= 0:
+            raise ValueError(
+                "expected_lateral_comfort_horizon_steps must be a positive "
+                "integer."
+            )
+        expected_lateral_comfort_horizon_steps = int(
+            expected_lateral_comfort_horizon_steps
         )
     required_fields = tuple(dict.fromkeys(required_candidate_fields))
     reference_zero_fields = tuple(dict.fromkeys(reference_zero_candidate_fields))
@@ -214,6 +241,21 @@ def audit_training_dataset(
                     f"{summary_path} does not certify comfort-shadow horizon "
                     f"{expected_comfort_shadow_horizon_steps}."
                 )
+        if expected_lateral_comfort_horizon_steps is not None:
+            shadow_metadata = validation_summary.get(
+                "camp_shadow_lateral_comfort"
+            )
+            if (
+                not isinstance(shadow_metadata, dict)
+                or not _matches_expected_positive_integer(
+                    shadow_metadata.get("effective_horizon_steps"),
+                    expected_lateral_comfort_horizon_steps,
+                )
+            ):
+                raise ValueError(
+                    f"{summary_path} does not certify lateral-comfort shadow "
+                    f"horizon {expected_lateral_comfort_horizon_steps}."
+                )
         records = json.loads(log_path.read_text(encoding="utf-8"))
         if not isinstance(records, list) or not records:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
@@ -268,6 +310,19 @@ def audit_training_dataset(
                         f"{log_path} record {record_idx} uses comfort-shadow "
                         f"horizon {actual_horizon!r}, expected "
                         f"{expected_comfort_shadow_horizon_steps}."
+                    )
+            if expected_lateral_comfort_horizon_steps is not None:
+                actual_horizon = record.get(
+                    "candidate_lateral_comfort_horizon_steps"
+                )
+                if not _matches_expected_positive_integer(
+                    actual_horizon,
+                    expected_lateral_comfort_horizon_steps,
+                ):
+                    raise ValueError(
+                        f"{log_path} record {record_idx} uses lateral-comfort "
+                        f"shadow horizon {actual_horizon!r}, expected "
+                        f"{expected_lateral_comfort_horizon_steps}."
                     )
             for field in required_fields:
                 values = _validate_candidate_field(
@@ -349,6 +404,12 @@ def audit_training_dataset(
             ),
             "comfort_shadow_horizon_verified": (
                 expected_comfort_shadow_horizon_steps is not None
+            ),
+            "expected_lateral_comfort_horizon_steps": (
+                expected_lateral_comfort_horizon_steps
+            ),
+            "lateral_comfort_horizon_verified": (
+                expected_lateral_comfort_horizon_steps is not None
             ),
         },
         "candidate_fields": candidate_field_reports,
@@ -512,6 +573,9 @@ def main() -> None:
         forbidden_seeds=frozenset(args.forbid_seed),
         expected_comfort_shadow_horizon_steps=(
             args.expected_comfort_shadow_horizon_steps
+        ),
+        expected_lateral_comfort_horizon_steps=(
+            args.expected_lateral_comfort_horizon_steps
         ),
         closed_loop_outcome_policy=args.closed_loop_outcome_policy,
     )

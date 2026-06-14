@@ -91,6 +91,35 @@ def test_atom_coverage_report_detects_red_light_augmentation_gain(
     assert acceleration_shadow["record_availability_rate"] == 1.0
     assert acceleration_shadow["reference_zero_records"] == 1
     assert acceleration_shadow["feasible_records_with_variation"] == 1
+    lateral_shadow = report["shadow_horizon_lateral_acceleration"]
+    assert lateral_shadow["record_availability_rate"] == 1.0
+    assert lateral_shadow["feasible_records_with_variation"] == 1
+    lateral_target = lateral_shadow["target_alignment"][
+        "closed_loop_lateral_acceleration"
+    ]
+    assert lateral_target[
+        "preference_correlation_all_candidates"
+    ] == pytest.approx(1.0)
+    lateral_excess_shadow = report[
+        "shadow_dp_prior_lateral_acceleration_excess"
+    ]
+    assert lateral_excess_shadow["reference_zero_records"] == 1
+    offline_lateral = report["offline_horizon_lateral_label_proxy"]
+    assert offline_lateral["record_availability_rate"] == 1.0
+    offline_lateral_excess = report[
+        "offline_dp_prior_lateral_label_excess_proxy"
+    ]
+    assert offline_lateral_excess["reference_zero_records"] == 1
+    yaw_shadow = report["shadow_horizon_yaw_rate"]
+    assert yaw_shadow["record_availability_rate"] == 1.0
+    assert yaw_shadow["mean_shadow_latency_ms"] == pytest.approx(0.4)
+    assert report["shadow_feature_correlations"]
+    opportunity = report["offline_lateral_opportunity"]
+    assert opportunity["feasible_records"] == 1
+    assert opportunity["selected_worse_than_top1_rate"] == 0.0
+    assert opportunity["opportunities"]["progress_red_tolerance_0p05m"][
+        "records"
+    ] == 1
     closed_loop = report["alignment"]["closed_loop_value"]
     assert closed_loop["base"]["oracle_match_rate"] == 0.0
     assert closed_loop["plus_planned_red_light"]["oracle_match_rate"] == 1.0
@@ -270,6 +299,7 @@ def _record(
                     mean_jerk[idx] if mean_jerk is not None else float(idx)
                 ),
                 "mean_lateral_acceleration_mps2": lateral_acceleration[idx],
+                "progress_m": outcome_value[idx],
             }
             for idx in range(candidate_count)
         ],
@@ -294,8 +324,23 @@ def _record(
         if dp_prior_acceleration_excess is not None
         else [float(idx) for idx in range(candidate_count)]
     )
+    record["candidate_horizon_lateral_acceleration_cost"] = list(
+        lateral_acceleration
+    )
+    reference_lateral = float(lateral_acceleration[0])
+    record["candidate_dp_prior_lateral_acceleration_excess_cost"] = [
+        max(float(value) - reference_lateral, 0.0)
+        for value in lateral_acceleration
+    ]
+    record["candidate_horizon_yaw_rate_cost"] = [
+        float(idx + 1) for idx in range(candidate_count)
+    ]
+    record["candidate_dp_prior_yaw_rate_excess_cost"] = [
+        float(idx) for idx in range(candidate_count)
+    ]
     record["red_route_point_count"] = 3
     record["latency_ms_shadow_red_stopping_margin"] = 0.2
     record["latency_ms_shadow_dp_prior_deviation"] = 0.1
     record["latency_ms_shadow_dp_prior_comfort_excess"] = 0.3
+    record["latency_ms_shadow_lateral_comfort"] = 0.4
     return record

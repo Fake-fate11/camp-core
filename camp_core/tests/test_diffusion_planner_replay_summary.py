@@ -20,6 +20,11 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
             "selection_effect": False,
             "effective_horizon_steps": 30,
         },
+        "camp_shadow_lateral_comfort": {
+            "enabled": True,
+            "selection_effect": False,
+            "effective_horizon_steps": 30,
+        },
         "benchmark": {"seed": 101},
     }
 
@@ -30,6 +35,9 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
     assert merged["camp_feasibility_source"] == "dp_reward"
     assert merged["camp_outcome_horizon_steps"] == 30
     assert merged["camp_shadow_dp_prior_comfort_excess"][
+        "effective_horizon_steps"
+    ] == 30
+    assert merged["camp_shadow_lateral_comfort"][
         "effective_horizon_steps"
     ] == 30
     assert merged["benchmark"]["seed"] == 101
