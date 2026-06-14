@@ -3019,3 +3019,71 @@ the remaining `2/12` hard-blocked cases. Only if that budget screen is
 coverage-positive, comfort-nonregressive, deterministic, and fail-closed
 should an online, default-off underprogress relaxation be specified. Formal
 seeds remain frozen.
+
+### Underprogress-relaxed budget gate
+
+Commit `71a2b9b3a77901e1bafa7ba17f483c9496ab96d5` adds the
+predeclared budget tables for the `dp_underprogress` counterfactual. The
+tables use the same offline H3 gates as the earlier safety screens:
+
+- progress loss budgets: `0.5 m`, `1.0 m`, `1.5 m`;
+- H3 distance loss budgets: `0.05 m`, `0.1 m`;
+- absolute H3 max lateral guard: `2.0 m/s^2`;
+- a stricter variant requiring red stopping-margin nonworse.
+
+The analyzer and tests remain shadow-only. Local verification passed with
+`163 passed, 5 skipped`; AutoDL verification passed with `168 passed`.
+
+The real sample59 non-formal v3 shadow artifact was re-analyzed at:
+
+`/root/autodl-tmp/camp_dp_tracker_rollout_shadow_sample59_acba493`
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Underprogress budget JSON | `3c88376147313c2e5f11d9714aad5b7b98700b9c3fb127c1754150d8f5143474` |
+| Underprogress budget markdown | `25dea17f0c7c4d4e13a374bcd02c1edc005fa50a49515aef3633274eadeb510a` |
+
+The plain underprogress-relaxed budget table is:
+
+| Progress loss | H3 distance loss | Covered | Union red | Progress | H3 distance | H3 vector jerk | H3 lateral |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.5 m | 0.05 m | 1/12 | -27.000000 | -0.466817 | -0.046299 | +6.785523 | +0.004925 |
+| 0.5 m | 0.1 m | 1/12 | -27.000000 | -0.466817 | -0.046299 | +6.785523 | +0.004925 |
+| 1.0 m | 0.05 m | 5/12 | -18.100000 | -0.648251 | -0.010429 | -7.320106 | -0.001820 |
+| 1.0 m | 0.1 m | 5/12 | -18.100000 | -0.648251 | -0.010429 | -7.320106 | -0.001820 |
+| 1.5 m | 0.05 m | 9/12 | -21.500000 | -0.919981 | -0.015352 | -14.333906 | -0.003701 |
+| 1.5 m | 0.1 m | 10/12 | -22.650000 | -0.947520 | -0.021682 | -12.343982 | -0.003215 |
+
+The stopping-margin-nonworse variant has the same coverage on this artifact,
+with stronger stopping evidence:
+
+| Progress loss | H3 distance loss | Covered | Union red | Stopping margin | Progress | H3 vector jerk |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.5 m | 0.05 m | 1/12 | -27.000000 | -18.761424 | -0.466817 | +6.785523 |
+| 0.5 m | 0.1 m | 1/12 | -27.000000 | -18.761424 | -0.466817 | +6.785523 |
+| 1.0 m | 0.05 m | 5/12 | -18.100000 | -16.339795 | -0.648251 | -7.320106 |
+| 1.0 m | 0.1 m | 5/12 | -18.100000 | -16.339795 | -0.648251 | -7.320106 |
+| 1.5 m | 0.05 m | 9/12 | -21.500000 | -20.681256 | -0.919981 | -14.333906 |
+| 1.5 m | 0.1 m | 10/12 | -22.650000 | -21.207705 | -0.947520 | -12.343982 |
+
+The remaining `2/12` events after ignoring `dp_underprogress` are hard-blocked:
+
+| Case | Speed | Selected union-red | Lower candidates | Blocking reason |
+| --- | ---: | ---: | ---: | --- |
+| seed 2, npc 0, step 194 | 0.753574 m/s | 34.0 | 7 | all `dp_kinematic` |
+| seed 2, npc 4, step 126 | 4.991127 m/s | 34.0 | 4 | all `dynamic_obb_collision` |
+
+Decision: this is the first selector-adjacent screen with enough coverage to
+justify a formal specification pass, but not enough to directly deploy. The
+widest budget plus stopping-margin nonworse repairs `10/12` of the previously
+unrepairable no-lower-feasible misses and improves union-red, stopping margin,
+H3 jerk, and H3 lateral on average, with about `0.95 m` mean progress loss.
+However, it relaxes an external DP progress gate and still has no
+specification-backed command jerk cap. The next step is to update the
+mathematical contract for a default-off, fail-closed, state-dependent
+underprogress relaxation candidate set. It must preserve hard kinematic,
+collision, road, lane, and red-light feasibility; use only current-tick
+candidate constants; remain deterministic; and state explicitly that changing
+the feasible set is outside the original CAMP convex master, while the CAMP
+score over any admitted finite set remains affine in the fixed weights. Formal
+seeds remain frozen.
