@@ -166,6 +166,10 @@ def test_rollout_shadow_analysis_attributes_infeasible_lower_red_candidates(
     assert event["best_lower_union_red_candidate_any_feasibility"][
         "feasible"
     ] is False
+    markdown = render_markdown(report)
+    assert "## No-Lower-Feasible Diagnosis" in markdown
+    assert "unit_route_progress_gate" in markdown
+    assert "unit_lateral_gate" in markdown
 
 
 def test_rollout_shadow_analysis_rejects_missing_full_red(tmp_path) -> None:

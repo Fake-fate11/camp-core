@@ -1385,6 +1385,11 @@ def render_markdown(report: dict[str, Any]) -> str:
             "- Selected h30-safe/full-red fallback records: "
             f"{red['selected_short_safe_full_red_breakdown']['fallback']}"
         ),
+        (
+            "- Selected h30-safe/full-red records without a lower union-red "
+            "base-feasible candidate: "
+            f"{red['selected_short_safe_full_red_breakdown']['without_lower_union_red_feasible_candidate']}"
+        ),
         "",
         "| Horizon | Screen | Changes | Rate | Progress | Full red | Distance | "
         "Vector jerk | Lateral |",
@@ -1407,6 +1412,37 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"{_fmt(delta['jerk'])} | {_fmt(delta['lateral'])} |"
             )
     budget = red["predeclared_budget_sensitivity_h3"]
+    diagnosis = red["no_lower_union_red_feasible_diagnosis"]
+    lines.extend(
+        [
+            "",
+            "## No-Lower-Feasible Diagnosis",
+            "",
+            (
+                "- Events without a lower union-red base-feasible candidate: "
+                f"{diagnosis['events']}"
+            ),
+            (
+                "- Events with lower union-red candidates blocked by "
+                "feasibility: "
+                f"{diagnosis['with_lower_union_red_infeasible_candidate']}"
+            ),
+            (
+                "- Events with no lower union-red candidate in the generated "
+                "pool: "
+                f"{diagnosis['with_no_lower_union_red_candidate_anywhere']}"
+            ),
+            "",
+            "| Infeasibility reason | Count |",
+            "| --- | ---: |",
+        ]
+    )
+    reason_counts = diagnosis["infeasible_lower_union_red_reason_counts"]
+    if reason_counts:
+        for reason, count in sorted(reason_counts.items()):
+            lines.append(f"| {reason} | {count} |")
+    else:
+        lines.append("| n/a | 0 |")
     lines.extend(
         [
             "",
