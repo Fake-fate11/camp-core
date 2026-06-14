@@ -22,6 +22,10 @@ def test_command_shadow_analysis_finds_joint_strict_opportunity(tmp_path) -> Non
     }
     assert report["opportunities"]["dominance_records"] == 1
     assert report["opportunities"]["joint_strict_records"] == 1
+    assert report["counterfactual_postselection"]["changed_records"] == 1
+    assert report["counterfactual_postselection"][
+        "mean_deltas_on_changed_records"
+    ]["progress"] == 0.0
     assert report["selection_behavior"][
         "selected_target_below_candidate0_rate"
     ] == 0.0
@@ -89,6 +93,7 @@ def _record() -> dict:
         "used_fallback": False,
         "feasible_mask": [True, True, True],
         "candidate_closed_loop_outcomes": None,
+        "selection_scores": [0.0, 1.0, float("inf")],
         "dp_candidate_rewards": [
             {"progress": 5.0, "red_light": 0.0},
             {"progress": 5.0, "red_light": 0.0},

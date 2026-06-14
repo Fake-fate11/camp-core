@@ -44,6 +44,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--root", type=Path, action="append", default=[])
     parser.add_argument("--selection_log", type=Path, action="append", default=[])
     parser.add_argument("--target_speed_epsilon_mps", type=float, default=0.0)
+    parser.add_argument("--progress_epsilon_m", type=float, default=0.0)
     parser.add_argument("--planned_red_epsilon", type=float, default=0.0)
     parser.add_argument("--jerk_epsilon_mps3", type=float, default=0.0)
     parser.add_argument(
@@ -60,12 +61,14 @@ def compute_perfect_tracker_command_report(
     paths: list[Path],
     *,
     target_speed_epsilon_mps: float = 0.0,
+    progress_epsilon_m: float = 0.0,
     planned_red_epsilon: float = 0.0,
     jerk_epsilon_mps3: float = 0.0,
     lateral_acceleration_epsilon_mps2: float = 0.0,
 ) -> dict[str, Any]:
     epsilons = {
         "target_speed_epsilon_mps": target_speed_epsilon_mps,
+        "progress_epsilon_m": progress_epsilon_m,
         "planned_red_epsilon": planned_red_epsilon,
         "jerk_epsilon_mps3": jerk_epsilon_mps3,
         "lateral_acceleration_epsilon_mps2": (
@@ -96,6 +99,7 @@ def compute_perfect_tracker_command_report(
     dominance_candidate_counts: list[int] = []
     joint_strict_candidate_counts: list[int] = []
     shadow_latencies_ms: list[float] = []
+    counterfactual_rows: list[dict[str, float]] = []
 
     for log_path in iter_selection_log_paths(paths):
         log_count += 1
@@ -136,7 +140,7 @@ def compute_perfect_tracker_command_report(
                 )
                 for name, field in COMMAND_FIELDS.items()
             }
-            planned_red = _planned_red(
+            progress, planned_red = _reward_metrics(
                 record,
                 candidate_count,
                 log_path,
@@ -193,6 +197,12 @@ def compute_perfect_tracker_command_report(
                 - 1e-12
             )
             admissible &= (
+                progress
+                >= progress[selected_index]
+                - float(progress_epsilon_m)
+                - 1e-12
+            )
+            admissible &= (
                 planned_red
                 <= planned_red[selected_index]
                 + float(planned_red_epsilon)
@@ -223,6 +233,70 @@ def compute_perfect_tracker_command_report(
             joint_strict_candidate_counts.append(int(joint_strict.sum()))
             dominance_records += int(dominance.any())
             joint_strict_records += int(joint_strict.any())
+            counterfactual_index = selected_index
+            if dominance.any():
+                weakly_dominating = (
+                    admissible & jerk_nonworse & lateral_nonworse
+                )
+                indices = np.flatnonzero(weakly_dominating)
+                selection_scores = np.asarray(
+                    record.get("selection_scores"),
+                    dtype=np.float64,
+                ).reshape(-1)
+                if (
+                    selection_scores.shape != (candidate_count,)
+                    or not np.all(np.isfinite(selection_scores[indices]))
+                ):
+                    raise ValueError(
+                        f"{log_path} record {record_idx} has invalid "
+                        "selection_scores."
+                    )
+                order = np.lexsort(
+                    (
+                        indices,
+                        selection_scores[indices],
+                        metrics["lateral"][indices],
+                        metrics["jerk"][indices],
+                    )
+                )
+                counterfactual_index = int(indices[order[0]])
+            if counterfactual_index != selected_index:
+                counterfactual_rows.append(
+                    {
+                        "target_speed": float(
+                            metrics["target_speed"][counterfactual_index]
+                            - metrics["target_speed"][selected_index]
+                        ),
+                        "progress": float(
+                            progress[counterfactual_index]
+                            - progress[selected_index]
+                        ),
+                        "planned_red": float(
+                            planned_red[counterfactual_index]
+                            - planned_red[selected_index]
+                        ),
+                        "jerk": float(
+                            metrics["jerk"][counterfactual_index]
+                            - metrics["jerk"][selected_index]
+                        ),
+                        "lateral": float(
+                            metrics["lateral"][counterfactual_index]
+                            - metrics["lateral"][selected_index]
+                        ),
+                        "old_jerk": float(
+                            metrics["old_jerk"][counterfactual_index]
+                            - metrics["old_jerk"][selected_index]
+                        ),
+                        "old_lateral": float(
+                            metrics["old_lateral"][counterfactual_index]
+                            - metrics["old_lateral"][selected_index]
+                        ),
+                        "camp_score": float(
+                            selection_scores[counterfactual_index]
+                            - selection_scores[selected_index]
+                        ),
+                    }
+                )
 
     if not log_count:
         raise ValueError("No selection logs were found.")
@@ -273,6 +347,29 @@ def compute_perfect_tracker_command_report(
             "selected_target_below_candidate0_rate": (
                 selected_target_below_candidate0_records / record_denominator
             ),
+        },
+        "counterfactual_postselection": {
+            "order": [
+                "command_jerk",
+                "command_lateral",
+                "camp_score",
+                "candidate_index",
+            ],
+            "changed_records": len(counterfactual_rows),
+            "change_rate": len(counterfactual_rows) / feasible_denominator,
+            "mean_deltas_on_changed_records": {
+                name: _mean([row[name] for row in counterfactual_rows])
+                for name in (
+                    "target_speed",
+                    "progress",
+                    "planned_red",
+                    "jerk",
+                    "lateral",
+                    "old_jerk",
+                    "old_lateral",
+                    "camp_score",
+                )
+            },
         },
         "selected_means": {
             name: _mean(values) for name, values in selected_values.items()
@@ -353,29 +450,35 @@ def _selected_index(
     return selected_index
 
 
-def _planned_red(
+def _reward_metrics(
     record: dict[str, Any],
     candidate_count: int,
     log_path: Path,
     record_idx: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray]:
     rewards = record.get("dp_candidate_rewards")
     if not isinstance(rewards, list) or len(rewards) != candidate_count:
         raise ValueError(
             f"{log_path} record {record_idx} lacks complete DP rewards."
         )
-    values = np.asarray(
+    progress = np.asarray(
+        [float(reward["progress"]) for reward in rewards],
+        dtype=np.float64,
+    )
+    planned_red = np.asarray(
         [
             max(-float(reward.get("red_light", 0.0)), 0.0)
             for reward in rewards
         ],
         dtype=np.float64,
     )
-    if not np.all(np.isfinite(values)):
+    if not np.all(np.isfinite(progress)) or not np.all(
+        np.isfinite(planned_red)
+    ):
         raise ValueError(
-            f"{log_path} record {record_idx} has invalid planned-red values."
+            f"{log_path} record {record_idx} has invalid DP reward metrics."
         )
-    return values
+    return progress, planned_red
 
 
 def _restart_flags(
@@ -457,6 +560,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     records = report["records"]
     opportunities = report["opportunities"]
     behavior = report["selection_behavior"]
+    counterfactual = report["counterfactual_postselection"]
     correlations = report["feasible_correlations"]
     latency = report["latency_ms"]
     lines = [
@@ -471,6 +575,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"`{opportunities['dominance_rate']:.6f}`",
         f"- Joint-strict opportunity rate: "
         f"`{opportunities['joint_strict_rate']:.6f}`",
+        f"- Counterfactual postselection change rate: "
+        f"`{counterfactual['change_rate']:.6f}`",
         f"- Selected target below candidate 0 rate: "
         f"`{behavior['selected_target_below_candidate0_rate']:.6f}`",
         f"- Restart-change rate: `{behavior['restart_changed_rate']:.6f}`",
@@ -498,6 +604,7 @@ def main() -> None:
     report = compute_perfect_tracker_command_report(
         paths,
         target_speed_epsilon_mps=args.target_speed_epsilon_mps,
+        progress_epsilon_m=args.progress_epsilon_m,
         planned_red_epsilon=args.planned_red_epsilon,
         jerk_epsilon_mps3=args.jerk_epsilon_mps3,
         lateral_acceleration_epsilon_mps2=(
