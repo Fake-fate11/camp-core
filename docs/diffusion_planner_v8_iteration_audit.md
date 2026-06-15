@@ -4123,3 +4123,98 @@ be versioned and outcome-free online; for fixed candidates its value is a
 constant, so the CAMP score remains affine in `w` and the simplex/CVaR/L2
 finite-maximum master remains convex. No convexity claim is made in trajectory
 coordinates.
+
+### Current-chain Top-1 result
+
+The predeclared Top-1 matrix completed 36/36 runs with exit status `0`. Strict
+pairing found 36 common and union keys with no missing or duplicate runs.
+
+| CAMP minus Top-1 | Mean delta | 95% bootstrap interval | Decision |
+| --- | ---: | ---: | --- |
+| Route completion | +0.012005 | [+0.008387, +0.015885] | pass |
+| OBB collision | 0.000000 | [0.000000, 0.000000] | pass |
+| Near miss | +0.000417 | [-0.015000, +0.012222] | inconclusive |
+| Lane violation | +0.001389 | [-0.000972, +0.004583] | inconclusive |
+| Planned red light | +0.012222 | [-0.001944, +0.035139] | inconclusive |
+| Realized red light | +0.006142 | [0.000000, +0.018425] | inconclusive |
+| Mean jerk magnitude | +12.040183 m/s^3 | [+10.223277, +13.910016] | established regression |
+| Mean lateral acceleration | +0.045649 m/s^2 | [+0.029342, +0.065299] | established regression |
+
+The current checkpoint is not formal-ready. It provides a clear completion
+gain and preserves zero OBB collision, but jerk and lateral acceleration are
+strictly worse than Top-1. The four other safety intervals do not establish
+noninferiority. Formal seeds 11/12/13 remain frozen.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Top-1 run log | `1e85dec79379fba40e18205bebfd75b6e7dd3f7e0baf68a20306eab8dfd09c1e` |
+| Current-chain Top-1 comparison JSON | `e58d6d2f0bbc1758f5532688dd49c317ad96b1063d1d3e5c2a58a41a48306eb6` |
+| Current-chain Top-1 comparison markdown | `fb2f2d0b682e593d4a09dca66ad67ad0669c3b38e7c717778b623222b0be9cb6` |
+| Top-1 decision gate | `feb65202e89f0644ea071fb564aacf0a9dd8699b92ab6d4df9e30ebe5f73769b` |
+
+The outcome-free full36 rollout screen also rejects another narrow
+postselector. Among 5,999 non-fallback records, an H3 candidate that preserved
+red, progress, and rollout distance while strictly improving rollout comfort
+existed on only 85 records (`1.42%`). H3 command-to-rollout correlations were
+`0.697` for jerk and `0.923` for lateral acceleration, so the fields are
+meaningful diagnostics, but the free Pareto coverage is too small to repair
+the aggregate Top-1 comfort gap by a local dominance rule.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Full36 rollout shadow analysis JSON | `81df77292c05724b0272ffc28a9b5c12d4c9f89a0c1acb7fddcb6544658dcc37` |
+| Full36 rollout shadow analysis markdown | `c837f4194779a3fe577ed629358845d60f3543e47f3bfa9123399f1faa87d8d3` |
+
+### Predeclared rollout-to-outcome atom screen
+
+Commit `209bdfcc0d8f38934fa88786c854d3b630fcbdee` adds only an offline
+rollout-to-outcome alignment analyzer and fail-closed tests. It does not change
+the online selector, atom schema, weights, or Diffusion Planner. Local
+verification passed `177` tests with `5` environment-dependent skips; AutoDL
+passed all `182` tests.
+
+No existing artifact contains both the current H3/H5/H10 PerfectTracker
+rollout shadows and candidate closed-loop outcomes, and older outcome logs do
+not persist candidate trajectories. The minimum new collection is therefore
+the 12-run sample59 development matrix:
+
+```text
+/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc
+```
+
+It keeps the accepted Static selector, seeds 1/2/3, NPC counts 0/4, traffic
+lights off/on, K=8, perfect tracking, and 200 steps. The only added operation
+is diagnostic 30-step candidate outcome collection with the existing outcome
+weights. Its 12-command dry-run is:
+
+```text
+/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc_predeclare.txt
+```
+
+with SHA-256
+`7cc26d147e4e9cd7a0c387ed0ae88b77dc2ab8a4ab41797d60a085168834cae3`.
+
+The collection must preserve the accepted Static selected index, atoms,
+feasibility, weights, fallback, and closed-loop trajectory. Outcome collection
+is label generation only and must have no selection effect.
+
+For jerk and lateral separately, the fixed horizons H3, H5, and H10 are
+evaluated without tuning. A horizon is ineligible if availability is below
+100%, any value is nonfinite or negative, feasible-record variation is below
+90%, feasible Top-1-gap correlation is nonpositive, or feasible pairwise
+ordering is below 0.5. Among eligible horizons, select the largest feasible
+Top-1-gap Pearson correlation; differences within `0.02` are broken by larger
+pairwise ordering agreement, then by the shorter horizon.
+
+Schema promotion requires the selected rollout feature to exceed the best
+corresponding existing proxy on both feasible Top-1-gap correlation and
+feasible pairwise ordering agreement. Otherwise reject the new atom. Passing
+this sample screen authorizes a non-formal 36-run outcome collection and
+schema-v11 training design, not online deployment.
+
+The rollout values are current-tick, fixed-candidate, finite, and nonnegative;
+candidate outcomes are used only as offline labels. If promoted, each atom is
+a constant for each finite candidate, so `w^T A_k` remains affine in `w` and
+the finite-maximum, simplex, CVaR, and L2 master remains convex. No outcome is
+available to online inference, and no convexity claim is made in trajectory
+coordinates.
