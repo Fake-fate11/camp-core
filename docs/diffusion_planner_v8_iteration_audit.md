@@ -3629,3 +3629,38 @@ proposal is eligible for offline measurement only if preprocessing is
 expected to remain below about 7.7 ms; online acceptance still requires at
 least 3 ms total p95 saving, exact full-atom equality, deterministic slice
 indices, and fail-closed handling of invalid inputs.
+
+### Accepted midpoint KD-tree microbenchmark
+
+Commit `e2effae` evaluated the midpoint KD-tree certificate on the same eight
+snapshots. AutoDL verification passed with `178 passed`.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `component_microbenchmark_kdtree_e2effae.json` | `8c061966cffc56f0478640134977c4c88184be7ada12c1587b062baeb4e4b635` |
+| `component_microbenchmark_kdtree_e2effae.md` | `2d5116d756db7e0001667be2a70a85be9a34348042223ae760e822a4eba19054` |
+
+All eight snapshots again had exact full 14-atom equality with maximum absolute
+error `0`. The KD-tree slices retained 18 to 23 of the original 342 to 361
+segments, or 5.3% to 6.4%.
+
+| Phase | p95 of snapshot p95 |
+| --- | ---: |
+| Current atom total | 14.914 ms |
+| KD-tree exact-slice preprocessing | 0.963 ms |
+| Sliced atom evaluation | 2.100 ms |
+| Preprocessing plus sliced atom total | 3.044 ms |
+
+The attributable expected p95 saving is about 11.87 ms, well above the 3 ms
+implementation gate. Unlike the rejected all-candidate batch path, this keeps
+the original per-candidate projection and only removes segments proven unable
+to be nearest.
+
+Decision: accept a minimal online implementation. The production helper must
+be the same helper exercised by the benchmark, run once per selector tick, and
+have its preprocessing time included in `latency_ms_camp_atom_computation`.
+The selector must continue to use the original atom, feasibility, collision,
+normalization, affine score, fallback, and tie-break logic. Before any paired
+12-run, it must pass local and AutoDL full tests, a fixed-seed 40-step strict
+selector-log comparison against the pre-optimization capture, and a short
+latency smoke showing the expected atom reduction.

@@ -16,6 +16,7 @@ from camp_core.atoms.driver_atoms import (
     DriverAtomContext,
     compute_atom_bank_vector,
     compute_feasibility_mask,
+    exact_centerline_slice_for_candidates,
 )
 
 
@@ -2434,8 +2435,20 @@ class CAMPSelector:
         atom_computation_seconds = 0.0
         feasibility_seconds = 0.0
         collision_seconds = 0.0
+        atom_context = context
+        if context.lane_centerline is not None:
+            phase_start = time.perf_counter()
+            lane_centerline, _ = exact_centerline_slice_for_candidates(
+                context.lane_centerline,
+                candidates[:, :, :2],
+            )
+            atom_context = replace(
+                context,
+                lane_centerline=lane_centerline,
+            )
+            atom_computation_seconds += time.perf_counter() - phase_start
         for candidate_idx, trajectory in enumerate(candidates):
-            local_context = context
+            local_context = atom_context
             if obstacles is not None:
                 dynamic = {
                     obstacle_idx: obstacle[:, :2]

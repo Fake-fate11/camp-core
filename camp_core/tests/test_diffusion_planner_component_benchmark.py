@@ -7,7 +7,8 @@ import numpy as np
 import pytest
 
 from camp_core.atoms.driver_atoms import DriverAtomContext, compute_atom_bank_vector
-from camp_core.integrations.diffusion_planner import CAMPSelectionResult
+import camp_core.integrations.diffusion_planner as diffusion_planner_integration
+from camp_core.integrations.diffusion_planner import CAMPSelectionResult, CAMPSelector
 from scripts.integrations.benchmark_diffusion_planner_camp_components import (
     _exact_centerline_slice,
     _exact_centerline_slice_kdtree,
@@ -213,3 +214,69 @@ def test_write_microbenchmark_snapshot_records_current_tick_inputs(tmp_path) -> 
         assert metadata["capture_has_no_selection_effect"] is True
         assert "model_input__ego_current_state" in payload
         assert "reward_input__lanes" in payload
+
+
+def test_selector_centerline_slice_preserves_full_selection(monkeypatch) -> None:
+    centerline = np.column_stack(
+        (
+            np.linspace(-20.0, 120.0, 281),
+            0.2 * np.sin(np.linspace(-2.0, 12.0, 281)),
+        )
+    )
+    x = np.linspace(0.0, 12.0, 80)
+    candidates = np.zeros((3, 80, 4), dtype=np.float64)
+    candidates[:, :, 0] = x
+    candidates[0, :, 1] = 0.1
+    candidates[1, :, 1] = 0.3
+    candidates[2, :, 1] = -0.2
+    candidates[:, :, 2] = 1.0
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=centerline,
+        static_obstacles=np.array([[50.0, 20.0]], dtype=np.float64),
+        speed_limit=20.0,
+        lane_half_width=1.8,
+    )
+    obstacles = np.zeros((3, 1, 80, 5), dtype=np.float64)
+    selector = CAMPSelector(
+        np.ones(9, dtype=np.float64),
+        static_weights=np.arange(1.0, 10.0),
+    )
+
+    optimized = selector.select(
+        candidates,
+        context,
+        candidate_obstacles=obstacles,
+    )
+    monkeypatch.setattr(
+        diffusion_planner_integration,
+        "exact_centerline_slice_for_candidates",
+        lambda line, _points: (
+            line,
+            {
+                "fail_closed": True,
+                "segment_start": 0,
+                "segment_end": len(line) - 2,
+                "original_segment_count": len(line) - 1,
+                "retained_segment_count": len(line) - 1,
+                "retained_fraction": 1.0,
+            },
+        ),
+    )
+    baseline = selector.select(
+        candidates,
+        context,
+        candidate_obstacles=obstacles,
+    )
+
+    assert optimized.selected_index == baseline.selected_index
+    assert optimized.used_fallback == baseline.used_fallback
+    assert optimized.infeasibility_reasons == baseline.infeasibility_reasons
+    np.testing.assert_array_equal(optimized.feasible_mask, baseline.feasible_mask)
+    np.testing.assert_allclose(optimized.atoms, baseline.atoms, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(
+        optimized.selection_scores,
+        baseline.selection_scores,
+        rtol=1e-12,
+        atol=1e-12,
+    )

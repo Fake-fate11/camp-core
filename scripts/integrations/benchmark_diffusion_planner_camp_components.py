@@ -24,6 +24,7 @@ for path in (ROOT, PACKAGE_ROOT):
 from camp_core.atoms.driver_atoms import (  # noqa: E402
     DriverAtomContext,
     compute_atom_bank_vector,
+    exact_centerline_slice_for_candidates,
 )
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
     _trajectory_comfort,
@@ -293,79 +294,10 @@ def _exact_centerline_slice_kdtree(
     centerline: np.ndarray,
     candidate_points: np.ndarray,
 ) -> tuple[np.ndarray, dict[str, int | float | bool]]:
-    """Return an exact contiguous slice using vertex and midpoint KD-trees."""
-    from scipy.spatial import cKDTree
-
-    line = np.asarray(centerline, dtype=np.float64)
-    points = np.asarray(candidate_points, dtype=np.float64).reshape(-1, 2)
-    if (
-        line.ndim != 2
-        or line.shape[0] < 2
-        or line.shape[1] < 2
-        or points.size == 0
-        or not np.all(np.isfinite(line[:, :2]))
-        or not np.all(np.isfinite(points))
-    ):
-        return line, {
-            "fail_closed": True,
-            "segment_start": 0,
-            "segment_end": max(int(line.shape[0]) - 2, 0),
-            "original_segment_count": max(int(line.shape[0]) - 1, 0),
-            "retained_segment_count": max(int(line.shape[0]) - 1, 0),
-            "retained_fraction": 1.0,
-        }
-
-    starts = line[:-1, :2]
-    ends = line[1:, :2]
-    segment_midpoints = 0.5 * (starts + ends)
-    maximum_half_length = 0.5 * float(
-        np.max(np.linalg.norm(ends - starts, axis=1), initial=0.0)
+    return exact_centerline_slice_for_candidates(
+        centerline,
+        candidate_points,
     )
-    vertex_tree = cKDTree(line[:, :2])
-    midpoint_tree = cKDTree(segment_midpoints)
-    nearest_vertex_distance = np.asarray(
-        vertex_tree.query(points, k=1, workers=1)[0],
-        dtype=np.float64,
-    )
-    radii = nearest_vertex_distance + maximum_half_length
-    radii += np.maximum(1e-9, radii * 1e-12)
-    neighbors = midpoint_tree.query_ball_point(
-        points,
-        radii,
-        workers=1,
-        return_sorted=False,
-    )
-    retained_indices = np.unique(
-        np.fromiter(
-            (
-                segment_index
-                for point_neighbors in neighbors
-                for segment_index in point_neighbors
-            ),
-            dtype=np.int64,
-        )
-    )
-    segment_count = starts.shape[0]
-    if retained_indices.size == 0:
-        return line, {
-            "fail_closed": True,
-            "segment_start": 0,
-            "segment_end": segment_count - 1,
-            "original_segment_count": segment_count,
-            "retained_segment_count": segment_count,
-            "retained_fraction": 1.0,
-        }
-    segment_start = int(retained_indices[0])
-    segment_end = int(retained_indices[-1])
-    retained_segment_count = segment_end - segment_start + 1
-    return line[segment_start : segment_end + 2], {
-        "fail_closed": False,
-        "segment_start": segment_start,
-        "segment_end": segment_end,
-        "original_segment_count": segment_count,
-        "retained_segment_count": retained_segment_count,
-        "retained_fraction": retained_segment_count / segment_count,
-    }
 
 
 def _assemble_full_atoms(
