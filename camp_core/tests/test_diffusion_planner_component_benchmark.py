@@ -242,6 +242,20 @@ def test_selector_centerline_slice_preserves_full_selection(monkeypatch) -> None
         np.ones(9, dtype=np.float64),
         static_weights=np.arange(1.0, 10.0),
     )
+    centerline_lengths = []
+    production_compute_atom_bank_vector = (
+        diffusion_planner_integration.compute_atom_bank_vector
+    )
+
+    def record_centerline_length(local_context, trajectory):
+        centerline_lengths.append(len(local_context.lane_centerline))
+        return production_compute_atom_bank_vector(local_context, trajectory)
+
+    monkeypatch.setattr(
+        diffusion_planner_integration,
+        "compute_atom_bank_vector",
+        record_centerline_length,
+    )
 
     optimized = selector.select(
         candidates,
@@ -269,6 +283,10 @@ def test_selector_centerline_slice_preserves_full_selection(monkeypatch) -> None
         candidate_obstacles=obstacles,
     )
 
+    assert max(centerline_lengths[: len(candidates)]) < len(centerline)
+    assert centerline_lengths[len(candidates) :] == [len(centerline)] * len(
+        candidates
+    )
     assert optimized.selected_index == baseline.selected_index
     assert optimized.used_fallback == baseline.used_fallback
     assert optimized.infeasibility_reasons == baseline.infeasibility_reasons

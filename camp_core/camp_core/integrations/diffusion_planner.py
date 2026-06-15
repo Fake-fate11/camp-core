@@ -2455,7 +2455,10 @@ class CAMPSelector:
                     for obstacle_idx, obstacle in enumerate(obstacles[candidate_idx])
                     if np.any(np.abs(obstacle[:, :2]) > 1e-8)
                 }
-                local_context = replace(context, dynamic_obstacles=dynamic)
+                local_context = replace(
+                    atom_context,
+                    dynamic_obstacles=dynamic,
+                )
 
             trajectory_xy = trajectory[:, :2]
             phase_start = time.perf_counter()
