@@ -3664,3 +3664,59 @@ normalization, affine score, fallback, and tie-break logic. Before any paired
 12-run, it must pass local and AutoDL full tests, a fixed-seed 40-step strict
 selector-log comparison against the pre-optimization capture, and a short
 latency smoke showing the expected atom reduction.
+
+### Online smoke: rejected first wiring, accepted corrected wiring
+
+Commit `21e72c6` first wired the exact KD-tree slice into `CAMPSelector`.
+AutoDL passed `179` tests and both 40-step selector logs were strictly
+equivalent to the pre-optimization captures. However, the online atom p95
+remained `13.998 ms` and `13.695 ms`, so this wiring failed the latency gate.
+
+The cause was attributable and local: when `candidate_obstacles` was present,
+the per-candidate context was rebuilt from the original `context` instead of
+the sliced `atom_context`. The replay always supplies that tensor, including
+zero-filled no-NPC cases, so the optimized centerline was discarded before
+atom evaluation. No 12-run was started from this rejected wiring.
+
+Commit `bfdbb65` changes only that context base and adds a regression test that
+observes the centerline passed to atom evaluation when candidate obstacles are
+provided. It does not alter candidates, atom definitions, feasibility,
+collision checks, normalization, weights, affine scoring, fallback, or
+tie-breaking. The CAMP score therefore remains affine in `w`; the existing
+simplex/CVaR/L2 master remains convex.
+
+Verification:
+
+- local: `174 passed, 5 skipped`;
+- AutoDL: `179 passed`;
+- CAMP local, GitHub, and AutoDL: `bfdbb657198525891834e550c7f82c727044ba19`;
+- fixed DP: `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Corrected smoke root:
+
+```text
+/root/autodl-tmp/camp_dp_centerline_kdtree_smoke_bfdbb65
+```
+
+| Case | Total p95 | CAMP p95 | Atom p95 | Fallback | Collision | Near miss | Planned / realized red |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| seed 1, NPC 0, TL off | 85.409 ms | 4.772 ms | 3.271 ms | 0 | 0 | 0 | 0 / 0 |
+| seed 2, NPC 4, TL on | 92.383 ms | 5.670 ms | 3.684 ms | 0 | 0 | 0 | 0 / 0 |
+
+Both strict comparisons covered 40 records and had zero mismatches for
+selected index, feasible mask, infeasibility reasons, fallback, atom schema,
+atoms, normalized atoms, scores, and weights. All maximum absolute numeric
+differences were `0`.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `seed1_selector_equivalence.json` | `3b41f82ed77ad7190fb2537ea11f24276260ef4d6b0f3ada4833446dd1c88d6a` |
+| `seed2_selector_equivalence.json` | `58e65f1704ad8e4ee66e445ff44cf8f6c9879ef70d1963f0f7687c3bcf268223` |
+| `seed1_npc0_tloff/camp_validation_summary.json` | `22912aa8268a57be7908ee99005849354d8390aef541ece10bb0b4aa94241d3a` |
+| `seed2_npc4_tlon/camp_validation_summary.json` | `a8b42c46dbe938c4d276f121e18603874ce592c7ed72c4c27f3ec233a2967953` |
+
+Decision: the corrected implementation passes the strict-equivalence and
+short-latency smoke gates. The next session may run the predeclared paired
+sample59 12-run on seeds 1/2/3. Formal seeds 11/12/13 remain frozen, and no
+36-run, schema change, or CAMP retraining is allowed until the paired 12-run
+passes all safety, comfort, completion, fallback, and latency gates.
