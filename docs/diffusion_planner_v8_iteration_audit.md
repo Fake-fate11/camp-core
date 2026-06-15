@@ -3720,3 +3720,95 @@ short-latency smoke gates. The next session may run the predeclared paired
 sample59 12-run on seeds 1/2/3. Formal seeds 11/12/13 remain frozen, and no
 36-run, schema change, or CAMP retraining is allowed until the paired 12-run
 passes all safety, comfort, completion, fallback, and latency gates.
+
+## Predeclared Sample59 Paired 12-Run
+
+The migrated development state was re-audited before starting the paired run:
+
+- CAMP local, GitHub, and AutoDL:
+  `f9eedcdd1c9aa0c1a36f06548254d18fd00ea7b9`;
+- fixed Diffusion Planner:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`;
+- AutoDL full suite: `179 passed`;
+- the four corrected-smoke artifact SHA-256 values above were independently
+  reproduced;
+- the baseline root contains exactly 12 validation summaries at
+  `/root/autodl-tmp/camp_dp_underprogress_sample59_pilot_9527721_base`.
+
+The mathematical audit distinguishes two objectives that must not be described
+as identical. The paper and `camp_nonnegative_atom_weights.tex` present the
+finite-candidate worst cost
+
+```text
+Q_i(w_i) = max_k w_i^T A_ik.
+```
+
+The current Diffusion Planner training path instead uses the robust ranking
+loss
+
+```text
+max(0, margin_ik + (A_oracle - A_k)^T w).
+```
+
+Both are convex finite maxima of affine functions of `w`. The candidate affine
+pieces therefore give globally valid cuts, and the existing nonnegative
+simplex, Rockafellar-Uryasev CVaR epigraph, and L2-regularized master remain
+convex. Training rejects nonfinite or negative atoms and requires the final
+full finite-maximum gap to meet tolerance. The robust ranking master is a
+separately defined finite-candidate cutting-plane formulation; it is not
+claimed to be the paper's identical worst-cost objective.
+
+This experiment changes neither formulation. The midpoint KD-tree helper only
+removes centerline segments proven unable to be nearest while preserving the
+original per-candidate projection. Strict equality of candidate atoms,
+normalized atoms, feasibility, scores, weights, fallback, and selected index
+therefore proves that the fixed candidate constants and selector optimization
+problem are unchanged on the evaluated ticks. No new atom, checkpoint,
+training, outcome label, or future-state input is introduced.
+
+The 12-run matrix is fixed before execution:
+
+| Parameter | Value |
+| --- | --- |
+| Route | `sample59_86` |
+| Seeds | `1,2,3` |
+| Maximum NPCs | `0,4` |
+| Traffic lights | `off,on` |
+| Spawn probability | `0.3` |
+| Steps | `200` |
+| Advance mode | `perfect` |
+| Candidates | `8` |
+| Candidate noise scale | `1.0` |
+| CAMP variant | static `redstopfloor05` |
+| Feasibility | DP reward, minimum progress ratio `0.8` |
+| Reward horizon | `30` steps |
+| All-infeasible fallback | `uniform` |
+
+The new, non-overwriting output root is:
+
+```text
+/root/autodl-tmp/camp_dp_centerline_kdtree_sample59_f9eedcd
+```
+
+The exact 12-command dry-run was persisted before execution at:
+
+```text
+/root/autodl-tmp/camp_dp_centerline_kdtree_sample59_f9eedcd_predeclare.txt
+```
+
+Its SHA-256 is
+`9d542a83e5b5df3ad85b3502bdb2b03c4ef5cbedb8053080f71aa0b12a851bfe`.
+
+Acceptance is conjunctive:
+
+1. all 12 selector logs and all 2,400 records pass strict equivalence with
+   absolute and relative tolerances `1e-12`;
+2. parsed closed-loop trajectory logs are exactly equal for every paired run;
+3. safety, comfort, completion, and fallback metrics do not change;
+4. every optimized-run p95 and the average per-run p95 are reported, with the
+   average below `100 ms` and enough observed margin to justify a 36-run;
+5. any behavioral mismatch or failed latency gate rejects expansion to the
+   36-run.
+
+Formal seeds 11/12/13 remain frozen. No schema change, CAMP retraining, or
+Diffusion Planner modification is permitted during this gate.
