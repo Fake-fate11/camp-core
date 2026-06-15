@@ -3930,3 +3930,78 @@ Any behavioral mismatch or failed latency condition rejects the optimization.
 Formal seeds 11/12/13 remain frozen. A passing optimization gate does not by
 itself authorize schema changes or CAMP retraining; the remaining industrial
 safety and comfort evidence must be reassessed first.
+
+### Rejected historical 36-run control and replacement
+
+The optimized 36-run completed all scenarios with exit status `0`, but the
+first strict comparison rejected the historical control assumption above.
+Against
+`camp_dp_development_perfect_v10_redstopfloor05_e70f263`, the 7,200-record
+comparison found 44 selected-index mismatches, 31 feasible-mask mismatches,
+and 7,064 records with different atoms.
+
+The mismatch is attributable to code-path age, not to the exact centerline
+optimization. Route-level audits found:
+
+| Historical comparison | Records | Atom-record mismatches | Selected-index mismatches |
+| --- | ---: | ---: | ---: |
+| `sample59_86` | 2,400 | 2,364 | 21 |
+| `sample2_104` | 2,400 | 2,328 | 1 |
+| `nishishinjuku` | 2,400 | 2,372 | 22 |
+
+In contrast, the `sample59_86` subset of this same optimized full matrix is
+strictly identical to the recent current-chain baseline: all 12 logs and 2,400
+records have zero selected, feasible, atom, score, weight, and fallback
+differences. The old full36 root therefore cannot isolate the optimization and
+is rejected as its behavior control. It remains historical performance
+evidence only.
+
+| Diagnostic artifact | SHA-256 |
+| --- | --- |
+| Historical `sample59_86` selector comparison | `339775ad7b6caf9dc5939a1c883bc141dec3c2503499361bb9ce220132615144` |
+| Historical `sample2_104` selector comparison | `5eb2f05c33a762c45b47840699ebdf3a947a7cdb659509a31464990bcb097f8f` |
+| Historical `nishishinjuku` selector comparison | `607fe4b8519326feda68be85e0c79a96c3c7dd665deb874fb7f7561d8ff61e4c` |
+| Current-chain `sample59_86` equivalence | `6b53123541fd403774b80da5f144288bb9f8412a256dfdb8be7e11d256aca7f3` |
+
+The replacement control is CAMP commit
+`21e72c627a6379812045fa8fe76bd8aec99186f6` in the isolated worktree:
+
+```text
+/root/autodl-tmp/camp_core_fullcenterline_21e72c6
+```
+
+Relative to the accepted implementation, its only runtime code difference is
+the context used when `candidate_obstacles` is supplied:
+
+```text
+21e72c6: replace(context, dynamic_obstacles=dynamic)
+accepted: replace(atom_context, dynamic_obstacles=dynamic)
+```
+
+The DP replay supplies `candidate_obstacles` on every selector tick, including
+zero-filled no-NPC cases. Consequently `21e72c6` computes the same current
+candidate set, reward gates, shadows, atoms, scores, weights, fallback, and
+tie-break while intentionally discarding the sliced centerline and evaluating
+the original full centerline. It is the current-chain full-centerline control,
+not a different selector design. The isolated worktree passes `179` tests.
+
+The replacement 36-run keeps the exact matrix above and writes to:
+
+```text
+/root/autodl-tmp/camp_dp_fullcenterline_full36_21e72c6
+```
+
+Its 36-command dry-run is:
+
+```text
+/root/autodl-tmp/camp_dp_fullcenterline_full36_21e72c6_predeclare.txt
+```
+
+with SHA-256
+`e052ab104e103ed1e6fbfcd6c71fc1fff7c4db812710bda2a6d3d267401a742d`.
+
+The replacement comparison must satisfy the original strict 7,200-record and
+closed-loop equality gates. Because both sides now contain the same diagnostic
+phases, it also supplies a direct paired total- and component-latency
+attribution. No result from the rejected historical control may be used to
+accept or reject the optimization.
