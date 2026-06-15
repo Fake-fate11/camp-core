@@ -3566,3 +3566,66 @@ The slice depends only on the finite current-tick candidates and map
 centerline. It does not change the atom definition, candidate set, weights,
 master constraints, or tie-break. Therefore the CAMP score remains affine in
 `w` and the existing simplex/CVaR/L2 master remains convex.
+
+### Rejected AABB centerline-slice implementation
+
+Commit `cfc21ed` evaluated the predeclared AABB lower-bound proposal on the
+same eight snapshots. AutoDL verification passed with `178 passed`.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `component_microbenchmark_slice_cfc21ed.json` | `a504b07b9d753709350bc69271be3c591148cff12d58564a3321027bf2848045` |
+| `component_microbenchmark_slice_cfc21ed.md` | `eef7941a911aec247f6f8c64fc9cb8ed378eadb790d26be6f48f3cf6dbc17807` |
+
+All eight snapshots had exact full-atom equality with maximum absolute error
+`0`. The retained contiguous slices contained only 18 to 33 of the original
+342 to 361 segments, or 5.3% to 9.6%.
+
+The performance result failed the implementation gate:
+
+| Phase | p95 of snapshot p95 |
+| --- | ---: |
+| Current atom total | 13.477 ms |
+| Sliced atom evaluation after preprocessing | 2.709 ms |
+| AABB exact-slice preprocessing | 10.572 ms |
+| Preprocessing plus sliced atom total | 13.116 ms |
+
+The AABB certificate moved the cost instead of removing it. Its net p95 saving
+was about 0.36 ms, far below the required 3 ms. Decision: reject this
+implementation and do not add it to the online selector.
+
+### Predeclared midpoint KD-tree exact-slice proposal
+
+The next offline-only proposal uses the existing `scipy>=1.10` dependency and
+the same contiguous-slice output.
+
+Build one KD-tree over centerline vertices and one over segment midpoints. For
+each candidate point `p`, the nearest-vertex distance `u(p)` is an upper bound
+on the nearest-segment distance. Let `h_max` be the largest segment
+half-length. Query the midpoint tree with radius
+
+```text
+u(p) + h_max + numeric_tolerance.
+```
+
+This is exact. If segment `j` is truly nearest and `m_j` is its midpoint, then
+for the closest point `q` on that segment,
+
+```text
+distance(p, m_j)
+<= distance(p, q) + distance(q, m_j)
+<= u(p) + half_length(j)
+<= u(p) + h_max.
+```
+
+Therefore every true nearest segment is returned by the radius query. The
+retained polyline is again the contiguous slice from the minimum to maximum
+returned segment index, so no artificial segment is introduced.
+
+The expected cost is two trees with about 350 points, 640 nearest/radius
+queries, and no 640 by 350 dense matrix. Expected temporary memory is well
+below 1 MB. Since the measured sliced atom cost is about 2.71 ms p95, this
+proposal is eligible for offline measurement only if preprocessing is
+expected to remain below about 7.7 ms; online acceptance still requires at
+least 3 ms total p95 saving, exact full-atom equality, deterministic slice
+indices, and fail-closed handling of invalid inputs.

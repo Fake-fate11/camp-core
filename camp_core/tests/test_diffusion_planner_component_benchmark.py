@@ -10,6 +10,7 @@ from camp_core.atoms.driver_atoms import DriverAtomContext, compute_atom_bank_ve
 from camp_core.integrations.diffusion_planner import CAMPSelectionResult
 from scripts.integrations.benchmark_diffusion_planner_camp_components import (
     _exact_centerline_slice,
+    _exact_centerline_slice_kdtree,
     _max_abs_numeric_difference,
     _profile_atom_bank_vector,
 )
@@ -104,6 +105,24 @@ def test_exact_centerline_slice_preserves_atom_projection() -> None:
     sliced_context = DriverAtomContext(dt=0.1, lane_centerline=sliced)
     np.testing.assert_allclose(
         compute_atom_bank_vector(sliced_context, trajectory),
+        compute_atom_bank_vector(full_context, trajectory),
+        rtol=1e-12,
+        atol=1e-12,
+    )
+    kdtree_sliced, kdtree_stats = _exact_centerline_slice_kdtree(
+        centerline,
+        trajectory[np.newaxis],
+    )
+    assert kdtree_stats["fail_closed"] is False
+    assert (
+        kdtree_stats["retained_segment_count"]
+        < kdtree_stats["original_segment_count"]
+    )
+    np.testing.assert_allclose(
+        compute_atom_bank_vector(
+            DriverAtomContext(dt=0.1, lane_centerline=kdtree_sliced),
+            trajectory,
+        ),
         compute_atom_bank_vector(full_context, trajectory),
         rtol=1e-12,
         atol=1e-12,

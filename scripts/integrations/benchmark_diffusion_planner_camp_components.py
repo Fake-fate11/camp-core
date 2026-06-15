@@ -289,6 +289,85 @@ def _exact_centerline_slice(
     }
 
 
+def _exact_centerline_slice_kdtree(
+    centerline: np.ndarray,
+    candidate_points: np.ndarray,
+) -> tuple[np.ndarray, dict[str, int | float | bool]]:
+    """Return an exact contiguous slice using vertex and midpoint KD-trees."""
+    from scipy.spatial import cKDTree
+
+    line = np.asarray(centerline, dtype=np.float64)
+    points = np.asarray(candidate_points, dtype=np.float64).reshape(-1, 2)
+    if (
+        line.ndim != 2
+        or line.shape[0] < 2
+        or line.shape[1] < 2
+        or points.size == 0
+        or not np.all(np.isfinite(line[:, :2]))
+        or not np.all(np.isfinite(points))
+    ):
+        return line, {
+            "fail_closed": True,
+            "segment_start": 0,
+            "segment_end": max(int(line.shape[0]) - 2, 0),
+            "original_segment_count": max(int(line.shape[0]) - 1, 0),
+            "retained_segment_count": max(int(line.shape[0]) - 1, 0),
+            "retained_fraction": 1.0,
+        }
+
+    starts = line[:-1, :2]
+    ends = line[1:, :2]
+    segment_midpoints = 0.5 * (starts + ends)
+    maximum_half_length = 0.5 * float(
+        np.max(np.linalg.norm(ends - starts, axis=1), initial=0.0)
+    )
+    vertex_tree = cKDTree(line[:, :2])
+    midpoint_tree = cKDTree(segment_midpoints)
+    nearest_vertex_distance = np.asarray(
+        vertex_tree.query(points, k=1, workers=1)[0],
+        dtype=np.float64,
+    )
+    radii = nearest_vertex_distance + maximum_half_length
+    radii += np.maximum(1e-9, radii * 1e-12)
+    neighbors = midpoint_tree.query_ball_point(
+        points,
+        radii,
+        workers=1,
+        return_sorted=False,
+    )
+    retained_indices = np.unique(
+        np.fromiter(
+            (
+                segment_index
+                for point_neighbors in neighbors
+                for segment_index in point_neighbors
+            ),
+            dtype=np.int64,
+        )
+    )
+    segment_count = starts.shape[0]
+    if retained_indices.size == 0:
+        return line, {
+            "fail_closed": True,
+            "segment_start": 0,
+            "segment_end": segment_count - 1,
+            "original_segment_count": segment_count,
+            "retained_segment_count": segment_count,
+            "retained_fraction": 1.0,
+        }
+    segment_start = int(retained_indices[0])
+    segment_end = int(retained_indices[-1])
+    retained_segment_count = segment_end - segment_start + 1
+    return line[segment_start : segment_end + 2], {
+        "fail_closed": False,
+        "segment_start": segment_start,
+        "segment_end": segment_end,
+        "original_segment_count": segment_count,
+        "retained_segment_count": retained_segment_count,
+        "retained_fraction": retained_segment_count / segment_count,
+    }
+
+
 def _assemble_full_atoms(
     base_atoms: np.ndarray,
     candidates: np.ndarray,
@@ -783,6 +862,107 @@ def _benchmark_snapshot(
             (time.perf_counter() - total_start) * 1000.0
         )
 
+    kdtree_centerline, kdtree_slice_stats = _exact_centerline_slice_kdtree(
+        base_context.lane_centerline,
+        candidates[:, :, :2],
+    )
+    kdtree_base_context = replace(
+        base_context,
+        lane_centerline=kdtree_centerline,
+    )
+    kdtree_contexts = [
+        _candidate_context(kdtree_base_context, candidate_obstacles[index])
+        for index in range(candidates.shape[0])
+    ]
+    kdtree_base_atoms = np.vstack(
+        [
+            compute_atom_bank_vector(context, candidate[:, :2])
+            for context, candidate in zip(kdtree_contexts, candidates)
+        ]
+    )
+    kdtree_full_atoms = _assemble_full_atoms(
+        kdtree_base_atoms,
+        candidates,
+        arrays,
+        kdtree_base_context,
+    )
+    np.testing.assert_allclose(
+        kdtree_full_atoms,
+        expected_full_atoms,
+        rtol=1e-12,
+        atol=1e-12,
+    )
+
+    kdtree_preprocess_samples = []
+    kdtree_atom_samples = []
+    kdtree_total_samples = []
+
+    def kdtree_atom_total() -> np.ndarray:
+        proposal_line, _ = _exact_centerline_slice_kdtree(
+            base_context.lane_centerline,
+            candidates[:, :, :2],
+        )
+        proposal_base = replace(
+            base_context,
+            lane_centerline=proposal_line,
+        )
+        proposal_contexts = [
+            _candidate_context(proposal_base, candidate_obstacles[index])
+            for index in range(candidates.shape[0])
+        ]
+        proposal_atoms = np.vstack(
+            [
+                compute_atom_bank_vector(context, candidate[:, :2])
+                for context, candidate in zip(proposal_contexts, candidates)
+            ]
+        )
+        return _assemble_full_atoms(
+            proposal_atoms,
+            candidates,
+            arrays,
+            proposal_base,
+        )
+
+    for _ in range(cpu_warmups):
+        kdtree_atom_total()
+    for _ in range(cpu_repetitions):
+        total_start = time.perf_counter()
+        preprocess_start = time.perf_counter()
+        proposal_line, _ = _exact_centerline_slice_kdtree(
+            base_context.lane_centerline,
+            candidates[:, :, :2],
+        )
+        proposal_base = replace(
+            base_context,
+            lane_centerline=proposal_line,
+        )
+        proposal_contexts = [
+            _candidate_context(proposal_base, candidate_obstacles[index])
+            for index in range(candidates.shape[0])
+        ]
+        kdtree_preprocess_samples.append(
+            (time.perf_counter() - preprocess_start) * 1000.0
+        )
+        atom_start = time.perf_counter()
+        proposal_atoms = np.vstack(
+            [
+                compute_atom_bank_vector(context, candidate[:, :2])
+                for context, candidate in zip(proposal_contexts, candidates)
+            ]
+        )
+        _assemble_full_atoms(
+            proposal_atoms,
+            candidates,
+            arrays,
+            proposal_base,
+        )
+        kdtree_atom_samples.append(
+            (time.perf_counter() - atom_start) * 1000.0
+        )
+        kdtree_total_samples.append(
+            (time.perf_counter() - total_start) * 1000.0
+        )
+
     selection_normalized = np.asarray(
         arrays["selection_normalized_atoms"],
         dtype=np.float64,
@@ -903,6 +1083,18 @@ def _benchmark_snapshot(
         "proposal_exact_centerline_slice_total": {
             "stats": _stats(proposal_total_samples),
             "samples_ms": proposal_total_samples,
+        },
+        "proposal_kdtree_centerline_slice_preprocess": {
+            "stats": _stats(kdtree_preprocess_samples),
+            "samples_ms": kdtree_preprocess_samples,
+        },
+        "proposal_kdtree_centerline_slice_atom_total": {
+            "stats": _stats(kdtree_atom_samples),
+            "samples_ms": kdtree_atom_samples,
+        },
+        "proposal_kdtree_centerline_slice_total": {
+            "stats": _stats(kdtree_total_samples),
+            "samples_ms": kdtree_total_samples,
         },
     }
     for name, samples in profile_samples.items():
@@ -1040,6 +1232,9 @@ def _benchmark_snapshot(
             "proposal_full_atom_max_abs_error": float(
                 np.max(np.abs(sliced_full_atoms - expected_full_atoms))
             ),
+            "proposal_kdtree_full_atom_max_abs_error": float(
+                np.max(np.abs(kdtree_full_atoms - expected_full_atoms))
+            ),
             "affine_selected_index": replay_index,
             "candidate_generation_repeat_max_abs_error": (
                 generation_max_abs_error
@@ -1047,6 +1242,7 @@ def _benchmark_snapshot(
             "reward_repeat_max_abs_error": reward_max_abs_error,
         },
         "exact_centerline_slice": slice_stats,
+        "exact_kdtree_centerline_slice": kdtree_slice_stats,
         "phases": phases,
     }
 
