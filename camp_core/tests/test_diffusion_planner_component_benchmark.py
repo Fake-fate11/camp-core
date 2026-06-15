@@ -9,6 +9,7 @@ import pytest
 from camp_core.atoms.driver_atoms import DriverAtomContext, compute_atom_bank_vector
 from camp_core.integrations.diffusion_planner import CAMPSelectionResult
 from scripts.integrations.benchmark_diffusion_planner_camp_components import (
+    _max_abs_numeric_difference,
     _profile_atom_bank_vector,
 )
 from scripts.integrations.run_diffusion_planner_camp_replay import (
@@ -68,6 +69,14 @@ def test_parse_microbenchmark_steps_rejects_invalid_lists() -> None:
         _parse_step_list("-1,2")
     with pytest.raises(Exception, match="unique"):
         _parse_step_list("2,2")
+
+
+def test_numeric_difference_handles_optional_reward_fields() -> None:
+    first = [{"score": 1.0, "optional": None, "nested": [2.0, True]}]
+    second = [{"score": 1.25, "optional": None, "nested": [2.0, True]}]
+    assert _max_abs_numeric_difference(first, second) == pytest.approx(0.25)
+    with pytest.raises(AssertionError, match="Optional values differ"):
+        _max_abs_numeric_difference(None, 0.0)
 
 
 def test_write_microbenchmark_snapshot_records_current_tick_inputs(tmp_path) -> None:

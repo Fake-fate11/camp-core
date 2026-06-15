@@ -101,6 +101,41 @@ def _stats(samples: list[float]) -> dict[str, float]:
     }
 
 
+def _max_abs_numeric_difference(first: Any, second: Any) -> float:
+    if first is None or second is None:
+        if first is not second:
+            raise AssertionError(f"Optional values differ: {first!r} != {second!r}")
+        return 0.0
+    if isinstance(first, dict) and isinstance(second, dict):
+        if first.keys() != second.keys():
+            raise AssertionError("Dictionary keys differ.")
+        return max(
+            (
+                _max_abs_numeric_difference(first[key], second[key])
+                for key in first
+            ),
+            default=0.0,
+        )
+    if isinstance(first, (list, tuple)) and isinstance(second, (list, tuple)):
+        if len(first) != len(second):
+            raise AssertionError("Sequence lengths differ.")
+        return max(
+            (
+                _max_abs_numeric_difference(left, right)
+                for left, right in zip(first, second)
+            ),
+            default=0.0,
+        )
+    if isinstance(first, (int, float, np.number, bool)) and isinstance(
+        second,
+        (int, float, np.number, bool),
+    ):
+        return abs(float(first) - float(second))
+    if first != second:
+        raise AssertionError(f"Values differ: {first!r} != {second!r}")
+    return 0.0
+
+
 def _load_snapshot(path: Path) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     with np.load(path, allow_pickle=False) as payload:
         arrays = {key: payload[key] for key in payload.files if key != "metadata_json"}
@@ -661,13 +696,7 @@ def _benchmark_snapshot(
 
     near_a = [asdict(value) for value in near_reward()]
     near_b = [asdict(value) for value in near_reward()]
-    reward_max_abs_error = 0.0
-    for first, second in zip(near_a, near_b):
-        for key in first:
-            reward_max_abs_error = max(
-                reward_max_abs_error,
-                abs(float(first[key]) - float(second[key])),
-            )
+    reward_max_abs_error = _max_abs_numeric_difference(near_a, near_b)
     near_reward_samples = _time_gpu(
         near_reward,
         torch=torch,
