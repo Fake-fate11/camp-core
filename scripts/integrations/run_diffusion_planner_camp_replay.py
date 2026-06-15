@@ -46,6 +46,17 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 PERFECT_TRACKER_OPEN_LOOP_HORIZONS = (3, 5, 10)
 
 
+def _parse_step_list(value: str) -> tuple[int, ...]:
+    steps = tuple(int(part.strip()) for part in value.split(",") if part.strip())
+    if not steps:
+        raise argparse.ArgumentTypeError("step list must not be empty")
+    if any(step < 0 for step in steps):
+        raise argparse.ArgumentTypeError("snapshot steps must be nonnegative")
+    if len(set(steps)) != len(steps):
+        raise argparse.ArgumentTypeError("snapshot steps must be unique")
+    return steps
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
@@ -300,6 +311,21 @@ def parse_args() -> argparse.Namespace:
             "original trajectories after this many fixed steps."
         ),
     )
+    parser.add_argument(
+        "--camp_microbenchmark_snapshot_dir",
+        type=Path,
+        default=None,
+        help=(
+            "Default-off diagnostic export of current-tick DP/CAMP inputs. "
+            "Snapshot runs are not latency evidence."
+        ),
+    )
+    parser.add_argument(
+        "--camp_microbenchmark_snapshot_steps",
+        type=_parse_step_list,
+        default=(10, 20, 30, 39),
+        help="Comma-separated completed selection steps to export.",
+    )
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     return parser.parse_args()
 
@@ -433,6 +459,22 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--near_miss_threshold_m must be non-negative.")
     if args.reward_config is not None and not args.reward_config.is_file():
         raise FileNotFoundError(f"Missing reward config: {args.reward_config}")
+    if (
+        args.camp_microbenchmark_snapshot_dir is not None
+        and args.camp_selector_mode == "top1"
+    ):
+        raise ValueError(
+            "CAMP microbenchmark snapshots require a CAMP selector mode."
+        )
+    if (
+        args.steps is not None
+        and args.camp_microbenchmark_snapshot_dir is not None
+        and max(args.camp_microbenchmark_snapshot_steps) >= args.steps
+    ):
+        raise ValueError(
+            "Every CAMP microbenchmark snapshot step must be smaller than "
+            "--steps."
+        )
 
 
 def _build_selector(args: argparse.Namespace) -> CAMPSelector | None:
@@ -1386,6 +1428,170 @@ def _install_top1_observer(
     return original_predict, metric_records, evaluation_records
 
 
+def _write_microbenchmark_snapshot(
+    *,
+    output_dir: Path,
+    selection_step: int,
+    normalized_inputs: dict[str, Any],
+    tensor_converter_module: Any,
+    scene: Any,
+    map_cache: Any,
+    model_args: Any,
+    candidates: np.ndarray,
+    neighbor_predictions: np.ndarray,
+    candidate_obstacles: np.ndarray | None,
+    context: Any,
+    selector: CAMPSelector,
+    selection: CAMPSelectionResult,
+    scene_features: np.ndarray,
+    external_feasible_mask: np.ndarray | None,
+    external_infeasibility_reasons: Any,
+    candidate_progress: np.ndarray | None,
+    candidate_planned_red_light_cost: np.ndarray | None,
+    candidate_full_horizon_planned_red_light_cost: np.ndarray | None,
+    candidate_red_stopping_margin_cost: np.ndarray,
+    candidate_dp_prior_jerk_excess_cost: np.ndarray,
+    red_route_points: np.ndarray,
+    perfect_tracker_current_speed_mps: float,
+    perfect_tracker_current_longitudinal_acceleration_mps2: float,
+    perfect_tracker_current_acceleration_ego_xy: np.ndarray,
+    num_candidates: int,
+    noise_scale: float,
+    reference_blend_steps: int | None,
+    reward_horizon_steps: int,
+    outcome_horizon_steps: int,
+    spawn_config: Any,
+) -> Path:
+    """Write a default-off current-tick snapshot for independent profiling."""
+    arrays: dict[str, np.ndarray] = {
+        "candidates": np.asarray(candidates),
+        "neighbor_predictions": np.asarray(neighbor_predictions),
+        "candidate_obstacles": (
+            np.asarray(candidate_obstacles)
+            if candidate_obstacles is not None
+            else np.empty((num_candidates, 0, candidates.shape[1], 2))
+        ),
+        "lane_centerline": np.asarray(context.lane_centerline),
+        "static_obstacles": (
+            np.asarray(context.static_obstacles)
+            if context.static_obstacles is not None
+            else np.empty((0, 2))
+        ),
+        "atom_scales": np.asarray(selector.atom_scales),
+        "selection_atoms": np.asarray(selection.atoms),
+        "selection_normalized_atoms": np.asarray(selection.normalized_atoms),
+        "selection_weights": np.asarray(selection.selection_weights),
+        "selection_scores": np.asarray(selection.selection_scores),
+        "feasible_mask": np.asarray(selection.feasible_mask),
+        "scene_features": np.asarray(scene_features),
+        "red_route_points": np.asarray(red_route_points),
+        "current_acceleration_ego_xy": np.asarray(
+            perfect_tracker_current_acceleration_ego_xy
+        ),
+        "candidate_red_stopping_margin_cost": np.asarray(
+            candidate_red_stopping_margin_cost
+        ),
+        "candidate_dp_prior_jerk_excess_cost": np.asarray(
+            candidate_dp_prior_jerk_excess_cost
+        ),
+    }
+    optional_arrays = {
+        "external_feasible_mask": external_feasible_mask,
+        "candidate_progress": candidate_progress,
+        "candidate_planned_red_light_cost": candidate_planned_red_light_cost,
+        "candidate_full_horizon_planned_red_light_cost": (
+            candidate_full_horizon_planned_red_light_cost
+        ),
+    }
+    for key, value in optional_arrays.items():
+        if value is not None:
+            arrays[key] = np.asarray(value)
+
+    model_input_keys = []
+    for key, value in normalized_inputs.items():
+        if hasattr(value, "detach") and hasattr(value, "cpu"):
+            tensor = value.detach().cpu()
+            try:
+                array = tensor.numpy()
+            except TypeError:
+                tensor = tensor.float()
+                array = tensor.numpy()
+            arrays[f"model_input__{key}"] = array
+            model_input_keys.append(key)
+        elif isinstance(value, np.ndarray):
+            arrays[f"model_input__{key}"] = value
+            model_input_keys.append(key)
+
+    reward_input_keys = []
+    if map_cache is not None:
+        reward_inputs = tensor_converter_module.dump_step_npz(
+            scene,
+            map_cache,
+            future_len=int(model_args.future_len),
+            predicted_neighbor_num=int(model_args.predicted_neighbor_num),
+        )
+        for key, value in reward_inputs.items():
+            if isinstance(value, np.ndarray):
+                arrays[f"reward_input__{key}"] = value
+                reward_input_keys.append(key)
+
+    metadata = {
+        "format_version": 1,
+        "selection_step": int(selection_step),
+        "num_candidates": int(num_candidates),
+        "candidate_horizon_steps": int(candidates.shape[1]),
+        "candidate_dimension": int(candidates.shape[2]),
+        "candidate_noise_scale": float(noise_scale),
+        "candidate_reference_blend_steps": reference_blend_steps,
+        "candidate_generation_seed": int(1729 + selection_step),
+        "reward_horizon_steps": int(reward_horizon_steps),
+        "outcome_horizon_steps": int(outcome_horizon_steps),
+        "dt": float(context.dt),
+        "speed_limit": context.speed_limit,
+        "desired_speed": context.desired_speed,
+        "lane_half_width": float(context.lane_half_width),
+        "lane_corridor_buffer": float(context.lane_corridor_buffer),
+        "safety_radius": float(context.safety_radius),
+        "clearance_soft_margin": float(context.clearance_soft_margin),
+        "map_source": str(context.map_source),
+        "atom_clip": float(selector.atom_clip),
+        "fallback_mode": str(selector.fallback_mode),
+        "used_fallback": bool(selection.used_fallback),
+        "selected_index": int(selection.selected_index),
+        "infeasibility_reasons": [
+            list(reasons) for reasons in selection.infeasibility_reasons
+        ],
+        "external_infeasibility_reasons": (
+            None
+            if external_infeasibility_reasons is None
+            else [
+                list(reasons) for reasons in external_infeasibility_reasons
+            ]
+        ),
+        "current_speed_mps": float(perfect_tracker_current_speed_mps),
+        "current_longitudinal_acceleration_mps2": float(
+            perfect_tracker_current_longitudinal_acceleration_mps2
+        ),
+        "perfect_tracker_open_loop_horizons": list(
+            PERFECT_TRACKER_OPEN_LOOP_HORIZONS
+        ),
+        "sg_smooth_enabled": bool(
+            getattr(spawn_config, "sg_smooth_enabled", False)
+        ),
+        "sg_filter_window": int(getattr(spawn_config, "sg_filter_window", 0)),
+        "sg_filter_order": int(getattr(spawn_config, "sg_filter_order", 0)),
+        "model_input_keys": sorted(model_input_keys),
+        "reward_input_keys": sorted(reward_input_keys),
+        "capture_has_no_selection_effect": True,
+    }
+    arrays["metadata_json"] = np.asarray(json.dumps(metadata, sort_keys=True))
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"camp_microbenchmark_step_{selection_step:04d}.npz"
+    np.savez_compressed(output_path, **arrays)
+    return output_path
+
+
 def _install_camp_predictor(
     replay_module: Any,
     tensor_converter_module: Any,
@@ -1423,6 +1629,8 @@ def _install_camp_predictor(
     reward_config: Any,
     spawn_config: Any,
     route_centerline: np.ndarray,
+    microbenchmark_snapshot_dir: Path | None,
+    microbenchmark_snapshot_steps: tuple[int, ...],
 ) -> tuple[
     Any,
     list[dict[str, Any]],
@@ -1874,6 +2082,57 @@ def _install_camp_predictor(
             "latency_ms_camp_scoring": selection.timings_ms["scoring"],
         }
 
+        selection_step = len(records)
+        if (
+            microbenchmark_snapshot_dir is not None
+            and selection_step in microbenchmark_snapshot_steps
+        ):
+            _write_microbenchmark_snapshot(
+                output_dir=microbenchmark_snapshot_dir,
+                selection_step=selection_step,
+                normalized_inputs=inputs,
+                tensor_converter_module=tensor_converter_module,
+                scene=scene,
+                map_cache=map_cache,
+                model_args=model_args,
+                candidates=candidates,
+                neighbor_predictions=neighbor_predictions,
+                candidate_obstacles=obstacles,
+                context=context,
+                selector=selector,
+                selection=selection,
+                scene_features=scene_features,
+                external_feasible_mask=external_feasible_mask,
+                external_infeasibility_reasons=external_infeasibility_reasons,
+                candidate_progress=candidate_progress,
+                candidate_planned_red_light_cost=candidate_planned_red_light_cost,
+                candidate_full_horizon_planned_red_light_cost=(
+                    candidate_full_horizon_planned_red_light_cost
+                ),
+                candidate_red_stopping_margin_cost=(
+                    candidate_red_stopping_margin_cost
+                ),
+                candidate_dp_prior_jerk_excess_cost=(
+                    candidate_dp_prior_jerk_excess_cost
+                ),
+                red_route_points=red_route_points,
+                perfect_tracker_current_speed_mps=(
+                    perfect_tracker_current_speed_mps
+                ),
+                perfect_tracker_current_longitudinal_acceleration_mps2=(
+                    perfect_tracker_current_longitudinal_acceleration_mps2
+                ),
+                perfect_tracker_current_acceleration_ego_xy=(
+                    perfect_tracker_current_acceleration_ego_xy
+                ),
+                num_candidates=num_candidates,
+                noise_scale=noise_scale,
+                reference_blend_steps=reference_blend_steps,
+                reward_horizon_steps=reward_horizon_steps,
+                outcome_horizon_steps=outcome_horizon_steps,
+                spawn_config=spawn_config,
+            )
+
         selected_trajectory = candidates[selected_index]
         predictions[ego_id] = selected_trajectory
         state = _evaluation_state(scene, ego_id)
@@ -2256,6 +2515,12 @@ def main() -> None:
             reward_config=reward_config,
             spawn_config=config,
             route_centerline=route_centerline,
+            microbenchmark_snapshot_dir=(
+                args.camp_microbenchmark_snapshot_dir
+            ),
+            microbenchmark_snapshot_steps=(
+                args.camp_microbenchmark_snapshot_steps
+            ),
         )
     else:
         (
@@ -2435,6 +2700,11 @@ def main() -> None:
         if records
         else None
     )
+    microbenchmark_snapshot_paths = (
+        sorted(args.camp_microbenchmark_snapshot_dir.glob("*.npz"))
+        if args.camp_microbenchmark_snapshot_dir is not None
+        else []
+    )
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
@@ -2443,6 +2713,20 @@ def main() -> None:
         "num_candidates": effective_num_candidates,
         "candidate_noise_scale": effective_noise_scale,
         "candidate_reference_blend": effective_reference_blend,
+        "camp_microbenchmark_snapshots": (
+            {
+                "enabled": True,
+                "selection_effect": False,
+                "latency_evidence": False,
+                "directory": str(args.camp_microbenchmark_snapshot_dir),
+                "requested_steps": list(
+                    args.camp_microbenchmark_snapshot_steps
+                ),
+                "files": [str(path) for path in microbenchmark_snapshot_paths],
+            }
+            if args.camp_microbenchmark_snapshot_dir is not None
+            else None
+        ),
         "camp_lane_corridor_buffer": effective_lane_buffer,
         "camp_feasibility_source": effective_feasibility_source,
         "camp_min_progress_ratio": effective_min_progress_ratio,

@@ -32,6 +32,8 @@ Thumbs.db
 trajdata_cache/
 nusc_cache_trajdata/
 .unified_data_cache/
+/.local-sync-backup/
+/pytest-*/
 
 # CAMP generated data, checkpoints, and experiment outputs
 /data/
