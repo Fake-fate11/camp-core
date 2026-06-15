@@ -9,6 +9,7 @@ import pytest
 from camp_core.atoms.driver_atoms import DriverAtomContext, compute_atom_bank_vector
 from camp_core.integrations.diffusion_planner import CAMPSelectionResult
 from scripts.integrations.benchmark_diffusion_planner_camp_components import (
+    _exact_centerline_slice,
     _max_abs_numeric_difference,
     _profile_atom_bank_vector,
 )
@@ -77,6 +78,36 @@ def test_numeric_difference_handles_optional_reward_fields() -> None:
     assert _max_abs_numeric_difference(first, second) == pytest.approx(0.25)
     with pytest.raises(AssertionError, match="Optional values differ"):
         _max_abs_numeric_difference(None, 0.0)
+
+
+def test_exact_centerline_slice_preserves_atom_projection() -> None:
+    centerline = np.column_stack(
+        (
+            np.linspace(0.0, 100.0, 201),
+            np.zeros(201),
+        )
+    )
+    trajectory = np.column_stack(
+        (
+            np.linspace(0.0, 8.0, 80),
+            np.full(80, 0.25),
+        )
+    )
+    sliced, stats = _exact_centerline_slice(
+        centerline,
+        trajectory[np.newaxis],
+    )
+    assert stats["fail_closed"] is False
+    assert stats["retained_segment_count"] < stats["original_segment_count"]
+
+    full_context = DriverAtomContext(dt=0.1, lane_centerline=centerline)
+    sliced_context = DriverAtomContext(dt=0.1, lane_centerline=sliced)
+    np.testing.assert_allclose(
+        compute_atom_bank_vector(sliced_context, trajectory),
+        compute_atom_bank_vector(full_context, trajectory),
+        rtol=1e-12,
+        atol=1e-12,
+    )
 
 
 def test_write_microbenchmark_snapshot_records_current_tick_inputs(tmp_path) -> None:

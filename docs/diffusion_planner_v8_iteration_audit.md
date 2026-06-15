@@ -3474,3 +3474,95 @@ nonnegative constants and the score remains affine in `w`; the simplex,
 CVaR, and L2 master therefore remain convex. This diagnostic and any cache or
 preprocessing optimization are not classical Benders decomposition, and no
 global convexity in trajectory coordinates is claimed.
+
+### Component microbenchmark result
+
+Commits `f9baa9f3f9ccde4555338e66a67463b561524e09` and
+`9e9adaa` add the default-off snapshot exporter and independent component
+replay benchmark. Local verification passed with `172 passed, 5 skipped`;
+AutoDL verification passed with `177 passed`.
+
+The two predeclared 40-step capture runs produced eight current-tick snapshots
+under:
+
+```text
+/root/autodl-tmp/camp_dp_component_microbenchmark_f9baa9f
+```
+
+The capture runs are not latency evidence. The separate snapshot replay used
+the predeclared 20/100 CPU and 10/30 synchronized GPU protocol.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `component_microbenchmark.json` | `124714b5475c7f33b5578ff6c7b2fb8e13fa6fb89ff0651579a107613822e918` |
+| `component_microbenchmark.md` | `75da7797eab87b0942b017ae940cde1fd4f440cd56bf3febac374d18ffe3b409` |
+
+All eight snapshots passed:
+
+- raw base atom equality at `rtol=1e-12`, `atol=1e-12`;
+- profiled implementation equality at the same tolerance;
+- affine selection-score and selected-index equality;
+- fixed-seed candidate generation repeat max error `0`;
+- reward repeat max error `0`.
+
+The attributable timing result is:
+
+| Phase | Median of snapshot medians | p95 of snapshot p95 |
+| --- | ---: | ---: |
+| DP candidate generation | 55.796 ms | 63.294 ms |
+| DP near-horizon reward | 9.451 ms | 13.134 ms |
+| Current CAMP atom total | 11.443 ms | 16.111 ms |
+| Centerline projection inside atoms | 10.317 ms | 13.331 ms |
+| Centerline segment setup | 0.180 ms | 0.211 ms |
+| Extra lateral atom | 0.306 ms | 0.363 ms |
+| CAMP affine scoring | 0.003 ms | 0.003 ms |
+| PerfectTracker open-loop audit | 0.969 ms | 1.003 ms |
+| Red stopping-margin audit | 0.581 ms | 1.464 ms |
+
+The centerline has 343 to 362 points while each tick contains 640 candidate
+points. Centerline projection accounts for almost the entire atom cost.
+Caching only segment setup cannot meet the 3 ms implementation gate because
+that setup costs about 0.21 ms p95. The rejected all-candidate batch
+implementation also remains rejected.
+
+### Predeclared exact centerline-slice proposal
+
+The next offline-only proposal keeps the original per-candidate projection
+formula but computes an exact conservative contiguous centerline slice once per
+tick.
+
+For every candidate point `p`, exact distances to anchor segments spaced every
+16 segments provide an upper bound `u(p)` on the nearest-segment distance. For
+each centerline segment `j`, the Euclidean distance from `p` to the segment
+axis-aligned bounding box is a lower bound `l(p,j)` on the true point-to-segment
+distance. Segment `j` is potentially nearest only if
+
+```text
+l(p,j)^2 <= u(p)^2 + numeric_tolerance
+```
+
+for at least one candidate point. The retained polyline is the contiguous slice
+from the minimum to maximum potentially-nearest segment index, inclusive.
+Using a contiguous slice prevents artificial connections between disjoint
+segments.
+
+This pruning is exact: every true nearest segment has true distance no greater
+than the anchor upper bound, while its AABB lower bound is no greater than its
+true distance, so it cannot be removed. The implementation uses 64-segment
+chunks for the lower-bound screen; at K=8, T=80 this keeps the largest temporary
+matrix below 640 by 64 doubles, plus the anchor workspace. Expected temporary
+memory is below 1 MB.
+
+The proposal may enter online code only if the snapshot benchmark proves:
+
+- raw 9-atom and full 14-atom equality at `rtol=1e-12`, `atol=1e-12`;
+- normalized atoms, feasibility, scores, fallback, and selected index unchanged;
+- preprocessing plus original projection on the retained slice saves at least
+  3 ms at p95 relative to the current atom path;
+- the retained slice is deterministic and fail-closed to the full centerline
+  on invalid or degenerate input.
+
+The slice depends only on the finite current-tick candidates and map
+centerline. It does not change the atom definition, candidate set, weights,
+master constraints, or tie-break. Therefore the CAMP score remains affine in
+`w` and the existing simplex/CVaR/L2 master remains convex.

@@ -175,6 +175,179 @@ def _candidate_context(
     return replace(base_context, dynamic_obstacles=dynamic)
 
 
+def _exact_centerline_slice(
+    centerline: np.ndarray,
+    candidate_points: np.ndarray,
+    *,
+    anchor_stride: int = 16,
+    segment_chunk_size: int = 64,
+) -> tuple[np.ndarray, dict[str, int | float | bool]]:
+    """Return a conservative contiguous segment slice.
+
+    Anchor segment distances are per-point upper bounds. Point-to-segment AABB
+    distances are lower bounds, so a segment whose lower bound exceeds the
+    upper bound for every point cannot be the nearest segment.
+    """
+    line = np.asarray(centerline, dtype=np.float64)
+    points = np.asarray(candidate_points, dtype=np.float64).reshape(-1, 2)
+    if (
+        line.ndim != 2
+        or line.shape[0] < 2
+        or line.shape[1] < 2
+        or points.size == 0
+        or not np.all(np.isfinite(line[:, :2]))
+        or not np.all(np.isfinite(points))
+        or anchor_stride < 1
+        or segment_chunk_size < 1
+    ):
+        return line, {
+            "fail_closed": True,
+            "segment_start": 0,
+            "segment_end": max(int(line.shape[0]) - 2, 0),
+            "original_segment_count": max(int(line.shape[0]) - 1, 0),
+            "retained_segment_count": max(int(line.shape[0]) - 1, 0),
+            "retained_fraction": 1.0,
+        }
+
+    starts = line[:-1, :2]
+    ends = line[1:, :2]
+    segment_vectors = ends - starts
+    segment_lengths = np.maximum(
+        np.linalg.norm(segment_vectors, axis=1),
+        1e-6,
+    )
+    segment_directions = segment_vectors / segment_lengths[:, np.newaxis]
+    segment_count = starts.shape[0]
+
+    anchor_indices = np.arange(0, segment_count, anchor_stride, dtype=np.int64)
+    if anchor_indices[-1] != segment_count - 1:
+        anchor_indices = np.concatenate(
+            (anchor_indices, np.asarray([segment_count - 1], dtype=np.int64))
+        )
+    anchor_starts = starts[anchor_indices]
+    anchor_directions = segment_directions[anchor_indices]
+    anchor_lengths = segment_lengths[anchor_indices]
+    relative = points[:, np.newaxis, :] - anchor_starts[np.newaxis, :, :]
+    along = np.einsum("pad,ad->pa", relative, anchor_directions)
+    along = np.clip(along, 0.0, anchor_lengths[np.newaxis, :])
+    projections = (
+        anchor_starts[np.newaxis, :, :]
+        + anchor_directions[np.newaxis, :, :] * along[:, :, np.newaxis]
+    )
+    upper_distance_sq = np.min(
+        np.sum((points[:, np.newaxis, :] - projections) ** 2, axis=2),
+        axis=1,
+    )
+    tolerance = np.maximum(1e-12, upper_distance_sq * 1e-12)
+
+    potentially_nearest = np.zeros(segment_count, dtype=bool)
+    for chunk_start in range(0, segment_count, segment_chunk_size):
+        chunk_end = min(chunk_start + segment_chunk_size, segment_count)
+        box_min = np.minimum(
+            starts[chunk_start:chunk_end],
+            ends[chunk_start:chunk_end],
+        )
+        box_max = np.maximum(
+            starts[chunk_start:chunk_end],
+            ends[chunk_start:chunk_end],
+        )
+        below = np.maximum(
+            box_min[np.newaxis, :, :] - points[:, np.newaxis, :],
+            0.0,
+        )
+        above = np.maximum(
+            points[:, np.newaxis, :] - box_max[np.newaxis, :, :],
+            0.0,
+        )
+        lower_distance_sq = np.sum(np.maximum(below, above) ** 2, axis=2)
+        potentially_nearest[chunk_start:chunk_end] = np.any(
+            lower_distance_sq
+            <= upper_distance_sq[:, np.newaxis] + tolerance[:, np.newaxis],
+            axis=0,
+        )
+
+    retained_indices = np.flatnonzero(potentially_nearest)
+    if retained_indices.size == 0:
+        return line, {
+            "fail_closed": True,
+            "segment_start": 0,
+            "segment_end": segment_count - 1,
+            "original_segment_count": segment_count,
+            "retained_segment_count": segment_count,
+            "retained_fraction": 1.0,
+        }
+    segment_start = int(retained_indices[0])
+    segment_end = int(retained_indices[-1])
+    retained_segment_count = segment_end - segment_start + 1
+    return line[segment_start : segment_end + 2], {
+        "fail_closed": False,
+        "segment_start": segment_start,
+        "segment_end": segment_end,
+        "original_segment_count": segment_count,
+        "retained_segment_count": retained_segment_count,
+        "retained_fraction": retained_segment_count / segment_count,
+    }
+
+
+def _assemble_full_atoms(
+    base_atoms: np.ndarray,
+    candidates: np.ndarray,
+    arrays: dict[str, np.ndarray],
+    context: DriverAtomContext,
+) -> np.ndarray:
+    expected_dimension = int(np.asarray(arrays["selection_atoms"]).shape[1])
+    if expected_dimension == base_atoms.shape[1]:
+        return base_atoms
+    progress = np.asarray(
+        arrays.get(
+            "candidate_progress",
+            np.linalg.norm(np.diff(candidates[:, :, :2], axis=1), axis=-1).sum(
+                axis=1
+            ),
+        ),
+        dtype=np.float64,
+    )
+    feasible = np.asarray(arrays["feasible_mask"], dtype=bool)
+    reference_progress = float(
+        np.max(progress[feasible]) if feasible.any() else np.max(progress)
+    )
+    extra_atoms = [
+        np.maximum(reference_progress - progress, 0.0).reshape(-1, 1)
+    ]
+    if expected_dimension >= 12:
+        lateral = np.asarray(
+            [
+                _trajectory_comfort(candidate, context.dt)[1]
+                for candidate in candidates
+            ],
+            dtype=np.float64,
+        )
+        extra_atoms.extend(
+            (
+                np.asarray(
+                    arrays["candidate_planned_red_light_cost"],
+                    dtype=np.float64,
+                ).reshape(-1, 1),
+                lateral.reshape(-1, 1),
+            )
+        )
+    if expected_dimension >= 13:
+        extra_atoms.append(
+            np.asarray(
+                arrays["candidate_red_stopping_margin_cost"],
+                dtype=np.float64,
+            ).reshape(-1, 1)
+        )
+    if expected_dimension >= 14:
+        extra_atoms.append(
+            np.asarray(
+                arrays["candidate_dp_prior_jerk_excess_cost"],
+                dtype=np.float64,
+            ).reshape(-1, 1)
+        )
+    return np.concatenate((base_atoms, *extra_atoms), axis=1)
+
+
 def _profile_atom_bank_vector(
     context: DriverAtomContext,
     trajectory: np.ndarray,
@@ -457,6 +630,19 @@ def _benchmark_snapshot(
         rtol=1e-12,
         atol=1e-12,
     )
+    expected_full_atoms = np.asarray(arrays["selection_atoms"], dtype=np.float64)
+    official_full_atoms = _assemble_full_atoms(
+        official_base_atoms,
+        candidates,
+        arrays,
+        base_context,
+    )
+    np.testing.assert_allclose(
+        official_full_atoms,
+        expected_full_atoms,
+        rtol=1e-12,
+        atol=1e-12,
+    )
 
     def atom_total() -> np.ndarray:
         base_atoms = np.vstack(
@@ -465,14 +651,12 @@ def _benchmark_snapshot(
                 for context, candidate in zip(contexts, candidates)
             ]
         )
-        lateral = np.asarray(
-            [
-                _trajectory_comfort(candidate, base_context.dt)[1]
-                for candidate in candidates
-            ],
-            dtype=np.float64,
+        return _assemble_full_atoms(
+            base_atoms,
+            candidates,
+            arrays,
+            base_context,
         )
-        return np.concatenate((base_atoms, lateral.reshape(-1, 1)), axis=1)
 
     atom_total_samples = _time_cpu(
         atom_total,
@@ -497,6 +681,107 @@ def _benchmark_snapshot(
         phase_totals["extra_lateral_atom"] = time.perf_counter() - start
         for name, seconds in phase_totals.items():
             profile_samples.setdefault(name, []).append(seconds * 1000.0)
+
+    sliced_centerline, slice_stats = _exact_centerline_slice(
+        base_context.lane_centerline,
+        candidates[:, :, :2],
+    )
+    sliced_base_context = replace(
+        base_context,
+        lane_centerline=sliced_centerline,
+    )
+    sliced_contexts = [
+        _candidate_context(sliced_base_context, candidate_obstacles[index])
+        for index in range(candidates.shape[0])
+    ]
+    sliced_base_atoms = np.vstack(
+        [
+            compute_atom_bank_vector(context, candidate[:, :2])
+            for context, candidate in zip(sliced_contexts, candidates)
+        ]
+    )
+    sliced_full_atoms = _assemble_full_atoms(
+        sliced_base_atoms,
+        candidates,
+        arrays,
+        sliced_base_context,
+    )
+    np.testing.assert_allclose(
+        sliced_full_atoms,
+        expected_full_atoms,
+        rtol=1e-12,
+        atol=1e-12,
+    )
+
+    proposal_preprocess_samples = []
+    proposal_atom_samples = []
+    proposal_total_samples = []
+
+    def proposed_atom_total() -> np.ndarray:
+        proposal_line, _ = _exact_centerline_slice(
+            base_context.lane_centerline,
+            candidates[:, :, :2],
+        )
+        proposal_base = replace(
+            base_context,
+            lane_centerline=proposal_line,
+        )
+        proposal_contexts = [
+            _candidate_context(proposal_base, candidate_obstacles[index])
+            for index in range(candidates.shape[0])
+        ]
+        proposal_atoms = np.vstack(
+            [
+                compute_atom_bank_vector(context, candidate[:, :2])
+                for context, candidate in zip(proposal_contexts, candidates)
+            ]
+        )
+        return _assemble_full_atoms(
+            proposal_atoms,
+            candidates,
+            arrays,
+            proposal_base,
+        )
+
+    for _ in range(cpu_warmups):
+        proposed_atom_total()
+    for _ in range(cpu_repetitions):
+        total_start = time.perf_counter()
+        preprocess_start = time.perf_counter()
+        proposal_line, _ = _exact_centerline_slice(
+            base_context.lane_centerline,
+            candidates[:, :, :2],
+        )
+        proposal_base = replace(
+            base_context,
+            lane_centerline=proposal_line,
+        )
+        proposal_contexts = [
+            _candidate_context(proposal_base, candidate_obstacles[index])
+            for index in range(candidates.shape[0])
+        ]
+        proposal_preprocess_samples.append(
+            (time.perf_counter() - preprocess_start) * 1000.0
+        )
+        atom_start = time.perf_counter()
+        proposal_atoms = np.vstack(
+            [
+                compute_atom_bank_vector(context, candidate[:, :2])
+                for context, candidate in zip(proposal_contexts, candidates)
+            ]
+        )
+        _assemble_full_atoms(
+            proposal_atoms,
+            candidates,
+            arrays,
+            proposal_base,
+        )
+        proposal_atom_samples.append(
+            (time.perf_counter() - atom_start) * 1000.0
+        )
+        proposal_total_samples.append(
+            (time.perf_counter() - total_start) * 1000.0
+        )
 
     selection_normalized = np.asarray(
         arrays["selection_normalized_atoms"],
@@ -606,6 +891,18 @@ def _benchmark_snapshot(
         "camp_affine_scoring": {
             "stats": _stats(affine_samples),
             "samples_ms": affine_samples,
+        },
+        "proposal_exact_centerline_slice_preprocess": {
+            "stats": _stats(proposal_preprocess_samples),
+            "samples_ms": proposal_preprocess_samples,
+        },
+        "proposal_exact_centerline_slice_atom_total": {
+            "stats": _stats(proposal_atom_samples),
+            "samples_ms": proposal_atom_samples,
+        },
+        "proposal_exact_centerline_slice_total": {
+            "stats": _stats(proposal_total_samples),
+            "samples_ms": proposal_total_samples,
         },
     }
     for name, samples in profile_samples.items():
@@ -737,12 +1034,19 @@ def _benchmark_snapshot(
             "profiled_vs_official_base_atom_max_abs_error": float(
                 np.max(np.abs(profiled_base_atoms_array - official_base_atoms))
             ),
+            "official_full_atom_max_abs_error": float(
+                np.max(np.abs(official_full_atoms - expected_full_atoms))
+            ),
+            "proposal_full_atom_max_abs_error": float(
+                np.max(np.abs(sliced_full_atoms - expected_full_atoms))
+            ),
             "affine_selected_index": replay_index,
             "candidate_generation_repeat_max_abs_error": (
                 generation_max_abs_error
             ),
             "reward_repeat_max_abs_error": reward_max_abs_error,
         },
+        "exact_centerline_slice": slice_stats,
         "phases": phases,
     }
 
