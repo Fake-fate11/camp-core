@@ -4218,3 +4218,52 @@ a constant for each finite candidate, so `w^T A_k` remains affine in `w` and
 the finite-maximum, simplex, CVaR, and L2 master remains convex. No outcome is
 available to online inference, and no convexity claim is made in trajectory
 coordinates.
+
+### Sample59 rollout-to-outcome result
+
+The predeclared collection completed 12/12 runs with exit status `0`: 2,400
+records, 19,200 candidates, and 484 fallback records. Candidate-outcome
+logging preserved the accepted Static chain exactly. The selected index,
+atoms, feasibility, weights, reasons, fallback state, and all four closed-loop
+log streams had zero differences against the accepted sample59 subset.
+
+| Target and feature | Feasible candidate Pearson | Feasible Top-1-gap Pearson | Feasible pairwise agreement | Oracle match |
+| --- | ---: | ---: | ---: | ---: |
+| Jerk, existing `dp_prior_jerk_excess` | 0.2053 | 0.8780 | 1.0000 | 0.0809 |
+| Jerk, rollout H3 | 0.2406 | 0.0231 | 0.5498 | 0.2495 |
+| Jerk, rollout H5 | 0.2511 | 0.0224 | 0.5507 | 0.2469 |
+| Jerk, rollout H10 | 0.2590 | 0.0481 | 0.5532 | 0.2495 |
+| Lateral, existing horizon feature | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| Lateral, rollout H3 | 0.6926 | 0.3846 | 0.6640 | 0.3826 |
+| Lateral, rollout H5 | 0.7300 | 0.4559 | 0.6885 | 0.4275 |
+| Lateral, rollout H10 | 0.8295 | 0.6088 | 0.7137 | 0.4734 |
+
+All evaluated rollout quantities had 100% availability, were finite and
+nonnegative, and varied on 97.13% of feasible records. H10 is the best rollout
+horizon for both targets under the predeclared ranking, but it does not exceed
+the corresponding existing proxy on both required promotion metrics.
+
+The reported pairwise agreement skips tied pairs. Excess-style existing
+features therefore can show perfect agreement over comparable pairs while
+having low oracle match because many candidates are tied at zero. This limits
+the interpretation of pairwise agreement in isolation, but does not change
+the rejection: the rollout features are also substantially worse on the
+predeclared Top-1-gap metric.
+
+Decision: reject rollout atom promotion, do not collect the 36-run outcome
+matrix, and do not create schema v11. The evidence points to weight,
+lower-bound, active-cut, or label-sensitivity behavior in the existing robust
+master rather than a missing execution-aligned comfort atom. The next
+development step is a read-only audit of the current redstopfloor05 asset and
+the previously rejected lateral lower-bound and outcome-weight experiments
+before predeclaring any new convex weight intervention.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Predeclare | `7cc26d147e4e9cd7a0c387ed0ae88b77dc2ab8a4ab41797d60a085168834cae3` |
+| Run log | `c4d1eec91dcee946210214c638cbb6264e889dff297c4958b9dd8a4b736779b9` |
+| Selector equivalence | `e6549ae683971cfa41170642a3c3dfb597c1a5219f8cf81604fb8c3cd01c2292` |
+| Closed-loop exact equivalence | `e520a863529d555e55265e236de2244ac92455bea1aa5f6ef68957c7ba4207e7` |
+| Dataset audit | `f3fdf5029cd6edfec909f689405ce47831ffef00ec11c4d8ebf77b5ea5b09ff4` |
+| Alignment JSON | `4eb770f202acca793505a69f002130349894332d3d0437432febcecf93e1119e` |
+| Alignment markdown | `2a9b61e406fe79c1149cacd42cf8c41bcbf50e863e6a1888423819df7a7e35fa` |
