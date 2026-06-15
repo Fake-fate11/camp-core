@@ -3812,3 +3812,121 @@ Acceptance is conjunctive:
 
 Formal seeds 11/12/13 remain frozen. No schema change, CAMP retraining, or
 Diffusion Planner modification is permitted during this gate.
+
+### Sample59 paired 12-run result
+
+The predeclared matrix completed sequentially at:
+
+```text
+/root/autodl-tmp/camp_dp_centerline_kdtree_sample59_f9eedcd
+```
+
+The strict selector audit paired all 12 logs and all 2,400 records. Every
+discrete field and every numeric entry was exactly equal: selected index,
+feasible mask, infeasibility reasons, fallback, atom schema, atoms, normalized
+atoms, scores, and weights all had zero mismatches and maximum absolute and
+relative differences of `0`.
+
+The independent closed-loop audit also paired all 12 runs. Each of the
+trajectory, clearance, metric, and evaluation-state logs contained 2,400
+behavior records with zero numeric, type, key, length, or value mismatches and
+maximum absolute difference `0`. The audit ignores only `png_dir`, a provenance
+field whose absolute output root must differ between the baseline and new
+artifact. The official replay comparison was strictly paired and all safety,
+completion, comfort, feasibility, and fallback deltas were exactly `0`.
+
+Per-run total and atom p95 values:
+
+| Run | Baseline total | Optimized total | Delta | Optimized atom |
+| --- | ---: | ---: | ---: | ---: |
+| seed 1, NPC 0, TL off | 99.734 | 85.661 | -14.073 | 3.385 |
+| seed 1, NPC 0, TL on | 103.390 | 92.078 | -11.312 | 3.487 |
+| seed 1, NPC 4, TL off | 104.109 | 93.422 | -10.686 | 3.723 |
+| seed 1, NPC 4, TL on | 107.212 | 94.719 | -12.492 | 3.992 |
+| seed 2, NPC 0, TL off | 94.424 | 86.459 | -7.964 | 3.416 |
+| seed 2, NPC 0, TL on | 101.970 | 86.837 | -15.133 | 3.180 |
+| seed 2, NPC 4, TL off | 99.362 | 101.247 | +1.884 | 4.383 |
+| seed 2, NPC 4, TL on | 109.090 | 99.572 | -9.518 | 4.083 |
+| seed 3, NPC 0, TL off | 102.039 | 90.543 | -11.496 | 3.596 |
+| seed 3, NPC 0, TL on | 98.242 | 90.902 | -7.340 | 3.589 |
+| seed 3, NPC 4, TL off | 103.259 | 94.541 | -8.718 | 3.930 |
+| seed 3, NPC 4, TL on | 108.795 | 94.571 | -14.224 | 3.921 |
+
+The optimized mean per-run total p95 is `92.546 ms`, with fixed-seed 10,000
+resample bootstrap interval `[89.944, 95.268] ms`. The mean and upper-bound
+margins to the 100 ms budget are `7.454 ms` and `4.732 ms`. Mean total p95 fell
+by `10.089 ms`; mean atom p95 is `3.724 ms` and fell by `9.419 ms`, providing
+component-level attribution rather than a wall-clock-only claim.
+
+One of 12 runs has total p95 above budget at `101.247 ms`. This does not fail
+the predeclared aggregate gate, whose mean and bootstrap upper bound both
+remain below budget, but it is retained as an explicit tail-latency risk for
+the 36-run. It must not be hidden by aggregate reporting.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Run log | `e8aa69a41ecdd43ecc1ea710f0cd1dab3a26f4cf29d2da84cb52711533a4e549` |
+| Selector equivalence | `3313a6a62101201204616c1e56da804f460d0c064da8f8fef68616f6d01595af` |
+| Paired comparison JSON | `b0a42d2f8f1b5dace3f7bb834a28a76b0b60713f56ba69ff8181863ce37ea199` |
+| Paired comparison markdown | `ded994a260f24f0d331be877ec844dce6bcf3c343d243e5590980bddf41248f5` |
+| Closed-loop exact equivalence | `97589e85c42c02b56e5446c939962334ae8b30f11ae9011953de63b910fe7897` |
+| Latency gate JSON | `d7ac9c9d10fcab4befda980b8d7bd0d6ee071680e85c842baeacff6d4e559fae` |
+| Latency gate markdown | `eb572d6523cd77ab611c4067d88fb7218755953f14efa3feb14e8a70b9377d95` |
+
+Decision: pass the sample59 12-run optimization gate and proceed to the
+predeclared non-formal 36-run. This accepts the exact runtime optimization, not
+the overall CAMP industrial development gate.
+
+### Predeclared exact-optimization 36-run
+
+The next matrix keeps every selector and simulator parameter above and expands
+only the route set to:
+
+```text
+sample59_86=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+sample2_104=/root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl
+nishishinjuku=/root/autodl-tmp/camp_dp_assets/nishishinjuku_release_auto_route.pkl
+```
+
+Together with seeds 1/2/3, NPC counts 0/4, and traffic lights off/on, this
+produces 36 sequential 200-step runs. The independent output root is:
+
+```text
+/root/autodl-tmp/camp_dp_centerline_kdtree_full36_f9eedcd
+```
+
+The dry-run emitted exactly 36 commands at:
+
+```text
+/root/autodl-tmp/camp_dp_centerline_kdtree_full36_f9eedcd_predeclare.txt
+```
+
+Its SHA-256 is
+`5ef38aafe059c844958c90dac40e02f385422f0e2587c830a750ca8331a98baa`.
+
+Behavior is compared against the certified same-route `redstopfloor05` root:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+```
+
+That historical root predates the current diagnostic-only command, rollout,
+and full-horizon red-light shadows. It is valid for selector and closed-loop
+behavior equivalence, but not for direct total-latency attribution. Latency is
+therefore judged from the new sequential root itself, while the current
+sample59 paired run supplies before/after component attribution.
+
+The 36-run gate requires:
+
+1. strict equality for 36 selector logs and 7,200 records;
+2. exact trajectory, clearance, metric, and evaluation-state equality, again
+   ignoring only the output-root provenance field `png_dir`;
+3. zero paired deltas for safety, completion, comfort, feasibility, and
+   fallback;
+4. all 36 total p95 values, the count above 100 ms, and the maximum reported;
+5. mean per-run p95 and its fixed-seed bootstrap upper bound below 100 ms.
+
+Any behavioral mismatch or failed latency condition rejects the optimization.
+Formal seeds 11/12/13 remain frozen. A passing optimization gate does not by
+itself authorize schema changes or CAMP retraining; the remaining industrial
+safety and comfort evidence must be reassessed first.
