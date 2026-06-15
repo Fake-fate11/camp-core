@@ -4005,3 +4005,121 @@ closed-loop equality gates. Because both sides now contain the same diagnostic
 phases, it also supplies a direct paired total- and component-latency
 attribution. No result from the rejected historical control may be used to
 accept or reject the optimization.
+
+### Accepted exact-optimization 36-run result
+
+The replacement full-centerline control and optimized matrix both completed
+36/36 sequential runs with exit status `0`.
+
+The strict selector audit paired 36 logs and 7,200 records. Every discrete and
+numeric field was exactly equal, including selected index, feasible mask,
+infeasibility reasons, fallback, atom schema, atoms, normalized atoms, scores,
+and weights. All mismatch counts and maximum absolute and relative differences
+were `0`.
+
+The closed-loop audit paired all 36 runs and found exact equality for 7,200
+trajectory, clearance, metric, and evaluation-state records in each log type.
+It again ignored only the output-root provenance field `png_dir`. The official
+paired comparison found zero deltas for completion, collision, near miss, lane
+violation, planned and realized red light, jerk, lateral acceleration,
+feasibility, and fallback.
+
+Direct same-chain latency results:
+
+| Quantity | Full centerline | Exact slice | Paired delta |
+| --- | ---: | ---: | ---: |
+| Mean per-run total p95 | 91.783 ms | 88.667 ms | -3.116 ms |
+| Mean atom p95 | 8.124 ms | 3.796 ms | -4.327 ms |
+
+The paired total-p95 bootstrap interval is `[-4.931, -1.375] ms`; the paired
+atom-p95 interval is `[-5.721, -3.059] ms`. The optimized total-p95 interval is
+`[87.416, 89.934] ms`, leaving `10.066 ms` to the 100 ms budget at its upper
+bound. All 36 optimized runs are below 100 ms; the maximum is `95.923 ms`.
+The complete per-run table is persisted in `fullcenterline_latency_gate.md`.
+
+| Route | Mean optimized total p95 | 95% bootstrap interval | Runs >= 100 ms |
+| --- | ---: | ---: | ---: |
+| `sample59_86` | 89.374 ms | [87.252, 91.439] | 0/12 |
+| `sample2_104` | 88.716 ms | [86.849, 90.594] | 0/12 |
+| `nishishinjuku` | 87.911 ms | [85.692, 90.235] | 0/12 |
+
+Current-chain Static behavior, unchanged by the optimization:
+
+| Metric | Mean across 36 runs |
+| --- | ---: |
+| Route completion | 0.299770 |
+| OBB collision | 0.000000 |
+| Near miss | 0.028889 |
+| Lane violation | 0.045694 |
+| Realized red light | 0.006421 |
+| Planned red light | 0.024167 |
+| Mean jerk magnitude | 20.402821 m/s^3 |
+| Mean lateral acceleration | 0.338062 m/s^2 |
+| Fallback | 0.166806 |
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Optimized run log | `f09897c288436fb2df75d5128ae194553c5513dfb9b6e713184b2c8d02c027db` |
+| Full-centerline run log | `3dd9a0a264005e640e4d2a5bf4195cb5c0abb9be6ca0f5983840c179d8c0e84d` |
+| Selector equivalence | `87a75563ce1e54aa3e63a246df4dc420224aefbba82a309826e64ce295dfa930` |
+| Paired comparison JSON | `7c6012802eea7f193f71cb77fbab196d84ab3ca6cf472477a39629d60989b3c6` |
+| Paired comparison markdown | `836f245519f3693a94139ed7a14083e36299efe314b8624a65bf459f55bf1c3f` |
+| Closed-loop exact equivalence | `50737bcf72b90c8a196ae6ed123ea7f399323b99919f852d473240b60c2f5116` |
+| Latency gate JSON | `142f81f2190e5b7a010f41dd60dc3ab1a20e21e357474ac6608885ea734d9ebd` |
+| Latency gate markdown | `cc639c3f445a3198956999d75270c89342e196cd2203aec90946dbe11e36d470` |
+
+Decision: accept the midpoint KD-tree contiguous centerline slice as an
+industrial runtime optimization. Exact equality proves that it does not alter
+the finite candidate constants, affine score, simplex weights, feasibility,
+fallback, or selected trajectory. The existing robust finite-maximum master,
+CVaR epigraph, simplex constraints, and L2 regularization are mathematically
+unchanged. This result does not establish that the current `redstopfloor05`
+weights meet the overall industrial safety and comfort gate.
+
+### Predeclared current-chain Top-1 decision matrix
+
+A same-chain Top-1 matrix is required before deciding whether to freeze the
+current CAMP checkpoint or version the atom schema and retrain. Historical
+Top-1 results are close enough to be informative but are not a valid strict
+control after the code-path drift identified above.
+
+The current CAMP main commit is
+`1ecbc834e98874e0a5111865e7a11386d0148d13`; Diffusion Planner remains fixed
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The matrix uses the same three
+routes, seeds 1/2/3, NPC counts 0/4, traffic lights off/on, 200 steps, and
+perfect tracking. Its output root is:
+
+```text
+/root/autodl-tmp/dp_top1_currentchain_full36_1ecbc83
+```
+
+The 36-command dry-run is:
+
+```text
+/root/autodl-tmp/dp_top1_currentchain_full36_1ecbc83_predeclare.txt
+```
+
+with SHA-256
+`0af729a3238c5025a3bafc1168ab1c5657f3dd32319a9ff73bc3714bcf699115`.
+
+The comparison against the accepted optimized Static root is diagnostic but
+conjunctive for formal readiness:
+
+1. strict pairing must include all 36 scenario keys;
+2. CAMP completion noninferiority requires the paired completion CI lower
+   bound to be nonnegative;
+3. collision, near miss, lane violation, planned and realized red light, mean
+   jerk, and mean lateral acceleration noninferiority each require the paired
+   CAMP-minus-Top-1 CI upper bound to be nonpositive;
+4. a positive lower bound for any safety or comfort regression establishes
+   the need for a new offline design rather than formal seeds;
+5. inconclusive intervals do not establish readiness.
+
+If this gate fails, formal seeds remain frozen. The next step is not an
+unconstrained weight rerun: first audit execution-aligned, current-tick,
+finite, nonnegative candidate quantities such as fixed-horizon
+PerfectTracker rollout jerk and lateral acceleration. Any promoted atom must
+be versioned and outcome-free online; for fixed candidates its value is a
+constant, so the CAMP score remains affine in `w` and the simplex/CVaR/L2
+finite-maximum master remains convex. No convexity claim is made in trajectory
+coordinates.
