@@ -3411,3 +3411,66 @@ reverts `412e248`. The exact-equivalence result remains useful evidence, but
 this implementation is not an industrial latency improvement and must not be
 reintroduced without a different memory/layout design and a pre-implementation
 microbenchmark. Formal seeds remain frozen.
+
+## Predeclared component microbenchmark protocol
+
+The next latency iteration uses an independent snapshot-and-replay
+microbenchmark. It must not infer component improvements from total replay
+runtime, candidate-generation variation, or subtraction between separate
+closed-loop runs.
+
+The fixed development inputs are:
+
+- Diffusion Planner commit
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`;
+- the frozen `redstopfloor05` CAMP checkpoint, atom scales, and K=8 selector;
+- the non-formal `sample59_86` route only;
+- seed 1, no NPCs, traffic lights off, and seed 2, maximum 4 NPCs, traffic
+  lights on;
+- perfect tracking, 40 replay steps, candidate noise 1.0, h30 DP-reward
+  feasibility, and no closed-loop outcome labels;
+- snapshots at completed selection steps 10, 20, 30, and 39 in each run.
+
+Each snapshot must contain only current-tick finite data needed to replay the
+measured functions: normalized DP model inputs, reward tensors, generated
+candidates, candidate obstacle predictions, CAMP context, fixed selector
+weights/scales, red-route points, and tracker state. Capturing snapshots is
+default-off and has no selection effect. Snapshot-capture runs are diagnostic
+only and are not latency evidence.
+
+The independent replay reports these phases separately:
+
+1. DP candidate generation, with fixed random seed and CUDA synchronization;
+2. DP near-horizon reward and full-horizon red scoring;
+3. the nine base CAMP atoms, decomposed into kinematics, jerk, acceleration,
+   speed, centerline projection/lane hinge, dynamic clearance, and static
+   clearance;
+4. extra fixed candidate atoms and affine CAMP normalization/scoring/tie-break;
+5. enabled audit quantities, including DP-prior comfort, lateral comfort,
+   PerfectTracker command/open-loop rollout, full-red, and stopping margin.
+
+For CPU phases, use 20 warmups and 100 measured repetitions per snapshot. For
+GPU candidate generation and reward phases, use 10 warmups and 30 measured
+repetitions per snapshot. Report per-snapshot median and p95, then the median
+and p95 across snapshots. GPU timings must synchronize before and after every
+measured call. The benchmark artifact must record command, environment,
+snapshot hashes, fixed seeds, dimensions, and raw timing samples.
+
+Before any online optimization is implemented:
+
+- the decomposed atom implementation must reproduce the current raw atom
+  vector within `rtol=1e-12`, `atol=1e-12`;
+- repeated fixed-seed candidate generation and reward scoring must be
+  deterministic within the upstream numeric contract;
+- an optimization target must account for enough measured work to support an
+  expected stable saving of at least `3 ms` at atom p95;
+- the proposal must state expected saving, memory cost, and exact equivalence
+  conditions.
+
+Any later implementation must preserve raw/normalized atoms, feasibility
+reasons, scores, fallback state, selected index, atom schema, fixed weights,
+and deterministic tie-break. The finite current-tick atom values remain
+nonnegative constants and the score remains affine in `w`; the simplex,
+CVaR, and L2 master therefore remain convex. This diagnostic and any cache or
+preprocessing optimization are not classical Benders decomposition, and no
+global convexity in trajectory coordinates is claimed.
