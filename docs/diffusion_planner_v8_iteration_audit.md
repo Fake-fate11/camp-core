@@ -4578,3 +4578,83 @@ Acceptance for a future intervention is deliberately strict:
 5. passing this diagnostic only authorizes a later predeclared atom or master
    design. It does not authorize deployment, 12/36-run matrices, DP retraining,
    or formal seeds.
+
+### Progress-normalized comfort diagnostic result
+
+Commits `a56271530c6b57cfd890e1664ac5ff2d16023420`,
+`a75425240685e1e00ee39334b9ab0f6f90c4f2d0`,
+`00586507e2f51b6bb9eeeefc61a335bc35154ab1`, and
+`32ec34f0bad1580d5d08785027432e8915ac36ee` implement the predeclared
+diagnostic and adapt it to the actual sample59 outcome logs:
+
+- `candidate_route_progress` is absent in this artifact, so the diagnostic uses
+  the raw `progress_shortfall` atom, which is the current v10 master progress
+  certificate;
+- `selection_scores` may include masked infinities for infeasible candidates,
+  so score tie-breaking requires non-NaN values rather than finite nonnegative
+  values.
+
+Local verification passed:
+
+```text
+python -m pytest camp_core/tests
+184 passed, 5 skipped
+```
+
+AutoDL was synchronized by git bundle because GitHub HTTPS timed out from the
+remote host. Remote verification passed:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+189 passed
+```
+
+The diagnostic ran on the existing sample59 outcome root:
+
+```text
+/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc
+```
+
+It used 12 logs, 2,400 records, 1,916 nonfallback records, and retained 484
+fallback records.
+
+| Metric | Extra shortfall budget | Changed | Progress delta | Red delta | Jerk delta | Lateral delta | Value delta | Decision |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `horizon_lateral` | 0.00 | 92 | +0.002004 | 0.000000 | +0.011250 | -0.000309 | -0.000499 | reject: negligible lateral, jerk worse |
+| `jerk_excess` | 0.00 | 0 | 0.000000 | 0.000000 | 0.000000 | 0.000000 | 0.000000 | reject: inactive |
+| `horizon_lateral_progress_normalized` | 0.00 | 416 | +0.213529 | 0.000000 | +0.133792 | +0.005741 | +0.174341 | reject: comfort worse |
+| `jerk_excess_progress_normalized` | 0.00 | 2 | +0.000141 | 0.000000 | +0.000521 | +0.000035 | -0.000024 | reject: inactive and comfort worse |
+| `horizon_lateral` | 0.05 | 359 | -0.002543 | 0.000000 | +0.015978 | -0.000859 | -0.005679 | reject: progress loss and jerk worse |
+| `jerk_excess` | 0.05 | 82 | -0.001045 | 0.000000 | -0.001711 | -0.000035 | -0.000582 | reject: progress loss and weak comfort |
+| `horizon_lateral_progress_normalized` | 0.05 | 472 | +0.212917 | 0.000000 | +0.133900 | +0.005632 | +0.173810 | reject: comfort worse |
+| `jerk_excess_progress_normalized` | 0.05 | 83 | -0.000887 | 0.000000 | -0.001189 | +0.000002 | -0.000591 | reject: weak comfort |
+| `horizon_lateral` | 0.10 | 612 | -0.014045 | 0.000000 | +0.014938 | -0.001909 | -0.015871 | reject: progress loss and jerk worse |
+| `jerk_excess` | 0.10 | 175 | -0.004211 | 0.000000 | -0.005769 | -0.000189 | -0.002580 | reject: progress loss |
+| `horizon_lateral_progress_normalized` | 0.10 | 479 | +0.212715 | 0.000000 | +0.133957 | +0.005606 | +0.173619 | reject: comfort worse |
+| `jerk_excess_progress_normalized` | 0.10 | 176 | -0.004054 | 0.000000 | -0.005248 | -0.000152 | -0.002589 | reject: progress loss |
+| `horizon_lateral` | 0.25 | 1173 | -0.074688 | 0.000000 | +0.002212 | -0.005717 | -0.069523 | reject: large progress/value loss |
+| `jerk_excess` | 0.25 | 456 | -0.026458 | 0.000000 | -0.024986 | -0.000887 | -0.019324 | reject: progress/value loss |
+| `horizon_lateral_progress_normalized` | 0.25 | 480 | +0.212662 | 0.000000 | +0.133939 | +0.005603 | +0.173574 | reject: comfort worse |
+| `jerk_excess_progress_normalized` | 0.25 | 441 | -0.025040 | 0.000000 | -0.024267 | -0.000831 | -0.018142 | reject: progress/value loss |
+
+Decision: reject the progress-normalized comfort diagnostic as a basis for a
+new atom, lower bound, master solve, online selector, or simulator matrix.
+The result confirms the current diagnosis rather than opening a new route:
+when progress-shortfall is held tight, comfort gains are negligible or coupled
+to jerk degradation; when the shortfall budget is widened, the improvement is
+paid for with progress and utility. The multiplicative shortfall-normalized
+metrics are especially poor: the lateral-normalized metric prefers high
+progress but worsens both jerk and lateral comfort.
+
+The next evidence-backed direction is not another score reweighting or
+progress-normalized comfort atom. The remaining plausible bottleneck is
+candidate availability/diversity under the fixed official DP checkpoint: audit
+whether the K=8 sampled candidates contain Pareto-improving branches often
+enough, and whether the lack of such branches is tied to sampling variance,
+route context, red-light context, or fallback/infeasible records. Formal seeds
+remain frozen.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Progress-shortfall comfort diagnostic JSON | `d6fa03cd972ec9becf2283226b5ef57b5d4f8f99cd513be4fb6d4f347f3b982b` |
+| Progress-shortfall comfort diagnostic markdown | `c76fd53faaa2334c802b5c690159751387b04f70fa4ea2aa79446b75d365b451` |
