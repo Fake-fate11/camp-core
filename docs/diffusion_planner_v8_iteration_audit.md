@@ -6324,3 +6324,124 @@ admissible step is not another scalar jerk descriptor; it is to inspect whether
 candidate-set structure itself is missing behavior diversity, for example by
 auditing endpoint/lane-relative/spatial spread and mode coverage in the fixed
 candidate set using current-tick quantities only.
+
+### Candidate spatial diversity audit
+
+Commits:
+
+- `7a8deccf11c3d4f04ffa63541844286a060d95ad` adds a current-tick spatial
+  diversity audit for bounded-selector posterior failure ticks.
+- `d6a6b982864cf5d59abc1d0957081418dd9c7756` refines the evidence split into
+  relative with-success/without-success bottleneck evidence and absolute
+  low-diversity evidence.
+
+The audit uses only the stored
+`candidate_perfect_tracker_postprocessed_reference_prefix` for current-tick
+endpoint descriptors. For each bounded-screen posterior failure tick, it
+computes admissible candidate count, endpoint pairwise spread, lateral and
+longitudinal endpoint ranges in the selected candidate's local frame, path
+length range, heading range, and a simple endpoint mode count. Posterior
+outcomes only split failure ticks by whether any admissible posterior-success
+candidate existed.
+
+This is a finite-candidate diagnostic, not an online selector. Endpoint and
+mode descriptors are fixed current-tick candidate constants. If later atomized,
+fixed-set CAMP scoring remains affine in `w` and compatible with the
+simplex/CVaR/L2 convex master. This audit is not Benders and makes no
+trajectory-coordinate convexity claim.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_spatial_diversity.py
+1 passed
+
+python -m pytest camp_core
+219 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_spatial_diversity.py
+1 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core
+224 passed
+```
+
+AutoDL was synchronized by git bundle. CAMP local/GitHub/AutoDL reached
+`d6a6b982864cf5d59abc1d0957081418dd9c7756`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The spatial audit commands were:
+
+```bash
+K8=/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc
+K16A=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise1p0_2212309
+K16B=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise0p75_2212309
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_candidate_spatial_diversity.py \
+  --root "$K8" --label k8_baseline \
+  --output_json "$K8/k8_baseline_candidate_spatial_diversity_v2.json" \
+  --output_md "$K8/k8_baseline_candidate_spatial_diversity_v2.md"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_candidate_spatial_diversity.py \
+  --root "$K16A" --label k16_noise1p0 \
+  --output_json "$K16A/k16_noise1p0_candidate_spatial_diversity_v2.json" \
+  --output_md "$K16A/k16_noise1p0_candidate_spatial_diversity_v2.md"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_candidate_spatial_diversity.py \
+  --root "$K16B" --label k16_noise0p75 \
+  --output_json "$K16B/k16_noise0p75_candidate_spatial_diversity_v2.json" \
+  --output_md "$K16B/k16_noise0p75_candidate_spatial_diversity_v2.md"
+```
+
+Final artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Spatial diversity analyzer | `3ea4f2b177f54e412e4b836e67aa366df663d9f8ce58658837c65e9d253d90ac` |
+| Spatial diversity tests | `133f732df34c086dd7044d9e1ab9f5f6b5dfa4bc093d0f4b5d0454759825a5a3` |
+| K=8 spatial JSON | `af58bb982a43d9e8a162c2c3e31f7d1d541a105313a251d6514ffd53d9d6cf7c` |
+| K=8 spatial markdown | `0ee20c3c68c1b5e7f747bd21cca29216a3f3f678fd78913488dfb37fa6d11eeb` |
+| `k16_noise1p0` spatial JSON | `747a387ead1d5d150c8974a777201b1dce1747ac5d19ed5b1360a90a0a336fbc` |
+| `k16_noise1p0` spatial markdown | `df839036173d83df03cf9a11f524ae8e27ea612017c560f6b65ae75631492264` |
+| `k16_noise0p75` spatial JSON | `91c53ad9404029d3164b7cdbee5d46db57cbff2b3abfba3e2e9dcc366a0752e1` |
+| `k16_noise0p75` spatial markdown | `102e043d544fcce6e58e94dc9b0bc32e455ec33e8f8aa7ceb87c3edba186af94` |
+
+Spatial failure-tick results:
+
+| Candidate set | Screen | Failure ticks | With success | Mode count | Endpoint pairwise mean | Lateral range | Admissible count | Evidence |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| K=8 | balanced | 174 | 19 | 1.000 | 0.006 m | 0.003 m | 1.580 | global low |
+| K=8 | relaxed | 303 | 46 | 1.000 | 0.013 m | 0.005 m | 1.921 | global low |
+| `k16_noise1p0` | balanced | 191 | 24 | 1.000 | 0.009 m | 0.006 m | 2.073 | global low |
+| `k16_noise1p0` | relaxed | 266 | 59 | 1.000 | 0.018 m | 0.007 m | 2.940 | global low |
+| `k16_noise0p75` | balanced | 253 | 50 | 1.000 | 0.009 m | 0.005 m | 2.431 | global low |
+| `k16_noise0p75` | relaxed | 394 | 117 | 1.000 | 0.019 m | 0.007 m | 3.452 | global low |
+
+Interpretation:
+
+1. The simple spatial-mode count is `1.0` for every audited failure group.
+   Under the predeclared `0.25 m` lateral/longitudinal endpoint thresholds, the
+   bounded admissible candidates do not form distinct endpoint modes.
+2. K16/noise increases the number of admissible alternatives, but those
+   alternatives remain tiny perturbations of the same endpoint mode. The
+   average endpoint pairwise spread is still only about `0.009-0.019 m`, and
+   the lateral range is only about `0.005-0.007 m`.
+3. With-success failure ticks do have slightly larger spread than without-
+   success ticks, but the relative gap is far below the predeclared split
+   thresholds. The stronger finding is global low endpoint diversity, not a
+   separable online spatial guard.
+4. This supports the candidate-generation bottleneck hypothesis more directly
+   than the scalar jerk descriptor audits: the fixed DP generator is mostly
+   producing same-mode local variants, so CAMP has little finite-set support
+   for industrially meaningful behavior selection.
+
+Decision: reject using these endpoint descriptors as an online guard or CAMP
+atom. Do not run replay, formal seeds, online selector wiring, CAMP retraining,
+or DP retraining from this evidence. The next admissible step is to inspect
+fixed-DP generator sampling controls or logged candidate-generation metadata to
+find whether endpoint/mode spread can be increased while keeping DP weights
+fixed and reporting the change strictly as a finite candidate-set change.
