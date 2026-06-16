@@ -8313,3 +8313,114 @@ Artifact SHA-256:
 | Snapshot smoke readiness markdown | `cb17d987f4bb36d3351231b570a401db23b0b526f4bb48c59dbed6c0334f9115` |
 | Snapshot step 0000 NPZ | `be5135e4bf9cddb15f17bb394f532a552a6ff48b40e92cc112c1354e2d67c8f8` |
 | Snapshot step 0001 NPZ | `0c3e374e939c4f14465802e1a804031790e6d75fc6bc0a8e2bf67273d4cb0b59` |
+
+### Offline splice recompute gate smoke
+
+Commit `ff424b6ccac1ead31c96252f9acf77b7b799a377` adds
+`scripts/integrations/analyze_diffusion_planner_splice_recompute_gate.py`.
+The analyzer loads fixed microbenchmark snapshot tensors, reconstructs
+H10-preserving splice candidates, applies the same Savitzky-Golay smoothing
+metadata, and recomputes DP near-horizon reward plus full-horizon red-light
+cost using the snapshot `reward_input__*` tensors. It also first recomputes the
+original logged candidates and compares the recomputed near/full red-light
+costs against the logged snapshot arrays.
+
+The transformed candidate used by this gate is a deterministic diagnostic:
+the selected candidate's first H10 xy prefix is preserved, the donor tail is
+translated into the selected H10 frame with a smoothstep blend, and
+`cos_yaw/sin_yaw` are reconstructed from the transformed xy finite
+differences. This is a fixed-snapshot audit candidate, not an online DP
+candidate generator or controller command.
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_splice_recompute_gate.py
+
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_splice_recompute_gate.py \
+  camp_core\tests\test_diffusion_planner_splice_recompute_readiness.py
+6 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_splice_recompute_gate.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_splice_recompute_gate.py \
+  camp_core/tests/test_diffusion_planner_splice_recompute_readiness.py
+6 passed
+```
+
+Remote artifact:
+
+```text
+/root/autodl-tmp/camp_dp_splice_recompute_gate_smoke_seed101_ff424b6
+```
+
+The smoke reused the two snapshot files from:
+
+```text
+/root/autodl-tmp/camp_dp_snapshot_context_smoke_seed101_a818b2f/snapshots
+```
+
+Two donor-pool modes were evaluated:
+
+| Donor pool | Purpose |
+| --- | --- |
+| `lower_logged_union_red` | safety-screened gate: only logged candidates with lower logged union-red than the selected candidate |
+| `all_nonselected` | mechanical smoke only: proves transformed-candidate reward/full-red recomputation runs; not a safety claim |
+
+Results:
+
+| Donor pool | Snapshots | Selected h30-safe/full-red | Snapshots with donors | Transforms | Baseline near-red max error | Baseline full-red max error | Lower recomputed union-red |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `lower_logged_union_red` | 2 | 0 | 0 | 0 | 0.0 | 0.0 | 0 |
+| `all_nonselected` | 2 | 0 | 2 | 14 | 0.0 | 0.0 | 0 |
+
+Per-row summary:
+
+| Donor pool | Step | Selected index | Donors | Selected union-red | Min transformed union-red | Lower union-red transforms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `lower_logged_union_red` | 0 | 7 | 0 | 0.0 | n/a | 0 |
+| `lower_logged_union_red` | 1 | 2 | 0 | 0.0 | n/a | 0 |
+| `all_nonselected` | 0 | 7 | 7 | 0.0 | 0.0 | 0 |
+| `all_nonselected` | 1 | 2 | 7 | 0.0 | 0.0 | 0 |
+
+Interpretation:
+
+1. The baseline recomputation is exact on this smoke: both logged near-red and
+   logged full-red max absolute errors are `0.0`.
+2. The safety-screened donor pool is empty because the selected candidates in
+   this short smoke already have recomputed/logged union-red `0.0`; this smoke
+   is not a target h30-safe/full-red miss.
+3. The all-nonselected donor pool is deliberately not safety-screened. It
+   verifies that the H10-preserving transformed candidates can pass through the
+   actual DP reward/full-red recomputation path, but it does not establish any
+   safety improvement.
+
+Decision: accept this as a mechanical recompute-gate milestone only. The code
+can now recompute DP reward/full-red for transformed fixed-snapshot
+candidates, and it can exact-check the original logged candidates. The next
+admissible evidence step is to capture snapshot context on selected
+h30-safe/full-red miss ticks, then run the `lower_logged_union_red` gate there.
+Do not implement an online selector, run 12/36-run replay, train CAMP weights,
+or touch formal seeds from this mechanical smoke.
+
+Mathematical boundary: every splice and reward calculation above is performed
+on fixed current-tick snapshot constants. The transformed candidate set is
+finite and deterministic for the snapshot and hyperparameters. This is still
+not Benders, supplies no master/subproblem dual cuts, and makes no global
+convexity claim over trajectory coordinates. If these recomputed diagnostics
+are later atomized for a fixed finite candidate set, CAMP scoring remains
+affine in `w` and the simplex/CVaR/L2 master remains convex only in that fixed
+candidate interpretation.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Recompute gate all-nonselected JSON | `b646b84f958ac70bd9af5c29932a7dc10b1c1a9b754226bf3000ee4f0198f501` |
+| Recompute gate all-nonselected markdown | `aebd0d93ec8aa91732beb7b78a8a9de3be3c0e8350aad8de459b14a16744ba6e` |
+| Recompute gate lower-logged-union-red JSON | `32d09989db42a1ea27a2d275d2c8517c59befe4a3b33c72c43949cd147172004` |
+| Recompute gate lower-logged-union-red markdown | `872cd0ecc15a6fed41b43a54a219a9a89c5840e3d7fbed115a9553784493f459` |
