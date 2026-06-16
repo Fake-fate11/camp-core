@@ -7237,3 +7237,46 @@ changing the default replay path or CAMP mathematics. It does not prove an
 improved selector, does not authorize formal seeds, and does not justify
 claiming Benders structure or trajectory-coordinate convexity for any future
 raw-geometry transform.
+
+### Predeclared raw-vs-postprocessed prefix geometry audit
+
+The next offline-only diagnostic uses the raw prefix fields introduced above to
+answer one narrow observability question: how much of the raw DP candidate
+geometry survives the Savitzky-Golay plus `postprocess_reference` path used by
+PerfectTracker shadows?
+
+Inputs:
+
+```text
+candidate_raw_trajectory_prefix
+candidate_perfect_tracker_postprocessed_reference_prefix
+```
+
+Both are treated as fixed current-tick candidate constants. The audit compares
+only xy geometry over the shared prefix horizon and reports:
+
+1. candidate endpoint pairwise spread in raw and postprocessed prefixes;
+2. mean pairwise prefix spread in raw and postprocessed prefixes;
+3. candidate distance-to-selected spread in both representations;
+4. raw-to-post displacement magnitude for all candidates and for the selected
+   candidate;
+5. compression rates where raw geometry is above 1 mm, 1 cm, or 10 cm but the
+   postprocessed representation falls below the same threshold.
+
+Mathematical boundary:
+
+1. The audit does not use closed-loop outcomes or future labels.
+2. It does not alter candidate generation, CAMP atoms, CAMP score, feasibility,
+   selected trajectory, DP weights, CAMP weights, or tracker inputs.
+3. If later atomized, each measured descriptor is a fixed finite-candidate
+   constant at selection time; score can remain affine in `w` under that fixed
+   candidate set, preserving the simplex/CVaR/L2 convex master.
+4. This is not Benders and makes no global convexity claim over trajectory
+   coordinates.
+
+Acceptance gate for this diagnostic is modest: the tool must fail clearly when
+raw prefixes are missing, pass unit tests on synthetic compressed geometry, and
+run on the non-formal raw-prefix smoke artifact. The result can justify a later
+predeclared raw-geometry transform audit, but cannot by itself authorize an
+online selector, 12/36-run matrix, formal seeds, CAMP retraining, or DP
+retraining.
