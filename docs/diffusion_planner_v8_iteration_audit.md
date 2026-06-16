@@ -4658,3 +4658,56 @@ remain frozen.
 | --- | --- |
 | Progress-shortfall comfort diagnostic JSON | `d6fa03cd972ec9becf2283226b5ef57b5d4f8f99cd513be4fb6d4f347f3b982b` |
 | Progress-shortfall comfort diagnostic markdown | `c76fd53faaa2334c802b5c690159751387b04f70fa4ea2aa79446b75d365b451` |
+
+### Predeclared K=8 candidate availability audit
+
+The next step is an offline outcome-labeled audit of the fixed official DP
+K=8 candidate pool. It does not change DP, CAMP weights, atom schema, online
+selection, or simulator execution, and it does not use formal seeds. It asks
+whether the existing candidate set frequently contains a branch that is already
+Pareto-better than the selected candidate under stored candidate outcomes, and
+whether current-tick proxies can see those branches.
+
+For each nonfallback record and progress budget
+\(\Delta p \in \{0.0, 0.05, 0.10, 0.25\}\), an outcome-level weak Pareto branch
+is a base-feasible candidate \(k\ne b\) such that:
+
+1. candidate outcome progress is at least selected progress minus \(\Delta p\);
+2. collision, near miss, lane violation, and red-light violation are no worse
+   than the selected candidate;
+3. outcome jerk and outcome lateral acceleration are both no worse;
+4. at least one of outcome jerk or outcome lateral acceleration is strictly
+   better.
+
+A joint-strict branch requires both outcome jerk and outcome lateral
+acceleration to be strictly better. Candidate outcomes are offline labels only.
+
+The proxy-side audit uses only fixed-current-tick nonnegative candidate
+quantities: raw `progress_shortfall`, `candidate_horizon_union_planned_red_light_cost`,
+`candidate_red_stopping_margin_cost`, `candidate_dp_prior_jerk_excess_cost`,
+and `candidate_horizon_lateral_acceleration_cost`. A proxy weak branch is
+defined analogously with progress-shortfall within \(\Delta p\), union-red and
+red-stopping nonworse, jerk-excess and horizon-lateral nonworse, and at least
+one proxy comfort quantity strictly better.
+
+The report must include:
+
+1. outcome weak and joint-strict branch coverage;
+2. proxy weak and joint-strict branch coverage;
+3. hidden outcome opportunities, where outcome-level Pareto branches exist but
+   proxy branches do not;
+4. proxy-only opportunities, where current-tick proxies suggest a branch but
+   outcome labels do not;
+5. candidate diversity ranges for progress, jerk, and lateral labels and
+   proxies.
+
+Interpretation gate:
+
+1. if outcome weak coverage is low under tight progress budgets, the bottleneck
+   is candidate availability rather than scoring;
+2. if hidden outcome opportunities are high, the bottleneck is proxy/atom
+   visibility;
+3. if proxy-only opportunities are high, proxy comfort screens are unsafe as
+   deployment criteria;
+4. this audit alone authorizes no online selector, no new atom, no CAMP
+   training, no 12/36-run matrix, and no formal seeds.
