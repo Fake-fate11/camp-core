@@ -4950,3 +4950,71 @@ failure.
 | `k16_noise0p75` availability markdown | `290841da70976c0c6f9f89234adb7cc6dadaf6bdab83afa142bd8f4efd8ca5e4` |
 | Combined K16 comparison JSON | `93055fb33fdb292980248ba3743e59c196488ddebcf3bac03c3b6b7417e0eefb` |
 | Combined K16 comparison markdown | `29a25da34d6f0fa133ef03054485bb9e977118e5559469f2698c0a8e2d4dde36` |
+
+### Candidate availability blocker audit
+
+Commit `0c0688ff18f10eecfb923231c4bbb95ff1e9e81d` adds an offline blocker audit
+for existing outcome-labeled candidate logs. The audit does not change the
+online selector, CAMP weights, DP weights, atom schema, or simulator behavior.
+It decomposes the failed outcome-joint availability gate into:
+
+1. whether any feasible alternative exists;
+2. whether any alternative strictly improves both outcome jerk and outcome
+   lateral acceleration;
+3. whether that joint-comfort alternative is safety-nonworse;
+4. the minimum progress deficit needed to use a safety-preserving joint-comfort
+   candidate.
+
+The analyzer was verified locally and on AutoDL:
+
+```text
+python -m pytest camp_core/tests
+193 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+198 passed
+```
+
+It was then run on the existing K=8 baseline and both K16/noise diagnostic
+roots. Summary:
+
+| Candidate set | Joint-comfort records | Safety-preserving joint-comfort records | Min progress deficit mean | P50 | P90 | Joint@0.00 | Joint@0.05 | Progress-blocked among failed@0.05 | Safety-blocked among failed@0.05 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 1,314/1,916 (0.685804) | 1,314/1,916 (0.685804) | 0.292355 m | 0.218676 m | 0.615692 m | 2 (0.001044) | 122 (0.063674) | 1,192/1,794 (0.664437) | 0 |
+| `k16_noise1p0` | 1,355/1,791 (0.756561) | 1,355/1,791 (0.756561) | 1.252943 m | 0.207944 m | 0.620154 m | 11 (0.006142) | 133 (0.074260) | 1,222/1,658 (0.737033) | 0 |
+| `k16_noise0p75` | 1,447/1,887 (0.766826) | 1,447/1,887 (0.766826) | 0.510523 m | 0.152702 m | 0.452525 m | 5 (0.002650) | 223 (0.118177) | 1,224/1,664 (0.735577) | 0 |
+
+Interpretation:
+
+1. Safety is not the active blocker in these sample59 outcome logs. Every
+   joint-comfort candidate was also safety-preserving under the audited boolean
+   outcome labels, and safety-blocked records were zero at all audited budgets.
+2. K16 increases the frequency and count of joint-comfort candidates, but those
+   candidates mostly sit behind progress loss. At the `0.05 m` progress budget,
+   progress still blocks `66.44%` of failed K=8 records, `73.70%` of failed
+   `k16_noise1p0` records, and `73.56%` of failed `k16_noise0p75` records.
+3. Lower noise (`k16_noise0p75`) improves the `0.05 m` availability relative to
+   K=8, but not enough to pass the predeclared gate, and it still leaves a
+   progress-deficit median of `0.152702 m` for safety-preserving joint-comfort
+   alternatives.
+4. The next useful candidate-generation route must be progress-preserving by
+   construction, not merely larger or lower-variance. Because prior
+   prefix-blend and step-reach screens were rejected, any new structured
+   candidate transform must first give a formal finite-candidate definition and
+   a cheap offline proof that it can reduce progress deficit without repeating
+   those rejected transforms.
+
+Decision: do not run latency smoke, a paired matrix, CAMP retraining, or formal
+seeds from K16/noise. The blocker evidence rejects simple random candidate
+expansion and lower-noise sampling as sufficient industrial interventions.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Blocker analyzer | `6b5df112a5d8e662bcd727c9d095455d49241d9412e2138bc1839e78f3e214ba` |
+| Blocker analyzer tests | `098e406aac1e924d948099572b2ef74569254f17bb3217d67531086172419eb9` |
+| K=8 blocker JSON | `86c8da13d1416d55d1431254e3eb6d7da1dcb0a77934dc52d07fb8ec39c5ceaf` |
+| K=8 blocker markdown | `e70bfbcaab2622b3c64180d50f6f3a3420bc58c95dcf20d573121e7841611a20` |
+| `k16_noise1p0` blocker JSON | `48704a358e4f61467a3c703f779d4b99f24ed633ec14d3a36f482e9381d53a11` |
+| `k16_noise1p0` blocker markdown | `305964e17ff844c8cfd9885b3249eb3d1d09521e90eb9eb790a744d06d5ec3f0` |
+| `k16_noise0p75` blocker JSON | `62cbcbe2af56b0d2d755902ea0a78b549fd8ca3748df7f1944b131580c551db4` |
+| `k16_noise0p75` blocker markdown | `7dc4fe4616535361b8583eeb6a94dc249f766e201ed48e428fd70ba73c0e917c` |
