@@ -147,7 +147,11 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
         candidate_count,
         f"{label} candidate_red_stopping_margin_cost",
     )
-    scores = _vector(record.get("selection_scores"), candidate_count, f"{label} selection_scores")
+    scores = _finite_vector(
+        record.get("selection_scores"),
+        candidate_count,
+        f"{label} selection_scores",
+    )
     outcomes = _outcomes(record.get("candidate_closed_loop_outcomes"), candidate_count, label)
     return {
         "selected_index": selected_index,
@@ -302,6 +306,15 @@ def _outcome_delta(
 def _vector(values: Any, size: int, label: str) -> np.ndarray:
     vector = np.asarray(values, dtype=np.float64).reshape(-1)
     return _finite_nonnegative(vector, size, label)
+
+
+def _finite_vector(values: Any, size: int, label: str) -> np.ndarray:
+    vector = np.asarray(values, dtype=np.float64).reshape(-1)
+    if vector.shape != (size,):
+        raise ValueError(f"{label} must have shape [{size}].")
+    if not np.all(np.isfinite(vector)):
+        raise ValueError(f"{label} must be finite.")
+    return vector
 
 
 def _finite_nonnegative(values: np.ndarray, size: int, label: str) -> np.ndarray:

@@ -58,7 +58,7 @@ def _record() -> dict:
         "candidate_dp_prior_jerk_excess_cost": [4.0, 3.5, 1.0],
         "candidate_horizon_union_planned_red_light_cost": [0.0, 0.0, 1.0],
         "candidate_red_stopping_margin_cost": [0.1, 0.1, 0.0],
-        "selection_scores": [0.1, 0.2, 0.0],
+        "selection_scores": [-0.1, 0.2, -0.5],
         "candidate_closed_loop_outcomes": outcomes,
     }
 
