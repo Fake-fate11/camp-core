@@ -7954,3 +7954,92 @@ Artifact SHA-256:
 | --- | --- |
 | Raw H80 bottleneck JSON | `0854bce6b45ad29def3169a3920cfa96a2f563ba40f1135b18824904e1012fcb` |
 | Raw H80 bottleneck markdown | `e46ed499e01e889c35b3102f1f045f5dff01ddf1d13c352286c982a351f42342` |
+
+### Raw H80 budget blocker attribution
+
+Commit `41cd9426cccecb9133c33d74676068ced3047fd5` extends the raw H80
+bottleneck analyzer with budget-blocker attribution. This remains an offline
+diagnostic over fixed current-tick candidate constants. It does not change DP,
+candidate generation, CAMP weights, atom schema, replay behavior, online
+selection, or formal seeds.
+
+For each progress budget screen, the analyzer records whether lower-red
+base-feasible candidates exist, whether any satisfy the bounded progress /
+target-speed / H10-distance / H3-lateral envelope, whether any also satisfy H3
+mean-jerk nondegradation, and which budget condition blocks all lower-red
+base-feasible candidates.
+
+Verification:
+
+```text
+py -3.12 -m py_compile scripts\integrations\analyze_diffusion_planner_raw_horizon_bottleneck.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core;F:\camp_core-main'
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_raw_horizon_bottleneck.py
+2 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_raw_horizon_bottleneck.py
+2 passed
+```
+
+The real H80 sample59 artifact was analyzed at:
+
+```text
+/root/autodl-tmp/camp_dp_raw_h80_bottleneck_blockers_sample59_static_41cd942
+```
+
+For the `32` selected h30-safe/full-red misses, blocker attribution is:
+
+| Progress budget | Lower-red base feasible | Bounded | Bounded + H3 jerk nondegrading | Progress blocks all | Target-speed blocks all | H10 blocks all | Lateral blocks all | Jerk blocks bounded |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.10 m | 20/32 | 0/32 | 0/32 | 20/20 | 5/20 | 14/20 | 0/20 | 0/0 |
+| 0.25 m | 20/32 | 2/32 | 0/32 | 17/20 | 5/20 | 14/20 | 0/20 | 2/2 |
+| 0.50 m | 20/32 | 5/32 | 1/32 | 10/20 | 5/20 | 14/20 | 0/20 | 4/5 |
+
+Across the `20` h30-missed records with any lower-red base-feasible candidate,
+the best lower-red candidate still has these minimum deficits:
+
+| Quantity | Median | Mean | P95 | Max |
+| --- | ---: | ---: | ---: | ---: |
+| Progress loss | 0.482559 m | 0.700578 m | 1.697065 m | 2.269403 m |
+| Target-speed loss | 0.076329 m/s | 0.110299 m/s | 0.381921 m/s | 0.411755 m/s |
+| H10 distance loss | 0.141668 m | 0.212973 m | 0.556723 m | 0.571431 m |
+| H3 max lateral | 0.234244 m/s^2 | 0.240060 m/s^2 | 0.372518 m/s^2 | 0.475419 m/s^2 |
+| H3 mean-jerk delta | +1.126135 m/s^3 | -0.644388 m/s^3 | +13.412870 m/s^3 | +19.066109 m/s^3 |
+
+Interpretation:
+
+1. H3 lateral is not the active blocker in the selected h30-safe/full-red
+   misses: it blocks `0/20` lower-red base-feasible opportunities under every
+   audited budget.
+2. Progress and H10 distance are the primary envelope blockers. Even at a
+   `0.50 m` progress budget, progress blocks `10/20` lower-red base-feasible
+   opportunities and H10 distance blocks `14/20`.
+3. Target speed is a secondary blocker (`5/20`), consistent with the
+   stop-like nature of the lower-red alternatives.
+4. Jerk remains a deployment blocker after the bounded envelope is satisfied:
+   at `0.50 m`, `4/5` bounded candidates fail H3 mean-jerk nondegradation.
+
+Decision: this predeclares the next admissible design target more sharply. A
+stop-aware/progress-compatible candidate-generation branch must create
+lower-red candidates that preserve the selected candidate's near-term progress
+and H10 distance envelope while smoothing jerk. Simply relaxing lateral limits,
+retuning CAMP weights, or adding another ranking tie-break is not supported.
+Before any online wiring or paired replay, the next prototype must pass an
+offline fixed-candidate or default-off generator diagnostic showing materially
+better h30-missed coverage inside the same bounded envelope, with H3 jerk
+nondegradation explicitly audited. DP weights and formal seeds remain frozen.
+
+Mathematical boundary: blocker flags and deficit summaries are current-tick
+finite-candidate constants. They may define future diagnostic atoms or guards
+only if treated as fixed data per candidate, preserving affine scoring in
+`w` and the simplex/CVaR/L2 convex master. This is not a Benders
+decomposition and makes no convexity claim over trajectory coordinates.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Raw H80 blocker JSON | `90c788202641f7d887df79ecde8590c71649cda9f06dab4e6fb298e1defd5d86` |
+| Raw H80 blocker markdown | `5a094f4cbfcd2ecd6bc4399e0037b5ae70a6f1dd794b236862264b50fc6f23fd` |
