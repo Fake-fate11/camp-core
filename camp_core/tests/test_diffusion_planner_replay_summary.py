@@ -4,6 +4,9 @@ import json
 import sys
 import types
 
+import numpy as np
+import pytest
+
 from scripts.integrations.summarize_diffusion_planner_camp_replay import (
     merge_existing_summary,
     merge_replay_metadata,
@@ -11,6 +14,7 @@ from scripts.integrations.summarize_diffusion_planner_camp_replay import (
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_generation_contract,
     _configure_candidate_guidance,
+    _raw_candidate_prefix_payload,
 )
 
 
@@ -27,6 +31,12 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
         "candidate_generation_contract": {
             "schema_version": "dp_candidate_generation_contract_v1",
             "guidance_enabled": False,
+        },
+        "camp_raw_candidate_prefix_logging": {
+            "enabled": True,
+            "selection_effect": False,
+            "steps": 10,
+            "field": "candidate_raw_trajectory_prefix",
         },
         "camp_shadow_dp_prior_comfort_excess": {
             "enabled": True,
@@ -51,6 +61,8 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
         "dp_candidate_generation_contract_v1"
     )
     assert not merged["candidate_generation_contract"]["guidance_enabled"]
+    assert merged["camp_raw_candidate_prefix_logging"]["steps"] == 10
+    assert not merged["camp_raw_candidate_prefix_logging"]["selection_effect"]
     assert merged["camp_shadow_dp_prior_comfort_excess"][
         "effective_horizon_steps"
     ] == 30
@@ -155,6 +167,46 @@ def test_candidate_generation_contract_records_enabled_guidance() -> None:
     assert contract["reference_blend_steps"] == 5
     assert contract["changes_candidate_set"]
     assert not contract["changes_camp_score"]
+
+
+def test_raw_candidate_prefix_payload_is_disabled_by_default() -> None:
+    candidates = np.zeros((2, 3, 4), dtype=np.float64)
+
+    assert _raw_candidate_prefix_payload(candidates, 0) == {}
+
+
+def test_raw_candidate_prefix_payload_records_requested_prefix() -> None:
+    candidates = np.arange(2 * 3 * 4, dtype=np.float64).reshape(2, 3, 4)
+
+    payload = _raw_candidate_prefix_payload(candidates, 2)
+
+    assert payload["candidate_raw_trajectory_prefix_steps"] == 2
+    assert payload["candidate_raw_trajectory_prefix"] == (
+        candidates[:, :2, :].tolist()
+    )
+
+
+def test_raw_candidate_prefix_payload_clamps_to_horizon() -> None:
+    candidates = np.arange(2 * 3 * 4, dtype=np.float64).reshape(2, 3, 4)
+
+    payload = _raw_candidate_prefix_payload(candidates, 10)
+
+    assert payload["candidate_raw_trajectory_prefix_steps"] == 3
+    assert payload["candidate_raw_trajectory_prefix"] == candidates.tolist()
+
+
+def test_raw_candidate_prefix_payload_rejects_wrong_rank() -> None:
+    candidates = np.zeros((3, 4), dtype=np.float64)
+
+    with pytest.raises(ValueError, match="rank-3"):
+        _raw_candidate_prefix_payload(candidates, 2)
+
+
+def test_raw_candidate_prefix_payload_rejects_negative_steps() -> None:
+    candidates = np.zeros((2, 3, 4), dtype=np.float64)
+
+    with pytest.raises(ValueError, match="non-negative"):
+        _raw_candidate_prefix_payload(candidates, -1)
 
 
 def test_configure_candidate_guidance_default_is_disabled() -> None:

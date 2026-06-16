@@ -28,6 +28,7 @@ REPLAY_METADATA_FIELDS = (
     "candidate_noise_scale",
     "candidate_reference_blend",
     "candidate_generation_contract",
+    "camp_raw_candidate_prefix_logging",
     "camp_lane_corridor_buffer",
     "camp_feasibility_source",
     "camp_min_progress_ratio",

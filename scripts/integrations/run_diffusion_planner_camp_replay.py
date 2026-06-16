@@ -357,6 +357,16 @@ def parse_args() -> argparse.Namespace:
         default=(10, 20, 30, 39),
         help="Comma-separated completed selection steps to export.",
     )
+    parser.add_argument(
+        "--camp_log_raw_candidate_prefix_steps",
+        type=int,
+        default=0,
+        help=(
+            "Default-off diagnostic logging of the raw Diffusion Planner "
+            "candidate trajectory prefix before PerfectTracker postprocessing. "
+            "This changes no selection behavior and is for offline audits only."
+        ),
+    )
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     return parser.parse_args()
 
@@ -495,6 +505,8 @@ def _validate_args(args: argparse.Namespace) -> None:
         )
     if args.near_miss_threshold_m < 0:
         raise ValueError("--near_miss_threshold_m must be non-negative.")
+    if args.camp_log_raw_candidate_prefix_steps < 0:
+        raise ValueError("--camp_log_raw_candidate_prefix_steps must be non-negative.")
     if args.reward_config is not None and not args.reward_config.is_file():
         raise FileNotFoundError(f"Missing reward config: {args.reward_config}")
     if (
@@ -1774,6 +1786,26 @@ def _candidate_generation_contract(
     }
 
 
+def _raw_candidate_prefix_payload(
+    candidates: np.ndarray,
+    steps: int,
+) -> dict[str, Any]:
+    if steps < 0:
+        raise ValueError("raw candidate prefix logging steps must be non-negative.")
+    if steps == 0:
+        return {}
+    raw_candidates = np.asarray(candidates)
+    if raw_candidates.ndim != 3:
+        raise ValueError("raw candidate prefix logging expects a rank-3 array.")
+    effective_steps = min(int(steps), int(raw_candidates.shape[1]))
+    return {
+        "candidate_raw_trajectory_prefix_steps": effective_steps,
+        "candidate_raw_trajectory_prefix": (
+            raw_candidates[:, :effective_steps, :].tolist()
+        ),
+    }
+
+
 def _install_camp_predictor(
     replay_module: Any,
     tensor_converter_module: Any,
@@ -1814,6 +1846,7 @@ def _install_camp_predictor(
     route_centerline: np.ndarray,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
+    raw_candidate_prefix_steps: int,
 ) -> tuple[
     Any,
     list[dict[str, Any]],
@@ -2346,6 +2379,10 @@ def _install_camp_predictor(
                 chosen_logits[4] -= turn_indicator_keep_bias
             turn_indicators[ego_id] = int(np.argmax(chosen_logits))
 
+        raw_candidate_prefix_payload = _raw_candidate_prefix_payload(
+            candidates,
+            raw_candidate_prefix_steps,
+        )
         records.append(
             {
                 "selection_step": len(records),
@@ -2367,6 +2404,7 @@ def _install_camp_predictor(
                 "candidate_first_reference_xy": (
                     candidates[:, 0, :2].tolist()
                 ),
+                **raw_candidate_prefix_payload,
                 "candidate_perfect_tracker_reference_first_xy": (
                     perfect_tracker_command[
                         "first_reference_xy"
@@ -2727,6 +2765,7 @@ def main() -> None:
             microbenchmark_snapshot_steps=(
                 args.camp_microbenchmark_snapshot_steps
             ),
+            raw_candidate_prefix_steps=args.camp_log_raw_candidate_prefix_steps,
         )
     else:
         (
@@ -2911,6 +2950,21 @@ def main() -> None:
         if args.camp_microbenchmark_snapshot_dir is not None
         else []
     )
+    camp_raw_candidate_prefix_logging = (
+        {
+            "enabled": args.camp_log_raw_candidate_prefix_steps > 0,
+            "selection_effect": False,
+            "steps": int(args.camp_log_raw_candidate_prefix_steps),
+            "field": "candidate_raw_trajectory_prefix",
+            "dimensions": (
+                "raw Diffusion Planner ego candidate state prefix "
+                "[x, y, cos_yaw, sin_yaw]"
+            ),
+            "purpose": "offline raw-candidate geometry audits only",
+        }
+        if records is not None
+        else None
+    )
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
@@ -2938,6 +2992,7 @@ def main() -> None:
             if args.camp_microbenchmark_snapshot_dir is not None
             else None
         ),
+        "camp_raw_candidate_prefix_logging": camp_raw_candidate_prefix_logging,
         "camp_lane_corridor_buffer": effective_lane_buffer,
         "camp_feasibility_source": effective_feasibility_source,
         "camp_min_progress_ratio": effective_min_progress_ratio,
@@ -3184,6 +3239,9 @@ def main() -> None:
         effective_perfect_tracker_command_postselection
     )
     validation["camp_underprogress_relaxation"] = effective_underprogress_relaxation
+    validation["camp_raw_candidate_prefix_logging"] = (
+        camp_raw_candidate_prefix_logging
+    )
     validation["camp_reward_horizon_steps"] = effective_reward_horizon_steps
     validation["camp_collect_closed_loop_outcomes"] = (
         bool(args.camp_collect_closed_loop_outcomes) if records is not None else None

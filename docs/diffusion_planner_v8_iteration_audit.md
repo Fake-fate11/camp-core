@@ -7107,3 +7107,58 @@ Together with the route/lane guidance rejection, this closes the current
 official `GuidanceComposer` branch as an industrial path under the p95 latency
 gate. Do not expand this branch to formal seeds, online selection, or CAMP
 retraining.
+
+### Raw candidate prefix observability predeclaration
+
+The next step is not a new selector, atom, weight vector, or candidate generator.
+It closes an observability gap found after the materiality and projection
+audits: existing `camp_selection_log.json` records preserve only
+`candidate_first_reference_xy` from raw DP candidates plus the PerfectTracker
+postprocessed prefix. They do not preserve enough raw DP candidate geometry to
+audit future raw-geometry transforms or materiality claims from historical
+artifacts.
+
+The implementation is a default-off logging flag:
+
+```text
+--camp_log_raw_candidate_prefix_steps N
+```
+
+with default `N=0`. When enabled in a non-formal replay, each selection record
+may include:
+
+```text
+candidate_raw_trajectory_prefix_steps
+candidate_raw_trajectory_prefix
+```
+
+where the prefix has shape `K x min(N,T) x D` for the realized raw DP ego
+candidate tensor before Savitzky-Golay smoothing, `postprocess_reference`, and
+PerfectTracker command generation. In the current DP replay this state is
+expected to be `[x, y, cos_yaw, sin_yaw]`.
+
+Mathematical boundary:
+
+1. This flag logs fixed finite candidate constants after candidate generation.
+2. It does not change the finite candidate set, CAMP atom values, CAMP score,
+   feasibility, selection, DP weights, CAMP weights, or tracker input.
+3. If a future audit derives atoms from these logged constants, that atom must
+   be separately defined and scaled. For fixed realized candidates, CAMP score
+   can remain affine in `w`; the simplex/CVaR/L2 master remains convex only
+   under that fixed-candidate interpretation.
+4. Logging itself is not Benders, provides no master/subproblem dual cuts, and
+   makes no global convexity claim over trajectory coordinates.
+
+Verification gate for this observability milestone:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_replay_summary.py
+bash -n scripts/integrations/run_diffusion_planner_camp_remote.sh
+```
+
+After local tests and a minimal commit, the only admissible remote check is a
+short non-formal metadata smoke with `CAMP_LOG_RAW_CANDIDATE_PREFIX_STEPS=10`
+on sample59 seed 101, no NPCs, K=8, perfect tracking, and redstopfloor05 static
+weights. The smoke should verify field presence and shape, and should be
+treated as logging validation only. It does not authorize a new 12/36-run,
+formal seeds, online selector, DP retraining, or CAMP retraining.
