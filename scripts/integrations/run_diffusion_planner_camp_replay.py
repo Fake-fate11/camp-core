@@ -622,9 +622,20 @@ def _configure_candidate_guidance(
         )
 
     model.decoder._guidance_fn = GuidanceComposer(set_config)
+    configured_global_scale = float(getattr(set_config, "global_scale", 0.0))
+    if not np.isfinite(configured_global_scale):
+        raise ValueError("--candidate_guidance_config global_scale must be finite.")
     if guidance_scale is not None:
+        if not np.isfinite(guidance_scale):
+            raise ValueError("--candidate_guidance_scale must be finite.")
         model.decoder._guidance_scale = float(guidance_scale)
+        guidance_scale_source = "cli_override"
+    else:
+        model.decoder._guidance_scale = configured_global_scale
+        guidance_scale_source = "config_global_scale"
     effective_scale = float(getattr(model.decoder, "_guidance_scale"))
+    if not np.isfinite(effective_scale):
+        raise ValueError("effective candidate guidance scale must be finite.")
     return {
         "enabled": True,
         "policy": "preserve_official_dp_guidance_for_candidate_generation",
@@ -633,7 +644,8 @@ def _configure_candidate_guidance(
         "functions": functions,
         "active_function_names": [fn["name"] for fn in active],
         "guidance_scale": effective_scale,
-        "global_scale": float(getattr(set_config, "global_scale", 0.0)),
+        "guidance_scale_source": guidance_scale_source,
+        "global_scale": configured_global_scale,
         "composer": "diffusion_planner.model.guidance.composer.GuidanceComposer",
     }
 

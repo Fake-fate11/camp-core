@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import sys
+import types
+
 from scripts.integrations.summarize_diffusion_planner_camp_replay import (
     merge_existing_summary,
     merge_replay_metadata,
@@ -164,3 +168,154 @@ def test_configure_candidate_guidance_default_is_disabled() -> None:
     assert contract["policy"] == "disabled_for_camp_candidate_generation"
     assert contract["functions"] == []
     assert _Model.decoder._guidance_fn is original_guidance
+
+
+def test_configure_candidate_guidance_uses_config_global_scale(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    _install_fake_guidance_modules(monkeypatch)
+    config_path = tmp_path / "guidance.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "global_scale": 0.2,
+                "functions": [
+                    {
+                        "name": "route_centerline_following",
+                        "enabled": True,
+                        "scale": 0.5,
+                        "params": {"note": "test"},
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class _Decoder:
+        _guidance_fn = None
+        _guidance_scale = 0.9
+
+    class _Model:
+        decoder = _Decoder()
+
+    contract = _configure_candidate_guidance(
+        _Model(),
+        guidance_config_path=config_path,
+        guidance_scale=None,
+    )
+
+    assert contract["enabled"] is True
+    assert contract["active_function_names"] == ["route_centerline_following"]
+    assert contract["global_scale"] == 0.2
+    assert contract["guidance_scale"] == 0.2
+    assert contract["guidance_scale_source"] == "config_global_scale"
+    assert _Model.decoder._guidance_scale == 0.2
+    assert _Model.decoder._guidance_fn.set_config.global_scale == 0.2
+
+
+def test_configure_candidate_guidance_cli_scale_overrides_config(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    _install_fake_guidance_modules(monkeypatch)
+    config_path = tmp_path / "guidance.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "global_scale": 0.2,
+                "functions": [
+                    {
+                        "name": "route_centerline_following",
+                        "enabled": True,
+                        "scale": 0.5,
+                        "params": {},
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class _Decoder:
+        _guidance_fn = None
+        _guidance_scale = 0.9
+
+    class _Model:
+        decoder = _Decoder()
+
+    contract = _configure_candidate_guidance(
+        _Model(),
+        guidance_config_path=config_path,
+        guidance_scale=0.35,
+    )
+
+    assert contract["global_scale"] == 0.2
+    assert contract["guidance_scale"] == 0.35
+    assert contract["guidance_scale_source"] == "cli_override"
+    assert _Model.decoder._guidance_scale == 0.35
+
+
+def _install_fake_guidance_modules(monkeypatch) -> None:
+    class _GuidanceConfig:
+        def __init__(
+            self,
+            *,
+            name: str,
+            enabled: bool = True,
+            scale: float = 1.0,
+            params: dict | None = None,
+        ) -> None:
+            self.name = name
+            self.enabled = enabled
+            self.scale = scale
+            self.params = params or {}
+
+    class _GuidanceSetConfig:
+        def __init__(self, *, functions: list[dict], global_scale: float = 0.5):
+            self.functions = [
+                _GuidanceConfig(**item) if isinstance(item, dict) else item
+                for item in functions
+            ]
+            self.global_scale = global_scale
+
+        @classmethod
+        def from_file(cls, path: str):
+            with open(path, encoding="utf-8") as handle:
+                return cls(**json.load(handle))
+
+    class _GuidanceComposer:
+        def __init__(self, set_config):
+            self.set_config = set_config
+
+    composer_module = types.ModuleType("diffusion_planner.model.guidance.composer")
+    composer_module.GuidanceComposer = _GuidanceComposer
+    config_module = types.ModuleType("diffusion_planner.model.guidance.config")
+    config_module.GuidanceSetConfig = _GuidanceSetConfig
+
+    monkeypatch.setitem(
+        sys.modules,
+        "diffusion_planner",
+        types.ModuleType("diffusion_planner"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "diffusion_planner.model",
+        types.ModuleType("diffusion_planner.model"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "diffusion_planner.model.guidance",
+        types.ModuleType("diffusion_planner.model.guidance"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "diffusion_planner.model.guidance.composer",
+        composer_module,
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "diffusion_planner.model.guidance.config",
+        config_module,
+    )
