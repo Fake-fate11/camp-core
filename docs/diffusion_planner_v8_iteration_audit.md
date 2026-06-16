@@ -5796,3 +5796,107 @@ different admissible candidate existed that also passed the promising current
 tick jerk guards and was posterior joint-comfort successful. If such candidates
 exist, the issue is tie-break/ranking inside the finite set; if not, the issue
 returns to candidate generation/diversity rather than CAMP weight training.
+
+### Outcome-free alternative-candidate audit
+
+Commit `d4047deab41670bf4dc6bdbae946318bd49e1bc2` adds an offline audit that
+inspects only the changed records where the outcome-free selector picked a
+posterior joint-comfort failure. For each such failure tick it asks:
+
+1. whether any other candidate inside the same current-tick admissible set was
+   posterior joint-comfort successful; and
+2. whether any such successful candidate also passed predeclared current-tick
+   jerk guards: prefix + tracker jerk nonworse, prefix + H3 rollout jerk
+   nonworse, tracker + H3 rollout jerk nonworse, or H3 distance + tracker jerk
+   nonworse.
+
+Selection and guard predicates still use only fixed current-tick finite
+candidate diagnostics. Outcomes are posterior labels for diagnosis only. If
+these guard quantities are later atomized as candidate costs, fixed-candidate
+CAMP scoring remains affine in `w`; this is not Benders and makes no
+trajectory-coordinate convexity claim.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_outcome_free_alternative_candidates.py
+1 passed
+
+python -m pytest camp_core
+213 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_outcome_free_alternative_candidates.py
+1 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core
+218 passed
+```
+
+AutoDL was synchronized by git bundle. DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. No replay, formal seeds, online
+selector, CAMP retraining, or DP modification was run.
+
+Final artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| K=8 alternative-candidate JSON | `526f7e92ab66452cca5423d44bbef1d9c6e58a0ba2d7b79fd69450f661ea9bdc` |
+| K=8 alternative-candidate markdown | `6111a9a4ac4c4e2f41755ca0e66155456ceec3c91391de64fd5a642468e27666` |
+| `k16_noise1p0` alternative-candidate JSON | `673ec69716a2d64c11f6fcefc278cec99e124feb258f5b1c19fe61a4c26aba3b` |
+| `k16_noise1p0` alternative-candidate markdown | `9e768848b26357f49a1abb14b9ee8569c1da5ed72c82a697988e702c99b9f7b6` |
+| `k16_noise0p75` alternative-candidate JSON | `6fba73a7b63daec4843101513409eb7e85c59e9e7d46d58bf0136116c60d5802` |
+| `k16_noise0p75` alternative-candidate markdown | `8fd86a7278a6e112e89614bc08f0f85b6e82b617fbb6a52733ebc8ae9e8d1792` |
+
+Failure-tick availability:
+
+| Candidate set | Screen | Failure ticks | Any admissible posterior-success candidate | Rate |
+| --- | --- | ---: | ---: | ---: |
+| K=8 baseline | balanced `0.10 m` | 174 | 19 | 0.109 |
+| K=8 baseline | relaxed `0.25 m` | 303 | 46 | 0.152 |
+| `k16_noise1p0` | balanced `0.10 m` | 191 | 24 | 0.126 |
+| `k16_noise1p0` | relaxed `0.25 m` | 266 | 59 | 0.222 |
+| `k16_noise0p75` | balanced `0.10 m` | 253 | 50 | 0.198 |
+| `k16_noise0p75` | relaxed `0.25 m` | 394 | 117 | 0.297 |
+
+Guarded successful alternatives:
+
+| Candidate set | Screen | Guard set | With guarded success | Rate | Best success rank mean | Progress mean | Jerk mean | Lateral mean |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | balanced | prefix + tracker jerk | 1 | 0.006 | 1.000 | -0.066 m | -0.135 m/s^3 | -0.010 m/s^2 |
+| K=8 baseline | relaxed | prefix + tracker jerk | 8 | 0.026 | 1.125 | -0.119 m | -0.098 m/s^3 | -0.008 m/s^2 |
+| `k16_noise1p0` | balanced | prefix + tracker jerk | 8 | 0.042 | 2.250 | -0.053 m | -0.090 m/s^3 | -0.006 m/s^2 |
+| `k16_noise1p0` | relaxed | prefix + tracker jerk | 13 | 0.049 | 2.769 | -0.090 m | -0.075 m/s^3 | -0.005 m/s^2 |
+| `k16_noise0p75` | balanced | prefix + tracker jerk | 17 | 0.067 | 2.647 | -0.037 m | -0.050 m/s^3 | -0.003 m/s^2 |
+| `k16_noise0p75` | relaxed | prefix + tracker jerk | 37 | 0.094 | 3.000 | -0.085 m | -0.043 m/s^3 | -0.003 m/s^2 |
+| K=8 baseline | relaxed | prefix + H3 rollout jerk | 15 | 0.050 | 1.733 | -0.088 m | -0.113 m/s^3 | -0.006 m/s^2 |
+| `k16_noise1p0` | relaxed | prefix + H3 rollout jerk | 21 | 0.079 | 3.429 | -0.085 m | -0.070 m/s^3 | -0.005 m/s^2 |
+| `k16_noise0p75` | relaxed | prefix + H3 rollout jerk | 51 | 0.129 | 3.275 | -0.089 m | -0.044 m/s^3 | -0.003 m/s^2 |
+
+Interpretation:
+
+1. The failure ticks mostly do not contain a better finite-set alternative for
+   the current bounded screens. Only `10.9-29.7%` of failure ticks have any
+   admissible posterior-success candidate at all.
+2. The promising current-tick jerk guards are not hiding a large tie-break
+   opportunity. Prefix + tracker jerk nonworse finds guarded successful
+   alternatives in only `0.6-9.4%` of failure ticks; prefix + H3 rollout jerk is
+   slightly better on relaxed screens but still at most `12.9%`.
+3. When guarded successful alternatives exist, their average progress loss is
+   modest and ranks are usually after the selected failing candidate, so there
+   is a real tie-break component. However, the coverage is too small to justify
+   an online selector or a new atom by itself.
+4. The dominant blocker is candidate availability under the fixed DP candidate
+   set and bounded progress/anchor constraints. This aligns with the earlier
+   K8/K16 availability conclusion: continuing to tune CAMP weights or add a
+   scalar atom is likely to chase sparse proxy opportunities rather than solve
+   the industrial problem.
+
+Decision: reject tie-break/ranking changes, online guard wiring, CAMP
+retraining, DP retraining, and formal seeds from this evidence. The next
+admissible step is candidate-generation/diversity diagnosis under fixed DP
+weights: compare candidate pools by sample count/noise/temperature-like
+available controls and ask whether the rate of admissible posterior-success
+alternatives in failure ticks increases without changing the CAMP mathematical
+contract. Any generator-side experiment must be reported as changing the
+finite candidate set, not as a Benders or convex trajectory-coordinate claim.
