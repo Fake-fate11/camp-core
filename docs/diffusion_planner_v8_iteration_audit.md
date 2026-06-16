@@ -6619,3 +6619,66 @@ Decision: accept the controls audit and predeclare the guidance/prototype
 candidate-set branch as the next possible diagnostic. Do not run it until a
 default-off implementation records the guidance contract in every replay
 summary and selection record.
+
+### Default-off DP guidance candidate diagnostic entrance
+
+Commit `3de947e4994819b3ec8f498340e4d230496b1242` implements the
+predeclared default-off entrance for official Diffusion Planner guidance during
+CAMP candidate generation. The default remains unchanged: candidate generation
+clears `decoder._guidance_fn`, runs without gradients, and restores the decoder
+state after the batched forward pass. The explicit diagnostic path is enabled
+only by providing `--candidate_guidance_config`; then the runner installs the
+official `GuidanceComposer`, preserves that guidance during candidate
+generation, and records the guidance contract in replay summary metadata,
+selection records, and microbenchmark snapshots.
+
+CLI and wrapper controls:
+
+```text
+--candidate_guidance_config PATH
+--candidate_guidance_scale FLOAT
+CANDIDATE_GUIDANCE_CONFIG=...
+CANDIDATE_GUIDANCE_SCALE=...
+```
+
+The guidance contract records whether guidance is enabled, the policy string,
+config path, config SHA-256, active guidance functions, and effective guidance
+scale. The wrapper fails closed if a configured guidance file is missing, and
+the replay parser rejects a scale override without a guidance config.
+
+Mathematical boundary:
+
+1. This is a finite candidate-set diagnostic under fixed DP source, fixed DP
+   weights, fixed CAMP atom schema, and fixed CAMP weights.
+2. For any realized finite candidate set, CAMP scoring remains affine in `w`;
+   the simplex/CVaR/L2 master remains convex.
+3. The official DP guidance composer is generator-side logic. It is not a CAMP
+   atom, not a Benders subproblem, and does not justify a global convexity claim
+   in trajectory coordinates.
+4. Formal seeds remain frozen. This change alone does not authorize a new
+   online selector, CAMP retraining, DP retraining, or formal replay.
+
+Verification:
+
+```text
+python -m pytest camp_core
+224 passed, 8 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core
+232 passed
+```
+
+Implementation checkpoint verified before this documentation update:
+
+| Location | State |
+| --- | --- |
+| Local CAMP | `3de947e4994819b3ec8f498340e4d230496b1242` |
+| GitHub `main` | `3de947e4994819b3ec8f498340e4d230496b1242` |
+| AutoDL CAMP | `3de947e4994819b3ec8f498340e4d230496b1242` |
+| AutoDL DP | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+
+Decision: accept the default-off guidance diagnostic entrance as an
+auditability and experimentation prerequisite. The next admissible step is to
+define one concrete non-formal guidance config, run only sample59 paired seeds,
+and reject the branch unless endpoint/mode spread and outcome-free availability
+improve without comfort, fallback, or latency regression.
