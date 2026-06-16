@@ -36,6 +36,7 @@ REQUIRED_REWARD_KEYS = (
 class SpliceConfig:
     anchor_steps: int = 10
     blend_steps: int = 10
+    heading_mode: str = "finite_difference"
     donor_pool: str = "lower_logged_union_red"
     min_progress_ratio: float = 0.8
 
@@ -56,6 +57,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--label", default=None)
     parser.add_argument("--anchor_steps", type=int, default=10)
     parser.add_argument("--blend_steps", type=int, default=10)
+    parser.add_argument(
+        "--heading_mode",
+        choices=("finite_difference", "donor_offset"),
+        default="finite_difference",
+    )
     parser.add_argument(
         "--donor_pool",
         choices=("lower_logged_union_red", "all_nonselected"),
@@ -78,6 +84,7 @@ def main() -> None:
         config=SpliceConfig(
             anchor_steps=args.anchor_steps,
             blend_steps=args.blend_steps,
+            heading_mode=args.heading_mode,
             donor_pool=args.donor_pool,
             min_progress_ratio=args.min_progress_ratio,
         ),
@@ -142,6 +149,7 @@ def analyze(
             donor_indices=donor_indices,
             anchor_steps=config.anchor_steps,
             blend_steps=config.blend_steps,
+            heading_mode=config.heading_mode,
         )
         transformed_scores = (
             _score_trajectories(
@@ -219,6 +227,7 @@ def build_splice_candidates(
     donor_indices: np.ndarray,
     anchor_steps: int,
     blend_steps: int,
+    heading_mode: str = "finite_difference",
 ) -> np.ndarray:
     raw = np.asarray(candidates, dtype=np.float64)
     if raw.ndim != 3 or raw.shape[0] <= 0 or raw.shape[2] < 2:
@@ -242,10 +251,21 @@ def build_splice_candidates(
             blend_steps=blend_steps,
         )
         if splice.shape[1] >= 4:
-            splice[:, 2:4] = heading_features_from_xy(
-                splice[:, :2],
-                fallback=selected[:, 2:4],
-            )
+            if heading_mode == "finite_difference":
+                heading = heading_features_from_xy(
+                    splice[:, :2],
+                    fallback=selected[:, 2:4],
+                )
+            elif heading_mode == "donor_offset":
+                heading = h10_preserving_heading_splice(
+                    selected[:, 2:4],
+                    raw[donor_index, :, 2:4],
+                    anchor_steps=anchor_steps,
+                    blend_steps=blend_steps,
+                )
+            else:
+                raise ValueError("invalid heading_mode.")
+            splice[:, 2:4] = heading
         splices.append(splice)
     if not splices:
         return np.empty((0, raw.shape[1], raw.shape[2]), dtype=np.float64)
@@ -281,6 +301,53 @@ def h10_preserving_tail_splice_xy(
         splice[step] = (1.0 - weight) * selected[step] + weight * tail[step]
     splice[:anchor_steps] = selected[:anchor_steps]
     return splice
+
+
+def h10_preserving_heading_splice(
+    selected_heading: np.ndarray,
+    donor_heading: np.ndarray,
+    *,
+    anchor_steps: int,
+    blend_steps: int,
+) -> np.ndarray:
+    selected_angle = _unwrap_heading_features(selected_heading)
+    donor_angle = _unwrap_heading_features(donor_heading)
+    if selected_angle.shape != donor_angle.shape:
+        raise ValueError("selected_heading and donor_heading must both be [T,2].")
+    if anchor_steps < 2:
+        raise ValueError("anchor_steps must be at least 2.")
+    if blend_steps < 0:
+        raise ValueError("blend_steps must be nonnegative.")
+    if selected_angle.shape[0] <= anchor_steps:
+        raise ValueError("trajectory length must exceed anchor_steps.")
+
+    anchor_index = anchor_steps - 1
+    tail = selected_angle[anchor_index] + (
+        donor_angle - donor_angle[anchor_index]
+    )
+    splice_angle = selected_angle.copy()
+    for step in range(anchor_index + 1, selected_angle.shape[0]):
+        if blend_steps == 0:
+            weight = 1.0
+        else:
+            u = min(max((step - anchor_index) / float(blend_steps), 0.0), 1.0)
+            weight = u * u * (3.0 - 2.0 * u)
+        splice_angle[step] = (
+            (1.0 - weight) * selected_angle[step] + weight * tail[step]
+        )
+    splice_angle[:anchor_steps] = selected_angle[:anchor_steps]
+    return np.stack((np.cos(splice_angle), np.sin(splice_angle)), axis=1)
+
+
+def _unwrap_heading_features(heading: np.ndarray) -> np.ndarray:
+    raw = np.asarray(heading, dtype=np.float64)
+    if raw.ndim != 2 or raw.shape[1] != 2:
+        raise ValueError("heading must be [T,2].")
+    norm = np.linalg.norm(raw, axis=1)
+    if np.any(norm <= TOL):
+        raise ValueError("heading vectors must have nonzero norm.")
+    unit = raw / norm[:, None]
+    return np.unwrap(np.arctan2(unit[:, 1], unit[:, 0]))
 
 
 def heading_features_from_xy(
@@ -340,6 +407,8 @@ def _validate_config(config: SpliceConfig) -> None:
         raise ValueError("anchor_steps must be at least 2.")
     if config.blend_steps < 0:
         raise ValueError("blend_steps must be nonnegative.")
+    if config.heading_mode not in {"finite_difference", "donor_offset"}:
+        raise ValueError("invalid heading_mode.")
     if config.donor_pool not in {"lower_logged_union_red", "all_nonselected"}:
         raise ValueError("invalid donor_pool.")
     if not np.isfinite(config.min_progress_ratio) or not (

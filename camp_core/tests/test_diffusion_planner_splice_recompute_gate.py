@@ -5,6 +5,7 @@ import numpy as np
 from scripts.integrations.analyze_diffusion_planner_splice_recompute_gate import (
     _donor_indices,
     build_splice_candidates,
+    h10_preserving_heading_splice,
     h10_preserving_tail_splice_xy,
     heading_features_from_xy,
     reason_counts,
@@ -23,6 +24,10 @@ def _candidate(end_x: float, end_y: float, *, steps: int = 8) -> np.ndarray:
     return traj
 
 
+def _heading_from_angles(angles: np.ndarray) -> np.ndarray:
+    return np.stack((np.cos(angles), np.sin(angles)), axis=1)
+
+
 def test_h10_preserving_tail_splice_keeps_anchor_prefix() -> None:
     selected = _candidate(8.0, 0.0)[:, :2]
     donor = _candidate(4.0, 4.0)[:, :2]
@@ -37,6 +42,26 @@ def test_h10_preserving_tail_splice_keeps_anchor_prefix() -> None:
     np.testing.assert_allclose(splice[:4], selected[:4])
     donor_tail = selected[3] + (donor - donor[3])
     np.testing.assert_allclose(splice[4:], donor_tail[4:])
+
+
+def test_h10_preserving_heading_splice_keeps_anchor_and_offsets_tail() -> None:
+    selected_angles = np.linspace(0.1, 0.4, 8, dtype=np.float64)
+    donor_angles = np.linspace(-0.5, 0.7, 8, dtype=np.float64)
+    selected = _heading_from_angles(selected_angles)
+    donor = _heading_from_angles(donor_angles)
+
+    splice = h10_preserving_heading_splice(
+        selected,
+        donor,
+        anchor_steps=4,
+        blend_steps=2,
+    )
+
+    np.testing.assert_allclose(splice[:4], selected[:4], atol=1e-12)
+    np.testing.assert_allclose(np.linalg.norm(splice, axis=1), 1.0, atol=1e-12)
+    expected_tail = selected_angles[3] + (donor_angles - donor_angles[3])
+    expected_tail_heading = _heading_from_angles(expected_tail)
+    np.testing.assert_allclose(splice[5:], expected_tail_heading[5:], atol=1e-12)
 
 
 def test_build_splice_candidates_reconstructs_unit_heading() -> None:
@@ -61,6 +86,37 @@ def test_build_splice_candidates_reconstructs_unit_heading() -> None:
     np.testing.assert_allclose(splices[:, :4, :2], expected_prefix)
     heading_norms = np.linalg.norm(splices[:, :, 2:4], axis=2)
     np.testing.assert_allclose(heading_norms, 1.0, atol=1e-12)
+
+
+def test_build_splice_candidates_can_use_donor_offset_heading_mode() -> None:
+    candidates = np.stack(
+        [
+            _candidate(8.0, 0.0),
+            _candidate(4.0, 4.0),
+        ]
+    )
+    candidates[0, :, 2:4] = _heading_from_angles(
+        np.linspace(0.1, 0.4, 8, dtype=np.float64)
+    )
+    candidates[1, :, 2:4] = _heading_from_angles(
+        np.linspace(-0.5, 0.7, 8, dtype=np.float64)
+    )
+
+    splices = build_splice_candidates(
+        candidates,
+        selected_index=0,
+        donor_indices=np.array([1], dtype=np.int64),
+        anchor_steps=4,
+        blend_steps=2,
+        heading_mode="donor_offset",
+    )
+
+    np.testing.assert_allclose(splices[0, :4, 2:4], candidates[0, :4, 2:4])
+    np.testing.assert_allclose(
+        np.linalg.norm(splices[0, :, 2:4], axis=1),
+        1.0,
+        atol=1e-12,
+    )
 
 
 def test_donor_indices_use_logged_union_red() -> None:
