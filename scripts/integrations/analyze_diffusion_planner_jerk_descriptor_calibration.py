@@ -37,11 +37,22 @@ from scripts.integrations.analyze_diffusion_planner_outcome_free_bounded_selecto
 )
 
 
-JERK_FEATURES = (
+DESCRIPTOR_FEATURES = (
     "raw_jerk",
     "tracker_command_jerk_mps3",
     "prefix_jerk_proxy",
     "rollout_h3_mean_vector_jerk_mps3",
+    "rollout_h5_mean_vector_jerk_mps3",
+    "rollout_h10_mean_vector_jerk_mps3",
+    "rollout_h3_max_vector_jerk_mps3",
+    "rollout_h5_max_vector_jerk_mps3",
+    "rollout_h10_max_vector_jerk_mps3",
+    "rollout_h3_mean_lateral_acceleration_mps2",
+    "rollout_h5_mean_lateral_acceleration_mps2",
+    "rollout_h10_mean_lateral_acceleration_mps2",
+    "rollout_h3_max_lateral_acceleration_mps2",
+    "rollout_h5_max_lateral_acceleration_mps2",
+    "rollout_h10_max_lateral_acceleration_mps2",
 )
 
 
@@ -175,7 +186,7 @@ def analyze(
                 "master. This calibration is not Benders and makes no "
                 "trajectory-coordinate convexity claim."
             ),
-            "features": list(JERK_FEATURES),
+            "features": list(DESCRIPTOR_FEATURES),
         },
         "thresholds": thresholds.__dict__,
         "records": totals,
@@ -199,6 +210,45 @@ def _feature_values(
             label,
         )
     )
+    features.update(
+        _rollout_feature_values(
+            raw_record,
+            int(raw_record["num_candidates"]),
+            label,
+        )
+    )
+    return features
+
+
+def _rollout_feature_values(
+    raw_record: dict[str, Any],
+    candidate_count: int,
+    label: str,
+) -> dict[str, np.ndarray]:
+    rollout = raw_record.get("candidate_perfect_tracker_open_loop_rollout")
+    if not isinstance(rollout, dict):
+        return {}
+    features: dict[str, np.ndarray] = {}
+    for horizon in (3, 5, 10):
+        horizon_payload = rollout.get(str(horizon), rollout.get(horizon))
+        if not isinstance(horizon_payload, dict):
+            continue
+        for source_key, suffix in (
+            ("mean_vector_jerk_mps3", "mean_vector_jerk_mps3"),
+            ("max_vector_jerk_mps3", "max_vector_jerk_mps3"),
+            ("mean_lateral_acceleration_mps2", "mean_lateral_acceleration_mps2"),
+            ("max_lateral_acceleration_mps2", "max_lateral_acceleration_mps2"),
+        ):
+            values = horizon_payload.get(source_key)
+            if values is None:
+                continue
+            vector = np.asarray(values, dtype=np.float64).reshape(-1)
+            if vector.size != candidate_count or not np.all(np.isfinite(vector)):
+                raise ValueError(
+                    f"{label} H{horizon} {source_key} must contain "
+                    f"{candidate_count} finite values."
+                )
+            features[f"rollout_h{horizon}_{suffix}"] = vector
     return features
 
 
@@ -231,7 +281,7 @@ def _candidate_row(
         "feature_deltas": {
             feature: float(values[candidate] - values[selected])
             for feature, values in features.items()
-            if feature in JERK_FEATURES
+            if feature in DESCRIPTOR_FEATURES
         },
     }
 
@@ -283,7 +333,7 @@ def _group_report(
 ) -> dict[str, Any]:
     features = {
         feature: _feature_report(rows, feature)
-        for feature in JERK_FEATURES
+        for feature in DESCRIPTOR_FEATURES
         if any(feature in row["feature_deltas"] for row in rows)
     }
     passing = [

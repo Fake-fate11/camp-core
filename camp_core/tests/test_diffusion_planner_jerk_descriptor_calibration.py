@@ -33,6 +33,9 @@ def _rollout() -> dict:
     return {
         str(horizon): {
             "mean_vector_jerk_mps3": [2.0, 3.0, 1.0],
+            "max_vector_jerk_mps3": [2.5, 3.5, 1.5],
+            "mean_lateral_acceleration_mps2": [0.5, 0.6, 0.4],
+            "max_lateral_acceleration_mps2": [0.7, 0.8, 0.6],
             "distance_m": [10.0, 9.95, 9.96],
         }
         for horizon in (3, 5, 10)
@@ -109,6 +112,8 @@ def test_jerk_descriptor_calibration_scores_failure_tick_candidates(tmp_path) ->
 
     raw = failure_group["features"]["raw_jerk"]
     assert raw["auc"]["posterior_jerk_improvement"] == pytest.approx(0.5)
+    h5_rollout = failure_group["features"]["rollout_h5_mean_vector_jerk_mps3"]
+    assert h5_rollout["auc"]["posterior_jerk_improvement"] == pytest.approx(1.0)
 
     markdown = render_markdown(report)
     assert "Jerk Descriptor Calibration" in markdown
