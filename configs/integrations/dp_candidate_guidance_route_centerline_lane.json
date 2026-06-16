@@ -1,0 +1,17 @@
+{
+  "global_scale": 0.2,
+  "functions": [
+    {
+      "name": "route_centerline_following",
+      "enabled": true,
+      "scale": 0.5,
+      "params": {}
+    },
+    {
+      "name": "lane_keeping",
+      "enabled": true,
+      "scale": 0.25,
+      "params": {}
+    }
+  ]
+}
