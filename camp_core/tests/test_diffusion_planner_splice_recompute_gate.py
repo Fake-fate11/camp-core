@@ -9,7 +9,9 @@ from scripts.integrations.analyze_diffusion_planner_splice_recompute_gate import
     h10_preserving_tail_splice_xy,
     heading_features_from_xy,
     reason_counts,
+    reward_budget_sensitivity,
     reward_hard_feasibility,
+    reward_metric_vector,
     reward_progress_screen,
 )
 
@@ -176,6 +178,39 @@ def test_reward_progress_screen_is_separate_from_hard_feasibility() -> None:
     np.testing.assert_array_equal(feasible, np.array([True, False, False]))
     assert reasons[1] == ("dp_underprogress",)
     assert reasons[2] == ()
+
+
+def test_reward_metric_vector_requires_finite_values() -> None:
+    values = reward_metric_vector(
+        [{"progress": 1.0}, {"progress": 2.5}],
+        "progress",
+    )
+
+    np.testing.assert_allclose(values, np.array([1.0, 2.5]))
+
+
+def test_reward_budget_sensitivity_counts_budgeted_lower_red_candidates() -> None:
+    rows = reward_budget_sensitivity(
+        progress=np.array([9.8, 9.0, 8.0]),
+        smoothness=np.array([0.9, 0.0, 0.9]),
+        lower_union=np.array([True, True, True]),
+        hard_feasible=np.array([True, True, False]),
+        selected_progress=10.0,
+        selected_smoothness=1.0,
+        progress_loss_budgets_m=(0.5, 1.5),
+        smoothness_loss_budgets=(0.2, 1.2),
+    )
+
+    by_budget = {
+        (row["progress_loss_budget_m"], row["smoothness_loss_budget"]): row
+        for row in rows
+    }
+    assert by_budget[(0.5, 0.2)]["count"] == 1
+    assert by_budget[(0.5, 0.2)]["has_candidate"] is True
+    assert by_budget[(0.5, 1.2)]["count"] == 1
+    assert by_budget[(1.5, 0.2)]["count"] == 1
+    assert by_budget[(1.5, 1.2)]["count"] == 2
+    assert np.isclose(by_budget[(1.5, 1.2)]["min_progress_loss_m"], 0.2)
 
 
 def test_reason_counts_can_be_masked() -> None:

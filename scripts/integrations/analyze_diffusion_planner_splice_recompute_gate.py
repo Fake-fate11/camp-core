@@ -39,6 +39,8 @@ class SpliceConfig:
     heading_mode: str = "finite_difference"
     donor_pool: str = "lower_logged_union_red"
     min_progress_ratio: float = 0.8
+    progress_loss_budgets_m: tuple[float, ...] = (0.5, 1.0, 1.5)
+    smoothness_loss_budgets: tuple[float, ...] = (0.0, 0.5, 1.0)
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,6 +70,26 @@ def parse_args() -> argparse.Namespace:
         default="lower_logged_union_red",
     )
     parser.add_argument("--min_progress_ratio", type=float, default=0.8)
+    parser.add_argument(
+        "--progress_loss_budget_m",
+        action="append",
+        type=float,
+        default=None,
+        help=(
+            "Absolute DP reward-progress loss budgets for offline sensitivity. "
+            "May be repeated. Defaults to 0.5, 1.0, 1.5."
+        ),
+    )
+    parser.add_argument(
+        "--smoothness_loss_budget",
+        action="append",
+        type=float,
+        default=None,
+        help=(
+            "DP smoothness reward loss budgets for offline comfort-proxy "
+            "sensitivity. May be repeated. Defaults to 0.0, 0.5, 1.0."
+        ),
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     return parser.parse_args()
@@ -87,6 +109,16 @@ def main() -> None:
             heading_mode=args.heading_mode,
             donor_pool=args.donor_pool,
             min_progress_ratio=args.min_progress_ratio,
+            progress_loss_budgets_m=tuple(
+                args.progress_loss_budget_m
+                if args.progress_loss_budget_m is not None
+                else (0.5, 1.0, 1.5)
+            ),
+            smoothness_loss_budgets=tuple(
+                args.smoothness_loss_budget
+                if args.smoothness_loss_budget is not None
+                else (0.0, 0.5, 1.0)
+            ),
         ),
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -415,6 +447,12 @@ def _validate_config(config: SpliceConfig) -> None:
         0.0 <= config.min_progress_ratio <= 1.0
     ):
         raise ValueError("min_progress_ratio must be in [0,1].")
+    for value in config.progress_loss_budgets_m:
+        if not np.isfinite(value) or value < 0.0:
+            raise ValueError("progress_loss_budgets_m must be nonnegative.")
+    for value in config.smoothness_loss_budgets:
+        if not np.isfinite(value) or value < 0.0:
+            raise ValueError("smoothness_loss_budgets must be nonnegative.")
 
 
 def _validate_snapshot(
@@ -639,10 +677,22 @@ def _snapshot_report_row(
     )
     selected_full = float(baseline_scores["full_red_cost"][selected])
     selected_union = float(baseline_scores["union_red_cost"][selected])
+    selected_progress = float(
+        reward_metric_vector(baseline_scores["reward_breakdowns"], "progress")[
+            selected
+        ]
+    )
+    selected_smoothness = float(
+        reward_metric_vector(baseline_scores["reward_breakdowns"], "smoothness")[
+            selected
+        ]
+    )
     transformed = _transformed_summary(
         transformed_scores,
         selected_union_red=selected_union,
         selected_full_red=selected_full,
+        selected_progress=selected_progress,
+        selected_smoothness=selected_smoothness,
         config=config,
     )
     return {
@@ -658,6 +708,8 @@ def _snapshot_report_row(
             "selected_near_red": float(baseline_scores["near_red_cost"][selected]),
             "selected_full_red": selected_full,
             "selected_union_red": selected_union,
+            "selected_progress": selected_progress,
+            "selected_smoothness": selected_smoothness,
             "logged_near_red_max_abs_error": _max_abs_error(
                 logged_near,
                 baseline_scores["near_red_cost"],
@@ -676,6 +728,8 @@ def _transformed_summary(
     *,
     selected_union_red: float,
     selected_full_red: float,
+    selected_progress: float,
+    selected_smoothness: float,
     config: SpliceConfig,
 ) -> dict[str, Any]:
     if scores is None:
@@ -696,6 +750,7 @@ def _transformed_summary(
             "min_union_red": None,
             "lower_union_red_count": 0,
             "lower_full_red_count": 0,
+            "budget_sensitivity": [],
         }
     near = np.asarray(scores["near_red_cost"], dtype=np.float64)
     full = np.asarray(scores["full_red_cost"], dtype=np.float64)
@@ -707,6 +762,18 @@ def _transformed_summary(
         min_progress_ratio=config.min_progress_ratio,
     )
     lower_union = union < selected_union_red - TOL
+    progress = reward_metric_vector(scores["reward_breakdowns"], "progress")
+    smoothness = reward_metric_vector(scores["reward_breakdowns"], "smoothness")
+    budget_sensitivity = reward_budget_sensitivity(
+        progress=progress,
+        smoothness=smoothness,
+        lower_union=lower_union,
+        hard_feasible=hard_feasible,
+        selected_progress=selected_progress,
+        selected_smoothness=selected_smoothness,
+        progress_loss_budgets_m=config.progress_loss_budgets_m,
+        smoothness_loss_budgets=config.smoothness_loss_budgets,
+    )
     return {
         "count": int(union.size),
         "has_lower_union_red": bool(np.any(lower_union)),
@@ -740,6 +807,7 @@ def _transformed_summary(
         "min_union_red": float(np.min(union)) if union.size else None,
         "lower_union_red_count": int(np.sum(lower_union)),
         "lower_full_red_count": int(np.sum(full < selected_full_red - TOL)),
+        "budget_sensitivity": budget_sensitivity,
     }
 
 
@@ -797,7 +865,114 @@ def _summarize_transformed(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "lower_union_red_count": int(
             sum(row["lower_union_red_count"] for row in active)
         ),
+        "budget_sensitivity": _summarize_budget_sensitivity(active),
     }
+
+
+def reward_metric_vector(rewards: list[dict[str, Any]], key: str) -> np.ndarray:
+    values = np.asarray(
+        [float(row.get(key, np.nan)) for row in rewards],
+        dtype=np.float64,
+    )
+    if values.ndim != 1 or not np.all(np.isfinite(values)):
+        raise ValueError(f"Reward metric {key!r} must be finite for every row.")
+    return values
+
+
+def reward_budget_sensitivity(
+    *,
+    progress: np.ndarray,
+    smoothness: np.ndarray,
+    lower_union: np.ndarray,
+    hard_feasible: np.ndarray,
+    selected_progress: float,
+    selected_smoothness: float,
+    progress_loss_budgets_m: tuple[float, ...],
+    smoothness_loss_budgets: tuple[float, ...],
+) -> list[dict[str, Any]]:
+    progress_arr = np.asarray(progress, dtype=np.float64).reshape(-1)
+    smoothness_arr = np.asarray(smoothness, dtype=np.float64).reshape(-1)
+    lower_arr = np.asarray(lower_union, dtype=bool).reshape(-1)
+    hard_arr = np.asarray(hard_feasible, dtype=bool).reshape(-1)
+    if not (
+        progress_arr.shape
+        == smoothness_arr.shape
+        == lower_arr.shape
+        == hard_arr.shape
+    ):
+        raise ValueError("Budget sensitivity masks and metrics must align.")
+    if not np.all(np.isfinite(progress_arr)) or not np.all(np.isfinite(smoothness_arr)):
+        raise ValueError("Budget sensitivity metrics must be finite.")
+    if not np.isfinite(selected_progress) or not np.isfinite(selected_smoothness):
+        raise ValueError("Selected budget sensitivity metrics must be finite.")
+
+    progress_loss = float(selected_progress) - progress_arr
+    smoothness_loss = float(selected_smoothness) - smoothness_arr
+    base = lower_arr & hard_arr
+    rows: list[dict[str, Any]] = []
+    for progress_budget in progress_loss_budgets_m:
+        for smoothness_budget in smoothness_loss_budgets:
+            if not np.isfinite(progress_budget) or progress_budget < 0.0:
+                raise ValueError("progress_loss_budgets_m must be nonnegative.")
+            if not np.isfinite(smoothness_budget) or smoothness_budget < 0.0:
+                raise ValueError("smoothness_loss_budgets must be nonnegative.")
+            mask = (
+                base
+                & (progress_loss <= float(progress_budget) + TOL)
+                & (smoothness_loss <= float(smoothness_budget) + TOL)
+            )
+            rows.append(
+                {
+                    "progress_loss_budget_m": float(progress_budget),
+                    "smoothness_loss_budget": float(smoothness_budget),
+                    "count": int(np.sum(mask)),
+                    "has_candidate": bool(np.any(mask)),
+                    "min_progress_loss_m": _masked_min(progress_loss, mask),
+                    "min_smoothness_loss": _masked_min(smoothness_loss, mask),
+                }
+            )
+    return rows
+
+
+def _summarize_budget_sensitivity(active: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not active:
+        return []
+    keys = [
+        (
+            float(row["progress_loss_budget_m"]),
+            float(row["smoothness_loss_budget"]),
+        )
+        for row in active[0]["budget_sensitivity"]
+    ]
+    rows = []
+    for progress_budget, smoothness_budget in keys:
+        cells = [
+            cell
+            for row in active
+            for cell in row["budget_sensitivity"]
+            if (
+                float(cell["progress_loss_budget_m"]) == progress_budget
+                and float(cell["smoothness_loss_budget"]) == smoothness_budget
+            )
+        ]
+        rows.append(
+            {
+                "progress_loss_budget_m": progress_budget,
+                "smoothness_loss_budget": smoothness_budget,
+                "count": int(sum(int(cell["count"]) for cell in cells)),
+                "snapshots_with_candidate": int(
+                    sum(int(bool(cell["has_candidate"])) for cell in cells)
+                ),
+            }
+        )
+    return rows
+
+
+def _masked_min(values: np.ndarray, mask: np.ndarray) -> float | None:
+    active = np.asarray(values, dtype=np.float64)[np.asarray(mask, dtype=bool)]
+    if not active.size:
+        return None
+    return float(np.min(active))
 
 
 def _optional_vector(value: Any, count: int) -> np.ndarray | None:
@@ -840,8 +1015,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         f"- Snapshots: `{report['snapshots']['count']}`",
         f"- Donor pool: `{report['config']['donor_pool']}`",
+        f"- Heading mode: `{report['config']['heading_mode']}`",
         f"- Anchor steps: `{report['config']['anchor_steps']}`",
         f"- Blend steps: `{report['config']['blend_steps']}`",
+        f"- Progress loss budgets: `{report['config']['progress_loss_budgets_m']}`",
+        f"- Smoothness loss budgets: `{report['config']['smoothness_loss_budgets']}`",
         "",
         "## Gate Summary",
         "",
@@ -856,16 +1034,40 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Lower union-red hard infeasibility reasons: `{report['transformed']['lower_union_red_hard_infeasibility_reason_counts']}`",
         f"- Lower union-red progress infeasibility reasons: `{report['transformed']['lower_union_red_progress_infeasibility_reason_counts']}`",
         "",
-        "## Baseline Recompute Check",
+        "## Budget Sensitivity",
         "",
-        f"- Logged near-red max error: `{_fmt(report['baseline_recompute']['logged_near_red_max_abs_error']['max'])}`",
-        f"- Logged full-red max error: `{_fmt(report['baseline_recompute']['logged_full_red_max_abs_error']['max'])}`",
+        "The budget screen is posterior diagnostic evidence over fixed transformed candidates: lower union-red, DP hard-feasible, within absolute DP progress loss budget, and within DP smoothness reward loss budget.",
         "",
-        "## Rows",
-        "",
-        "| Step | Selected | Donors | Selected union-red | Min transformed union-red | Lower union-red | Lower union-red hard-feasible | Lower union-red progress-feasible |",
-        "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Progress loss budget (m) | Smoothness loss budget | Candidate count | Snapshots with candidate |",
+        "| ---: | ---: | ---: | ---: |",
     ]
+    for cell in report["transformed"]["budget_sensitivity"]:
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    _fmt(cell["progress_loss_budget_m"]),
+                    _fmt(cell["smoothness_loss_budget"]),
+                    str(cell["count"]),
+                    str(cell["snapshots_with_candidate"]),
+                ]
+            )
+            + " |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Baseline Recompute Check",
+            "",
+            f"- Logged near-red max error: `{_fmt(report['baseline_recompute']['logged_near_red_max_abs_error']['max'])}`",
+            f"- Logged full-red max error: `{_fmt(report['baseline_recompute']['logged_full_red_max_abs_error']['max'])}`",
+            "",
+            "## Rows",
+            "",
+            "| Step | Selected | Donors | Selected union-red | Min transformed union-red | Lower union-red | Lower union-red hard-feasible | Lower union-red progress-feasible |",
+            "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
     for row in report["rows"]:
         lines.append(
             "| "
