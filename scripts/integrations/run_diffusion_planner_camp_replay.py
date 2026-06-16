@@ -1543,7 +1543,16 @@ def _write_microbenchmark_snapshot(
         "candidate_dimension": int(candidates.shape[2]),
         "candidate_noise_scale": float(noise_scale),
         "candidate_reference_blend_steps": reference_blend_steps,
+        "candidate_generation_contract": _candidate_generation_contract(
+            model_args,
+            num_candidates=num_candidates,
+            noise_scale=noise_scale,
+            reference_blend_steps=reference_blend_steps,
+        ),
         "candidate_generation_seed": int(1729 + selection_step),
+        "candidate_generation_seed_scope": (
+            "microbenchmark_replay_only_not_original_tick_rng"
+        ),
         "reward_horizon_steps": int(reward_horizon_steps),
         "outcome_horizon_steps": int(outcome_horizon_steps),
         "dt": float(context.dt),
@@ -1590,6 +1599,44 @@ def _write_microbenchmark_snapshot(
     output_path = output_dir / f"camp_microbenchmark_step_{selection_step:04d}.npz"
     np.savez_compressed(output_path, **arrays)
     return output_path
+
+
+def _candidate_generation_contract(
+    model_args: Any,
+    *,
+    num_candidates: int,
+    noise_scale: float,
+    reference_blend_steps: int | None,
+) -> dict[str, Any]:
+    future_len = int(model_args.future_len)
+    predicted_neighbor_num = int(model_args.predicted_neighbor_num)
+    return {
+        "schema_version": "dp_candidate_generation_contract_v1",
+        "model_type": str(getattr(model_args, "diffusion_model_type", "unknown")),
+        "future_len": future_len,
+        "predicted_neighbor_num": predicted_neighbor_num,
+        "num_candidates": int(num_candidates),
+        "latent_shape": [
+            int(num_candidates),
+            1 + predicted_neighbor_num,
+            future_len + 1,
+            4,
+        ],
+        "latent_distribution": "standard_normal_scaled",
+        "noise_scale": float(noise_scale),
+        "deterministic_first": True,
+        "candidate0_latent": "zeros",
+        "random_seed_scope": "process_global_torch_rng",
+        "recorded_tick_seed": None,
+        "guidance_enabled": False,
+        "guidance_policy": "disabled_for_camp_candidate_generation",
+        "dpm_solver_steps": 10,
+        "dpm_skip_type": "logSNR",
+        "reference_blend_steps": reference_blend_steps,
+        "changes_candidate_set": True,
+        "changes_camp_score": False,
+        "changes_diffusion_planner_weights": False,
+    }
 
 
 def _install_camp_predictor(
@@ -2170,7 +2217,14 @@ def _install_camp_predictor(
                 ),
                 "underprogress_relaxation": underprogress_relaxation_stats,
                 "num_candidates": int(num_candidates),
+                "candidate_noise_scale": float(noise_scale),
                 "candidate_reference_blend_steps": reference_blend_steps,
+                "candidate_generation_contract": _candidate_generation_contract(
+                    model_args,
+                    num_candidates=num_candidates,
+                    noise_scale=noise_scale,
+                    reference_blend_steps=reference_blend_steps,
+                ),
                 "candidate_trajectory_horizon_steps": int(candidates.shape[1]),
                 "candidate_first_reference_xy": (
                     candidates[:, 0, :2].tolist()
@@ -2713,6 +2767,16 @@ def main() -> None:
         "num_candidates": effective_num_candidates,
         "candidate_noise_scale": effective_noise_scale,
         "candidate_reference_blend": effective_reference_blend,
+        "candidate_generation_contract": (
+            _candidate_generation_contract(
+                model_args,
+                num_candidates=args.num_candidates,
+                noise_scale=args.candidate_noise_scale,
+                reference_blend_steps=args.candidate_reference_blend_steps,
+            )
+            if records is not None
+            else None
+        ),
         "camp_microbenchmark_snapshots": (
             {
                 "enabled": True,
