@@ -5388,3 +5388,108 @@ chain remains unchanged.
 | `k16_noise1p0` smooth projection markdown | `1d651f7e70e97d34dcc846cf60dd84340bcc3884c7e0ed38eb38a1fc1dc4b966` |
 | `k16_noise0p75` smooth projection JSON | `777f173011a180472f6439e763b4526fd702c49b8aac2b51ce3fd9a7ac279dcf` |
 | `k16_noise0p75` smooth projection markdown | `e7ae7826a6e199dc0ffb6062d2a52efa222d3b015496e8e65ccd7b766362f442` |
+
+### Materiality gap audit
+
+Commit `e53e70c31cd46126ec1a5f9904a6b3445f9ebcc4` adds a layer-by-layer
+materiality audit for the same safety-nonworse, joint jerk/lateral-improving
+oracle donor candidates used by the graft/projection screens. Commit
+`cfe6789f9de599204b16cdab1c5b6454ae70442f` makes `candidate_route_progress`
+optional because early records in the existing logs store it as `null`.
+
+This audit exists to explain why the smooth anchor projection was too small to
+matter. It compares the oracle donor against the selected candidate across:
+
+1. realized outcome labels computed from raw DP candidate trajectories;
+2. raw DP candidate proxy costs;
+3. PerfectTracker command proxy values;
+4. stored PerfectTracker postprocessed reference prefixes;
+5. fixed-candidate PerfectTracker open-loop rollout shadows.
+
+Important provenance boundary:
+
+```text
+candidate_closed_loop_outcomes = compute_candidate_closed_loop_outcomes(candidates, ...)
+```
+
+Those labels are computed from the raw DP candidate trajectory branch. The
+recent first-step, anchored-residual, and smooth-projection screens operate on
+`candidate_perfect_tracker_postprocessed_reference_prefix`. Therefore a
+projection that is clean on the tracker prefix can still erase the raw
+candidate differences that made the oracle donor improve realized outcome
+comfort.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests
+204 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+209 passed
+```
+
+AutoDL GitHub fetch timed out during synchronization, so both materiality
+commits were transferred by local git bundles and merged fast-forward. DP
+remained at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Layer agreement summary:
+
+| Candidate set | Raw DP jerk excess improve | Raw horizon lateral improve | Tracker command jerk improve | Tracker command lateral improve | Prefix jerk proxy improve | H3 rollout jerk improve | H3 rollout lateral improve |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 0.550989 | 1.000000 | 0.441400 | 0.609589 | 0.592085 | 0.480213 | 0.661339 |
+| `k16_noise1p0` | 0.515129 | 1.000000 | 0.429520 | 0.573432 | 0.591144 | 0.478229 | 0.659041 |
+| `k16_noise0p75` | 0.521078 | 1.000000 | 0.446441 | 0.578438 | 0.597097 | 0.505874 | 0.666897 |
+
+Key deltas:
+
+| Candidate set | Outcome progress delta mean | Outcome jerk delta mean | Outcome lateral delta mean | Tracker command jerk delta mean | H3 rollout jerk delta mean | Prefix max xy distance mean | Prefix H10 displacement delta mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | -0.291513 m | -0.179400 m/s^3 | -0.014655 m/s^2 | +0.436726 m/s^3 | -0.013038 m/s^3 | 0.075502 m | -0.068314 m |
+| `k16_noise1p0` | -1.248050 m | -0.153059 m/s^3 | -0.015786 m/s^2 | +0.877841 m/s^3 | +0.031385 m/s^3 | 0.074605 m | -0.062012 m |
+| `k16_noise0p75` | -0.509320 m | -0.127507 m/s^3 | -0.011280 m/s^2 | +0.178910 m/s^3 | -0.058772 m/s^3 | 0.055173 m | -0.048635 m |
+
+Prefix materiality:
+
+| Candidate set | Prefix max >= 1 mm | Prefix max >= 1 cm | Prefix max >= 10 cm | Prefix max xy P95 |
+| --- | ---: | ---: | ---: | ---: |
+| K=8 baseline | 1.000000 | 0.938356 | 0.223744 | 0.228560 m |
+| `k16_noise1p0` | 0.999262 | 0.935793 | 0.231734 | 0.226365 m |
+| `k16_noise0p75` | 0.997927 | 0.872840 | 0.140981 | 0.180481 m |
+
+Interpretation:
+
+1. Lateral outcome improvement is not hidden. The raw DP horizon lateral proxy
+   improves in `100%` of oracle-donor records, with the same mean deltas as
+   realized outcome lateral acceleration.
+2. Jerk outcome improvement is only weakly visible in current tracker-level
+   quantities. Raw DP jerk excess improves in only `52-55%`; tracker command
+   jerk improves in only `43-45%` and has a positive mean delta; H3 rollout jerk
+   is near coin-flip and can have positive mean delta.
+3. The postprocessed donor prefix is materially different from the selected
+   prefix at centimeter scale in most records. The smooth projection became
+   sub-millimeter because it forced selected H1/H3/H5/H10 anchors exactly,
+   removing the donor's useful anchor/progress displacement.
+4. The useful donor differences are tied to progress/anchor displacement:
+   donors reduce outcome comfort metrics but lose progress and target speed.
+   Hard-constraining progress anchors preserves progress by construction but
+   also removes the material geometry needed for comfort change.
+
+Decision: do not run a replay matrix, latency smoke, online selector change,
+CAMP retraining, or formal seeds from materiality alone. The next admissible
+route should operate closer to the raw DP candidate geometry or explicitly
+allow a bounded, state-dependent progress/anchor tradeoff while preserving
+smoothness. A tracker-prefix-only projection with exact selected anchors is
+too small to matter; a command-jerk rule is also insufficient because it is
+anti-aligned on average for these oracle donors.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Materiality gap analyzer | `1373c3dd2d04b5ba0e4e9e14cd3847b2046d6a7a5e673ca7b540cf9f18e67ae1` |
+| Materiality gap analyzer tests | `5f2baf05a6f75206e29db28a779f3bf007a2d37e7dca66a379ad40cf116fa3ea` |
+| K=8 materiality JSON | `9ce21dcb9c1923bcb2abaae1eceecb6a94005bd8f1d8f67c62b10bb5f75bcb45` |
+| K=8 materiality markdown | `018f272bd1553567e97bc5a222d49a19350ab1ba8dbac4fe276bdbfc959fe726` |
+| `k16_noise1p0` materiality JSON | `d84155625c54004b69aa25fdff7bec21edc0428575c38529a2bb88d7cf916d7d` |
+| `k16_noise1p0` materiality markdown | `899d56915f401e9b28f67106f06a8cbf7deacb86db4a10808a531f41bb2aa990` |
+| `k16_noise0p75` materiality JSON | `30085779aa56b0a0381f7db0c2fbd74c08879913bf089d0167211072f7514d86` |
+| `k16_noise0p75` materiality markdown | `aca40024c5e8f8f2abe9cb8cd1f042415486b2f0653144286498c0bbfc0274ad` |
