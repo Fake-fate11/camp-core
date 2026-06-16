@@ -6974,3 +6974,67 @@ regresses and both p95 candidate-generation and p95 selection latency increase.
 The route-progress and planned-lane improvements are not sufficient to override
 the feasibility and latency regressions. Do not expand this branch to formal
 seeds, online selection, or CAMP retraining.
+
+### Anchor-following progress-mode guidance predeclaration
+
+After rejecting K16/noise, route/lane guidance, and antithetic latent sampling,
+the only remaining official DP guidance path with a plausible progress
+preservation story is `anchor_following`: it is registered in the fixed DP
+checkout and does not require adding `reference_trajectory` to replay inputs.
+Its energy softly attracts the generated ego trajectory to one precomputed
+prototype trajectory. This branch still uses the official `GuidanceComposer`,
+so the expected risk is the same guidance backward-pass latency that rejected
+the route/lane config.
+
+Read-only prototype audit:
+
+```text
+/root/autodl-tmp/Diffusion-Planner/rlvr/prototypes_k16.npy
+shape = (16, 80, 2)
+chosen anchor_index = 15
+final_x = 25.350845 m
+final_y = 1.946983 m
+path_length = 25.192469 m
+max_abs_y = 1.946984 m
+```
+
+This is the most forward low-lateral prototype in the `rlvr` prototype set.
+The farther `rlvr` index 14 has `final_y = 9.156084 m`, so it is a stronger
+lateral-mode intervention rather than a progress-preserving smoke. The
+`guidance_gui` prototype file contains more aggressive 50-70 m forward anchors
+and is not used for this minimal gate.
+
+Predeclared config content for the AutoDL smoke:
+
+```json
+{
+  "global_scale": 0.2,
+  "functions": [
+    {
+      "name": "anchor_following",
+      "enabled": true,
+      "scale": 0.5,
+      "params": {
+        "prototypes_path": "/root/autodl-tmp/Diffusion-Planner/rlvr/prototypes_k16.npy",
+        "anchor_index": 15
+      }
+    }
+  ]
+}
+```
+
+Gate:
+
+1. Run only a matched one-seed, three-step, non-formal smoke against the same
+   iid baseline pattern: sample59 traffic-light route, seed 101, K=8, no NPCs,
+   perfect tracking, redstopfloor05 static weights, and no formal seeds.
+2. Confirm replay summaries and selection records record the exact guidance
+   config SHA, `active_function_names = ["anchor_following"]`, and the disabled
+   CAMP/DP weight-change flags.
+3. Reject unless feasibility, selected safety metrics, fallback rate, route
+   progress, and p95 latency are all non-regressing. Because route/lane guidance
+   already failed latency, any p95 candidate-generation or selection regression
+   is sufficient to reject this branch before sample59 paired runs.
+4. Treat the result strictly as a fixed-DP finite candidate-set diagnostic. It
+   is not a CAMP atom, not Benders, and does not imply trajectory-coordinate
+   convexity.
