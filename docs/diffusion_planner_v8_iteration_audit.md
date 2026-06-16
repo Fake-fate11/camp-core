@@ -7663,3 +7663,106 @@ Acceptance for this diagnostic:
    DP retraining.
 
 Formal seeds `11/12/13` remain frozen.
+
+### H80 raw-prefix geometry diagnostic result
+
+The predeclared H80 raw-prefix diagnostic completed under:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_h80_sample59_static_9fa9824
+```
+
+It produced 12 validation summaries and 12 selection logs. Structural audit:
+
+| Check | Result |
+| --- | ---: |
+| Selection logs | 12 |
+| Validation summaries | 12 |
+| Selection records | 2,400 |
+| Missing raw prefixes | 0 |
+| Raw prefix shape | `8 x 80 x 4` for all records |
+| Postprocessed prefix shape | `8 x 10 x 3` for all records |
+| Validation mode | `('static', 'perfect')` for all 12 runs |
+
+The older raw/postprocessed geometry analyzer clamps to the common available
+horizon, so it remains a 10-step transform audit. Commit
+`7acb911f82075f909ba8f8d33b17090d41b45904` adds a raw-only multi-horizon
+materiality analyzer to evaluate the newly logged 80-step raw prefixes without
+requiring a 80-step postprocessed prefix.
+
+Verification:
+
+```text
+py -3.12 -m py_compile scripts\integrations\analyze_diffusion_planner_raw_prefix_horizon_materiality.py
+
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_raw_prefix_horizon_materiality.py
+2 passed
+
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_raw_prefix_geometry.py \
+  camp_core\tests\test_diffusion_planner_raw_prefix_materiality_by_state.py
+4 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_raw_prefix_horizon_materiality.py
+2 passed
+```
+
+Raw-only horizon summary over all 2,400 records:
+
+| Horizon | Raw endpoint mean | Raw endpoint p95 | Raw endpoint max | Raw prefix mean | Selected-distance mean |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| H10 | 0.098633 m | 0.280582 m | 0.648173 m | 0.050898 m | 0.063390 m |
+| H30 | 0.355850 m | 0.972424 m | 3.174570 m | 0.170378 m | 0.215884 m |
+| H80 | 1.251789 m | 4.723663 m | 11.323578 m | 0.538569 m | 0.647065 m |
+
+Selected H80 state-conditioned groups:
+
+| Group | Count | H80 endpoint mean | H80 endpoint p95 | H80 prefix mean | Selected union-red mean | Progress atom mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| all | 2,400 | 1.251789 m | 4.723663 m | 0.538569 m | 1.406250 | 0.109030 |
+| traffic_lights=on | 1,200 | 1.222708 m | 4.691326 m | 0.533858 m | 2.812500 | 0.111635 |
+| traffic_lights=off | 1,200 | 1.280869 m | 4.817676 m | 0.543279 m | 0.000000 | 0.106424 |
+| npc=0 | 1,200 | 0.983218 m | 3.951549 m | 0.412499 m | 0.352917 | 0.068740 |
+| npc=4 | 1,200 | 1.520360 m | 5.312454 m | 0.664638 m | 2.459583 | 0.149320 |
+| fallback=true | 484 | 0.932489 m | 2.276625 m | 0.432786 m | 4.997934 | 0.349802 |
+| fallback=false | 1,916 | 1.332447 m | 5.203695 m | 0.565290 m | 0.498956 | 0.048209 |
+| selected_union_red_positive=true | 107 | 1.375450 m | 5.794157 m | 0.606037 m | 31.542056 | 0.213729 |
+| selected_union_red_positive=false | 2,293 | 1.246018 m | 4.689885 m | 0.535420 m | 0.000000 | 0.104144 |
+| any_union_red=true | 131 | 1.735982 m | 5.968796 m | 0.706556 m | 25.763359 | 0.236310 |
+| any_union_red=false | 2,269 | 1.223834 m | 4.603770 m | 0.528870 m | 0.000000 | 0.101681 |
+| selected_feasible=true | 1,916 | 1.332447 m | 5.203695 m | 0.565290 m | 0.498956 | 0.048209 |
+| selected_feasible=false | 484 | 0.932489 m | 2.276625 m | 0.432786 m | 4.997934 | 0.349802 |
+| feasible_bucket=all | 1,644 | 1.005088 m | 2.857958 m | 0.430401 m | 0.058090 | 0.036079 |
+| feasible_bucket=partial | 272 | 3.311042 m | 8.748158 m | 1.380577 m | 3.163603 | 0.121522 |
+| feasible_bucket=none | 484 | 0.932489 m | 2.276625 m | 0.432786 m | 4.997934 | 0.349802 |
+
+Decision: reject the stronger long-horizon hypothesis that fixed DP lacks H80
+raw geometric materiality on the red-exposed sample59 records. The H80 raw
+candidate set is materially wider than H10: mean endpoint spread rises from
+9.86 cm to 1.25 m, p95 rises from 28.06 cm to 4.72 m, and max rises to
+11.32 m. Red-exposed groups are not below the global mean: selected union-red
+positive records have 1.38 m mean H80 endpoint spread and any-union-red records
+have 1.74 m. Partial-feasible records have the largest spread at 3.31 m.
+
+This means the active blocker is not generic raw candidate geometry collapse.
+The evidence points back to finite-candidate selection tradeoffs: lower-red
+alternatives exist in some states, but earlier audits showed they usually cost
+progress, H3 distance, or comfort. The next mathematically admissible branch is
+therefore a finite-candidate safety override design with explicit progress and
+comfort budgets. It must remain fail-closed, deterministic, fixed-candidate,
+and outcome-free; it is not Benders unless a valid master/subproblem/dual-cut
+construction is introduced.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| H80 predeclare dry-run | `10a9edd9eb9c90fc29aa5166a11f6be3f9ea08de6201c64acfe7553f26d86b55` |
+| H80 shape audit JSON | `3b7dd7b8023ac389027affb325435a95c4bf3b423b033d234a30a19bed08490e` |
+| H80 common-prefix geometry JSON | `436b04bd6e29dc773c2579101ec2af4a0a2041247853d11efcab57ac7d216cc3` |
+| H80 common-prefix geometry markdown | `4ed7296719eac817d3fd1b6ab66b6724dab6185d99b6d9afeddcfe251b0c2639` |
+| H80 common-prefix materiality JSON | `909a35ed576f5814a5fc0a3633f267ed18d31d63019608d5f68a752f950038fb` |
+| H80 common-prefix materiality markdown | `70b6457fedd0d5a5c60dee0e642ad706555c4fe580d9ca1c95d67678367e77e4` |
+| Raw-only horizon materiality JSON | `cb85e37e396f86e30edf0b6b48b8c49efd14284e3e18534aa52559dba0375ed5` |
+| Raw-only horizon materiality markdown | `e4af6782fe56abc0fdfa5a16182e05146455e786216ef469c35edf94b93daebf` |
