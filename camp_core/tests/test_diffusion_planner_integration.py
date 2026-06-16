@@ -36,6 +36,7 @@ from camp_core.integrations.diffusion_planner import (
     compute_perfect_tracker_open_loop_rollout_diagnostics,
     compute_red_stopping_margin_costs,
     extract_dp_scene_features,
+    generate_candidate_trajectories,
     install_lanelet2_projection_fallback,
     project_simplex,
     sanitize_lanelet2_map,
@@ -653,6 +654,118 @@ def test_candidate_reference_blend_rejects_invalid_steps(blend_steps) -> None:
 
     with pytest.raises(ValueError, match="blend_steps"):
         blend_candidate_prefix_with_reference(candidates, blend_steps)
+
+
+def test_candidate_generation_disables_guidance_by_default() -> None:
+    torch = pytest.importorskip("torch")
+
+    class _Args:
+        predicted_neighbor_num = 0
+        future_len = 3
+
+    guidance = object()
+
+    class _Decoder:
+        _guidance_fn = guidance
+
+    class _Model:
+        decoder = _Decoder()
+
+        def __init__(self) -> None:
+            self.calls = []
+
+        def __call__(self, inputs):
+            self.calls.append(
+                {
+                    "guidance": self.decoder._guidance_fn,
+                    "grad_enabled": torch.is_grad_enabled(),
+                }
+            )
+            sampled = inputs["sampled_trajectories"]
+            return None, {"prediction": sampled[:, :, 1:, :]}
+
+    model = _Model()
+    inputs = {"ego_current_state": torch.zeros(1, 4)}
+
+    candidates, neighbors, turn_logits = generate_candidate_trajectories(
+        model,
+        _Args(),
+        inputs,
+        num_candidates=2,
+        noise_scale=0.0,
+    )
+
+    assert model.calls == [{"guidance": None, "grad_enabled": False}]
+    assert model.decoder._guidance_fn is guidance
+    assert candidates.shape == (2, 3, 4)
+    assert neighbors.shape == (2, 0, 3, 4)
+    assert turn_logits is None
+
+
+def test_candidate_generation_preserves_guidance_when_requested() -> None:
+    torch = pytest.importorskip("torch")
+
+    class _Args:
+        predicted_neighbor_num = 0
+        future_len = 3
+
+    guidance = object()
+
+    class _Decoder:
+        _guidance_fn = guidance
+
+    class _Model:
+        decoder = _Decoder()
+
+        def __init__(self) -> None:
+            self.calls = []
+
+        def __call__(self, inputs):
+            self.calls.append(
+                {
+                    "guidance": self.decoder._guidance_fn,
+                    "grad_enabled": torch.is_grad_enabled(),
+                }
+            )
+            sampled = inputs["sampled_trajectories"]
+            return None, {"prediction": sampled[:, :, 1:, :]}
+
+    model = _Model()
+    inputs = {"ego_current_state": torch.zeros(1, 4)}
+
+    generate_candidate_trajectories(
+        model,
+        _Args(),
+        inputs,
+        num_candidates=2,
+        noise_scale=0.0,
+        guidance_policy="preserve",
+    )
+
+    assert model.calls == [{"guidance": guidance, "grad_enabled": True}]
+    assert model.decoder._guidance_fn is guidance
+
+
+def test_candidate_generation_rejects_unknown_guidance_policy() -> None:
+    torch = pytest.importorskip("torch")
+
+    class _Args:
+        predicted_neighbor_num = 0
+        future_len = 3
+
+    class _Model:
+        class decoder:
+            _guidance_fn = None
+
+    with pytest.raises(ValueError, match="guidance_policy"):
+        generate_candidate_trajectories(
+            _Model(),
+            _Args(),
+            {"ego_current_state": torch.zeros(1, 4)},
+            num_candidates=1,
+            noise_scale=0.0,
+            guidance_policy="bad",
+        )
 
 
 def test_dp_prior_comfort_excess_respects_requested_horizon() -> None:

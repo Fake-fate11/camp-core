@@ -19,6 +19,8 @@ MAP_PATH="${MAP_PATH:-}"
 STEPS="${STEPS:-20}"
 NUM_CANDIDATES="${NUM_CANDIDATES:-8}"
 CANDIDATE_NOISE_SCALE="${CANDIDATE_NOISE_SCALE:-1.0}"
+CANDIDATE_GUIDANCE_CONFIG="${CANDIDATE_GUIDANCE_CONFIG:-}"
+CANDIDATE_GUIDANCE_SCALE="${CANDIDATE_GUIDANCE_SCALE:-}"
 CAMP_FEASIBILITY_SOURCE="${CAMP_FEASIBILITY_SOURCE:-dp_reward}"
 CAMP_MIN_PROGRESS_RATIO="${CAMP_MIN_PROGRESS_RATIO:-0.8}"
 CAMP_REWARD_HORIZON_STEPS="${CAMP_REWARD_HORIZON_STEPS:-30}"
@@ -60,6 +62,9 @@ fi
 require_file "$ROUTE" "saved Route"
 require_file "$SPAWN_CONFIG" "spawn config"
 require_file "$CAMP_ATOM_SCALES" "CAMP atom scales"
+if [[ -n "$CANDIDATE_GUIDANCE_CONFIG" ]]; then
+  require_file "$CANDIDATE_GUIDANCE_CONFIG" "candidate guidance config"
+fi
 if [[ "$CAMP_FEASIBILITY_SOURCE" == "dp_reward" ]]; then
   require_file "$REWARD_CONFIG" "reward config"
 fi
@@ -165,6 +170,12 @@ RUN_ARGS=(
   --spawn_probability "$SPAWN_PROBABILITY"
 )
 RUN_ARGS+=("${CAMP_WEIGHT_ARGS[@]}")
+if [[ -n "$CANDIDATE_GUIDANCE_CONFIG" ]]; then
+  RUN_ARGS+=(--candidate_guidance_config "$CANDIDATE_GUIDANCE_CONFIG")
+fi
+if [[ -n "$CANDIDATE_GUIDANCE_SCALE" ]]; then
+  RUN_ARGS+=(--candidate_guidance_scale "$CANDIDATE_GUIDANCE_SCALE")
+fi
 if [[ "$CAMP_COLLECT_CLOSED_LOOP_OUTCOMES" == "1" ]]; then
   RUN_ARGS+=(
     --camp_collect_closed_loop_outcomes

@@ -6,6 +6,7 @@ from scripts.integrations.summarize_diffusion_planner_camp_replay import (
 )
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_generation_contract,
+    _configure_candidate_guidance,
 )
 
 
@@ -101,8 +102,65 @@ def test_candidate_generation_contract_records_fixed_dp_sampling_boundary() -> N
     assert contract["guidance_policy"] == (
         "disabled_for_camp_candidate_generation"
     )
+    assert contract["guidance"]["enabled"] is False
+    assert contract["guidance"]["functions"] == []
     assert contract["dpm_solver_steps"] == 10
     assert contract["dpm_skip_type"] == "logSNR"
     assert contract["changes_candidate_set"]
     assert not contract["changes_camp_score"]
     assert not contract["changes_diffusion_planner_weights"]
+
+
+def test_candidate_generation_contract_records_enabled_guidance() -> None:
+    class _Args:
+        future_len = 80
+        predicted_neighbor_num = 320
+        diffusion_model_type = "x_start"
+
+    guidance = {
+        "enabled": True,
+        "policy": "preserve_official_dp_guidance_for_candidate_generation",
+        "config_path": "/tmp/guidance.json",
+        "config_sha256": "abc",
+        "functions": [{"name": "route_following", "enabled": True}],
+        "active_function_names": ["route_following"],
+        "guidance_scale": 0.25,
+    }
+    contract = _candidate_generation_contract(
+        _Args(),
+        num_candidates=8,
+        noise_scale=1.0,
+        reference_blend_steps=5,
+        guidance=guidance,
+    )
+
+    assert contract["guidance_enabled"]
+    assert contract["guidance_policy"] == (
+        "preserve_official_dp_guidance_for_candidate_generation"
+    )
+    assert contract["guidance"]["config_sha256"] == "abc"
+    assert contract["guidance"]["active_function_names"] == ["route_following"]
+    assert contract["reference_blend_steps"] == 5
+    assert contract["changes_candidate_set"]
+    assert not contract["changes_camp_score"]
+
+
+def test_configure_candidate_guidance_default_is_disabled() -> None:
+    class _Decoder:
+        _guidance_fn = object()
+        _guidance_scale = 0.5
+
+    class _Model:
+        decoder = _Decoder()
+
+    original_guidance = _Model.decoder._guidance_fn
+    contract = _configure_candidate_guidance(
+        _Model(),
+        guidance_config_path=None,
+        guidance_scale=None,
+    )
+
+    assert contract["enabled"] is False
+    assert contract["policy"] == "disabled_for_camp_candidate_generation"
+    assert contract["functions"] == []
+    assert _Model.decoder._guidance_fn is original_guidance

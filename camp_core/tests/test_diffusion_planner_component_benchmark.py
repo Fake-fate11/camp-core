@@ -16,6 +16,7 @@ from scripts.integrations.benchmark_diffusion_planner_camp_components import (
     _profile_atom_bank_vector,
 )
 from scripts.integrations.run_diffusion_planner_camp_replay import (
+    _candidate_generation_contract,
     _parse_step_list,
     _write_microbenchmark_snapshot,
 )
@@ -192,6 +193,12 @@ def test_write_microbenchmark_snapshot_records_current_tick_inputs(tmp_path) -> 
         candidate_full_horizon_planned_red_light_cost=np.zeros(2),
         candidate_red_stopping_margin_cost=np.zeros(2),
         candidate_dp_prior_jerk_excess_cost=np.zeros(2),
+        candidate_generation_contract=_candidate_generation_contract(
+            SimpleNamespace(future_len=5, predicted_neighbor_num=1),
+            num_candidates=2,
+            noise_scale=1.0,
+            reference_blend_steps=None,
+        ),
         red_route_points=np.zeros((0, 2)),
         perfect_tracker_current_speed_mps=0.0,
         perfect_tracker_current_longitudinal_acceleration_mps2=0.0,
@@ -212,6 +219,10 @@ def test_write_microbenchmark_snapshot_records_current_tick_inputs(tmp_path) -> 
         metadata = json.loads(str(payload["metadata_json"].item()))
         assert metadata["selection_step"] == 10
         assert metadata["capture_has_no_selection_effect"] is True
+        assert (
+            metadata["candidate_generation_contract"]["guidance_policy"]
+            == "disabled_for_camp_candidate_generation"
+        )
         assert "model_input__ego_current_state" in payload
         assert "reward_input__lanes" in payload
 

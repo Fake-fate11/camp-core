@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -312,6 +313,26 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--candidate_guidance_config",
+        type=Path,
+        default=None,
+        help=(
+            "Default-off diagnostic: install official Diffusion Planner "
+            "GuidanceComposer for candidate generation. This changes only the "
+            "finite candidate set and must not be used for formal seeds before "
+            "passing the predeclared gate."
+        ),
+    )
+    parser.add_argument(
+        "--candidate_guidance_scale",
+        type=float,
+        default=None,
+        help=(
+            "Optional decoder guidance scale override used only with "
+            "--candidate_guidance_config."
+        ),
+    )
+    parser.add_argument(
         "--camp_microbenchmark_snapshot_dir",
         type=Path,
         default=None,
@@ -367,6 +388,13 @@ def _validate_args(args: argparse.Namespace) -> None:
         and args.candidate_reference_blend_steps < 1
     ):
         raise ValueError("--candidate_reference_blend_steps must be >= 1.")
+    if args.candidate_guidance_scale is not None:
+        if args.candidate_guidance_config is None:
+            raise ValueError(
+                "--candidate_guidance_scale requires --candidate_guidance_config."
+            )
+        if not np.isfinite(args.candidate_guidance_scale):
+            raise ValueError("--candidate_guidance_scale must be finite.")
     if args.camp_lane_corridor_buffer < 0:
         raise ValueError("--camp_lane_corridor_buffer must be non-negative.")
     if not 0.0 <= args.camp_min_progress_ratio <= 1.0:
@@ -549,6 +577,73 @@ def _load_model(model_path: Path, model_args_path: Path | None, device: str):
     model.to(device)
     model.eval()
     return model, args
+
+
+def _configure_candidate_guidance(
+    model: Any,
+    *,
+    guidance_config_path: Path | None,
+    guidance_scale: float | None,
+) -> dict[str, Any]:
+    if guidance_config_path is None:
+        return {
+            "enabled": False,
+            "policy": "disabled_for_camp_candidate_generation",
+            "config_path": None,
+            "config_sha256": None,
+            "functions": [],
+            "guidance_scale": None,
+        }
+
+    if not guidance_config_path.is_file():
+        raise FileNotFoundError(
+            f"candidate guidance config not found: {guidance_config_path}"
+        )
+
+    from diffusion_planner.model.guidance.composer import GuidanceComposer
+    from diffusion_planner.model.guidance.config import GuidanceSetConfig
+
+    set_config = GuidanceSetConfig.from_file(str(guidance_config_path))
+    functions = []
+    for fn in set_config.functions:
+        functions.append(
+            {
+                "name": str(fn.name),
+                "enabled": bool(fn.enabled),
+                "scale": float(fn.scale),
+                "params": dict(fn.params),
+            }
+        )
+    active = [fn for fn in functions if fn["enabled"]]
+    if not active:
+        raise ValueError(
+            "--candidate_guidance_config must contain at least one enabled "
+            "guidance function."
+        )
+
+    model.decoder._guidance_fn = GuidanceComposer(set_config)
+    if guidance_scale is not None:
+        model.decoder._guidance_scale = float(guidance_scale)
+    effective_scale = float(getattr(model.decoder, "_guidance_scale"))
+    return {
+        "enabled": True,
+        "policy": "preserve_official_dp_guidance_for_candidate_generation",
+        "config_path": str(guidance_config_path),
+        "config_sha256": _sha256_file(guidance_config_path),
+        "functions": functions,
+        "active_function_names": [fn["name"] for fn in active],
+        "guidance_scale": effective_scale,
+        "global_scale": float(getattr(set_config, "global_scale", 0.0)),
+        "composer": "diffusion_planner.model.guidance.composer.GuidanceComposer",
+    }
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _ego_frame_xy(world_xy: np.ndarray, ego_xy: np.ndarray, ego_heading: float) -> np.ndarray:
@@ -1451,6 +1546,7 @@ def _write_microbenchmark_snapshot(
     candidate_full_horizon_planned_red_light_cost: np.ndarray | None,
     candidate_red_stopping_margin_cost: np.ndarray,
     candidate_dp_prior_jerk_excess_cost: np.ndarray,
+    candidate_generation_contract: dict[str, Any],
     red_route_points: np.ndarray,
     perfect_tracker_current_speed_mps: float,
     perfect_tracker_current_longitudinal_acceleration_mps2: float,
@@ -1543,12 +1639,7 @@ def _write_microbenchmark_snapshot(
         "candidate_dimension": int(candidates.shape[2]),
         "candidate_noise_scale": float(noise_scale),
         "candidate_reference_blend_steps": reference_blend_steps,
-        "candidate_generation_contract": _candidate_generation_contract(
-            model_args,
-            num_candidates=num_candidates,
-            noise_scale=noise_scale,
-            reference_blend_steps=reference_blend_steps,
-        ),
+        "candidate_generation_contract": candidate_generation_contract,
         "candidate_generation_seed": int(1729 + selection_step),
         "candidate_generation_seed_scope": (
             "microbenchmark_replay_only_not_original_tick_rng"
@@ -1607,9 +1698,18 @@ def _candidate_generation_contract(
     num_candidates: int,
     noise_scale: float,
     reference_blend_steps: int | None,
+    guidance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     future_len = int(model_args.future_len)
     predicted_neighbor_num = int(model_args.predicted_neighbor_num)
+    guidance_payload = guidance or {
+        "enabled": False,
+        "policy": "disabled_for_camp_candidate_generation",
+        "config_path": None,
+        "config_sha256": None,
+        "functions": [],
+        "guidance_scale": None,
+    }
     return {
         "schema_version": "dp_candidate_generation_contract_v1",
         "model_type": str(getattr(model_args, "diffusion_model_type", "unknown")),
@@ -1628,8 +1728,11 @@ def _candidate_generation_contract(
         "candidate0_latent": "zeros",
         "random_seed_scope": "process_global_torch_rng",
         "recorded_tick_seed": None,
-        "guidance_enabled": False,
-        "guidance_policy": "disabled_for_camp_candidate_generation",
+        "guidance_enabled": bool(guidance_payload.get("enabled", False)),
+        "guidance_policy": str(
+            guidance_payload.get("policy", "disabled_for_camp_candidate_generation")
+        ),
+        "guidance": guidance_payload,
         "dpm_solver_steps": 10,
         "dpm_skip_type": "logSNR",
         "reference_blend_steps": reference_blend_steps,
@@ -1647,6 +1750,7 @@ def _install_camp_predictor(
     num_candidates: int,
     noise_scale: float,
     reference_blend_steps: int | None,
+    candidate_generation_contract: dict[str, Any],
     safety_radius: float,
     clearance_margin: float,
     lane_corridor_buffer: float,
@@ -1739,6 +1843,11 @@ def _install_camp_predictor(
             noise_scale=noise_scale,
             deterministic_first=True,
             reference_blend_steps=reference_blend_steps,
+            guidance_policy=(
+                "preserve"
+                if candidate_generation_contract.get("guidance_enabled")
+                else "disabled"
+            ),
         )
         candidate_generation_done = time.perf_counter()
         dp_prior_deviation_start = time.perf_counter()
@@ -2162,6 +2271,7 @@ def _install_camp_predictor(
                 candidate_dp_prior_jerk_excess_cost=(
                     candidate_dp_prior_jerk_excess_cost
                 ),
+                candidate_generation_contract=candidate_generation_contract,
                 red_route_points=red_route_points,
                 perfect_tracker_current_speed_mps=(
                     perfect_tracker_current_speed_mps
@@ -2219,12 +2329,7 @@ def _install_camp_predictor(
                 "num_candidates": int(num_candidates),
                 "candidate_noise_scale": float(noise_scale),
                 "candidate_reference_blend_steps": reference_blend_steps,
-                "candidate_generation_contract": _candidate_generation_contract(
-                    model_args,
-                    num_candidates=num_candidates,
-                    noise_scale=noise_scale,
-                    reference_blend_steps=reference_blend_steps,
-                ),
+                "candidate_generation_contract": candidate_generation_contract,
                 "candidate_trajectory_horizon_steps": int(candidates.shape[1]),
                 "candidate_first_reference_xy": (
                     candidates[:, 0, :2].tolist()
@@ -2488,6 +2593,18 @@ def main() -> None:
 
     device = args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
     model, model_args = _load_model(args.model_path, args.model_args, device)
+    candidate_guidance = _configure_candidate_guidance(
+        model,
+        guidance_config_path=args.candidate_guidance_config,
+        guidance_scale=args.candidate_guidance_scale,
+    )
+    candidate_generation_contract = _candidate_generation_contract(
+        model_args,
+        num_candidates=args.num_candidates,
+        noise_scale=args.candidate_noise_scale,
+        reference_blend_steps=args.candidate_reference_blend_steps,
+        guidance=candidate_guidance,
+    )
     reward_config = (
         load_reward_config(args.reward_config)
         if args.reward_config is not None
@@ -2512,6 +2629,7 @@ def main() -> None:
             num_candidates=args.num_candidates,
             noise_scale=args.candidate_noise_scale,
             reference_blend_steps=args.candidate_reference_blend_steps,
+            candidate_generation_contract=candidate_generation_contract,
             safety_radius=args.camp_safety_radius,
             clearance_margin=args.camp_clearance_margin,
             lane_corridor_buffer=args.camp_lane_corridor_buffer,
@@ -2768,12 +2886,7 @@ def main() -> None:
         "candidate_noise_scale": effective_noise_scale,
         "candidate_reference_blend": effective_reference_blend,
         "candidate_generation_contract": (
-            _candidate_generation_contract(
-                model_args,
-                num_candidates=args.num_candidates,
-                noise_scale=args.candidate_noise_scale,
-                reference_blend_steps=args.candidate_reference_blend_steps,
-            )
+            candidate_generation_contract
             if records is not None
             else None
         ),

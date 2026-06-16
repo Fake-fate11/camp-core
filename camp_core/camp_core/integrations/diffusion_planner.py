@@ -2997,6 +2997,7 @@ def generate_candidate_trajectories(
     noise_scale: float,
     deterministic_first: bool = True,
     reference_blend_steps: int | None = None,
+    guidance_policy: str = "disabled",
 ) -> tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
     """Generate K Diffusion-Planner candidates in one batched forward pass.
 
@@ -3007,6 +3008,8 @@ def generate_candidate_trajectories(
         raise ValueError("num_candidates must be >= 1.")
     if noise_scale < 0:
         raise ValueError("noise_scale must be non-negative.")
+    if guidance_policy not in {"disabled", "preserve"}:
+        raise ValueError("guidance_policy must be 'disabled' or 'preserve'.")
 
     try:
         import torch
@@ -3045,9 +3048,12 @@ def generate_candidate_trajectories(
 
     decoder = model.decoder
     original_guidance = getattr(decoder, "_guidance_fn", None)
-    decoder._guidance_fn = None
+    if guidance_policy == "disabled":
+        decoder._guidance_fn = None
+    guidance_enabled = guidance_policy == "preserve" and original_guidance is not None
+    context = torch.enable_grad() if guidance_enabled else torch.no_grad()
     try:
-        with torch.no_grad():
+        with context:
             _, outputs = model(expanded)
     finally:
         decoder._guidance_fn = original_guidance
