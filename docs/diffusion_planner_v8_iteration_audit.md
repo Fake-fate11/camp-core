@@ -8424,3 +8424,101 @@ Artifact SHA-256:
 | Recompute gate all-nonselected markdown | `aebd0d93ec8aa91732beb7b78a8a9de3be3c0e8350aad8de459b14a16744ba6e` |
 | Recompute gate lower-logged-union-red JSON | `32d09989db42a1ea27a2d275d2c8517c59befe4a3b33c72c43949cd147172004` |
 | Recompute gate lower-logged-union-red markdown | `872cd0ecc15a6fed41b43a54a219a9a89c5840e3d7fbed115a9553784493f459` |
+
+### Target miss tick recompute gate
+
+The next step captured a snapshot at a real selected h30-safe/full-red miss
+tick from the raw-H80 sample59 artifact instead of a mechanically safe smoke.
+The selected source was:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_h80_sample59_static_9fa9824/
+  sample59_86/seed_2/npc_0/spawn_0p3/tl_on/static/camp_selection_log.json
+```
+
+Target record:
+
+| Field | Value |
+| --- | ---: |
+| Selection step | 69 |
+| Selected index | 1 |
+| Logged near/red-light cost | 0.0 |
+| Logged full-horizon red-light cost | 11.5 |
+| Logged union-red cost | 11.5 |
+| Lower logged union-red donors | 7 |
+
+The target capture ran only this single non-formal replay prefix:
+
+```text
+/root/autodl-tmp/camp_dp_target_snapshot_seed2_npc0_tlon_step69_619d3c0
+```
+
+Configuration: sample59 route, seed `2`, no NPCs, traffic lights on, `70`
+steps, K=`8`, redstopfloor05 static weights, raw-prefix logging `80`, and
+microbenchmark snapshot step `69`. This is a targeted context-capture replay,
+not a paired 12-run or formal seed run.
+
+The snapshot readiness audit reported that the captured snapshot contains the
+required tensors for PerfectTracker, red-stopping-margin, and DP
+reward/full-red recomputation. The recompute gate then used the
+`lower_logged_union_red` donor pool only.
+
+Results:
+
+| Check | Result |
+| --- | ---: |
+| Snapshots | 1 |
+| Selected h30-safe/full-red snapshots | 1 |
+| Snapshots with donors | 1 |
+| Transform count | 7 |
+| Baseline logged near-red max error | 0.0 |
+| Baseline logged full-red max error | 0.0 |
+| Selected recomputed union-red | 11.5 |
+| Minimum transformed union-red | 0.0 |
+| Lower union-red transforms | 7/7 |
+| Hard-feasible transforms | 7/7 |
+| Progress-screen feasible transforms | 7/7 |
+| Lower union-red hard-feasible transforms | 7/7 |
+| Lower union-red progress-feasible transforms | 7/7 |
+
+Interpretation:
+
+1. This is the first positive target-tick evidence for the stop-aware splice
+   design: on one real h30-safe/full-red miss, every lower-logged-union-red
+   donor produced an H10-preserving transformed candidate whose recomputed
+   union-red dropped from `11.5` to `0.0`.
+2. The same transformed candidates also passed the replay-aligned hard checks
+   for collision, road border, lane crossing, static collision, kinematic
+   violation, and near-horizon red-light violation. They also passed the
+   transform-pool progress screen at `min_progress_ratio=0.8`.
+3. This is still single-tick offline evidence. It does not prove closed-loop
+   benefit, latency, comfort, or robustness across the `32` miss records. It
+   does not authorize an online selector, 12/36-run replay, CAMP retraining, or
+   formal seeds.
+
+Decision: accept this as a positive target-tick recompute gate result and move
+to a broader targeted gate before any online wiring. The next admissible step
+is to capture and recompute a small target set, for example all step-69 and
+late-step misses in `seed_2/npc_0/tl_on` or the `seed_2/npc_4/tl_on` miss
+cluster, then summarize coverage, feasibility, progress, and comfort proxy
+costs. Keep the DP weights, CAMP weights, atom schema, and formal seeds fixed.
+
+Mathematical boundary: the target snapshot, donor set, splice map, and
+recomputed diagnostics are fixed current-tick constants. The transformed set
+is finite and deterministic for the snapshot and hyperparameters. This remains
+a finite-candidate offline gate, not Benders; no master/subproblem dual cut or
+global trajectory-coordinate convexity is claimed. If these diagnostics are
+later atomized, CAMP scoring is affine in `w` only for the fixed finite
+candidate set, preserving the existing simplex/CVaR/L2 convex master under
+that fixed-set interpretation.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Target replay summary | `0765fee80d3bf18f0c956dc4683e6c204ccf27b69a190cbdde8dff799679b6be` |
+| Target validation summary | `503f87e4d41404c825f562c4b1519fa94129a8554cc8321f866bb340a31b4f22` |
+| Target readiness JSON | `4d48a88bb71028b93f08e5f67319adea439fb9230072c070cb3c30bd2dcb23dd` |
+| Target recompute gate JSON | `a1c64587502020b49019bdcd490e4014396577ee3b681510c5dc27b0d61fe9fd` |
+| Target recompute gate markdown | `6fee21c5ebbcf713133cde61eafa62db276261bab7054f6e55a757643ca9b706` |
+| Target snapshot step 0069 NPZ | `d4efe7aa17cfb7b7513fe4f8236e23db795b053d94438219b1ff1ef8671c53f9` |

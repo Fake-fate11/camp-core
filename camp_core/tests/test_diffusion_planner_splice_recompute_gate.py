@@ -7,6 +7,8 @@ from scripts.integrations.analyze_diffusion_planner_splice_recompute_gate import
     build_splice_candidates,
     h10_preserving_tail_splice_xy,
     heading_features_from_xy,
+    reward_hard_feasibility,
+    reward_progress_screen,
 )
 
 
@@ -86,3 +88,34 @@ def test_donor_indices_all_nonselected_smoke_pool() -> None:
     )
 
     np.testing.assert_array_equal(donors, np.array([0, 2, 3], dtype=np.int64))
+
+
+def test_reward_hard_feasibility_matches_replay_red_and_lane_checks() -> None:
+    feasible, reasons = reward_hard_feasibility(
+        [
+            {"red_light": 0.0, "progress": 10.0},
+            {"red_light": -1.0, "progress": 9.0},
+            {"lane_crossing": True, "red_light": 0.0, "progress": 8.0},
+        ]
+    )
+
+    np.testing.assert_array_equal(feasible, np.array([True, False, False]))
+    assert reasons[1] == ("dp_red_light",)
+    assert reasons[2] == ("dp_lane_crossing",)
+
+
+def test_reward_progress_screen_is_separate_from_hard_feasibility() -> None:
+    hard = np.array([True, True, False])
+    feasible, reasons = reward_progress_screen(
+        [
+            {"progress": 10.0},
+            {"progress": 6.0},
+            {"progress": 100.0},
+        ],
+        hard,
+        min_progress_ratio=0.8,
+    )
+
+    np.testing.assert_array_equal(feasible, np.array([True, False, False]))
+    assert reasons[1] == ("dp_underprogress",)
+    assert reasons[2] == ()

@@ -37,6 +37,7 @@ class SpliceConfig:
     anchor_steps: int = 10
     blend_steps: int = 10
     donor_pool: str = "lower_logged_union_red"
+    min_progress_ratio: float = 0.8
 
 
 def parse_args() -> argparse.Namespace:
@@ -60,6 +61,7 @@ def parse_args() -> argparse.Namespace:
         choices=("lower_logged_union_red", "all_nonselected"),
         default="lower_logged_union_red",
     )
+    parser.add_argument("--min_progress_ratio", type=float, default=0.8)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     return parser.parse_args()
@@ -77,6 +79,7 @@ def main() -> None:
             anchor_steps=args.anchor_steps,
             blend_steps=args.blend_steps,
             donor_pool=args.donor_pool,
+            min_progress_ratio=args.min_progress_ratio,
         ),
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -161,6 +164,7 @@ def analyze(
                 donor_indices,
                 baseline_scores,
                 transformed_scores,
+                config,
             )
         )
 
@@ -338,6 +342,10 @@ def _validate_config(config: SpliceConfig) -> None:
         raise ValueError("blend_steps must be nonnegative.")
     if config.donor_pool not in {"lower_logged_union_red", "all_nonselected"}:
         raise ValueError("invalid donor_pool.")
+    if not np.isfinite(config.min_progress_ratio) or not (
+        0.0 <= config.min_progress_ratio <= 1.0
+    ):
+        raise ValueError("min_progress_ratio must be in [0,1].")
 
 
 def _validate_snapshot(
@@ -443,6 +451,51 @@ def _score_trajectories(
     }
 
 
+def reward_hard_feasibility(
+    rewards: list[dict[str, Any]],
+) -> tuple[np.ndarray, tuple[tuple[str, ...], ...]]:
+    feasible = np.ones(len(rewards), dtype=bool)
+    reasons: list[list[str]] = [[] for _ in rewards]
+    for idx, reward in enumerate(rewards):
+        checks = (
+            ("dp_collision", reward.get("collision_step") is not None),
+            ("dp_road_border", bool(reward.get("rb_crossing", False))),
+            ("dp_lane_crossing", bool(reward.get("lane_crossing", False))),
+            ("dp_static_collision", bool(reward.get("static_crossing", False))),
+            ("dp_kinematic", bool(reward.get("kinematic_violated", False))),
+            ("dp_red_light", float(reward.get("red_light", 0.0)) < -0.5),
+        )
+        for reason, failed in checks:
+            if failed:
+                reasons[idx].append(reason)
+        feasible[idx] = not reasons[idx]
+    return feasible, tuple(tuple(row) for row in reasons)
+
+
+def reward_progress_screen(
+    rewards: list[dict[str, Any]],
+    hard_feasible: np.ndarray,
+    *,
+    min_progress_ratio: float,
+) -> tuple[np.ndarray, tuple[tuple[str, ...], ...]]:
+    feasible = np.asarray(hard_feasible, dtype=bool).copy()
+    reasons: list[list[str]] = [[] for _ in rewards]
+    safe_indices = np.flatnonzero(feasible)
+    if safe_indices.size:
+        safe_progress = np.asarray(
+            [float(rewards[idx].get("progress", 0.0)) for idx in safe_indices],
+            dtype=np.float64,
+        )
+        best_progress = float(np.max(safe_progress))
+        if best_progress > 0.0:
+            minimum_progress = best_progress * float(min_progress_ratio)
+            for idx in safe_indices:
+                if float(rewards[idx].get("progress", 0.0)) < minimum_progress:
+                    feasible[idx] = False
+                    reasons[idx].append("dp_underprogress")
+    return feasible, tuple(tuple(row) for row in reasons)
+
+
 def _reward_to_dict(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return value
@@ -481,6 +534,7 @@ def _snapshot_report_row(
     donor_indices: np.ndarray,
     baseline_scores: dict[str, Any],
     transformed_scores: dict[str, Any] | None,
+    config: SpliceConfig,
 ) -> dict[str, Any]:
     count = int(np.asarray(arrays["candidates"]).shape[0])
     selected = int(metadata["selected_index"])
@@ -501,6 +555,7 @@ def _snapshot_report_row(
         transformed_scores,
         selected_union_red=selected_union,
         selected_full_red=selected_full,
+        config=config,
     )
     return {
         "snapshot_path": str(snapshot_path),
@@ -533,12 +588,17 @@ def _transformed_summary(
     *,
     selected_union_red: float,
     selected_full_red: float,
+    config: SpliceConfig,
 ) -> dict[str, Any]:
     if scores is None:
         return {
             "count": 0,
             "has_lower_union_red": False,
             "has_lower_full_red": False,
+            "hard_feasible_count": 0,
+            "progress_feasible_count": 0,
+            "lower_union_red_hard_feasible_count": 0,
+            "lower_union_red_progress_feasible_count": 0,
             "min_near_red": None,
             "min_full_red": None,
             "min_union_red": None,
@@ -548,14 +608,29 @@ def _transformed_summary(
     near = np.asarray(scores["near_red_cost"], dtype=np.float64)
     full = np.asarray(scores["full_red_cost"], dtype=np.float64)
     union = np.asarray(scores["union_red_cost"], dtype=np.float64)
+    hard_feasible, _ = reward_hard_feasibility(scores["reward_breakdowns"])
+    progress_feasible, _ = reward_progress_screen(
+        scores["reward_breakdowns"],
+        hard_feasible,
+        min_progress_ratio=config.min_progress_ratio,
+    )
+    lower_union = union < selected_union_red - TOL
     return {
         "count": int(union.size),
-        "has_lower_union_red": bool(np.any(union < selected_union_red - TOL)),
+        "has_lower_union_red": bool(np.any(lower_union)),
         "has_lower_full_red": bool(np.any(full < selected_full_red - TOL)),
+        "hard_feasible_count": int(np.sum(hard_feasible)),
+        "progress_feasible_count": int(np.sum(progress_feasible)),
+        "lower_union_red_hard_feasible_count": int(
+            np.sum(lower_union & hard_feasible)
+        ),
+        "lower_union_red_progress_feasible_count": int(
+            np.sum(lower_union & progress_feasible)
+        ),
         "min_near_red": float(np.min(near)) if near.size else None,
         "min_full_red": float(np.min(full)) if full.size else None,
         "min_union_red": float(np.min(union)) if union.size else None,
-        "lower_union_red_count": int(np.sum(union < selected_union_red - TOL)),
+        "lower_union_red_count": int(np.sum(lower_union)),
         "lower_full_red_count": int(np.sum(full < selected_full_red - TOL)),
     }
 
@@ -584,6 +659,16 @@ def _summarize_transformed(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "snapshots_with_transforms": len(active),
         "transform_count": int(sum(row["count"] for row in active)),
+        "hard_feasible_count": int(sum(row["hard_feasible_count"] for row in active)),
+        "progress_feasible_count": int(
+            sum(row["progress_feasible_count"] for row in active)
+        ),
+        "lower_union_red_hard_feasible_count": int(
+            sum(row["lower_union_red_hard_feasible_count"] for row in active)
+        ),
+        "lower_union_red_progress_feasible_count": int(
+            sum(row["lower_union_red_progress_feasible_count"] for row in active)
+        ),
         "min_union_red": _summary(
             [row["min_union_red"] for row in active if row["min_union_red"] is not None]
         ),
@@ -634,6 +719,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Snapshots with selected h30-safe/full-red: `{report['snapshots']['selected_h30_safe_full_red']}`",
         f"- Snapshots with recomputed lower union-red transform: `{report['snapshots']['with_recomputed_lower_union_red']}`",
         f"- Transform count: `{report['transformed']['transform_count']}`",
+        f"- Hard-feasible transforms: `{report['transformed']['hard_feasible_count']}`",
+        f"- Progress-screen feasible transforms: `{report['transformed']['progress_feasible_count']}`",
+        f"- Lower union-red hard-feasible transforms: `{report['transformed']['lower_union_red_hard_feasible_count']}`",
+        f"- Lower union-red progress-feasible transforms: `{report['transformed']['lower_union_red_progress_feasible_count']}`",
         "",
         "## Baseline Recompute Check",
         "",
@@ -642,8 +731,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Rows",
         "",
-        "| Step | Selected | Donors | Selected union-red | Min transformed union-red | Lower union-red transforms |",
-        "| ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Step | Selected | Donors | Selected union-red | Min transformed union-red | Lower union-red | Lower union-red hard-feasible | Lower union-red progress-feasible |",
+        "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for row in report["rows"]:
         lines.append(
@@ -656,6 +745,8 @@ def render_markdown(report: dict[str, Any]) -> str:
                     _fmt(row["baseline"]["selected_union_red"]),
                     _fmt(row["transformed"]["min_union_red"]),
                     str(row["transformed"]["lower_union_red_count"]),
+                    str(row["transformed"]["lower_union_red_hard_feasible_count"]),
+                    str(row["transformed"]["lower_union_red_progress_feasible_count"]),
                 ]
             )
             + " |"
