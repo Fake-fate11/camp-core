@@ -107,6 +107,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
     parser.add_argument(
+        "--camp_log_raw_candidate_prefix_steps",
+        type=int,
+        default=0,
+        help=(
+            "Default-off diagnostic forwarded to CAMP variants only. Logs raw "
+            "DP candidate prefixes for offline geometry audits and changes no "
+            "selection behavior."
+        ),
+    )
+    parser.add_argument(
         "--candidate_reference_blend_steps",
         type=int,
         default=None,
@@ -302,6 +312,13 @@ def _variant_command(
                 str(args.camp_reward_horizon_steps),
             ]
         )
+        if args.camp_log_raw_candidate_prefix_steps > 0:
+            cmd.extend(
+                [
+                    "--camp_log_raw_candidate_prefix_steps",
+                    str(args.camp_log_raw_candidate_prefix_steps),
+                ]
+            )
         if args.candidate_reference_blend_steps is not None:
             cmd.extend(
                 [
@@ -404,6 +421,8 @@ def main() -> None:
         raise ValueError(
             "--camp_feasibility_source dp_reward requires --reward_config."
         )
+    if args.camp_log_raw_candidate_prefix_steps < 0:
+        raise ValueError("--camp_log_raw_candidate_prefix_steps must be non-negative.")
     variants = tuple(args.variants)
     if "static" in variants and args.camp_static_weights is None:
         raise ValueError("The static variant requires --camp_static_weights.")

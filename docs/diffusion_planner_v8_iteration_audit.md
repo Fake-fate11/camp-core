@@ -7350,3 +7350,38 @@ Artifact SHA-256:
 | --- | --- |
 | Raw prefix geometry JSON | `f798465e8d99f3329e12919fdd617a25a29b5b37e19d60fb9f75a527f4ef5c0b` |
 | Raw prefix geometry markdown | `71543dbffdaa1b9ba146b484ed833980bcf7cb9ab158a625b6ba0d4ee742f9a5` |
+
+### Raw-prefix logging benchmark-matrix scheduling support
+
+The raw-prefix observability gate is clean enough to prepare the next
+predeclared non-formal diagnostic pass, but the benchmark matrix entry point
+must be able to schedule the already default-off replay logger. The matrix now
+accepts `--camp_log_raw_candidate_prefix_steps` and forwards it only to CAMP
+variants (`uniform`, `static`, and `theta`) when the value is positive. It is
+not forwarded to `top1`, because the upstream baseline does not run the CAMP
+candidate-selection path.
+
+This is scheduling support only:
+
+1. default remains `0`;
+2. candidate generation, CAMP atoms, CAMP scores, selector behavior, DP
+   weights, CAMP weights, and tracker inputs are unchanged;
+3. the replay metadata keeps `selection_effect=false`;
+4. the logged prefix remains a fixed finite-candidate diagnostic constant, not
+   a Benders cut or an online selection rule.
+
+Verification:
+
+```text
+py -3.12 -m py_compile scripts\integrations\run_diffusion_planner_camp_benchmark_matrix.py
+
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_benchmark_matrix.py
+3 passed
+
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_replay_summary.py
+12 passed
+```
+
+Decision: accept this as a narrow infrastructure milestone for the next
+non-formal raw-prefix geometry audit. It does not authorize formal seeds,
+online selector changes, CAMP retraining, DP retraining, or performance claims.

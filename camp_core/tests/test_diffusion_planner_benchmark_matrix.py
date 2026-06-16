@@ -31,6 +31,7 @@ def _make_args() -> SimpleNamespace:
         ),
         num_candidates=8,
         candidate_noise_scale=1.0,
+        camp_log_raw_candidate_prefix_steps=0,
         candidate_reference_blend_steps=5,
         camp_lane_corridor_buffer=1.0,
         camp_feasibility_source="dp_reward",
@@ -121,6 +122,35 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_perfect_tracker_command_postselection" not in top1_cmd
     assert "--camp_underprogress_relaxation" not in top1_cmd
     assert "--camp_fallback_atom_scales" not in top1_cmd
+
+
+def test_variant_command_threads_raw_prefix_logging_into_camp_variants_only() -> None:
+    args = _make_args()
+    args.camp_log_raw_candidate_prefix_steps = 10
+    static_cmd = _variant_command(
+        variant="static",
+        output_dir=Path("F:/out/static"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+    raw_prefix_idx = static_cmd.index("--camp_log_raw_candidate_prefix_steps")
+    assert static_cmd[raw_prefix_idx + 1] == "10"
+
+    top1_cmd = _variant_command(
+        variant="top1",
+        output_dir=Path("F:/out/top1"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+    assert "--camp_log_raw_candidate_prefix_steps" not in top1_cmd
 
 
 def test_variant_command_threads_underprogress_relaxation_when_enabled() -> None:
