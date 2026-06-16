@@ -4393,3 +4393,66 @@ machine because collection enters `adaptive-prediction` tests that require
 uninstalled `torch`, `trajectron`, and separate test-package import layout. The
 DP/CAMP integration test scope above is the relevant local gate for this
 milestone.
+
+### Predeclared static weight-transfer sensitivity
+
+The next screen is offline-only and uses the existing
+`/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc` candidate-outcome
+logs. It does not train CAMP, does not run a simulator matrix, does not alter
+Diffusion Planner, and does not change the online selector. It answers a
+narrow diagnostic question: if the current redstopfloor05 weight vector is
+held inside the same convex simplex/lower-bound feasible set but small mass is
+transferred from `progress_shortfall` to existing comfort atoms, is there a
+nontrivial fixed-candidate mechanism before spending another training or
+simulation run?
+
+For the deployed weight vector \(w^0\), each screened vector is
+
+\[
+w = w^0 - \sum_j \epsilon_j e_{\text{progress\_shortfall}}
+        + \sum_j \epsilon_j e_{a_j}.
+\]
+
+The fixed grid is:
+
+| Variant | Transfer |
+| --- | --- |
+| `baseline_redstopfloor05` | none |
+| `progress_to_lateral_0p01` | `progress_shortfall -> planned_lateral_acceleration_cost`: 0.01 |
+| `progress_to_lateral_0p03` | `progress_shortfall -> planned_lateral_acceleration_cost`: 0.03 |
+| `progress_to_lateral_0p05` | `progress_shortfall -> planned_lateral_acceleration_cost`: 0.05 |
+| `progress_to_jerk_0p02` | `progress_shortfall -> dp_prior_jerk_excess_cost`: 0.02 |
+| `progress_to_jerk_0p05` | `progress_shortfall -> dp_prior_jerk_excess_cost`: 0.05 |
+| `progress_to_lateral_0p02_jerk_0p02` | 0.02 to lateral and 0.02 to jerk-excess |
+| `progress_to_lateral_0p03_jerk_0p03` | 0.03 to lateral and 0.03 to jerk-excess |
+
+Nonemptiness and convexity: the current `progress_shortfall` weight is
+`0.479370`, so the largest total transfer `0.06` keeps all weights
+nonnegative. The sum of weights remains one, and the active
+`red_stopping_margin_cost >= 0.05` lower bound is unchanged. Thus every
+screened \(w\) lies in the same static convex feasible set. For the fixed
+finite candidate set, every atom value is a current-tick nonnegative constant,
+so each score remains affine in \(w\). No claim is made about convexity in
+trajectory coordinates, and this is not a Benders procedure.
+
+The screen retains the baseline selected index for all-infeasible/fallback
+records and rescored only records with at least one base-feasible candidate.
+For each variant it reports selection change rate, outcome-label deltas
+against the baseline selected candidate, key atom deltas, simplex checks, and
+lower-bound preservation.
+
+Acceptance for mechanism only, not deployment:
+
+1. reject a variant immediately if it violates simplex, nonnegativity, or the
+   red-stopping lower bound;
+2. reject as inactive if nonfallback selection change rate is below 1%;
+3. reject as repeating the tiny lateral-floor failure if it changes selections
+   but gives negligible lateral-label improvement, defined here as mean
+   lateral delta above `-0.002 m/s^2`;
+4. reject as progress/safety tradeoff if mean progress delta is below
+   `-0.001 m`, or if red, collision, near-miss, or lane-violation deltas are
+   positive;
+5. only if a variant passes these offline diagnostics may a later milestone
+   predeclare an actual convex lower-bound or robust-master solve. Passing this
+   screen alone does not authorize online deployment, a 12/36-run matrix, or
+   formal seeds.
