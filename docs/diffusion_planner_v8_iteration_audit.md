@@ -8732,3 +8732,84 @@ Artifact SHA-256:
 | --- | --- |
 | Donor-offset recompute gate JSON | `bed295ef47d09e48f7a210e3881f4b6417c6256189fbda72f1ae7b61703b97ab` |
 | Donor-offset recompute gate markdown | `d772f41fddf8377414967446454f07413842dc44c31eed38dedd3d944b62c06b` |
+
+### Seed2 npc0 tl-on donor-offset budget sensitivity
+
+The donor-offset heading diagnostic above was extended with an offline budget
+sensitivity table. The table is posterior diagnostic evidence over fixed
+transformed candidates only. A candidate must:
+
+1. lower recomputed union-red;
+2. pass the DP hard checks;
+3. stay within an absolute DP reward-progress loss budget relative to the
+   selected baseline candidate;
+4. stay within a DP smoothness reward loss budget relative to the selected
+   baseline candidate.
+
+This is intentionally not an online selector and does not relax or retrain
+CAMP/DP. The smoothness quantity is the scalar `smoothness` reward reported by
+DP's reward breakdown, so it is a DP comfort proxy rather than a physical jerk
+or lateral-acceleration threshold.
+
+Remote artifact:
+
+```text
+/root/autodl-tmp/camp_dp_target_snapshots_seed2_npc0_tlon_13miss_626718a
+```
+
+Aggregate donor-offset results are unchanged before applying budgets:
+
+| Check | Result |
+| --- | ---: |
+| Target snapshots | 13 |
+| Transform count | 75 |
+| Lower recomputed union-red transforms | 74 |
+| Hard-feasible transforms | 73 |
+| Progress-screen feasible transforms | 64 |
+| Lower union-red hard-feasible transforms | 72 |
+| Lower union-red progress-feasible transforms | 63 |
+| Hard infeasible `dp_kinematic` blockers | 2 |
+| Progress infeasible `dp_underprogress` blockers | 9 |
+
+Budget sensitivity:
+
+| Progress loss budget (m) | Smoothness loss budget | Candidate count | Snapshots with candidate |
+| ---: | ---: | ---: | ---: |
+| 0.5 | 0.0 | 1 | 1 |
+| 0.5 | 0.5 | 7 | 2 |
+| 0.5 | 1.0 | 7 | 2 |
+| 1.0 | 0.0 | 7 | 1 |
+| 1.0 | 0.5 | 29 | 7 |
+| 1.0 | 1.0 | 35 | 8 |
+| 1.5 | 0.0 | 7 | 1 |
+| 1.5 | 0.5 | 35 | 8 |
+| 1.5 | 1.0 | 54 | 10 |
+
+At the widest diagnostic budget (`1.5 m` progress loss, `1.0` DP smoothness
+reward loss), coverage remains meaningful but incomplete: `54/75` candidates
+and `10/13` snapshots pass. The three still-uncovered target steps are `69`,
+`194`, and `197`; each requires either a larger progress/smoothness budget or
+a different transform. At the tightest budget (`0.5 m`, smoothness nonworse),
+coverage collapses to `1/75` candidates and `1/13` snapshots, so this evidence
+does not support a tight-budget online override.
+
+Decision: accept the budget table as the next offline gate. The transform is
+promising only under explicitly relaxed progress/smoothness proxy budgets.
+Before any closed-loop shadow or default-off selector run, the next step must
+predeclare an admissible budget policy and decide whether `1.5 m` progress loss
+and `1.0` DP smoothness reward loss are industrially acceptable, or whether the
+transform must be improved to cover more snapshots under stricter budgets.
+
+Mathematical boundary: progress and smoothness are fixed per-candidate
+diagnostics after DP reward recomputation on fixed snapshots. The budget table
+is finite, deterministic, and outcome-free. It is not Benders and introduces no
+dual cuts. If these fixed diagnostics become CAMP atoms later, CAMP scoring
+remains affine in `w` and the existing simplex/CVaR/L2 master remains convex
+only for the fixed finite candidate set.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Donor-offset budget JSON | `2a7e9953892f585e0363351e7c5d59af976a1f7c7889a1e32465ac6b2e105060` |
+| Donor-offset budget markdown | `570730f534e8fc8f7df319c79009235b9188b0de517b11e82d2d79882f6609cf` |
