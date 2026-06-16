@@ -7385,3 +7385,58 @@ py -3.12 -m pytest camp_core\tests\test_diffusion_planner_replay_summary.py
 Decision: accept this as a narrow infrastructure milestone for the next
 non-formal raw-prefix geometry audit. It does not authorize formal seeds,
 online selector changes, CAMP retraining, DP retraining, or performance claims.
+
+### Predeclared sample59 raw-prefix geometry diagnostic
+
+The next raw-prefix audit is fixed before execution and remains diagnostic
+only. It observes whether the three-record smoke result generalizes across the
+existing non-formal sample59 static baseline grid. It does not tune a selector,
+change candidate generation, change CAMP weights, change atom scales, retrain
+CAMP, retrain DP, or use formal seeds.
+
+| Parameter | Value |
+| --- | --- |
+| CAMP commit at predeclare | `e488ff842425cd6611f0c2bf5357e65d637fba04` |
+| DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| Route | `sample59_86` |
+| Seeds | `1,2,3` |
+| Maximum NPCs | `0,4` |
+| Traffic lights | `off,on` |
+| Spawn probability | `0.3` |
+| Steps | `200` |
+| Advance mode | `perfect` |
+| Candidates | `8` |
+| Candidate noise scale | `1.0` |
+| CAMP variant | static `redstopfloor05` |
+| Feasibility | DP reward, minimum progress ratio `0.8` |
+| Reward horizon | `30` steps |
+| All-infeasible fallback | `uniform` |
+| Raw-prefix logging | `--camp_log_raw_candidate_prefix_steps 10` |
+
+The new, non-overwriting output root is:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_sample59_static_e488ff8
+```
+
+The exact 12-command dry-run was persisted before execution at:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_sample59_static_e488ff8_predeclare.txt
+```
+
+Its SHA-256 is
+`8fce3f077e359e12197f7c36007992a171041a93c5f734c4023c0f000ae7ea8b`.
+
+Acceptance for this diagnostic is intentionally narrow:
+
+1. all 12 static runs complete and each summary records
+   `camp_raw_candidate_prefix_logging.selection_effect=false`;
+2. every selection record contains a raw prefix with shape `8 x 10 x 4`;
+3. `analyze_diffusion_planner_raw_prefix_geometry.py` runs over the root and
+   reports only fixed finite-candidate geometry constants;
+4. any conclusion is limited to raw-vs-postprocessed geometry materiality, not
+   safety, comfort, latency, formal performance, Benders, or a new online
+   selector.
+
+Formal seeds `11/12/13` remain frozen.
