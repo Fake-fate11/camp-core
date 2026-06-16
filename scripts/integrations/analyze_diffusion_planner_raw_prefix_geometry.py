@@ -28,9 +28,11 @@ SUMMARY_KEYS = (
     "prefix_steps",
     "raw_endpoint_pairwise_mean_m",
     "post_endpoint_pairwise_mean_m",
+    "endpoint_pairwise_mean_delta_m",
     "endpoint_pairwise_mean_ratio",
     "raw_prefix_pairwise_mean_m",
     "post_prefix_pairwise_mean_m",
+    "prefix_pairwise_mean_delta_m",
     "prefix_pairwise_mean_ratio",
     "raw_selected_distance_mean_m",
     "post_selected_distance_mean_m",
@@ -152,6 +154,10 @@ def _row(record: dict[str, Any], label: str) -> dict[str, float]:
     post_endpoint_pairwise = _pairwise_distances(post[:, -1, :])
     raw_prefix_pairwise = _pairwise_prefix_distances(raw)
     post_prefix_pairwise = _pairwise_prefix_distances(post)
+    raw_endpoint_pairwise_mean = _mean_or_zero(raw_endpoint_pairwise)
+    post_endpoint_pairwise_mean = _mean_or_zero(post_endpoint_pairwise)
+    raw_prefix_pairwise_mean = _mean_or_zero(raw_prefix_pairwise)
+    post_prefix_pairwise_mean = _mean_or_zero(post_prefix_pairwise)
     raw_selected_dist = _candidate_distances_to_selected(raw, selected_index)
     post_selected_dist = _candidate_distances_to_selected(post, selected_index)
     raw_to_post = np.linalg.norm(post - raw, axis=2)
@@ -159,17 +165,23 @@ def _row(record: dict[str, Any], label: str) -> dict[str, float]:
 
     return {
         "prefix_steps": float(steps),
-        "raw_endpoint_pairwise_mean_m": _mean_or_zero(raw_endpoint_pairwise),
-        "post_endpoint_pairwise_mean_m": _mean_or_zero(post_endpoint_pairwise),
-        "endpoint_pairwise_mean_ratio": _ratio(
-            _mean_or_zero(post_endpoint_pairwise),
-            _mean_or_zero(raw_endpoint_pairwise),
+        "raw_endpoint_pairwise_mean_m": raw_endpoint_pairwise_mean,
+        "post_endpoint_pairwise_mean_m": post_endpoint_pairwise_mean,
+        "endpoint_pairwise_mean_delta_m": (
+            post_endpoint_pairwise_mean - raw_endpoint_pairwise_mean
         ),
-        "raw_prefix_pairwise_mean_m": _mean_or_zero(raw_prefix_pairwise),
-        "post_prefix_pairwise_mean_m": _mean_or_zero(post_prefix_pairwise),
+        "endpoint_pairwise_mean_ratio": _ratio(
+            post_endpoint_pairwise_mean,
+            raw_endpoint_pairwise_mean,
+        ),
+        "raw_prefix_pairwise_mean_m": raw_prefix_pairwise_mean,
+        "post_prefix_pairwise_mean_m": post_prefix_pairwise_mean,
+        "prefix_pairwise_mean_delta_m": (
+            post_prefix_pairwise_mean - raw_prefix_pairwise_mean
+        ),
         "prefix_pairwise_mean_ratio": _ratio(
-            _mean_or_zero(post_prefix_pairwise),
-            _mean_or_zero(raw_prefix_pairwise),
+            post_prefix_pairwise_mean,
+            raw_prefix_pairwise_mean,
         ),
         "raw_selected_distance_mean_m": _mean_or_zero(raw_selected_dist),
         "post_selected_distance_mean_m": _mean_or_zero(post_selected_dist),

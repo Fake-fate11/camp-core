@@ -52,8 +52,14 @@ def test_raw_prefix_geometry_reports_postprocess_compression(tmp_path) -> None:
     assert report["summary"]["endpoint_pairwise_mean_ratio"]["mean"] == pytest.approx(
         0.1
     )
+    assert report["summary"]["endpoint_pairwise_mean_delta_m"]["mean"] == pytest.approx(
+        -1.2
+    )
     assert report["summary"]["prefix_pairwise_mean_ratio"]["mean"] == pytest.approx(
         0.1
+    )
+    assert report["summary"]["prefix_pairwise_mean_delta_m"]["mean"] == pytest.approx(
+        -0.75
     )
     assert report["summary"]["selected_distance_mean_ratio"]["mean"] == pytest.approx(
         0.1
