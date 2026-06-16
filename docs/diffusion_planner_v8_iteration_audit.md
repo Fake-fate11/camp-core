@@ -5693,3 +5693,106 @@ audit the changed records that fail posterior joint comfort under the balanced
 and relaxed jerk-safe screens, using only current-tick quantities, to determine
 whether an additional finite, convex-safe atom or guard can explain those
 failures before any replay gate is considered.
+
+### Outcome-free failure attribution
+
+Commits:
+
+- `9f4b8def57dcc89f8452f90949872c1ca04cbe0a` adds a failure-attribution
+  screen for the balanced and relaxed jerk-safe outcome-free selectors.
+- `543914872ad3ae5ba711a535c63c754d780d87f7` adds paired nonworse guard
+  attribution so single-feature explanations are not over-interpreted.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_outcome_free_failure_attribution.py
+1 passed
+
+python -m pytest camp_core
+212 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_outcome_free_failure_attribution.py
+1 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core
+217 passed
+```
+
+AutoDL was synchronized by git bundle. DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. No replay, formal seeds, online
+selector, CAMP retraining, or DP modification was run.
+
+The attribution replays the stored outcome-free selector screens. Selection is
+still based only on current-tick finite candidate diagnostics; outcomes are used
+only to classify changed records as posterior joint-comfort success/failure.
+All audited guard features are fixed candidate constants: raw DP prior/horizon
+costs, PerfectTracker command magnitudes, PerfectTracker open-loop rollout
+metrics, and postprocessed-prefix jerk proxy. If atomized as nonnegative costs,
+they preserve affine scoring in `w` for a fixed finite candidate set. This is a
+finite-candidate diagnostic, not Benders, and it makes no global convexity claim
+over trajectory coordinates.
+
+Final artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| K=8 failure attribution JSON | `a79b17a7c6b83569248e09fc9f80f07fbb8c2ef23c0899d8091dfad791957522` |
+| K=8 failure attribution markdown | `f294b6b38aff668e93def8242f9cd5c6119708190f54594d112ad8e6a0156f29` |
+| `k16_noise1p0` failure attribution JSON | `c55335368a00f3886e6bf8288713c591ac97f2fedb1d15f87b25bedd90001617` |
+| `k16_noise1p0` failure attribution markdown | `6eda95897ef9a7b1de25713d2ebc774efaeaabb16c7fcb9c08260f5607da3d8c` |
+| `k16_noise0p75` failure attribution JSON | `7b5b32826023d69cb8c481f2a25f8244514fa7cd1ef1a344f53151ec5c6a11f2` |
+| `k16_noise0p75` failure attribution markdown | `1fdf07a282a59c3c634a2bb53d5fe9e9e874e23106a1b54b9c75bf9c9bf8af0a` |
+
+Changed-record pass/fail summary:
+
+| Candidate set | Screen | Changed | Success | Failure | Failure mode |
+| --- | --- | ---: | ---: | ---: | --- |
+| K=8 baseline | balanced `0.10 m` | 448 | 274 | 174 | jerk-not-improved only |
+| K=8 baseline | relaxed `0.25 m` | 979 | 676 | 303 | jerk-not-improved only |
+| `k16_noise1p0` | balanced `0.10 m` | 485 | 294 | 191 | jerk-not-improved only |
+| `k16_noise1p0` | relaxed `0.25 m` | 996 | 730 | 266 | jerk-not-improved only |
+| `k16_noise0p75` | balanced `0.10 m` | 709 | 456 | 253 | jerk-not-improved only |
+| `k16_noise0p75` | relaxed `0.25 m` | 1,313 | 919 | 394 | jerk-not-improved only |
+
+Selected paired guard results:
+
+| Candidate set | Screen | Pair guard | Kept | Success keep | Failure removal | Precision | Progress mean | Jerk mean | Lateral mean |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | balanced | prefix jerk + tracker jerk nonworse | 108 | 0.303 | 0.856 | 0.769 | -0.063 m | -0.051 m/s^3 | -0.009 m/s^2 |
+| K=8 baseline | relaxed | prefix jerk + tracker jerk nonworse | 236 | 0.281 | 0.848 | 0.805 | -0.153 m | -0.120 m/s^3 | -0.015 m/s^2 |
+| `k16_noise1p0` | balanced | prefix jerk + tracker jerk nonworse | 115 | 0.276 | 0.822 | 0.704 | -0.066 m | -0.077 m/s^3 | -0.009 m/s^2 |
+| `k16_noise1p0` | relaxed | prefix jerk + tracker jerk nonworse | 226 | 0.244 | 0.820 | 0.788 | -0.168 m | -0.143 m/s^3 | -0.017 m/s^2 |
+| `k16_noise0p75` | balanced | prefix jerk + tracker jerk nonworse | 176 | 0.285 | 0.818 | 0.739 | -0.069 m | -0.041 m/s^3 | -0.006 m/s^2 |
+| `k16_noise0p75` | relaxed | prefix jerk + tracker jerk nonworse | 322 | 0.270 | 0.812 | 0.770 | -0.169 m | -0.111 m/s^3 | -0.013 m/s^2 |
+| K=8 baseline | balanced | H3 distance nonloss + tracker jerk nonworse | 43 | 0.139 | 0.971 | 0.884 | -0.047 m | -0.089 m/s^3 | -0.007 m/s^2 |
+| `k16_noise1p0` | balanced | H3 distance nonloss + tracker jerk nonworse | 74 | 0.194 | 0.911 | 0.770 | -0.053 m | -0.072 m/s^3 | -0.008 m/s^2 |
+| `k16_noise0p75` | balanced | H3 distance nonloss + tracker jerk nonworse | 68 | 0.118 | 0.945 | 0.794 | -0.057 m | -0.046 m/s^3 | -0.005 m/s^2 |
+
+Interpretation:
+
+1. The posterior failures are structurally narrow: every failure in the audited
+   balanced/relaxed jerk-safe screens is `jerk_not_improved`. There are no
+   posterior safety regressions, lateral-only failures, or both-comfort failures
+   in these artifacts.
+2. Current-tick jerk proxies have signal but not enough coverage. The prefix
+   jerk + tracker command jerk nonworse pair removes about `81-86%` of failures
+   with precision around `0.70-0.81`, but it keeps only `24-30%` of successes.
+   That is useful evidence for diagnosis, not an industrial online selector.
+3. Distance-nonloss pairs remove `91-97%` of failures, but they keep only
+   `5-19%` of successes in the shown balanced screens and even less in some
+   relaxed screens. This mostly recreates the previously rejected strict
+   progress-preservation behavior.
+4. Raw DP lateral-excess and horizon-yaw nonworse guards do not explain the
+   failures. Raw lateral is already improved by construction, and the residual
+   failure is jerk alignment between current-tick proxies and posterior outcome.
+
+Decision: reject adding another online guard or atom from this attribution
+alone. The guard candidates either have too little success coverage or fail to
+remove enough jerk failures. Keep the attribution tool for diagnosis. The next
+admissible step is to audit, within each failing changed record, whether a
+different admissible candidate existed that also passed the promising current
+tick jerk guards and was posterior joint-comfort successful. If such candidates
+exist, the issue is tie-break/ranking inside the finite set; if not, the issue
+returns to candidate generation/diversity rather than CAMP weight training.
