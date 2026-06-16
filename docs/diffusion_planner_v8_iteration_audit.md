@@ -8143,8 +8143,9 @@ Artifact SHA-256:
 
 ### Stop-aware splice recompute readiness audit
 
-Commit-in-progress adds a fail-closed artifact readiness audit for the next
-gate. The audit checks whether existing selection logs and optional
+Commit `b674109c95698fac0f3d0d8d2a0b1fe23d1b3df7` adds a fail-closed artifact
+readiness audit for the next gate. The audit checks whether existing selection
+logs and optional
 microbenchmark snapshots contain enough current-tick context to recompute a
 stop-aware raw-H80 splice through the same SG/postprocess, PerfectTracker
 shadow, red-stopping-margin, and DP reward/full-red calculations used by the
