@@ -4521,3 +4521,60 @@ Formal seeds remain frozen.
 | --- | --- |
 | Static weight-transfer sensitivity JSON | `dadeff089920a2e784875868cfc397beeec1bb008df15e9064558053869b5d47` |
 | Static weight-transfer sensitivity markdown | `05f41351558ae00ba3d9c5894f87f3aaf42e9ee0ab54cc44e2143a3af683f05c` |
+
+### Predeclared progress-normalized comfort diagnostic
+
+The next screen remains offline-only and uses the same existing
+`/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc` candidate-outcome
+logs. It does not train CAMP, does not run a simulator matrix, does not alter
+Diffusion Planner, and does not change the online selector. The diagnostic
+tests whether current-tick progress-normalized comfort metrics can separate
+genuine comfort waste from comfort improvements that necessarily buy lower
+progress.
+
+For each nonfallback record, define the fail-closed admissible set
+
+\[
+D_{\Delta p} = \{k: k\text{ is base-feasible},
+p_k \ge p_b - \Delta p,
+u_k \le u_b,
+s_k \le s_b\},
+\]
+
+where \(b\) is the baseline selected index, \(p_k\) is
+`candidate_route_progress`, \(u_k\) is
+`candidate_horizon_union_planned_red_light_cost`, and \(s_k\) is
+`candidate_red_stopping_margin_cost`. The selected baseline is always retained,
+so \(D_{\Delta p}\) is nonempty. Fallback records retain the baseline index.
+
+The fixed progress budgets are `0.0`, `0.05`, `0.10`, and `0.25 m`. The fixed
+diagnostic metrics are:
+
+1. `candidate_horizon_lateral_acceleration_cost`;
+2. `candidate_dp_prior_jerk_excess_cost`;
+3. lateral cost divided by `max(candidate_route_progress, 1.0 m)`;
+4. jerk-excess cost divided by `max(candidate_route_progress, 1.0 m)`.
+
+Each screen chooses the admissible candidate with the smallest diagnostic
+metric, then original CAMP score, then candidate index. Outcomes are used only
+afterward for offline evaluation. The report must include changed records,
+opportunity records, progress/red/jerk/lateral/value deltas, and current-tick
+diagnostic deltas.
+
+Mathematical scope: all quantities used by the screen are fixed-current-tick
+candidate constants and are nonnegative. If any diagnostic were later promoted
+as an atom with fixed scales, the candidate score would remain affine in
+\(w\) over the simplex/CVaR/L2 master. This screen itself is not a Benders
+procedure and makes no convexity claim over trajectory coordinates.
+
+Acceptance for a future intervention is deliberately strict:
+
+1. reject if nonfallback change rate is below 1%;
+2. reject if mean progress delta is below `-0.001 m`;
+3. reject if red-light, collision, near-miss, or lane-violation deltas are
+   positive;
+4. reject if both mean jerk and mean lateral deltas fail to improve by at least
+   `-0.002` in their native units;
+5. passing this diagnostic only authorizes a later predeclared atom or master
+   design. It does not authorize deployment, 12/36-run matrices, DP retraining,
+   or formal seeds.
