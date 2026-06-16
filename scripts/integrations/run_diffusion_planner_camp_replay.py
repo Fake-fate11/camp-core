@@ -3239,6 +3239,9 @@ def main() -> None:
         effective_perfect_tracker_command_postselection
     )
     validation["camp_underprogress_relaxation"] = effective_underprogress_relaxation
+    validation["camp_microbenchmark_snapshots"] = summary[
+        "camp_microbenchmark_snapshots"
+    ]
     validation["camp_raw_candidate_prefix_logging"] = (
         camp_raw_candidate_prefix_logging
     )

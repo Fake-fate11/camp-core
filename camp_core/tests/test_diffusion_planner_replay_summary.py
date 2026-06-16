@@ -32,6 +32,13 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
             "schema_version": "dp_candidate_generation_contract_v1",
             "guidance_enabled": False,
         },
+        "camp_microbenchmark_snapshots": {
+            "enabled": True,
+            "selection_effect": False,
+            "latency_evidence": False,
+            "requested_steps": [0, 1],
+            "files": ["camp_microbenchmark_step_0000.npz"],
+        },
         "camp_raw_candidate_prefix_logging": {
             "enabled": True,
             "selection_effect": False,
@@ -61,6 +68,8 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
         "dp_candidate_generation_contract_v1"
     )
     assert not merged["candidate_generation_contract"]["guidance_enabled"]
+    assert merged["camp_microbenchmark_snapshots"]["requested_steps"] == [0, 1]
+    assert not merged["camp_microbenchmark_snapshots"]["selection_effect"]
     assert merged["camp_raw_candidate_prefix_logging"]["steps"] == 10
     assert not merged["camp_raw_candidate_prefix_logging"]["selection_effect"]
     assert merged["camp_shadow_dp_prior_comfort_excess"][
