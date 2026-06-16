@@ -8140,3 +8140,77 @@ Artifact SHA-256:
 | --- | --- |
 | Stop-aware splice JSON | `f5a9c93d3fbbf42bbb5395d4776e62ac631ef6b4ed5143155da9df033597f352` |
 | Stop-aware splice markdown | `7f7ab4cac757fc01650b9c484c7e741a6c8c5a47570d9afddfd0d091f18938dd` |
+
+### Stop-aware splice recompute readiness audit
+
+Commit-in-progress adds a fail-closed artifact readiness audit for the next
+gate. The audit checks whether existing selection logs and optional
+microbenchmark snapshots contain enough current-tick context to recompute a
+stop-aware raw-H80 splice through the same SG/postprocess, PerfectTracker
+shadow, red-stopping-margin, and DP reward/full-red calculations used by the
+replay path. It is a logging-contract audit only; it does not recompute reward,
+red-light score, CAMP score, or closed-loop outcome.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile scripts\integrations\analyze_diffusion_planner_splice_recompute_readiness.py
+
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_splice_recompute_readiness.py
+2 passed
+```
+
+Remote command:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_splice_recompute_readiness.py \
+  --root /root/autodl-tmp/camp_dp_raw_prefix_h80_sample59_static_9fa9824 \
+  --label sample59_static_raw_h80_34c1d4a \
+  --output_json /root/autodl-tmp/camp_dp_splice_recompute_readiness_sample59_static_34c1d4a/readiness.json \
+  --output_md /root/autodl-tmp/camp_dp_splice_recompute_readiness_sample59_static_34c1d4a/readiness.md
+```
+
+Remote artifact:
+
+```text
+/root/autodl-tmp/camp_dp_splice_recompute_readiness_sample59_static_34c1d4a
+```
+
+The audit found `12` selection logs, `2400` records, and the same `32`
+selected h30-safe/full-red target records. Results on the target records:
+
+| Stage | Ready target records | Missing target fields |
+| --- | ---: | --- |
+| raw splice geometry from selection log | 32/32 | none |
+| CAMP logged score audit from selection log | 32/32 | none |
+| PerfectTracker splice recompute from selection log | 32/32 | none |
+| red-stopping-margin splice recompute from selection log | 0/32 | `red_route_points` for all 32 |
+| DP reward/full-red recompute from selection log | 0/32 | `reward_input__lanes`, `reward_input__route_lanes`, `reward_input__line_strings`, `reward_input__ego_shape`, `reward_input__neighbor_agents_future`, `reward_input__neighbor_agents_past`, `reward_input__goal_pose` for all 32 |
+
+There were `0` matching microbenchmark snapshots in the raw-H80 artifact, so
+the snapshot recompute stages had no eligible inputs.
+
+Decision: reject any claim that the current raw-H80 selection-log artifact can
+prove splice feasibility or red-light improvement after transformation. The
+old logs are sufficient for raw geometry, CAMP score audit, and PerfectTracker
+state-context readiness, but they do not contain the red route point array or
+the DP reward tensor context. The next admissible step is a default-off
+snapshot/recompute-context capture on a small non-formal smoke run with
+selection effect disabled, followed by the actual transformed-candidate
+recompute gate. Do not implement an online selector, run 12/36-run replay, or
+train CAMP weights from this evidence.
+
+Mathematical boundary: this readiness audit inspects fixed current-tick
+artifact fields only. It defines a finite-candidate recomputation logging
+contract and does not invoke Benders. If transformed candidates later become
+fixed current-tick candidate constants and are atomized, the CAMP score remains
+affine in `w` and the simplex/CVaR/L2 master remains convex; no global
+convexity over trajectory coordinates is claimed.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Splice recompute readiness JSON | `603a3436a41ce0be6cb362d4640b0428cb4d962fe2d76e9e285f38dc37d4de32` |
+| Splice recompute readiness markdown | `d5c37063141e72d76107ec32b1c6dddbfd4a53191df8113f5978e6dc959a7806` |
