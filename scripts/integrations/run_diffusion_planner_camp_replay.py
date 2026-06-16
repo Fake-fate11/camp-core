@@ -42,6 +42,12 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     select_perfect_tracker_command_dominating_candidate,
     summarize_replay_artifacts,
 )
+from scripts.integrations.analyze_diffusion_planner_splice_recompute_gate import (  # noqa: E402
+    build_splice_candidates,
+    fixed_candidate_shadow_rule,
+    reward_hard_feasibility,
+    reward_metric_vector,
+)
 
 
 PERFECT_TRACKER_OPEN_LOOP_HORIZONS = (3, 5, 10)
@@ -367,6 +373,33 @@ def parse_args() -> argparse.Namespace:
             "This changes no selection behavior and is for offline audits only."
         ),
     )
+    parser.add_argument(
+        "--camp_splice_shadow_rule",
+        action="store_true",
+        help=(
+            "Default-off closed-loop shadow logging for the fixed-candidate "
+            "stop-aware splice rule. This recomputes DP reward for transformed "
+            "candidates and records a hypothetical choice without changing "
+            "the selected trajectory."
+        ),
+    )
+    parser.add_argument("--camp_splice_shadow_anchor_steps", type=int, default=10)
+    parser.add_argument("--camp_splice_shadow_blend_steps", type=int, default=40)
+    parser.add_argument(
+        "--camp_splice_shadow_heading_mode",
+        choices=("finite_difference", "donor_offset"),
+        default="donor_offset",
+    )
+    parser.add_argument(
+        "--camp_splice_shadow_progress_loss_budget_m",
+        type=float,
+        default=1.0,
+    )
+    parser.add_argument(
+        "--camp_splice_shadow_smoothness_loss_budget",
+        type=float,
+        default=0.5,
+    )
     parser.add_argument("--near_miss_threshold_m", type=float, default=2.0)
     return parser.parse_args()
 
@@ -507,6 +540,43 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--near_miss_threshold_m must be non-negative.")
     if args.camp_log_raw_candidate_prefix_steps < 0:
         raise ValueError("--camp_log_raw_candidate_prefix_steps must be non-negative.")
+    splice_shadow_budgets = (
+        args.camp_splice_shadow_progress_loss_budget_m,
+        args.camp_splice_shadow_smoothness_loss_budget,
+    )
+    if any(not np.isfinite(value) or value < 0.0 for value in splice_shadow_budgets):
+        raise ValueError("CAMP splice shadow budgets must be finite and nonnegative.")
+    if args.camp_splice_shadow_anchor_steps < 2:
+        raise ValueError("--camp_splice_shadow_anchor_steps must be >= 2.")
+    if args.camp_splice_shadow_blend_steps < 0:
+        raise ValueError("--camp_splice_shadow_blend_steps must be nonnegative.")
+    if args.camp_splice_shadow_rule and args.camp_selector_mode == "top1":
+        raise ValueError("CAMP splice shadow rule requires a CAMP selector mode.")
+    if args.camp_splice_shadow_rule and args.camp_feasibility_source != "dp_reward":
+        raise ValueError(
+            "CAMP splice shadow rule requires --camp_feasibility_source dp_reward."
+        )
+    if (
+        args.camp_splice_shadow_rule
+        and args.camp_lexicographic_progress_epsilon_m is not None
+    ):
+        raise ValueError(
+            "CAMP splice shadow rule cannot be combined with lexicographic "
+            "preselection in the same run."
+        )
+    if args.camp_splice_shadow_rule and args.camp_underprogress_relaxation:
+        raise ValueError(
+            "CAMP splice shadow rule cannot be combined with underprogress "
+            "relaxation in the same run."
+        )
+    if (
+        args.camp_splice_shadow_rule
+        and args.camp_perfect_tracker_command_postselection
+    ):
+        raise ValueError(
+            "CAMP splice shadow rule cannot be combined with PerfectTracker "
+            "command postselection in the same run."
+        )
     if args.reward_config is not None and not args.reward_config.is_file():
         raise FileNotFoundError(f"Missing reward config: {args.reward_config}")
     if (
@@ -1806,6 +1876,261 @@ def _raw_candidate_prefix_payload(
     }
 
 
+def _lower_union_red_donor_indices(
+    union_red_cost: np.ndarray,
+    selected_index: int,
+) -> np.ndarray:
+    union = np.asarray(union_red_cost, dtype=np.float64).reshape(-1)
+    selected = int(selected_index)
+    if selected < 0 or selected >= union.size:
+        raise ValueError("selected_index is out of range.")
+    if not np.all(np.isfinite(union)) or np.any(union < 0.0):
+        raise ValueError("union_red_cost must be finite and nonnegative.")
+    indices = np.arange(union.size, dtype=np.int64)
+    nonselected = indices[indices != selected]
+    return nonselected[union[nonselected] < union[selected] - 1e-12]
+
+
+def _evaluate_splice_shadow_rule(
+    *,
+    replay_module: Any,
+    tensor_converter_module: Any,
+    scene: Any,
+    map_cache: Any,
+    model_args: Any,
+    candidates: np.ndarray,
+    baseline_selected_index: int,
+    candidate_rewards: list[dict[str, Any]],
+    candidate_union_red_cost: np.ndarray,
+    device: str,
+    reward_config: Any,
+    spawn_config: Any,
+    reward_horizon_steps: int,
+    anchor_steps: int,
+    blend_steps: int,
+    heading_mode: str,
+    progress_loss_budget_m: float,
+    smoothness_loss_budget: float,
+) -> dict[str, Any]:
+    start = time.perf_counter()
+    donor_indices = _lower_union_red_donor_indices(
+        candidate_union_red_cost,
+        baseline_selected_index,
+    )
+    config = {
+        "schema_version": "splice_shadow_rule_v1",
+        "enabled": True,
+        "default_off": True,
+        "selection_effect": False,
+        "online_selector_change": False,
+        "donor_pool": "lower_logged_union_red",
+        "anchor_steps": int(anchor_steps),
+        "blend_steps": int(blend_steps),
+        "heading_mode": str(heading_mode),
+        "budget": {
+            "progress_loss_m": float(progress_loss_budget_m),
+            "smoothness_loss": float(smoothness_loss_budget),
+        },
+        "baseline_selected_index": int(baseline_selected_index),
+        "donor_indices": [int(index) for index in donor_indices.tolist()],
+        "donor_count": int(donor_indices.size),
+    }
+    selected_union_red = float(
+        np.asarray(candidate_union_red_cost, dtype=np.float64)[
+            int(baseline_selected_index)
+        ]
+    )
+    selected_progress = float(
+        candidate_rewards[int(baseline_selected_index)]["progress"]
+    )
+    selected_smoothness = float(
+        candidate_rewards[int(baseline_selected_index)]["smoothness"]
+    )
+    if not donor_indices.size:
+        rule = fixed_candidate_shadow_rule(
+            union_red=np.empty(0, dtype=np.float64),
+            progress=np.empty(0, dtype=np.float64),
+            smoothness=np.empty(0, dtype=np.float64),
+            hard_feasible=np.empty(0, dtype=bool),
+            selected_union_red=selected_union_red,
+            selected_progress=selected_progress,
+            selected_smoothness=selected_smoothness,
+            enabled=True,
+            progress_loss_budget_m=progress_loss_budget_m,
+            smoothness_loss_budget=smoothness_loss_budget,
+        )
+        config.update(rule)
+        config["latency_ms"] = (time.perf_counter() - start) * 1000.0
+        return config
+
+    transformed = build_splice_candidates(
+        np.asarray(candidates, dtype=np.float64),
+        selected_index=int(baseline_selected_index),
+        donor_indices=donor_indices,
+        anchor_steps=int(anchor_steps),
+        blend_steps=int(blend_steps),
+        heading_mode=str(heading_mode),
+    )
+    transformed_rewards, transformed_full_red_cost, full_red_latency_ms = (
+        _score_candidate_batch(
+            replay_module=replay_module,
+            tensor_converter_module=tensor_converter_module,
+            scene=scene,
+            map_cache=map_cache,
+            model_args=model_args,
+            candidates=transformed,
+            device=device,
+            reward_config=reward_config,
+            spawn_config=spawn_config,
+            reward_horizon_steps=reward_horizon_steps,
+        )
+    )
+    transformed_near_red_cost = np.asarray(
+        [
+            max(-float(reward.get("red_light", 0.0)), 0.0)
+            for reward in transformed_rewards
+        ],
+        dtype=np.float64,
+    )
+    transformed_union_red_cost = np.maximum(
+        transformed_near_red_cost,
+        transformed_full_red_cost,
+    )
+    transformed_hard_feasible, _ = reward_hard_feasibility(transformed_rewards)
+    transformed_progress = reward_metric_vector(transformed_rewards, "progress")
+    transformed_smoothness = reward_metric_vector(
+        transformed_rewards,
+        "smoothness",
+    )
+    rule = fixed_candidate_shadow_rule(
+        union_red=transformed_union_red_cost,
+        progress=transformed_progress,
+        smoothness=transformed_smoothness,
+        hard_feasible=transformed_hard_feasible,
+        selected_union_red=selected_union_red,
+        selected_progress=selected_progress,
+        selected_smoothness=selected_smoothness,
+        enabled=True,
+        progress_loss_budget_m=progress_loss_budget_m,
+        smoothness_loss_budget=smoothness_loss_budget,
+    )
+    chosen = rule["chosen_transformed_index"]
+    config.update(
+        {
+            "transform_count": int(transformed.shape[0]),
+            "lower_union_red_count": int(
+                np.sum(transformed_union_red_cost < selected_union_red - 1e-12)
+            ),
+            "hard_feasible_count": int(np.sum(transformed_hard_feasible)),
+            "lower_union_red_hard_feasible_count": int(
+                np.sum(
+                    (transformed_union_red_cost < selected_union_red - 1e-12)
+                    & transformed_hard_feasible
+                )
+            ),
+            "full_red_latency_ms": float(full_red_latency_ms),
+            "chosen_donor_index": (
+                int(donor_indices[int(chosen)]) if chosen is not None else None
+            ),
+        }
+    )
+    config.update(rule)
+    config["latency_ms"] = (time.perf_counter() - start) * 1000.0
+    return config
+
+
+def _summarize_splice_shadow_rule_records(
+    records: list[dict[str, Any]] | None,
+    *,
+    enabled: bool,
+    anchor_steps: int,
+    blend_steps: int,
+    heading_mode: str,
+    progress_loss_budget_m: float,
+    smoothness_loss_budget: float,
+) -> dict[str, Any] | None:
+    if records is None:
+        return None
+    summary: dict[str, Any] = {
+        "enabled": bool(enabled),
+        "default_off": True,
+        "selection_effect": False,
+        "online_selector_change": False,
+        "schema_version": "splice_shadow_rule_v1",
+        "donor_pool": "lower_logged_union_red",
+        "anchor_steps": int(anchor_steps),
+        "blend_steps": int(blend_steps),
+        "heading_mode": str(heading_mode),
+        "budget": {
+            "progress_loss_m": float(progress_loss_budget_m),
+            "smoothness_loss": float(smoothness_loss_budget),
+        },
+        "field": "splice_shadow_rule",
+    }
+    if not enabled:
+        return summary
+
+    shadows = [
+        record.get("splice_shadow_rule")
+        for record in records
+        if record.get("splice_shadow_rule") is not None
+    ]
+    summary["records"] = len(shadows)
+    summary["changed_records"] = int(
+        sum(int(bool(shadow["changed"])) for shadow in shadows)
+    )
+    summary["admissible_count"] = int(
+        sum(int(shadow["admissible_count"]) for shadow in shadows)
+    )
+    summary["reason_counts"] = _sum_reason_counts(
+        {str(shadow["reason"]): 1} for shadow in shadows
+    )
+    summary["latency_ms"] = _summary(
+        [
+            float(record["latency_ms_splice_shadow_rule"])
+            for record in records
+            if record.get("latency_ms_splice_shadow_rule") is not None
+        ]
+    )
+    summary["chosen_union_red"] = _summary(
+        [
+            float(shadow["chosen_union_red"])
+            for shadow in shadows
+            if shadow.get("chosen_union_red") is not None
+        ]
+    )
+    summary["chosen_progress_loss_m"] = _summary(
+        [
+            float(shadow["chosen_progress_loss_m"])
+            for shadow in shadows
+            if shadow.get("chosen_progress_loss_m") is not None
+        ]
+    )
+    summary["chosen_smoothness_loss"] = _summary(
+        [
+            float(shadow["chosen_smoothness_loss"])
+            for shadow in shadows
+            if shadow.get("chosen_smoothness_loss") is not None
+        ]
+    )
+    return summary
+
+
+def _summary(values: list[float]) -> dict[str, float | None]:
+    if not values:
+        return {"mean": None, "max": None}
+    arr = np.asarray(values, dtype=np.float64)
+    return {"mean": float(np.mean(arr)), "max": float(np.max(arr))}
+
+
+def _sum_reason_counts(rows: Any) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        for reason, count in row.items():
+            counts[reason] = counts.get(reason, 0) + int(count)
+    return dict(sorted(counts.items()))
+
+
 def _install_camp_predictor(
     replay_module: Any,
     tensor_converter_module: Any,
@@ -1847,6 +2172,12 @@ def _install_camp_predictor(
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
+    splice_shadow_rule: bool,
+    splice_shadow_anchor_steps: int,
+    splice_shadow_blend_steps: int,
+    splice_shadow_heading_mode: str,
+    splice_shadow_progress_loss_budget_m: float,
+    splice_shadow_smoothness_loss_budget: float,
 ) -> tuple[
     Any,
     list[dict[str, Any]],
@@ -2217,6 +2548,43 @@ def _install_camp_predictor(
         underprogress_relaxation_done = time.perf_counter()
         baseline_selected_index = int(selection.selected_index)
         selected_index = baseline_selected_index
+        splice_shadow_start = time.perf_counter()
+        splice_shadow_rule_stats = None
+        if splice_shadow_rule:
+            if (
+                candidate_rewards is None
+                or candidate_horizon_union_planned_red_light_cost is None
+            ):
+                raise RuntimeError(
+                    "CAMP splice shadow rule requires DP reward candidate fields."
+                )
+            splice_shadow_rule_stats = _evaluate_splice_shadow_rule(
+                replay_module=replay_module,
+                tensor_converter_module=tensor_converter_module,
+                scene=scene,
+                map_cache=map_cache,
+                model_args=model_args,
+                candidates=candidates,
+                baseline_selected_index=baseline_selected_index,
+                candidate_rewards=candidate_rewards,
+                candidate_union_red_cost=(
+                    candidate_horizon_union_planned_red_light_cost
+                ),
+                device=device,
+                reward_config=reward_config,
+                spawn_config=spawn_config,
+                reward_horizon_steps=reward_horizon_steps,
+                anchor_steps=splice_shadow_anchor_steps,
+                blend_steps=splice_shadow_blend_steps,
+                heading_mode=splice_shadow_heading_mode,
+                progress_loss_budget_m=(
+                    splice_shadow_progress_loss_budget_m
+                ),
+                smoothness_loss_budget=(
+                    splice_shadow_smoothness_loss_budget
+                ),
+            )
+        splice_shadow_done = time.perf_counter()
         perfect_tracker_command_postselection_stats = None
         if perfect_tracker_command_postselection:
             if candidate_progress is None or candidate_planned_red_light_cost is None:
@@ -2291,7 +2659,11 @@ def _install_camp_predictor(
             )
             * 1000.0,
             "latency_ms_perfect_tracker_command_postselection": (
-                selection_done - underprogress_relaxation_done
+                selection_done - splice_shadow_done
+            )
+            * 1000.0,
+            "latency_ms_splice_shadow_rule": (
+                splice_shadow_done - underprogress_relaxation_done
             )
             * 1000.0,
             "latency_ms_camp_atom_computation": selection.timings_ms[
@@ -2396,6 +2768,7 @@ def _install_camp_predictor(
                     perfect_tracker_command_postselection_stats
                 ),
                 "underprogress_relaxation": underprogress_relaxation_stats,
+                "splice_shadow_rule": splice_shadow_rule_stats,
                 "num_candidates": int(num_candidates),
                 "candidate_noise_scale": float(noise_scale),
                 "candidate_reference_blend_steps": reference_blend_steps,
@@ -2766,6 +3139,16 @@ def main() -> None:
                 args.camp_microbenchmark_snapshot_steps
             ),
             raw_candidate_prefix_steps=args.camp_log_raw_candidate_prefix_steps,
+            splice_shadow_rule=bool(args.camp_splice_shadow_rule),
+            splice_shadow_anchor_steps=args.camp_splice_shadow_anchor_steps,
+            splice_shadow_blend_steps=args.camp_splice_shadow_blend_steps,
+            splice_shadow_heading_mode=args.camp_splice_shadow_heading_mode,
+            splice_shadow_progress_loss_budget_m=(
+                args.camp_splice_shadow_progress_loss_budget_m
+            ),
+            splice_shadow_smoothness_loss_budget=(
+                args.camp_splice_shadow_smoothness_loss_budget
+            ),
         )
     else:
         (
@@ -2965,6 +3348,15 @@ def main() -> None:
         if records is not None
         else None
     )
+    effective_splice_shadow_rule = _summarize_splice_shadow_rule_records(
+        records,
+        enabled=bool(args.camp_splice_shadow_rule),
+        anchor_steps=args.camp_splice_shadow_anchor_steps,
+        blend_steps=args.camp_splice_shadow_blend_steps,
+        heading_mode=args.camp_splice_shadow_heading_mode,
+        progress_loss_budget_m=args.camp_splice_shadow_progress_loss_budget_m,
+        smoothness_loss_budget=args.camp_splice_shadow_smoothness_loss_budget,
+    )
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
@@ -2993,6 +3385,7 @@ def main() -> None:
             else None
         ),
         "camp_raw_candidate_prefix_logging": camp_raw_candidate_prefix_logging,
+        "camp_splice_shadow_rule": effective_splice_shadow_rule,
         "camp_lane_corridor_buffer": effective_lane_buffer,
         "camp_feasibility_source": effective_feasibility_source,
         "camp_min_progress_ratio": effective_min_progress_ratio,
@@ -3245,6 +3638,7 @@ def main() -> None:
     validation["camp_raw_candidate_prefix_logging"] = (
         camp_raw_candidate_prefix_logging
     )
+    validation["camp_splice_shadow_rule"] = effective_splice_shadow_rule
     validation["camp_reward_horizon_steps"] = effective_reward_horizon_steps
     validation["camp_collect_closed_loop_outcomes"] = (
         bool(args.camp_collect_closed_loop_outcomes) if records is not None else None

@@ -30,6 +30,7 @@ REPLAY_METADATA_FIELDS = (
     "candidate_generation_contract",
     "camp_microbenchmark_snapshots",
     "camp_raw_candidate_prefix_logging",
+    "camp_splice_shadow_rule",
     "camp_lane_corridor_buffer",
     "camp_feasibility_source",
     "camp_min_progress_ratio",

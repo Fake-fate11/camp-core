@@ -14,7 +14,9 @@ from scripts.integrations.summarize_diffusion_planner_camp_replay import (
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_generation_contract,
     _configure_candidate_guidance,
+    _lower_union_red_donor_indices,
     _raw_candidate_prefix_payload,
+    _summarize_splice_shadow_rule_records,
 )
 
 
@@ -45,6 +47,12 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
             "steps": 10,
             "field": "candidate_raw_trajectory_prefix",
         },
+        "camp_splice_shadow_rule": {
+            "enabled": True,
+            "selection_effect": False,
+            "online_selector_change": False,
+            "changed_records": 2,
+        },
         "camp_shadow_dp_prior_comfort_excess": {
             "enabled": True,
             "selection_effect": False,
@@ -72,6 +80,8 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
     assert not merged["camp_microbenchmark_snapshots"]["selection_effect"]
     assert merged["camp_raw_candidate_prefix_logging"]["steps"] == 10
     assert not merged["camp_raw_candidate_prefix_logging"]["selection_effect"]
+    assert merged["camp_splice_shadow_rule"]["changed_records"] == 2
+    assert not merged["camp_splice_shadow_rule"]["selection_effect"]
     assert merged["camp_shadow_dp_prior_comfort_excess"][
         "effective_horizon_steps"
     ] == 30
@@ -216,6 +226,63 @@ def test_raw_candidate_prefix_payload_rejects_negative_steps() -> None:
 
     with pytest.raises(ValueError, match="non-negative"):
         _raw_candidate_prefix_payload(candidates, -1)
+
+
+def test_lower_union_red_donor_indices_excludes_selected_and_higher_risk() -> None:
+    donors = _lower_union_red_donor_indices(
+        np.array([5.0, 2.0, 5.0, 4.0]),
+        selected_index=0,
+    )
+
+    np.testing.assert_array_equal(donors, np.array([1, 3], dtype=np.int64))
+
+
+def test_summarize_splice_shadow_rule_records_reports_default_off_state() -> None:
+    summary = _summarize_splice_shadow_rule_records(
+        [
+            {
+                "splice_shadow_rule": {
+                    "changed": True,
+                    "admissible_count": 3,
+                    "reason": "budget_admissible_lower_red_candidate",
+                    "chosen_union_red": 0.0,
+                    "chosen_progress_loss_m": 0.8,
+                    "chosen_smoothness_loss": 0.1,
+                },
+                "latency_ms_splice_shadow_rule": 2.5,
+            },
+            {
+                "splice_shadow_rule": {
+                    "changed": False,
+                    "admissible_count": 0,
+                    "reason": "no_budget_admissible_lower_red_candidate",
+                    "chosen_union_red": None,
+                    "chosen_progress_loss_m": None,
+                    "chosen_smoothness_loss": None,
+                },
+                "latency_ms_splice_shadow_rule": 1.5,
+            },
+        ],
+        enabled=True,
+        anchor_steps=10,
+        blend_steps=40,
+        heading_mode="donor_offset",
+        progress_loss_budget_m=1.0,
+        smoothness_loss_budget=0.5,
+    )
+
+    assert summary is not None
+    assert summary["enabled"] is True
+    assert summary["selection_effect"] is False
+    assert summary["online_selector_change"] is False
+    assert summary["changed_records"] == 1
+    assert summary["admissible_count"] == 3
+    assert summary["reason_counts"] == {
+        "budget_admissible_lower_red_candidate": 1,
+        "no_budget_admissible_lower_red_candidate": 1,
+    }
+    assert summary["latency_ms"]["max"] == 2.5
+    assert summary["chosen_union_red"]["max"] == 0.0
 
 
 def test_configure_candidate_guidance_default_is_disabled() -> None:
