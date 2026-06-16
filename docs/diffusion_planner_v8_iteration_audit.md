@@ -6112,3 +6112,128 @@ to posterior jerk success within the bounded admissible set. That audit may use
 posterior outcomes as labels, but any deployable rule must remain based on
 current-tick finite-candidate quantities and must preserve the fixed-candidate
 affine CAMP scoring contract.
+
+### Jerk descriptor calibration audit
+
+Commit `99776743f73056cd6b852a048304022fcdbd439d` adds a candidate-level
+calibration audit for current-tick jerk descriptors inside the same bounded
+admissible finite candidate sets. For every admissible candidate, the audit
+computes descriptor deltas relative to the selected candidate and labels the
+candidate by posterior jerk improvement and posterior joint-comfort success.
+It reports AUC plus the precision, recall, and precision lift of the
+predeclared nonworse rule for each descriptor.
+
+The predeclared failure-tick calibration gate requires, for at least one
+descriptor on a screen:
+
+- posterior jerk AUC at least `0.65`;
+- nonworse-rule posterior jerk precision lift at least `0.15`;
+- nonworse-rule posterior jerk recall at least `0.30`;
+- nonworse-rule posterior joint-comfort precision lift at least `0.05`;
+- nonworse-rule posterior joint-comfort recall at least `0.10`.
+
+This is an offline calibration diagnostic only. Posterior outcomes are labels,
+not online inputs. All candidate descriptors are current-tick finite constants;
+if later atomized, fixed-candidate CAMP scoring remains affine in `w` and
+compatible with the simplex/CVaR/L2 convex master. This audit is not Benders
+and makes no trajectory-coordinate convexity claim.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_jerk_descriptor_calibration.py
+1 passed
+
+python -m pytest camp_core
+218 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_jerk_descriptor_calibration.py
+1 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core
+223 passed
+```
+
+AutoDL was synchronized by git bundle. CAMP local/GitHub/AutoDL reached
+`99776743f73056cd6b852a048304022fcdbd439d`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The calibration commands were:
+
+```bash
+K8=/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc
+K16A=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise1p0_2212309
+K16B=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise0p75_2212309
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_jerk_descriptor_calibration.py \
+  --root "$K8" --label k8_baseline \
+  --output_json "$K8/k8_baseline_jerk_descriptor_calibration.json" \
+  --output_md "$K8/k8_baseline_jerk_descriptor_calibration.md"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_jerk_descriptor_calibration.py \
+  --root "$K16A" --label k16_noise1p0 \
+  --output_json "$K16A/k16_noise1p0_jerk_descriptor_calibration.json" \
+  --output_md "$K16A/k16_noise1p0_jerk_descriptor_calibration.md"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_jerk_descriptor_calibration.py \
+  --root "$K16B" --label k16_noise0p75 \
+  --output_json "$K16B/k16_noise0p75_jerk_descriptor_calibration.json" \
+  --output_md "$K16B/k16_noise0p75_jerk_descriptor_calibration.md"
+```
+
+Final artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Jerk calibration analyzer | `66c5be2031bf3c1060254776b255e8e95fd0a39e21b3ad523158773cd30a1fbb` |
+| Jerk calibration tests | `29d0e856895e4485e49ed17f983209b055ab0ffe4bb7193906f97ca06dbbe1ea` |
+| K=8 calibration JSON | `37ef670e161b9c587774b61a43293c711bcc23f86c6b01b939726edea3352cec` |
+| K=8 calibration markdown | `6f36a49819e21c92c9812859efd48d6c24ba09121730aeafdbda40319bc75548` |
+| `k16_noise1p0` calibration JSON | `970034ec53fede0e024f1559f5633b3a11fdbd8968d07d8f3e9de7775016b52c` |
+| `k16_noise1p0` calibration markdown | `f835ee105ab4ee5536b5106b37209173c09301d09e816926674026836a0a251e` |
+| `k16_noise0p75` calibration JSON | `0ebd0ef3c0d983c839b7c961efc7ed08be9dd1740024ae537834ff5141ee9d52` |
+| `k16_noise0p75` calibration markdown | `8d114e9b64f7b65cdc63e1607e2593e2a443de81249cc399dbe229df346889ba` |
+
+Failure-tick calibration results:
+
+| Candidate set | Screen | Candidate rows | Success rate | Best descriptor | AUC | Precision | Lift | Recall | Gate |
+| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | --- |
+| K=8 | balanced | 275 | 0.095 | prefix jerk | 0.603 | 0.118 | +0.023 | 0.615 | fail |
+| K=8 | relaxed | 582 | 0.096 | prefix jerk | 0.578 | 0.116 | +0.020 | 0.571 | fail |
+| `k16_noise1p0` | balanced | 396 | 0.101 | prefix jerk | 0.705 | 0.173 | +0.072 | 0.675 | fail |
+| `k16_noise1p0` | relaxed | 782 | 0.136 | prefix jerk | 0.640 | 0.198 | +0.062 | 0.717 | fail |
+| `k16_noise0p75` | balanced | 615 | 0.153 | prefix jerk | 0.672 | 0.235 | +0.082 | 0.702 | fail |
+| `k16_noise0p75` | relaxed | 1,360 | 0.174 | H3 rollout jerk | 0.607 | 0.232 | +0.058 | 0.578 | fail |
+
+The table reports the best descriptor by failure-tick AUC/lift summary. The
+success rate is posterior joint-comfort success among failure-tick admissible
+candidates; in these audited failure ticks posterior jerk success and posterior
+joint-comfort success have the same counts.
+
+Interpretation:
+
+1. Prefix jerk is the strongest current descriptor in most screens, and K16
+   improves its ranking signal over K=8. The best AUC is `0.705` on
+   `k16_noise1p0` balanced.
+2. The signal is still too weak for an industrial online guard. The strongest
+   precision lift is only `+0.082`, well below the predeclared `+0.15` gate.
+   High recall comes mostly from broad nonworse coverage, not from strong
+   separation.
+3. Raw DP prior jerk has no discriminative value under the audited screens:
+   because balanced/relaxed screens already require raw jerk nondegradation,
+   raw jerk nonworse predicts every candidate and has AUC `0.5`.
+4. Tracker-command jerk and H3 rollout jerk are not consistently calibrated.
+   They sometimes improve coverage but do not provide enough precision lift to
+   justify an online guard or atom.
+
+Decision: reject current raw/tracker/prefix/H3 jerk descriptors as online
+guards or CAMP atoms. Do not run replay, formal seeds, online selector wiring,
+CAMP retraining, or DP retraining from this calibration. The next admissible
+step is to examine richer current-tick descriptors that are still finite and
+outcome-free, such as multi-horizon PerfectTracker rollout jerk/lateral
+features already present in the logs, and test whether they improve
+calibration without changing DP or the CAMP convex master contract.
