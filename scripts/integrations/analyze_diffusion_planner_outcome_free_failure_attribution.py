@@ -331,6 +331,7 @@ def _screen_report(name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "feature_delta_summary": _feature_delta_summary(rows, successes, failures),
         "single_nonworse_guards": _single_guard_reports(rows, successes, failures),
+        "pair_nonworse_guards": _pair_guard_reports(rows, successes, failures),
         "failure_examples": _failure_examples(failures),
     }
 
@@ -410,6 +411,69 @@ def _single_guard_reports(
                 "kept_outcome_delta_summary": _outcome_summary(kept),
             }
         )
+    reports.sort(
+        key=lambda item: (
+            float(item["failure_removal_rate"]),
+            float(item["precision_after_guard"]),
+            float(item["success_keep_rate"]),
+        ),
+        reverse=True,
+    )
+    return reports
+
+
+def _pair_guard_reports(
+    rows: list[dict[str, Any]],
+    successes: list[dict[str, Any]],
+    failures: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    reports = []
+    keys = _feature_keys(rows)
+    for left_index, left in enumerate(keys):
+        for right in keys[left_index + 1 :]:
+            left_spec = _feature_spec(left)
+            right_spec = _feature_spec(right)
+            applicable = [
+                row for row in rows if left in row["feature_deltas"] and right in row["feature_deltas"]
+            ]
+            if not applicable:
+                continue
+            kept = [
+                row
+                for row in applicable
+                if _passes_guard(float(row["feature_deltas"][left]), left_spec)
+                and _passes_guard(float(row["feature_deltas"][right]), right_spec)
+            ]
+            applicable_success = [
+                row
+                for row in successes
+                if left in row["feature_deltas"] and right in row["feature_deltas"]
+            ]
+            applicable_failure = [
+                row
+                for row in failures
+                if left in row["feature_deltas"] and right in row["feature_deltas"]
+            ]
+            kept_success = [row for row in kept if row["posterior_joint_comfort_improvement"]]
+            kept_failure = [row for row in kept if not row["posterior_joint_comfort_improvement"]]
+            removed_failure = len(applicable_failure) - len(kept_failure)
+            removed_success = len(applicable_success) - len(kept_success)
+            reports.append(
+                {
+                    "features": [left, right],
+                    "guards": [left_spec["guard"], right_spec["guard"]],
+                    "applicable": len(applicable),
+                    "kept": len(kept),
+                    "kept_success": len(kept_success),
+                    "kept_failure": len(kept_failure),
+                    "removed_success": removed_success,
+                    "removed_failure": removed_failure,
+                    "success_keep_rate": len(kept_success) / max(len(applicable_success), 1),
+                    "failure_removal_rate": removed_failure / max(len(applicable_failure), 1),
+                    "precision_after_guard": len(kept_success) / max(len(kept), 1),
+                    "kept_outcome_delta_summary": _outcome_summary(kept),
+                }
+            )
     reports.sort(
         key=lambda item: (
             float(item["failure_removal_rate"]),
@@ -530,6 +594,24 @@ def render_markdown(report: dict[str, Any]) -> str:
         for guard in screen["single_nonworse_guards"]:
             lines.append(
                 f"| `{guard['feature']}` | `{guard['guard']}` | {guard['kept']} | "
+                f"{guard['kept_success']} | {guard['kept_failure']} | "
+                f"{guard['success_keep_rate']:.6f} | "
+                f"{guard['failure_removal_rate']:.6f} | "
+                f"{guard['precision_after_guard']:.6f} |"
+            )
+        lines.extend(
+            [
+                "",
+                "### Pair Nonworse Guards",
+                "",
+                "| Features | Guards | Kept | Kept success | Kept failure | Success keep | Failure removal | Precision after guard |",
+                "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for guard in screen["pair_nonworse_guards"][:20]:
+            lines.append(
+                f"| `{' + '.join(guard['features'])}` | "
+                f"`{' + '.join(guard['guards'])}` | {guard['kept']} | "
                 f"{guard['kept_success']} | {guard['kept_failure']} | "
                 f"{guard['success_keep_rate']:.6f} | "
                 f"{guard['failure_removal_rate']:.6f} | "

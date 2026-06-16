@@ -125,6 +125,14 @@ def test_failure_attribution_reports_single_guard_separation(tmp_path) -> None:
     assert jerk_guard["kept_failure"] == 0
     assert jerk_guard["failure_removal_rate"] == pytest.approx(1.0)
     assert jerk_guard["success_keep_rate"] == pytest.approx(1.0)
+    pair_guards = {
+        tuple(item["features"]): item for item in screen["pair_nonworse_guards"]
+    }
+    pair = pair_guards[
+        ("tracker_command_jerk_delta_mps3", "tracker_command_lateral_delta_mps2")
+    ]
+    assert pair["kept_success"] == 1
+    assert pair["kept_failure"] == 0
 
     markdown = render_markdown(report)
     assert "Outcome-Free Failure Attribution" in markdown
