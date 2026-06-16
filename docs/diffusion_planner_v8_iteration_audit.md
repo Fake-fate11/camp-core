@@ -8522,3 +8522,120 @@ Artifact SHA-256:
 | Target recompute gate JSON | `a1c64587502020b49019bdcd490e4014396577ee3b681510c5dc27b0d61fe9fd` |
 | Target recompute gate markdown | `6fee21c5ebbcf713133cde61eafa62db276261bab7054f6e55a757643ca9b706` |
 | Target snapshot step 0069 NPZ | `d4efe7aa17cfb7b7513fe4f8236e23db795b053d94438219b1ff1ef8671c53f9` |
+
+### Seed2 npc0 tl-on target-cluster recompute gate
+
+The single positive target tick was broadened to all selected
+h30-safe/full-red miss ticks within the same non-formal run:
+
+```text
+sample59_86 / seed_2 / npc_0 / spawn_0p3 / tl_on / static
+```
+
+This remains one targeted replay prefix, not a 12-run or formal-seed run. The
+captured target steps were:
+
+```text
+69,185,189,190,191,192,193,194,195,196,197,198,199
+```
+
+Remote artifact:
+
+```text
+/root/autodl-tmp/camp_dp_target_snapshots_seed2_npc0_tlon_13miss_626718a
+```
+
+Configuration: sample59 route, seed `2`, no NPCs, traffic lights on, `200`
+steps, K=`8`, redstopfloor05 static weights, raw-prefix logging `80`, and
+snapshot capture only at the `13` target steps above. The replay summary and
+validation summary both record `camp_microbenchmark_snapshots` with
+`selection_effect=false`.
+
+The readiness audit again reported that snapshot tensors are sufficient for
+PerfectTracker, red-stopping-margin, and DP reward/full-red recomputation. The
+recompute gate used only the `lower_logged_union_red` donor pool.
+
+Aggregate results:
+
+| Check | Result |
+| --- | ---: |
+| Target snapshots | 13 |
+| Selected h30-safe/full-red snapshots | 13 |
+| Snapshots with lower-logged-union-red donors | 13 |
+| Transform count | 75 |
+| Lower recomputed union-red transforms | 74 |
+| Hard-feasible transforms | 10 |
+| Progress-screen feasible transforms | 10 |
+| Lower union-red hard-feasible transforms | 9 |
+| Lower union-red progress-feasible transforms | 9 |
+| Baseline logged near-red max error | 0.0 |
+| Baseline logged full-red max error | 0.0 |
+| Min transformed union-red mean/max | 0.0 / 0.0 |
+
+Blocker summary:
+
+| Blocker set | Reason counts |
+| --- | --- |
+| All hard infeasible transformed candidates | `dp_kinematic: 65` |
+| Lower union-red hard infeasible transformed candidates | `dp_kinematic: 65` |
+| Lower union-red progress infeasible transformed candidates | none |
+
+Per-target results:
+
+| Step | Selected | Donors | Selected union-red | Lower union-red | Lower union-red hard-feasible | Lower union-red progress-feasible | Hard blocker |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 69 | 1 | 7 | 11.5 | 7 | 7 | 7 | none |
+| 185 | 4 | 7 | 30.0 | 7 | 0 | 0 | `dp_kinematic: 7` |
+| 189 | 2 | 7 | 32.5 | 7 | 0 | 0 | `dp_kinematic: 7` |
+| 190 | 6 | 7 | 29.0 | 7 | 0 | 0 | `dp_kinematic: 7` |
+| 191 | 7 | 6 | 32.5 | 6 | 0 | 0 | `dp_kinematic: 6` |
+| 192 | 6 | 7 | 27.0 | 7 | 0 | 0 | `dp_kinematic: 7` |
+| 193 | 3 | 6 | 31.5 | 6 | 0 | 0 | `dp_kinematic: 6` |
+| 194 | 4 | 7 | 34.0 | 7 | 0 | 0 | `dp_kinematic: 7` |
+| 195 | 5 | 4 | 33.5 | 4 | 1 | 1 | `dp_kinematic: 3` |
+| 196 | 3 | 4 | 34.0 | 4 | 1 | 1 | `dp_kinematic: 3` |
+| 197 | 5 | 5 | 35.0 | 5 | 0 | 0 | `dp_kinematic: 5` |
+| 198 | 0 | 4 | 33.5 | 3 | 0 | 0 | `dp_kinematic: 3` |
+| 199 | 7 | 4 | 33.0 | 4 | 0 | 0 | `dp_kinematic: 4` |
+
+Interpretation:
+
+1. Red-light coverage is strong within this run: `13/13` target snapshots have
+   at least one transformed candidate with lower recomputed union-red, and
+   `74/75` transformed candidates lower union-red.
+2. The industrial blocker is now explicit: most late-step transformed
+   candidates violate DP's kinematic hard check after the H10-preserving tail
+   splice. The progress screen is not the active blocker once the hard checks
+   pass.
+3. The early target step `69` remains fully positive (`7/7` lower-red,
+   hard-feasible, and progress-feasible). Late steps `195` and `196` retain one
+   feasible lower-red transform each. The remaining late targets are blocked by
+   kinematics, not by missing red-light benefit.
+
+Decision: accept the stop-aware splice as a real red-risk reduction mechanism
+under fixed-snapshot recomputation, but reject direct deployment of the current
+raw splice. The next admissible iteration is a kinematic-aware transformed
+candidate diagnostic: preserve the same finite-snapshot and H10-anchor
+boundary, but add a deterministic acceleration/curvature/heading smoothing or
+projection step whose constraints are explicitly tied to the DP kinematic
+check. Do not implement an online selector, run paired 12/36-run replay, train
+CAMP weights, or touch formal seeds until the kinematic blocker is resolved on
+target snapshots and documented.
+
+Mathematical boundary: all arrays, donor sets, splice transforms, and
+recomputed diagnostics are fixed current-tick constants from non-formal
+snapshots. The analysis remains a finite-candidate offline gate, not Benders;
+no dual cuts or global trajectory-coordinate convexity are claimed. A future
+kinematic-aware projection must either be treated as another deterministic
+finite-candidate transform or, if claimed as an optimization atom, must have
+its convexity and master/subproblem role stated separately.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Target-cluster replay summary | `cc4f74585f14993661698ea3d4a23b906f9b71e842d80cd8cacb6c25950012b7` |
+| Target-cluster validation summary | `e884709fc5425773a0e8cfc71f96397c2b4da3cdc5bf17d933cf3f0d7e9d164a` |
+| Target-cluster readiness JSON | `22ccd89914ec6ec73922872e5fc1b910d1e5e216813d64de1c9bdcbf0686cda7` |
+| Target-cluster recompute gate JSON | `7ffee93fe3b1be95f23d47f6e8c9d41e24eebd9981d63d07a525fc448dda8d9e` |
+| Target-cluster recompute gate markdown | `3e4c4b3b5394f3019a53e3e26faab54f882bfc8142c448eadb02b01429da18e2` |

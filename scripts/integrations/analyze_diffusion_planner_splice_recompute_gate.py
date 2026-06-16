@@ -496,6 +496,25 @@ def reward_progress_screen(
     return feasible, tuple(tuple(row) for row in reasons)
 
 
+def reason_counts(
+    reasons: tuple[tuple[str, ...], ...],
+    mask: np.ndarray | None = None,
+) -> dict[str, int]:
+    if mask is None:
+        active = np.ones(len(reasons), dtype=bool)
+    else:
+        active = np.asarray(mask, dtype=bool)
+        if active.shape != (len(reasons),):
+            raise ValueError("reason mask length must match reasons.")
+    counts: dict[str, int] = {}
+    for enabled, row in zip(active, reasons):
+        if not enabled:
+            continue
+        for reason in row:
+            counts[reason] = counts.get(reason, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def _reward_to_dict(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return value
@@ -599,6 +618,10 @@ def _transformed_summary(
             "progress_feasible_count": 0,
             "lower_union_red_hard_feasible_count": 0,
             "lower_union_red_progress_feasible_count": 0,
+            "hard_infeasibility_reason_counts": {},
+            "progress_infeasibility_reason_counts": {},
+            "lower_union_red_hard_infeasibility_reason_counts": {},
+            "lower_union_red_progress_infeasibility_reason_counts": {},
             "min_near_red": None,
             "min_full_red": None,
             "min_union_red": None,
@@ -608,8 +631,8 @@ def _transformed_summary(
     near = np.asarray(scores["near_red_cost"], dtype=np.float64)
     full = np.asarray(scores["full_red_cost"], dtype=np.float64)
     union = np.asarray(scores["union_red_cost"], dtype=np.float64)
-    hard_feasible, _ = reward_hard_feasibility(scores["reward_breakdowns"])
-    progress_feasible, _ = reward_progress_screen(
+    hard_feasible, hard_reasons = reward_hard_feasibility(scores["reward_breakdowns"])
+    progress_feasible, progress_reasons = reward_progress_screen(
         scores["reward_breakdowns"],
         hard_feasible,
         min_progress_ratio=config.min_progress_ratio,
@@ -626,6 +649,22 @@ def _transformed_summary(
         ),
         "lower_union_red_progress_feasible_count": int(
             np.sum(lower_union & progress_feasible)
+        ),
+        "hard_infeasibility_reason_counts": reason_counts(
+            hard_reasons,
+            ~hard_feasible,
+        ),
+        "progress_infeasibility_reason_counts": reason_counts(
+            progress_reasons,
+            hard_feasible & ~progress_feasible,
+        ),
+        "lower_union_red_hard_infeasibility_reason_counts": reason_counts(
+            hard_reasons,
+            lower_union & ~hard_feasible,
+        ),
+        "lower_union_red_progress_infeasibility_reason_counts": reason_counts(
+            progress_reasons,
+            lower_union & hard_feasible & ~progress_feasible,
         ),
         "min_near_red": float(np.min(near)) if near.size else None,
         "min_full_red": float(np.min(full)) if full.size else None,
@@ -669,6 +708,20 @@ def _summarize_transformed(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "lower_union_red_progress_feasible_count": int(
             sum(row["lower_union_red_progress_feasible_count"] for row in active)
         ),
+        "hard_infeasibility_reason_counts": _sum_reason_counts(
+            row["hard_infeasibility_reason_counts"] for row in active
+        ),
+        "progress_infeasibility_reason_counts": _sum_reason_counts(
+            row["progress_infeasibility_reason_counts"] for row in active
+        ),
+        "lower_union_red_hard_infeasibility_reason_counts": _sum_reason_counts(
+            row["lower_union_red_hard_infeasibility_reason_counts"]
+            for row in active
+        ),
+        "lower_union_red_progress_infeasibility_reason_counts": _sum_reason_counts(
+            row["lower_union_red_progress_infeasibility_reason_counts"]
+            for row in active
+        ),
         "min_union_red": _summary(
             [row["min_union_red"] for row in active if row["min_union_red"] is not None]
         ),
@@ -700,6 +753,14 @@ def _summary(values: list[float]) -> dict[str, float | None]:
     return {"mean": float(np.mean(arr)), "max": float(np.max(arr))}
 
 
+def _sum_reason_counts(rows: Any) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        for reason, count in row.items():
+            counts[reason] = counts.get(reason, 0) + int(count)
+    return dict(sorted(counts.items()))
+
+
 def render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# Stop-Aware Splice Recompute Gate",
@@ -723,6 +784,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Progress-screen feasible transforms: `{report['transformed']['progress_feasible_count']}`",
         f"- Lower union-red hard-feasible transforms: `{report['transformed']['lower_union_red_hard_feasible_count']}`",
         f"- Lower union-red progress-feasible transforms: `{report['transformed']['lower_union_red_progress_feasible_count']}`",
+        f"- Lower union-red hard infeasibility reasons: `{report['transformed']['lower_union_red_hard_infeasibility_reason_counts']}`",
+        f"- Lower union-red progress infeasibility reasons: `{report['transformed']['lower_union_red_progress_infeasibility_reason_counts']}`",
         "",
         "## Baseline Recompute Check",
         "",

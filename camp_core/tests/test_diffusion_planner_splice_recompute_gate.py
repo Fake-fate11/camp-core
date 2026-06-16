@@ -7,6 +7,7 @@ from scripts.integrations.analyze_diffusion_planner_splice_recompute_gate import
     build_splice_candidates,
     h10_preserving_tail_splice_xy,
     heading_features_from_xy,
+    reason_counts,
     reward_hard_feasibility,
     reward_progress_screen,
 )
@@ -119,3 +120,16 @@ def test_reward_progress_screen_is_separate_from_hard_feasibility() -> None:
     np.testing.assert_array_equal(feasible, np.array([True, False, False]))
     assert reasons[1] == ("dp_underprogress",)
     assert reasons[2] == ()
+
+
+def test_reason_counts_can_be_masked() -> None:
+    counts = reason_counts(
+        (
+            ("dp_lane_crossing", "dp_red_light"),
+            ("dp_lane_crossing",),
+            ("dp_kinematic",),
+        ),
+        np.array([True, False, True]),
+    )
+
+    assert counts == {"dp_kinematic": 1, "dp_lane_crossing": 1, "dp_red_light": 1}
