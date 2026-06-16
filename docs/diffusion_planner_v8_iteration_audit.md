@@ -6237,3 +6237,90 @@ step is to examine richer current-tick descriptors that are still finite and
 outcome-free, such as multi-horizon PerfectTracker rollout jerk/lateral
 features already present in the logs, and test whether they improve
 calibration without changing DP or the CAMP convex master contract.
+
+### Expanded multi-horizon rollout calibration
+
+Commit `e8c59e010f4504f4a7c81e3c51372ba1f20f0652` extends the calibration
+audit to the existing PerfectTracker open-loop rollout descriptors at horizons
+`3`, `5`, and `10`: mean/max vector jerk and mean/max lateral acceleration.
+These fields were already present in the stored logs, so this extension does
+not modify DP, rerun replay, train CAMP, or add online logic.
+
+The mathematical boundary is unchanged. The expanded descriptors are
+current-tick finite candidate constants. If later atomized, fixed-candidate
+CAMP scoring remains affine in `w` and compatible with the simplex/CVaR/L2
+convex master. This is still not Benders and makes no trajectory-coordinate
+convexity claim.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_jerk_descriptor_calibration.py
+1 passed
+
+python -m pytest camp_core
+218 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_jerk_descriptor_calibration.py
+1 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core
+223 passed
+```
+
+AutoDL was synchronized by git bundle. CAMP local/GitHub/AutoDL reached
+`e8c59e010f4504f4a7c81e3c51372ba1f20f0652`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The expanded calibration commands were the same as above, writing distinct
+`*_jerk_descriptor_calibration_expanded.{json,md}` artifacts.
+
+Final expanded artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Expanded calibration analyzer | `b101daf9a23a3f4957176834c35d907c08470692225bb9cae486852df434619c` |
+| Expanded calibration tests | `2c0f65493ccffceea409d1d3122e73c117118dc902a8aba2e816a7af7566cd0d` |
+| K=8 expanded calibration JSON | `a347f4e116f2dc7569d8b5320ec22998db618b7bbffe90999299df01120864c4` |
+| K=8 expanded calibration markdown | `996d2a72e3e7ae09d4b1b9cffdc8478d9b856d9efc672a8750f8a49ece87f78a` |
+| `k16_noise1p0` expanded calibration JSON | `08807d5732e60b355f19118c73422e6358bbff2032157940d574ed10cea11cd9` |
+| `k16_noise1p0` expanded calibration markdown | `12557334783dc5456bf3ef804b7186993abce1ea277d55a5ff5b6b9dd2ba27d2` |
+| `k16_noise0p75` expanded calibration JSON | `3fd6ba769cbcb0f16e3a7804f392a5657eaad6602c7d527a7596bb48100b1ffc` |
+| `k16_noise0p75` expanded calibration markdown | `4655e7f226fd065386b5d0e5e0de2f0f933fa39fd91fa4bf251fb28e9117300d` |
+
+Expanded failure-tick calibration results:
+
+| Candidate set | Screen | Candidate rows | Best descriptor | AUC | Precision | Lift | Recall | Gate |
+| --- | --- | ---: | --- | ---: | ---: | ---: | ---: | --- |
+| K=8 | balanced | 275 | prefix jerk | 0.603 | 0.118 | +0.023 | 0.615 | fail |
+| K=8 | relaxed | 582 | prefix jerk | 0.578 | 0.116 | +0.020 | 0.571 | fail |
+| `k16_noise1p0` | balanced | 396 | prefix jerk | 0.705 | 0.173 | +0.072 | 0.675 | fail |
+| `k16_noise1p0` | relaxed | 782 | prefix jerk | 0.640 | 0.198 | +0.062 | 0.717 | fail |
+| `k16_noise0p75` | balanced | 615 | prefix jerk | 0.672 | 0.235 | +0.082 | 0.702 | fail |
+| `k16_noise0p75` | relaxed | 1,360 | H10 mean vector jerk | 0.612 | 0.242 | +0.068 | 0.595 | fail |
+
+The best added rollout descriptors were close but still below the gate. For
+example, `k16_noise1p0` balanced H10 mean vector jerk reached AUC `0.661` and
+precision lift `+0.054`; `k16_noise0p75` relaxed H10 mean vector jerk reached
+AUC `0.612` and precision lift `+0.068`. These are improvements over some H3
+metrics but remain far below the `+0.15` precision-lift requirement.
+
+Interpretation:
+
+1. Multi-horizon rollout jerk features add signal but do not change the
+   industrial decision. No descriptor passes the calibration gate on any
+   required screen.
+2. Lateral rollout descriptors do not become the best calibrated predictors in
+   the failure-tick summaries. The limiting factor remains weak mapping from
+   current-tick descriptors to posterior joint-comfort success.
+3. The expanded audit further supports rejecting scalar guard/atom changes
+   based only on these rollout descriptors.
+
+Decision: reject current multi-horizon rollout jerk/lateral descriptors as
+online guards or CAMP atoms. Do not run replay, formal seeds, online selector
+wiring, CAMP retraining, or DP retraining from this evidence. The next
+admissible step is not another scalar jerk descriptor; it is to inspect whether
+candidate-set structure itself is missing behavior diversity, for example by
+auditing endpoint/lane-relative/spatial spread and mode coverage in the fixed
+candidate set using current-tick quantities only.
