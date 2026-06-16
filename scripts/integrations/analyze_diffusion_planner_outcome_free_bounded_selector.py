@@ -180,11 +180,10 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
             f"{label} feasible_mask",
         ),
         "outcomes": _outcomes(record.get("candidate_closed_loop_outcomes"), candidate_count, label),
-        "selection_scores": _vector(
+        "selection_scores": _score_vector(
             record.get("selection_scores"),
             candidate_count,
             f"{label} selection_scores",
-            allow_negative=True,
         ),
         "union_red": _vector(
             record.get("candidate_horizon_union_planned_red_light_cost"),
@@ -435,6 +434,13 @@ def _vector(
     if not allow_negative and np.any(array < 0.0):
         raise ValueError(f"{label} must be nonnegative.")
     return array
+
+
+def _score_vector(values: Any, size: int, label: str) -> np.ndarray:
+    array = np.asarray(values, dtype=np.float64).reshape(-1)
+    if array.size != size:
+        raise ValueError(f"{label} has {array.size} values; expected {size}.")
+    return np.nan_to_num(array, nan=1.0e12, posinf=1.0e12, neginf=-1.0e12)
 
 
 def _bool_vector(values: Any, size: int, label: str) -> np.ndarray:

@@ -114,3 +114,16 @@ def test_outcome_free_screen_reports_safety_regression_posterior(tmp_path) -> No
 
     assert moderate["records"]["changed"] == 1
     assert moderate["records"]["outcome_safety_regressions"] == 1
+
+
+def test_outcome_free_screen_accepts_nonfinite_selection_score_tiebreaks(tmp_path) -> None:
+    record = _base_record()
+    record["selection_scores"] = [0.0, float("nan"), float("inf"), float("-inf")]
+
+    report = analyze([_write_log(tmp_path, [record])], label="unit")
+    moderate = _screen(report, "moderate_lateral")
+
+    assert moderate["records"]["changed"] == 1
+    assert moderate["changed_diagnostic_delta_summary"]["raw_lateral_delta"]["mean"] == pytest.approx(
+        -1.2
+    )
