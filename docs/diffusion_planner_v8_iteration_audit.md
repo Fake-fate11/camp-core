@@ -9010,3 +9010,128 @@ Artifact SHA-256:
 | --- | --- |
 | Shadow JSON | `500b42c9e40f7c7650ce424985c338ff93d671c62dad41d6af7419419a0ffca9` |
 | Shadow markdown | `4be3eceacc98e0aaeceef8b46b8bb7350642b3618a8ec026708b0c3d3fc3441d` |
+
+### Closed-loop splice shadow logging smoke
+
+The fixed-candidate shadow rule was wired into the replay script as a
+default-off closed-loop shadow logger. It recomputes DP reward for transformed
+candidates and records the hypothetical choice, but it never assigns that
+choice to `selected_index` and never changes the trajectory fed to the
+PerfectTracker.
+
+Implementation contract:
+
+```text
+--camp_splice_shadow_rule
+--camp_splice_shadow_anchor_steps 10
+--camp_splice_shadow_blend_steps 40
+--camp_splice_shadow_heading_mode donor_offset
+--camp_splice_shadow_progress_loss_budget_m 1.0
+--camp_splice_shadow_smoothness_loss_budget 0.5
+```
+
+The logger is rejected by argument validation if combined with top1 mode,
+non-DP-reward feasibility, lexicographic preselection, underprogress
+relaxation, or PerfectTracker command postselection. Summary and validation
+metadata both record:
+
+```text
+camp_splice_shadow_rule.selection_effect = false
+camp_splice_shadow_rule.online_selector_change = false
+camp_splice_shadow_rule.default_off = true
+```
+
+Two non-formal smoke runs were executed on AutoDL with fixed DP
+`7a1d33da277a1992ec474b5383a0c963c72e04e4` and CAMP commit
+`bebce21978300e4305e492a610dcdef4b9ddc31a`.
+
+#### Metadata fail-closed smoke
+
+Artifact:
+
+```text
+/root/autodl-tmp/camp_dp_splice_shadow_smoke_bebce21_seed101_steps10
+```
+
+Configuration: sample59 route, seed `101`, no NPCs, traffic lights on,
+perfect tracking, `10` steps, static `redstopfloor05`, K=`8`.
+
+Result:
+
+| Check | Result |
+| --- | ---: |
+| Records | 10 |
+| Shadow records present | 10 |
+| Selection unchanged | true |
+| Selection effects | `{false}` |
+| Changed records | 0 |
+| Reason counts | `no_transformed_candidates: 10` |
+| Mean / max splice-shadow latency | 0.0505 ms / 0.0589 ms |
+
+This verifies field shape, metadata propagation, summary resummarization, and
+fail-closed behavior when no lower-red donors exist in the early route prefix.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Replay summary | `32f9d1468ec26568d0f2cebd50f4b69f3da68738ead022b9e0b4bfb78bbb9cd9` |
+| Validation summary | `fb7321ded8270fe7781a8d4c858dffff4df733da4c17a0eef3dfed4430f0d3c1` |
+| Selection log | `dc0457c63a45d97d76e0e0e2bef21258fa0b0173006b9a4cc6a6b5d3f0c2ea6c` |
+
+#### Target-prefix transformed-branch smoke
+
+Artifact:
+
+```text
+/root/autodl-tmp/camp_dp_splice_shadow_target_smoke_bebce21_seed2_steps75
+```
+
+Configuration: sample59 route, seed `2`, no NPCs, traffic lights on, perfect
+tracking, `75` steps, static `redstopfloor05`, K=`8`. This prefix reaches the
+previously identified step-69 h30-safe/full-red miss.
+
+Result:
+
+| Check | Result |
+| --- | ---: |
+| Records | 75 |
+| Shadow records present | 75 |
+| Selection unchanged | true |
+| Selection effects | `{false}` |
+| Changed records | 1 |
+| Changed steps | `69` |
+| Admissible transformed candidates | 1 |
+| Chosen donor index at step 69 | 7 |
+| Chosen union-red | 0.0 |
+| Chosen progress loss | 0.935844 m |
+| Chosen DP smoothness loss | 0.497635 |
+| Reason counts | `budget_admissible_lower_red_candidate: 1`, `no_transformed_candidates: 74` |
+| Mean / max splice-shadow latency | 0.3035 ms / 19.1166 ms |
+
+This verifies the transformed-candidate DP reward recomputation branch in a
+real replay prefix while preserving the actual closed-loop behavior. The
+overall run remains a smoke; latency from a single 75-step prefix is not an
+industrial performance gate.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Replay summary | `11fffdbb7ce90c0c8745abe696a627efedb39d8d6ff6682f47c28faa5c6bc00a` |
+| Validation summary | `39d5d52dfb98a08b9842273c84473102975c4b76c4e44ce568b7ce5dc74383f0` |
+| Selection log | `d239d71f5be438898b64cb11210560796d6a9f45f11d07b2431d297814aaee2b` |
+
+Decision: accept the closed-loop shadow logging gate. The next admissible
+experiment is a non-formal sample59 shadow-only pilot over seeds `1/2/3`, NPC
+counts `0/4`, and traffic lights on/off, still with `selection_effect=false`.
+Do not switch the shadow choice into the executed selected trajectory until
+that pilot shows coverage, latency, and comfort behavior are acceptable.
+
+Mathematical boundary: the replay logger recomputes diagnostics for a fixed
+finite transformed set at each tick. These diagnostics are constants for that
+tick and are never used to update CAMP weights, DP weights, or the master
+problem. The rule is deterministic and fail-closed, but it is not Benders and
+does not define a dual subproblem or valid cuts. If later converted to CAMP
+atoms, affine scoring and simplex/CVaR/L2 convexity remain valid only for the
+fixed finite candidate set at the tick.
