@@ -3,7 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from scripts.integrations.run_diffusion_planner_camp_benchmark_matrix import (
+    _validate_args,
     _variant_command,
 )
 
@@ -32,6 +35,12 @@ def _make_args() -> SimpleNamespace:
         num_candidates=8,
         candidate_noise_scale=1.0,
         camp_log_raw_candidate_prefix_steps=0,
+        camp_splice_shadow_rule=False,
+        camp_splice_shadow_anchor_steps=10,
+        camp_splice_shadow_blend_steps=40,
+        camp_splice_shadow_heading_mode="donor_offset",
+        camp_splice_shadow_progress_loss_budget_m=1.0,
+        camp_splice_shadow_smoothness_loss_budget=0.5,
         candidate_reference_blend_steps=5,
         camp_lane_corridor_buffer=1.0,
         camp_feasibility_source="dp_reward",
@@ -60,6 +69,7 @@ def _make_args() -> SimpleNamespace:
         camp_outcome_red_light_penalty=30.0,
         camp_outcome_jerk_penalty=0.25,
         camp_outcome_lateral_acceleration_penalty=1.0,
+        variants=("top1", "uniform", "static", "theta"),
     )
 
 
@@ -180,3 +190,75 @@ def test_variant_command_threads_underprogress_relaxation_when_enabled() -> None
     assert static_cmd[distance_idx + 1] == "0.1"
     lateral_idx = static_cmd.index("--camp_underprogress_lateral_limit_mps2")
     assert static_cmd[lateral_idx + 1] == "2.0"
+
+
+def test_variant_command_threads_splice_shadow_rule_into_camp_variants_only() -> None:
+    args = _make_args()
+    args.camp_lexicographic_progress_epsilon_m = None
+    args.camp_perfect_tracker_command_postselection = False
+    args.camp_splice_shadow_rule = True
+    args.camp_splice_shadow_anchor_steps = 12
+    args.camp_splice_shadow_blend_steps = 36
+    args.camp_splice_shadow_progress_loss_budget_m = 0.75
+    args.camp_splice_shadow_smoothness_loss_budget = 0.25
+
+    static_cmd = _variant_command(
+        variant="static",
+        output_dir=Path("F:/out/static"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+
+    assert "--camp_splice_shadow_rule" in static_cmd
+    anchor_idx = static_cmd.index("--camp_splice_shadow_anchor_steps")
+    assert static_cmd[anchor_idx + 1] == "12"
+    blend_idx = static_cmd.index("--camp_splice_shadow_blend_steps")
+    assert static_cmd[blend_idx + 1] == "36"
+    heading_idx = static_cmd.index("--camp_splice_shadow_heading_mode")
+    assert static_cmd[heading_idx + 1] == "donor_offset"
+    progress_idx = static_cmd.index(
+        "--camp_splice_shadow_progress_loss_budget_m"
+    )
+    assert static_cmd[progress_idx + 1] == "0.75"
+    smoothness_idx = static_cmd.index(
+        "--camp_splice_shadow_smoothness_loss_budget"
+    )
+    assert static_cmd[smoothness_idx + 1] == "0.25"
+
+    top1_cmd = _variant_command(
+        variant="top1",
+        output_dir=Path("F:/out/top1"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+    assert "--camp_splice_shadow_rule" not in top1_cmd
+
+
+def test_validate_args_rejects_splice_shadow_with_selection_effecting_rules() -> None:
+    args = _make_args()
+    args.camp_lexicographic_progress_epsilon_m = None
+    args.camp_perfect_tracker_command_postselection = False
+    args.camp_splice_shadow_rule = True
+    _validate_args(args)
+
+    args.camp_lexicographic_progress_epsilon_m = 1.0
+    with pytest.raises(ValueError, match="camp_lexicographic_progress_epsilon_m"):
+        _validate_args(args)
+
+    args.camp_lexicographic_progress_epsilon_m = None
+    args.camp_perfect_tracker_command_postselection = True
+    with pytest.raises(ValueError, match="camp_perfect_tracker_command_postselection"):
+        _validate_args(args)
+
+    args.camp_perfect_tracker_command_postselection = False
+    args.camp_underprogress_relaxation = True
+    with pytest.raises(ValueError, match="camp_underprogress_relaxation"):
+        _validate_args(args)

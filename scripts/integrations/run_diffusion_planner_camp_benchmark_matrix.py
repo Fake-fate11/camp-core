@@ -117,6 +117,32 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--camp_splice_shadow_rule",
+        action="store_true",
+        help=(
+            "Default-off diagnostic forwarded to CAMP variants only. Logs the "
+            "fixed-candidate splice shadow rule and changes no selection "
+            "behavior."
+        ),
+    )
+    parser.add_argument("--camp_splice_shadow_anchor_steps", type=int, default=10)
+    parser.add_argument("--camp_splice_shadow_blend_steps", type=int, default=40)
+    parser.add_argument(
+        "--camp_splice_shadow_heading_mode",
+        choices=("finite_difference", "donor_offset"),
+        default="donor_offset",
+    )
+    parser.add_argument(
+        "--camp_splice_shadow_progress_loss_budget_m",
+        type=float,
+        default=1.0,
+    )
+    parser.add_argument(
+        "--camp_splice_shadow_smoothness_loss_budget",
+        type=float,
+        default=0.5,
+    )
+    parser.add_argument(
         "--candidate_reference_blend_steps",
         type=int,
         default=None,
@@ -319,6 +345,22 @@ def _variant_command(
                     str(args.camp_log_raw_candidate_prefix_steps),
                 ]
             )
+        if args.camp_splice_shadow_rule:
+            cmd.append("--camp_splice_shadow_rule")
+            cmd.extend(
+                [
+                    "--camp_splice_shadow_anchor_steps",
+                    str(args.camp_splice_shadow_anchor_steps),
+                    "--camp_splice_shadow_blend_steps",
+                    str(args.camp_splice_shadow_blend_steps),
+                    "--camp_splice_shadow_heading_mode",
+                    args.camp_splice_shadow_heading_mode,
+                    "--camp_splice_shadow_progress_loss_budget_m",
+                    str(args.camp_splice_shadow_progress_loss_budget_m),
+                    "--camp_splice_shadow_smoothness_loss_budget",
+                    str(args.camp_splice_shadow_smoothness_loss_budget),
+                ]
+            )
         if args.candidate_reference_blend_steps is not None:
             cmd.extend(
                 [
@@ -415,19 +457,51 @@ def _variant_command(
     return cmd
 
 
-def main() -> None:
-    args = parse_args()
+def _validate_args(args: argparse.Namespace) -> None:
     if args.camp_feasibility_source == "dp_reward" and args.reward_config is None:
         raise ValueError(
             "--camp_feasibility_source dp_reward requires --reward_config."
         )
     if args.camp_log_raw_candidate_prefix_steps < 0:
         raise ValueError("--camp_log_raw_candidate_prefix_steps must be non-negative.")
+    if args.camp_splice_shadow_rule:
+        if args.camp_feasibility_source != "dp_reward":
+            raise ValueError(
+                "--camp_splice_shadow_rule requires "
+                "--camp_feasibility_source dp_reward."
+            )
+        if args.reward_config is None:
+            raise ValueError("--camp_splice_shadow_rule requires --reward_config.")
+        if args.camp_splice_shadow_anchor_steps < 2:
+            raise ValueError("--camp_splice_shadow_anchor_steps must be >= 2.")
+        if args.camp_splice_shadow_blend_steps < 0:
+            raise ValueError("--camp_splice_shadow_blend_steps must be non-negative.")
+        if args.camp_lexicographic_progress_epsilon_m is not None:
+            raise ValueError(
+                "--camp_splice_shadow_rule cannot be combined with "
+                "--camp_lexicographic_progress_epsilon_m."
+            )
+        if args.camp_perfect_tracker_command_postselection:
+            raise ValueError(
+                "--camp_splice_shadow_rule cannot be combined with "
+                "--camp_perfect_tracker_command_postselection."
+            )
+        if args.camp_underprogress_relaxation:
+            raise ValueError(
+                "--camp_splice_shadow_rule cannot be combined with "
+                "--camp_underprogress_relaxation."
+            )
     variants = tuple(args.variants)
     if "static" in variants and args.camp_static_weights is None:
         raise ValueError("The static variant requires --camp_static_weights.")
     if "theta" in variants and args.camp_theta_checkpoint is None:
         raise ValueError("The theta variant requires --camp_theta_checkpoint.")
+
+
+def main() -> None:
+    args = parse_args()
+    _validate_args(args)
+    variants = tuple(args.variants)
     runs: list[tuple[str, Path]] = []
     env = os.environ.copy()
     if not args.render_png:
