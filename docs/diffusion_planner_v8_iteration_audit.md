@@ -4780,3 +4780,89 @@ matrix is considered.
 | --- | --- |
 | K=8 candidate availability JSON | `d4376188ff0c6f3e6ed77cb45c4b6c4ccfd837250e60953e27dba5801075742d` |
 | K=8 candidate availability markdown | `2f096be7edc44b6eb09d124e749b507900a8cc5c0b21e28dbfd49475c56d4659` |
+
+### Predeclared K16/noise availability comparison gate
+
+This milestone does not train CAMP, does not alter Diffusion Planner weights,
+does not change the default online selector, and does not use formal seeds. It
+adds a comparison gate for future offline outcome-labeled candidate-generation
+diagnostics against the accepted K=8 availability baseline above.
+
+The fixed development grid is:
+
+| Label | Candidate count | Noise scale | Purpose |
+| --- | ---: | ---: | --- |
+| `k16_noise1p0` | 16 | 1.0 | isolate candidate count under the official DP sampler |
+| `k16_noise0p75` | 16 | 0.75 | diagnose whether a denser, lower-variance pool increases tight-progress availability |
+
+The `k16_noise0p75` row does not revive the rejected K=8 `noise0p75`
+closed-loop route. It is only an offline availability diagnostic. Passing it
+would still require a separate no-outcome latency smoke and a new paired pilot
+predeclaration before any closed-loop claim.
+
+For each row, the collection must keep the official DP checkpoint, the frozen
+`redstopfloor05` static weights and atom scales, `sample59_86`, seeds `1/2/3`,
+NPC counts `0/4`, traffic lights `off/on`, perfect tracking, 200 steps,
+DP-reward feasibility, h30 reward horizon, and the existing outcome-label
+weights. Candidate outcomes remain offline labels only. Formal seeds `11/12/13`
+remain frozen.
+
+The comparison uses the existing K=8 baseline report:
+
+```text
+/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc/k8_candidate_availability_aba3c60.json
+```
+
+and the new diagnostic comparator:
+
+```text
+python scripts/integrations/compare_diffusion_planner_candidate_availability.py \
+  --baseline_json /root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc/k8_candidate_availability_aba3c60.json \
+  --candidate_json k16_noise1p0=/path/to/k16_noise1p0_candidate_availability.json \
+  --candidate_json k16_noise0p75=/path/to/k16_noise0p75_candidate_availability.json \
+  --output_json /path/to/k16_candidate_availability_comparison.json \
+  --output_md /path/to/k16_candidate_availability_comparison.md
+```
+
+Default gate thresholds are intentionally strict because K=9/10/12 random
+candidate-count expansion already failed deployable latency or supplied too few
+progress-preserving opportunities:
+
+1. at `0.00 m` progress budget, candidate outcome-joint coverage must be at
+   least `0.02` and improve over K=8 by at least `0.015`;
+2. at `0.05 m` progress budget, candidate outcome-joint coverage must be at
+   least `0.15` and improve over K=8 by at least `0.08`;
+3. mean feasible-candidate count must increase by at least `2.0`;
+4. hidden-outcome weak coverage at `0.00 m` and `0.05 m` must remain no higher
+   than `0.05`, otherwise the result points back to atom/proxy visibility;
+5. proxy-only weak coverage must remain no higher than `0.10` at `0.00 m` and
+   `0.20` at `0.05 m`, otherwise proxy-only screening is too unreliable;
+6. latency is not evaluated by this report. A passing availability comparison
+   only advances the row to a separate no-outcome latency smoke; it does not
+   authorize CAMP retraining, formal seeds, online selector changes, or a
+   12/36-run acceptance matrix.
+
+Mathematical status: the diagnostic changes only the finite candidate set
+sampled by the fixed DP checkpoint. For every fixed current tick and candidate,
+the CAMP atoms remain finite, nonnegative, and outcome-free, and the score
+remains affine in the static weight vector. The simplex, CVaR, L2, and
+finite-maximum master terms therefore retain their convexity for any later
+weight intervention. No convexity claim is made in trajectory coordinates, and
+the candidate generator itself is not a Benders subproblem.
+
+Implementation verification for the comparator milestone:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_availability.py camp_core/tests/test_diffusion_planner_candidate_availability_compare.py
+6 passed
+
+python -m pytest camp_core/tests
+190 passed, 5 skipped
+
+python scripts/integrations/compare_diffusion_planner_candidate_availability.py --help
+```
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Candidate availability comparator | `d4eedd37fba27feefd5fab453b157a2f695ea43d3841300061f71399739d312c` |
+| Comparator tests | `e1cea47f605d40d9a68c61099e6d62653c99301d55e19c0c396986cfabf8e95a` |
