@@ -99,6 +99,9 @@ def test_spatial_diversity_audit_summarizes_failure_tick_modes(tmp_path) -> None
     assert all_summary["mode_count"]["mean"] == pytest.approx(2.0)
     assert all_summary["lateral_range_m"]["mean"] == pytest.approx(1.1)
     assert all_summary["endpoint_pairwise_mean_m"]["mean"] > 1.0
+    evidence = screen["spatial_bottleneck_evidence"]
+    assert evidence["split_bottleneck_evidence"] is False
+    assert evidence["global_low_diversity_evidence"] is False
 
     success = screen["success_candidate_summaries"]
     assert success["admissible_count"]["mean"] == pytest.approx(1.0)

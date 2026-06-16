@@ -41,6 +41,8 @@ class SpatialThresholds:
     longitudinal_mode_threshold_m: float = 0.25
     mode_count_gap_min: float = 0.50
     endpoint_pairwise_gap_min_m: float = 0.10
+    low_mode_count_max: float = 1.25
+    low_endpoint_pairwise_mean_max_m: float = 0.05
 
 
 SPATIAL_KEYS = (
@@ -81,6 +83,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--longitudinal_mode_threshold_m", type=float, default=0.25)
     parser.add_argument("--mode_count_gap_min", type=float, default=0.50)
     parser.add_argument("--endpoint_pairwise_gap_min_m", type=float, default=0.10)
+    parser.add_argument("--low_mode_count_max", type=float, default=1.25)
+    parser.add_argument("--low_endpoint_pairwise_mean_max_m", type=float, default=0.05)
     return parser.parse_args()
 
 
@@ -91,6 +95,8 @@ def main() -> None:
         longitudinal_mode_threshold_m=args.longitudinal_mode_threshold_m,
         mode_count_gap_min=args.mode_count_gap_min,
         endpoint_pairwise_gap_min_m=args.endpoint_pairwise_gap_min_m,
+        low_mode_count_max=args.low_mode_count_max,
+        low_endpoint_pairwise_mean_max_m=args.low_endpoint_pairwise_mean_max_m,
     )
     report = analyze(
         [*args.root, *args.selection_log],
@@ -369,7 +375,7 @@ def _screen_report(
         "success_candidate_summaries": success_summaries,
         "spatial_bottleneck_evidence": evidence,
         "next_step": (
-            "inspect_generator_spatial_modes"
+            "inspect_generator_sampling_mode_design"
             if evidence["evidence_present"]
             else "reject_simple_spatial_spread_explanation"
         ),
@@ -405,13 +411,33 @@ def _spatial_bottleneck_evidence(
         pairwise_gap is not None
         and pairwise_gap >= thresholds.endpoint_pairwise_gap_min_m
     )
+    all_mode_count = summaries["all"]["mode_count"]["mean"]
+    all_pairwise = summaries["all"]["endpoint_pairwise_mean_m"]["mean"]
+    absolute_mode_evidence = (
+        all_mode_count is not None and all_mode_count <= thresholds.low_mode_count_max
+    )
+    absolute_pairwise_evidence = (
+        all_pairwise is not None
+        and all_pairwise <= thresholds.low_endpoint_pairwise_mean_max_m
+    )
     return {
         "mode_count_gap_with_minus_without": mode_gap,
         "endpoint_pairwise_gap_m_with_minus_without": pairwise_gap,
         "lateral_range_gap_m_with_minus_without": lateral_gap,
-        "mode_count_evidence": bool(mode_evidence),
-        "endpoint_pairwise_evidence": bool(pairwise_evidence),
-        "evidence_present": bool(mode_evidence or pairwise_evidence),
+        "relative_mode_count_evidence": bool(mode_evidence),
+        "relative_endpoint_pairwise_evidence": bool(pairwise_evidence),
+        "absolute_low_mode_count_evidence": bool(absolute_mode_evidence),
+        "absolute_low_endpoint_pairwise_evidence": bool(absolute_pairwise_evidence),
+        "split_bottleneck_evidence": bool(mode_evidence or pairwise_evidence),
+        "global_low_diversity_evidence": bool(
+            absolute_mode_evidence or absolute_pairwise_evidence
+        ),
+        "evidence_present": bool(
+            mode_evidence
+            or pairwise_evidence
+            or absolute_mode_evidence
+            or absolute_pairwise_evidence
+        ),
     }
 
 
@@ -465,7 +491,10 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"- Failure ticks: {records['failure_ticks']}",
                 f"- With posterior-success alternative: {records['with_any_admissible_success']}",
                 f"- Without posterior-success alternative: {records['without_any_admissible_success']}",
-                f"- Spatial bottleneck evidence: {_pass_fail(evidence['evidence_present'])}",
+                f"- Split spatial bottleneck evidence: "
+                f"{_pass_fail(evidence['split_bottleneck_evidence'])}",
+                f"- Global low-diversity evidence: "
+                f"{_pass_fail(evidence['global_low_diversity_evidence'])}",
                 f"- Next step: `{screen['next_step']}`",
                 "",
                 "| Group | Mode count | Endpoint pairwise mean | Endpoint max | "
@@ -490,6 +519,10 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"`{_fmt(evidence['mode_count_gap_with_minus_without'])}`",
                 f"- Endpoint-pairwise gap with-minus-without: "
                 f"`{_fmt(evidence['endpoint_pairwise_gap_m_with_minus_without'])}` m",
+                f"- Absolute low mode-count evidence: "
+                f"`{evidence['absolute_low_mode_count_evidence']}`",
+                f"- Absolute low endpoint-spread evidence: "
+                f"`{evidence['absolute_low_endpoint_pairwise_evidence']}`",
                 "",
             ]
         )
