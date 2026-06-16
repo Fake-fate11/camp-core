@@ -5493,3 +5493,99 @@ anti-aligned on average for these oracle donors.
 | `k16_noise1p0` materiality markdown | `899d56915f401e9b28f67106f06a8cbf7deacb86db4a10808a531f41bb2aa990` |
 | `k16_noise0p75` materiality JSON | `30085779aa56b0a0381f7db0c2fbd74c08879913bf089d0167211072f7514d86` |
 | `k16_noise0p75` materiality markdown | `aca40024c5e8f8f2abe9cb8cd1f042415486b2f0653144286498c0bbfc0274ad` |
+
+### Bounded tradeoff audit
+
+Commit `5c087b3dc9251d20c5873a4077da48fdcbb0e3a6` adds an offline budget
+screen for the raw-candidate geometry direction identified by the materiality
+gap audit. It asks how much selected-candidate progress, PerfectTracker target
+speed, and H10 displacement loss must be allowed before the existing finite
+candidate set contains a safety-nonworse, joint outcome jerk/lateral-improving
+oracle donor.
+
+This is not an online selector. Outcome labels define the oracle donor set for
+diagnosis only. The budget predicates are current-log constants over a fixed
+finite candidate set. If later converted into atoms or guards, fixed-candidate
+CAMP scores remain affine in `w`; no Benders or trajectory-coordinate convexity
+claim is introduced.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests
+206 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+211 passed
+```
+
+AutoDL was synchronized by git bundle because GitHub fetch was unreliable. DP
+remained at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Oracle donor baseline:
+
+| Candidate set | With oracle donors | Progress loss mean | P50 | P90 | Target-speed loss mean | H10 loss mean | Prefix max distance mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 1,314 | 0.292355 m | 0.218676 m | 0.615692 m | 0.040774 m/s | 0.070469 m | 0.075502 m |
+| `k16_noise1p0` | 1,355 | 1.252943 m | 0.207944 m | 0.620154 m | 0.039404 m/s | 0.066566 m | 0.074707 m |
+| `k16_noise0p75` | 1,447 | 0.510523 m | 0.152702 m | 0.452525 m | 0.033581 m/s | 0.050740 m | 0.055173 m |
+
+Progress-budget slice with target-speed loss `<=0.1 m/s` and H10 displacement
+loss `<=0.1 m`:
+
+| Candidate set | 0.05 m | 0.10 m | 0.25 m | 0.50 m | 1.00 m |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 0.063152 | 0.149269 | 0.378914 | 0.527662 | 0.544885 |
+| `k16_noise1p0` | 0.074260 | 0.185930 | 0.436628 | 0.589615 | 0.609715 |
+| `k16_noise0p75` | 0.117117 | 0.266561 | 0.547960 | 0.664547 | 0.674616 |
+
+Target-speed budget slice with progress loss `<=0.5 m` and H10 displacement
+loss `<=0.1 m`:
+
+| Candidate set | 0.02 m/s | 0.05 m/s | 0.10 m/s | 0.25 m/s |
+| --- | ---: | ---: | ---: | ---: |
+| K=8 baseline | 0.333507 | 0.492693 | 0.527662 | 0.531837 |
+| `k16_noise1p0` | 0.401452 | 0.557231 | 0.589615 | 0.591848 |
+| `k16_noise0p75` | 0.469528 | 0.626391 | 0.664547 | 0.665607 |
+
+H10 displacement budget slice with progress loss `<=0.5 m` and target-speed
+loss `<=0.1 m/s`:
+
+| Candidate set | 0.01 m | 0.05 m | 0.10 m | 0.25 m |
+| --- | ---: | ---: | ---: | ---: |
+| K=8 baseline | 0.118998 | 0.366910 | 0.527662 | 0.570981 |
+| `k16_noise1p0` | 0.164712 | 0.447236 | 0.589615 | 0.631491 |
+| `k16_noise0p75` | 0.199258 | 0.523582 | 0.664547 | 0.695284 |
+
+Interpretation:
+
+1. Tight no-loss behavior remains unavailable. With target-speed and H10 loss
+   both bounded at `0.1`, only `6-12%` of nonfallback records retain an oracle
+   donor at `0.05 m` progress loss.
+2. A moderate state-dependent tradeoff is materially different. At
+   `progress<=0.5 m`, `target-speed<=0.1 m/s`, and `H10<=0.1 m`, the existing
+   pool retains oracle donors in `52.8%` of K=8, `59.0%` of K16/noise1p0, and
+   `66.5%` of K16/noise0p75 nonfallback records.
+3. Target-speed budgets saturate quickly after about `0.1 m/s`, while H10
+   anchor budget still matters between `0.01 m` and `0.10 m`. This reinforces
+   the materiality conclusion: exact selected anchors are too strict, but
+   unbounded progress sacrifice is also not acceptable.
+
+Decision: do not run replay, implement an online selector, retrain CAMP, or
+use formal seeds from this oracle budget screen alone. The next admissible
+step is to predeclare an outcome-free finite rule that approximates this
+bounded tradeoff using current-tick quantities: base feasibility, red guards,
+progress/target-speed/H10 budgets, raw horizon lateral improvement, and a
+carefully handled jerk proxy. The rule must retain the baseline when no
+candidate passes and must be evaluated offline before any paired replay.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Bounded tradeoff analyzer | `6a1e5141465ae7428373bf04e81521c10fbe81b00d1a843a563903744b1cca85` |
+| Bounded tradeoff analyzer tests | `f3e72b04003a2f8268254e18ae3b1e503e92b6c9939807d5a2d8c4fd36e36af7` |
+| K=8 bounded tradeoff JSON | `a689e2b4618dd2196fcaefa27b5aca704924f6297cd21523f98f175cf9e4760b` |
+| K=8 bounded tradeoff markdown | `4eee3291628b526ac94d2e3c5e2ed449b86ed2e7a322fb58403354042b5bdb41` |
+| `k16_noise1p0` bounded tradeoff JSON | `6f4ddd9c172e2e30d6f1f2ae9e62367ee831c6bb2bee70da72b11e45d495ec73` |
+| `k16_noise1p0` bounded tradeoff markdown | `b9649fe559794f7e9869ba77237805cbc4fcadb9253958375fdff17c6a2aac96` |
+| `k16_noise0p75` bounded tradeoff JSON | `44798995e1bddff61ba4a773a6b8389eba2441a74c082d529000bb58d7750971` |
+| `k16_noise0p75` bounded tradeoff markdown | `5b5730a67498d329d34d9d8f6147e030931affe354ef8aa36864c49759089717` |
