@@ -127,3 +127,23 @@ def test_outcome_free_screen_accepts_nonfinite_selection_score_tiebreaks(tmp_pat
     assert moderate["changed_diagnostic_delta_summary"]["raw_lateral_delta"]["mean"] == pytest.approx(
         -1.2
     )
+
+
+def test_outcome_free_screen_prefers_dp_reward_progress_proxy(tmp_path) -> None:
+    record = _base_record()
+    record["dp_candidate_rewards"] = [
+        {"progress": 10.0},
+        {"progress": 9.99},
+        {"progress": 9.0},
+        {"progress": 9.99},
+    ]
+
+    report = analyze([_write_log(tmp_path, [record])], label="unit")
+    moderate = _screen(report, "moderate_lateral")
+
+    assert report["records"]["progress_proxy_source_counts"]["dp_reward_progress"] == 1
+    assert report["records"]["progress_proxy_source_counts"]["step_reach_fallback"] == 0
+    assert moderate["records"]["changed"] == 1
+    assert moderate["changed_diagnostic_delta_summary"]["raw_lateral_delta"]["mean"] == pytest.approx(
+        -1.0
+    )

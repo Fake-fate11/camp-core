@@ -107,7 +107,11 @@ def analyze(paths: list[Path], *, label: str | None = None) -> dict[str, Any]:
     if not log_paths:
         raise ValueError("No selection logs were found.")
     records: list[dict[str, Any]] = []
-    progress_proxy_source_counts = {"route_progress": 0, "step_reach_fallback": 0}
+    progress_proxy_source_counts = {
+        "route_progress": 0,
+        "dp_reward_progress": 0,
+        "step_reach_fallback": 0,
+    }
     for log_path in log_paths:
         payload = json.loads(log_path.read_text(encoding="utf-8-sig"))
         if not isinstance(payload, list) or not payload:
@@ -135,6 +139,10 @@ def analyze(paths: list[Path], *, label: str | None = None) -> dict[str, Any]:
                 "lateral improvement; optionally require raw jerk nondegradation; "
                 "tie-break by raw lateral, raw jerk, budget losses, original CAMP "
                 "selection score, then candidate index; retain baseline if empty"
+            ),
+            "progress_proxy": (
+                "candidate_route_progress if logged and finite, else DP reward "
+                "progress if logged and finite, else candidate_step_reach"
             ),
             "convexity_boundary": (
                 "For fixed finite candidates all rule inputs are current-tick "
@@ -231,6 +239,18 @@ def _progress_proxy(
             )
             return values, "route_progress"
         except ValueError:
+            pass
+    rewards = record.get("dp_candidate_rewards")
+    if isinstance(rewards, list) and len(rewards) == candidate_count:
+        try:
+            values = _vector(
+                [reward.get("progress") for reward in rewards],
+                candidate_count,
+                f"{label} dp_candidate_rewards progress",
+                allow_negative=True,
+            )
+            return values, "dp_reward_progress"
+        except (AttributeError, ValueError):
             pass
     values = _vector(
         record.get("candidate_step_reach"),
@@ -469,7 +489,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Records: {records['total']}",
         f"- Nonfallback records: {records['nonfallback']}",
         f"- Progress proxy source counts: route progress "
-        f"{source_counts['route_progress']}, step-reach fallback "
+        f"{source_counts['route_progress']}, DP reward progress "
+        f"{source_counts['dp_reward_progress']}, step-reach fallback "
         f"{source_counts['step_reach_fallback']}",
         "",
         "The screen uses current-tick finite candidate fields only for "
