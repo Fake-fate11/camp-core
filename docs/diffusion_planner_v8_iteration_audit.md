@@ -7162,3 +7162,78 @@ on sample59 seed 101, no NPCs, K=8, perfect tracking, and redstopfloor05 static
 weights. The smoke should verify field presence and shape, and should be
 treated as logging validation only. It does not authorize a new 12/36-run,
 formal seeds, online selector, DP retraining, or CAMP retraining.
+
+### Raw candidate prefix observability smoke result
+
+Commit `8b331f8b2db7d2d74bb64a1116b115cf95437fcb` implements the default-off
+raw candidate prefix logger. The local/GitHub/AutoDL CAMP checkouts were
+synchronized to this commit, and Diffusion Planner remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_replay_summary.py
+12 passed
+
+PYTHONPATH=... python -m pytest \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py \
+  camp_core/tests/test_diffusion_planner_candidate_generation_controls.py
+8 passed
+
+PYTHONPATH=... python -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py \
+  -k "summarize_replay_artifacts or train_diffusion_planner_static_camp_from_selection_log"
+3 passed, 105 deselected
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_replay_summary.py
+12 passed
+
+PYTHONPATH=... /root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py \
+  camp_core/tests/test_diffusion_planner_candidate_generation_controls.py
+8 passed
+
+bash -n scripts/integrations/run_diffusion_planner_camp_remote.sh
+passed
+```
+
+The non-formal metadata smoke ran at:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_smoke_seed101_8b331f8
+```
+
+It used sample59 seed 101, K=8, 3 steps, no NPCs, perfect tracking,
+redstopfloor05 static weights, and
+`CAMP_LOG_RAW_CANDIDATE_PREFIX_STEPS=10`. The smoke produced three selection
+records. The first record's raw prefix shape was:
+
+```text
+8 x 10 x 4
+```
+
+Both `camp_replay_summary.json` and `camp_validation_summary.json` recorded:
+
+```text
+camp_raw_candidate_prefix_logging.enabled = true
+camp_raw_candidate_prefix_logging.selection_effect = false
+camp_raw_candidate_prefix_logging.steps = 10
+camp_raw_candidate_prefix_logging.field = candidate_raw_trajectory_prefix
+```
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Replay summary | `9269317a343dc62da0aa724d5679926b360c663948429e97d7df9dc9d311083f` |
+| Validation summary | `bc269dda7944f505204af48b3a706fa8c2d70418c263957ec1fda070e50dabbc` |
+| Selection log | `cacbd8aca90795c7b6ac0191b37bf641c28068126d632b17c9cb82ff8bebf849` |
+
+Decision: accept this as an observability milestone only. It proves future
+non-formal raw-geometry audits can inspect raw DP candidate prefixes without
+changing the default replay path or CAMP mathematics. It does not prove an
+improved selector, does not authorize formal seeds, and does not justify
+claiming Benders structure or trajectory-coordinate convexity for any future
+raw-geometry transform.
