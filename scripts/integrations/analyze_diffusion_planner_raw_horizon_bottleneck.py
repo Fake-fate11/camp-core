@@ -152,6 +152,9 @@ def analyze(
     budget_groups: dict[str, dict[str, dict[str, list[dict[str, Any]]]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(list))
     )
+    budget_blockers: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
     event_counts: dict[str, int] = defaultdict(int)
 
     for log_path in log_paths:
@@ -178,6 +181,9 @@ def analyze(
                         budget_groups[group_name][screen.name][mask_name].append(
                             _mask_metrics(record_data, mask, mode_threshold_m)
                         )
+                    budget_blockers[group_name][screen.name].append(
+                        _budget_blocker_row(record_data, screen)
+                    )
 
     return {
         "analysis": {
@@ -221,6 +227,12 @@ def analyze(
                     }
                     for screen_name, screen_rows in sorted(
                         budget_groups[group_name].items()
+                    )
+                },
+                "budget_blockers": {
+                    screen_name: _summarize_budget_blockers(rows)
+                    for screen_name, rows in sorted(
+                        budget_blockers[group_name].items()
                     )
                 },
             }
@@ -483,6 +495,138 @@ def _budget_masks(data: dict[str, Any], screen: BudgetScreen) -> dict[str, np.nd
     }
 
 
+def _budget_condition_masks(
+    data: dict[str, Any], screen: BudgetScreen
+) -> dict[str, np.ndarray]:
+    selected = int(data["selected"])
+    lower_red_base = _static_masks(data)["lower_red_base_feasible"]
+    progress_ok = (
+        data["progress"]
+        >= float(data["progress"][selected]) - screen.progress_loss_budget_m - TOL
+    )
+    target_speed_ok = (
+        data["target_speed"]
+        >= float(data["target_speed"][selected])
+        - screen.target_speed_loss_budget_mps
+        - TOL
+    )
+    h10_distance_ok = (
+        data["h10_distance"]
+        >= float(data["h10_distance"][selected])
+        - screen.h10_distance_loss_budget_m
+        - TOL
+    )
+    h3_lateral_ok = data["h3_max_lateral"] <= screen.h3_max_lateral_limit_mps2 + TOL
+    h3_jerk_ok = data["h3_mean_jerk"] <= data["h3_mean_jerk"][selected] + TOL
+    bounded = (
+        lower_red_base
+        & progress_ok
+        & target_speed_ok
+        & h10_distance_ok
+        & h3_lateral_ok
+    )
+    return {
+        "lower_red_base": lower_red_base,
+        "progress_ok": progress_ok,
+        "target_speed_ok": target_speed_ok,
+        "h10_distance_ok": h10_distance_ok,
+        "h3_lateral_ok": h3_lateral_ok,
+        "h3_jerk_ok": h3_jerk_ok,
+        "bounded": bounded,
+        "bounded_jerk_nondegrading": bounded & h3_jerk_ok,
+    }
+
+
+def _budget_blocker_row(
+    data: dict[str, Any], screen: BudgetScreen
+) -> dict[str, Any]:
+    selected = int(data["selected"])
+    lower_red_any = _static_masks(data)["lower_red_any"]
+    masks = _budget_condition_masks(data, screen)
+    lower_red_base = masks["lower_red_base"]
+    bounded = masks["bounded"]
+    bounded_jerk = masks["bounded_jerk_nondegrading"]
+    row: dict[str, Any] = {
+        "has_lower_red_any": bool(lower_red_any.any()),
+        "has_lower_red_base_feasible": bool(lower_red_base.any()),
+        "has_bounded": bool(bounded.any()),
+        "has_bounded_jerk_nondegrading": bool(bounded_jerk.any()),
+        "lower_red_base_feasible_count": int(lower_red_base.sum()),
+        "bounded_count": int(bounded.sum()),
+        "bounded_jerk_nondegrading_count": int(bounded_jerk.sum()),
+        "progress_blocks_all": False,
+        "target_speed_blocks_all": False,
+        "h10_distance_blocks_all": False,
+        "h3_lateral_blocks_all": False,
+        "combination_blocks": False,
+        "h3_jerk_blocks_bounded": False,
+        "min_progress_loss_m": None,
+        "min_target_speed_loss_mps": None,
+        "min_h10_distance_loss_m": None,
+        "min_h3_max_lateral_mps2": None,
+        "min_h3_jerk_delta_mps3": None,
+    }
+    if not lower_red_base.any():
+        return row
+
+    row.update(
+        {
+            "min_progress_loss_m": _min_positive_loss(
+                float(data["progress"][selected]), data["progress"], lower_red_base
+            ),
+            "min_target_speed_loss_mps": _min_positive_loss(
+                float(data["target_speed"][selected]),
+                data["target_speed"],
+                lower_red_base,
+            ),
+            "min_h10_distance_loss_m": _min_positive_loss(
+                float(data["h10_distance"][selected]),
+                data["h10_distance"],
+                lower_red_base,
+            ),
+            "min_h3_max_lateral_mps2": float(
+                np.min(data["h3_max_lateral"][lower_red_base])
+            ),
+            "min_h3_jerk_delta_mps3": float(
+                np.min(
+                    data["h3_mean_jerk"][lower_red_base]
+                    - float(data["h3_mean_jerk"][selected])
+                )
+            ),
+        }
+    )
+    if not bounded.any():
+        row["progress_blocks_all"] = not bool(
+            (lower_red_base & masks["progress_ok"]).any()
+        )
+        row["target_speed_blocks_all"] = not bool(
+            (lower_red_base & masks["target_speed_ok"]).any()
+        )
+        row["h10_distance_blocks_all"] = not bool(
+            (lower_red_base & masks["h10_distance_ok"]).any()
+        )
+        row["h3_lateral_blocks_all"] = not bool(
+            (lower_red_base & masks["h3_lateral_ok"]).any()
+        )
+        row["combination_blocks"] = not any(
+            bool(row[key])
+            for key in (
+                "progress_blocks_all",
+                "target_speed_blocks_all",
+                "h10_distance_blocks_all",
+                "h3_lateral_blocks_all",
+            )
+        )
+    elif not bounded_jerk.any():
+        row["h3_jerk_blocks_bounded"] = True
+    return row
+
+
+def _min_positive_loss(selected_value: float, values: np.ndarray, mask: np.ndarray) -> float:
+    losses = np.maximum(selected_value - values[mask], 0.0)
+    return float(np.min(losses))
+
+
 def _mask_metrics(
     data: dict[str, Any], mask: np.ndarray, mode_threshold_m: float
 ) -> dict[str, Any]:
@@ -578,6 +722,67 @@ def _summarize_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return summary
 
 
+def _summarize_budget_blockers(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    if not rows:
+        return {"records": 0}
+    base_rows = [row for row in rows if row["has_lower_red_base_feasible"]]
+    bounded_rows = [row for row in rows if row["has_bounded"]]
+    return {
+        "records": len(rows),
+        "with_lower_red_any": _count_rate(rows, "has_lower_red_any"),
+        "with_lower_red_base_feasible": _count_rate(
+            rows, "has_lower_red_base_feasible"
+        ),
+        "with_bounded": _count_rate(rows, "has_bounded"),
+        "with_bounded_jerk_nondegrading": _count_rate(
+            rows, "has_bounded_jerk_nondegrading"
+        ),
+        "progress_blocks_all": _count_rate(base_rows, "progress_blocks_all"),
+        "target_speed_blocks_all": _count_rate(base_rows, "target_speed_blocks_all"),
+        "h10_distance_blocks_all": _count_rate(base_rows, "h10_distance_blocks_all"),
+        "h3_lateral_blocks_all": _count_rate(base_rows, "h3_lateral_blocks_all"),
+        "combination_blocks": _count_rate(base_rows, "combination_blocks"),
+        "h3_jerk_blocks_bounded": _count_rate(bounded_rows, "h3_jerk_blocks_bounded"),
+        "lower_red_base_feasible_count": _summary(
+            [row["lower_red_base_feasible_count"] for row in rows]
+        ),
+        "bounded_count": _summary([row["bounded_count"] for row in rows]),
+        "bounded_jerk_nondegrading_count": _summary(
+            [row["bounded_jerk_nondegrading_count"] for row in rows]
+        ),
+        "min_progress_loss_m": _summary_present(
+            [row["min_progress_loss_m"] for row in rows]
+        ),
+        "min_target_speed_loss_mps": _summary_present(
+            [row["min_target_speed_loss_mps"] for row in rows]
+        ),
+        "min_h10_distance_loss_m": _summary_present(
+            [row["min_h10_distance_loss_m"] for row in rows]
+        ),
+        "min_h3_max_lateral_mps2": _summary_present(
+            [row["min_h3_max_lateral_mps2"] for row in rows]
+        ),
+        "min_h3_jerk_delta_mps3": _summary_present(
+            [row["min_h3_jerk_delta_mps3"] for row in rows]
+        ),
+    }
+
+
+def _count_rate(rows: list[dict[str, Any]], key: str) -> dict[str, float | int]:
+    count = sum(1 for row in rows if bool(row[key]))
+    total = len(rows)
+    return {
+        "count": count,
+        "total": total,
+        "rate": count / total if total else 0.0,
+    }
+
+
+def _summary_present(values: list[float | int | None]) -> dict[str, float | None]:
+    present = [value for value in values if value is not None]
+    return _summary(present)
+
+
 def _summary(values: list[float | int]) -> dict[str, float | None]:
     if not values:
         return {"mean": None, "median": None, "p95": None, "max": None}
@@ -655,6 +860,19 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
+            "## Budget Blockers",
+            "",
+            "| Group | Screen | Lower-red base feasible | Bounded | Bounded + jerk | Progress blocks all | Target-speed blocks all | H10 blocks all | Jerk blocks bounded | Min progress loss | Min H10 loss |",
+            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for group_name in _preferred_groups(report):
+        group = report["groups"][group_name]
+        for screen_name, summary in group["budget_blockers"].items():
+            lines.append(_blocker_row(group_name, screen_name, summary))
+    lines.extend(
+        [
+            "",
             "## Mathematical Boundary",
             "",
             report["analysis"]["convexity_boundary"],
@@ -692,6 +910,27 @@ def _summary_row(
         screen, mask = screen_mask.split(" / ", 1)
         values = [group, screen, mask, nonempty, count, modes, pairwise, selected]
     return "| " + " | ".join(values) + " |"
+
+
+def _blocker_row(group_name: str, screen_name: str, summary: dict[str, Any]) -> str:
+    values = [
+        group_name,
+        screen_name,
+        _count(summary["with_lower_red_base_feasible"]),
+        _count(summary["with_bounded"]),
+        _count(summary["with_bounded_jerk_nondegrading"]),
+        _count(summary["progress_blocks_all"]),
+        _count(summary["target_speed_blocks_all"]),
+        _count(summary["h10_distance_blocks_all"]),
+        _count(summary["h3_jerk_blocks_bounded"]),
+        _fmt(summary["min_progress_loss_m"]["median"]),
+        _fmt(summary["min_h10_distance_loss_m"]["median"]),
+    ]
+    return "| " + " | ".join(values) + " |"
+
+
+def _count(payload: dict[str, Any]) -> str:
+    return f"{payload['count']}/{payload['total']}"
 
 
 def _fmt(value: Any) -> str:

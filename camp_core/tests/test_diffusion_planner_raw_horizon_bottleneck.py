@@ -86,12 +86,20 @@ def test_raw_horizon_bottleneck_reports_budgeted_lower_red_masks(tmp_path) -> No
         budget["lower_red_budget_jerk_nondegrading"]["candidate_count"]["mean"]
         == 1.0
     )
+    blockers = group["budget_blockers"]["unit"]
+    assert blockers["with_lower_red_base_feasible"]["count"] == 1
+    assert blockers["with_bounded"]["count"] == 1
+    assert blockers["with_bounded_jerk_nondegrading"]["count"] == 1
+    assert blockers["progress_blocks_all"]["count"] == 0
+    assert blockers["min_progress_loss_m"]["median"] == pytest.approx(0.2)
+    assert blockers["min_h10_distance_loss_m"]["median"] == pytest.approx(0.05)
     assert report["events"]["selected_h30_safe_full_red"] == 1
     assert not report["analysis"]["uses_outcome_labels"]
 
     markdown = render_markdown(report)
     assert "Raw Horizon Candidate-Set Bottleneck Audit" in markdown
     assert "selected_h30_safe_full_red=true" in markdown
+    assert "Budget Blockers" in markdown
 
 
 def test_raw_horizon_bottleneck_rejects_unlogged_horizon(tmp_path) -> None:
