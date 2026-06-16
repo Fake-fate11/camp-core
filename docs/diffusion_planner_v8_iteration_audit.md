@@ -7440,3 +7440,91 @@ Acceptance for this diagnostic is intentionally narrow:
    selector.
 
 Formal seeds `11/12/13` remain frozen.
+
+### Sample59 raw-prefix geometry diagnostic result
+
+The predeclared 12-run static `redstopfloor05` diagnostic completed under:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_sample59_static_e488ff8
+```
+
+Execution used the predeclared matrix from commit
+`d94821328e5a034afa34d92c7ee6e1d4783ca42f`. The geometry analyzer was then
+rerun after commit `74978a46e00cafc9bd190cd4109c85f4d3535d06`, which only adds
+explicit `post - raw` delta metrics to the offline report.
+
+The structural audit passed:
+
+| Check | Result |
+| --- | ---: |
+| Selection logs | 12 |
+| Validation summaries | 12 |
+| Selection records | 2,400 |
+| Missing raw prefixes | 0 |
+| Raw prefix shape | `8 x 10 x 4` for all records |
+| Postprocessed prefix shape | `8 x 10 x 3` for all records |
+| Validation mode | `('static', 'perfect')` for all 12 runs |
+
+The offline geometry output is:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_geometry_sample59_static_e488ff8
+```
+
+Key geometry summaries over all 2,400 records:
+
+| Metric | Mean | Median | P95 | Min | Max |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Raw endpoint pairwise spread | 0.098633 m | 0.074516 m | 0.280582 m | 0.008384 m | 0.648173 m |
+| Post endpoint pairwise spread | 0.099000 m | 0.074766 m | 0.281348 m | 0.004427 m | 0.659115 m |
+| Endpoint `post - raw` delta | +0.000368 m | -0.000013 m | +0.000627 m | -0.020132 m | +0.102445 m |
+| Endpoint spread ratio post/raw | 1.009098 | 0.999825 | 1.007468 | 0.436648 | 7.727128 |
+| Raw prefix pairwise spread | 0.050898 m | 0.038471 m | 0.143439 m | 0.004492 m | 0.341310 m |
+| Post prefix pairwise spread | 0.051065 m | 0.038526 m | 0.143423 m | 0.003799 m | 0.341367 m |
+| Prefix `post - raw` delta | +0.000167 m | +0.000002 m | +0.000086 m | -0.008340 m | +0.061172 m |
+| Prefix spread ratio post/raw | 1.009385 | 1.000049 | 1.002009 | 0.650561 | 7.640093 |
+| Raw-to-post displacement mean | 0.001866 m | 0.001345 m | 0.002584 m | 0.000244 m | 0.125308 m |
+| Raw-to-post displacement max | 0.005903 m | 0.003335 m | 0.006525 m | 0.000569 m | 0.263686 m |
+| Raw/post selected-distance correlation | 0.994711 | 1.000000 | 1.000000 | -0.999885 | 1.000000 |
+
+The simple compression indicators should not be overread: endpoint pairwise
+mean is slightly lower after postprocessing in 57.125% of records and prefix
+pairwise mean is slightly lower in 42.167% of records, but threshold-crossing
+compression is almost absent:
+
+| Threshold-crossing rate | Value |
+| --- | ---: |
+| endpoint raw >= 1 mm and post < 1 mm | 0.000000 |
+| endpoint raw >= 1 cm and post < 1 cm | 0.000833 |
+| endpoint raw >= 10 cm and post < 10 cm | 0.000000 |
+| prefix raw >= 1 mm and post < 1 mm | 0.000000 |
+| prefix raw >= 1 cm and post < 1 cm | 0.000000 |
+| prefix raw >= 10 cm and post < 10 cm | 0.000000 |
+
+Decision: accept this diagnostic as evidence against generic
+Savitzky-Golay/`postprocess_reference` geometry compression as the current
+materiality bottleneck on sample59. The stronger finding is that the first
+10-step raw candidate set is itself very local: mean raw endpoint spread is
+only about 9.9 cm and mean raw prefix spread is about 5.1 cm. This explains why
+many finite-candidate selector changes have had little useful action space.
+The result does not authorize an online selector, formal seeds, CAMP retraining,
+DP retraining, or a performance claim.
+
+Next admissible step: run an offline, state-conditioned materiality audit over
+the same logs, grouping raw-prefix spread and postprocessed spread by red-light
+exposure, fallback/nonfallback, selected index, feasibility, and progress/comfort
+atoms. If the low-spread finding is concentrated in the safety-critical records,
+then the next intervention should target candidate-set generation or horizon
+coverage, not the CAMP master. If it is not concentrated, reject raw-prefix
+geometry as the active blocker and return to bounded finite-candidate safety
+override design.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Raw-prefix predeclare dry-run | `8fce3f077e359e12197f7c36007992a171041a93c5f734c4023c0f000ae7ea8b` |
+| Raw-prefix shape audit JSON | `fadc927f22bba8fa34503454ee97a588d543252c749e4cc90e075789018116f3` |
+| Raw-prefix geometry JSON | `4bec67ee5a40c7eb549104acf7c1b6debc2798186cbfb4dcbfd7c48b03d263bb` |
+| Raw-prefix geometry markdown | `26d5e1b512c241a7b0ad5a7f1e70889fa9153b43211b36ab77d56cbe51da5d62` |
