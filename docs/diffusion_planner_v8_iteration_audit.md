@@ -9229,3 +9229,110 @@ fixed-candidate implementation, prove deterministic fail-closed behavior, and
 pass a paired non-formal pilot with p95 latency below 100 ms with margin. Do not
 train CAMP, retrain DP, alter atom schema, or use formal seeds from this
 shadow-only result.
+
+### Splice-shadow pilot record audit
+
+Commit `4153a36ad2ebe20fc2a0bdb7e780a79f0e25dc9d` adds a read-only
+selection-log audit for the sample59 splice-shadow pilot. The analyzer consumes
+only fixed finite constants already logged by the default-off shadow path. It
+does not recompute DP reward, does not train, and has no selection effect.
+
+Verification:
+
+```text
+Local:  py -3.12 -m py_compile scripts\integrations\analyze_diffusion_planner_splice_shadow_pilot.py
+Local:  py -3.12 -m pytest camp_core\tests\test_diffusion_planner_splice_shadow_pilot_audit.py
+AutoDL: /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_splice_shadow_pilot_audit.py
+```
+
+All checks passed. CAMP local, GitHub, and AutoDL were synchronized to
+`4153a36ad2ebe20fc2a0bdb7e780a79f0e25dc9d`. Diffusion Planner remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Audit artifact:
+
+```text
+/root/autodl-tmp/camp_dp_splice_shadow_sample59_pilot_639cb84/splice_shadow_pilot_audit_4153a36.json
+/root/autodl-tmp/camp_dp_splice_shadow_sample59_pilot_639cb84/splice_shadow_pilot_audit_4153a36.md
+```
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Audit JSON | `068ff048d08e110236a65487e4e67a151b6fcc90b27d572827297ffbb3979caa` |
+| Audit Markdown | `909b1e92e2fbd700609a91e7eb4e81200db4dc88c97751f9a56cb90d18b23b83` |
+
+Counts:
+
+| Check | Result |
+| --- | ---: |
+| Logs / total records | 12 / 2400 |
+| Missing splice-shadow records | 0 |
+| Target records | 88 |
+| Changed records | 31 |
+| No-budget records | 57 |
+| Selection effects | `{false}` |
+| Online selector change | `{false}` |
+| No-budget class counts | `no_hard_feasible_transformed_candidates: 56`, `splice_removed_lower_red_advantage: 1` |
+
+Changed records:
+
+| Metric | Result |
+| --- | ---: |
+| Baseline union-red mean / max | `29.709677` / `35.0` |
+| Chosen union-red mean / max | `15.467742` / `34.5` |
+| Union-red reduction mean / p95 / max | `14.241935` / `34.0` / `35.0` |
+| Zero-union changed records | 13 |
+| Progress loss mean / p95 / max | `0.564483 m` / `0.917708 m` / `0.935844 m` |
+| Smoothness loss mean / p95 / max | `-0.037839` / `0.241830` / `0.497635` |
+
+No-budget records:
+
+| Metric | Result |
+| --- | ---: |
+| Baseline union-red mean / max | `34.271930` / `41.0` |
+| Donor count mean / p95 / max | `4.175439` / `7.0` / `7.0` |
+| Hard-feasible transformed count mean / p95 / max | `0.017544` / `0.0` / `1.0` |
+| Lower-red transformed count mean / p95 / max | `3.561404` / `7.0` / `7.0` |
+| Lower-red hard-feasible count mean / max | `0.0` / `0.0` |
+
+Latency over the 88 target records:
+
+| Metric | Mean | P95 | Max |
+| --- | ---: | ---: | ---: |
+| All target records | `20.435994 ms` | `23.759643 ms` | `24.110364 ms` |
+| Changed records | `20.649156 ms` | `23.746042 ms` | `24.110364 ms` |
+| No-budget records | `20.320063 ms` | `23.747451 ms` | `23.862518 ms` |
+| Internal full-red component | `0.627614 ms` | `0.629939 ms` | `2.744707 ms` |
+
+Run breakdown:
+
+| Run | Changed | No-budget | Main finding |
+| --- | ---: | ---: | --- |
+| `sample59_86/seed_2/npc_0/spawn_0p3/tl_on/static` | 13 | 0 | Large safety opportunity late in the run; mean union-red reduction `30.538462`. |
+| `sample59_86/seed_2/npc_4/spawn_0p3/tl_on/static` | 18 | 57 | Smaller changed reductions plus many transformed candidates that lose hard feasibility after splice. |
+
+Decision: the no-budget label was too coarse. Existing evidence does not show
+that the declared `1.0 m` / `0.5` budget is the main blocker. In this pilot,
+`56/57` no-budget records failed because no transformed candidate was
+hard-feasible after recompute, and the remaining record lost its lower-red
+advantage after the H10-preserving splice. The next engineering question is
+therefore not primarily budget tuning. It is whether the splice transformation
+can be made hard-feasibility preserving and cheaper, or whether this branch
+should remain a shadow-only diagnostic.
+
+Mathematical boundary: this audit is not Benders. It reads fixed finite
+per-tick constants from `camp_selection_log.json`. It does not add atoms, update
+CAMP weights, update DP weights, define a dual subproblem, or generate cuts.
+Because transformed per-donor reward arrays are not logged, the audit does not
+claim exact per-donor budget attribution for no-budget records. Future logging
+would be required to distinguish progress-loss and smoothness-loss blockers
+without recomputing the DP reward.
+
+Next admissible step: before any online selector or paired executed pilot,
+profile and redesign the transformed-candidate branch for hard-feasibility and
+latency. A viable next screen should either show that a cheaper transformation
+preserves lower-red hard feasibility on the 57 blocked records, or reject the
+splice branch as an online mechanism. Do not train CAMP, retrain DP, alter atom
+schema, or use formal seeds from this audit.
