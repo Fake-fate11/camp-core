@@ -4862,7 +4862,32 @@ python -m pytest camp_core/tests
 python scripts/integrations/compare_diffusion_planner_candidate_availability.py --help
 ```
 
+AutoDL verification after fast-forward to the comparator milestone:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_availability.py camp_core/tests/test_diffusion_planner_candidate_availability_compare.py
+6 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+195 passed
+```
+
+A real-artifact parsing smoke compared the K=8 baseline report against itself:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python scripts/integrations/compare_diffusion_planner_candidate_availability.py \
+  --baseline_json /root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc/k8_candidate_availability_aba3c60.json \
+  --candidate_json k8_self=/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc/k8_candidate_availability_aba3c60.json \
+  --output_json /tmp/k8_candidate_availability_self_compare.json \
+  --output_md /tmp/k8_candidate_availability_self_compare.md
+```
+
+The self-compare correctly failed the availability and candidate-pool gates
+because it has zero improvement over the K=8 baseline.
+
 | Artifact | SHA-256 |
 | --- | --- |
 | Candidate availability comparator | `d4eedd37fba27feefd5fab453b157a2f695ea43d3841300061f71399739d312c` |
 | Comparator tests | `e1cea47f605d40d9a68c61099e6d62653c99301d55e19c0c396986cfabf8e95a` |
+| K=8 self-compare JSON | `9aa688ee9aa94f0059f112a1b77ab33d883335d3665295ee8fc7a7a22370b47d` |
+| K=8 self-compare markdown | `13b29cc5a7f8a40d0c2eecfe0dc9b06fc7951d40cdf476472aa8f981bde99e71` |
