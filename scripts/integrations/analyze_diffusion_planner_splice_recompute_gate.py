@@ -1,0 +1,682 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+
+ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_ROOT = ROOT / "camp_core"
+for path in (ROOT, PACKAGE_ROOT):
+    path_str = str(path)
+    if path_str not in sys.path:
+        sys.path.insert(0, path_str)
+
+
+TOL = 1e-12
+SNAPSHOT_GLOB = "camp_microbenchmark_step_*.npz"
+REQUIRED_REWARD_KEYS = (
+    "lanes",
+    "route_lanes",
+    "line_strings",
+    "ego_shape",
+    "neighbor_agents_future",
+    "neighbor_agents_past",
+    "goal_pose",
+)
+
+
+@dataclass(frozen=True)
+class SpliceConfig:
+    anchor_steps: int = 10
+    blend_steps: int = 10
+    donor_pool: str = "lower_logged_union_red"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Offline transformed-candidate recompute gate for fixed DP/CAMP "
+            "microbenchmark snapshots. The gate constructs H10-preserving "
+            "splice candidates and recomputes DP near-horizon reward and "
+            "full-horizon red-light cost. It is not an online selector."
+        )
+    )
+    parser.add_argument("--snapshot_dir", type=Path, required=True)
+    parser.add_argument("--diffusion_repo", type=Path, required=True)
+    parser.add_argument("--reward_config", type=Path, required=True)
+    parser.add_argument("--device", default="cuda")
+    parser.add_argument("--label", default=None)
+    parser.add_argument("--anchor_steps", type=int, default=10)
+    parser.add_argument("--blend_steps", type=int, default=10)
+    parser.add_argument(
+        "--donor_pool",
+        choices=("lower_logged_union_red", "all_nonselected"),
+        default="lower_logged_union_red",
+    )
+    parser.add_argument("--output_json", type=Path, required=True)
+    parser.add_argument("--output_md", type=Path, required=True)
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    report = analyze(
+        snapshot_dir=args.snapshot_dir,
+        diffusion_repo=args.diffusion_repo,
+        reward_config_path=args.reward_config,
+        device=args.device,
+        label=args.label,
+        config=SpliceConfig(
+            anchor_steps=args.anchor_steps,
+            blend_steps=args.blend_steps,
+            donor_pool=args.donor_pool,
+        ),
+    )
+    args.output_json.parent.mkdir(parents=True, exist_ok=True)
+    args.output_md.parent.mkdir(parents=True, exist_ok=True)
+    args.output_json.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    args.output_md.write_text(render_markdown(report), encoding="utf-8")
+    print(f"JSON: {args.output_json}")
+    print(f"Markdown: {args.output_md}")
+
+
+def analyze(
+    *,
+    snapshot_dir: Path,
+    diffusion_repo: Path,
+    reward_config_path: Path,
+    device: str = "cuda",
+    label: str | None = None,
+    config: SpliceConfig = SpliceConfig(),
+) -> dict[str, Any]:
+    _validate_config(config)
+    snapshots = sorted(Path(snapshot_dir).rglob(SNAPSHOT_GLOB))
+    if not snapshots:
+        raise ValueError(f"No {SNAPSHOT_GLOB} files found in {snapshot_dir}.")
+    if not diffusion_repo.is_dir():
+        raise FileNotFoundError(f"Missing Diffusion Planner repo: {diffusion_repo}")
+    if not reward_config_path.is_file():
+        raise FileNotFoundError(f"Missing reward config: {reward_config_path}")
+
+    replay_module, reward_config, torch = _load_runtime(
+        diffusion_repo,
+        reward_config_path,
+    )
+
+    rows = []
+    for snapshot_path in snapshots:
+        arrays, metadata = _load_snapshot(snapshot_path)
+        _validate_snapshot(arrays, metadata, snapshot_path)
+        candidates = np.asarray(arrays["candidates"], dtype=np.float64)
+        baseline_scores = _score_trajectories(
+            candidates,
+            arrays=arrays,
+            metadata=metadata,
+            replay_module=replay_module,
+            reward_config=reward_config,
+            torch=torch,
+            device=device,
+        )
+        donor_indices = _donor_indices(
+            arrays,
+            metadata,
+            config.donor_pool,
+            candidates.shape[0],
+        )
+        transformed_candidates = build_splice_candidates(
+            candidates,
+            selected_index=int(metadata["selected_index"]),
+            donor_indices=donor_indices,
+            anchor_steps=config.anchor_steps,
+            blend_steps=config.blend_steps,
+        )
+        transformed_scores = (
+            _score_trajectories(
+                transformed_candidates,
+                arrays=arrays,
+                metadata=metadata,
+                replay_module=replay_module,
+                reward_config=reward_config,
+                torch=torch,
+                device=device,
+            )
+            if transformed_candidates.size
+            else None
+        )
+        rows.append(
+            _snapshot_report_row(
+                snapshot_path,
+                arrays,
+                metadata,
+                donor_indices,
+                baseline_scores,
+                transformed_scores,
+            )
+        )
+
+    return {
+        "analysis": {
+            "name": "dp_camp_splice_recompute_gate_v1",
+            "role": (
+                "offline transformed-candidate DP reward/full-red recompute "
+                "gate over fixed microbenchmark snapshots"
+            ),
+            "label": label,
+            "training": False,
+            "online_selector_change": False,
+            "selection_effect": False,
+            "uses_outcome_labels": False,
+            "future_outcome_leakage": False,
+            "recomputes_dp_reward_or_red_light": True,
+            "convexity_boundary": (
+                "This gate constructs deterministic transformed candidates "
+                "from fixed current-tick snapshot constants, then recomputes "
+                "DP reward/red-light diagnostics for those fixed candidates. "
+                "It is not Benders and provides no dual cuts. If the resulting "
+                "fixed per-candidate diagnostics are later atomized, CAMP "
+                "scoring remains affine in w and the simplex/CVaR/L2 master "
+                "remains convex only for that fixed finite candidate set."
+            ),
+        },
+        "config": asdict(config),
+        "snapshots": {
+            "count": len(rows),
+            "with_donors": sum(1 for row in rows if row["donor_count"] > 0),
+            "with_recomputed_lower_union_red": sum(
+                1 for row in rows if row["transformed"]["has_lower_union_red"]
+            ),
+            "with_recomputed_lower_full_red": sum(
+                1 for row in rows if row["transformed"]["has_lower_full_red"]
+            ),
+            "selected_h30_safe_full_red": sum(
+                1 for row in rows if row["selected_h30_safe_full_red"]
+            ),
+        },
+        "baseline_recompute": _summarize_baseline(rows),
+        "transformed": _summarize_transformed(rows),
+        "rows": rows,
+    }
+
+
+def build_splice_candidates(
+    candidates: np.ndarray,
+    *,
+    selected_index: int,
+    donor_indices: np.ndarray,
+    anchor_steps: int,
+    blend_steps: int,
+) -> np.ndarray:
+    raw = np.asarray(candidates, dtype=np.float64)
+    if raw.ndim != 3 or raw.shape[0] <= 0 or raw.shape[2] < 2:
+        raise ValueError("candidates must be [K,T,D>=2].")
+    if selected_index < 0 or selected_index >= raw.shape[0]:
+        raise ValueError("selected_index is out of range.")
+    if raw.shape[1] <= anchor_steps:
+        raise ValueError("candidate horizon must exceed anchor_steps.")
+    selected = raw[selected_index]
+    splices = []
+    for donor_index in np.asarray(donor_indices, dtype=np.int64).tolist():
+        if donor_index < 0 or donor_index >= raw.shape[0]:
+            raise ValueError("donor index is out of range.")
+        if donor_index == selected_index:
+            continue
+        splice = selected.copy()
+        splice[:, :2] = h10_preserving_tail_splice_xy(
+            selected[:, :2],
+            raw[donor_index, :, :2],
+            anchor_steps=anchor_steps,
+            blend_steps=blend_steps,
+        )
+        if splice.shape[1] >= 4:
+            splice[:, 2:4] = heading_features_from_xy(
+                splice[:, :2],
+                fallback=selected[:, 2:4],
+            )
+        splices.append(splice)
+    if not splices:
+        return np.empty((0, raw.shape[1], raw.shape[2]), dtype=np.float64)
+    return np.stack(splices)
+
+
+def h10_preserving_tail_splice_xy(
+    selected_xy: np.ndarray,
+    donor_xy: np.ndarray,
+    *,
+    anchor_steps: int,
+    blend_steps: int,
+) -> np.ndarray:
+    selected = np.asarray(selected_xy, dtype=np.float64)
+    donor = np.asarray(donor_xy, dtype=np.float64)
+    if selected.shape != donor.shape or selected.ndim != 2 or selected.shape[1] != 2:
+        raise ValueError("selected_xy and donor_xy must both be [T,2].")
+    if anchor_steps < 2:
+        raise ValueError("anchor_steps must be at least 2.")
+    if blend_steps < 0:
+        raise ValueError("blend_steps must be nonnegative.")
+    if selected.shape[0] <= anchor_steps:
+        raise ValueError("trajectory length must exceed anchor_steps.")
+    anchor_index = anchor_steps - 1
+    tail = selected[anchor_index] + (donor - donor[anchor_index])
+    splice = selected.copy()
+    for step in range(anchor_index + 1, selected.shape[0]):
+        if blend_steps == 0:
+            weight = 1.0
+        else:
+            u = min(max((step - anchor_index) / float(blend_steps), 0.0), 1.0)
+            weight = u * u * (3.0 - 2.0 * u)
+        splice[step] = (1.0 - weight) * selected[step] + weight * tail[step]
+    splice[:anchor_steps] = selected[:anchor_steps]
+    return splice
+
+
+def heading_features_from_xy(
+    xy: np.ndarray,
+    *,
+    fallback: np.ndarray | None = None,
+) -> np.ndarray:
+    points = np.asarray(xy, dtype=np.float64)
+    if points.ndim != 2 or points.shape[1] != 2:
+        raise ValueError("xy must be [T,2].")
+    if points.shape[0] < 2:
+        raise ValueError("xy must contain at least two points.")
+    delta = np.empty_like(points)
+    delta[:-1] = points[1:] - points[:-1]
+    delta[-1] = points[-1] - points[-2]
+    norm = np.linalg.norm(delta, axis=1, keepdims=True)
+    headings = np.zeros((points.shape[0], 2), dtype=np.float64)
+    valid = norm[:, 0] > TOL
+    headings[valid] = delta[valid] / norm[valid]
+    if fallback is not None:
+        fb = np.asarray(fallback, dtype=np.float64)
+        if fb.shape != headings.shape:
+            raise ValueError("fallback heading must be [T,2].")
+        headings[~valid] = fb[~valid]
+    else:
+        headings[~valid, 0] = 1.0
+    return headings
+
+
+def _load_runtime(
+    diffusion_repo: Path,
+    reward_config_path: Path,
+) -> tuple[Any, Any, Any]:
+    repo = Path(diffusion_repo).resolve()
+    for path in (repo, repo / "diffusion_planner"):
+        path_str = str(path)
+        if path_str not in sys.path:
+            sys.path.insert(0, path_str)
+    import torch
+    import scenario_generation.replay as replay_module
+    from rlvr.autoresearch.tools.reward_config_from_json import load_reward_config
+
+    return replay_module, load_reward_config(reward_config_path), torch
+
+
+def _load_snapshot(path: Path) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+    with np.load(path, allow_pickle=False) as payload:
+        if "metadata_json" not in payload.files:
+            raise ValueError(f"{path} missing metadata_json.")
+        arrays = {key: payload[key] for key in payload.files if key != "metadata_json"}
+        metadata = json.loads(str(payload["metadata_json"].item()))
+    return arrays, metadata
+
+
+def _validate_config(config: SpliceConfig) -> None:
+    if config.anchor_steps < 2:
+        raise ValueError("anchor_steps must be at least 2.")
+    if config.blend_steps < 0:
+        raise ValueError("blend_steps must be nonnegative.")
+    if config.donor_pool not in {"lower_logged_union_red", "all_nonselected"}:
+        raise ValueError("invalid donor_pool.")
+
+
+def _validate_snapshot(
+    arrays: dict[str, np.ndarray],
+    metadata: dict[str, Any],
+    snapshot_path: Path,
+) -> None:
+    if "candidates" not in arrays:
+        raise ValueError(f"{snapshot_path} missing candidates.")
+    candidates = np.asarray(arrays["candidates"])
+    if candidates.ndim != 3 or candidates.shape[0] <= 0 or candidates.shape[2] < 2:
+        raise ValueError(f"{snapshot_path} candidates must be [K,T,D>=2].")
+    selected = int(metadata.get("selected_index", -1))
+    if selected < 0 or selected >= candidates.shape[0]:
+        raise ValueError(f"{snapshot_path} selected_index is out of range.")
+    missing = [
+        f"reward_input__{key}"
+        for key in REQUIRED_REWARD_KEYS
+        if f"reward_input__{key}" not in arrays
+    ]
+    if missing:
+        raise ValueError(f"{snapshot_path} missing required reward arrays: {missing}")
+
+
+def _build_reward_data(
+    arrays: dict[str, np.ndarray],
+    *,
+    torch: Any,
+    device: str,
+) -> dict[str, Any]:
+    reward_data = {}
+    for key in REQUIRED_REWARD_KEYS:
+        array = np.asarray(arrays[f"reward_input__{key}"])
+        if key == "goal_pose" and array.shape[-1] == 3:
+            yaw = array[..., 2]
+            array = np.stack(
+                (array[..., 0], array[..., 1], np.cos(yaw), np.sin(yaw)),
+                axis=-1,
+            )
+        tensor = torch.from_numpy(array).float().to(device)
+        reward_data[key] = tensor.unsqueeze(0) if tensor.dim() == 3 else tensor
+    return reward_data
+
+
+def _score_trajectories(
+    trajectories: np.ndarray,
+    *,
+    arrays: dict[str, np.ndarray],
+    metadata: dict[str, Any],
+    replay_module: Any,
+    reward_config: Any,
+    torch: Any,
+    device: str,
+) -> dict[str, Any]:
+    from rlvr.reward import compute_red_light_score_batch, compute_reward_batch
+
+    raw = np.asarray(trajectories, dtype=np.float32)
+    if raw.ndim != 3:
+        raise ValueError("trajectories must be [K,T,D].")
+    scored = raw.copy()
+    if bool(metadata["sg_smooth_enabled"]):
+        scored = np.stack(
+            [
+                replay_module._sg_smooth_trajectory(
+                    candidate,
+                    int(metadata["sg_filter_window"]),
+                    int(metadata["sg_filter_order"]),
+                )
+                for candidate in scored
+            ]
+        )
+    reward_data = _build_reward_data(arrays, torch=torch, device=device)
+    full_trajectories = torch.from_numpy(scored).float().to(device)
+    reward_horizon = min(int(metadata["reward_horizon_steps"]), scored.shape[1])
+    reward_trajectories = full_trajectories[:, :reward_horizon]
+    reward_breakdowns = [
+        _reward_to_dict(value)
+        for value in compute_reward_batch(
+            reward_trajectories,
+            reward_data,
+            reward_config,
+        )
+    ]
+    full_red_scores = compute_red_light_score_batch(
+        full_trajectories,
+        reward_data,
+        reward_config,
+    )
+    full_red_cost = np.maximum(
+        -full_red_scores.detach().cpu().numpy().astype(np.float64),
+        0.0,
+    )
+    near_red_cost = np.asarray(
+        [max(-float(row.get("red_light", 0.0)), 0.0) for row in reward_breakdowns],
+        dtype=np.float64,
+    )
+    return {
+        "reward_breakdowns": reward_breakdowns,
+        "near_red_cost": near_red_cost,
+        "full_red_cost": full_red_cost,
+        "union_red_cost": np.maximum(near_red_cost, full_red_cost),
+        "reward_horizon_steps": reward_horizon,
+    }
+
+
+def _reward_to_dict(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    try:
+        return asdict(value)
+    except TypeError:
+        return dict(value)
+
+
+def _donor_indices(
+    arrays: dict[str, np.ndarray],
+    metadata: dict[str, Any],
+    donor_pool: str,
+    count: int,
+) -> np.ndarray:
+    selected = int(metadata["selected_index"])
+    indices = np.arange(count, dtype=np.int64)
+    nonselected = indices[indices != selected]
+    if donor_pool == "all_nonselected":
+        return nonselected
+    near = _optional_vector(arrays.get("candidate_planned_red_light_cost"), count)
+    full = _optional_vector(
+        arrays.get("candidate_full_horizon_planned_red_light_cost"),
+        count,
+    )
+    if near is None or full is None:
+        return np.empty(0, dtype=np.int64)
+    union = np.maximum(near, full)
+    return nonselected[union[nonselected] < union[selected] - TOL]
+
+
+def _snapshot_report_row(
+    snapshot_path: Path,
+    arrays: dict[str, np.ndarray],
+    metadata: dict[str, Any],
+    donor_indices: np.ndarray,
+    baseline_scores: dict[str, Any],
+    transformed_scores: dict[str, Any] | None,
+) -> dict[str, Any]:
+    count = int(np.asarray(arrays["candidates"]).shape[0])
+    selected = int(metadata["selected_index"])
+    logged_near = _optional_vector(arrays.get("candidate_planned_red_light_cost"), count)
+    logged_full = _optional_vector(
+        arrays.get("candidate_full_horizon_planned_red_light_cost"),
+        count,
+    )
+    selected_h30_safe_full_red = (
+        logged_near is not None
+        and logged_full is not None
+        and logged_near[selected] <= TOL
+        and logged_full[selected] > TOL
+    )
+    selected_full = float(baseline_scores["full_red_cost"][selected])
+    selected_union = float(baseline_scores["union_red_cost"][selected])
+    transformed = _transformed_summary(
+        transformed_scores,
+        selected_union_red=selected_union,
+        selected_full_red=selected_full,
+    )
+    return {
+        "snapshot_path": str(snapshot_path),
+        "selection_step": int(metadata["selection_step"]),
+        "selected_index": selected,
+        "candidate_count": count,
+        "donor_indices": [int(index) for index in donor_indices.tolist()],
+        "donor_count": int(donor_indices.size),
+        "selected_h30_safe_full_red": bool(selected_h30_safe_full_red),
+        "baseline": {
+            "reward_horizon_steps": int(baseline_scores["reward_horizon_steps"]),
+            "selected_near_red": float(baseline_scores["near_red_cost"][selected]),
+            "selected_full_red": selected_full,
+            "selected_union_red": selected_union,
+            "logged_near_red_max_abs_error": _max_abs_error(
+                logged_near,
+                baseline_scores["near_red_cost"],
+            ),
+            "logged_full_red_max_abs_error": _max_abs_error(
+                logged_full,
+                baseline_scores["full_red_cost"],
+            ),
+        },
+        "transformed": transformed,
+    }
+
+
+def _transformed_summary(
+    scores: dict[str, Any] | None,
+    *,
+    selected_union_red: float,
+    selected_full_red: float,
+) -> dict[str, Any]:
+    if scores is None:
+        return {
+            "count": 0,
+            "has_lower_union_red": False,
+            "has_lower_full_red": False,
+            "min_near_red": None,
+            "min_full_red": None,
+            "min_union_red": None,
+            "lower_union_red_count": 0,
+            "lower_full_red_count": 0,
+        }
+    near = np.asarray(scores["near_red_cost"], dtype=np.float64)
+    full = np.asarray(scores["full_red_cost"], dtype=np.float64)
+    union = np.asarray(scores["union_red_cost"], dtype=np.float64)
+    return {
+        "count": int(union.size),
+        "has_lower_union_red": bool(np.any(union < selected_union_red - TOL)),
+        "has_lower_full_red": bool(np.any(full < selected_full_red - TOL)),
+        "min_near_red": float(np.min(near)) if near.size else None,
+        "min_full_red": float(np.min(full)) if full.size else None,
+        "min_union_red": float(np.min(union)) if union.size else None,
+        "lower_union_red_count": int(np.sum(union < selected_union_red - TOL)),
+        "lower_full_red_count": int(np.sum(full < selected_full_red - TOL)),
+    }
+
+
+def _summarize_baseline(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "logged_near_red_max_abs_error": _summary(
+            [
+                row["baseline"]["logged_near_red_max_abs_error"]
+                for row in rows
+                if row["baseline"]["logged_near_red_max_abs_error"] is not None
+            ]
+        ),
+        "logged_full_red_max_abs_error": _summary(
+            [
+                row["baseline"]["logged_full_red_max_abs_error"]
+                for row in rows
+                if row["baseline"]["logged_full_red_max_abs_error"] is not None
+            ]
+        ),
+    }
+
+
+def _summarize_transformed(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    active = [row["transformed"] for row in rows if row["transformed"]["count"] > 0]
+    return {
+        "snapshots_with_transforms": len(active),
+        "transform_count": int(sum(row["count"] for row in active)),
+        "min_union_red": _summary(
+            [row["min_union_red"] for row in active if row["min_union_red"] is not None]
+        ),
+        "lower_union_red_count": int(
+            sum(row["lower_union_red_count"] for row in active)
+        ),
+    }
+
+
+def _optional_vector(value: Any, count: int) -> np.ndarray | None:
+    if value is None:
+        return None
+    arr = np.asarray(value, dtype=np.float64)
+    if arr.shape != (count,) or not np.all(np.isfinite(arr)):
+        return None
+    return arr
+
+
+def _max_abs_error(left: np.ndarray | None, right: np.ndarray) -> float | None:
+    if left is None:
+        return None
+    return float(np.max(np.abs(np.asarray(left, dtype=np.float64) - right)))
+
+
+def _summary(values: list[float]) -> dict[str, float | None]:
+    if not values:
+        return {"mean": None, "max": None}
+    arr = np.asarray(values, dtype=np.float64)
+    return {"mean": float(np.mean(arr)), "max": float(np.max(arr))}
+
+
+def render_markdown(report: dict[str, Any]) -> str:
+    lines = [
+        "# Stop-Aware Splice Recompute Gate",
+        "",
+        "This is an offline fixed-snapshot recompute audit. It is not an online selector, replay result, or formal-seed experiment.",
+        "",
+        "## Inputs",
+        "",
+        f"- Snapshots: `{report['snapshots']['count']}`",
+        f"- Donor pool: `{report['config']['donor_pool']}`",
+        f"- Anchor steps: `{report['config']['anchor_steps']}`",
+        f"- Blend steps: `{report['config']['blend_steps']}`",
+        "",
+        "## Gate Summary",
+        "",
+        f"- Snapshots with donors: `{report['snapshots']['with_donors']}`",
+        f"- Snapshots with selected h30-safe/full-red: `{report['snapshots']['selected_h30_safe_full_red']}`",
+        f"- Snapshots with recomputed lower union-red transform: `{report['snapshots']['with_recomputed_lower_union_red']}`",
+        f"- Transform count: `{report['transformed']['transform_count']}`",
+        "",
+        "## Baseline Recompute Check",
+        "",
+        f"- Logged near-red max error: `{_fmt(report['baseline_recompute']['logged_near_red_max_abs_error']['max'])}`",
+        f"- Logged full-red max error: `{_fmt(report['baseline_recompute']['logged_full_red_max_abs_error']['max'])}`",
+        "",
+        "## Rows",
+        "",
+        "| Step | Selected | Donors | Selected union-red | Min transformed union-red | Lower union-red transforms |",
+        "| ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for row in report["rows"]:
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    str(row["selection_step"]),
+                    str(row["selected_index"]),
+                    str(row["donor_count"]),
+                    _fmt(row["baseline"]["selected_union_red"]),
+                    _fmt(row["transformed"]["min_union_red"]),
+                    str(row["transformed"]["lower_union_red_count"]),
+                ]
+            )
+            + " |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Mathematical Boundary",
+            "",
+            report["analysis"]["convexity_boundary"],
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _fmt(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    return f"{float(value):.6g}"
+
+
+if __name__ == "__main__":
+    main()
