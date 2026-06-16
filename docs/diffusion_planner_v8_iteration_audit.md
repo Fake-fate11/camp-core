@@ -8639,3 +8639,96 @@ Artifact SHA-256:
 | Target-cluster readiness JSON | `22ccd89914ec6ec73922872e5fc1b910d1e5e216813d64de1c9bdcbf0686cda7` |
 | Target-cluster recompute gate JSON | `7ffee93fe3b1be95f23d47f6e8c9d41e24eebd9981d63d07a525fc448dda8d9e` |
 | Target-cluster recompute gate markdown | `3e4c4b3b5394f3019a53e3e26faab54f882bfc8142c448eadb02b01429da18e2` |
+
+### Seed2 npc0 tl-on donor-offset heading diagnostic
+
+Follow-up to the target-cluster gate above: the same fixed snapshots and
+`lower_logged_union_red` donor pool were re-evaluated with a heading-only
+diagnostic switch:
+
+```text
+--heading_mode donor_offset
+```
+
+The XY splice remains H10-preserving. Instead of reconstructing heading from
+finite differences over the spliced XY path, the diagnostic preserves the
+selected candidate's heading prefix through H10, aligns the donor heading tail
+at the same anchor, and smoothstep-blends the heading tail. This is still a
+deterministic finite-candidate transform over fixed current-tick snapshots; it
+does not change CAMP weights, DP weights, online selection, or the master
+problem.
+
+Remote artifact:
+
+```text
+/root/autodl-tmp/camp_dp_target_snapshots_seed2_npc0_tlon_13miss_626718a
+```
+
+Aggregate results:
+
+| Check | Finite-difference heading | Donor-offset heading |
+| --- | ---: | ---: |
+| Target snapshots | 13 | 13 |
+| Transform count | 75 | 75 |
+| Lower recomputed union-red transforms | 74 | 74 |
+| Hard-feasible transforms | 10 | 73 |
+| Progress-screen feasible transforms | 10 | 64 |
+| Lower union-red hard-feasible transforms | 9 | 72 |
+| Lower union-red progress-feasible transforms | 9 | 63 |
+| Hard infeasible `dp_kinematic` blockers | 65 | 2 |
+| Progress infeasible `dp_underprogress` blockers | 0 | 9 |
+| Baseline logged near/full red max error | 0.0 / 0.0 | 0.0 / 0.0 |
+| Min transformed union-red mean/max | 0.0 / 0.0 | 0.0 / 0.0 |
+
+Per-target donor-offset results:
+
+| Step | Selected | Donors | Selected union-red | Lower union-red | Hard-feasible | Progress-feasible | Lower union-red hard-feasible | Lower union-red progress-feasible | Hard blocker |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 69 | 1 | 7 | 11.5 | 7 | 7 | 7 | 7 | 7 | none |
+| 185 | 4 | 7 | 30.0 | 7 | 7 | 7 | 7 | 7 | none |
+| 189 | 2 | 7 | 32.5 | 7 | 7 | 7 | 7 | 7 | none |
+| 190 | 6 | 7 | 29.0 | 7 | 7 | 7 | 7 | 7 | none |
+| 191 | 7 | 6 | 32.5 | 6 | 6 | 6 | 6 | 6 | none |
+| 192 | 6 | 7 | 27.0 | 7 | 6 | 6 | 6 | 6 | `dp_kinematic: 1` |
+| 193 | 3 | 6 | 31.5 | 6 | 6 | 6 | 6 | 6 | none |
+| 194 | 4 | 7 | 34.0 | 7 | 7 | 7 | 7 | 7 | none |
+| 195 | 5 | 4 | 33.5 | 4 | 4 | 1 | 4 | 1 | none |
+| 196 | 3 | 4 | 34.0 | 4 | 4 | 1 | 4 | 1 | none |
+| 197 | 5 | 5 | 35.0 | 5 | 4 | 4 | 4 | 4 | `dp_kinematic: 1` |
+| 198 | 0 | 4 | 33.5 | 3 | 4 | 1 | 3 | 0 | none |
+| 199 | 7 | 4 | 33.0 | 4 | 4 | 4 | 4 | 4 | none |
+
+Interpretation:
+
+1. The earlier kinematic blocker was mostly caused by finite-difference
+   heading reconstruction around the H10 tail splice. Preserving and
+   anchor-aligning heading reduces DP kinematic hard failures from `65` to `2`
+   on the same `75` transformed candidates.
+2. The red-light benefit is retained: `74/75` transformed candidates still
+   lower recomputed union-red, and all `13/13` target snapshots retain at
+   least one lower-red transformed candidate.
+3. The remaining active blocker is no longer primarily hard kinematics. The
+   progress screen rejects `9` transformed candidates, concentrated in late
+   steps `195`, `196`, and `198`.
+
+Decision: accept donor-offset heading as a positive fixed-snapshot diagnostic
+and as evidence that a kinematic-aware finite-candidate transform is plausible.
+Do not deploy it online yet. The next admissible step is to make the transform
+explicitly gateable by progress/comfort budgets and then run a small closed-loop
+shadow or default-off selector check only after the offline budget gate is
+predeclared and documented.
+
+Mathematical boundary: the heading transform is deterministic over fixed
+candidate headings and anchor constants. It is not a Benders atom by itself and
+does not introduce a master/subproblem decomposition or dual cuts. If its
+outputs are later atomized as per-candidate diagnostics, those diagnostics are
+fixed constants at the current tick, so CAMP's affine scoring in `w` and the
+simplex/CVaR/L2 master convexity are unchanged for that fixed finite candidate
+set.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Donor-offset recompute gate JSON | `bed295ef47d09e48f7a210e3881f4b6417c6256189fbda72f1ae7b61703b97ab` |
+| Donor-offset recompute gate markdown | `d772f41fddf8377414967446454f07413842dc44c31eed38dedd3d944b62c06b` |
