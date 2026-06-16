@@ -6802,3 +6802,63 @@ Predeclared next gate:
    K16/noise evidence.
 5. Reject unless outcome-free availability and candidate spatial/endpoint
    spread improve without comfort, fallback, or p95 latency regression.
+
+### Route-lane guidance smoke rejection
+
+The predeclared route-lane guidance config was evaluated in a matched
+one-seed, three-step, non-formal smoke on AutoDL:
+
+```text
+Baseline:
+/root/autodl-tmp/camp_dp_guidance_route_lane_smoke_baseline_seed101_219e9f6
+
+Route-lane guidance:
+/root/autodl-tmp/camp_dp_guidance_route_lane_smoke_seed101_219e9f6
+
+Comparison:
+/root/autodl-tmp/camp_dp_guidance_route_lane_smoke_comparison_219e9f6
+```
+
+Both runs used fixed DP commit `7a1d33da277a1992ec474b5383a0c963c72e04e4`,
+fixed CAMP commit `219e9f6d761766609c12e26893cf1e0b1beb0313`, K=8, noise
+scale 1.0, the sample59 traffic-light route, seed 101, no NPCs, perfect
+tracking, redstopfloor05 static weights, and no formal seeds. The route-lane
+run recorded the expected guidance contract in both the replay summary and all
+selection records:
+
+```text
+config_sha256 = aaff213cd12c845f98ec8997a09ec6641308ee0f0440f31c7ec06bb89cd8e456
+active_function_names = ["route_centerline_following", "lane_keeping"]
+guidance_scale = 0.2
+guidance_scale_source = "config_global_scale"
+record_contract_variants = 1
+```
+
+Matched smoke deltas, route-lane guidance minus disabled-guidance baseline:
+
+| Metric | Baseline | Route-lane guidance | Delta |
+| --- | ---: | ---: | ---: |
+| Candidate feasible rate | 0.500000 | 0.416667 | -0.083333 |
+| Mean feasible candidates | 4.000000 | 3.333333 | -0.666667 |
+| p95 candidate-generation latency | 59.745 ms | 184.670 ms | +124.925 ms |
+| p95 selection latency | 261.173 ms | 349.298 ms | +88.125 ms |
+| Fallback rate | 0.000000 | 0.000000 | 0.000000 |
+| Route progress | 0.955171 m | 0.924882 m | -0.030289 m |
+| Planned lane-violation rate | 0.333333 | 0.333333 | 0.000000 |
+| Planned red-light violation rate | 0.000000 | 0.000000 | 0.000000 |
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Smoke comparison JSON | `aa29da128df44ef29bb9897d3144b3f464e447f54b884a7d61ff4caae4ae13f0` |
+| Smoke comparison markdown | `d4f34859794c29f40f37faf8bb6609233116b1e6df3004e4e02e34417eb76a15` |
+
+Decision: reject this concrete route-centerline + lane-keeping guidance config
+before any sample59 paired run. The branch is numerically valid and
+metadata-complete, but it fails the smoke gate because it reduces candidate
+feasibility and adds large latency in the candidate generator. This is still a
+finite candidate-set diagnostic under fixed DP weights; it does not invalidate
+the CAMP affine/simplex/CVaR/L2 mathematical boundary. The next candidate-set
+idea must address DP guidance runtime cost or use a different generator-side
+mechanism; do not expand this config to 12-run or formal seeds.
