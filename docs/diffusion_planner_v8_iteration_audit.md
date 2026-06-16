@@ -5018,3 +5018,69 @@ expansion and lower-noise sampling as sufficient industrial interventions.
 | `k16_noise1p0` blocker markdown | `305964e17ff844c8cfd9885b3249eb3d1d09521e90eb9eb790a744d06d5ec3f0` |
 | `k16_noise0p75` blocker JSON | `62cbcbe2af56b0d2d755902ea0a78b549fd8ca3748df7f1944b131580c551db4` |
 | `k16_noise0p75` blocker markdown | `7dc4fe4616535361b8583eeb6a94dc249f766e201ed48e428fd70ba73c0e917c` |
+
+### Progress-deficit attribution audit
+
+Commit `254bceed816ef6b3a216b5b155f4697526c2092a` adds a narrower attribution
+audit for the safety-preserving joint-comfort candidates identified above. For
+each nonfallback record with such a branch, the analyzer selects the candidate
+with minimum outcome progress deficit and compares it with the selected
+candidate on current-tick PerfectTracker command fields, open-loop rollout
+distance, and existing atom/proxy quantities. Candidate outcomes are still
+offline labels only; no online selector or candidate generator changes.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests
+195 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+200 passed
+```
+
+Summary:
+
+| Candidate set | Qualifying records | No-progress-loss rate | Lower target-speed rate | Lower first-step reach rate | Lower H3 distance rate | Restart changed rate | Progress deficit mean | P50 | H3 distance delta mean | Command jerk delta mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 1,314 | 0.001522 | 0.807458 | 0.807458 | 0.866058 | 0.000000 | 0.292355 m | 0.218676 m | -0.015172 m | +0.436726 m/s^3 |
+| `k16_noise1p0` | 1,355 | 0.008118 | 0.768266 | 0.768266 | 0.825092 | 0.000000 | 1.252943 m | 0.207944 m | -0.013267 m | +0.877841 m/s^3 |
+| `k16_noise0p75` | 1,447 | 0.003455 | 0.776780 | 0.776780 | 0.845888 | 0.000000 | 0.510523 m | 0.152702 m | -0.011188 m | +0.178910 m/s^3 |
+
+Interpretation:
+
+1. Restart-tail logic is not the active mechanism in these outcome logs:
+   selected and minimum-deficit joint-comfort candidates had zero restart-push
+   rate and zero restart-change rate.
+2. The progress deficit is strongly aligned with the first-step command path.
+   The minimum-deficit comfort branch has lower PerfectTracker target speed and
+   lower first-step reach in roughly `77-81%` of qualifying records, and lower
+   H3 open-loop distance in roughly `83-87%`.
+3. The chosen comfort branch improves outcome jerk/lateral but often worsens
+   command jerk. Therefore command-jerk dominance is not a sufficient design
+   rule for fixing the closed-loop outcome comfort gap.
+4. Planned/proxy red-light quantities can move even when realized boolean
+   safety labels are nonworse. Any later structured candidate transform must
+   still be fully re-scored by the existing DP reward, red-light, feasibility,
+   and CAMP atom paths before selection.
+
+Decision: do not run new simulation from this audit alone. The next admissible
+candidate-generation design must preserve or explicitly constrain first-step
+reach/PerfectTracker target speed while creating comfort diversity downstream.
+It must not repeat the rejected prefix-blend, step-reach guard, K expansion, or
+noise-only routes. A valid predeclaration should first define the finite
+candidate transform, prove it is current-tick/outcome-free and deterministic,
+state how first-step reach is preserved, and show via cheap offline diagnostics
+that it can reduce the measured progress deficit before any new non-formal
+matrix is launched.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Progress-deficit attribution analyzer | `e901717e601ac94dab6d0842ab32dd003b4abd008e39420b3a72cf7107efe9a3` |
+| Progress-deficit attribution tests | `41fc4da2773d5a0dffdabbaf74ecdf9cf9c6b6f96adeabd0b8e856329349a0b3` |
+| K=8 attribution JSON | `e60f17f9bd3df448d0ba2ef2c7cc5bd9c4df7bd172f44450f81fd5eec6b475d2` |
+| K=8 attribution markdown | `7f182534fa74159365fa8868481cb9cae1519a4b9d930297f1727962ae44a553` |
+| `k16_noise1p0` attribution JSON | `ef615385fa90dac5d0a2da66ee79ea8c42c1aca65d5622a8b8a2e8e4846eebda` |
+| `k16_noise1p0` attribution markdown | `639b241392af725f3850df54678f9cc9d886cea896d7a3e59906c68982744b45` |
+| `k16_noise0p75` attribution JSON | `f960d93efe32710c2b2b8f29e902e468590783c91c7fc7b55fd65920990e999d` |
+| `k16_noise0p75` attribution markdown | `9b9f44db189cebea0ffbdbed71fc68d0f1403bcf3975562cd6d1f6d89ce01656` |
