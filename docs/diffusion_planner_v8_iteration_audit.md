@@ -6510,6 +6510,15 @@ python -m pytest \
 
 python -m pytest camp_core
 220 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_replay_summary.py \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py
+11 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core
+225 passed
 ```
 
 Decision: accept the metadata-contract patch as an auditability prerequisite.
