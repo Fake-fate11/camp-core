@@ -9336,3 +9336,84 @@ latency. A viable next screen should either show that a cheaper transformation
 preserves lower-red hard feasibility on the 57 blocked records, or reject the
 splice branch as an online mechanism. Do not train CAMP, retrain DP, alter atom
 schema, or use formal seeds from this audit.
+
+### Splice-shadow infeasibility reason logging
+
+Commit `4f4c321932fd48b005147b2f941592f69f62ea46` adds aggregate transformed
+hard-infeasibility reason counts to the default-off splice-shadow payload. The
+runner already computes `reward_hard_feasibility(transformed_rewards)` inside
+the shadow path; this change only preserves the reason counts in
+`camp_selection_log.json`, `camp_replay_summary.json`, and
+`camp_validation_summary.json`. It does not add candidates, change CAMP scores,
+change the selected trajectory, train CAMP, or modify DP.
+
+Verification:
+
+```text
+Local:  py -3.12 -m py_compile scripts\integrations\run_diffusion_planner_camp_replay.py scripts\integrations\analyze_diffusion_planner_splice_shadow_pilot.py
+Local:  py -3.12 -m pytest camp_core\tests\test_diffusion_planner_replay_summary.py camp_core\tests\test_diffusion_planner_splice_shadow_pilot_audit.py
+AutoDL: /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_replay_summary.py camp_core/tests/test_diffusion_planner_splice_shadow_pilot_audit.py
+```
+
+All checks passed with `17 passed`. CAMP local, GitHub, and AutoDL were
+synchronized to `4f4c321932fd48b005147b2f941592f69f62ea46`. Diffusion Planner
+remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+A single non-formal reason-field smoke was then run on the known problematic
+sample59 configuration:
+
+```text
+/root/autodl-tmp/camp_dp_splice_shadow_reason_smoke_4f4c321_seed2_npc4_tlon_steps200
+```
+
+Configuration: `sample59_86`, seed `2`, NPC count `4`, traffic lights on,
+static `redstopfloor05`, K=`8`, perfect tracking, `200` steps,
+`selection_effect=false`, `anchor_steps=10`, `blend_steps=40`,
+`heading_mode=donor_offset`, progress loss budget `1.0 m`, smoothness loss
+budget `0.5`. Formal seeds `11/12/13` were not used.
+
+Result:
+
+| Check | Result |
+| --- | ---: |
+| Records | 200 |
+| Splice-shadow target records | 75 |
+| Changed records | 18 |
+| No-budget records | 57 |
+| No-transformed-candidate records | 125 |
+| Selection effects | `{false}` |
+| Online selector change | `{false}` |
+| No-budget class counts | `no_hard_feasible_transformed_candidates: 56`, `splice_removed_lower_red_advantage: 1` |
+| Hard-infeasible reason counts | `dp_lane_crossing: 101`, `dp_red_light: 237` |
+| Lower-red hard-infeasible reason counts | `dp_lane_crossing: 83`, `dp_red_light: 203` |
+| Splice-shadow latency mean / max over all records | `7.746041 ms` / `24.311544 ms` |
+| Splice-shadow latency mean / p95 / max over target records | `20.568445 ms` / `23.665907 ms` / `24.311544 ms` |
+| p95 total selection latency | `116.558737 ms` |
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Replay summary | `53729d049a23fe038ef1ba56a59508ae5cd3b230020cd8e36f165983c52365b7` |
+| Validation summary | `cff1a20708a8c34240facbd66ebe6c68bf9fe4bb5f261786e0eb40f53e11141a` |
+| Selection log | `3ef51133256c877844ebfa3e581debe75aa23d5023722f48393319368d2897d5` |
+| Reason audit JSON | `a88a40dc92c1a5324838e50c90d025d058069928773057d9306d99ebee008ea4` |
+| Reason audit Markdown | `f5ed533ed3c3f2b65ec8e0ec44aa2fd2aff6e29769248c79658a88f39ca6d901` |
+
+Decision: accept the reason logging as a useful observability improvement.
+Reject budget tuning as the next primary lever for this splice branch. The
+blocked transformed candidates fail hard feasibility mainly through red-light
+and lane-crossing checks after splice, not through kinematic feasibility and not
+primarily through the declared progress/smoothness budget. The current
+splice-shadow branch also adds roughly `20-24 ms` on target records and the
+single-run total p95 selection latency remains above the 100 ms industrial
+gate. This branch must stay shadow-only.
+
+Next admissible step: run an offline transform-design screen, not a new replay
+matrix. The screen should reuse captured target states or selection logs to ask
+whether a lane/red-preserving transformation can keep lower-red benefit without
+recomputing every transformed candidate online. Candidate designs must remain
+fixed finite diagnostics and must be explicitly rejected if they rely on future
+outcomes, change DP weights, change CAMP weights, or violate the fixed-candidate
+convexity boundary. Do not train CAMP, retrain DP, alter atom schema, or use
+formal seeds from this smoke.
