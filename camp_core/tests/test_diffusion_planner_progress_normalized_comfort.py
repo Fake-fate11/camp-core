@@ -51,8 +51,9 @@ def _record() -> dict:
     return {
         "num_candidates": 3,
         "selected_index": 0,
+        "atom_names": ["progress_shortfall"],
+        "atoms": [[0.0], [0.02], [2.0]],
         "feasible_mask": [True, True, True],
-        "candidate_route_progress": [10.0, 9.98, 8.0],
         "candidate_horizon_lateral_acceleration_cost": [2.0, 1.0, 0.5],
         "candidate_dp_prior_jerk_excess_cost": [4.0, 3.5, 1.0],
         "candidate_horizon_union_planned_red_light_cost": [0.0, 0.0, 1.0],

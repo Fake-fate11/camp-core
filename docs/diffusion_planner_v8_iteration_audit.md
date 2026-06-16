@@ -4536,24 +4536,24 @@ For each nonfallback record, define the fail-closed admissible set
 
 \[
 D_{\Delta p} = \{k: k\text{ is base-feasible},
-p_k \ge p_b - \Delta p,
+q_k \le q_b + \Delta p,
 u_k \le u_b,
 s_k \le s_b\},
 \]
 
-where \(b\) is the baseline selected index, \(p_k\) is
-`candidate_route_progress`, \(u_k\) is
+where \(b\) is the baseline selected index, \(q_k\) is the raw
+`progress_shortfall` atom, \(u_k\) is
 `candidate_horizon_union_planned_red_light_cost`, and \(s_k\) is
 `candidate_red_stopping_margin_cost`. The selected baseline is always retained,
 so \(D_{\Delta p}\) is nonempty. Fallback records retain the baseline index.
 
-The fixed progress budgets are `0.0`, `0.05`, `0.10`, and `0.25 m`. The fixed
-diagnostic metrics are:
+The fixed extra-shortfall budgets are `0.0`, `0.05`, `0.10`, and `0.25 m`.
+The fixed diagnostic metrics are:
 
 1. `candidate_horizon_lateral_acceleration_cost`;
 2. `candidate_dp_prior_jerk_excess_cost`;
-3. lateral cost divided by `max(candidate_route_progress, 1.0 m)`;
-4. jerk-excess cost divided by `max(candidate_route_progress, 1.0 m)`.
+3. lateral cost multiplied by `(1 + progress_shortfall)`;
+4. jerk-excess cost multiplied by `(1 + progress_shortfall)`.
 
 Each screen chooses the admissible candidate with the smallest diagnostic
 metric, then original CAMP score, then candidate index. Outcomes are used only

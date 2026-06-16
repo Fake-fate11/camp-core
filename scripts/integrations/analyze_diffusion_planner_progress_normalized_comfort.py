@@ -23,12 +23,11 @@ from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
 
 
 PROGRESS_BUDGETS_M = (0.0, 0.05, 0.10, 0.25)
-PROGRESS_DENOMINATOR_FLOOR_M = 1.0
 METRICS = (
     "horizon_lateral",
     "jerk_excess",
-    "horizon_lateral_per_progress",
-    "jerk_excess_per_progress",
+    "horizon_lateral_progress_normalized",
+    "jerk_excess_progress_normalized",
 )
 OUTCOME_FIELDS = (
     "progress_m",
@@ -82,11 +81,10 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
             "online_selector_change": False,
             "future_outcome_leakage": False,
             "progress_budgets_m": list(PROGRESS_BUDGETS_M),
-            "progress_denominator_floor_m": PROGRESS_DENOMINATOR_FLOOR_M,
             "metrics": list(METRICS),
             "admissible_set": (
-                "base feasible candidates with route progress no worse than "
-                "selected minus budget, union-red nonworse, and red-stopping "
+                "base feasible candidates with progress shortfall no worse than "
+                "selected plus budget, union-red nonworse, and red-stopping "
                 "cost nonworse; baseline retention makes the set nonempty."
             ),
             "convexity_scope": (
@@ -115,10 +113,19 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
         raise ValueError(f"{label} selected_index is out of range.")
 
     feasible = _bool_vector(record.get("feasible_mask"), candidate_count, f"{label} feasible_mask")
-    route_progress = _vector(
-        record.get("candidate_route_progress"),
+    atom_names = tuple(record.get("atom_names") or ())
+    if "progress_shortfall" not in atom_names:
+        raise ValueError(f"{label} is missing progress_shortfall atom.")
+    raw_atoms = _matrix(
+        record.get("atoms"),
+        len(atom_names),
+        f"{label} atoms",
+    )
+    progress_shortfall = raw_atoms[:, atom_names.index("progress_shortfall")]
+    progress_shortfall = _finite_nonnegative(
+        progress_shortfall,
         candidate_count,
-        f"{label} candidate_route_progress",
+        f"{label} progress_shortfall",
     )
     horizon_lateral = _vector(
         record.get("candidate_horizon_lateral_acceleration_cost"),
@@ -145,7 +152,7 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
     return {
         "selected_index": selected_index,
         "feasible": feasible,
-        "route_progress": route_progress,
+        "progress_shortfall": progress_shortfall,
         "horizon_lateral": horizon_lateral,
         "jerk_excess": jerk_excess,
         "union_red": union_red,
@@ -166,7 +173,7 @@ def _screen(
     deltas: dict[str, list[float]] = {field: [] for field in OUTCOME_FIELDS}
     changed_deltas: dict[str, list[float]] = {field: [] for field in OUTCOME_FIELDS}
     diagnostic_deltas: dict[str, list[float]] = {
-        "route_progress": [],
+        "progress_shortfall": [],
         "union_red": [],
         "red_stopping": [],
         "horizon_lateral": [],
@@ -204,7 +211,7 @@ def _screen(
             deltas[field].append(delta)
             if changed_record:
                 changed_deltas[field].append(delta)
-        for field in ("route_progress", "union_red", "red_stopping", "horizon_lateral", "jerk_excess"):
+        for field in ("progress_shortfall", "union_red", "red_stopping", "horizon_lateral", "jerk_excess"):
             delta = float(record[field][selected] - record[field][baseline])
             diagnostic_deltas[field].append(delta)
             if changed_record:
@@ -238,15 +245,14 @@ def _screen(
 
 
 def _metric_values(record: dict[str, Any], metric: str) -> np.ndarray:
-    progress = np.maximum(record["route_progress"], PROGRESS_DENOMINATOR_FLOOR_M)
     if metric == "horizon_lateral":
         return record["horizon_lateral"]
     if metric == "jerk_excess":
         return record["jerk_excess"]
-    if metric == "horizon_lateral_per_progress":
-        return record["horizon_lateral"] / progress
-    if metric == "jerk_excess_per_progress":
-        return record["jerk_excess"] / progress
+    if metric == "horizon_lateral_progress_normalized":
+        return record["horizon_lateral"] * (1.0 + record["progress_shortfall"])
+    if metric == "jerk_excess_progress_normalized":
+        return record["jerk_excess"] * (1.0 + record["progress_shortfall"])
     raise ValueError(f"Unknown metric: {metric}")
 
 
@@ -254,7 +260,7 @@ def _admissible(record: dict[str, Any], progress_budget_m: float) -> np.ndarray:
     baseline = record["selected_index"]
     return (
         record["feasible"]
-        & (record["route_progress"] >= record["route_progress"][baseline] - progress_budget_m - 1e-12)
+        & (record["progress_shortfall"] <= record["progress_shortfall"][baseline] + progress_budget_m + 1e-12)
         & (record["union_red"] <= record["union_red"][baseline] + 1e-12)
         & (record["red_stopping"] <= record["red_stopping"][baseline] + 1e-12)
     )
@@ -295,11 +301,25 @@ def _outcome_delta(
 
 def _vector(values: Any, size: int, label: str) -> np.ndarray:
     vector = np.asarray(values, dtype=np.float64).reshape(-1)
+    return _finite_nonnegative(vector, size, label)
+
+
+def _finite_nonnegative(values: np.ndarray, size: int, label: str) -> np.ndarray:
+    vector = np.asarray(values, dtype=np.float64).reshape(-1)
     if vector.shape != (size,):
         raise ValueError(f"{label} must have shape [{size}].")
     if not np.all(np.isfinite(vector)) or np.any(vector < 0.0):
         raise ValueError(f"{label} must be finite and nonnegative.")
     return vector
+
+
+def _matrix(values: Any, width: int, label: str) -> np.ndarray:
+    matrix = np.asarray(values, dtype=np.float64)
+    if matrix.ndim != 2 or matrix.shape[1] != width:
+        raise ValueError(f"{label} must have shape [K,{width}].")
+    if not np.all(np.isfinite(matrix)) or np.any(matrix < 0.0):
+        raise ValueError(f"{label} must be finite and nonnegative.")
+    return matrix
 
 
 def _bool_vector(values: Any, size: int, label: str) -> np.ndarray:
@@ -344,8 +364,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         [
             "",
             "The admissible set keeps only base-feasible candidates with "
-            "route-progress, union-red, and red-stopping certificates no worse "
-            "than the selected candidate within the declared progress budget. "
+        "progress-shortfall, union-red, and red-stopping certificates no worse "
+        "than the selected candidate within the declared shortfall budget. "
             "Outcomes are used only for offline evaluation.",
             "",
         ]
