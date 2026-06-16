@@ -5589,3 +5589,107 @@ candidate passes and must be evaluated offline before any paired replay.
 | `k16_noise1p0` bounded tradeoff markdown | `b9649fe559794f7e9869ba77237805cbc4fcadb9253958375fdff17c6a2aac96` |
 | `k16_noise0p75` bounded tradeoff JSON | `44798995e1bddff61ba4a773a6b8389eba2441a74c082d529000bb58d7750971` |
 | `k16_noise0p75` bounded tradeoff markdown | `5b5730a67498d329d34d9d8f6147e030931affe354ef8aa36864c49759089717` |
+
+### Outcome-free bounded selector screen
+
+Commits:
+
+- `70d9a86de275ec36adb484f3677af706227e8978` fixes the selector screen so
+  nonfinite `selection_scores` from real DP logs are treated as deterministic
+  tie-break sentinels instead of aborting the audit. These scores are used only
+  after safety, progress, target-speed, H10, raw lateral, and optional raw jerk
+  guards.
+- `61693ec5a8de57a644aa4586c6c60aea9202c324` changes the progress proxy order
+  to `candidate_route_progress`, then `dp_candidate_rewards.progress`, then
+  `candidate_step_reach`. The K8/K16 logs do not contain route progress but do
+  contain DP reward progress for all 2,400 records in each candidate set.
+- `20505e55125d813b6d154447a69e1042b7d5cd44` adds jerk-safe progress-budget
+  screens at `0.05`, `0.10`, and `0.25 m` before the prior `0.50 m` moderate
+  screen.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_outcome_free_bounded_selector.py
+5 passed
+
+python -m pytest camp_core
+211 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_outcome_free_bounded_selector.py
+5 passed
+```
+
+AutoDL was synchronized by git bundle. DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. No replay, formal seeds, online
+selector, CAMP retraining, or DP modification was run.
+
+The screen is outcome-free at selection time. It uses fixed finite candidate
+diagnostics from the current tick: base feasibility, red-light guards, DP
+reward progress or fallback progress proxy, PerfectTracker target speed, H10
+postprocessed-reference displacement, raw horizon lateral cost, optional raw
+jerk nondegradation, the original CAMP score as a late tie-break, and candidate
+index. Candidate closed-loop outcomes are used only for posterior evaluation.
+For a fixed finite candidate set these quantities are constants, so a later
+atomized CAMP score would remain affine in `w` and compatible with the existing
+simplex/CVaR/L2 convex master. This finite-candidate lexicographic screen is
+not Benders and makes no trajectory-coordinate convexity claim.
+
+Final artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| K=8 outcome-free selector JSON | `3067f253cd5d75c15a774ef85fc3852729b318ff8f0a98e0187fbcdb92ea621a` |
+| K=8 outcome-free selector markdown | `2135bfc2f2fcdf8eddaa177e858f979065aa6d0a2511483ad0c76a980ea331b7` |
+| `k16_noise1p0` outcome-free selector JSON | `16dcd9b4e6a0b49b9dab6d207cabf5bf06836b4d4c8a6f03295edcb927bd6b61` |
+| `k16_noise1p0` outcome-free selector markdown | `392e2710fafc0d269adcf56a2cc33db9c28de5af4388a93301911c33e4dd7b10` |
+| `k16_noise0p75` outcome-free selector JSON | `d810ee41c74d50773bb63e3565eb1f9ff61545b7073b2f698da58f2518f0fa29` |
+| `k16_noise0p75` outcome-free selector markdown | `fc9dae276b17a925c4823bdaa290f4d08ab76d86c69d1142836278a742bc56f6` |
+
+Key jerk-safe screens:
+
+| Candidate set | Screen | Changed rate | Safety regressions | Joint comfort rate | Changed progress mean | Changed jerk mean | Changed lateral mean |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | tight `0.05 m` | 0.115 | 0 | 0.591 | -0.036 m | -0.003 m/s^3 | -0.005 m/s^2 |
+| K=8 baseline | balanced `0.10 m` | 0.234 | 0 | 0.612 | -0.066 m | -0.016 m/s^3 | -0.007 m/s^2 |
+| K=8 baseline | relaxed `0.25 m` | 0.511 | 0 | 0.691 | -0.152 m | -0.063 m/s^3 | -0.011 m/s^2 |
+| K=8 baseline | moderate `0.50 m` | 0.667 | 0 | 0.726 | -0.244 m | -0.110 m/s^3 | -0.015 m/s^2 |
+| `k16_noise1p0` | tight `0.05 m` | 0.125 | 0 | 0.513 | -0.039 m | +0.027 m/s^3 | -0.005 m/s^2 |
+| `k16_noise1p0` | balanced `0.10 m` | 0.271 | 0 | 0.606 | -0.073 m | -0.025 m/s^3 | -0.008 m/s^2 |
+| `k16_noise1p0` | relaxed `0.25 m` | 0.556 | 0 | 0.733 | -0.170 m | -0.104 m/s^3 | -0.015 m/s^2 |
+| `k16_noise1p0` | moderate `0.50 m` | 0.721 | 0 | 0.741 | -0.279 m | -0.125 m/s^3 | -0.020 m/s^2 |
+| `k16_noise0p75` | tight `0.05 m` | 0.196 | 0 | 0.562 | -0.039 m | +0.027 m/s^3 | -0.004 m/s^2 |
+| `k16_noise0p75` | balanced `0.10 m` | 0.376 | 0 | 0.643 | -0.072 m | -0.026 m/s^3 | -0.007 m/s^2 |
+| `k16_noise0p75` | relaxed `0.25 m` | 0.696 | 0 | 0.700 | -0.165 m | -0.078 m/s^3 | -0.012 m/s^2 |
+| `k16_noise0p75` | moderate `0.50 m` | 0.811 | 0 | 0.716 | -0.257 m | -0.109 m/s^3 | -0.017 m/s^2 |
+
+Interpretation:
+
+1. Replacing step reach with DP reward progress fixed the largest progress
+   proxy failure. The earlier step-reach screen produced changed-record mean
+   progress losses as large as about `-1.0 m` on `k16_noise1p0`; the DP reward
+   proxy reduces the `0.50 m` jerk-safe screen to about `-0.28 m`.
+2. Safety is encouraging but not sufficient for an online gate. All jerk-safe
+   screens have zero posterior safety regressions in these 12-run nonformal
+   artifacts, but the non-jerk-safe tight screen still had one posterior safety
+   regression on `k16_noise1p0`.
+3. No screen is a free Pareto improvement. Tight jerk-safe screens preserve
+   progress but have low opportunity and weak posterior comfort coverage;
+   on both K16 sets their changed-record mean jerk delta is still positive.
+   Relaxed and moderate screens improve mean jerk and lateral acceleration but
+   accept explicit progress loss and still have only `0.70-0.74` joint comfort
+   improvement rates on the K16 sets.
+4. The finite candidate set contains useful bounded tradeoffs, but the current
+   outcome-free rule is not yet industrially acceptable as an online selector.
+   It lacks a predeclared guarantee that posterior comfort will not regress on
+   individual changed ticks, and the progress/comfort tradeoff remains a design
+   choice rather than a validated control policy.
+
+Decision: reject online deployment from this screen for now. Keep the tool as a
+diagnostic and do not run replay, formal seeds, online selector wiring, CAMP
+retraining, or DP retraining from these results. The next admissible step is to
+audit the changed records that fail posterior joint comfort under the balanced
+and relaxed jerk-safe screens, using only current-tick quantities, to determine
+whether an additional finite, convex-safe atom or guard can explain those
+failures before any replay gate is considered.
