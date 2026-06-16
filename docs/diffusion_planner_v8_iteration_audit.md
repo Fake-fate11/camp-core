@@ -8215,3 +8215,101 @@ Artifact SHA-256:
 | --- | --- |
 | Splice recompute readiness JSON | `603a3436a41ce0be6cb362d4640b0428cb4d962fe2d76e9e285f38dc37d4de32` |
 | Splice recompute readiness markdown | `d5c37063141e72d76107ec32b1c6dddbfd4a53191df8113f5978e6dc959a7806` |
+
+### Snapshot recompute-context smoke
+
+Commit `a818b2feea3c655fc70c3fc7e6c2b52ff15c9861` exposes the existing
+microbenchmark snapshot capture through the AutoDL remote wrapper:
+
+```text
+CAMP_MICROBENCHMARK_SNAPSHOT_DIR
+CAMP_MICROBENCHMARK_SNAPSHOT_STEPS
+```
+
+Both variables are default-off. When the directory is unset, the wrapper does
+not pass any snapshot arguments and the replay path is unchanged. The same
+commit also propagates `camp_microbenchmark_snapshots` into
+`camp_validation_summary.json` and the replay resummarizer metadata allowlist,
+matching the raw-prefix logging metadata behavior.
+
+Verification:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_replay_summary.py \
+  camp_core\tests\test_diffusion_planner_splice_recompute_readiness.py
+14 passed
+
+bash -n scripts/integrations/run_diffusion_planner_camp_remote.sh
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_replay_summary.py \
+  camp_core/tests/test_diffusion_planner_splice_recompute_readiness.py
+14 passed
+```
+
+The non-formal snapshot-context smoke ran at:
+
+```text
+/root/autodl-tmp/camp_dp_snapshot_context_smoke_seed101_a818b2f
+```
+
+Configuration: sample59 route, seed `101`, `3` steps, no NPCs, K=`8`,
+redstopfloor05 static weights, perfect tracking, raw-prefix logging `10`, and
+snapshot steps `0,1`. This run is context-capture validation only; it is not
+latency evidence and does not count as a paired safety/comfort replay.
+
+Observed metadata and tensor contract:
+
+| Check | Result |
+| --- | --- |
+| Replay summary snapshot metadata | present, `selection_effect=false`, `latency_evidence=false`, files `2` |
+| Validation summary snapshot metadata | present, same requested steps/files |
+| Snapshot files | `camp_microbenchmark_step_0000.npz`, `camp_microbenchmark_step_0001.npz` |
+| Candidate tensor shape | `8 x 80 x 4` for both snapshots |
+| Red route point shape | `40 x 4` for both snapshots |
+| Reward tensor keys | `18` keys for both snapshots |
+| Required reward keys | `lanes`, `route_lanes`, `line_strings`, `ego_shape`, `neighbor_agents_future`, `neighbor_agents_past`, `goal_pose` all present |
+| Snapshot metadata | `capture_has_no_selection_effect=true` for both snapshots |
+
+Running the splice recompute readiness audit on the smoke output produced:
+
+| Snapshot stage | Ready | Missing fields |
+| --- | ---: | --- |
+| PerfectTracker splice recompute | 2/2 | none |
+| red-stopping-margin splice recompute | 2/2 | none |
+| DP reward/full-red recompute | 2/2 | none |
+
+Gate decision:
+
+```text
+Snapshot artifacts contain the required tensor context. The next step can
+implement the actual transformed-candidate recompute gate.
+```
+
+Decision: accept this as the recompute-context observability gate for a short
+non-formal smoke only. It resolves the logging-context blocker found in the
+previous readiness audit, but it still does not prove any transformed splice
+candidate is lower-red, hard-feasible, or better after DP reward recomputation.
+The next admissible implementation step is an offline transformed-candidate
+recompute gate over captured snapshots. Do not implement an online selector,
+run 12/36-run replay, train CAMP weights, or touch formal seeds from this smoke
+alone.
+
+Mathematical boundary: snapshot arrays are fixed current-tick constants and
+their capture has no selection effect. They can support a finite-candidate
+transformed-candidate audit. This is not Benders and provides no dual cuts; if
+future transformed candidates are atomized from fixed snapshot constants, CAMP
+scoring remains affine in `w` and the simplex/CVaR/L2 master remains convex
+only for that fixed finite set.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Snapshot smoke replay summary | `87a7a13e58a06df3b0a74043c9dcb20985e36c5d0c390d82213c0b635c45e300` |
+| Snapshot smoke validation summary | `ff8dc9d82c62385bcf5f86773e9f0eaa86df6f480e6d92c498b28e3ae2e26e6e` |
+| Snapshot smoke readiness JSON | `b038aee333eb96d6e85b0806ab926d8addf2915a64b70ff4fb7496b8ef0d1688` |
+| Snapshot smoke readiness markdown | `cb17d987f4bb36d3351231b570a401db23b0b526f4bb48c59dbed6c0334f9115` |
+| Snapshot step 0000 NPZ | `be5135e4bf9cddb15f17bb394f532a552a6ff48b40e92cc112c1354e2d67c8f8` |
+| Snapshot step 0001 NPZ | `0c3e374e939c4f14465802e1a804031790e6d75fc6bc0a8e2bf67273d4cb0b59` |
