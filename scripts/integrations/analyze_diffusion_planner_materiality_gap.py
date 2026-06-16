@@ -65,6 +65,7 @@ VECTOR_FIELDS = {
         "candidate_perfect_tracker_yaw_rate_magnitude_rps"
     ),
 }
+OPTIONAL_VECTOR_FIELDS = frozenset(("raw_route_progress_delta_m",))
 ROLLOUT_METRICS = (
     "distance_m",
     "mean_vector_jerk_mps3",
@@ -163,7 +164,7 @@ def analyze(paths: list[Path], *, label: str | None = None) -> dict[str, Any]:
             "with_oracle_donor": len(rows),
             "without_oracle_donor": no_donor,
         },
-        "summary": {key: _summary([row[key] for row in rows]) for key in _row_keys()},
+        "summary": {key: _finite_summary([row[key] for row in rows]) for key in _row_keys()},
         "rates": _rates(rows),
     }
 
@@ -201,7 +202,14 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
         "rollout": _rollout(record, candidate_count, label),
     }
     for output_key, field in VECTOR_FIELDS.items():
-        loaded[output_key] = _vector(record.get(field), candidate_count, f"{label} {field}")
+        if output_key in OPTIONAL_VECTOR_FIELDS:
+            loaded[output_key] = _optional_vector(
+                record.get(field),
+                candidate_count,
+                f"{label} {field}",
+            )
+        else:
+            loaded[output_key] = _vector(record.get(field), candidate_count, f"{label} {field}")
     return loaded
 
 
@@ -248,8 +256,8 @@ def _row(record: dict[str, Any], donor: int) -> dict[str, float]:
             "mean_lateral_acceleration_mps2",
         )
         - _outcome_float(record, selected, "mean_lateral_acceleration_mps2"),
-        "outcome_value_delta": _outcome_float(record, donor, "value")
-        - _outcome_float(record, selected, "value"),
+        "outcome_value_delta": _outcome_number(record, donor, "value")
+        - _outcome_number(record, selected, "value"),
         "prefix_max_xy_distance_m": float(np.linalg.norm(prefix_delta, axis=1).max()),
         "prefix_mean_xy_distance_m": float(np.linalg.norm(prefix_delta, axis=1).mean()),
         "prefix_jerk_proxy_delta": _mean_third_difference_norm(donor_prefix)
@@ -381,6 +389,24 @@ def _vector(values: Any, size: int, label: str) -> np.ndarray:
     if not np.all(np.isfinite(array)):
         raise ValueError(f"{label} must contain finite values.")
     return array
+
+
+def _optional_vector(values: Any, size: int, label: str) -> np.ndarray:
+    if values is None:
+        return np.full(size, np.nan, dtype=np.float64)
+    return _vector(values, size, label)
+
+
+def _finite_summary(values: list[float]) -> dict[str, float | int | None]:
+    finite = [float(value) for value in values if np.isfinite(float(value))]
+    return _summary(finite)
+
+
+def _outcome_number(record: dict[str, Any], index: int, field: str) -> float:
+    value = float(record["outcomes"][index].get(field))
+    if not np.isfinite(value):
+        raise ValueError(f"Outcome {field} must be finite.")
+    return value
 
 
 def _bool_vector(values: Any, size: int, label: str) -> np.ndarray:
