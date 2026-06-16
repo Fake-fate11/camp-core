@@ -6908,3 +6908,69 @@ Non-formal AutoDL smoke gate, if local tests pass:
 3. Reject unless feasibility, selected safety metrics, fallback rate, and p95
    latency are at least non-regressing. Treat any improvement as diagnostic
    only; do not use formal seeds or retrain CAMP weights.
+
+### Antithetic latent sampling smoke rejection
+
+The predeclared antithetic sampling diagnostic was evaluated in a matched
+one-seed, three-step, non-formal smoke on AutoDL:
+
+```text
+Baseline iid:
+/root/autodl-tmp/camp_dp_antithetic_smoke_iid_seed101_78900038_20260616165908
+
+Antithetic:
+/root/autodl-tmp/camp_dp_antithetic_smoke_seed101_78900038_20260616165908
+
+Comparison:
+/root/autodl-tmp/camp_dp_antithetic_smoke_comparison_78900038_20260616165908
+```
+
+Both runs used fixed DP commit `7a1d33da277a1992ec474b5383a0c963c72e04e4`,
+fixed CAMP commit `789000386f76ec6c75e933515611ac129020148b`, K=8, noise
+scale 1.0, the sample59 traffic-light route, seed 101, no NPCs, perfect
+tracking, redstopfloor05 static weights, and no formal seeds.
+
+The metadata gate passed: the replay summaries and selection records recorded
+the expected candidate-generation contract variants:
+
+```text
+iid noise_strategy = iid
+iid latent_pairing = independent iid draws after deterministic candidate 0
+antithetic noise_strategy = antithetic
+antithetic latent_pairing = +z/-z antithetic pairs after deterministic candidate 0; one unpaired iid draw if stochastic count is odd
+record_contract_variants = 1 for both runs
+```
+
+Matched smoke deltas, antithetic minus iid:
+
+| Metric | iid | antithetic | Delta |
+| --- | ---: | ---: | ---: |
+| Candidate feasible rate | 0.500000 | 0.416667 | -0.083333 |
+| Mean feasible candidates | 4.000000 | 3.333333 | -0.666667 |
+| p95 candidate-generation latency | 59.432 ms | 59.911 ms | +0.479 ms |
+| p95 selection latency | 261.251 ms | 266.246 ms | +4.995 ms |
+| Fallback rate | 0.000000 | 0.000000 | 0.000000 |
+| Route progress | 0.955171 m | 1.085566 m | +0.130395 m |
+| Planned lane-violation rate | 0.333333 | 0.000000 | -0.333333 |
+| Planned red-light violation rate | 0.000000 | 0.000000 | 0.000000 |
+| Mean jerk magnitude | 305.513 m/s^3 | 374.011 m/s^3 | +68.499 m/s^3 |
+| Mean lateral acceleration | 0.342090 m/s^2 | 0.065431 m/s^2 | -0.276659 m/s^2 |
+| Minimum road-border clearance | 1.160821 m | 1.093167 m | -0.067655 m |
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Smoke comparison JSON | `3f8e30e061aa0b0e2d2d4274b59eab0d8c8e9e79b4b43ad89dedc3830cbfd60e` |
+| Smoke comparison markdown | `7ea67deba93809eca777df84c5ce54badb8d87cc8e8cf2658d8151683b2fce1f` |
+| Strict replay comparison JSON | `eeb2d4699a231361429c489b57d9945cbd89a4bdac31c7eb577571a901f5d19a` |
+| Strict replay comparison markdown | `7dde84bfb8268a6b4e699ed33dfd9400de3cc0e4ef8ef29bcb946733a2c7a6fe` |
+
+Decision: reject default-off antithetic latent sampling before any sample59
+paired run. It is numerically valid and metadata-complete, and it does not
+alter DP weights or CAMP's affine/simplex/CVaR/L2 mathematical boundary.
+However, it fails the predeclared smoke gate because candidate feasibility
+regresses and both p95 candidate-generation and p95 selection latency increase.
+The route-progress and planned-lane improvements are not sufficient to override
+the feasibility and latency regressions. Do not expand this branch to formal
+seeds, online selection, or CAMP retraining.
