@@ -5084,3 +5084,103 @@ matrix is launched.
 | `k16_noise1p0` attribution markdown | `639b241392af725f3850df54678f9cc9d886cea896d7a3e59906c68982744b45` |
 | `k16_noise0p75` attribution JSON | `f960d93efe32710c2b2b8f29e902e468590783c91c7fc7b55fd65920990e999d` |
 | `k16_noise0p75` attribution markdown | `9b9f44db189cebea0ffbdbed71fc68d0f1403bcf3975562cd6d1f6d89ce01656` |
+
+### First-step graft potential audit
+
+Commit `4a0e4a58e682fb810d2a1cb6f77fcdcab336c06a` adds an offline
+cheap-proof screen for a first-step-preserving reference graft. This is a
+diagnostic only. It does not change the online selector, CAMP weights, DP
+weights, atom schema, simulator state update, or candidate generation used by
+the replay.
+
+For each existing outcome-labeled nonfallback record, the analyzer uses
+candidate outcomes only to choose an oracle diagnostic donor: a feasible
+candidate that is safety-nonworse, strictly improves both outcome jerk and
+outcome lateral acceleration, and has the minimum outcome progress deficit
+among such candidates. The audited graft formula itself uses only current-tick
+stored postprocessed reference prefixes:
+
+```text
+g_t = p_s0 + p_dt - p_d0
+```
+
+Here `s` is the selected anchor, `d` is the oracle donor, `p_s0` is the
+selected candidate's first postprocessed reference point, and `p_dt`/`p_d0`
+come from the donor prefix. This is a translation of the donor prefix onto the
+selected first reference point, so the first reference `xy` is preserved
+exactly. It is not the rejected prefix-blend route because it does not
+interpolate toward candidate 0. It is not the rejected step-reach guard because
+it constructs a diagnostic prefix instead of filtering the finite candidate
+set.
+
+Mathematical boundary:
+
+1. The donor choice is oracle/outcome-labeled and is used only to test
+   potential on already collected logs. It is not an online policy and must
+   not be used as selection evidence.
+2. The graft formula is deterministic and current-tick once `s`, `d`, and the
+   stored prefixes are fixed, but this audit does not prove downstream
+   closed-loop progress preservation.
+3. If a future online finite-candidate transform uses an outcome-free donor
+   rule, fixed-candidate CAMP scoring can remain affine in `w`, so the existing
+   simplex/CVaR/L2 master remains convex. The transform itself is not claimed
+   to be Benders, and no global convexity is claimed over trajectory
+   coordinates.
+
+Verification before running the remote artifacts:
+
+```text
+python -m pytest camp_core/tests
+197 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+202 passed
+```
+
+Summary:
+
+| Candidate set | With oracle donors | First-step exact preservation | Donor lower first-step before graft | H3 displacement nonloss | H5 displacement nonloss | H10 displacement nonloss | Graft jerk-proxy improvement | Outcome progress deficit mean | P50 | P90 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 1,314 | 1.000000 | 0.807458 | 0.114155 | 0.101218 | 0.073820 | 0.592085 | 0.292355 m | 0.218676 m | 0.615692 m |
+| `k16_noise1p0` | 1,355 | 1.000000 | 0.768266 | 0.154244 | 0.143911 | 0.115129 | 0.591144 | 1.252943 m | 0.207944 m | 0.620154 m |
+| `k16_noise0p75` | 1,447 | 1.000000 | 0.776780 | 0.137526 | 0.128542 | 0.096752 | 0.597097 | 0.510523 m | 0.152702 m | 0.452525 m |
+
+Additional displacement summaries:
+
+| Candidate set | Graft H3 displacement delta mean | P50 | P90 | P95 | Graft H5 displacement delta mean | Graft H10 displacement delta mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | -0.011692 m | -0.008374 m | 0.000559 m | 0.003587 m | -0.024921 m | -0.064896 m |
+| `k16_noise1p0` | -0.010644 m | -0.007749 m | 0.002087 m | 0.006655 m | -0.022660 m | -0.059439 m |
+| `k16_noise0p75` | -0.008476 m | -0.005654 m | 0.001058 m | 0.003648 m | -0.017880 m | -0.045958 m |
+
+Interpretation:
+
+1. The translation graft proves only that first-step reference preservation is
+   easy by construction. It does not solve the measured downstream progress
+   bottleneck: H3 displacement nonloss is only `11-15%`, and H10 displacement
+   nonloss is only `7-12%`.
+2. The graft often improves the cheap prefix jerk proxy, roughly `59-60%` of
+   oracle-donor records, so the donor shape contains comfort signal. That
+   signal is not enough to justify simulation because the multi-step progress
+   proxy still regresses for most records.
+3. The rejected K16/noise rows behave similarly: larger candidate sets do not
+   make first-step-only grafting a sufficient industrial intervention.
+
+Decision: reject first-step-only graft before any new replay matrix, latency
+smoke, online selector change, CAMP retraining, or formal seeds. The next
+admissible candidate-generation design must preserve or explicitly constrain
+multi-step progress/open-loop distance, at least over H3/H5/H10, while still
+creating downstream comfort diversity. A future design should be evaluated
+offline first with a current-tick, outcome-free rule and a fail-closed finite
+candidate definition before any non-formal simulation is launched.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| First-step graft analyzer | `2aae1cd3c576cc8689d214b6fccfa687c8eb8c9228553dff592fd46384bfb68c` |
+| First-step graft analyzer tests | `43510e633911e6974e0bf63fe67dbd779308f82012ad1d8dfe78135860af1ae9` |
+| K=8 graft JSON | `98fd6c3dcace1ec04367fc1a4dd3c006439af7253a484f76a0b2d4e5c12abc4f` |
+| K=8 graft markdown | `1c5de9bc3bb099f1fbcd76c6bf21bdaf096b0c2afdc3185c479f77eca0b282f9` |
+| `k16_noise1p0` graft JSON | `bff45393a22d4b75941da33e926b5d416964c34cb4daf1fef491aa0a7248313e` |
+| `k16_noise1p0` graft markdown | `dfb1f386909408d5e06fa561622f00077ef1744bc12aa9d652a59f3618e4a8e5` |
+| `k16_noise0p75` graft JSON | `8199445ca7b146e8c198e8a73907920b1c51c1334058d7c1d7071746787250d3` |
+| `k16_noise0p75` graft markdown | `f674c71367905c345d8917d9611ff89c1cd8c68aef07fadf115d8caa33d27568` |
