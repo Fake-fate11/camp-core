@@ -2998,6 +2998,7 @@ def generate_candidate_trajectories(
     deterministic_first: bool = True,
     reference_blend_steps: int | None = None,
     guidance_policy: str = "disabled",
+    noise_strategy: str = "iid",
 ) -> tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
     """Generate K Diffusion-Planner candidates in one batched forward pass.
 
@@ -3010,6 +3011,8 @@ def generate_candidate_trajectories(
         raise ValueError("noise_scale must be non-negative.")
     if guidance_policy not in {"disabled", "preserve"}:
         raise ValueError("guidance_policy must be 'disabled' or 'preserve'.")
+    if noise_strategy not in {"iid", "antithetic"}:
+        raise ValueError("noise_strategy must be 'iid' or 'antithetic'.")
 
     try:
         import torch
@@ -3034,14 +3037,48 @@ def generate_candidate_trajectories(
     device = expanded["ego_current_state"].device
     num_agents = 1 + int(model_args.predicted_neighbor_num)
     future_len = int(model_args.future_len)
-    latent = torch.randn(
+    latent_shape = (
         num_candidates,
         num_agents,
         future_len + 1,
         4,
-        device=device,
-        dtype=expanded["ego_current_state"].dtype,
-    ) * float(noise_scale)
+    )
+    if noise_strategy == "iid":
+        latent = torch.randn(
+            *latent_shape,
+            device=device,
+            dtype=expanded["ego_current_state"].dtype,
+        ) * float(noise_scale)
+    else:
+        latent = torch.empty(
+            *latent_shape,
+            device=device,
+            dtype=expanded["ego_current_state"].dtype,
+        )
+        first_stochastic = 1 if deterministic_first else 0
+        stochastic_count = num_candidates - first_stochastic
+        pair_count = stochastic_count // 2
+        if pair_count:
+            paired = torch.randn(
+                pair_count,
+                num_agents,
+                future_len + 1,
+                4,
+                device=device,
+                dtype=expanded["ego_current_state"].dtype,
+            ) * float(noise_scale)
+            pair_start = first_stochastic
+            pair_stop = pair_start + 2 * pair_count
+            latent[pair_start:pair_stop:2] = paired
+            latent[pair_start + 1:pair_stop:2] = -paired
+        if stochastic_count % 2:
+            latent[-1] = torch.randn(
+                num_agents,
+                future_len + 1,
+                4,
+                device=device,
+                dtype=expanded["ego_current_state"].dtype,
+            ) * float(noise_scale)
     if deterministic_first:
         latent[0].zero_()
     expanded["sampled_trajectories"] = latent

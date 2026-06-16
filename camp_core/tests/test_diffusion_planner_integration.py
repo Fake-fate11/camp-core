@@ -768,6 +768,72 @@ def test_candidate_generation_rejects_unknown_guidance_policy() -> None:
         )
 
 
+def test_candidate_generation_antithetic_noise_pairs_latents() -> None:
+    torch = pytest.importorskip("torch")
+
+    class _Args:
+        predicted_neighbor_num = 0
+        future_len = 2
+
+    class _Decoder:
+        _guidance_fn = None
+
+    class _Model:
+        decoder = _Decoder()
+
+        def __init__(self) -> None:
+            self.sampled = None
+
+        def __call__(self, inputs):
+            sampled = inputs["sampled_trajectories"]
+            self.sampled = sampled.detach().clone()
+            return None, {"prediction": sampled[:, :, 1:, :]}
+
+    torch.manual_seed(123)
+    model = _Model()
+    generate_candidate_trajectories(
+        model,
+        _Args(),
+        {"ego_current_state": torch.zeros(1, 4)},
+        num_candidates=5,
+        noise_scale=1.0,
+        noise_strategy="antithetic",
+    )
+
+    assert model.sampled is not None
+    assert torch.count_nonzero(model.sampled[0]).item() == 0
+    torch.testing.assert_close(
+        model.sampled[1] + model.sampled[2],
+        torch.zeros_like(model.sampled[1]),
+    )
+    torch.testing.assert_close(
+        model.sampled[3] + model.sampled[4],
+        torch.zeros_like(model.sampled[3]),
+    )
+
+
+def test_candidate_generation_rejects_unknown_noise_strategy() -> None:
+    torch = pytest.importorskip("torch")
+
+    class _Args:
+        predicted_neighbor_num = 0
+        future_len = 3
+
+    class _Model:
+        class decoder:
+            _guidance_fn = None
+
+    with pytest.raises(ValueError, match="noise_strategy"):
+        generate_candidate_trajectories(
+            _Model(),
+            _Args(),
+            {"ego_current_state": torch.zeros(1, 4)},
+            num_candidates=1,
+            noise_scale=0.0,
+            noise_strategy="bad",
+        )
+
+
 def test_dp_prior_comfort_excess_respects_requested_horizon() -> None:
     reference = np.column_stack(
         [np.arange(8, dtype=np.float64), np.zeros(8, dtype=np.float64)]

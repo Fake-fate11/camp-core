@@ -304,6 +304,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--candidate_noise_scale", type=float, default=1.0)
     parser.add_argument(
+        "--candidate_noise_strategy",
+        choices=("iid", "antithetic"),
+        default="iid",
+        help=(
+            "Default iid keeps historical latent sampling. Antithetic pairs "
+            "stochastic latents as +z/-z in the same batched forward pass and "
+            "changes only the finite candidate set."
+        ),
+    )
+    parser.add_argument(
         "--candidate_reference_blend_steps",
         type=int,
         default=None,
@@ -1709,9 +1719,12 @@ def _candidate_generation_contract(
     *,
     num_candidates: int,
     noise_scale: float,
+    noise_strategy: str,
     reference_blend_steps: int | None,
     guidance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if noise_strategy not in {"iid", "antithetic"}:
+        raise ValueError("noise_strategy must be 'iid' or 'antithetic'.")
     future_len = int(model_args.future_len)
     predicted_neighbor_num = int(model_args.predicted_neighbor_num)
     guidance_payload = guidance or {
@@ -1735,6 +1748,13 @@ def _candidate_generation_contract(
             4,
         ],
         "latent_distribution": "standard_normal_scaled",
+        "noise_strategy": noise_strategy,
+        "latent_pairing": (
+            "+z/-z antithetic pairs after deterministic candidate 0; "
+            "one unpaired iid draw if stochastic count is odd"
+            if noise_strategy == "antithetic"
+            else "independent iid draws after deterministic candidate 0"
+        ),
         "noise_scale": float(noise_scale),
         "deterministic_first": True,
         "candidate0_latent": "zeros",
@@ -1860,6 +1880,7 @@ def _install_camp_predictor(
                 if candidate_generation_contract.get("guidance_enabled")
                 else "disabled"
             ),
+            noise_strategy=str(candidate_generation_contract["noise_strategy"]),
         )
         candidate_generation_done = time.perf_counter()
         dp_prior_deviation_start = time.perf_counter()
@@ -2614,6 +2635,7 @@ def main() -> None:
         model_args,
         num_candidates=args.num_candidates,
         noise_scale=args.candidate_noise_scale,
+        noise_strategy=args.candidate_noise_strategy,
         reference_blend_steps=args.candidate_reference_blend_steps,
         guidance=candidate_guidance,
     )

@@ -90,6 +90,7 @@ def test_candidate_generation_contract_records_fixed_dp_sampling_boundary() -> N
         _Args(),
         num_candidates=16,
         noise_scale=0.75,
+        noise_strategy="iid",
         reference_blend_steps=None,
     )
 
@@ -97,6 +98,10 @@ def test_candidate_generation_contract_records_fixed_dp_sampling_boundary() -> N
     assert contract["model_type"] == "x_start"
     assert contract["latent_shape"] == [16, 321, 81, 4]
     assert contract["latent_distribution"] == "standard_normal_scaled"
+    assert contract["noise_strategy"] == "iid"
+    assert contract["latent_pairing"] == (
+        "independent iid draws after deterministic candidate 0"
+    )
     assert contract["noise_scale"] == 0.75
     assert contract["deterministic_first"]
     assert contract["candidate0_latent"] == "zeros"
@@ -134,6 +139,7 @@ def test_candidate_generation_contract_records_enabled_guidance() -> None:
         _Args(),
         num_candidates=8,
         noise_scale=1.0,
+        noise_strategy="antithetic",
         reference_blend_steps=5,
         guidance=guidance,
     )
@@ -144,6 +150,8 @@ def test_candidate_generation_contract_records_enabled_guidance() -> None:
     )
     assert contract["guidance"]["config_sha256"] == "abc"
     assert contract["guidance"]["active_function_names"] == ["route_following"]
+    assert contract["noise_strategy"] == "antithetic"
+    assert "+z/-z antithetic pairs" in contract["latent_pairing"]
     assert contract["reference_blend_steps"] == 5
     assert contract["changes_candidate_set"]
     assert not contract["changes_camp_score"]

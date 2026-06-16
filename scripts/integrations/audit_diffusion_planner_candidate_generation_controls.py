@@ -91,6 +91,7 @@ def analyze(
         model_args,
         num_candidates=num_candidates,
         noise_scale=candidate_noise_scale,
+        noise_strategy="iid",
         reference_blend_steps=candidate_reference_blend_steps,
     )
     decoder_controls = _decoder_controls(texts["dp_decoder"])

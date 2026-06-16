@@ -6862,3 +6862,49 @@ finite candidate-set diagnostic under fixed DP weights; it does not invalidate
 the CAMP affine/simplex/CVaR/L2 mathematical boundary. The next candidate-set
 idea must address DP guidance runtime cost or use a different generator-side
 mechanism; do not expand this config to 12-run or formal seeds.
+
+### Antithetic latent sampling diagnostic predeclaration
+
+The next low-cost candidate-set diagnostic is default-off antithetic latent
+sampling. The historical default remains `--candidate_noise_strategy iid`. The
+new diagnostic mode is `--candidate_noise_strategy antithetic`, which keeps
+candidate 0 deterministic and pairs subsequent stochastic latents as `+z/-z`
+inside the same batched DP forward pass. If the stochastic count is odd, the
+last stochastic candidate remains an unpaired iid draw.
+
+Mathematical boundary:
+
+1. DP weights, CAMP atoms, CAMP weights, CAMP feasibility policy, CAMP affine
+   score, and the simplex/CVaR/L2 master are unchanged.
+2. Antithetic sampling only changes the finite candidate set observed at a
+   fixed tick. Once the candidate set is realized, candidate diagnostics are
+   fixed finite values and the CAMP score remains affine in the CAMP weights.
+3. This is not a Benders decomposition change, does not add a valid master /
+   subproblem pair or cuts, and makes no global convexity claim over trajectory
+   coordinates.
+4. The intended industrial test is latency-neutral diversity: it must not add
+   DP guidance backward-pass cost or additional DP forwards.
+
+Implementation gate:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_integration.py \
+  camp_core/tests/test_diffusion_planner_replay_summary.py \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py \
+  camp_core/tests/test_diffusion_planner_candidate_generation_controls.py
+
+python -m pytest camp_core
+
+git diff --check
+```
+
+Non-formal AutoDL smoke gate, if local tests pass:
+
+1. Rerun a matched iid baseline and antithetic run at the same CAMP commit,
+   seed 101, sample59 traffic-light route, K=8, three steps, no NPCs, perfect
+   tracking, and redstopfloor05 static weights.
+2. Confirm summaries and selection records record `noise_strategy` and the
+   latent pairing contract.
+3. Reject unless feasibility, selected safety metrics, fallback rate, and p95
+   latency are at least non-regressing. Treat any improvement as diagnostic
+   only; do not use formal seeds or retrain CAMP weights.

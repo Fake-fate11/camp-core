@@ -197,6 +197,7 @@ def test_write_microbenchmark_snapshot_records_current_tick_inputs(tmp_path) -> 
             SimpleNamespace(future_len=5, predicted_neighbor_num=1),
             num_candidates=2,
             noise_scale=1.0,
+            noise_strategy="iid",
             reference_blend_steps=None,
         ),
         red_route_points=np.zeros((0, 2)),
