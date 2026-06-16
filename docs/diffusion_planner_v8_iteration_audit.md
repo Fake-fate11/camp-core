@@ -7607,3 +7607,59 @@ Artifact SHA-256:
 | --- | --- |
 | State-conditioned materiality JSON | `9e0c52fd697bdd2ad473cb1edcf5a40f1e6ec8c126ffa1dc271ec09b47b0be46` |
 | State-conditioned materiality markdown | `2da932f9f61e7fd72abae75aff80798346a504ea812be73c7e1c3c7d928675e5` |
+
+### Predeclared H80 raw-prefix geometry diagnostic
+
+The first-10-step raw-prefix audit rejected state-local short-prefix
+materiality as the explanation for h80 red exposure misses. The next diagnostic
+therefore logs the full 80-step raw candidate horizon on the same non-formal
+sample59 static baseline grid. This is still diagnostic-only: it changes no
+candidate generation, CAMP score, selector, atom schema, DP weights, CAMP
+weights, tracker input, or formal seed.
+
+| Parameter | Value |
+| --- | --- |
+| CAMP commit at predeclare | `9fa9824852aff03640192fe27fd1aa534bb63050` |
+| DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| Route | `sample59_86` |
+| Seeds | `1,2,3` |
+| Maximum NPCs | `0,4` |
+| Traffic lights | `off,on` |
+| Spawn probability | `0.3` |
+| Steps | `200` |
+| Advance mode | `perfect` |
+| Candidates | `8` |
+| Candidate noise scale | `1.0` |
+| CAMP variant | static `redstopfloor05` |
+| Feasibility | DP reward, minimum progress ratio `0.8` |
+| Reward horizon | `30` steps |
+| All-infeasible fallback | `uniform` |
+| Raw-prefix logging | `--camp_log_raw_candidate_prefix_steps 80` |
+
+The new, non-overwriting output root is:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_h80_sample59_static_9fa9824
+```
+
+The exact 12-command dry-run was persisted before execution at:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_h80_sample59_static_9fa9824_predeclare.txt
+```
+
+Its SHA-256 is
+`10a9edd9eb9c90fc29aa5166a11f6be3f9ea08de6201c64acfe7553f26d86b55`.
+
+Acceptance for this diagnostic:
+
+1. all 12 static runs complete and every summary records
+   `camp_raw_candidate_prefix_logging.selection_effect=false`;
+2. every selection record contains a raw prefix with shape `8 x 80 x 4`;
+3. raw/postprocessed geometry and state-conditioned materiality analyzers run
+   over the H80 root;
+4. any conclusion is limited to fixed finite-candidate long-horizon geometry,
+   not Benders, online safety override, formal performance, CAMP retraining, or
+   DP retraining.
+
+Formal seeds `11/12/13` remain frozen.
