@@ -5286,3 +5286,105 @@ explicitly constructed.
 | `k16_noise1p0` anchored residual markdown | `656e8479430f403e9749af33d65dad72dce1f42e6cec5979d0f33c5cb5c34829` |
 | `k16_noise0p75` anchored residual JSON | `b2b02b525e07f71cc306df5a1796c9ced93e2d57718556dc54b3ede2e377fecf` |
 | `k16_noise0p75` anchored residual markdown | `0e143ed2f329cab6bf059af3d9993347d9ee573c50db0593acd3d6d3eb04c7fe` |
+
+### Smooth anchor projection potential audit
+
+Commit `3a07ff1281ecce9c1455d8f67be14db1120375af` adds a convex
+least-squares projection screen after rejecting hard anchored residual grafts.
+This is still an offline oracle-potential diagnostic. It does not change the
+online selector, CAMP weights, DP weights, atom schema, simulator state update,
+or replay candidate generation.
+
+The analyzer uses the same oracle diagnostic donor definition as the previous
+screens: outcome labels choose a feasible, safety-nonworse, joint
+jerk/lateral-improving candidate with minimum outcome progress deficit. For a
+fixed selected prefix `S`, donor prefix `D`, and ridge `rho >= 0`, the audited
+projection solves independently for `x` and `y`:
+
+```text
+min_G ||D3 G - D3 D||_2^2 + rho ||G - S||_2^2
+s.t.  G_A = S_A,  A = {H1, H3, H5, H10}
+```
+
+`D3` is the third-difference operator over the stored postprocessed reference
+prefix. The equality constraints preserve selected H1/H3/H5/H10 anchors
+exactly. The first term tries to inherit the donor smoothness profile without
+the hard residual kinks seen in the previous screen; the ridge term controls
+deviation from the selected prefix.
+
+Mathematical boundary:
+
+1. For fixed `S`, `D`, and `rho`, this is a convex quadratic least-squares
+   projection with affine equality constraints. It is deterministic and
+   current-tick.
+2. The oracle donor choice uses outcome labels only for offline potential
+   diagnosis. A future online transform would need an outcome-free donor rule.
+3. Fixed finite candidates can still be scored by the existing CAMP affine
+   score in `w`, so the simplex/CVaR/L2 master remains convex. This projection
+   is not a Benders decomposition, and no global convexity is claimed over
+   trajectory coordinates.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests
+202 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+207 passed
+```
+
+AutoDL GitHub fetch timed out during synchronization, so the `3a07ff1` commit
+was transferred by a local git bundle and merged fast-forward. DP remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Summary over the fixed ridge grid `{0, 1e-4, 1e-3, 1e-2, 1e-1}`:
+
+| Candidate set | With oracle donors | Anchor exact | H3/H5/H10 displacement nonloss | H10 path nonloss range | Jerk-proxy improvement range | Jerk-proxy delta mean range | Max selected deviation P95 range |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 1,314 | 1.000000 | 1.000000 / 1.000000 / 1.000000 | 0.467275-0.477169 | 0.573820-0.584475 | -0.000004 to -0.000003 | 0.000239-0.000387 m |
+| `k16_noise1p0` | 1,355 | 1.000000 | 1.000000 / 1.000000 / 1.000000 | 0.453875-0.470849 | 0.608856-0.615498 | -0.000004 | 0.000246-0.000440 m |
+| `k16_noise0p75` | 1,447 | 1.000000 | 1.000000 / 1.000000 / 1.000000 | 0.446441-0.453352 | 0.606773-0.612301 | -0.000003 | 0.000197-0.000342 m |
+
+Representative ridge `0.1` rows:
+
+| Candidate set | Jerk-proxy improvement | Jerk-proxy delta mean | Max selected deviation P95 | H10 path delta mean | Third-difference target error mean |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 0.584475 | -0.000004 | 0.000239 m | 0.000034 m | 0.000053 |
+| `k16_noise1p0` | 0.615498 | -0.000004 | 0.000246 m | -0.000001 m | 0.000060 |
+| `k16_noise0p75` | 0.612301 | -0.000003 | 0.000197 m | 0.000003 m | 0.000041 |
+
+Interpretation:
+
+1. The projection fixes the two previous cheap-proof failures at once:
+   H1/H3/H5/H10 displacement anchors are preserved exactly, and the prefix jerk
+   proxy has a negative mean delta with a `57-62%` improvement rate.
+2. The result is mathematically clean but industrially weak as a standalone
+   transform. The P95 maximum deviation from the selected prefix is only about
+   `0.0002-0.0004 m`, so applying this projection online is unlikely to
+   materially change the PerfectTracker trajectory or closed-loop comfort.
+3. The tiny transform magnitude also explains why this is not enough evidence
+   to launch a paired replay matrix: the oracle donor has much larger realized
+   outcome jerk/lateral improvements, but the current-prefix projection changes
+   the selected command by sub-millimeter amounts.
+
+Decision: keep smooth anchor projection as a valid mathematical building block
+but do not run a replay matrix, latency smoke, online selector change, CAMP
+retraining, or formal seeds from this screen alone. The next admissible route
+should diagnose materiality: either show a current-tick outcome-free transform
+that creates meter-scale or command-scale diversity while preserving
+multi-step progress and smoothness, or explain why the realized outcome
+improvements are coming from simulator/rollout mechanisms not visible in the
+stored H10 reference prefix. Until that gap is closed, the default DP/CAMP
+chain remains unchanged.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Smooth anchor projection analyzer | `6f9de9c44ad591e33eb052002d3260d65c009e47b45532d1f0b05ff0db80d6f6` |
+| Smooth anchor projection analyzer tests | `5929edf375d09d1e20751cdf22c0ea0643f198ae77047d170d1ff0071219a51d` |
+| K=8 smooth projection JSON | `2db57ec14e47d8f7b3ab3c018311fc46d81d3c297951a7aad58d8b6773fe36b7` |
+| K=8 smooth projection markdown | `127bd340d985a19c6172a41db84e674283deb85fbb5e5babd18cc32cf4a9ded9` |
+| `k16_noise1p0` smooth projection JSON | `6335d3058b3dfebdccd41348229993b00b9cce36d10540fb066b5d3a1c8bd193` |
+| `k16_noise1p0` smooth projection markdown | `1d651f7e70e97d34dcc846cf60dd84340bcc3884c7e0ed38eb38a1fc1dc4b966` |
+| `k16_noise0p75` smooth projection JSON | `777f173011a180472f6439e763b4526fd702c49b8aac2b51ce3fd9a7ac279dcf` |
+| `k16_noise0p75` smooth projection markdown | `e7ae7826a6e199dc0ffb6062d2a52efa222d3b015496e8e65ccd7b766362f442` |
