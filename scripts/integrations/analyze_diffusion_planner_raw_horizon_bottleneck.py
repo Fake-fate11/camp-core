@@ -254,7 +254,7 @@ def _record_data(record: dict[str, Any], horizon: int, label: str) -> dict[str, 
         raise ValueError(f"{label} selected_index is out of range.")
     feasible = _bool_vector(record.get("feasible_mask"), candidate_count, label, "feasible_mask")
     union_red = _union_red(record, candidate_count, label)
-    planned_red = _optional_vector(record.get("candidate_planned_red_light_cost"), candidate_count)
+    planned_red = _short_red_vector(record, candidate_count, label)
     full_red = _optional_vector(
         record.get("candidate_full_horizon_planned_red_light_cost"), candidate_count
     )
@@ -272,9 +272,7 @@ def _record_data(record: dict[str, Any], horizon: int, label: str) -> dict[str, 
     h10 = _rollout_horizon(rollout, 10, candidate_count, label)
     fallback = not feasible.any()
     selected_union = float(union_red[selected])
-    selected_planned_red = (
-        float(planned_red[selected]) if planned_red is not None else selected_union
-    )
+    selected_planned_red = float(planned_red[selected])
     selected_full_red = float(full_red[selected]) if full_red is not None else selected_union
     selected_h30_safe_full_red = selected_planned_red <= TOL and selected_full_red > TOL
     return {
@@ -356,6 +354,24 @@ def _progress_vector(record: dict[str, Any], count: int, label: str) -> np.ndarr
     if not np.all(np.isfinite(arr)):
         raise ValueError(f"{label} progress values must be finite.")
     return arr
+
+
+def _short_red_vector(record: dict[str, Any], count: int, label: str) -> np.ndarray:
+    planned = _optional_vector(record.get("candidate_planned_red_light_cost"), count)
+    if planned is not None:
+        return planned
+    rewards = record.get("dp_candidate_rewards")
+    if not isinstance(rewards, list) or len(rewards) != count:
+        raise ValueError(
+            f"{label} candidate_planned_red_light_cost or dp_candidate_rewards red_light is required."
+        )
+    red = np.asarray(
+        [max(-float(reward.get("red_light", 0.0)), 0.0) for reward in rewards],
+        dtype=np.float64,
+    )
+    if not np.all(np.isfinite(red)):
+        raise ValueError(f"{label} short-horizon red values must be finite.")
+    return red
 
 
 def _optional_vector(value: Any, count: int) -> np.ndarray | None:
