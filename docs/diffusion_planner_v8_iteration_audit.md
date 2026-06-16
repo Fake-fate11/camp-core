@@ -7280,3 +7280,73 @@ run on the non-formal raw-prefix smoke artifact. The result can justify a later
 predeclared raw-geometry transform audit, but cannot by itself authorize an
 online selector, 12/36-run matrix, formal seeds, CAMP retraining, or DP
 retraining.
+
+### Raw-vs-postprocessed prefix geometry audit smoke result
+
+Commit `6d5acc506401890c9de16ecb14ffd98f928bfd16` adds the offline
+raw-prefix geometry analyzer. It is outcome-free, training-free, and reports
+fixed finite-candidate geometry constants only.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_raw_prefix_geometry.py
+3 passed
+
+python -m pytest camp_core/tests/test_diffusion_planner_replay_summary.py
+12 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_raw_prefix_geometry.py
+3 passed
+```
+
+The analyzer was run on the non-formal raw-prefix smoke artifact:
+
+```text
+Input:
+/root/autodl-tmp/camp_dp_raw_prefix_smoke_seed101_8b331f8/camp_selection_log.json
+
+Output:
+/root/autodl-tmp/camp_dp_raw_prefix_geometry_audit_6d5acc5
+```
+
+This artifact has only three selection records, so it is a metadata/geometry
+smoke, not a deployment conclusion. Within this smoke:
+
+| Metric | Mean |
+| --- | ---: |
+| Raw endpoint pairwise spread | 0.395746 m |
+| Postprocessed endpoint pairwise spread | 0.396521 m |
+| Endpoint spread ratio post/raw | 1.002088 |
+| Raw prefix pairwise spread | 0.208308 m |
+| Postprocessed prefix pairwise spread | 0.208481 m |
+| Prefix spread ratio post/raw | 1.000863 |
+| Raw-to-post displacement mean | 0.002103 m |
+| Raw-to-post displacement max | 0.006093 m |
+| Raw/post selected-distance correlation | 0.999999 |
+
+Compression rates were zero for the 1 mm, 1 cm, and 10 cm thresholds:
+
+```text
+endpoint_pairwise_mean_compression_rate = 0.0
+prefix_pairwise_mean_compression_rate = 0.0
+```
+
+Decision: accept the analyzer as a valid diagnostic tool, but do not draw an
+industrial conclusion from the three-record smoke. The smoke suggests that, at
+least for these early sample59 ticks, SG plus `postprocess_reference` preserves
+candidate spread almost exactly and adds only millimeter-scale displacement.
+Therefore the earlier materiality loss is unlikely to be explained by generic
+postprocessing compression in this tiny sample. The next admissible evidence
+step is a predeclared larger non-formal raw-prefix logging pass or an
+offline-only audit over any existing logs that already include raw prefixes.
+It still does not authorize online selector changes, 12/36-run acceptance,
+formal seeds, CAMP retraining, or DP retraining.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Raw prefix geometry JSON | `f798465e8d99f3329e12919fdd617a25a29b5b37e19d60fb9f75a527f4ef5c0b` |
+| Raw prefix geometry markdown | `71543dbffdaa1b9ba146b484ed833980bcf7cb9ab158a625b6ba0d4ee742f9a5` |
