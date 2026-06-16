@@ -5184,3 +5184,105 @@ candidate definition before any non-formal simulation is launched.
 | `k16_noise1p0` graft markdown | `dfb1f386909408d5e06fa561622f00077ef1744bc12aa9d652a59f3618e4a8e5` |
 | `k16_noise0p75` graft JSON | `8199445ca7b146e8c198e8a73907920b1c51c1334058d7c1d7071746787250d3` |
 | `k16_noise0p75` graft markdown | `f674c71367905c345d8917d9611ff89c1cd8c68aef07fadf115d8caa33d27568` |
+
+### Anchored residual graft potential audit
+
+Commit `599f1ebdd8de4e66ba04c7d8b873ecc08d800bb6` adds a stricter
+multi-step progress-anchor screen after rejecting the first-step-only graft.
+This is still an offline oracle-potential diagnostic. It does not change the
+online selector, CAMP weights, DP weights, atom schema, simulator state update,
+or replay candidate generation.
+
+The analyzer uses the same oracle diagnostic donor definition as the
+first-step graft screen: outcome labels choose a feasible, safety-nonworse,
+joint jerk/lateral-improving candidate with minimum outcome progress deficit.
+The audited transform then ignores outcome labels and uses only the selected
+and donor postprocessed reference prefixes.
+
+For anchor horizons `A = {1, 3, 5, 10}`, let `a` and `b` be adjacent
+zero-indexed anchor indices. For each `t` in `[a, b]`, define
+
+```text
+lambda_t = (t - a) / (b - a)
+S_lin(t) = S_a + lambda_t (S_b - S_a)
+D_lin(t) = D_a + lambda_t (D_b - D_a)
+G_t = S_lin(t) + (D_t - D_lin(t))
+```
+
+This injects the donor residual relative to its own anchor-interval linear
+interpolation into the selected anchor interval. Therefore `G_t = S_t` at
+H1/H3/H5/H10 by construction. It is not the rejected prefix-blend route because
+it does not interpolate toward candidate 0, and it is not a step-reach guard
+because it constructs a diagnostic finite candidate instead of filtering the
+candidate set.
+
+Mathematical boundary:
+
+1. The transform is deterministic and affine in the selected/donor prefix
+   coordinates once `s` and `d` are fixed. This does not imply global convexity
+   over trajectory coordinates.
+2. Fixed finite candidates can still be scored by the existing CAMP affine
+   score in `w`, so the simplex/CVaR/L2 master remains convex if a future
+   outcome-free donor rule is used.
+3. This is not a Benders decomposition. No master/subproblem split, dual, or
+   valid cut is constructed here.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests
+199 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+204 passed
+```
+
+Summary:
+
+| Candidate set | With oracle donors | Anchor exact preservation | H3 displacement nonloss | H5 displacement nonloss | H10 displacement nonloss | H3 path nonloss | H5 path nonloss | H10 path nonloss | Prefix jerk-proxy improvement | Prefix jerk-proxy delta mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 1,314 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.268645 | 0.270167 | 0.229072 | 0.072298 | +0.000592 |
+| `k16_noise1p0` | 1,355 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.309963 | 0.304797 | 0.247232 | 0.070111 | +0.000631 |
+| `k16_noise0p75` | 1,447 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.295784 | 0.292329 | 0.257775 | 0.127160 | +0.000380 |
+
+Additional summaries:
+
+| Candidate set | Outcome progress deficit mean | P50 | P90 | Donor prefix jerk-proxy delta mean | Graft H10 path delta mean | P95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 baseline | 0.292355 m | 0.218676 m | 0.615692 m | -0.000007 | -0.000023 m | 0.000005 m |
+| `k16_noise1p0` | 1.252943 m | 0.207944 m | 0.620154 m | -0.000007 | -0.000039 m | 0.000010 m |
+| `k16_noise0p75` | 0.510523 m | 0.152702 m | 0.452525 m | -0.000004 | -0.000027 m | 0.000006 m |
+
+Interpretation:
+
+1. The anchor construction proves that selected H1/H3/H5/H10 displacement can
+   be preserved exactly by a current-tick finite transform.
+2. The comfort-shape signal does not survive this hard anchoring. The donor
+   prefixes had slightly negative mean jerk-proxy deltas, but the anchored
+   residual graft has positive mean jerk-proxy deltas and improves the proxy in
+   only `7-13%` of oracle-donor records.
+3. Path-length deltas are numerically tiny, but the very low strict nonloss
+   rates under `1e-12` tolerance show that this screen is not providing a
+   meaningful path-progress advantage beyond the enforced displacement
+   anchors.
+
+Decision: reject anchored residual graft before any replay matrix, latency
+smoke, online selector change, CAMP retraining, or formal seeds. It fixes the
+previous displacement-progress proof gap only by introducing hard anchor
+kinks/residuals that destroy the cheap comfort proxy. The next admissible route
+must preserve multi-step progress while controlling smoothness directly, for
+example with a current-tick finite smoothing/projection screen whose objective
+and constraints are stated before running logs. It must still remain a finite
+candidate transform unless a valid convex subproblem, dual, and cuts are
+explicitly constructed.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Anchored residual graft analyzer | `c67fb979f3d08d4cb1485723539a69a2b5be9cfd83c8968d8c57edbac5f9ddb7` |
+| Anchored residual graft analyzer tests | `407f2d1ac2634fd7bf47095786d94f2e154a1e39992f29475661b121acbc2d51` |
+| K=8 anchored residual JSON | `b79a6faa986843502301dafe5418add69d1b38c1df396bf2f8dc4cfa6c8f6b9c` |
+| K=8 anchored residual markdown | `5997bc51ea52f06865c2fb304709c8e275fa0b88bdbfe45515f4c495c2e6b645` |
+| `k16_noise1p0` anchored residual JSON | `f0dccd8610a8f14059e1831fb225c73065e62adba6708f9e27e24e8dff58fbaf` |
+| `k16_noise1p0` anchored residual markdown | `656e8479430f403e9749af33d65dad72dce1f42e6cec5979d0f33c5cb5c34829` |
+| `k16_noise0p75` anchored residual JSON | `b2b02b525e07f71cc306df5a1796c9ced93e2d57718556dc54b3ede2e377fecf` |
+| `k16_noise0p75` anchored residual markdown | `0e143ed2f329cab6bf059af3d9993347d9ee573c50db0593acd3d6d3eb04c7fe` |
