@@ -100,6 +100,13 @@ def analyze(paths: list[Path], *, label: str | None = None) -> dict[str, Any]:
 
     reason_counts = Counter(row["reason"] for row in rows)
     class_counts = Counter(row["no_budget_class"] for row in rows if row["kind"] == "no_budget")
+    hard_infeasible_reason_counts = Counter()
+    lower_red_hard_infeasible_reason_counts = Counter()
+    for row in rows:
+        hard_infeasible_reason_counts.update(row["hard_infeasible_reason_counts"])
+        lower_red_hard_infeasible_reason_counts.update(
+            row["lower_union_red_hard_infeasible_reason_counts"]
+        )
     changed_rows = [row for row in rows if row["kind"] == "changed"]
     no_budget_rows = [row for row in rows if row["kind"] == "no_budget"]
     return {
@@ -140,6 +147,12 @@ def analyze(paths: list[Path], *, label: str | None = None) -> dict[str, Any]:
             "online_selector_change_values": sorted(online_selector_values),
             "reason_counts": dict(sorted(reason_counts.items())),
             "no_budget_class_counts": dict(sorted(class_counts.items())),
+            "hard_infeasible_reason_counts": dict(
+                sorted(hard_infeasible_reason_counts.items())
+            ),
+            "lower_union_red_hard_infeasible_reason_counts": dict(
+                sorted(lower_red_hard_infeasible_reason_counts.items())
+            ),
         },
         "safety_opportunity": {
             "changed": _changed_summary(changed_rows),
@@ -223,6 +236,12 @@ def _row_from_record(
         "lower_union_red_count": int(shadow.get("lower_union_red_count", 0)),
         "lower_union_red_hard_feasible_count": int(
             shadow.get("lower_union_red_hard_feasible_count", 0)
+        ),
+        "hard_infeasible_reason_counts": _int_counts(
+            shadow.get("hard_infeasible_reason_counts")
+        ),
+        "lower_union_red_hard_infeasible_reason_counts": _int_counts(
+            shadow.get("lower_union_red_hard_infeasible_reason_counts")
         ),
         "admissible_count": int(shadow.get("admissible_count", 0)),
         "chosen_donor_index": shadow.get("chosen_donor_index"),
@@ -413,6 +432,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"| No-budget records | {records['no_budget']} |",
         f"| Reason counts | `{records['reason_counts']}` |",
         f"| No-budget class counts | `{records['no_budget_class_counts']}` |",
+        f"| Hard-infeasible reason counts | `{records['hard_infeasible_reason_counts']}` |",
+        f"| Lower-red hard-infeasible reason counts | `{records['lower_union_red_hard_infeasible_reason_counts']}` |",
         "",
         "## Safety Opportunity",
         "",
@@ -562,6 +583,14 @@ def _optional_reward_metric(
     if not np.isfinite(value):
         return None
     return -value if negate else value
+
+
+def _int_counts(value: Any) -> dict[str, int]:
+    if not value:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("reason counts must be a mapping.")
+    return {str(key): int(count) for key, count in sorted(value.items())}
 
 
 def _optional_float(value: Any) -> float | None:

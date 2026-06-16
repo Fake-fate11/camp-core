@@ -45,6 +45,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 from scripts.integrations.analyze_diffusion_planner_splice_recompute_gate import (  # noqa: E402
     build_splice_candidates,
     fixed_candidate_shadow_rule,
+    reason_counts,
     reward_hard_feasibility,
     reward_metric_vector,
 )
@@ -1996,7 +1997,9 @@ def _evaluate_splice_shadow_rule(
         transformed_near_red_cost,
         transformed_full_red_cost,
     )
-    transformed_hard_feasible, _ = reward_hard_feasibility(transformed_rewards)
+    transformed_hard_feasible, transformed_hard_reasons = reward_hard_feasibility(
+        transformed_rewards
+    )
     transformed_progress = reward_metric_vector(transformed_rewards, "progress")
     transformed_smoothness = reward_metric_vector(
         transformed_rewards,
@@ -2015,18 +2018,22 @@ def _evaluate_splice_shadow_rule(
         smoothness_loss_budget=smoothness_loss_budget,
     )
     chosen = rule["chosen_transformed_index"]
+    lower_union_red = transformed_union_red_cost < selected_union_red - 1e-12
     config.update(
         {
             "transform_count": int(transformed.shape[0]),
-            "lower_union_red_count": int(
-                np.sum(transformed_union_red_cost < selected_union_red - 1e-12)
-            ),
+            "lower_union_red_count": int(np.sum(lower_union_red)),
             "hard_feasible_count": int(np.sum(transformed_hard_feasible)),
             "lower_union_red_hard_feasible_count": int(
-                np.sum(
-                    (transformed_union_red_cost < selected_union_red - 1e-12)
-                    & transformed_hard_feasible
-                )
+                np.sum(lower_union_red & transformed_hard_feasible)
+            ),
+            "hard_infeasible_reason_counts": reason_counts(
+                transformed_hard_reasons,
+                ~transformed_hard_feasible,
+            ),
+            "lower_union_red_hard_infeasible_reason_counts": reason_counts(
+                transformed_hard_reasons,
+                lower_union_red & ~transformed_hard_feasible,
             ),
             "full_red_latency_ms": float(full_red_latency_ms),
             "chosen_donor_index": (
@@ -2084,6 +2091,13 @@ def _summarize_splice_shadow_rule_records(
     )
     summary["reason_counts"] = _sum_reason_counts(
         {str(shadow["reason"]): 1} for shadow in shadows
+    )
+    summary["hard_infeasible_reason_counts"] = _sum_reason_counts(
+        shadow.get("hard_infeasible_reason_counts", {}) for shadow in shadows
+    )
+    summary["lower_union_red_hard_infeasible_reason_counts"] = _sum_reason_counts(
+        shadow.get("lower_union_red_hard_infeasible_reason_counts", {})
+        for shadow in shadows
     )
     summary["latency_ms"] = _summary(
         [

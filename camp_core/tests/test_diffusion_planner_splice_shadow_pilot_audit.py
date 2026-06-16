@@ -55,6 +55,16 @@ def _record(
         "hard_feasible_count": hard_feasible_count,
         "lower_union_red_count": lower_union_red_count,
         "lower_union_red_hard_feasible_count": lower_union_red_hard_feasible_count,
+        "hard_infeasible_reason_counts": (
+            {"dp_lane_crossing": transform_count - hard_feasible_count}
+            if transform_count > hard_feasible_count
+            else {}
+        ),
+        "lower_union_red_hard_infeasible_reason_counts": (
+            {"dp_lane_crossing": lower_union_red_count}
+            if lower_union_red_count and not lower_union_red_hard_feasible_count
+            else {}
+        ),
         "admissible_count": admissible_count,
         "chosen_donor_index": 0 if changed else None,
         "chosen_union_red": chosen_union_red,
@@ -96,6 +106,8 @@ def test_analyze_splice_shadow_pilot_splits_changed_and_no_budget(tmp_path: Path
                 lower_union_red_hard_feasible_count=1,
                 admissible_count=1,
                 chosen_union_red=0.0,
+                transform_count=2,
+                hard_feasible_count=1,
             ),
             _record(
                 step=11,
@@ -110,33 +122,47 @@ def test_analyze_splice_shadow_pilot_splits_changed_and_no_budget(tmp_path: Path
                 lower_union_red_hard_feasible_count=1,
                 admissible_count=0,
             ),
-            _record(step=13, reason="no_transformed_candidates", transform_count=0),
-            _record(step=14, reason=None),
+            _record(
+                step=13,
+                reason="no_budget_admissible_lower_red_candidate",
+                lower_union_red_count=1,
+                lower_union_red_hard_feasible_count=0,
+                hard_feasible_count=0,
+            ),
+            _record(step=14, reason="no_transformed_candidates", transform_count=0),
+            _record(step=15, reason=None),
         ],
     )
 
     report = analyze([tmp_path / "pilot"], label="unit")
 
-    assert report["records"]["total"] == 5
+    assert report["records"]["total"] == 6
     assert report["records"]["missing_splice_shadow"] == 1
-    assert report["records"]["target_records"] == 3
+    assert report["records"]["target_records"] == 4
     assert report["records"]["changed"] == 1
-    assert report["records"]["no_budget"] == 2
+    assert report["records"]["no_budget"] == 3
     assert report["records"]["reason_counts"] == {
         "budget_admissible_lower_red_candidate": 1,
-        "no_budget_admissible_lower_red_candidate": 2,
+        "no_budget_admissible_lower_red_candidate": 3,
     }
     assert report["records"]["no_budget_class_counts"] == {
         "lower_red_hard_feasible_but_budget_empty": 1,
+        "no_hard_feasible_transformed_candidates": 1,
         "splice_removed_lower_red_advantage": 1,
+    }
+    assert report["records"]["hard_infeasible_reason_counts"] == {
+        "dp_lane_crossing": 2,
+    }
+    assert report["records"]["lower_union_red_hard_infeasible_reason_counts"] == {
+        "dp_lane_crossing": 1,
     }
     changed = report["safety_opportunity"]["changed"]
     assert changed["zero_union_red_records"] == 1
     assert changed["union_red_reduction"]["mean"] == 10.0
     assert changed["progress_loss_m"]["max"] == 0.5
-    assert report["latency"]["all_target_records"]["count"] == 3
+    assert report["latency"]["all_target_records"]["count"] == 4
     assert report["by_run"][0]["changed"] == 1
-    assert report["by_run"][0]["no_budget"] == 2
+    assert report["by_run"][0]["no_budget"] == 3
 
 
 def test_render_markdown_includes_no_budget_classes(tmp_path: Path) -> None:
@@ -155,6 +181,7 @@ def test_render_markdown_includes_no_budget_classes(tmp_path: Path) -> None:
     markdown = render_markdown(report)
 
     assert "splice_removed_lower_red_advantage" in markdown
+    assert "Hard-infeasible reason counts" in markdown
     assert "Decision Boundary" in markdown
 
 

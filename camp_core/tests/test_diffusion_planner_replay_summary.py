@@ -248,6 +248,10 @@ def test_summarize_splice_shadow_rule_records_reports_default_off_state() -> Non
                     "chosen_union_red": 0.0,
                     "chosen_progress_loss_m": 0.8,
                     "chosen_smoothness_loss": 0.1,
+                    "hard_infeasible_reason_counts": {"dp_lane_crossing": 2},
+                    "lower_union_red_hard_infeasible_reason_counts": {
+                        "dp_lane_crossing": 1
+                    },
                 },
                 "latency_ms_splice_shadow_rule": 2.5,
             },
@@ -259,6 +263,10 @@ def test_summarize_splice_shadow_rule_records_reports_default_off_state() -> Non
                     "chosen_union_red": None,
                     "chosen_progress_loss_m": None,
                     "chosen_smoothness_loss": None,
+                    "hard_infeasible_reason_counts": {"dp_red_light": 1},
+                    "lower_union_red_hard_infeasible_reason_counts": {
+                        "dp_red_light": 1
+                    },
                 },
                 "latency_ms_splice_shadow_rule": 1.5,
             },
@@ -280,6 +288,14 @@ def test_summarize_splice_shadow_rule_records_reports_default_off_state() -> Non
     assert summary["reason_counts"] == {
         "budget_admissible_lower_red_candidate": 1,
         "no_budget_admissible_lower_red_candidate": 1,
+    }
+    assert summary["hard_infeasible_reason_counts"] == {
+        "dp_lane_crossing": 2,
+        "dp_red_light": 1,
+    }
+    assert summary["lower_union_red_hard_infeasible_reason_counts"] == {
+        "dp_lane_crossing": 1,
+        "dp_red_light": 1,
     }
     assert summary["latency_ms"]["max"] == 2.5
     assert summary["chosen_union_red"]["max"] == 0.0
