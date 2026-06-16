@@ -147,7 +147,7 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
         candidate_count,
         f"{label} candidate_red_stopping_margin_cost",
     )
-    scores = _finite_vector(
+    scores = _score_vector(
         record.get("selection_scores"),
         candidate_count,
         f"{label} selection_scores",
@@ -308,12 +308,12 @@ def _vector(values: Any, size: int, label: str) -> np.ndarray:
     return _finite_nonnegative(vector, size, label)
 
 
-def _finite_vector(values: Any, size: int, label: str) -> np.ndarray:
+def _score_vector(values: Any, size: int, label: str) -> np.ndarray:
     vector = np.asarray(values, dtype=np.float64).reshape(-1)
     if vector.shape != (size,):
         raise ValueError(f"{label} must have shape [{size}].")
-    if not np.all(np.isfinite(vector)):
-        raise ValueError(f"{label} must be finite.")
+    if np.any(np.isnan(vector)):
+        raise ValueError(f"{label} must not contain NaN.")
     return vector
 
 
