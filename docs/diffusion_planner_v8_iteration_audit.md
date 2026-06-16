@@ -5996,3 +5996,119 @@ fixed DP generator does not place enough guarded posterior-success candidates
 inside the bounded admissible set, using generator-side metadata and
 outcome-free candidate-set descriptors before proposing any new sampling or
 conditioning change.
+
+### Failure-tick current descriptor audit
+
+Commit `51958b12fbb70266a4609e1ce96e58ab713e2710` adds a failure-tick
+descriptor audit. It replays the same bounded outcome-free screens and only
+keeps changed ticks where the screen selected a posterior joint-comfort
+failure. For those ticks it summarizes current-tick finite-candidate
+descriptors: admissible counts, feature ranges, best feature deltas relative to
+the selected candidate, and the predeclared jerk-guard availability. Posterior
+outcomes are used only to split failure ticks into "with any successful
+alternative" and "without any successful alternative" groups.
+
+This diagnostic is still not an online selector and has no future-outcome
+input at selection time. All descriptor values are fixed finite-candidate
+constants. If any descriptor is later atomized, fixed-candidate CAMP scoring
+remains affine in `w` and compatible with the simplex/CVaR/L2 convex master.
+This diagnostic is not Benders and makes no trajectory-coordinate convexity
+claim.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_failure_candidate_descriptors.py
+1 passed
+
+python -m pytest camp_core
+217 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_failure_candidate_descriptors.py
+1 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core
+222 passed
+```
+
+AutoDL was synchronized by git bundle. CAMP local/GitHub/AutoDL reached
+`51958b12fbb70266a4609e1ce96e58ab713e2710`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The descriptor commands were:
+
+```bash
+K8=/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc
+K16A=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise1p0_2212309
+K16B=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise0p75_2212309
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_failure_candidate_descriptors.py \
+  --root "$K8" --label k8_baseline \
+  --output_json "$K8/k8_baseline_failure_candidate_descriptors.json" \
+  --output_md "$K8/k8_baseline_failure_candidate_descriptors.md"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_failure_candidate_descriptors.py \
+  --root "$K16A" --label k16_noise1p0 \
+  --output_json "$K16A/k16_noise1p0_failure_candidate_descriptors.json" \
+  --output_md "$K16A/k16_noise1p0_failure_candidate_descriptors.md"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_failure_candidate_descriptors.py \
+  --root "$K16B" --label k16_noise0p75 \
+  --output_json "$K16B/k16_noise0p75_failure_candidate_descriptors.json" \
+  --output_md "$K16B/k16_noise0p75_failure_candidate_descriptors.md"
+```
+
+Final artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Failure descriptor analyzer | `3cddc765da57f7aacec40564cc3ca0d2b1960c291db62216809201bc1de27b5b` |
+| Failure descriptor tests | `d2ebc08d2edfb26d906e8a9dfb538bc1704910cbcbf7d0fcbba8ee0a556b679f` |
+| K=8 descriptor JSON | `1455cc70ee1579188c42d6547a741dcb77c236507551787a6ef479a819f98951` |
+| K=8 descriptor markdown | `64cc6d00550eee76e2d1f80abf92727162414b85aeea1f6bd8037182331ecbf6` |
+| `k16_noise1p0` descriptor JSON | `fec671954076c0d83f31741096153f32a93fedc93f2a12ce9858eb097ff3318f` |
+| `k16_noise1p0` descriptor markdown | `e35e0216118f7b728d1c103d674230f073ca35ab190ccec5a50e651401bf5146` |
+| `k16_noise0p75` descriptor JSON | `21bc91aca69ad4f9ecffea548e7e1bdade092db28c0f4144665b516556a4442f` |
+| `k16_noise0p75` descriptor markdown | `9e394543f7ff2cf2b5fda1ee61c619c94f42da2fc5f60911e0c835c64c63efc5` |
+
+Selected descriptor results:
+
+| Candidate set | Screen | Failure ticks | With posterior-success alternative | Best progress delta mean | Best tracker jerk delta mean | Best H3 rollout jerk delta mean | No-success guarded admissible mean |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| K=8 | balanced | 174 | 19 | -0.051 m | +0.126 m/s^3 | +0.078 m/s^3 | 0.342 |
+| K=8 | relaxed | 303 | 46 | -0.109 m | +0.011 m/s^3 | -0.040 m/s^3 | 0.533 |
+| `k16_noise1p0` | balanced | 191 | 24 | -0.047 m | -0.242 m/s^3 | -0.245 m/s^3 | 0.503 |
+| `k16_noise1p0` | relaxed | 266 | 59 | -0.098 m | -0.187 m/s^3 | -0.500 m/s^3 | 0.768 |
+| `k16_noise0p75` | balanced | 253 | 50 | -0.043 m | -0.677 m/s^3 | -0.570 m/s^3 | 0.601 |
+| `k16_noise0p75` | relaxed | 394 | 117 | -0.090 m | -0.409 m/s^3 | -0.563 m/s^3 | 0.783 |
+
+Here "no-success guarded admissible mean" is the mean number of current-tick
+tracker+H3-rollout jerk-nonworse admissible candidates among failure ticks that
+had no posterior-success alternative.
+
+Interpretation:
+
+1. The current K16/noise grids do create more current-tick jerk-diverse
+   admissible candidates. In the no-success failure group, tracker+H3 guarded
+   admissible means rise from `0.342-0.533` on K=8 to `0.503-0.783` on K16.
+2. This extra current-tick diversity does not translate reliably into
+   posterior joint-comfort success. K16 failure ticks often have negative
+   tracker or H3 rollout jerk deltas, but still no posterior-success
+   alternative. The blocker is therefore not simply "no guarded candidate
+   exists".
+3. The strongest remaining hypothesis is proxy/outcome miscalibration: the
+   fixed current-tick jerk proxies and short PerfectTracker rollout descriptors
+   can improve while the closed-loop posterior mean jerk still fails to
+   improve jointly with lateral acceleration.
+
+Decision: reject adding the current tracker/H3/prefix jerk descriptors as
+online guards or CAMP atoms from this evidence. The next admissible step is an
+offline calibration audit that quantifies how current-tick jerk descriptors map
+to posterior jerk success within the bounded admissible set. That audit may use
+posterior outcomes as labels, but any deployable rule must remain based on
+current-tick finite-candidate quantities and must preserve the fixed-candidate
+affine CAMP scoring contract.
