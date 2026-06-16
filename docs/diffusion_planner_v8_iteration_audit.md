@@ -5900,3 +5900,99 @@ available controls and ask whether the rate of admissible posterior-success
 alternatives in failure ticks increases without changing the CAMP mathematical
 contract. Any generator-side experiment must be reported as changing the
 finite candidate set, not as a Benders or convex trajectory-coordinate claim.
+
+### Alternative-candidate comparison gate
+
+Commit `63356630309ecf409ab9e22ce27e9ceb8aa96a4b` adds a comparator for the
+stored alternative-candidate reports. The comparator is deliberately stricter
+than the descriptive audit above: every required bounded screen must satisfy
+both of the following before the candidate-generation setting can advance to a
+separate latency and paired-replay design step:
+
+- any admissible posterior-success coverage at least `0.40`, with improvement
+  over K=8 at least `0.15`;
+- best predeclared current-tick guarded-success coverage at least `0.20`, with
+  improvement over K=8 at least `0.10`.
+
+This is an offline comparison gate only. It reads posterior outcomes from
+stored reports as labels, does not select online trajectories, does not modify
+DP, does not train CAMP, and does not authorize formal seeds. The mathematical
+boundary is unchanged: generator-side changes alter the finite candidate set;
+for any fixed set, CAMP scoring remains affine in `w` and compatible with the
+simplex/CVaR/L2 convex master. The comparator is not Benders and makes no
+trajectory-coordinate convexity claim.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_alternative_candidates_compare.py
+3 passed
+
+python -m pytest camp_core
+216 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_alternative_candidates_compare.py
+3 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core
+221 passed
+```
+
+AutoDL was synchronized by git bundle. CAMP local/GitHub/AutoDL reached
+`63356630309ecf409ab9e22ce27e9ceb8aa96a4b`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Existing untracked files on local
+and AutoDL were left untouched.
+
+The comparison command was:
+
+```bash
+K8=/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc
+K16A=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise1p0_2212309
+K16B=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise0p75_2212309
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/compare_diffusion_planner_alternative_candidates.py \
+  --baseline_json "$K8/k8_baseline_outcome_free_alternative_candidates.json" \
+  --candidate_json "k16_noise1p0=$K16A/k16_noise1p0_outcome_free_alternative_candidates.json" \
+  --candidate_json "k16_noise0p75=$K16B/k16_noise0p75_outcome_free_alternative_candidates.json" \
+  --output_json "$K8/k8_vs_k16_alternative_candidate_comparison.json" \
+  --output_md "$K8/k8_vs_k16_alternative_candidate_comparison.md"
+```
+
+Final artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Alternative-candidate comparator | `a91fb7bf39d7526eb1bb2eeb1d34ebdf0d137ca5f43ff79e1e6f2f8bee521c2a` |
+| Comparator tests | `a27982bf63154899fee0383ff7f47372bc2034d985aad09915faac48c4d35be2` |
+| K8-vs-K16 comparison JSON | `1fc65638e1f2eba3541a0959805ff8efcadb5c6f6ea3c9b0be175763b546fe32` |
+| K8-vs-K16 comparison markdown | `63dd686681cb6e56d5f02024ab39702ffc3a3a633cbcd7f2252073946fc02647` |
+
+Comparison result:
+
+| Candidate set | Screen | Failure ticks | Any success rate | Delta | Best guard | Guarded success rate | Delta | Gate |
+| --- | --- | ---: | ---: | ---: | --- | ---: | ---: | --- |
+| `k16_noise1p0` | balanced `0.10 m` | 191 | 0.126 | +0.016 | tracker + H3 rollout jerk | 0.052 | +0.041 | fail |
+| `k16_noise1p0` | relaxed `0.25 m` | 266 | 0.222 | +0.070 | prefix + H3 rollout jerk | 0.079 | +0.029 | fail |
+| `k16_noise0p75` | balanced `0.10 m` | 253 | 0.198 | +0.088 | prefix + H3 rollout jerk | 0.091 | +0.062 | fail |
+| `k16_noise0p75` | relaxed `0.25 m` | 394 | 0.297 | +0.145 | prefix + H3 rollout jerk | 0.129 | +0.080 | fail |
+
+Interpretation:
+
+1. The best current K16/noise setting still misses both industrial coverage
+   thresholds. The strongest any-success rate is `0.297`, below the `0.40`
+   gate; the strongest guarded-success rate is `0.129`, below the `0.20` gate.
+2. `k16_noise0p75` improves relaxed-screen availability but also has more
+   failure ticks than K=8 (`394` versus `303`). It is therefore not a clean
+   candidate-generation fix.
+3. The comparator confirms the earlier descriptive conclusion with an explicit
+   predeclared gate: the current K16/noise candidate-generation grid should be
+   rejected, not promoted to online selector wiring or new CAMP training.
+
+Decision: reject the current K16/noise candidate-generation grid. Do not run
+replay, formal seeds, online selector wiring, CAMP retraining, or DP
+retraining from these results. The next admissible step is to diagnose why the
+fixed DP generator does not place enough guarded posterior-success candidates
+inside the bounded admissible set, using generator-side metadata and
+outcome-free candidate-set descriptors before proposing any new sampling or
+conditioning change.
