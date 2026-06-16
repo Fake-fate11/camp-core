@@ -9135,3 +9135,97 @@ problem. The rule is deterministic and fail-closed, but it is not Benders and
 does not define a dual subproblem or valid cuts. If later converted to CAMP
 atoms, affine scoring and simplex/CVaR/L2 convexity remain valid only for the
 fixed finite candidate set at the tick.
+
+### Sample59 splice-shadow pilot
+
+Commit `639cb8482ba94b26b6c75726c144bf5258382ea6` threads the default-off
+splice-shadow logger through the benchmark matrix runner. The matrix runner now
+forwards the splice-shadow parameters only to CAMP variants and rejects
+combinations with lexicographic preselection, PerfectTracker command
+postselection, underprogress relaxation, non-`dp_reward` feasibility, or missing
+reward config. This keeps the run shadow-only and avoids mixing this diagnostic
+with previously rejected selector branches.
+
+Verification:
+
+```text
+Local:  py -3.12 -m py_compile scripts\integrations\run_diffusion_planner_camp_benchmark_matrix.py
+Local:  py -3.12 -m pytest camp_core\tests\test_diffusion_planner_benchmark_matrix.py camp_core\tests\test_diffusion_planner_replay_summary.py
+AutoDL: /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_benchmark_matrix.py camp_core/tests/test_diffusion_planner_replay_summary.py
+```
+
+All three checks passed with `19 passed`. CAMP local, GitHub, and AutoDL were
+synchronized to `639cb8482ba94b26b6c75726c144bf5258382ea6`. Diffusion Planner
+remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Non-formal pilot artifact:
+
+```text
+/root/autodl-tmp/camp_dp_splice_shadow_sample59_pilot_639cb84
+```
+
+Configuration: `sample59_86`, seeds `1/2/3`, NPC counts `0/4`, traffic lights
+on/off, static `redstopfloor05`, K=`8`, perfect tracking, `200` steps,
+`camp_feasibility_source=dp_reward`, `selection_effect=false`,
+`anchor_steps=10`, `blend_steps=40`, `heading_mode=donor_offset`, progress loss
+budget `1.0 m`, smoothness loss budget `0.5`. Formal seeds `11/12/13` were not
+used.
+
+Aggregate result:
+
+| Check | Result |
+| --- | ---: |
+| Replay summaries / validation summaries / selection logs | 12 / 12 / 12 |
+| Selection records | 2400 |
+| Splice-shadow records | 2400 |
+| Selection effects | `{false}` |
+| Online selector change | `{false}` |
+| Changed shadow decisions | 31 |
+| Admissible transformed candidates | 139 |
+| Reason counts | `budget_admissible_lower_red_candidate: 31`, `no_budget_admissible_lower_red_candidate: 57`, `no_transformed_candidates: 2312` |
+| Runs with changed decisions | `seed_2/npc_0/tl_on: 13`, `seed_2/npc_4/tl_on: 18` |
+| Shadow latency mean-of-run-means / max | `0.796080 ms` / `24.110364 ms` |
+| p95 selection latency mean / max | `94.463150 ms` / `115.368733 ms` |
+| Route completion mean / min / max | `0.154349` / `0.124425` / `0.164963` |
+| Fallback rate mean / min / max | `0.201667` / `0.0` / `0.57` |
+| Planned red-light violation rate mean / max | `0.044583` / `0.45` |
+| Realized red-light violation rate mean / max | `0.019263` / `0.221106` |
+
+For the 31 changed shadow decisions, the baseline selected union-red averaged
+`29.709677`, the chosen transformed union-red averaged `15.467742`, and the
+mean union-red reduction was `14.241935` with min/max reduction
+`0.5`/`35.0`. The progress loss stayed within the declared budget
+(`mean=0.564483 m`, `max=0.935844 m`) and the smoothness loss stayed within the
+declared budget (`mean=-0.037839`, `max=0.497635`).
+
+Changed steps:
+
+| Run | Steps |
+| --- | --- |
+| `sample59_86/seed_2/npc_0/spawn_0p3/tl_on/static` | `69, 185, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199` |
+| `sample59_86/seed_2/npc_4/spawn_0p3/tl_on/static` | `110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127` |
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Aggregate JSON | `f314aaa6f28535201fbddfa09b531c82abbabce92f7af8478036fb755ce6f2a9` |
+| Aggregate Markdown | `0690f3bc2299649463608f7c175b86d65a34f0e7f0386d5930405baa7975a5a1` |
+| Per-file manifest | `8027346a3356ba3c712eb0baaf833545053abaccab99bcbe61fa26310e3f00b0` |
+
+Decision: accept the matrix-runner wiring and the sample59 shadow-only pilot as
+valid evidence that the fixed-candidate splice rule has nontrivial coverage on
+the previously problematic `sample59` red-light states. Do not promote it to an
+executed online selector yet. The run has no selection effect, so closed-loop
+metrics still describe the baseline static policy, not an improved executed
+policy. The maximum per-run p95 selection latency is also above the 100 ms
+industrial gate, and 57 records had lower-red transformed candidates that failed
+the declared progress/smoothness budget.
+
+Next admissible step: audit the 31 changed and 57 no-budget records in the
+pilot artifact to separate safety opportunity, budget tightness, and latency
+cost. Any online selector proposal must first provide a cheaper or amortized
+fixed-candidate implementation, prove deterministic fail-closed behavior, and
+pass a paired non-formal pilot with p95 latency below 100 ms with margin. Do not
+train CAMP, retrain DP, alter atom schema, or use formal seeds from this
+shadow-only result.
