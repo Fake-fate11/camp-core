@@ -6445,3 +6445,76 @@ or DP retraining from this evidence. The next admissible step is to inspect
 fixed-DP generator sampling controls or logged candidate-generation metadata to
 find whether endpoint/mode spread can be increased while keeping DP weights
 fixed and reporting the change strictly as a finite candidate-set change.
+
+### Candidate generation metadata contract
+
+Commit `bedc0b605911e30a5df4beb076d89d9ad1d85009` records an explicit
+candidate-generation contract in new replay outputs. This is a logging-only
+change: it does not alter Diffusion Planner, CAMP weights, the atom schema, the
+selector, feasibility, or the generated candidates.
+
+Read-only inspection of the fixed Diffusion Planner checkout found:
+
+- the official parameter file
+  `/root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json` uses
+  `diffusion_model_type=x_start`, `future_len=80`,
+  `predicted_neighbor_num=320`, and `guidance_scale=0.5`;
+- the decoder inference path uses DPM-Solver with `steps=10` and
+  `skip_type=logSNR`;
+- Diffusion Planner contains classifier-guidance and prototype/anchor
+  guidance machinery, but the CAMP candidate path currently disables
+  `decoder._guidance_fn` during candidate generation;
+- the existing K8/K16 logs record `num_candidates` per selection record and
+  `candidate_noise_scale` in replay summaries, but not enough per-record
+  sampling contract metadata to audit future candidate-set changes.
+
+The new `candidate_generation_contract` is written to:
+
+1. `camp_selection_log.json` records;
+2. `camp_replay_summary.json`;
+3. microbenchmark snapshot metadata; and
+4. resummarized validation output via
+   `summarize_diffusion_planner_camp_replay.py`.
+
+The contract fields include the fixed DP model type, latent shape, latent
+distribution (`standard_normal_scaled`), noise scale, deterministic candidate
+0, reference-blend steps, disabled guidance policy, DPM solver step count,
+DPM skip type, RNG scope, and explicit flags stating that this changes only the
+finite candidate set, not CAMP scoring or DP weights. Per-tick seeds are not
+invented: the replay path uses the process-global Torch RNG, so
+`recorded_tick_seed` is `null`. The microbenchmark snapshot keeps its existing
+repeatability seed but now marks it as
+`microbenchmark_replay_only_not_original_tick_rng`.
+
+Mathematical boundary:
+
+- This is metadata only and has no selection effect.
+- If a later experiment changes latent sampling, reference blending, or
+  guidance, it must be reported as a change to the finite candidate set.
+- For any fixed candidate set, CAMP scoring remains affine in `w`; the
+  simplex/CVaR/L2 master remains convex.
+- Guidance/prototype steering, if used later, is not Benders and should not be
+  described as a convex trajectory-coordinate guarantee.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_replay_summary.py
+3 passed
+
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_replay_summary.py \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py
+11 passed
+
+python -m pytest camp_core
+220 passed, 5 skipped
+```
+
+Decision: accept the metadata-contract patch as an auditability prerequisite.
+Do not run formal seeds, online selector wiring, CAMP retraining, or DP
+retraining from this change alone. The next admissible experiment is a
+predeclared, non-formal candidate-set diagnostic that either uses this contract
+to compare generator settings, or explicitly rejects settings that cannot be
+described as finite candidate-set changes under fixed DP weights.
