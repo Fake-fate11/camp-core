@@ -7038,3 +7038,72 @@ Gate:
 4. Treat the result strictly as a fixed-DP finite candidate-set diagnostic. It
    is not a CAMP atom, not Benders, and does not imply trajectory-coordinate
    convexity.
+
+### Anchor-following progress-mode guidance smoke rejection
+
+The predeclared anchor-following guidance smoke was evaluated in a matched
+one-seed, three-step, non-formal smoke on AutoDL:
+
+```text
+Baseline iid:
+/root/autodl-tmp/camp_dp_anchor_guidance_iid_seed101_6a039c03_20260616171128
+
+Anchor-following guidance:
+/root/autodl-tmp/camp_dp_anchor_guidance_seed101_6a039c03_20260616171128
+
+Comparison:
+/root/autodl-tmp/camp_dp_anchor_guidance_comparison_6a039c03_20260616171128
+```
+
+Both runs used fixed DP commit `7a1d33da277a1992ec474b5383a0c963c72e04e4`,
+fixed CAMP commit `6a039c037ad66640846bd52473cb7f2590ee6314`, K=8, noise
+scale 1.0, the sample59 traffic-light route, seed 101, no NPCs, perfect
+tracking, redstopfloor05 static weights, and no formal seeds.
+
+The metadata gate passed. The replay summary and selection records recorded:
+
+```text
+active_function_names = ["anchor_following"]
+config_sha256 = 91696d7f7d5d5c92bcdbd955cb85ffd12249904c78818efc73cb2f0c23baf153
+guidance_scale = 0.2
+guidance_scale_source = config_global_scale
+record_contract_variants = 1
+changes_camp_score = false
+changes_diffusion_planner_weights = false
+```
+
+Matched smoke deltas, anchor-following minus iid:
+
+| Metric | iid | anchor-following | Delta |
+| --- | ---: | ---: | ---: |
+| Candidate feasible rate | 0.500000 | 0.583333 | +0.083333 |
+| Mean feasible candidates | 4.000000 | 4.666667 | +0.666667 |
+| p95 candidate-generation latency | 64.940 ms | 165.725 ms | +100.785 ms |
+| p95 selection latency | 269.927 ms | 358.909 ms | +88.982 ms |
+| Fallback rate | 0.000000 | 0.000000 | 0.000000 |
+| Route progress | 0.955171 m | 0.896608 m | -0.058563 m |
+| Planned lane-violation rate | 0.333333 | 0.333333 | 0.000000 |
+| Planned red-light violation rate | 0.000000 | 0.000000 | 0.000000 |
+| Mean jerk magnitude | 305.513 m/s^3 | 330.999 m/s^3 | +25.486 m/s^3 |
+| Mean lateral acceleration | 0.342090 m/s^2 | 0.411980 m/s^2 | +0.069889 m/s^2 |
+| Minimum road-border clearance | 1.160821 m | 1.192591 m | +0.031769 m |
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Anchor config JSON | `91696d7f7d5d5c92bcdbd955cb85ffd12249904c78818efc73cb2f0c23baf153` |
+| Smoke comparison JSON | `52a0845f016eb505f13dbb02160b73e7a9d1dcedc3ce857b1b411aea5b78183f` |
+| Smoke comparison markdown | `f0fc7301642d95312dbc26000cce9c1a3b48c96d51d918322c397c9161285884` |
+| Strict replay comparison JSON | `d0e31571a2cdd091c0db985c21c4010663c9f0d90075fdb06bb24f5e376df7dd` |
+| Strict replay comparison markdown | `622c3d0bee478622cf05d75e17101d288e7e9adcbb3207a2171d7e1005b4691b` |
+
+Decision: reject anchor-following progress-mode guidance before any sample59
+paired run. It is a valid fixed-DP finite candidate-set diagnostic and it
+improves the three-step feasible-candidate rate, but it fails the predeclared
+gate because route progress regresses and p95 latency increases sharply. It
+also worsens realized mean jerk and mean lateral acceleration in this smoke.
+Together with the route/lane guidance rejection, this closes the current
+official `GuidanceComposer` branch as an industrial path under the p95 latency
+gate. Do not expand this branch to formal seeds, online selection, or CAMP
+retraining.
