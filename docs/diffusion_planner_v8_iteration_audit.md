@@ -7766,3 +7766,72 @@ Artifact SHA-256:
 | H80 common-prefix materiality markdown | `70b6457fedd0d5a5c60dee0e642ad706555c4fe580d9ca1c95d67678367e77e4` |
 | Raw-only horizon materiality JSON | `cb85e37e396f86e30edf0b6b48b8c49efd14284e3e18534aa52559dba0375ed5` |
 | Raw-only horizon materiality markdown | `e4af6782fe56abc0fdfa5a16182e05146455e786216ef469c35edf94b93daebf` |
+
+### Post-H80 safety budget gate replay
+
+After migrating the session, the H80 raw-prefix root was re-analyzed with the
+existing tracker rollout shadow analyzer at CAMP commit
+`cba9ad54ec7d76dcf160ccd17cff82151f1f9d36`. This replay is a consistency
+gate only: it uses logged current-tick candidate constants and does not change
+the online selector, candidate generation, atom schema, CAMP weights, DP
+weights, or formal seeds.
+
+Input:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_h80_sample59_static_9fa9824
+```
+
+Output:
+
+```text
+/root/autodl-tmp/camp_dp_h80_safety_override_budget_gate_cba9ad5
+```
+
+The structural counts are unchanged: `2,400` records, `19,200` candidates,
+`484` fallback records, and `1,916` nonfallback records. The selected
+h30-safe/full-red misses also remain unchanged:
+
+| Count | Value |
+| --- | ---: |
+| Selected h30-safe/full-red records | 32 |
+| Fallback misses | 0 |
+| Nonfallback misses | 32 |
+| With lower union-red base-feasible candidate | 20 |
+| Without lower union-red base-feasible candidate | 12 |
+
+The replay reproduces the earlier base-feasible budget gate. The widest
+predeclared base-feasible screen covers only `17/32` misses and still worsens
+H3 vector jerk by `+2.743974 m/s^3` on changed records. Adding the red
+stopping-margin-nonworse condition covers at most `10/32` and still worsens H3
+vector jerk by `+2.266827 m/s^3`.
+
+The no-lower-feasible attribution is also unchanged: all `12/12` no-lower
+base-feasible misses have lower-red generated candidates blocked by
+feasibility, with reason counts `dp_underprogress=51`, `dp_kinematic=13`, and
+`dynamic_obb_collision=4`. Virtually ignoring only `dp_underprogress` restores
+lower-red candidates for `10/12` events; under the widest
+underprogress-relaxed budget with stopping-margin nonworse it changes `10/12`,
+improves union-red by `-22.650000`, improves stopping margin by `-21.207705`,
+and improves H3 vector jerk by `-12.343982 m/s^3`, at a mean progress cost of
+`-0.947520 m`.
+
+Decision: the H80 evidence does not revive the rejected base-feasible safety
+override. The active blocker remains the fixed candidate-set tradeoff: legal
+base-feasible lower-red alternatives are too localized and too comfort-costly
+for a deployable selector, while the stronger underprogress-relaxed opportunity
+changes the DP feasibility contract and has already failed the non-formal
+closed-loop pilot gate due to small realized benefit, weak completion
+regression, jerk regression, and insufficient latency margin. Do not implement
+another online safety override, do not run a new 12/36 matrix, and do not train
+new CAMP weights from this replay alone. The next admissible branch is a
+candidate-generation or atom/certificate redesign that improves lower-red
+availability without paying the observed progress and jerk taxes, with the
+finite-candidate affine-score and convex robust-master contract preserved.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| H80 safety budget JSON | `7b260246355c76762a929581a6ea8ff3c31d2543e4b66c6fc9f07ba753669ba5` |
+| H80 safety budget markdown | `25dea17f0c7c4d4e13a374bcd02c1edc005fa50a49515aef3633274eadeb510a` |
