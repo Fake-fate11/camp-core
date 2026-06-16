@@ -4891,3 +4891,62 @@ because it has zero improvement over the K=8 baseline.
 | Comparator tests | `e1cea47f605d40d9a68c61099e6d62653c99301d55e19c0c396986cfabf8e95a` |
 | K=8 self-compare JSON | `9aa688ee9aa94f0059f112a1b77ab33d883335d3665295ee8fc7a7a22370b47d` |
 | K=8 self-compare markdown | `13b29cc5a7f8a40d0c2eecfe0dc9b06fc7951d40cdf476472aa8f981bde99e71` |
+
+### K16/noise availability result
+
+The predeclared K16/noise diagnostic grid completed on AutoDL at CAMP commit
+`2212309f7523e96fc64462e57a87f2f4b942d818`, with Diffusion Planner still fixed
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Both rows used
+`--model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json`,
+which is required because the public `.pth` file does not carry its parameter
+JSON next to the checkpoint under the default `args.json` name.
+
+Output roots:
+
+```text
+/root/autodl-tmp/camp_dp_candidate_availability_k16_noise1p0_2212309
+/root/autodl-tmp/camp_dp_candidate_availability_k16_noise0p75_2212309
+```
+
+Both dataset audits passed with 12 logs, 2,400 records, 16 candidates, perfect
+tracking, required candidate outcomes, required h30 comfort shadows, required
+open-loop rollout and full-horizon red-light shadows, and formal seeds
+`11/12/13` absent.
+
+| Candidate | Nonfallback | Fallback | Mean feasible candidates | Joint@0.00 | Delta@0.00 | Joint@0.05 | Delta@0.05 | Hidden@0.05 | Proxy-only@0.05 | Gate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| K=8 baseline | 1,916 | 484 | 7.467119 | 0.001044 | n/a | 0.063674 | n/a | 0.002088 | 0.056367 | baseline |
+| `k16_noise1p0` | 1,791 | 609 | 14.672250 | 0.006142 | +0.005098 | 0.074260 | +0.010586 | 0.010050 | 0.062535 | reject: availability |
+| `k16_noise0p75` | 1,887 | 513 | 14.889242 | 0.002650 | +0.001606 | 0.118177 | +0.054503 | 0.007419 | 0.087970 | reject: availability |
+
+Decision: reject both K16 rows before latency smoke, closed-loop acceptance
+matrices, CAMP retraining, or formal seeds. Both rows pass the candidate-pool
+gate by increasing mean feasible candidates by more than 7, and both pass the
+proxy-reliability gate under the predeclared thresholds. They fail the primary
+availability gate: zero-progress outcome-joint coverage remains far below
+`0.02`, and the `0.05 m` progress-budget deltas remain below the required
+`+0.08`. The `k16_noise0p75` row improves the `0.05 m` budget more than
+`k16_noise1p0`, but it still does not supply enough tight-progress comfort
+alternatives to justify a deployability/latency campaign.
+
+This closes the simple K16/noise branch. The evidence now points away from
+larger random candidate count or lower diffusion noise as an industrial path
+under the current fixed DP sampler. The next candidate-generation idea must
+change candidate structure more deliberately, or it should be rejected before
+simulation if it cannot state why it avoids the same tight-progress availability
+failure.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `k16_noise1p0` predeclare commands | `568b3ca9c96031a4cbc88fc378f1ee591ff3e12f3ace7971f29e39b5cf66a59b` |
+| `k16_noise1p0` run log | `0b88455d9f3b86e2f6261b3dbff5c29f217f781c6028e9d9341cadf679190cd3` |
+| `k16_noise1p0` dataset audit | `928f4c8ba009b5acfe74aea8da90c106bc9e51ab8c690748365a9bd1ad889468` |
+| `k16_noise1p0` availability JSON | `2f69001717f88ebafe62a83d009dab59b289160fb23ee3b209b6c0500ebcf517` |
+| `k16_noise1p0` availability markdown | `e07d08201f929a5c04f6c6a0696f7e410f8053687c5a768f85ad48801c27c212` |
+| `k16_noise0p75` predeclare commands | `5cb402fede83206c3654a746b755d56e52ed5873baf526c886db653ef355d5d8` |
+| `k16_noise0p75` run log | `077e29054a4f1aa95caa99a0f7e5a2453332f4842fcc1676db79f5511928afbb` |
+| `k16_noise0p75` dataset audit | `01cab550b2020674d5ce1030bf9c9fd87068feca9fae753facadcc605dac6292` |
+| `k16_noise0p75` availability JSON | `86ad50e868c510a4771c3145629eebb5d311e1c6577ed5314b5b72812ee33287` |
+| `k16_noise0p75` availability markdown | `290841da70976c0c6f9f89234adb7cc6dadaf6bdab83afa142bd8f4efd8ca5e4` |
+| Combined K16 comparison JSON | `93055fb33fdb292980248ba3743e59c196488ddebcf3bac03c3b6b7417e0eefb` |
+| Combined K16 comparison markdown | `29a25da34d6f0fa133ef03054485bb9e977118e5559469f2698c0a8e2d4dde36` |
