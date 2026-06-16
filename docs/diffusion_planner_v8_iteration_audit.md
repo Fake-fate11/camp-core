@@ -7835,3 +7835,122 @@ Artifact SHA-256:
 | --- | --- |
 | H80 safety budget JSON | `7b260246355c76762a929581a6ea8ff3c31d2543e4b66c6fc9f07ba753669ba5` |
 | H80 safety budget markdown | `25dea17f0c7c4d4e13a374bcd02c1edc005fa50a49515aef3633274eadeb510a` |
+
+### Raw H80 candidate-set bottleneck audit
+
+Commits `9012a04767d0a4130054585dba4c356dabef79a8` and
+`05758d5c69e7d4266068f84e3b0043628d0be62f` add an offline
+raw-horizon bottleneck analyzer. The second commit aligns short-horizon
+red extraction with the tracker rollout shadow analyzer by reading
+`max(-dp_candidate_rewards[*].red_light, 0)` when
+`candidate_planned_red_light_cost` is not logged.
+
+This diagnostic does not change DP, candidate generation, CAMP weights, CAMP
+atoms, selection, replay behavior, or formal seeds. It reads the already logged
+H80 raw candidate prefixes and measures endpoint spread and simple endpoint
+mode count under increasingly strict current-tick masks:
+
+1. all candidates;
+2. base-feasible candidates;
+3. lower union-red candidates;
+4. lower union-red base-feasible candidates;
+5. lower-red candidates that additionally satisfy progress, target-speed, H10
+   distance, and H3 lateral budgets;
+6. the same bounded mask plus H3 mean-jerk nondegradation.
+
+The bounded screens use progress-loss budgets `0.10`, `0.25`, and `0.50 m`,
+target-speed loss `0.10 m/s`, H10 distance loss `0.10 m`, and H3 max lateral
+`2.0 m/s^2`. Endpoint modes use a `0.50 m` raw H80 endpoint connectivity
+threshold. These are development diagnostics, not deployed thresholds.
+
+Verification:
+
+```text
+py -3.12 -m py_compile scripts\integrations\analyze_diffusion_planner_raw_horizon_bottleneck.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core;F:\camp_core-main'
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_raw_horizon_bottleneck.py
+2 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_raw_horizon_bottleneck.py
+2 passed
+```
+
+The real H80 sample59 artifact was analyzed at:
+
+```text
+/root/autodl-tmp/camp_dp_raw_h80_bottleneck_sample59_static_05758d5
+```
+
+Structural counts are unchanged: `2,400` records, `19,200` candidates, `484`
+fallback records, and `1,916` nonfallback records. Event counts:
+
+| Event | Count |
+| --- | ---: |
+| Selected union-red positive | 107 |
+| Selected h30-safe/full-red | 32 |
+| Any lower-red candidate | 88 |
+| Any lower-red base-feasible candidate | 20 |
+
+For the `32` selected h30-safe/full-red misses:
+
+| Mask | Nonempty | Candidate count mean | Mode count mean | Raw H80 endpoint pairwise mean | Distance to selected mean |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| all candidates | 32/32 | 8.000000 | 3.906250 | 3.054723 m | 4.266608 m |
+| base feasible | 32/32 | 4.218750 | 2.656250 | 0.907646 m | 0.983731 m |
+| lower-red any | 32/32 | 5.406250 | 2.500000 | 1.663732 m | 5.568946 m |
+| lower-red base feasible | 20/32 | 2.250000 | 2.250000 | 0.809753 m | 1.768624 m |
+
+Bounded lower-red availability for those same `32` misses:
+
+| Progress budget | Mask | Nonempty | Candidate count mean | Mode count mean | Raw H80 endpoint pairwise mean |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 0.10 m | bounded | 0/32 | 0.000000 | n/a | n/a |
+| 0.10 m | bounded + H3 jerk nondegrading | 0/32 | 0.000000 | n/a | n/a |
+| 0.25 m | bounded | 2/32 | 0.062500 | 1.000000 | 0.000000 m |
+| 0.25 m | bounded + H3 jerk nondegrading | 0/32 | 0.000000 | n/a | n/a |
+| 0.50 m | bounded | 5/32 | 0.218750 | 1.000000 | 0.079427 m |
+| 0.50 m | bounded + H3 jerk nondegrading | 1/32 | 0.031250 | 1.000000 | 0.000000 m |
+
+Interpretation:
+
+1. The H80 raw candidate pool is not globally collapsed. In the h30-missed
+   group, all eight raw candidates span about `3.05 m` endpoint pairwise spread
+   and roughly four endpoint modes.
+2. Lower-red alternatives are present for all `32` h30-missed records, but the
+   lower-red alternatives are far from the selected candidate in raw H80
+   endpoint space: mean selected distance is `5.57 m`.
+3. Base feasibility is a major bottleneck: lower-red base-feasible alternatives
+   remain in only `20/32` records, matching the previous safety-budget
+   attribution.
+4. Industrially relevant bounded masks nearly empty the set. At `0.50 m`
+   progress loss with target-speed, H10, and lateral guards, only `5/32`
+   records retain any lower-red candidate; adding H3 jerk nondegradation leaves
+   only `1/32`.
+5. The surviving bounded lower-red set is single-mode and local, not a rich
+   candidate-generation substrate for CAMP to rank.
+
+Decision: this strengthens the candidate-generation bottleneck diagnosis and
+rejects another selector-only iteration. The raw DP generator can produce
+long-horizon lower-red geometry, but those alternatives usually live outside
+the current base-feasible and bounded progress/comfort envelope. The next
+admissible branch should be a predeclared candidate-generation or feasibility
+design that creates lower-red candidates inside the bounded envelope, for
+example a stop-aware/progress-compatible branch, while keeping DP weights fixed
+and reporting the change strictly as a finite candidate-set change. Do not run
+a new 12/36 matrix, online selector wiring, formal seeds, CAMP retraining, or
+DP retraining from this diagnostic alone.
+
+Mathematical boundary: every mask and raw H80 geometry descriptor above is a
+fixed finite-candidate constant at the current tick. If a descriptor is later
+atomized, the fixed-set CAMP score remains affine in `w` and the
+simplex/CVaR/L2 robust master remains convex. This audit is not Benders and
+makes no global convexity claim over trajectory coordinates.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Raw H80 bottleneck JSON | `0854bce6b45ad29def3169a3920cfa96a2f563ba40f1135b18824904e1012fcb` |
+| Raw H80 bottleneck markdown | `e46ed499e01e889c35b3102f1f045f5dff01ddf1d13c352286c982a351f42342` |
