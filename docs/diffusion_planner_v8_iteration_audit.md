@@ -4711,3 +4711,72 @@ Interpretation gate:
    deployment criteria;
 4. this audit alone authorizes no online selector, no new atom, no CAMP
    training, no 12/36-run matrix, and no formal seeds.
+
+### K=8 candidate availability audit result
+
+Commit `aba3c60955107a7ba155ddfdf51611747427a625` implements the predeclared
+offline availability audit and fail-closed tests. Local verification passed:
+
+```text
+python -m pytest camp_core/tests
+187 passed, 5 skipped
+```
+
+AutoDL was synchronized to the same commit by git bundle after SSH/GitHub
+network timeout on the combined command path. Remote verification passed:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+192 passed
+```
+
+The audit ran on:
+
+```text
+/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc
+```
+
+It used 12 logs, 2,400 records, 1,916 nonfallback records, and 484 fallback
+records.
+
+| Progress budget | Outcome weak | Outcome joint | Proxy weak | Proxy joint | Hidden outcome | Proxy-only | Best progress delta | Best jerk delta | Best lateral delta |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.00 | 2 (0.001044) | 2 (0.001044) | 20 (0.010438) | 0 (0.000000) | 1 (0.000522) | 19 (0.009916) | +0.553410 | -0.028853 | -0.003473 |
+| 0.05 | 122 (0.063674) | 122 (0.063674) | 226 (0.117954) | 63 (0.032881) | 4 (0.002088) | 108 (0.056367) | -0.024222 | -0.070607 | -0.003303 |
+| 0.10 | 288 (0.150313) | 288 (0.150313) | 456 (0.237996) | 138 (0.072025) | 7 (0.003653) | 175 (0.091336) | -0.057630 | -0.092975 | -0.006385 |
+| 0.25 | 737 (0.384656) | 737 (0.384656) | 1020 (0.532359) | 381 (0.198852) | 16 (0.008351) | 299 (0.156054) | -0.148112 | -0.150935 | -0.012449 |
+
+Diversity summary:
+
+| Quantity | Mean range |
+| --- | ---: |
+| Feasible candidates | 7.467119 |
+| Outcome jerk | 0.740269 |
+| Outcome lateral | 0.044491 |
+| Proxy jerk-excess | 0.400723 |
+| Proxy horizon-lateral | 0.044491 |
+
+Decision: the K=8 candidate set is the active comfort bottleneck under tight
+progress preservation. With zero progress loss, only `2/1916` nonfallback
+records have an outcome-level branch that preserves safety/progress and
+strictly improves both jerk and lateral. Hidden outcome opportunities are
+negligible (`1/1916` at zero budget and `16/1916` at 0.25 m), so the failure is
+not primarily that current atoms/proxies are blind to many good branches.
+Proxy-only opportunities are much more common than hidden outcome
+opportunities, which means a proxy-only selector or atom screen would often
+chase branches that do not satisfy the offline outcome Pareto definition.
+
+This result supports the previous rejection chain: weight transfer, small
+lateral lower bounds, progress-normalized comfort, and postselection rules are
+not the main path forward. The next evidence-backed route is candidate
+generation/diversity under the fixed official DP checkpoint: predeclare a
+non-formal diagnostic that changes only candidate sampling configuration or
+candidate count, with no DP weight changes and no formal seeds, then first
+measure whether tight-progress outcome Pareto availability increases enough
+and whether latency remains below the deployable budget before any closed-loop
+matrix is considered.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| K=8 candidate availability JSON | `d4376188ff0c6f3e6ed77cb45c4b6c4ccfd837250e60953e27dba5801075742d` |
+| K=8 candidate availability markdown | `2f096be7edc44b6eb09d124e749b507900a8cc5c0b21e28dbfd49475c56d4659` |
