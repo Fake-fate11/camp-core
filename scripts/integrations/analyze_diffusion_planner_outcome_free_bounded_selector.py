@@ -43,6 +43,27 @@ SCREENS = (
         "require_raw_jerk_nondegrading": False,
     },
     {
+        "name": "tight_lateral_jerk_nondegrading",
+        "progress_proxy_loss_budget_m": 0.05,
+        "target_speed_loss_budget_mps": 0.10,
+        "h10_displacement_loss_budget_m": 0.10,
+        "require_raw_jerk_nondegrading": True,
+    },
+    {
+        "name": "balanced_lateral_jerk_nondegrading",
+        "progress_proxy_loss_budget_m": 0.10,
+        "target_speed_loss_budget_mps": 0.10,
+        "h10_displacement_loss_budget_m": 0.10,
+        "require_raw_jerk_nondegrading": True,
+    },
+    {
+        "name": "relaxed_lateral_jerk_nondegrading",
+        "progress_proxy_loss_budget_m": 0.25,
+        "target_speed_loss_budget_mps": 0.10,
+        "h10_displacement_loss_budget_m": 0.10,
+        "require_raw_jerk_nondegrading": True,
+    },
+    {
         "name": "moderate_lateral",
         "progress_proxy_loss_budget_m": 0.50,
         "target_speed_loss_budget_mps": 0.10,
