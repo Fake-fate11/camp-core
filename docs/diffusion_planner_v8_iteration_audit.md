@@ -8897,3 +8897,116 @@ Artifact SHA-256:
 | 20 | `fdbaf176d6186892f7548bc8d1cc60eacc6d2cde6461b558da1c98d9c315eee0` | `83ebc0f152e7c157fe12d3378b200ae3fbe215246bad01d8bcb4efefccc27127` |
 | 30 | `711b1348139a34514be1e62d2f00150f77329b806557b2c6de5ea22a0a946d4b` | `f564505f287b5dcd953e0d1f92d4b40e163603671f89a5434cf79abd8409098b` |
 | 40 | `9c7fce73d9224ef388b94966f1fc41931ddb21e37a6d81f6de9b4a291fd2c292` | `cfdaec770c77d595674c8da71af629fbc202af6664796167ce7ff255070f3121` |
+
+### Seed2 npc0 tl-on fixed-candidate shadow rule
+
+The H10-preserving blend sweep selected `blend_steps=40` as the next
+diagnostic configuration. A default-off fixed-candidate shadow rule was then
+added to the offline recompute analyzer and evaluated on the same `13` target
+snapshots.
+
+The rule is:
+
+1. keep `anchor_steps=10`, `blend_steps=40`, and `heading_mode=donor_offset`;
+2. construct only fixed transformed candidates from the current snapshot;
+3. require lower recomputed union-red than the selected baseline candidate;
+4. require DP hard feasibility;
+5. require progress loss at most `1.0 m`;
+6. require DP smoothness reward loss at most `0.5`;
+7. choose deterministically by union-red, smoothness loss, progress loss, then
+   transformed-candidate index;
+8. fail closed to the baseline when no candidate is admissible.
+
+This rule is explicitly default-off and has `selection_effect=false`. It is a
+fixed-snapshot shadow diagnostic, not an online selector and not a closed-loop
+replay.
+
+Remote artifact:
+
+```text
+/root/autodl-tmp/camp_dp_target_snapshots_seed2_npc0_tlon_13miss_626718a/shadow_rule_dc989cb
+```
+
+Command configuration:
+
+```text
+--anchor_steps 10
+--blend_steps 40
+--heading_mode donor_offset
+--donor_pool lower_logged_union_red
+--enable_shadow_rule
+--shadow_progress_loss_budget_m 1.0
+--shadow_smoothness_loss_budget 0.5
+```
+
+Aggregate results:
+
+| Check | Result |
+| --- | ---: |
+| Target snapshots | 13 |
+| Transform count | 75 |
+| Lower-red transforms | 74 |
+| Hard-feasible transforms | 75 |
+| Lower-red hard-feasible transforms | 74 |
+| Budget-admissible transformed candidates | 68 |
+| Shadow changed snapshots | 13 / 13 |
+| Chosen union-red mean / max | 0.0 / 0.0 |
+| Chosen progress loss mean / max | 0.609184 / 0.935844 |
+| Chosen smoothness loss mean / max | -0.122078 / 0.497635 |
+| Selection effect | false |
+| Online selector change | false |
+
+Per-target chosen candidate diagnostics:
+
+| Step | Selected | Donors | Selected union-red | Admissible | Chosen transformed index | Chosen union-red | Progress loss | Smoothness loss |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 69 | 1 | 7 | 11.5 | 1 | 6 | 0.0 | 0.935844 | 0.497635 |
+| 185 | 4 | 7 | 30.0 | 7 | 2 | 0.0 | 0.462917 | -0.317794 |
+| 189 | 2 | 7 | 32.5 | 7 | 4 | 0.0 | 0.669576 | -0.195778 |
+| 190 | 6 | 7 | 29.0 | 7 | 6 | 0.0 | 0.339281 | -0.258445 |
+| 191 | 7 | 6 | 32.5 | 6 | 4 | 0.0 | 0.631163 | -0.221211 |
+| 192 | 6 | 7 | 27.0 | 7 | 5 | 0.0 | 0.208706 | -0.160607 |
+| 193 | 3 | 6 | 31.5 | 6 | 5 | 0.0 | 0.513660 | -0.308481 |
+| 194 | 4 | 7 | 34.0 | 7 | 6 | 0.0 | 0.758222 | -0.040612 |
+| 195 | 5 | 4 | 33.5 | 4 | 1 | 0.0 | 0.718473 | -0.080035 |
+| 196 | 3 | 4 | 34.0 | 4 | 1 | 0.0 | 0.740857 | -0.087423 |
+| 197 | 5 | 5 | 35.0 | 5 | 3 | 0.0 | 0.807570 | -0.015439 |
+| 198 | 0 | 4 | 33.5 | 3 | 0 | 0.0 | 0.587558 | -0.212489 |
+| 199 | 7 | 4 | 33.0 | 4 | 2 | 0.0 | 0.545558 | -0.186338 |
+
+Interpretation:
+
+1. The predeclared fixed-candidate rule covers every target miss in this
+   snapshot cluster under the moderate `1.0 m` progress / `0.5` DP-smoothness
+   budget.
+2. The selected transformed candidates all reduce recomputed union-red to
+   `0.0` while staying inside the declared budgets. The worst progress loss is
+   `0.935844 m`; the worst DP smoothness reward loss is `0.497635`.
+3. This is stronger than the earlier budget table because the rule is now
+   deterministic and fail-closed, but it is still not closed-loop evidence.
+   The transform may change later ego state, candidate generation, latency, and
+   future traffic-light interactions once wired into replay.
+
+Decision: accept the fixed-candidate shadow rule as the next offline gate. The
+next admissible step is a default-off closed-loop shadow run on non-formal
+sample59 seeds `1/2/3`, using the same `anchor=10`, `blend=40`,
+`donor_offset`, and `1.0/0.5` budgets, while logging both baseline and shadow
+decisions. Do not run formal seeds or train CAMP/DP. If closed-loop shadow
+latency or comfort degrades, reject the online path and retain this only as
+offline diagnostic math.
+
+Mathematical boundary: the shadow rule operates over a fixed finite transformed
+candidate set produced from current-tick constants. The chosen diagnostics are
+fixed values after DP reward recomputation. The rule is deterministic and
+fail-closed, but it is not Benders, does not introduce a master/subproblem
+dual, and does not prove trajectory-coordinate convexity. If these diagnostics
+are later atomized, CAMP scoring remains affine in `w` and the existing
+simplex/CVaR/L2 master remains convex only for that fixed finite candidate
+set.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Shadow JSON | `500b42c9e40f7c7650ce424985c338ff93d671c62dad41d6af7419419a0ffca9` |
+| Shadow markdown | `4be3eceacc98e0aaeceef8b46b8bb7350642b3618a8ec026708b0c3d3fc3441d` |
