@@ -57,9 +57,27 @@ def test_rollout_features_align_with_candidate_outcomes(tmp_path) -> None:
     assert jerk["record_availability_rate"] == 1.0
     assert jerk["feasible_candidate_pearson"] == pytest.approx(1.0)
     assert jerk["feasible_pairwise_order_agreement_rate"] == 1.0
+    assert jerk["feasible_pairwise_comparable_coverage_rate"] == 1.0
+    assert jerk["feasible_pairwise_comparable_pairs"] == 3
+    assert jerk["feasible_pairwise_possible_pairs"] == 3
     assert jerk["feasible_oracle_match_rate"] == 1.0
     assert lateral["feasible_candidate_pearson"] == pytest.approx(1.0)
     assert prior_jerk["feasible_candidate_pearson"] == pytest.approx(-1.0)
+
+
+def test_rollout_analysis_reports_pairwise_comparable_coverage(tmp_path) -> None:
+    record = _record()
+    record["candidate_dp_prior_jerk_excess_cost"] = [0.0, 0.0, 1.0]
+
+    report = analyze([_write_log(tmp_path, record)])
+    prior_jerk = report["features"]["dp_prior_jerk_excess"]
+
+    assert prior_jerk["feasible_pairwise_order_agreement_rate"] == 1.0
+    assert prior_jerk["feasible_pairwise_comparable_pairs"] == 2
+    assert prior_jerk["feasible_pairwise_possible_pairs"] == 3
+    assert prior_jerk["feasible_pairwise_comparable_coverage_rate"] == pytest.approx(
+        2.0 / 3.0
+    )
 
 
 def test_rollout_analysis_rejects_negative_online_feature(tmp_path) -> None:

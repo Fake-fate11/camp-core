@@ -259,6 +259,7 @@ def _summarize_feature(
     oracle_records = 0
     pair_agreements = 0
     pair_total = 0
+    pair_possible = 0
 
     for record in records:
         feature = record["feature"]
@@ -287,6 +288,7 @@ def _summarize_feature(
             )
             pair_agreements += agreements
             pair_total += comparisons
+            pair_possible += f_values.size * (f_values.size - 1) // 2
         if outcome_safe.any():
             safe_feature.extend(feature[outcome_safe].tolist())
             safe_target.extend(target[outcome_safe].tolist())
@@ -327,6 +329,11 @@ def _summarize_feature(
         ),
         "feasible_pairwise_order_agreement_rate": (
             pair_agreements / pair_total if pair_total else None
+        ),
+        "feasible_pairwise_comparable_pairs": int(pair_total),
+        "feasible_pairwise_possible_pairs": int(pair_possible),
+        "feasible_pairwise_comparable_coverage_rate": (
+            pair_total / pair_possible if pair_possible else None
         ),
         "positive_p95_scale": (
             float(np.percentile(positive, 95.0)) if positive.size else 1.0
@@ -393,8 +400,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Fallback records: {records['fallback']}",
         "",
         "| Feature | Target | Availability | Variation | Feasible Pearson | "
-        "Feasible Spearman | Top-1 gap | Pair agreement | Oracle match |",
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "Feasible Spearman | Top-1 gap | Pair agreement | Pair coverage | "
+        "Oracle match |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for name, feature in report["features"].items():
         lines.append(
@@ -405,6 +413,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"{_fmt(feature['feasible_candidate_spearman'])} | "
             f"{_fmt(feature['feasible_top1_gap_pearson'])} | "
             f"{_fmt(feature['feasible_pairwise_order_agreement_rate'])} | "
+            f"{_fmt(feature['feasible_pairwise_comparable_coverage_rate'])} | "
             f"{_fmt(feature['feasible_oracle_match_rate'])} |"
         )
     lines.extend(

@@ -4267,3 +4267,129 @@ before predeclaring any new convex weight intervention.
 | Dataset audit | `f3fdf5029cd6edfec909f689405ce47831ffef00ec11c4d8ebf77b5ea5b09ff4` |
 | Alignment JSON | `4eb770f202acca793505a69f002130349894332d3d0437432febcecf93e1119e` |
 | Alignment markdown | `2a9b61e406fe79c1149cacd42cf8c41bcbf50e863e6a1888423819df7a7e35fa` |
+
+### Migration sync and redstopfloor05 asset audit
+
+After session migration, the local checkout was fast-forwarded from
+`f9eedcdd1c9aa0c1a36f06548254d18fd00ea7b9` to
+`2b67d33b465b406d1581fb4ac90e0f0c57ab8a18`. GitHub `origin/main` and AutoDL
+`/root/autodl-tmp/camp_core` were verified at the same commit. The fixed
+Diffusion Planner checkout remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Existing untracked files were left
+untouched.
+
+The current redstopfloor05 asset is:
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263
+```
+
+It is a static `dp_camp_v10_14d` checkpoint trained on 5,979 feasible-ranking
+records from 7,200 input records, with 1,221 all-infeasible records dropped
+from the master. The master settings were CVaR alpha `0.9`, margin scale `0.1`,
+margin clip `2.0`, L2 `1e-4`, CLARABEL, tolerance `1e-6`, max 20 cutting-plane
+iterations, train-group-only scale fitting, and scale percentile 95. It
+converged in four iterations with final master gap `0.0`, 7,111 active finite
+cuts, and cut-count histogram `{1: 2899, 2: 1652, 3: 280, 4: 17}` over the
+4,848 train records. The complete epigraph audit passed with saved-minus-full
+objective `-5.16e-12`, weight \(L_\infty\) distance `1.23e-10`, saved CVaR
+`0.110257`, and `full_worst_unique=8`.
+
+The deployed weights and scales are:
+
+| Atom | Scale | Weight |
+| --- | ---: | ---: |
+| `jerk_early` | 758.944720 | 0.410287 |
+| `jerk_late` | 4577.087790 | 0.000000 |
+| `jerk_full` | 5119.924473 | 0.000000 |
+| `rms_acceleration` | 1.674076 | 0.000000 |
+| `speed_limit_margin_0_0` | 2.036647 | 0.000630 |
+| `speed_limit_margin_0_5` | 7.440118 | 0.000000 |
+| `speed_limit_margin_1_0` | 16.833999 | 0.000000 |
+| `lane_deviation` | 0.000001 | 0.000000 |
+| `clearance` | 0.000001 | 0.000369 |
+| `progress_shortfall` | 2.121215 | 0.479370 |
+| `planned_red_light_cost` | 0.000001 | 0.000000 |
+| `planned_lateral_acceleration_cost` | 1.017984 | 0.000000 |
+| `red_stopping_margin_cost` | 0.000001 | 0.050000 |
+| `dp_prior_jerk_excess_cost` | 0.711169 | 0.059344 |
+
+Only `red_stopping_margin_cost >= 0.05` is an active lower bound. The
+outcome-label weights were progress `2.0`, collision `100.0`, near miss `10.0`,
+lane violation `20.0`, red light `30.0`, mean jerk `1.0`, and mean lateral
+acceleration `2.0`. Train oracle match was `0.8806`; validation oracle match
+was `0.9045`. Train CVaR was `0.110257`; validation CVaR was `0.078911`.
+
+The prior lateral and label-sensitivity evidence rules out two easy fixes:
+
+1. the comfort-reweighted `j1_lat2` and `j2_lat4` checkpoints improved selected
+   comfort atoms but paid for it with lower completion, higher fallback or
+   near-miss pressure, and larger DP-prior deviation;
+2. `redstop05_latfloor02`, adding
+   `planned_lateral_acceleration_cost >= 0.02`, changed only 0.32% of
+   fixed-candidate selections and gave negligible lateral-atom improvement;
+3. increasing the red-light outcome weight to 50 was inactive for the robust
+   master and reproduced the same deployed weights as `progress2_j1_lat2`.
+
+The pairwise metric was also made more explicit. The rollout-to-outcome
+analyzer now reports comparable-pair coverage in addition to pairwise ordering
+agreement, because tied pairs are skipped by the agreement statistic. Recomputing
+the sample59 outcome screen with this diagnostic gave:
+
+| Feature | Pair agreement | Pair coverage | Top-1-gap Pearson |
+| --- | ---: | ---: | ---: |
+| `dp_prior_jerk_excess` | 1.000000 | 0.705301 | 0.877957 |
+| `horizon_lateral_acceleration` | 1.000000 | 1.000000 | 1.000000 |
+| `dp_prior_lateral_acceleration_excess` | 1.000000 | 0.726683 | 0.860880 |
+| `rollout_h10_mean_vector_jerk_mps3` | 0.553248 | 1.000000 | 0.048137 |
+| `rollout_h10_mean_lateral_acceleration_mps2` | 0.713702 | 1.000000 | 0.608798 |
+
+This strengthens rather than weakens the prior rejection. The existing jerk
+and lateral proxies are not merely artifacts of skipped tied pairs: the
+existing lateral horizon feature is exactly aligned with the lateral label, and
+the existing jerk-excess feature has strong Top-1-gap alignment despite only
+70.53% comparable-pair coverage. The deployed comfort regression is therefore
+not explained by missing rollout atoms. The more likely failure modes are:
+
+1. `planned_lateral_acceleration_cost` is outcome-aligned but has effectively
+   zero deployed weight;
+2. `dp_prior_jerk_excess_cost` is weighted, but the Top-1 comparison still
+   shows a large jerk gap, so the active robust cuts and progress/red tradeoff
+   allow comfort loss;
+3. simple static lower bounds on the current lateral atom already failed;
+4. the candidate pool rarely contains a lower-comfort alternative that preserves
+   progress, red, and jerk, consistent with the previous candidate-pool screen.
+
+Decision: do not train new CAMP weights, do not run a new 12/36 matrix, and do
+not revive schema v11 or rollout atoms. The next admissible step is a
+predeclared, offline-only sensitivity screen that keeps the existing schema and
+fixed DP, and tests whether a convex intervention has a nontrivial mechanism
+without repeating `planned_lateral_acceleration_cost >= 0.02`. Any proposed
+intervention must state its feasible set, nonemptiness proof, fixed grid,
+acceptance gate, and why it is not the rejected tiny lateral floor.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| redstopfloor05 atom scales | `a50d6d5b26888bdc0d2715dbfce525d3725697fa6e6565b6dd7ae9e8dd105b15` |
+| redstopfloor05 weights | `dbfe8333c8a2f7944710003d1bcf39fda84626b9c5728c80bddf6f5d41be81b1` |
+| redstopfloor05 training summary | `b6ced7c71240e9c8b3d1c6c47470ea7411069edeb48825d24ec2f8f693951e32` |
+| redstopfloor05 full epigraph audit | `12733885d22a50308b52ec6090af49f6ab973300a33394b140a24e5776b3c0c3` |
+| redstopfloor05 outcome weights | `9df61a4fbeeba3908113aedabf06fed1c92f0737613ccf9da93399902fa52425` |
+| pair-coverage alignment JSON | `c8efdb4e3ea56f6d7f437d0113dc9984fc7a68c11d4a0b25fb6819df0d823565` |
+| pair-coverage alignment markdown | `b88646437b134c87e11f603e4281d1f6bca26431fed728c24cdbf8556b453188` |
+
+Local verification on the migrated Windows machine:
+
+```text
+python -m pytest camp_core/tests
+178 passed, 5 skipped
+
+python scripts/integrations/analyze_diffusion_planner_rollout_outcome_alignment.py --help
+passed
+```
+
+Plain `python -m pytest` over the repository was not a valid local gate on this
+machine because collection enters `adaptive-prediction` tests that require
+uninstalled `torch`, `trajectron`, and separate test-package import layout. The
+DP/CAMP integration test scope above is the relevant local gate for this
+milestone.
