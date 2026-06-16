@@ -4456,3 +4456,68 @@ Acceptance for mechanism only, not deployment:
    predeclare an actual convex lower-bound or robust-master solve. Passing this
    screen alone does not authorize online deployment, a 12/36-run matrix, or
    formal seeds.
+
+### Static weight-transfer sensitivity result
+
+Commit `002a1522c7a24e33353d4745460b2c1524be50d5` implements the predeclared
+offline analyzer and fail-closed tests. Local verification passed:
+
+```text
+python -m pytest camp_core/tests
+181 passed, 5 skipped
+```
+
+AutoDL was fast-forwarded to the same commit, with Diffusion Planner still at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Remote verification passed:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests
+186 passed
+```
+
+The predeclared offline screen was run on:
+
+```text
+/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc
+```
+
+It used 12 logs, 2,400 records, 1,916 nonfallback records, and retained the
+baseline selected index for 484 fallback records. Results:
+
+| Variant | Changed records | Nonfallback change rate | Progress delta | Red delta | Jerk delta | Lateral delta | Value delta | Decision |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `progress_to_lateral_0p01` | 20 | 0.010438 | -0.001330 | 0.000000 | -0.003312 | -0.000163 | -0.000339 | reject: progress and negligible lateral |
+| `progress_to_lateral_0p03` | 48 | 0.025052 | -0.003581 | 0.000000 | -0.009231 | -0.000786 | -0.000487 | reject: progress and negligible lateral |
+| `progress_to_lateral_0p05` | 73 | 0.038100 | -0.005608 | 0.000000 | -0.015747 | -0.001014 | -0.000657 | reject: progress and negligible lateral |
+| `progress_to_jerk_0p02` | 85 | 0.044363 | -0.007406 | 0.000000 | -0.016717 | -0.000897 | -0.002329 | reject: progress/value tradeoff |
+| `progress_to_jerk_0p05` | 179 | 0.093424 | -0.018176 | 0.000000 | -0.033580 | -0.001826 | -0.007955 | reject: progress/value tradeoff |
+| `progress_to_lateral_0p02_jerk_0p02` | 114 | 0.059499 | -0.009519 | 0.000000 | -0.021670 | -0.001134 | -0.002968 | reject: progress/value tradeoff |
+| `progress_to_lateral_0p03_jerk_0p03` | 154 | 0.080376 | -0.014167 | 0.000000 | -0.031285 | -0.001604 | -0.004742 | reject: progress/value tradeoff |
+
+Decision: reject all screened static transfers before any robust-master solve,
+new training, or simulator matrix. The variants prove a mechanism exists in
+the sense that small comfort mass transfers change selected candidates, but
+the improvement is not industrially useful: the lateral-label deltas remain
+below the predeclared `-0.002 m/s^2` threshold, and every nontrivial variant
+pays progress and utility. This is consistent with the earlier candidate-pool
+and lateral-floor conclusions: the current K=8 candidate set rarely offers a
+free comfort improvement that preserves progress. The next step should not be
+another static lower bound on `planned_lateral_acceleration_cost` or a simple
+progress-to-comfort transfer.
+
+The remaining evidence-backed options are:
+
+1. diagnose whether a progress-normalized comfort metric can separate genuine
+   comfort waste from necessary progress tradeoff without using outcome labels
+   online;
+2. audit candidate generation/DP sampling diversity while keeping the official
+   DP weights fixed;
+3. revisit the robust label construction only if it can encode progress
+   preservation explicitly rather than merely increasing comfort penalties.
+
+Formal seeds remain frozen.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Static weight-transfer sensitivity JSON | `dadeff089920a2e784875868cfc397beeec1bb008df15e9064558053869b5d47` |
+| Static weight-transfer sensitivity markdown | `05f41351558ae00ba3d9c5894f87f3aaf42e9ee0ab54cc44e2143a3af683f05c` |
