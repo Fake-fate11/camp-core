@@ -7528,3 +7528,82 @@ Artifact SHA-256:
 | Raw-prefix shape audit JSON | `fadc927f22bba8fa34503454ee97a588d543252c749e4cc90e075789018116f3` |
 | Raw-prefix geometry JSON | `4bec67ee5a40c7eb549104acf7c1b6debc2798186cbfb4dcbfd7c48b03d263bb` |
 | Raw-prefix geometry markdown | `26d5e1b512c241a7b0ad5a7f1e70889fa9153b43211b36ab77d56cbe51da5d62` |
+
+### State-conditioned raw-prefix materiality audit
+
+Commit `faa23ae721f5cb011ced8a5c54b8850eb77d3ab0` adds an offline
+state-conditioned materiality analyzer. It reuses the same raw/postprocessed
+prefix geometry calculation and groups fixed logged candidate constants by
+traffic-light mode, NPC count, fallback, selected index, selected feasibility,
+red-light exposure, progress atom, lateral atom, and DP-prior jerk atom. It
+does not use outcomes, train weights, change candidate generation, or change
+the selector.
+
+Verification:
+
+```text
+py -3.12 -m py_compile scripts\integrations\analyze_diffusion_planner_raw_prefix_materiality_by_state.py
+
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_raw_prefix_materiality_by_state.py
+1 passed
+
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_raw_prefix_geometry.py
+3 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_raw_prefix_materiality_by_state.py
+1 passed
+```
+
+The analyzer was run on the same predeclared 2,400-record sample59 raw-prefix
+root. Output:
+
+```text
+/root/autodl-tmp/camp_dp_raw_prefix_geometry_sample59_static_e488ff8/raw_prefix_materiality_by_state.json
+/root/autodl-tmp/camp_dp_raw_prefix_geometry_sample59_static_e488ff8/raw_prefix_materiality_by_state.md
+```
+
+Selected group summaries:
+
+| Group | Count | Raw endpoint mean | Raw prefix mean | Endpoint delta mean | Selected union-red mean | Progress atom mean | Lateral atom mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| all | 2,400 | 0.098633 m | 0.050898 m | +0.000368 m | 1.406250 | 0.109030 | 0.540956 |
+| traffic_lights=on | 1,200 | 0.096187 m | 0.049591 m | +0.000273 m | 2.812500 | 0.111635 | 0.544423 |
+| traffic_lights=off | 1,200 | 0.101078 m | 0.052205 m | +0.000462 m | 0.000000 | 0.106424 | 0.537488 |
+| npc=0 | 1,200 | 0.070338 m | 0.036181 m | +0.000277 m | 0.352917 | 0.068740 | 0.544836 |
+| npc=4 | 1,200 | 0.126927 m | 0.065615 m | +0.000458 m | 2.459583 | 0.149320 | 0.537075 |
+| fallback=true | 484 | 0.109310 m | 0.057136 m | +0.000707 m | 4.997934 | 0.349802 | 0.697417 |
+| fallback=false | 1,916 | 0.095935 m | 0.049322 m | +0.000282 m | 0.498956 | 0.048209 | 0.501432 |
+| selected_union_red_positive=true | 107 | 0.101923 m | 0.052831 m | +0.000697 m | 31.542056 | 0.213729 | 0.780720 |
+| selected_union_red_positive=false | 2,293 | 0.098479 m | 0.050808 m | +0.000352 m | 0.000000 | 0.104144 | 0.529768 |
+| any_union_red=true | 131 | 0.117129 m | 0.060916 m | +0.000783 m | 25.763359 | 0.236310 | 0.694456 |
+| any_union_red=false | 2,269 | 0.097565 m | 0.050319 m | +0.000344 m | 0.000000 | 0.101681 | 0.532094 |
+| selected_feasible=true | 1,916 | 0.095935 m | 0.049322 m | +0.000282 m | 0.498956 | 0.048209 | 0.501432 |
+| selected_feasible=false | 484 | 0.109310 m | 0.057136 m | +0.000707 m | 4.997934 | 0.349802 | 0.697417 |
+| feasible_bucket=all | 1,644 | 0.078122 m | 0.040080 m | +0.000236 m | 0.058090 | 0.036079 | 0.462331 |
+| feasible_bucket=partial | 272 | 0.203601 m | 0.105179 m | +0.000733 m | 3.163603 | 0.121522 | 0.737765 |
+| feasible_bucket=none | 484 | 0.109310 m | 0.057136 m | +0.000707 m | 4.997934 | 0.349802 | 0.697417 |
+
+Decision: reject the hypothesis that first-10-step raw-prefix materiality is
+especially worse in red-light-exposed, fallback, or infeasible records.
+Safety-critical groups have similar or larger raw spread than the global mean:
+selected union-red-positive records have 10.19 cm mean raw endpoint spread,
+any-union-red records have 11.71 cm, fallback records have 10.93 cm, and
+partial-feasible records have 20.36 cm. The low first-prefix spread is therefore
+a broad short-horizon candidate-generation property, not a state-local
+postprocessing or safety-critical compression failure.
+
+This narrows the next branch. First-10-step raw geometry should not be used as
+the primary explanation for h80 red exposure misses. If candidate generation is
+still investigated, the next diagnostic must be predeclared around longer raw
+horizons such as 30 or 80 steps, because red-light exposure is a long-horizon
+certificate. Otherwise, return to the finite-candidate safety override design
+with explicit progress/comfort budgets, while keeping the result framed as a
+selector over a fixed candidate set rather than Benders.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| State-conditioned materiality JSON | `9e0c52fd697bdd2ad473cb1edcf5a40f1e6ec8c126ffa1dc271ec09b47b0be46` |
+| State-conditioned materiality markdown | `2da932f9f61e7fd72abae75aff80798346a504ea812be73c7e1c3c7d928675e5` |
