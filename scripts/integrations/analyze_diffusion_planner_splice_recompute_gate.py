@@ -41,6 +41,9 @@ class SpliceConfig:
     min_progress_ratio: float = 0.8
     progress_loss_budgets_m: tuple[float, ...] = (0.5, 1.0, 1.5)
     smoothness_loss_budgets: tuple[float, ...] = (0.0, 0.5, 1.0)
+    shadow_rule_enabled: bool = False
+    shadow_progress_loss_budget_m: float = 1.0
+    shadow_smoothness_loss_budget: float = 0.5
 
 
 def parse_args() -> argparse.Namespace:
@@ -90,6 +93,16 @@ def parse_args() -> argparse.Namespace:
             "sensitivity. May be repeated. Defaults to 0.0, 0.5, 1.0."
         ),
     )
+    parser.add_argument(
+        "--enable_shadow_rule",
+        action="store_true",
+        help=(
+            "Enable default-off fixed-snapshot shadow selection over transformed "
+            "candidates. This is offline analysis only and has no selection effect."
+        ),
+    )
+    parser.add_argument("--shadow_progress_loss_budget_m", type=float, default=1.0)
+    parser.add_argument("--shadow_smoothness_loss_budget", type=float, default=0.5)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     return parser.parse_args()
@@ -119,6 +132,9 @@ def main() -> None:
                 if args.smoothness_loss_budget is not None
                 else (0.0, 0.5, 1.0)
             ),
+            shadow_rule_enabled=bool(args.enable_shadow_rule),
+            shadow_progress_loss_budget_m=args.shadow_progress_loss_budget_m,
+            shadow_smoothness_loss_budget=args.shadow_smoothness_loss_budget,
         ),
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -248,6 +264,7 @@ def analyze(
         },
         "baseline_recompute": _summarize_baseline(rows),
         "transformed": _summarize_transformed(rows),
+        "shadow_rule": _summarize_shadow_rule(rows, config),
         "rows": rows,
     }
 
@@ -453,6 +470,16 @@ def _validate_config(config: SpliceConfig) -> None:
     for value in config.smoothness_loss_budgets:
         if not np.isfinite(value) or value < 0.0:
             raise ValueError("smoothness_loss_budgets must be nonnegative.")
+    if (
+        not np.isfinite(config.shadow_progress_loss_budget_m)
+        or config.shadow_progress_loss_budget_m < 0.0
+    ):
+        raise ValueError("shadow_progress_loss_budget_m must be nonnegative.")
+    if (
+        not np.isfinite(config.shadow_smoothness_loss_budget)
+        or config.shadow_smoothness_loss_budget < 0.0
+    ):
+        raise ValueError("shadow_smoothness_loss_budget must be nonnegative.")
 
 
 def _validate_snapshot(
@@ -751,6 +778,18 @@ def _transformed_summary(
             "lower_union_red_count": 0,
             "lower_full_red_count": 0,
             "budget_sensitivity": [],
+            "shadow_rule": fixed_candidate_shadow_rule(
+                union_red=np.empty(0, dtype=np.float64),
+                progress=np.empty(0, dtype=np.float64),
+                smoothness=np.empty(0, dtype=np.float64),
+                hard_feasible=np.empty(0, dtype=bool),
+                selected_union_red=selected_union_red,
+                selected_progress=selected_progress,
+                selected_smoothness=selected_smoothness,
+                enabled=config.shadow_rule_enabled,
+                progress_loss_budget_m=config.shadow_progress_loss_budget_m,
+                smoothness_loss_budget=config.shadow_smoothness_loss_budget,
+            ),
         }
     near = np.asarray(scores["near_red_cost"], dtype=np.float64)
     full = np.asarray(scores["full_red_cost"], dtype=np.float64)
@@ -773,6 +812,18 @@ def _transformed_summary(
         selected_smoothness=selected_smoothness,
         progress_loss_budgets_m=config.progress_loss_budgets_m,
         smoothness_loss_budgets=config.smoothness_loss_budgets,
+    )
+    shadow_rule = fixed_candidate_shadow_rule(
+        union_red=union,
+        progress=progress,
+        smoothness=smoothness,
+        hard_feasible=hard_feasible,
+        selected_union_red=selected_union_red,
+        selected_progress=selected_progress,
+        selected_smoothness=selected_smoothness,
+        enabled=config.shadow_rule_enabled,
+        progress_loss_budget_m=config.shadow_progress_loss_budget_m,
+        smoothness_loss_budget=config.shadow_smoothness_loss_budget,
     )
     return {
         "count": int(union.size),
@@ -808,6 +859,7 @@ def _transformed_summary(
         "lower_union_red_count": int(np.sum(lower_union)),
         "lower_full_red_count": int(np.sum(full < selected_full_red - TOL)),
         "budget_sensitivity": budget_sensitivity,
+        "shadow_rule": shadow_rule,
     }
 
 
@@ -934,6 +986,104 @@ def reward_budget_sensitivity(
     return rows
 
 
+def fixed_candidate_shadow_rule(
+    *,
+    union_red: np.ndarray,
+    progress: np.ndarray,
+    smoothness: np.ndarray,
+    hard_feasible: np.ndarray,
+    selected_union_red: float,
+    selected_progress: float,
+    selected_smoothness: float,
+    enabled: bool,
+    progress_loss_budget_m: float,
+    smoothness_loss_budget: float,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "enabled": bool(enabled),
+        "default_off": True,
+        "selection_effect": False,
+        "changed": False,
+        "reason": "disabled",
+        "budget": {
+            "progress_loss_m": float(progress_loss_budget_m),
+            "smoothness_loss": float(smoothness_loss_budget),
+        },
+        "admissible_count": 0,
+        "chosen_transformed_index": None,
+        "chosen_union_red": None,
+        "chosen_progress_loss_m": None,
+        "chosen_smoothness_loss": None,
+    }
+    if not enabled:
+        return result
+    if not np.isfinite(progress_loss_budget_m) or progress_loss_budget_m < 0.0:
+        raise ValueError("shadow_progress_loss_budget_m must be nonnegative.")
+    if not np.isfinite(smoothness_loss_budget) or smoothness_loss_budget < 0.0:
+        raise ValueError("shadow_smoothness_loss_budget must be nonnegative.")
+    union = np.asarray(union_red, dtype=np.float64).reshape(-1)
+    progress_arr = np.asarray(progress, dtype=np.float64).reshape(-1)
+    smoothness_arr = np.asarray(smoothness, dtype=np.float64).reshape(-1)
+    hard_arr = np.asarray(hard_feasible, dtype=bool).reshape(-1)
+    if not (union.shape == progress_arr.shape == smoothness_arr.shape == hard_arr.shape):
+        raise ValueError("Shadow rule arrays must align.")
+    if not (
+        np.all(np.isfinite(union))
+        and np.all(np.isfinite(progress_arr))
+        and np.all(np.isfinite(smoothness_arr))
+    ):
+        raise ValueError("Shadow rule metrics must be finite.")
+    if not (
+        np.isfinite(selected_union_red)
+        and np.isfinite(selected_progress)
+        and np.isfinite(selected_smoothness)
+    ):
+        raise ValueError("Selected shadow rule metrics must be finite.")
+    if np.any(union < 0.0) or float(selected_union_red) < 0.0:
+        raise ValueError("Shadow rule red costs must be nonnegative.")
+
+    result["reason"] = "no_transformed_candidates"
+    if not union.size:
+        return result
+
+    progress_loss = float(selected_progress) - progress_arr
+    smoothness_loss = float(selected_smoothness) - smoothness_arr
+    lower_red = union < float(selected_union_red) - TOL
+    lower_red_hard = lower_red & hard_arr
+    admissible = (
+        lower_red_hard
+        & (progress_loss <= float(progress_loss_budget_m) + TOL)
+        & (smoothness_loss <= float(smoothness_loss_budget) + TOL)
+    )
+    result["lower_red_hard_feasible_count"] = int(np.sum(lower_red_hard))
+    result["admissible_count"] = int(np.sum(admissible))
+    if not np.any(admissible):
+        result["reason"] = "no_budget_admissible_lower_red_candidate"
+        return result
+
+    indices = np.flatnonzero(admissible)
+    chosen = min(
+        indices.tolist(),
+        key=lambda idx: (
+            float(union[idx]),
+            float(smoothness_loss[idx]),
+            float(progress_loss[idx]),
+            int(idx),
+        ),
+    )
+    result.update(
+        {
+            "changed": True,
+            "reason": "budget_admissible_lower_red_candidate",
+            "chosen_transformed_index": int(chosen),
+            "chosen_union_red": float(union[chosen]),
+            "chosen_progress_loss_m": float(progress_loss[chosen]),
+            "chosen_smoothness_loss": float(smoothness_loss[chosen]),
+        }
+    )
+    return result
+
+
 def _summarize_budget_sensitivity(active: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not active:
         return []
@@ -966,6 +1116,48 @@ def _summarize_budget_sensitivity(active: list[dict[str, Any]]) -> list[dict[str
             }
         )
     return rows
+
+
+def _summarize_shadow_rule(
+    rows: list[dict[str, Any]],
+    config: SpliceConfig,
+) -> dict[str, Any]:
+    cells = [row["transformed"]["shadow_rule"] for row in rows]
+    summary: dict[str, Any] = {
+        "enabled": bool(config.shadow_rule_enabled),
+        "default_off": True,
+        "selection_effect": False,
+        "online_selector_change": False,
+        "budget": {
+            "progress_loss_m": float(config.shadow_progress_loss_budget_m),
+            "smoothness_loss": float(config.shadow_smoothness_loss_budget),
+        },
+        "snapshots": len(cells),
+        "changed_snapshots": int(sum(int(cell["changed"]) for cell in cells)),
+        "admissible_count": int(sum(int(cell["admissible_count"]) for cell in cells)),
+        "reason_counts": _sum_reason_counts(
+            {cell["reason"]: 1} for cell in cells
+        ),
+    }
+    chosen_union = [
+        float(cell["chosen_union_red"])
+        for cell in cells
+        if cell["chosen_union_red"] is not None
+    ]
+    chosen_progress_loss = [
+        float(cell["chosen_progress_loss_m"])
+        for cell in cells
+        if cell["chosen_progress_loss_m"] is not None
+    ]
+    chosen_smoothness_loss = [
+        float(cell["chosen_smoothness_loss"])
+        for cell in cells
+        if cell["chosen_smoothness_loss"] is not None
+    ]
+    summary["chosen_union_red"] = _summary(chosen_union)
+    summary["chosen_progress_loss_m"] = _summary(chosen_progress_loss)
+    summary["chosen_smoothness_loss"] = _summary(chosen_smoothness_loss)
+    return summary
 
 
 def _masked_min(values: np.ndarray, mask: np.ndarray) -> float | None:
@@ -1020,6 +1212,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Blend steps: `{report['config']['blend_steps']}`",
         f"- Progress loss budgets: `{report['config']['progress_loss_budgets_m']}`",
         f"- Smoothness loss budgets: `{report['config']['smoothness_loss_budgets']}`",
+        f"- Shadow rule enabled: `{report['shadow_rule']['enabled']}`",
+        f"- Shadow rule budget: `{report['shadow_rule']['budget']}`",
         "",
         "## Gate Summary",
         "",
@@ -1056,6 +1250,19 @@ def render_markdown(report: dict[str, Any]) -> str:
         )
     lines.extend(
         [
+            "",
+            "## Fixed-Candidate Shadow Rule",
+            "",
+            "This rule is default-off, offline-only, deterministic, and fail-closed. It does not change DP/CAMP selection.",
+            "",
+            f"- Enabled: `{report['shadow_rule']['enabled']}`",
+            f"- Selection effect: `{report['shadow_rule']['selection_effect']}`",
+            f"- Changed snapshots: `{report['shadow_rule']['changed_snapshots']}` / `{report['shadow_rule']['snapshots']}`",
+            f"- Admissible transformed candidates: `{report['shadow_rule']['admissible_count']}`",
+            f"- Reason counts: `{report['shadow_rule']['reason_counts']}`",
+            f"- Chosen union-red max: `{_fmt(report['shadow_rule']['chosen_union_red']['max'])}`",
+            f"- Chosen progress loss max: `{_fmt(report['shadow_rule']['chosen_progress_loss_m']['max'])}`",
+            f"- Chosen smoothness loss max: `{_fmt(report['shadow_rule']['chosen_smoothness_loss']['max'])}`",
             "",
             "## Baseline Recompute Check",
             "",

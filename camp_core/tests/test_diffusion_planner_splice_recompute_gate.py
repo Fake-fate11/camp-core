@@ -5,6 +5,7 @@ import numpy as np
 from scripts.integrations.analyze_diffusion_planner_splice_recompute_gate import (
     _donor_indices,
     build_splice_candidates,
+    fixed_candidate_shadow_rule,
     h10_preserving_heading_splice,
     h10_preserving_tail_splice_xy,
     heading_features_from_xy,
@@ -211,6 +212,68 @@ def test_reward_budget_sensitivity_counts_budgeted_lower_red_candidates() -> Non
     assert by_budget[(1.5, 0.2)]["count"] == 1
     assert by_budget[(1.5, 1.2)]["count"] == 2
     assert np.isclose(by_budget[(1.5, 1.2)]["min_progress_loss_m"], 0.2)
+
+
+def test_fixed_candidate_shadow_rule_is_disabled_by_default() -> None:
+    result = fixed_candidate_shadow_rule(
+        union_red=np.array([0.0]),
+        progress=np.array([9.0]),
+        smoothness=np.array([0.5]),
+        hard_feasible=np.array([True]),
+        selected_union_red=1.0,
+        selected_progress=10.0,
+        selected_smoothness=1.0,
+        enabled=False,
+        progress_loss_budget_m=1.0,
+        smoothness_loss_budget=0.5,
+    )
+
+    assert result["enabled"] is False
+    assert result["selection_effect"] is False
+    assert result["changed"] is False
+    assert result["reason"] == "disabled"
+
+
+def test_fixed_candidate_shadow_rule_fails_closed_without_budget_candidate() -> None:
+    result = fixed_candidate_shadow_rule(
+        union_red=np.array([0.0, 0.0]),
+        progress=np.array([8.0, 9.8]),
+        smoothness=np.array([1.0, -1.0]),
+        hard_feasible=np.array([True, True]),
+        selected_union_red=1.0,
+        selected_progress=10.0,
+        selected_smoothness=1.0,
+        enabled=True,
+        progress_loss_budget_m=1.0,
+        smoothness_loss_budget=0.5,
+    )
+
+    assert result["changed"] is False
+    assert result["reason"] == "no_budget_admissible_lower_red_candidate"
+    assert result["admissible_count"] == 0
+
+
+def test_fixed_candidate_shadow_rule_chooses_deterministically() -> None:
+    result = fixed_candidate_shadow_rule(
+        union_red=np.array([0.2, 0.0, 0.0, 0.0]),
+        progress=np.array([9.9, 9.0, 9.2, 9.3]),
+        smoothness=np.array([0.9, 0.8, 0.6, 0.6]),
+        hard_feasible=np.array([True, False, True, True]),
+        selected_union_red=1.0,
+        selected_progress=10.0,
+        selected_smoothness=1.0,
+        enabled=True,
+        progress_loss_budget_m=1.0,
+        smoothness_loss_budget=0.5,
+    )
+
+    assert result["changed"] is True
+    assert result["reason"] == "budget_admissible_lower_red_candidate"
+    assert result["admissible_count"] == 3
+    assert result["chosen_transformed_index"] == 3
+    assert result["chosen_union_red"] == 0.0
+    assert np.isclose(result["chosen_progress_loss_m"], 0.7)
+    assert np.isclose(result["chosen_smoothness_loss"], 0.4)
 
 
 def test_reason_counts_can_be_masked() -> None:
