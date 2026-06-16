@@ -9417,3 +9417,98 @@ fixed finite diagnostics and must be explicitly rejected if they rely on future
 outcomes, change DP weights, change CAMP weights, or violate the fixed-candidate
 convexity boundary. Do not train CAMP, retrain DP, alter atom schema, or use
 formal seeds from this smoke.
+
+### Splice transform-design anchor screen
+
+The first transform-design screen kept the investigation offline and restricted
+to the previously identified non-formal `sample59_86 / seed_2 / npc_4 /
+tl_on` no-budget records. The screen did not run a new paired matrix and did
+not change the online selector. It captured fixed microbenchmark snapshots for
+the 57 no-budget steps from the reason-smoke selection log, then recomputed DP
+reward/full-red diagnostics for H-anchor-preserving splice variants.
+
+Predeclare artifact:
+
+```text
+/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon/predeclare_transform_design_screen.txt
+```
+
+Target no-budget steps:
+
+```text
+128,130,131,132,135,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,157,158,159,160,161,163,164,165,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,184,187,189,190,191,193,194,195,196
+```
+
+Snapshot capture artifact:
+
+```text
+/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon/snapshots_no_budget
+```
+
+Snapshot capture used the same non-formal route/seed/NPC/traffic-light/static
+configuration as the reason smoke, with `selection_effect=false` microbenchmark
+snapshot metadata and no formal seeds. It captured 57 snapshots. Snapshot-run
+artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Replay summary | `f89b573ea2adebcaed931059eca8fb263b56436590805d3e19e520f2f1b21a93` |
+| Validation summary | `60ffab40ca871a7264d027929726b48d98123b3439b67d2b935df9763960fd18` |
+| Selection log | `828cf0cbcfdf9627298cfec2ad79fb3a477f500c79675216e36655fb22d4d8dd` |
+
+Recompute grid:
+
+```text
+/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon/recompute_grid
+```
+
+Grid: `anchor_steps in {10,20,30,40}`, `blend_steps=40`,
+`heading_mode=donor_offset`, donor pool `lower_logged_union_red`, shadow budget
+`1.0 m / 0.5`. This was an offline recompute over fixed snapshots; it was not
+an online selector and not Benders.
+
+| Anchor | Lower union-red transforms | Hard-feasible transforms | Lower union-red hard-feasible | Shadow changed snapshots | Lower-red hard-infeasible reasons |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 10 | 203 | 1 | 0 | 0 | `dp_lane_crossing: 83`, `dp_red_light: 203` |
+| 20 | 179 | 1 | 0 | 0 | `dp_lane_crossing: 64`, `dp_red_light: 179` |
+| 30 | 121 | 1 | 0 | 0 | `dp_lane_crossing: 17`, `dp_red_light: 121` |
+| 40 | 72 | 1 | 0 | 0 | `dp_red_light: 72` |
+
+Grid artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Anchor 10 JSON | `f346d36bb8a7dfa7faf041d477ae3347ab387c60a625800ddab4de4e233547a9` |
+| Anchor 10 Markdown | `ad2375520621c05519023cd82ae3a4537f5def2e351d23e570f1fc5307f86bf1` |
+| Anchor 20 JSON | `4c1224cfedade844b2b847730ee75aed12a69c65406f1e641df73bcc3acb74fc` |
+| Anchor 20 Markdown | `6dfcbcdfb25102797d1d3f27da56b859f7f302cb77bc715467a9ea0208b027bf` |
+| Anchor 30 JSON | `0ce5ce959509ddecf59321da26966501f26400186d381fc56c558f96142be56d` |
+| Anchor 30 Markdown | `74a6cae117b732389adff596a4ad4b5fb56ee5904805d4ed7acb4988ba2352c8` |
+| Anchor 40 JSON | `7a4ac8958c49efffcd5b293302ca2f3a81029aca4ae03240e42f24c276e3e372` |
+| Anchor 40 Markdown | `f5ab2d20c8d5245901dc3c9e0ab28bcb2e1fba5e955f8ffb0473045775365e98` |
+| Grid summary JSON | `2cfd2060d8b6fa6f70c7653ef552a0afe1e8b0a1a9051d23dbe8849ef6d8c04b` |
+| Grid summary Markdown | `4fb41abbec0040ebb310392ace0215ff4f132b743f076a0cdafddabd029be18f` |
+
+Decision: reject H-anchor length tuning as a path to an online splice selector.
+Increasing the preserved prefix from H10 to H40 reduced lower-red opportunities
+from `203` to `72`, but it did not produce a single lower-red hard-feasible
+transformed candidate across the 57 target snapshots. The dominant blocker
+remained red-light infeasibility; lane-crossing decreased with longer anchors
+but disappeared only when most of the lower-red benefit had already been lost.
+
+Mathematical boundary: the screen used fixed finite current-tick snapshots and
+posterior reward recomputation for diagnostics only. It does not alter DP
+weights, CAMP weights, atom schema, candidate generation, or the executed
+closed-loop trajectory. It is not Benders and does not generate dual cuts. The
+only valid conclusion is a diagnostic reject for this H-anchor splice family on
+these non-formal target states.
+
+Next admissible step: stop spending online-selector effort on the current
+H-anchor splice family unless a genuinely different red/lane-preserving
+transformation is defined. A better next screen is either (1) an offline
+selection-log diagnostic that asks whether original fixed candidates already
+contain lower-red, lane-safe, progress-acceptable alternatives before any
+splice, or (2) a richer future shadow log that stores transformed per-donor
+reward arrays so budget/feasibility attribution does not require repeated DP
+reward recomputation. Do not train CAMP, retrain DP, alter atom schema, or use
+formal seeds from this screen.
