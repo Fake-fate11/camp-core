@@ -8043,3 +8043,100 @@ Artifact SHA-256:
 | --- | --- |
 | Raw H80 blocker JSON | `90c788202641f7d887df79ecde8590c71649cda9f06dab4e6fb298e1defd5d86` |
 | Raw H80 blocker markdown | `5a094f4cbfcd2ecd6bc4399e0037b5ae70a6f1dd794b236862264b50fc6f23fd` |
+
+### Stop-aware raw-H80 splice potential audit
+
+Commit `aee5fe7f9e7b3ca8aab120370a5b436e17f1ce07` adds an offline
+stop-aware splice potential analyzer. It constructs a diagnostic raw-H80
+candidate from the selected candidate \(S\) and a lower-red donor \(D\):
+
+```text
+G_t = S_t                                           for t < H10
+T_t = S_H10 + (D_t - D_H10)                         donor tail in selected H10 frame
+G_t = (1 - w_t) S_t + w_t T_t                       for t >= H10
+```
+
+with a smoothstep blend over `10` steps by default. This preserves the selected
+raw H10 prefix exactly while testing whether the lower-red donor's long-horizon
+tail can remain material and reduce a raw third-difference jerk proxy.
+
+This is not an online generator, selector, CAMP atom, or Benders cut. It does
+not recompute DP reward, red-light cost, hard feasibility, Savitzky-Golay
+postprocessing, PerfectTracker commands, or closed-loop outcomes for the
+synthetic splice. The donor's logged lower-red certificate is used only to
+choose a diagnostic tail source; it is not a certificate for the transformed
+splice.
+
+Verification:
+
+```text
+py -3.12 -m py_compile scripts\integrations\analyze_diffusion_planner_stop_aware_splice_potential.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core;F:\camp_core-main'
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_stop_aware_splice_potential.py
+2 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_stop_aware_splice_potential.py
+2 passed
+```
+
+The real H80 sample59 artifact was analyzed at:
+
+```text
+/root/autodl-tmp/camp_dp_stop_aware_splice_h80_sample59_static_aee5fe7
+```
+
+The audit denominator is the same `32` selected h30-safe/full-red records.
+
+| Donor pool | Donor records | Material splice | Jerk nondegrading splice | Material + jerk nondegrading | Best endpoint distance | Best jerk delta | H10 deviation |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| lower-red any | 32/32 | 28/32 | 29/32 | 26/32 | 6.468361 m | -4.737382 m/s^3 | 0.000000 m |
+| lower-red base feasible | 20/32 | 16/32 | 15/32 | 13/32 | 2.254629 m | -1.468295 m/s^3 | 0.000000 m |
+
+Additional summaries:
+
+| Donor pool | Candidate count mean | Endpoint distance p95 | Endpoint-to-donor mean | Max selected deviation mean | Jerk delta p95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| lower-red any | 5.406250 | 13.350203 m | 0.349362 m | 6.586716 m | +0.529048 m/s^3 |
+| lower-red base feasible | 2.250000 | 5.505496 m | 0.351322 m | 2.414356 m | +0.764552 m/s^3 |
+
+Interpretation:
+
+1. This branch is meaningfully different from the rejected first-step graft,
+   anchored residual graft, and smooth H10 anchor projection. It operates on
+   raw H80 geometry, preserves the selected first H10 prefix exactly, and keeps
+   meter-scale long-horizon tail materiality.
+2. The raw third-difference proxy is encouraging: the best lower-red base
+   feasible splice has mean jerk-proxy delta `-1.468295 m/s^3`, with
+   `13/32` records both material and jerk-nondegrading.
+3. The stronger lower-red-any pool reaches `26/32` material and
+   jerk-nondegrading records, but those donors include candidates that were not
+   base feasible before transformation. They cannot be used without a new
+   hard-feasibility argument and reward recomputation.
+4. This audit does not prove red-light improvement after transformation. The
+   splice moves the donor tail into the selected H10 frame; its DP red-light
+   score and feasibility must be recomputed before any replay or online claim.
+
+Decision: accept this as a candidate-generation design lead, not as a deployed
+method. The next admissible step is a default-off offline recomputation gate:
+apply the H10-preserving raw splice to the selected h30-missed records, then
+run the same Savitzky-Golay/postprocess, DP reward/red-light feasibility, and
+PerfectTracker shadow calculations used by the replay logs. The gate must show
+that transformed candidates actually enter the bounded lower-red envelope and
+remain hard-feasible before any paired non-formal simulation, online wiring,
+CAMP retraining, or formal seeds are considered. DP weights remain fixed.
+
+Mathematical boundary: the splice map is deterministic for fixed current-tick
+candidate prefixes and fixed hyperparameters. If transformed candidates are
+later added to a finite candidate set and atomized from current-tick data,
+CAMP scores remain affine in `w` and the simplex/CVaR/L2 robust master remains
+convex for that fixed set. This still is not a Benders decomposition and makes
+no global convexity claim over trajectory coordinates.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Stop-aware splice JSON | `f5a9c93d3fbbf42bbb5395d4776e62ac631ef6b4ed5143155da9df033597f352` |
+| Stop-aware splice markdown | `7f7ab4cac757fc01650b9c484c7e741a6c8c5a47570d9afddfd0d091f18938dd` |
