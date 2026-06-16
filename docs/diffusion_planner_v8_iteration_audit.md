@@ -6682,3 +6682,51 @@ auditability and experimentation prerequisite. The next admissible step is to
 define one concrete non-formal guidance config, run only sample59 paired seeds,
 and reject the branch unless endpoint/mode spread and outcome-free availability
 improve without comfort, fallback, or latency regression.
+
+### Guidance scale contract correction
+
+Commit `e8cfacb025f83a8b24f19c74f34f9f2b8268a147` corrects the execution
+contract for candidate guidance configs. TiER IV Diffusion Planner stores the
+classifier-guidance multiplier on `model.decoder._guidance_scale`; the
+serialized `GuidanceSetConfig.global_scale` is not consumed by
+`GuidanceComposer` itself. Therefore a CAMP diagnostic that records
+`global_scale` but leaves the decoder at an unrelated previous value is not
+reproducible.
+
+The runner now applies the following deterministic scale policy whenever
+`--candidate_guidance_config` is provided:
+
+1. If `--candidate_guidance_scale` is provided, it overrides the config and is
+   recorded with `guidance_scale_source="cli_override"`.
+2. Otherwise, `GuidanceSetConfig.global_scale` is copied into
+   `model.decoder._guidance_scale` and recorded with
+   `guidance_scale_source="config_global_scale"`.
+3. Non-finite config, CLI, or effective scales fail closed before replay.
+
+This does not change the default path: without `--candidate_guidance_config`,
+CAMP candidate generation still disables DP guidance and the summary records
+`guidance_enabled=false`. The correction only makes the explicit default-off
+diagnostic path internally consistent.
+
+Verification:
+
+```text
+python -m pytest camp_core/tests/test_diffusion_planner_replay_summary.py
+7 passed
+
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_replay_summary.py \
+  camp_core/tests/test_diffusion_planner_integration.py \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py
+111 passed, 8 skipped
+
+python -m pytest camp_core
+226 passed, 8 skipped
+```
+
+Decision: accept this as a reproducibility fix before any guidance candidate-set
+replay. The next diagnostic config should prefer official guidance functions
+whose inputs already exist in the DP replay tensors, such as
+`route_centerline_following` and possibly `lane_keeping`; avoid anchor,
+prototype, lateral, or longitudinal guidance until their additional reference
+or mode-selection semantics are explicitly defined.
