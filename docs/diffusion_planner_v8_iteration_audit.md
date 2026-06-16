@@ -8813,3 +8813,87 @@ Artifact SHA-256:
 | --- | --- |
 | Donor-offset budget JSON | `2a7e9953892f585e0363351e7c5d59af976a1f7c7889a1e32465ac6b2e105060` |
 | Donor-offset budget markdown | `570730f534e8fc8f7df319c79009235b9188b0de517b11e82d2d79882f6609cf` |
+
+### Seed2 npc0 tl-on H10-preserving blend-step sweep
+
+The previous donor-offset budget gate showed that the H10-preserving transform
+was promising but budget-sensitive. A follow-up offline sweep kept the same
+fixed snapshots, donor pool, `anchor_steps=10`, and `heading_mode=donor_offset`,
+and varied only the post-H10 smoothstep blend length:
+
+```text
+blend_steps in {0, 5, 10, 15, 20, 30, 40}
+```
+
+This does not change DP, CAMP, the selector, weights, atom schema, or the
+master problem. It is still a fixed finite-candidate diagnostic.
+
+Remote artifact:
+
+```text
+/root/autodl-tmp/camp_dp_target_snapshots_seed2_npc0_tlon_13miss_626718a/blend_sweep_28f1cc2
+```
+
+Aggregate sweep results:
+
+| Blend steps | Lower red | Hard feasible | Lower-red hard feasible | Progress feasible | Lower-red progress feasible | Kinematic blockers | Underprogress blockers | Budget 0.5/0.0 count/snapshots | Budget 1.0/0.5 count/snapshots | Budget 1.5/1.0 count/snapshots |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 74 | 75 | 74 | 62 | 61 | 0 | 13 | 1 / 1 | 33 / 7 | 67 / 12 |
+| 5 | 74 | 70 | 69 | 61 | 60 | 5 | 9 | 0 / 0 | 32 / 7 | 62 / 12 |
+| 10 | 74 | 73 | 72 | 64 | 63 | 2 | 9 | 1 / 1 | 29 / 7 | 54 / 10 |
+| 15 | 74 | 75 | 74 | 66 | 65 | 0 | 9 | 7 / 1 | 41 / 9 | 59 / 11 |
+| 20 | 74 | 69 | 68 | 63 | 62 | 6 | 6 | 12 / 2 | 49 / 9 | 61 / 11 |
+| 30 | 74 | 70 | 69 | 61 | 60 | 5 | 9 | 11 / 4 | 58 / 12 | 66 / 13 |
+| 40 | 74 | 75 | 74 | 66 | 65 | 0 | 9 | 24 / 6 | 68 / 13 | 74 / 13 |
+
+Wide-budget uncovered target steps:
+
+| Blend steps | Uncovered at 1.5m progress / 1.0 smoothness |
+| ---: | --- |
+| 0 | `69` |
+| 5 | `69` |
+| 10 | `69, 194, 197` |
+| 15 | `69, 194` |
+| 20 | `69, 198` |
+| 30 | none |
+| 40 | none |
+
+Interpretation:
+
+1. The budget limitation is not fundamental to the donor-offset idea. A longer
+   post-H10 blend improves the progress/smoothness tradeoff substantially.
+2. `blend_steps=40` is the best observed offline configuration in this sweep:
+   it keeps `74/75` lower-red transformed candidates, `75/75` hard-feasible
+   candidates, and reaches full `13/13` snapshot coverage at the moderate
+   `1.0 m` progress / `0.5` DP-smoothness budget.
+3. Tight-budget coverage is still incomplete: even at `blend_steps=40`, the
+   strict `0.5 m` progress / smoothness-nonworse gate covers only `24/75`
+   candidates and `6/13` snapshots.
+
+Decision: accept `blend_steps=40` as the next offline diagnostic configuration
+for subsequent default-off or shadow analysis, but do not deploy an online
+selector yet. The next admissible gate is a predeclared fixed-candidate shadow
+rule using `anchor_steps=10`, `blend_steps=40`, `heading_mode=donor_offset`,
+lower union-red, DP hard feasibility, and explicit progress/smoothness budgets.
+That gate must remain fail-closed, deterministic, default-off, and
+`selection_effect=false` until a closed-loop shadow result proves otherwise.
+
+Mathematical boundary: changing `blend_steps` changes only the deterministic
+finite-candidate transform applied to fixed current-tick snapshots. No Benders
+cut, dual problem, online optimization, or trajectory-coordinate convexity is
+claimed. If diagnostics from this transform are later atomized, they are fixed
+per-candidate constants for the current tick; CAMP scoring remains affine in
+`w` and the existing simplex/CVaR/L2 master remains convex only under that
+fixed finite-candidate interpretation.
+
+Artifact SHA-256:
+
+| Blend steps | JSON SHA-256 | Markdown SHA-256 |
+| ---: | --- | --- |
+| 0 | `416dc0b0096ffb95e3aa55af8738be46b697850d8be39455792fc14ae2589155` | `effdc2ba0660fe97677ef69cab2a1dfd5a174fc0fc8f2b3555a3debdd0dd75ba` |
+| 5 | `61b643c440ec1e7a8c829d74cfd35d50fc03200985175caeb25299e8e8137768` | `a137514d7ccbc836b3b955d9e17fa7f25fbbf73343da73955ee70afd327bea15` |
+| 10 | `aeef7fe63af0ef2a6fac2e88986566337d971b4899937ee3e7caadff79c55fd9` | `570730f534e8fc8f7df319c79009235b9188b0de517b11e82d2d79882f6609cf` |
+| 15 | `43b99c0f92fd793687ae25332ad66d0fc07bfda238de59565cbc124795a342ff` | `c581b8bdb50cf97392e6da6f601291f08f604228e5ea8a38b14ea586965ed753` |
+| 20 | `fdbaf176d6186892f7548bc8d1cc60eacc6d2cde6461b558da1c98d9c315eee0` | `83ebc0f152e7c157fe12d3378b200ae3fbe215246bad01d8bcb4efefccc27127` |
+| 30 | `711b1348139a34514be1e62d2f00150f77329b806557b2c6de5ea22a0a946d4b` | `f564505f287b5dcd953e0d1f92d4b40e163603671f89a5434cf79abd8409098b` |
+| 40 | `9c7fce73d9224ef388b94966f1fc41931ddb21e37a6d81f6de9b4a291fd2c292` | `cfdaec770c77d595674c8da71af629fbc202af6664796167ce7ff255070f3121` |
