@@ -6527,3 +6527,95 @@ retraining from this change alone. The next admissible experiment is a
 predeclared, non-formal candidate-set diagnostic that either uses this contract
 to compare generator settings, or explicitly rejects settings that cannot be
 described as finite candidate-set changes under fixed DP weights.
+
+### Candidate generation controls audit
+
+Commit `c896b3de2279fec6b69fded5bc53f81e21140c20` adds a static audit tool
+for fixed-DP candidate generation controls:
+
+```bash
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_candidate_generation_controls.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json \
+  --num_candidates 8 \
+  --candidate_noise_scale 1.0 \
+  --output_json \
+    /root/autodl-tmp/camp_dp_candidate_generation_controls_c896b3d/candidate_generation_controls.json \
+  --output_md \
+    /root/autodl-tmp/camp_dp_candidate_generation_controls_c896b3d/candidate_generation_controls.md
+```
+
+This audit does not execute Diffusion Planner and does not change any
+candidate, weight, atom, selector, or replay artifact. It reads the fixed DP
+checkout, official model parameter JSON, and CAMP runner source to determine
+which candidate-generation controls are available and which are currently
+disabled.
+
+Verification:
+
+```text
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_generation_controls.py \
+  camp_core/tests/test_diffusion_planner_replay_summary.py
+5 passed
+
+python -m pytest camp_core
+222 passed, 5 skipped
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_generation_controls.py \
+  camp_core/tests/test_diffusion_planner_replay_summary.py
+5 passed
+```
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Controls JSON | `8b4176f131a1f2eb4290cd9d49baf7684ee46f222335516b38b3587dd23705fe` |
+| Controls markdown | `bf78598a15d11ff5744c7a68111c5d4fd6d244ee3f2afc0244c9c42a677f1905` |
+
+Key findings:
+
+| Item | Finding |
+| --- | --- |
+| CAMP commit | `c896b3de2279fec6b69fded5bc53f81e21140c20` |
+| DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP model type | `x_start` |
+| Future length / neighbors | `80` / `320` |
+| Decoder sampler | DPM-Solver `steps=10`, `skip_type=logSNR` |
+| Current CAMP candidate path | disables and restores `decoder._guidance_fn` |
+| Current candidate variables | `num_candidates`, `candidate_noise_scale`, `candidate_reference_blend_steps` |
+| Official guidance availability | `11` registered guidance functions, GuidanceComposer and legacy wrapper present |
+| Prototype support | `anchor_following.py` and `sampling/build_prototypes.py` present |
+| Audit decision | `predeclare_default_off_guidance_candidate_set_diagnostic` |
+
+Mathematical boundary:
+
+1. This audit is source/metadata inspection only and has no selection effect.
+2. Enabling official DP guidance later would be a generator-side finite
+   candidate-set change under fixed DP weights, not a CAMP atom change.
+3. For a fixed generated candidate set, CAMP scoring remains affine in `w` and
+   the simplex/CVaR/L2 master remains convex.
+4. DP guidance/prototype steering is not Benders and gives no global convexity
+   guarantee in trajectory coordinates.
+
+Predeclared next gate:
+
+- Any guidance/prototype diagnostic must be default-off and metadata-logged.
+- It must not modify DP source or DP weights.
+- It must not train CAMP or change CAMP atom schema.
+- It must run only non-formal sample59 paired seeds before any formal seed.
+- It must compare against the current K8 baseline and rejected K16/noise
+  evidence.
+- It must reject unless endpoint/mode spread and outcome-free availability
+  improve without comfort or latency regressions.
+- A single global guidance config is not assumed to create behavior modes; if
+  used, it must be evaluated as a finite candidate-set variant, and if it
+  collapses candidates further it is rejected.
+
+Decision: accept the controls audit and predeclare the guidance/prototype
+candidate-set branch as the next possible diagnostic. Do not run it until a
+default-off implementation records the guidance contract in every replay
+summary and selection record.
