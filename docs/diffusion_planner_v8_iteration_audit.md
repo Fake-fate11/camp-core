@@ -10551,3 +10551,73 @@ from the route inspection evidence using filters for `traffic_lights=True`
 runs, rerun the existing SafetyCost comparison with that manifest, and audit
 bucket coverage. This is a metadata reclassification of existing non-formal
 artifacts only; it must not be presented as a new replay or a CAMP improvement.
+
+The implementation was committed, pushed, and synced to AutoDL as:
+
+```text
+56e09ad9e874a4a6fe52f3cd888015da4fbbfd30
+Add DP CAMP scenario bucket filters
+```
+
+AutoDL CAMP matched that commit after a fast-forward pull. AutoDL Diffusion
+Planner remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Remote output root:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_filter_manifest_56e09ad
+```
+
+The development manifest used route-inspection evidence only:
+
+- route-level `sharp_turn` for `sample_map_tl_route_59_to_86`;
+- filter-level `traffic_light` for `nishishinjuku_release_auto_route` when
+  `traffic_lights=true`;
+- filter-level `traffic_light` and `red_light_turn` for
+  `sample_map_tl_route_59_to_86` when `traffic_lights=true`;
+- filter-level `normal` for `sample_map_route_2_to_104` when
+  `traffic_lights=false` and `max_npcs=0`.
+
+No label used SafetyCost, collision, red-light violation, completion, jerk,
+latency, or any other replay outcome.
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `development_scenario_buckets.json` | `9d561f12c09df38761848754117504c42bc2e587f8e18f357b0ec059c8c01730` |
+| `safety_score_v1_bucketed_comparison.json` | `5dca912291dec2d5aee2a89e33f7c903b749fb4ce93666c5e35308b5a404b517` |
+| `safety_score_v1_bucketed_comparison.md` | `b207f611e05b2e85f3c36bf55e248e9ba29f03b023587d5401b1ebd7bd6fb424` |
+| `scenario_bucket_coverage.json` | `d365a1e07e9285518f6e277c7dd47428f5200de5df26f1f91857f0338f595d2e` |
+| `scenario_bucket_coverage.md` | `e61504b8ac51989306c63f5905d6f064f53428c0528a8d762e32e25266623cae` |
+
+Bucket coverage and gate result:
+
+| Bucket | Run keys | Strict pairing | Hard gate | SafetyCost claim | Mean SafetyCost delta |
+| --- | ---: | --- | --- | --- | ---: |
+| `overall` | 36 | yes | fail | fail | `+1.636354` |
+| `normal` | 3 | yes | fail | fail | `+0.727142` |
+| `traffic_light` | 12 | yes | fail | fail | `+2.322308` |
+| `red_light_turn` | 6 | yes | fail | fail | `+2.927210` |
+| `sharp_turn` | 12 | yes | fail | fail | `+1.810889` |
+
+Missing required buckets:
+
+```text
+npc_interaction
+dense_scene
+lane_change_or_merge
+```
+
+Decision: accept filter-based metadata assignment and bucketed recomputation,
+but keep `redstopfloor05` rejected. The existing non-formal full36 suite now
+has explicit evidence-backed coverage for `normal`, `traffic_light`,
+`red_light_turn`, and `sharp_turn`, but it still lacks acceptable coverage for
+NPC interaction, dense scenes, and lane-change/merge. Even in the covered
+buckets, `redstopfloor05` fails the hard gate and has positive SafetyCost
+deltas. The next admissible step is scenario-suite design or route generation
+for the missing buckets, not CAMP weight tuning.
