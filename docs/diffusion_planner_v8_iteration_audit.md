@@ -16101,3 +16101,154 @@ frozen. The next admissible step is a progress mapping/guard audit: either
 calibrate a current-tick route-progress-to-DP-progress relation with strict
 false-feasible control, or design a separate finite-candidate progress guard
 that does not pretend to reproduce DP reward progress.
+
+### Progress mapping/guard audit
+
+Commit `b0622528c3a15016b213d1df6421aed11559bddd` adds a read-only
+progress mapping/guard analyzer:
+
+```text
+scripts/integrations/analyze_diffusion_planner_progress_mapping_guard.py
+camp_core/tests/test_diffusion_planner_progress_mapping_guard.py
+```
+
+The analyzer compares current-tick `candidate_route_progress` guards against
+the reconstructed DP reward underprogress baseline. It does not change replay,
+selection, DP, weights, atoms, or training. It uses no closed-loop outcome
+labels. The hard gates remain the logged DP reward gates
+(`dp_collision`, `dp_road_border`, `dp_lane_crossing`,
+`dp_static_collision`, `dp_kinematic`, `dp_red_light`); only the progress guard
+is varied in a predeclared diagnostic grid.
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_progress_mapping_guard.py \
+  camp_core\tests\test_diffusion_planner_reward_replacement_plan.py \
+  -q
+# 2 passed
+
+py -3.12 -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_progress_mapping_guard.py \
+  camp_core\tests\test_diffusion_planner_progress_mapping_guard.py
+# passed
+
+git diff --check
+# passed
+```
+
+AutoDL was synchronized to
+`b0622528c3a15016b213d1df6421aed11559bddd`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL targeted verification used
+the same pytest selection plus compileall and `git diff --check`; all passed.
+The remote could not fetch GitHub directly, so synchronization used a local
+Git bundle and fast-forward merge from `/tmp/camp_sync_b062252.bundle`.
+
+Analyzer command on the reward-latency smoke:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_progress_mapping_guard.py \
+  --selection_log /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/reward_latency_decomp_fdc8180_sample_tl_seed1_npc4_tloff_static/camp_selection_log.json \
+  --label reward_latency_decomp_fdc8180_sample_tl_seed1_npc4_tloff_static \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/reward_latency_decomp_fdc8180_sample_tl_seed1_npc4_tloff_static/audit_b062252_progress_guard/progress_mapping_guard.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/reward_latency_decomp_fdc8180_sample_tl_seed1_npc4_tloff_static/audit_b062252_progress_guard/progress_mapping_guard.md
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `progress_mapping_guard.json` | `9a6df7226bf72ba76c044b125b2dc8b6462751b2a166edacd97323bc2f136803` |
+| `progress_mapping_guard.md` | `02f09895e5dcd844e1a41539e21e1765bf0c1e196a72bfa835907bb4ed4f5552` |
+
+Records:
+
+```text
+logs=1
+records=200
+candidate_total=1600
+records_with_route_progress=200
+nonfallback_records_by_dp_reward=156
+fallback_records_by_dp_reward=44
+```
+
+Representative guard results against the reconstructed DP reward baseline:
+
+| Guard | False feasible | False infeasible | Mismatches | Selected changes | Passing rate | Hint |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `route_best_ratio_0p8` | `181` | `0` | `181` | `7` | `0.725625` | reject false-feasible |
+| `candidate0_route_ratio_0p95` | `176` | `5` | `181` | `7` | `0.719375` | reject false-feasible |
+| `candidate0_route_loss_m_0` | `84` | `385` | `469` | `10` | `0.424375` | reject false-feasible |
+| `route_best_loss_m_0` | `0` | `824` | `824` | `71` | `0.097500` | conservative, not equivalent |
+
+The analyzer decision hint was:
+
+```text
+only_conservative_zero_false_feasible_route_guards_found; inspect false_infeasible availability before any online use: route_best_ratio_1, route_best_loss_m_0, route_best_loss_m_0p05, route_best_loss_m_0p1
+```
+
+Alignment diagnostics:
+
+```text
+route_minus_dp_progress_m:
+mean=33.576027781265346
+p50=32.52008789819595
+p95=63.714044006840645
+min=-0.5123020044579745
+max=64.16406009755488
+n=1600
+
+candidate0_delta_route_minus_dp_m:
+mean=-0.004131561761996071
+p50=0.0
+p95=0.008998863513039258
+min=-1.4718985073073432
+max=0.13571915352632935
+n=1600
+
+best_hard_feasible_index_overlap_rate=0.967948717948718
+strict_pair_concordance_rate=0.9882142857142857
+strict_pair_discordance_rate=0.011785714285714287
+```
+
+Interpretation:
+
+1. The previous rejection is strengthened: a direct 0.8 ratio route-progress
+   replacement reproduces the same `181` false-feasible candidates and `7`
+   selected-mask changes as the reward replacement audit.
+2. Candidate0-relative route guards are not sufficient. Even a strict
+   `candidate0_route_ratio_0p95` still has `176` false-feasible candidates.
+3. The only zero-false-feasible candidates in this grid are extremely
+   conservative best-route guards (`route_best_ratio_1` and small best-route
+   loss budgets). They reject many DP reward-feasible candidates; for example
+   `route_best_loss_m_0` creates `824` false-infeasible candidates and changes
+   selected-candidate mask status in `71` records. That is not an admissible
+   online replacement without a separate availability and performance case.
+4. Route and DP progress have strong local ordering agreement but incompatible
+   absolute scales. The route-minus-DP offset is large, while candidate0
+   normalized deltas are much closer. This supports future work on a separate
+   conservative finite-candidate progress certificate, not a claim that route
+   progress equals DP reward progress.
+
+Mathematical boundary: this audit uses fixed current-tick finite-candidate
+quantities only. A guard with false-feasible candidates relative to the DP
+reward baseline cannot replace the DP progress gate. A zero-false-feasible
+guard is still just a finite-candidate diagnostic unless it is later atomized
+with fixed nonnegative scaling and keeps CAMP score affine in `w`; no classical
+Benders subproblem, dual, or cut is claimed.
+
+Decision: accept the progress mapping/guard analyzer and this single-smoke
+audit as a diagnostic milestone. Reject direct route-progress replacement,
+reject candidate0-relative route guard promotion, reject online selector
+promotion, reject new CAMP weights, reject broader 12/36 online matrices, and
+keep formal seeds frozen. The next admissible step is to run the same
+progress mapping/guard audit over the predeclared development grid already
+containing route-progress shadow logs, then decide whether any conservative
+certificate has acceptable availability before designing a default-off online
+selector.
