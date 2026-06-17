@@ -52,6 +52,26 @@ from scripts.integrations.analyze_diffusion_planner_splice_recompute_gate import
 
 
 PERFECT_TRACKER_OPEN_LOOP_HORIZONS = (3, 5, 10)
+TRAFFIC_LIGHT_HYBRID_POSTSELECTION_MODES = (
+    "off",
+    "step_h10_guard_005",
+    "h3_h10_guard_005",
+)
+TRAFFIC_LIGHT_HYBRID_POSTSELECTION_BUDGETS = {
+    "step_h10_guard_005": {
+        "first_step_loss_m": 0.10,
+        "dp_reward_progress_loss_m": 0.05,
+        "h10_distance_loss_m": 0.05,
+        "target_speed_loss_mps": 0.05,
+    },
+    "h3_h10_guard_005": {
+        "h3_distance_loss_m": 0.10,
+        "dp_reward_progress_loss_m": 0.05,
+        "h10_distance_loss_m": 0.05,
+        "target_speed_loss_mps": 0.05,
+    },
+}
+TRAFFIC_LIGHT_HYBRID_TOL = 1e-12
 
 
 def _parse_step_list(value: str) -> tuple[int, ...]:
@@ -249,6 +269,17 @@ def parse_args() -> argparse.Namespace:
             "After the normal CAMP selection, choose a base-feasible candidate "
             "only when it preserves target speed, DP progress, and planned-red "
             "cost while strictly improving PerfectTracker command comfort."
+        ),
+    )
+    parser.add_argument(
+        "--camp_traffic_light_hybrid_postselection",
+        choices=TRAFFIC_LIGHT_HYBRID_POSTSELECTION_MODES,
+        default="off",
+        help=(
+            "Default-off traffic-light-only finite-candidate postselection. "
+            "Modes mirror the accepted offline certificate screens and require "
+            "base feasibility, no worse red costs, strict proxy comfort "
+            "improvement, and bounded progress/target-speed loss."
         ),
     )
     parser.add_argument(
@@ -496,6 +527,34 @@ def _validate_args(args: argparse.Namespace) -> None:
             "PerfectTracker command postselection requires "
             "--camp_feasibility_source dp_reward."
         )
+    traffic_light_hybrid_enabled = (
+        args.camp_traffic_light_hybrid_postselection != "off"
+    )
+    if traffic_light_hybrid_enabled and args.camp_selector_mode == "top1":
+        raise ValueError(
+            "Traffic-light hybrid postselection requires a CAMP selector mode."
+        )
+    if traffic_light_hybrid_enabled and args.camp_feasibility_source != "dp_reward":
+        raise ValueError(
+            "Traffic-light hybrid postselection requires "
+            "--camp_feasibility_source dp_reward."
+        )
+    if (
+        traffic_light_hybrid_enabled
+        and args.camp_lexicographic_progress_epsilon_m is not None
+    ):
+        raise ValueError(
+            "Traffic-light hybrid postselection cannot be combined with "
+            "lexicographic preselection in the same run."
+        )
+    if (
+        traffic_light_hybrid_enabled
+        and args.camp_perfect_tracker_command_postselection
+    ):
+        raise ValueError(
+            "Traffic-light hybrid postselection cannot be combined with "
+            "PerfectTracker command postselection in the same run."
+        )
     underprogress_budgets = (
         args.camp_underprogress_progress_loss_budget_m,
         args.camp_underprogress_h3_distance_loss_budget_m,
@@ -528,6 +587,11 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError(
             "CAMP underprogress relaxation cannot be combined with "
             "PerfectTracker command postselection in the same run."
+        )
+    if args.camp_underprogress_relaxation and traffic_light_hybrid_enabled:
+        raise ValueError(
+            "CAMP underprogress relaxation cannot be combined with "
+            "traffic-light hybrid postselection in the same run."
         )
     if args.camp_reward_horizon_steps < 2:
         raise ValueError("--camp_reward_horizon_steps must be >= 2.")
@@ -577,6 +641,11 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError(
             "CAMP splice shadow rule cannot be combined with PerfectTracker "
             "command postselection in the same run."
+        )
+    if args.camp_splice_shadow_rule and traffic_light_hybrid_enabled:
+        raise ValueError(
+            "CAMP splice shadow rule cannot be combined with traffic-light "
+            "hybrid postselection in the same run."
         )
     if args.reward_config is not None and not args.reward_config.is_file():
         raise FileNotFoundError(f"Missing reward config: {args.reward_config}")
@@ -1296,6 +1365,268 @@ def _apply_underprogress_relaxation_override(
         ),
         stats,
     )
+
+
+def _candidate_vector(
+    values: Any,
+    *,
+    candidate_count: int,
+    field_name: str,
+) -> np.ndarray:
+    array = np.asarray(values, dtype=np.float64).reshape(-1)
+    if array.shape != (candidate_count,):
+        raise ValueError(f"{field_name} must match candidate count.")
+    if not np.all(np.isfinite(array)):
+        raise ValueError(f"{field_name} must be finite.")
+    return array
+
+
+def _perfect_tracker_horizon_distance(
+    perfect_tracker_open_loop: dict[Any, Any],
+    horizon: int,
+) -> np.ndarray:
+    horizons = perfect_tracker_open_loop.get("horizons")
+    metrics = None
+    if isinstance(horizons, dict):
+        metrics = horizons.get(str(horizon))
+        if metrics is None:
+            metrics = horizons.get(int(horizon))
+    if metrics is None:
+        metrics = perfect_tracker_open_loop.get(str(horizon))
+    if metrics is None:
+        metrics = perfect_tracker_open_loop.get(int(horizon))
+    if not isinstance(metrics, dict) or "distance_m" not in metrics:
+        raise ValueError(
+            f"Traffic-light hybrid postselection requires H{horizon} distance."
+        )
+    return np.asarray(metrics["distance_m"], dtype=np.float64).reshape(-1)
+
+
+def _loss(values: np.ndarray, selected: int) -> np.ndarray:
+    return np.maximum(values[int(selected)] - values, 0.0)
+
+
+def _traffic_light_hybrid_budget(mode: str) -> dict[str, float]:
+    try:
+        return dict(TRAFFIC_LIGHT_HYBRID_POSTSELECTION_BUDGETS[mode])
+    except KeyError as exc:
+        raise ValueError(f"Unknown traffic-light hybrid mode: {mode}") from exc
+
+
+def _apply_traffic_light_hybrid_postselection(
+    selection: CAMPSelectionResult,
+    *,
+    traffic_lights_enabled: bool,
+    mode: str,
+    candidate_step_reach: np.ndarray,
+    candidate_progress: np.ndarray,
+    candidate_union_red_cost: np.ndarray,
+    candidate_red_stopping_margin_cost: np.ndarray,
+    candidate_dp_prior_jerk_excess_cost: np.ndarray,
+    candidate_horizon_lateral_acceleration_cost: np.ndarray,
+    candidate_target_speed_mps: np.ndarray,
+    perfect_tracker_open_loop: dict[Any, Any],
+) -> tuple[int, dict[str, Any]]:
+    selected = int(selection.selected_index)
+    feasible = np.asarray(selection.feasible_mask, dtype=bool).reshape(-1)
+    candidate_count = feasible.size
+    if selected < 0 or selected >= candidate_count:
+        raise ValueError("Traffic-light hybrid selected_index is out of range.")
+    scores = np.asarray(selection.selection_scores, dtype=np.float64).reshape(-1)
+    if scores.shape != (candidate_count,):
+        raise ValueError("selection_scores must match candidate count.")
+    if not np.all(np.isfinite(scores[feasible])):
+        raise ValueError("selection_scores must be finite for feasible candidates.")
+    progress = _candidate_vector(
+        candidate_progress,
+        candidate_count=candidate_count,
+        field_name="candidate_progress",
+    )
+    union_red = _candidate_vector(
+        candidate_union_red_cost,
+        candidate_count=candidate_count,
+        field_name="candidate_union_red_cost",
+    )
+    red_stopping = _candidate_vector(
+        candidate_red_stopping_margin_cost,
+        candidate_count=candidate_count,
+        field_name="candidate_red_stopping_margin_cost",
+    )
+    raw_jerk = _candidate_vector(
+        candidate_dp_prior_jerk_excess_cost,
+        candidate_count=candidate_count,
+        field_name="candidate_dp_prior_jerk_excess_cost",
+    )
+    raw_lateral = _candidate_vector(
+        candidate_horizon_lateral_acceleration_cost,
+        candidate_count=candidate_count,
+        field_name="candidate_horizon_lateral_acceleration_cost",
+    )
+    target_speed = _candidate_vector(
+        candidate_target_speed_mps,
+        candidate_count=candidate_count,
+        field_name="candidate_target_speed_mps",
+    )
+    h10_distance = _candidate_vector(
+        _perfect_tracker_horizon_distance(perfect_tracker_open_loop, 10),
+        candidate_count=candidate_count,
+        field_name="h10_distance_m",
+    )
+    h3_distance = (
+        _candidate_vector(
+            _perfect_tracker_horizon_distance(perfect_tracker_open_loop, 3),
+            candidate_count=candidate_count,
+            field_name="h3_distance_m",
+        )
+        if mode == "h3_h10_guard_005"
+        else None
+    )
+    first_step = (
+        _candidate_vector(
+            candidate_step_reach,
+            candidate_count=candidate_count,
+            field_name="candidate_step_reach",
+        )
+        if mode == "step_h10_guard_005"
+        else None
+    )
+    for field_name, values in (
+        ("candidate_union_red_cost", union_red),
+        ("candidate_red_stopping_margin_cost", red_stopping),
+        ("candidate_dp_prior_jerk_excess_cost", raw_jerk),
+        ("candidate_horizon_lateral_acceleration_cost", raw_lateral),
+    ):
+        if np.any(values < 0.0):
+            raise ValueError(f"{field_name} must be nonnegative.")
+
+    budgets = _traffic_light_hybrid_budget(mode)
+    stats: dict[str, Any] = {
+        "schema_version": "traffic_light_hybrid_postselection_v1",
+        "enabled": True,
+        "default_off": True,
+        "selection_effect": True,
+        "online_selector_change": True,
+        "future_outcome_leakage": False,
+        "classical_benders_claim": False,
+        "mode": str(mode),
+        "screen_name": f"traffic_light_hybrid_{mode}",
+        "baseline_selected_index": selected,
+        "selected_index": selected,
+        "changed": False,
+        "opportunity": False,
+        "candidate_count": candidate_count,
+        "admissible_candidates": 0,
+        "budgets": budgets,
+        "requires": {
+            "traffic_lights_enabled": True,
+            "base_feasible": True,
+            "union_red_nondegrading": True,
+            "red_stopping_nondegrading": True,
+            "raw_lateral_strictly_improving": True,
+            "raw_jerk_strictly_improving": True,
+            "bounded_progress_loss": True,
+            "bounded_h10_distance_loss": True,
+            "bounded_target_speed_loss": True,
+        },
+        "reason": "not_evaluated",
+    }
+    if not traffic_lights_enabled:
+        stats["reason"] = "traffic_lights_disabled"
+        return selected, stats
+    if selection.used_fallback or not feasible.any():
+        stats["reason"] = "fallback_or_no_base_feasible_candidate"
+        return selected, stats
+
+    losses: dict[str, np.ndarray] = {
+        "dp_reward_progress_loss_m": _loss(progress, selected),
+        "h10_distance_loss_m": _loss(h10_distance, selected),
+        "target_speed_loss_mps": _loss(target_speed, selected),
+    }
+    if first_step is not None:
+        losses["first_step_loss_m"] = _loss(first_step, selected)
+    if h3_distance is not None:
+        losses["h3_distance_loss_m"] = _loss(h3_distance, selected)
+
+    admissible = (
+        feasible.copy()
+        & (union_red <= union_red[selected] + TRAFFIC_LIGHT_HYBRID_TOL)
+        & (
+            red_stopping
+            <= red_stopping[selected] + TRAFFIC_LIGHT_HYBRID_TOL
+        )
+        & (
+            raw_lateral
+            < raw_lateral[selected] - TRAFFIC_LIGHT_HYBRID_TOL
+        )
+        & (raw_jerk < raw_jerk[selected] - TRAFFIC_LIGHT_HYBRID_TOL)
+    )
+    for budget_name, budget_value in budgets.items():
+        admissible &= losses[budget_name] <= float(budget_value) + (
+            TRAFFIC_LIGHT_HYBRID_TOL
+        )
+    admissible[selected] = False
+    indices = np.flatnonzero(admissible)
+    stats["admissible_candidates"] = int(indices.size)
+    stats["opportunity"] = bool(indices.size)
+    if not indices.size:
+        stats["reason"] = "no_admissible_traffic_light_hybrid_candidate"
+        return selected, stats
+
+    def key(candidate_index: int) -> tuple[float, ...]:
+        loss_terms = tuple(
+            float(losses[budget_name][candidate_index])
+            for budget_name in budgets
+        )
+        return (
+            float(raw_lateral[candidate_index]),
+            float(raw_jerk[candidate_index]),
+            *loss_terms,
+            float(scores[candidate_index]),
+            float(candidate_index),
+        )
+
+    chosen = min((int(index) for index in indices.tolist()), key=key)
+    chosen_losses = {
+        name: float(values[chosen])
+        for name, values in sorted(losses.items())
+    }
+    stats.update(
+        {
+            "changed": bool(chosen != selected),
+            "reason": "selected_admissible_traffic_light_hybrid_candidate",
+            "selected_index": int(chosen),
+            "admissible_indices": [int(index) for index in indices.tolist()],
+            "losses": chosen_losses,
+            "delta": {
+                "union_red": float(union_red[chosen] - union_red[selected]),
+                "red_stopping": float(
+                    red_stopping[chosen] - red_stopping[selected]
+                ),
+                "raw_lateral": float(
+                    raw_lateral[chosen] - raw_lateral[selected]
+                ),
+                "raw_jerk": float(raw_jerk[chosen] - raw_jerk[selected]),
+                "dp_reward_progress_m": float(
+                    progress[chosen] - progress[selected]
+                ),
+                "h10_distance_m": float(
+                    h10_distance[chosen] - h10_distance[selected]
+                ),
+                "target_speed_mps": float(
+                    target_speed[chosen] - target_speed[selected]
+                ),
+            },
+        }
+    )
+    if h3_distance is not None:
+        stats["delta"]["h3_distance_m"] = float(
+            h3_distance[chosen] - h3_distance[selected]
+        )
+    if first_step is not None:
+        stats["delta"]["first_step_reach_m"] = float(
+            first_step[chosen] - first_step[selected]
+        )
+    return int(chosen), stats
 
 
 def _evaluation_state(scene: Any, ego_id: str) -> dict[str, Any]:
@@ -2205,6 +2536,95 @@ def _summarize_splice_shadow_rule_records(
     return summary
 
 
+def _summarize_traffic_light_hybrid_postselection_records(
+    records: list[dict[str, Any]] | None,
+    *,
+    mode: str,
+) -> dict[str, Any] | None:
+    if records is None:
+        return None
+    enabled = mode != "off"
+    summary: dict[str, Any] = {
+        "enabled": bool(enabled),
+        "default_off": True,
+        "selection_effect": bool(enabled),
+        "online_selector_change": bool(enabled),
+        "schema_version": "traffic_light_hybrid_postselection_v1",
+        "mode": str(mode),
+        "field": "traffic_light_hybrid_postselection",
+        "future_outcome_leakage": False,
+        "classical_benders_claim": False,
+        "budgets": (
+            _traffic_light_hybrid_budget(mode) if enabled else None
+        ),
+    }
+    if not enabled:
+        return summary
+
+    posts = [
+        record.get("traffic_light_hybrid_postselection")
+        for record in records
+        if record.get("traffic_light_hybrid_postselection") is not None
+    ]
+    summary["records"] = len(posts)
+    summary["changed_records"] = int(
+        sum(int(bool(post["changed"])) for post in posts)
+    )
+    summary["opportunity_records"] = int(
+        sum(int(bool(post["opportunity"])) for post in posts)
+    )
+    summary["admissible_candidates"] = int(
+        sum(int(post["admissible_candidates"]) for post in posts)
+    )
+    summary["reason_counts"] = _sum_reason_counts(
+        {str(post["reason"]): 1} for post in posts
+    )
+    summary["latency_ms"] = _summary(
+        [
+            float(record["latency_ms_traffic_light_hybrid_postselection"])
+            for record in records
+            if record.get("latency_ms_traffic_light_hybrid_postselection")
+            is not None
+        ]
+    )
+    changed_posts = [post for post in posts if bool(post["changed"])]
+    loss_names = sorted(
+        {
+            loss_name
+            for post in changed_posts
+            for loss_name in post.get("losses", {})
+        }
+    )
+    summary["changed_loss_summary"] = {
+        loss_name: _summary(
+            [
+                float(post["losses"][loss_name])
+                for post in changed_posts
+                if loss_name in post.get("losses", {})
+            ]
+        )
+        for loss_name in loss_names
+    }
+    delta_names = sorted(
+        {
+            delta_name
+            for post in changed_posts
+            for delta_name in post.get("delta", {})
+        }
+    )
+    summary["changed_delta_summary"] = {
+        delta_name: _summary(
+            [
+                float(post["delta"][delta_name])
+                for post in changed_posts
+                if delta_name in post.get("delta", {})
+            ]
+        )
+        for delta_name in delta_names
+    }
+    return summary
+
+
 def _summary(values: list[float]) -> dict[str, float | None]:
     if not values:
         return {"mean": None, "max": None}
@@ -2243,6 +2663,7 @@ def _install_camp_predictor(
     lexicographic_jerk_epsilon: float,
     lexicographic_lateral_epsilon: float,
     perfect_tracker_command_postselection: bool,
+    traffic_light_hybrid_postselection_mode: str,
     underprogress_relaxation: bool,
     underprogress_progress_loss_budget_m: float,
     underprogress_h3_distance_loss_budget_m: float,
@@ -2637,7 +3058,6 @@ def _install_camp_predictor(
         underprogress_relaxation_done = time.perf_counter()
         baseline_selected_index = int(selection.selected_index)
         selected_index = baseline_selected_index
-        splice_shadow_start = time.perf_counter()
         splice_shadow_rule_stats = None
         if splice_shadow_rule:
             if (
@@ -2674,6 +3094,43 @@ def _install_camp_predictor(
                 ),
             )
         splice_shadow_done = time.perf_counter()
+        traffic_light_hybrid_postselection_stats = None
+        if traffic_light_hybrid_postselection_mode != "off":
+            if (
+                candidate_progress is None
+                or candidate_horizon_union_planned_red_light_cost is None
+            ):
+                raise RuntimeError(
+                    "Traffic-light hybrid postselection requires DP reward "
+                    "candidate fields."
+                )
+            (
+                selected_index,
+                traffic_light_hybrid_postselection_stats,
+            ) = _apply_traffic_light_hybrid_postselection(
+                selection,
+                traffic_lights_enabled=bool(spawn_config.enable_traffic_lights),
+                mode=traffic_light_hybrid_postselection_mode,
+                candidate_step_reach=candidate_step_reach,
+                candidate_progress=candidate_progress,
+                candidate_union_red_cost=(
+                    candidate_horizon_union_planned_red_light_cost
+                ),
+                candidate_red_stopping_margin_cost=(
+                    candidate_red_stopping_margin_cost
+                ),
+                candidate_dp_prior_jerk_excess_cost=(
+                    candidate_dp_prior_jerk_excess_cost
+                ),
+                candidate_horizon_lateral_acceleration_cost=(
+                    candidate_horizon_lateral_acceleration_cost
+                ),
+                candidate_target_speed_mps=(
+                    perfect_tracker_command["target_speed_mps"]
+                ),
+                perfect_tracker_open_loop=perfect_tracker_open_loop,
+            )
+        traffic_light_hybrid_done = time.perf_counter()
         perfect_tracker_command_postselection_stats = None
         if perfect_tracker_command_postselection:
             if candidate_progress is None or candidate_planned_red_light_cost is None:
@@ -2748,7 +3205,11 @@ def _install_camp_predictor(
             )
             * 1000.0,
             "latency_ms_perfect_tracker_command_postselection": (
-                selection_done - splice_shadow_done
+                selection_done - traffic_light_hybrid_done
+            )
+            * 1000.0,
+            "latency_ms_traffic_light_hybrid_postselection": (
+                traffic_light_hybrid_done - splice_shadow_done
             )
             * 1000.0,
             "latency_ms_splice_shadow_rule": (
@@ -2853,8 +3314,16 @@ def _install_camp_predictor(
                     if perfect_tracker_command_postselection
                     else None
                 ),
+                "camp_selected_index_before_traffic_light_hybrid_postselection": (
+                    baseline_selected_index
+                    if traffic_light_hybrid_postselection_mode != "off"
+                    else None
+                ),
                 "perfect_tracker_command_postselection": (
                     perfect_tracker_command_postselection_stats
+                ),
+                "traffic_light_hybrid_postselection": (
+                    traffic_light_hybrid_postselection_stats
                 ),
                 "underprogress_relaxation": underprogress_relaxation_stats,
                 "splice_shadow_rule": splice_shadow_rule_stats,
@@ -3190,6 +3659,9 @@ def main() -> None:
             perfect_tracker_command_postselection=(
                 bool(args.camp_perfect_tracker_command_postselection)
             ),
+            traffic_light_hybrid_postselection_mode=(
+                args.camp_traffic_light_hybrid_postselection
+            ),
             underprogress_relaxation=bool(args.camp_underprogress_relaxation),
             underprogress_progress_loss_budget_m=(
                 args.camp_underprogress_progress_loss_budget_m
@@ -3453,6 +3925,12 @@ def main() -> None:
         progress_loss_budget_m=args.camp_splice_shadow_progress_loss_budget_m,
         smoothness_loss_budget=args.camp_splice_shadow_smoothness_loss_budget,
     )
+    effective_traffic_light_hybrid_postselection = (
+        _summarize_traffic_light_hybrid_postselection_records(
+            records,
+            mode=args.camp_traffic_light_hybrid_postselection,
+        )
+    )
     summary = {
         "replay_result": result,
         "camp_selection_log": str(selection_log) if selection_log is not None else None,
@@ -3483,6 +3961,9 @@ def main() -> None:
         ),
         "camp_raw_candidate_prefix_logging": camp_raw_candidate_prefix_logging,
         "camp_splice_shadow_rule": effective_splice_shadow_rule,
+        "camp_traffic_light_hybrid_postselection": (
+            effective_traffic_light_hybrid_postselection
+        ),
         "camp_lane_corridor_buffer": effective_lane_buffer,
         "camp_feasibility_source": effective_feasibility_source,
         "camp_min_progress_ratio": effective_min_progress_ratio,
@@ -3736,6 +4217,9 @@ def main() -> None:
         camp_raw_candidate_prefix_logging
     )
     validation["camp_splice_shadow_rule"] = effective_splice_shadow_rule
+    validation["camp_traffic_light_hybrid_postselection"] = (
+        effective_traffic_light_hybrid_postselection
+    )
     validation["camp_reward_horizon_steps"] = effective_reward_horizon_steps
     validation["camp_collect_closed_loop_outcomes"] = (
         bool(args.camp_collect_closed_loop_outcomes) if records is not None else None

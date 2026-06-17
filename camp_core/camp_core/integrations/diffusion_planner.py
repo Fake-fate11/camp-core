@@ -2074,6 +2074,9 @@ def summarize_selection_records(
         "latency_ms_perfect_tracker_command_postselection": (
             "perfect_tracker_command_postselection_latency_ms"
         ),
+        "latency_ms_traffic_light_hybrid_postselection": (
+            "traffic_light_hybrid_postselection_latency_ms"
+        ),
         "latency_ms_camp_atom_computation": "camp_atom_computation_latency_ms",
         "latency_ms_camp_feasibility": "camp_feasibility_latency_ms",
         "latency_ms_camp_collision_checks": "camp_collision_checks_latency_ms",

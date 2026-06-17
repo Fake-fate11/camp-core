@@ -57,6 +57,7 @@ from scripts.integrations.run_diffusion_planner_camp_replay import (
     _apply_candidate0_route_progress_guard,
     _apply_candidate0_step_reach_guard,
     _apply_lexicographic_admissible_filter,
+    _apply_traffic_light_hybrid_postselection,
     _apply_underprogress_relaxation_override,
     _candidate_route_progress,
     _candidate_step_reach,
@@ -2112,6 +2113,143 @@ def test_dp_reward_feasibility_applies_safety_and_progress_gates() -> None:
 
     assert feasible.tolist() == [True, False, False]
     assert reasons == ((), ("dp_underprogress",), ("dp_collision",))
+
+
+def _traffic_light_hybrid_base_selection() -> CAMPSelectionResult:
+    return CAMPSelectionResult(
+        selected_index=0,
+        selected_trajectory=np.zeros((4, 2), dtype=np.float64),
+        atoms=np.ones((3, 2), dtype=np.float64),
+        normalized_atoms=np.ones((3, 2), dtype=np.float64),
+        feasible_mask=np.array([True, True, True]),
+        infeasibility_reasons=((), (), ()),
+        scores=np.array([0.1, 0.2, 0.0], dtype=np.float64),
+        weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_scores=np.array([0.1, 0.2, 0.0], dtype=np.float64),
+        selection_weights=np.array([0.5, 0.5], dtype=np.float64),
+        selection_normalized_atoms=np.ones((3, 2), dtype=np.float64),
+        used_fallback=False,
+        timings_ms={},
+    )
+
+
+def _traffic_light_hybrid_rollout() -> dict:
+    return {
+        "horizons": {
+            "3": {
+                "distance_m": np.array([3.0, 2.95, 2.95], dtype=np.float64),
+            },
+            "10": {
+                "distance_m": np.array([10.0, 9.97, 9.0], dtype=np.float64),
+            },
+        }
+    }
+
+
+def test_traffic_light_hybrid_postselection_selects_admissible_candidate() -> None:
+    selected, stats = _apply_traffic_light_hybrid_postselection(
+        _traffic_light_hybrid_base_selection(),
+        traffic_lights_enabled=True,
+        mode="step_h10_guard_005",
+        candidate_step_reach=np.array([1.0, 0.96, 0.96], dtype=np.float64),
+        candidate_progress=np.array([5.0, 4.97, 4.8], dtype=np.float64),
+        candidate_union_red_cost=np.array([2.0, 2.0, 1.5], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.array(
+            [1.0, 1.0, 1.0], dtype=np.float64
+        ),
+        candidate_dp_prior_jerk_excess_cost=np.array(
+            [1.0, 0.8, 0.7], dtype=np.float64
+        ),
+        candidate_horizon_lateral_acceleration_cost=np.array(
+            [1.0, 0.9, 0.95], dtype=np.float64
+        ),
+        candidate_target_speed_mps=np.array([4.0, 3.99, 3.99], dtype=np.float64),
+        perfect_tracker_open_loop=_traffic_light_hybrid_rollout(),
+    )
+
+    assert selected == 1
+    assert stats["changed"] is True
+    assert stats["opportunity"] is True
+    assert stats["selected_index"] == 1
+    assert stats["admissible_indices"] == [1]
+    assert stats["future_outcome_leakage"] is False
+    assert stats["classical_benders_claim"] is False
+    assert stats["losses"]["first_step_loss_m"] == pytest.approx(0.04)
+    assert stats["losses"]["h10_distance_loss_m"] == pytest.approx(0.03)
+    assert stats["delta"]["raw_jerk"] == pytest.approx(-0.2)
+
+
+def test_traffic_light_hybrid_postselection_is_traffic_light_gated() -> None:
+    selected, stats = _apply_traffic_light_hybrid_postselection(
+        _traffic_light_hybrid_base_selection(),
+        traffic_lights_enabled=False,
+        mode="step_h10_guard_005",
+        candidate_step_reach=np.array([1.0, 0.96, 0.96], dtype=np.float64),
+        candidate_progress=np.array([5.0, 4.97, 4.8], dtype=np.float64),
+        candidate_union_red_cost=np.array([2.0, 2.0, 1.5], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.ones(3, dtype=np.float64),
+        candidate_dp_prior_jerk_excess_cost=np.array(
+            [1.0, 0.8, 0.7], dtype=np.float64
+        ),
+        candidate_horizon_lateral_acceleration_cost=np.array(
+            [1.0, 0.9, 0.95], dtype=np.float64
+        ),
+        candidate_target_speed_mps=np.array([4.0, 3.99, 3.99], dtype=np.float64),
+        perfect_tracker_open_loop=_traffic_light_hybrid_rollout(),
+    )
+
+    assert selected == 0
+    assert stats["changed"] is False
+    assert stats["reason"] == "traffic_lights_disabled"
+
+
+def test_traffic_light_hybrid_postselection_requires_strict_raw_jerk() -> None:
+    selected, stats = _apply_traffic_light_hybrid_postselection(
+        _traffic_light_hybrid_base_selection(),
+        traffic_lights_enabled=True,
+        mode="step_h10_guard_005",
+        candidate_step_reach=np.array([1.0, 0.96, 0.96], dtype=np.float64),
+        candidate_progress=np.array([5.0, 4.97, 4.8], dtype=np.float64),
+        candidate_union_red_cost=np.array([2.0, 2.0, 1.5], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.ones(3, dtype=np.float64),
+        candidate_dp_prior_jerk_excess_cost=np.array(
+            [1.0, 1.0, 0.7], dtype=np.float64
+        ),
+        candidate_horizon_lateral_acceleration_cost=np.array(
+            [1.0, 0.9, 0.95], dtype=np.float64
+        ),
+        candidate_target_speed_mps=np.array([4.0, 3.99, 3.99], dtype=np.float64),
+        perfect_tracker_open_loop=_traffic_light_hybrid_rollout(),
+    )
+
+    assert selected == 0
+    assert stats["changed"] is False
+    assert stats["reason"] == "no_admissible_traffic_light_hybrid_candidate"
+
+
+def test_traffic_light_hybrid_h3_mode_uses_h3_budget() -> None:
+    selected, stats = _apply_traffic_light_hybrid_postselection(
+        _traffic_light_hybrid_base_selection(),
+        traffic_lights_enabled=True,
+        mode="h3_h10_guard_005",
+        candidate_step_reach=np.array([1.0, 0.5, 0.96], dtype=np.float64),
+        candidate_progress=np.array([5.0, 4.97, 4.8], dtype=np.float64),
+        candidate_union_red_cost=np.array([2.0, 2.0, 1.5], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.ones(3, dtype=np.float64),
+        candidate_dp_prior_jerk_excess_cost=np.array(
+            [1.0, 0.8, 0.7], dtype=np.float64
+        ),
+        candidate_horizon_lateral_acceleration_cost=np.array(
+            [1.0, 0.9, 0.95], dtype=np.float64
+        ),
+        candidate_target_speed_mps=np.array([4.0, 3.99, 3.99], dtype=np.float64),
+        perfect_tracker_open_loop=_traffic_light_hybrid_rollout(),
+    )
+
+    assert selected == 1
+    assert stats["changed"] is True
+    assert "first_step_loss_m" not in stats["losses"]
+    assert stats["losses"]["h3_distance_loss_m"] == pytest.approx(0.05)
 
 
 def test_underprogress_relaxation_selects_only_soft_blocked_lower_red() -> None:

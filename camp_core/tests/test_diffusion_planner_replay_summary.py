@@ -19,6 +19,7 @@ from scripts.integrations.run_diffusion_planner_camp_replay import (
     _lower_union_red_donor_indices,
     _raw_candidate_prefix_payload,
     _summarize_splice_shadow_rule_records,
+    _summarize_traffic_light_hybrid_postselection_records,
 )
 
 
@@ -61,6 +62,12 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
             "online_selector_change": False,
             "changed_records": 2,
         },
+        "camp_traffic_light_hybrid_postselection": {
+            "enabled": True,
+            "selection_effect": True,
+            "online_selector_change": True,
+            "changed_records": 1,
+        },
         "camp_shadow_dp_prior_comfort_excess": {
             "enabled": True,
             "selection_effect": False,
@@ -97,6 +104,11 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
     assert not merged["camp_raw_candidate_prefix_logging"]["selection_effect"]
     assert merged["camp_splice_shadow_rule"]["changed_records"] == 2
     assert not merged["camp_splice_shadow_rule"]["selection_effect"]
+    assert (
+        merged["camp_traffic_light_hybrid_postselection"]["changed_records"]
+        == 1
+    )
+    assert merged["camp_traffic_light_hybrid_postselection"]["selection_effect"]
     assert merged["camp_shadow_dp_prior_comfort_excess"][
         "effective_horizon_steps"
     ] == 30
@@ -390,6 +402,62 @@ def test_summarize_splice_shadow_rule_records_reports_default_off_state() -> Non
     }
     assert summary["latency_ms"]["max"] == 2.5
     assert summary["chosen_union_red"]["max"] == 0.0
+
+
+def test_summarize_traffic_light_hybrid_postselection_records() -> None:
+    summary = _summarize_traffic_light_hybrid_postselection_records(
+        [
+            {
+                "traffic_light_hybrid_postselection": {
+                    "changed": True,
+                    "opportunity": True,
+                    "admissible_candidates": 2,
+                    "reason": (
+                        "selected_admissible_traffic_light_hybrid_candidate"
+                    ),
+                    "losses": {
+                        "dp_reward_progress_loss_m": 0.03,
+                        "h10_distance_loss_m": 0.02,
+                    },
+                    "delta": {"raw_jerk": -0.2, "raw_lateral": -0.1},
+                },
+                "latency_ms_traffic_light_hybrid_postselection": 0.4,
+            },
+            {
+                "traffic_light_hybrid_postselection": {
+                    "changed": False,
+                    "opportunity": False,
+                    "admissible_candidates": 0,
+                    "reason": (
+                        "no_admissible_traffic_light_hybrid_candidate"
+                    ),
+                    "losses": {},
+                    "delta": {},
+                },
+                "latency_ms_traffic_light_hybrid_postselection": 0.2,
+            },
+        ],
+        mode="step_h10_guard_005",
+    )
+
+    assert summary is not None
+    assert summary["enabled"] is True
+    assert summary["selection_effect"] is True
+    assert summary["online_selector_change"] is True
+    assert summary["changed_records"] == 1
+    assert summary["opportunity_records"] == 1
+    assert summary["admissible_candidates"] == 2
+    assert summary["reason_counts"] == {
+        "no_admissible_traffic_light_hybrid_candidate": 1,
+        "selected_admissible_traffic_light_hybrid_candidate": 1,
+    }
+    assert summary["latency_ms"]["max"] == pytest.approx(0.4)
+    assert summary["changed_loss_summary"]["h10_distance_loss_m"]["mean"] == (
+        pytest.approx(0.02)
+    )
+    assert summary["changed_delta_summary"]["raw_jerk"]["mean"] == pytest.approx(
+        -0.2
+    )
 
 
 def test_configure_candidate_guidance_default_is_disabled() -> None:
