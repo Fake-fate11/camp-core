@@ -116,6 +116,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scenario_bucket_manifest", type=Path, default=None)
     parser.add_argument("--label", default=None)
     parser.add_argument("--tick_bin_size", type=int, default=DEFAULT_TICK_BIN_SIZE)
+    parser.add_argument("--max_examples", type=int, default=20)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     return parser.parse_args()
@@ -131,6 +132,7 @@ def main() -> None:
         scenario_bucket_manifest=args.scenario_bucket_manifest,
         label=args.label,
         tick_bin_size=args.tick_bin_size,
+        max_examples=args.max_examples,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
@@ -149,6 +151,7 @@ def analyze(
     scenario_bucket_manifest: Path | None = None,
     label: str | None = None,
     tick_bin_size: int = DEFAULT_TICK_BIN_SIZE,
+    max_examples: int = 20,
 ) -> dict[str, Any]:
     if tick_bin_size <= 0:
         raise ValueError("tick_bin_size must be positive.")
@@ -201,6 +204,7 @@ def analyze(
                 else str(scenario_bucket_manifest)
             ),
             "tick_bin_size": int(tick_bin_size),
+            "max_examples": int(max_examples),
             "screens": _screen_metadata(),
             "selection_rule": (
                 "base feasible, union-red and red-stopping nonworse, first-step "
@@ -225,7 +229,7 @@ def analyze(
             "fallback": fallback_records,
         },
         "screens": [
-            _screen_report(screen_name, rows)
+            _screen_report(screen_name, rows, max_examples=max_examples)
             for screen_name, rows in rows_by_screen.items()
         ],
     }
@@ -436,7 +440,12 @@ def _result_row(
     return row
 
 
-def _screen_report(screen_name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
+def _screen_report(
+    screen_name: str,
+    rows: list[dict[str, Any]],
+    *,
+    max_examples: int,
+) -> dict[str, Any]:
     nonfallback = [row for row in rows if not row["fallback"]]
     return {
         "name": screen_name,
@@ -453,6 +462,14 @@ def _screen_report(screen_name: str, rows: list[dict[str, Any]]) -> dict[str, An
         "by_tick_bin": _group_report(nonfallback, lambda row: row["tick_bin"]),
         "changed_delta_summary": _delta_summary(
             [row for row in nonfallback if row["changed"]]
+        ),
+        "safety_regression_examples": _safety_regression_examples(
+            nonfallback,
+            max_examples=max_examples,
+        ),
+        "worst_progress_loss_examples": _worst_progress_loss_examples(
+            nonfallback,
+            max_examples=max_examples,
         ),
     }
 
@@ -512,6 +529,80 @@ def _delta_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         field: _stats([float(row[field]) for row in rows])
         for field in fields
+    }
+
+
+def _safety_regression_examples(
+    rows: list[dict[str, Any]],
+    *,
+    max_examples: int,
+) -> list[dict[str, Any]]:
+    candidates = [
+        row
+        for row in rows
+        if row["changed"] and row["outcome_safety_regression"]
+    ]
+    candidates.sort(key=_example_sort_key)
+    return [_example(row) for row in candidates[: max(0, max_examples)]]
+
+
+def _worst_progress_loss_examples(
+    rows: list[dict[str, Any]],
+    *,
+    max_examples: int,
+) -> list[dict[str, Any]]:
+    candidates = [row for row in rows if row["changed"]]
+    candidates.sort(
+        key=lambda row: (
+            float(row["outcome_progress_m_delta"]),
+            _example_sort_key(row),
+        )
+    )
+    return [_example(row) for row in candidates[: max(0, max_examples)]]
+
+
+def _example_sort_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    context = row["context"]
+    return (
+        str(context["route_name"]),
+        int(context["seed"]) if context["seed"] is not None else -1,
+        int(context["max_npcs"]) if context["max_npcs"] is not None else -1,
+        bool(context["traffic_lights"]),
+        int(row["selection_step"]),
+        int(row["chosen_index"]),
+    )
+
+
+def _example(row: dict[str, Any]) -> dict[str, Any]:
+    context = row["context"]
+    return {
+        "route_name": context["route_name"],
+        "scenario_buckets": context["scenario_buckets"],
+        "seed": context["seed"],
+        "max_npcs": context["max_npcs"],
+        "traffic_lights": context["traffic_lights"],
+        "run_key": context["run_key"],
+        "log_path": context["log_path"],
+        "selection_step": row["selection_step"],
+        "tick_bin": row["tick_bin"],
+        "selected_index": row["selected_index"],
+        "chosen_index": row["chosen_index"],
+        "budgets": row["budgets"],
+        "outcome_safety_regression_fields": row["outcome_safety_regression_fields"],
+        "deltas": {
+            "outcome_progress_m": row["outcome_progress_m_delta"],
+            "outcome_mean_jerk_mps3": row["outcome_mean_jerk_mps3_delta"],
+            "outcome_mean_lateral_acceleration_mps2": (
+                row["outcome_mean_lateral_acceleration_mps2_delta"]
+            ),
+            "first_step_loss_m": row["first_step_loss_m"],
+            "h3_distance_loss_m": row["h3_distance_loss_m"],
+            "target_speed_loss_mps": row["target_speed_loss_mps"],
+            "raw_lateral": row["raw_lateral_delta"],
+            "raw_jerk": row["raw_jerk_delta"],
+            "union_red": row["union_red_delta"],
+            "red_stopping": row["red_stopping_delta"],
+        },
     }
 
 

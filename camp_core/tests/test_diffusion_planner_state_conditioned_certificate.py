@@ -137,3 +137,9 @@ def test_screen_reports_posterior_safety_regression(tmp_path) -> None:
     assert screen["overall"]["outcome_safety_regression_fields"] == {
         "red_light_violation": 1
     }
+    assert screen["safety_regression_examples"][0]["outcome_safety_regression_fields"] == [
+        "red_light_violation"
+    ]
+    assert screen["safety_regression_examples"][0]["deltas"]["first_step_loss_m"] == pytest.approx(
+        0.06
+    )
