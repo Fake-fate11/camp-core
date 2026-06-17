@@ -17187,3 +17187,133 @@ run and tail rows. Reject `reward 10%`, `reward 25%`, and
 new replays until a concrete exact-equivalent optimization path can plausibly
 approach the `reward 50%` projected saving or produce an equivalent combined
 margin under the proportional clearance model.
+
+### Reward-Scoring Tail Attribution on Existing Full36 Logs
+
+Commit:
+
+- Local/GitHub/AutoDL CAMP:
+  `3f71142aefcb4bd35fb2bdeddf1738c6a4ae6b25`
+  (`Add DP reward latency tail audit`).
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Purpose:
+
+The combined sensitivity audit showed that the conservative projection needs a
+roughly `reward 50%`-level saving, or an equivalent combined saving, before a
+Full36 rerun would be justified. This audit asks whether the existing Full36
+logs already contain reward internal timing evidence that identifies such a
+candidate subcomponent.
+
+The audit is read-only. It applies the same clearance projection modes, selects
+the over-budget run tails, and attributes `latency_ms_reward_scoring` to the
+existing `latency_ms_reward_*` breakdown fields when present. It does not
+replay, alter reward values, alter feasibility, alter CAMP atoms, alter
+selection, train, or use outcome labels.
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_reward_latency_tail.py `
+  camp_core\tests\test_diffusion_planner_latency_savings_sensitivity.py `
+  camp_core\tests\test_diffusion_planner_projected_latency_tail.py `
+  camp_core\tests\test_diffusion_planner_clearance_latency_projection.py -q
+
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_reward_latency_tail.py `
+  camp_core\tests\test_diffusion_planner_reward_latency_tail.py
+
+git diff --check
+```
+
+Result: `8 passed`; compile and diff checks passed.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_reward_latency_tail.py \
+  camp_core/tests/test_diffusion_planner_latency_savings_sensitivity.py \
+  camp_core/tests/test_diffusion_planner_projected_latency_tail.py \
+  camp_core/tests/test_diffusion_planner_clearance_latency_projection.py -q
+```
+
+Result: `8 passed`.
+
+Audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_devgrid_57cd0d1
+OUT=$ROOT/reward_latency_tail_3f71142
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_reward_latency_tail.py \
+  --root "$ROOT" \
+  --label no_outcome_full36_reward_latency_tail_3f71142 \
+  --reference_old_clearance_p95_ms 9.296867 \
+  --reference_new_clearance_p95_ms 0.858788 \
+  --reference_source old_exact_off_smoke_vs_vectorized_smoke_sha_88bee7f5494de1cf9ad49cd5c17b772bdd337274f4211ff24f284b2c32d2a140 \
+  --output_json "$OUT/reward_latency_tail.json" \
+  --output_md "$OUT/reward_latency_tail.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `reward_latency_tail.json` | `56b6765fcc8254f1afc10fa6ed87b0cae5e4df3fa0d0c09bdacaf4902f3e8228` |
+| `reward_latency_tail.md` | `9a2059867c8b09417c4c34de884600ae1bb3250c7622e63e183be7800b2a130c` |
+
+Reward-tail attribution summary:
+
+| Projection mode | Runs over budget | Tail rows | Reward scoring mean | Reward scoring p95 | Breakdown sum mean | Residual mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `constant_new_p95` | `4 / 36` | `40` | `47.753345` | `206.013012` | `0.000000` | `47.753345` |
+| `cap_at_new_p95` | `4 / 36` | `40` | `47.753345` | `206.013012` | `0.000000` | `47.753345` |
+| `scale_by_smoke_p95_ratio` | `4 / 36` | `40` | `47.963396` | `205.847488` | `0.000000` | `47.963396` |
+
+The existing Full36 logs do not contain nonzero reward internal breakdown
+fields on the relevant tail rows:
+
+| Scenario | Conservative projected result |
+| --- | --- |
+| `latency_ms_reward_batch_compute_50pct_saving` | no effect; still `4 / 36` over budget |
+| `latency_ms_reward_postprocess_50pct_saving` | no effect; still `4 / 36` over budget |
+| `latency_ms_reward_full_horizon_red_light_50pct_saving` | no effect; still `4 / 36` over budget |
+| `latency_ms_reward_tensor_setup_50pct_saving` | no effect; still `4 / 36` over budget |
+| `all_instrumented_reward_breakdown_50pct_saving` | no effect; still `4 / 36` over budget |
+| `reward_unattributed_residual_50pct_saving` | clears projected over-budget runs, but is not an actionable subcomponent |
+
+Interpretation:
+
+1. The old Full36 artifact can show that reward scoring is the large projected
+   tail, but it cannot explain which reward subcomponent caused it. All named
+   reward breakdown fields are zero on the relevant tail rows.
+2. The previously observed `reward 50%` sensitivity is therefore entirely
+   `reward_unattributed_residual` on this artifact. Treating it as an
+   optimization target would be mathematically and experimentally unsupported.
+3. Current code contains reward breakdown timing fields in
+   `_score_candidates_with_dp_reward`, so the missing attribution is an artifact
+   coverage problem rather than proof that reward internals are irreducible.
+
+Mathematical boundary: this audit is latency attribution only. It does not
+change candidate trajectories, reward values, feasibility masks, CAMP atoms,
+weights, the affine CAMP score, the convex master, selected trajectories, or
+Benders-style logic. Reward timing is engineering plumbing, not a CAMP
+subproblem or cut source.
+
+Decision: accept the reward-tail analyzer and existing-artifact audit. Reject
+any reward subcomponent optimization decision from the old Full36 logs. The
+next admissible step is a single blocker-focused, non-formal,
+instrumentation-only smoke using current code to produce nonzero reward
+breakdown timings for
+`sample_map_tl_route_59_to_86/seed_1/npc_4/tl_off/static`, followed by the same
+reward-tail attribution. Do not run a new Full36 matrix, train CAMP, use formal
+seeds, or promote an online selector from this evidence.
