@@ -63,6 +63,34 @@ def _record() -> dict:
     }
 
 
+def _traffic_light_hybrid_record(*, raw_jerk_delta: float = -0.1) -> dict:
+    record = _record()
+    record["candidate_closed_loop_outcomes"] = [
+        _outcome(0, progress=10.0, jerk=5.0, lateral=2.0),
+        _outcome(1, progress=9.98, jerk=3.0, lateral=1.0),
+        _outcome(2, progress=9.90, jerk=4.0, lateral=0.8),
+    ]
+    record["candidate_perfect_tracker_first_step_reach_m"] = [1.00, 0.92, 0.94]
+    record["candidate_perfect_tracker_target_speed_mps"] = [5.00, 4.96, 4.94]
+    record["candidate_perfect_tracker_open_loop_rollout"] = {
+        "3": {"distance_m": [3.00, 2.92, 2.94]},
+        "10": {"distance_m": [10.00, 9.96, 9.94]},
+    }
+    record["dp_candidate_rewards"] = [
+        {"progress": 10.00},
+        {"progress": 9.96},
+        {"progress": 9.94},
+    ]
+    record["candidate_horizon_lateral_acceleration_cost"] = [2.0, 1.0, 0.8]
+    record["candidate_dp_prior_jerk_excess_cost"] = [
+        1.0,
+        1.0 + raw_jerk_delta,
+        0.2,
+    ]
+    record["selection_scores"] = [0.0, 1.0, 2.0]
+    return record
+
+
 def _manifest() -> dict:
     return {
         "routes": {},
@@ -154,6 +182,44 @@ def test_reward_h10_screen_applies_critical_bucket_budget(tmp_path) -> None:
     screen = _screen(report, "reward_h10_guard_balanced_010")
 
     assert screen["overall"]["changed"] == 0
+
+
+def test_traffic_light_hybrid_screen_is_bucket_gated(tmp_path) -> None:
+    record = _traffic_light_hybrid_record()
+    log_path, manifest_path = _write_log(tmp_path, [record], traffic_lights=False)
+
+    report = analyze([log_path], scenario_bucket_manifest=manifest_path, label="unit")
+
+    assert _screen(report, "traffic_light_hybrid_step_h10_guard_005")["overall"][
+        "changed"
+    ] == 0
+    assert _screen(report, "traffic_light_hybrid_h3_h10_guard_005")["overall"][
+        "changed"
+    ] == 0
+
+    log_path, manifest_path = _write_log(tmp_path / "tl", [record], traffic_lights=True)
+    report = analyze([log_path], scenario_bucket_manifest=manifest_path, label="unit")
+
+    step = _screen(report, "traffic_light_hybrid_step_h10_guard_005")
+    h3 = _screen(report, "traffic_light_hybrid_h3_h10_guard_005")
+    assert step["overall"]["changed"] == 1
+    assert h3["overall"]["changed"] == 1
+    assert step["overall"]["posterior_joint_comfort_improvements"] == 1
+    assert h3["overall"]["posterior_joint_comfort_improvements"] == 1
+
+
+def test_traffic_light_hybrid_screen_requires_strict_raw_jerk(tmp_path) -> None:
+    record = _traffic_light_hybrid_record(raw_jerk_delta=0.0)
+    log_path, manifest_path = _write_log(tmp_path, [record], traffic_lights=True)
+
+    report = analyze([log_path], scenario_bucket_manifest=manifest_path, label="unit")
+
+    assert _screen(report, "traffic_light_hybrid_step_h10_guard_005")["overall"][
+        "changed"
+    ] == 0
+    assert _screen(report, "traffic_light_hybrid_h3_h10_guard_005")["overall"][
+        "changed"
+    ] == 0
 
 
 def test_screen_reports_posterior_safety_regression(tmp_path) -> None:

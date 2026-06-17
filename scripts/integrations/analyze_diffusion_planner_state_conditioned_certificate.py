@@ -148,6 +148,32 @@ SCREENS: tuple[dict[str, Any], ...] = (
         ],
         "require_raw_jerk_nondegrading": True,
     },
+    {
+        "name": "traffic_light_hybrid_step_h10_guard_005",
+        "only_if_any_bucket": ["traffic_light"],
+        "default_budgets": {
+            "first_step_loss_m": 0.10,
+            "dp_reward_progress_loss_m": 0.05,
+            "h10_distance_loss_m": 0.05,
+            "target_speed_loss_mps": 0.05,
+        },
+        "bucket_overrides": [],
+        "require_raw_jerk_nondegrading": True,
+        "require_raw_jerk_improving": True,
+    },
+    {
+        "name": "traffic_light_hybrid_h3_h10_guard_005",
+        "only_if_any_bucket": ["traffic_light"],
+        "default_budgets": {
+            "h3_distance_loss_m": 0.10,
+            "dp_reward_progress_loss_m": 0.05,
+            "h10_distance_loss_m": 0.05,
+            "target_speed_loss_mps": 0.05,
+        },
+        "bucket_overrides": [],
+        "require_raw_jerk_nondegrading": True,
+        "require_raw_jerk_improving": True,
+    },
 )
 LOSS_FIELD_TO_RECORD_FIELD = {
     "first_step_loss_m": "first_step_reach",
@@ -265,10 +291,11 @@ def analyze(
             "selection_rule": (
                 "base feasible, union-red and red-stopping nonworse, declared "
                 "progress-descriptor/rollout/target-speed losses inside "
-                "state-conditioned budgets, strict raw lateral improvement, "
-                "optional raw jerk nondegradation; tie-break by raw lateral, "
-                "raw jerk, descriptor losses, original CAMP score, then "
-                "candidate index; retain baseline if no candidate is admissible"
+                "state-conditioned budgets, optional scenario-bucket activation, "
+                "strict raw lateral improvement, optional raw jerk nondegradation "
+                "or strict raw jerk improvement; tie-break by raw lateral, raw "
+                "jerk, descriptor losses, original CAMP score, then candidate "
+                "index; retain baseline if no candidate is admissible"
             ),
             "math_boundary": (
                 "All screen inputs are fixed current-tick finite-candidate "
@@ -295,9 +322,13 @@ def _screen_metadata() -> list[dict[str, Any]]:
     return [
         {
             "name": screen["name"],
+            "only_if_any_bucket": screen.get("only_if_any_bucket", []),
             "default_budgets": screen["default_budgets"],
             "bucket_overrides": screen["bucket_overrides"],
             "require_raw_jerk_nondegrading": screen["require_raw_jerk_nondegrading"],
+            "require_raw_jerk_improving": bool(
+                screen.get("require_raw_jerk_improving", False)
+            ),
         }
         for screen in SCREENS
     ]
@@ -390,9 +421,10 @@ def _screen_record(
     selected = int(record["selected_index"])
     fallback = not record["feasible"].any()
     budgets = _state_budgets(screen, context["scenario_buckets"])
+    applies = _screen_applies(screen, context["scenario_buckets"])
     admissible = (
         np.zeros_like(record["feasible"], dtype=bool)
-        if fallback
+        if fallback or not applies
         else _admissible_mask(record, screen, budgets)
     )
     chosen = _choose(record, admissible, budgets) if admissible.any() else selected
@@ -406,6 +438,13 @@ def _screen_record(
         }
     )
     return row
+
+
+def _screen_applies(screen: dict[str, Any], buckets: list[str]) -> bool:
+    only = screen.get("only_if_any_bucket", [])
+    if not only:
+        return True
+    return bool(set(buckets) & set(only))
 
 
 def _state_budgets(screen: dict[str, Any], buckets: list[str]) -> dict[str, float]:
@@ -441,6 +480,8 @@ def _admissible_mask(
         admissible &= _loss(values, selected) <= budget_value + TOL
     if bool(screen["require_raw_jerk_nondegrading"]):
         admissible &= record["raw_jerk"] <= record["raw_jerk"][selected] + TOL
+    if bool(screen.get("require_raw_jerk_improving", False)):
+        admissible &= record["raw_jerk"] < record["raw_jerk"][selected] - TOL
     admissible[selected] = False
     return admissible
 
