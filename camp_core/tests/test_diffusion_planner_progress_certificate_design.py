@@ -61,12 +61,42 @@ def _write_log(tmp_path, record: dict):
     return path
 
 
+def _write_log_with_summary(tmp_path, record: dict):
+    path = _write_log(tmp_path, record)
+    summary = {
+        "benchmark": {
+            "route": "/assets/sample_map_tl_route_59_to_86.pkl",
+            "seed": 1,
+            "steps": 200,
+            "max_npcs": 4,
+            "spawn_probability": 0.3,
+            "traffic_lights": True,
+            "advance_mode": "perfect",
+        }
+    }
+    (tmp_path / "camp_validation_summary.json").write_text(
+        json.dumps(summary),
+        encoding="utf-8",
+    )
+    return path
+
+
 def _descriptor(report: dict, name: str) -> dict:
     descriptors = report["budgets"][0]["descriptors"]
     for row in descriptors:
         if row["descriptor"] == name:
             return row
     raise AssertionError(name)
+
+
+def _bucket_descriptor(report: dict, bucket_name: str, descriptor_name: str) -> dict:
+    for bucket in report["budgets"][0]["by_bucket"]:
+        if bucket["bucket"] != bucket_name:
+            continue
+        for row in bucket["descriptors"]:
+            if row["descriptor"] == descriptor_name:
+                return row
+    raise AssertionError(f"{bucket_name}:{descriptor_name}")
 
 
 def test_route_progress_certificate_exposes_hidden_outcome_candidate(tmp_path) -> None:
@@ -83,6 +113,54 @@ def test_route_progress_certificate_exposes_hidden_outcome_candidate(tmp_path) -
     assert route_progress["certificate_proxy_comfort_hidden_joint_records"] == 1
     assert h10["certificate_hidden_joint_records"] == 1
     assert route_progress["covered_hidden_loss_summary"]["mean"] == 0.0
+
+
+def test_certificate_design_reports_explicit_bucket_capture(tmp_path) -> None:
+    log_path = _write_log_with_summary(tmp_path, _record())
+    manifest_path = tmp_path / "scenario_buckets.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "filters": [
+                    {
+                        "name": "sample_tl_on",
+                        "match": {
+                            "route_name": "sample_map_tl_route_59_to_86",
+                            "traffic_lights": True,
+                        },
+                        "buckets": ["traffic_light", "red_light_turn"],
+                    }
+                ],
+                "routes": {},
+                "run_keys": {},
+                "default_buckets": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = analyze(
+        [log_path],
+        scenario_bucket_manifest=manifest_path,
+        progress_budgets_m=(0.1,),
+    )
+    traffic_route_progress = _bucket_descriptor(
+        report,
+        "traffic_light",
+        "route_progress",
+    )
+
+    assert report["analysis"]["explicit_bucket_labels_only"] is True
+    assert sorted(bucket["bucket"] for bucket in report["budgets"][0]["by_bucket"]) == [
+        "overall",
+        "red_light_turn",
+        "traffic_light",
+    ]
+    assert report["records"]["scenario_bucket_counts"]["traffic_light"]["records"] == 1
+    assert traffic_route_progress["certificate_hidden_joint_records"] == 1
+    assert (
+        traffic_route_progress["certificate_proxy_comfort_hidden_joint_records"] == 1
+    )
 
 
 def test_missing_route_progress_is_reported_unavailable(tmp_path) -> None:

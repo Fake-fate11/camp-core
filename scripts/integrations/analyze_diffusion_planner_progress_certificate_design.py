@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,9 @@ for path in (ROOT, PACKAGE_ROOT):
 from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
     iter_selection_log_paths,
 )
+from scripts.integrations.analyze_diffusion_planner_hidden_outcome_gap import (  # noqa: E402
+    _log_context,
+)
 from scripts.integrations.analyze_diffusion_planner_candidate_availability import (  # noqa: E402
     PROGRESS_BUDGETS_M,
     _load_record as _load_availability_record,
@@ -27,6 +31,10 @@ from scripts.integrations.analyze_diffusion_planner_candidate_availability impor
     _outcome_pareto_mask,
     _proxy_joint_comfort_mask,
     _proxy_pareto_mask,
+)
+from scripts.integrations.compare_diffusion_planner_camp_replays import (  # noqa: E402
+    SUPPORTED_SCENARIO_BUCKETS,
+    _load_scenario_bucket_manifest,
 )
 
 
@@ -54,6 +62,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--root", type=Path, action="append", default=[])
     parser.add_argument("--selection_log", type=Path, action="append", default=[])
+    parser.add_argument("--scenario_bucket_manifest", type=Path, default=None)
     parser.add_argument("--label", default=None)
     parser.add_argument(
         "--progress_budget_m",
@@ -71,6 +80,7 @@ def analyze(
     paths: list[Path],
     *,
     label: str | None = None,
+    scenario_bucket_manifest: Path | None = None,
     progress_budgets_m: tuple[float, ...] = PROGRESS_BUDGETS_M,
 ) -> dict[str, Any]:
     budgets = tuple(_canonical_budget(value) for value in progress_budgets_m)
@@ -79,14 +89,18 @@ def analyze(
     log_paths = iter_selection_log_paths(paths)
     if not log_paths:
         raise ValueError("No selection logs were found.")
+    manifest = _load_scenario_bucket_manifest(scenario_bucket_manifest)
 
     records: list[dict[str, Any]] = []
     for log_path in log_paths:
+        context = _log_context(log_path, manifest)
         payload = json.loads(log_path.read_text(encoding="utf-8-sig"))
         if not isinstance(payload, list) or not payload:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
         for index, record in enumerate(payload):
-            records.append(_load_record(record, f"{log_path} record {index}"))
+            loaded = _load_record(record, f"{log_path} record {index}")
+            loaded["scenario_buckets"] = context["scenario_buckets"]
+            records.append(loaded)
 
     return {
         "analysis": {
@@ -99,6 +113,12 @@ def analyze(
             "training": False,
             "online_selector_change": False,
             "future_outcome_leakage": "candidate outcomes are offline labels only",
+            "scenario_bucket_manifest": (
+                None
+                if scenario_bucket_manifest is None
+                else str(scenario_bucket_manifest)
+            ),
+            "explicit_bucket_labels_only": True,
             "progress_budgets_m": list(budgets),
             "descriptors": list(DESCRIPTORS),
             "certificate_rule": (
@@ -124,6 +144,7 @@ def analyze(
             "total": len(records),
             "nonfallback": sum(int(record["feasible"].any()) for record in records),
             "fallback": sum(int(not record["feasible"].any()) for record in records),
+            "scenario_bucket_counts": _scenario_bucket_counts(records),
             "descriptor_available_records": {
                 name: sum(int(record["descriptors"].get(name) is not None) for record in records)
                 for name in DESCRIPTORS
@@ -181,6 +202,18 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
 
 
 def _budget_report(records: list[dict[str, Any]], budget: float) -> dict[str, Any]:
+    report = _budget_report_flat(records, budget)
+    report["by_bucket"] = [
+        {
+            "bucket": bucket_name,
+            **_budget_report_flat(bucket_records, budget),
+        }
+        for bucket_name, bucket_records in _records_by_bucket(records).items()
+    ]
+    return report
+
+
+def _budget_report_flat(records: list[dict[str, Any]], budget: float) -> dict[str, Any]:
     nonfallback = [record for record in records if record["feasible"].any()]
     outcome_joint_by_record = [
         _outcome_joint_mask(record, budget)
@@ -210,6 +243,46 @@ def _budget_report(records: list[dict[str, Any]], budget: float) -> dict[str, An
         "current_proxy_joint_rate": current_proxy_joint_records / max(len(nonfallback), 1),
         "descriptors": rows,
     }
+
+
+def _records_by_bucket(records: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for record in records:
+        buckets = record.get("scenario_buckets")
+        if not isinstance(buckets, list) or not buckets:
+            buckets = ["overall"]
+        for bucket in buckets:
+            if bucket not in SUPPORTED_SCENARIO_BUCKETS:
+                raise ValueError(f"Unsupported scenario bucket: {bucket}")
+            grouped[str(bucket)].append(record)
+    return {bucket: grouped[bucket] for bucket in _ordered_buckets(grouped)}
+
+
+def _scenario_bucket_counts(records: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    counts: dict[str, dict[str, int]] = {}
+    for bucket, bucket_records in _records_by_bucket(records).items():
+        counts[bucket] = {
+            "records": len(bucket_records),
+            "nonfallback": sum(int(record["feasible"].any()) for record in bucket_records),
+            "fallback": sum(int(not record["feasible"].any()) for record in bucket_records),
+        }
+    return counts
+
+
+def _ordered_buckets(grouped: dict[str, list[dict[str, Any]]]) -> list[str]:
+    order = [
+        "overall",
+        "normal",
+        "traffic_light",
+        "red_light_turn",
+        "sharp_turn",
+        "npc_interaction",
+        "dense_scene",
+        "lane_change_or_merge",
+    ]
+    return [bucket for bucket in order if bucket in grouped] + sorted(
+        bucket for bucket in grouped if bucket not in order
+    )
 
 
 def _descriptor_report(
@@ -435,6 +508,27 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"{row['certificate_proxy_comfort_outcome_joint_rate']:.6f} |"
             )
         lines.append("")
+        lines.extend(
+            [
+                "### Scenario Bucket Descriptor Capture",
+                "",
+                "| Bucket | Descriptor | Nonfallback | Hidden capture | "
+                "Proxy-comfort hidden capture | Proxy-comfort precision |",
+                "| --- | --- | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for bucket in budget.get("by_bucket", []):
+            for row in bucket["descriptors"]:
+                lines.append(
+                    f"| `{bucket['bucket']}` | `{row['descriptor']}` | "
+                    f"{bucket['nonfallback_records']} | "
+                    f"{row['certificate_hidden_joint_records']} "
+                    f"({row['certificate_hidden_joint_capture_rate']:.6f}) | "
+                    f"{row['certificate_proxy_comfort_hidden_joint_records']} "
+                    f"({row['certificate_proxy_comfort_hidden_capture_rate']:.6f}) | "
+                    f"{row['certificate_proxy_comfort_outcome_joint_rate']:.6f} |"
+                )
+        lines.append("")
     lines.extend(["## Mathematical Boundary", "", report["analysis"]["math_boundary"], ""])
     return "\n".join(lines)
 
@@ -449,7 +543,12 @@ def main() -> None:
         if args.progress_budget_m
         else PROGRESS_BUDGETS_M
     )
-    report = analyze(paths, label=args.label, progress_budgets_m=budgets)
+    report = analyze(
+        paths,
+        label=args.label,
+        scenario_bucket_manifest=args.scenario_bucket_manifest,
+        progress_budgets_m=budgets,
+    )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(
