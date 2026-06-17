@@ -62,6 +62,16 @@ RULES: tuple[dict[str, Any], ...] = (
         ),
     },
     {
+        "name": "strict_any_comfort_p005",
+        "progress_budget_m": 0.05,
+        "trigger": "any_comfort",
+        "description": (
+            "diagnostic contrast: override if either proxy jerk or proxy "
+            "lateral is strictly lower while the other comfort proxy, red "
+            "proxies, and progress_shortfall budget are nonworse"
+        ),
+    },
+    {
         "name": "strict_red_or_joint_comfort_p005",
         "progress_budget_m": 0.05,
         "trigger": "red_or_joint_comfort",
@@ -294,6 +304,11 @@ def _certificate_mask(record: dict[str, Any], rule: dict[str, Any]) -> np.ndarra
     trigger = str(rule["trigger"])
     if trigger == "joint_comfort":
         mask &= joint_comfort
+    elif trigger == "any_comfort":
+        mask &= (
+            (record["proxy_jerk"] < record["proxy_jerk"][0] - TOL)
+            | (record["proxy_lateral"] < record["proxy_lateral"][0] - TOL)
+        )
     elif trigger == "red_or_joint_comfort":
         mask &= joint_comfort | red_improving
     else:
