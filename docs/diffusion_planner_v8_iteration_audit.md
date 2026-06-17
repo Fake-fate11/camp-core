@@ -15948,3 +15948,156 @@ The next admissible step is to design and audit a reward-cost replacement or
 cache plan that targets `compute_reward_batch`, route-progress projection, and
 SG smoothing while proving that every replacement feature remains current-tick,
 finite-candidate, nonnegative, and score-affine.
+
+### Reward replacement/cache feasibility audit
+
+Commit `f18294af2ae3994bdc82c0734f736d3d09d9de0a` adds a read-only reward
+replacement/cache feasibility analyzer:
+
+```text
+scripts/integrations/analyze_diffusion_planner_reward_replacement_plan.py
+camp_core/tests/test_diffusion_planner_reward_replacement_plan.py
+```
+
+The analyzer does not change replay, selector behavior, DP, weights, atoms, or
+training. It reconstructs the DP reward hard mask from logged
+`dp_candidate_rewards`, compares candidate replacement masks against that DP
+reward baseline, and estimates p95 latency changes from already logged timing
+fields. It explicitly treats the estimates as engineering diagnostics, not as
+semantic proof that a replacement is valid.
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_reward_replacement_plan.py \
+  camp_core\tests\test_diffusion_planner_latency_budget.py \
+  -q
+# 2 passed
+
+py -3.12 -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_reward_replacement_plan.py \
+  camp_core\tests\test_diffusion_planner_reward_replacement_plan.py
+# passed
+
+git diff --check
+# passed
+```
+
+AutoDL was synchronized to
+`f18294af2ae3994bdc82c0734f736d3d09d9de0a`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL targeted verification used
+the same pytest selection plus compileall and `git diff --check`; all passed.
+
+Analyzer command on the reward-latency smoke:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/reward_latency_decomp_fdc8180_sample_tl_seed1_npc4_tloff_static
+OUT=$ROOT/audit_f18294a
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_reward_replacement_plan.py \
+  --selection_log "$ROOT/camp_selection_log.json" \
+  --label reward_latency_decomp_fdc8180_sample_tl_seed1_npc4_tloff_static \
+  --output_json "$OUT/reward_replacement_plan.json" \
+  --output_md "$OUT/reward_replacement_plan.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `reward_replacement_plan.json` | `942125143f267b5aa17b17111323cfbe7f2f9aa19d511a720b0981e32c8acd9d` |
+| `reward_replacement_plan.md` | `c67a358ef134af06d55d9c10f6ea9ab76b5ce3a808c1d2c37b58713858a088e2` |
+
+Records:
+
+```text
+logs=1
+records=200
+candidate_total=1600
+nonfallback_records=130
+fallback_records=70
+```
+
+Mask-plan result against the reconstructed DP reward baseline:
+
+| Plan | Candidate mismatches | False feasible | False infeasible | Missing | Selected changes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `route_progress_underprogress` | `181` | `181` | `0` | `0` | `7` |
+| `full_red_hard_dp_progress` | `0` | `0` | `0` | `0` | `0` |
+| `full_red_route_progress` | `181` | `181` | `0` | `0` | `7` |
+| `union_red_route_progress_diagnostic` | `181` | `181` | `0` | `0` | `7` |
+
+Latency-plan estimates on the same smoke:
+
+| Hypothetical plan | Total p95 if removed | p95 reduction |
+| --- | ---: | ---: |
+| `remove_reward_batch_compute` | `94.131586 ms` | `14.236233 ms` |
+| `cache_route_progress` | `101.676118 ms` | `6.691701 ms` |
+| `reuse_sg_smoothed_candidates` | `103.105914 ms` | `5.261905 ms` |
+| `batch_plus_route_progress` | `87.386639 ms` | `20.981180 ms` |
+| `batch_plus_route_progress_plus_sg` | `82.132086 ms` | `26.235732 ms` |
+
+Alignment diagnostics:
+
+```text
+route_minus_dp_progress_m:
+mean=33.576028
+p50=32.520088
+p95=63.714044
+min=-0.512302
+max=64.164060
+n=1600
+
+full_minus_near_red_cost:
+mean=0.0
+p95=0.0
+min=0.0
+max=0.0
+n=1600
+```
+
+Interpretation:
+
+1. Directly replacing DP reward progress with `candidate_route_progress` is
+   rejected. It creates `181` false-feasible candidates relative to the DP
+   reward baseline and changes selected-candidate mask status in `7` records.
+   The large positive `route_minus_dp_progress_m` distribution shows that the
+   two progress quantities are not interchangeable without a calibrated mapping
+   or different guard definition.
+2. Replacing near-horizon DP reward red with full-horizon red is mask-equivalent
+   on this smoke (`0` mismatches), but it is not a meaningful latency lever:
+   full-horizon red was already only `0.127154 ms` p95 in the previous smoke.
+   This supports keeping red diagnostics, not weakening them.
+3. The latency estimates show why the bottleneck remains tempting:
+   eliminating `compute_reward_batch`, route-progress projection, and SG
+   smoothing together would put the smoke p95 near `82.132086 ms`. However, the
+   mask audit proves the current progress replacement is semantically unsafe,
+   so the estimate is not an acceptance result.
+4. Non-red DP hard gates still come from `dp_candidate_rewards`
+   (`dp_collision`, `dp_road_border`, `dp_lane_crossing`,
+   `dp_static_collision`, `dp_kinematic`). This analyzer does not prove they
+   can be removed; any future cache/replacement must account for each hard gate
+   separately.
+
+Mathematical boundary: every compared quantity is a fixed current-tick
+finite-candidate diagnostic already logged in the artifact. The analyzer uses
+no closed-loop outcome labels, changes no candidate set, and does not feed its
+results into CAMP scoring. A future replacement can be considered compatible
+with the CAMP contract only if it preserves fixed finite candidates,
+nonnegative atom/proxy values, no future leakage, affine score in weights, and
+convex simplex/CVaR/L2 master behavior. No classical Benders claim is made.
+
+Decision: accept the reward replacement/cache audit tool and this single-smoke
+result as a diagnostic milestone. Reject direct reward replacement, reject
+route-progress-as-DP-progress, reject online selector promotion, reject new
+CAMP weights, reject broader 12/36 online matrices, and keep formal seeds
+frozen. The next admissible step is a progress mapping/guard audit: either
+calibrate a current-tick route-progress-to-DP-progress relation with strict
+false-feasible control, or design a separate finite-candidate progress guard
+that does not pretend to reproduce DP reward progress.
