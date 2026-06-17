@@ -11711,3 +11711,138 @@ progress certificate using already logged DP reward progress or H10/route
 progress metadata, then repeat this bucketed posterior gate, or (b) keep the
 current path in shadow mode if no such current-tick certificate can block the
 large progress-collapse examples without reintroducing safety regressions.
+
+## DP-reward/H10 long-horizon certificate screen audit
+
+Commit `beacd8e` extended the default-off certificate analyzer with
+long-horizon screens that replace first-step/H3 progress guards with
+`dp_candidate_rewards.progress` and H10 PerfectTracker open-loop distance.
+This remains a read-only posterior audit over fixed current-tick finite
+candidates.
+
+Remote command:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_state_conditioned_certificate.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest \
+    /root/autodl-tmp/camp_core/configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label redstopfloor05_outcome_labels \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_conditioned_certificate_beacd8e/state_conditioned_certificate.json \
+  --output_md \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_conditioned_certificate_beacd8e/state_conditioned_certificate.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `state_conditioned_certificate.json` | `4ecce88246cd2bef8b27a5b62b1372c16366d71f16b93174bea389c6db867834` |
+| `state_conditioned_certificate.md` | `e4321d3353a618600114e15c023216dd518c325cc281cfc8277c9a5d9a732125` |
+
+Remote test:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_state_conditioned_certificate.py \
+  camp_core/tests/test_diffusion_planner_hidden_outcome_gap.py \
+  camp_core/tests/test_diffusion_planner_scenario_bucket_audit.py \
+  -q
+
+10 passed in 1.04s
+```
+
+Record counts are unchanged:
+
+```text
+logs=36
+records=7200
+nonfallback=5939
+fallback=1261
+```
+
+Posterior result for the long-horizon screens:
+
+| Screen | Changed | Posterior joint comfort | Safety regressions | Progress delta mean | Progress delta min | Jerk delta mean | Lateral delta mean | Reward-progress loss mean | H10 loss mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `reward_h10_guard_strict_005` | `328` | `183` | `0` | `-0.028783 m` | `-0.109144 m` | `+0.003401` | `-0.004370` | `0.027965 m` | `0.012344 m` |
+| `reward_h10_guard_balanced_010` | `706` | `390` | `0` | `-0.052685 m` | `-0.152361 m` | `+0.003416` | `-0.005157` | `0.052550 m` | `0.028465 m` |
+| `reward_h10_guard_relaxed_noncritical_025` | `1185` | `740` | `0` | `-0.116211 m` | `-0.250189 m` | `-0.029734` | `-0.004956` | `0.126365 m` | `0.038512 m` |
+
+Bucket-level summary for `reward_h10_guard_balanced_010`:
+
+| Bucket | Records | Changed | Posterior joint comfort | Safety regressions |
+| --- | ---: | ---: | ---: | ---: |
+| `overall` | `5939` | `706` | `390` | `0` |
+| `sharp_turn` | `1916` | `328` | `204` | `0` |
+| `traffic_light` | `1810` | `130` | `76` | `0` |
+| `red_light_turn` | `942` | `122` | `72` | `0` |
+| `normal` | `600` | `115` | `60` | `0` |
+
+The prior near-miss regression and `-298.389663 m` progress-collapse example
+are blocked by the long-horizon certificate. For the previous near-miss case,
+the candidate had:
+
+```text
+dp_reward_progress_loss=0.682098 m
+H10_loss=0.225675 m
+```
+
+For the previous worst progress-collapse case, the candidate had:
+
+```text
+dp_reward_progress_loss=0.744923 m
+H10_loss=0.200395 m
+```
+
+Both are far outside the predeclared long-horizon budgets.
+
+The new worst progress-loss examples are bounded by construction. Under the
+balanced screen the worst changed record has:
+
+```text
+outcome_progress_delta=-0.152361 m
+dp_reward_progress_loss=0.047617 m
+H10_loss=0.020177 m
+target_speed_loss=0.076687 m/s
+safety_regression=false
+```
+
+Under the relaxed noncritical screen the worst changed record has:
+
+```text
+outcome_progress_delta=-0.250189 m
+dp_reward_progress_loss=0.249676 m
+H10_loss=0.074888 m
+target_speed_loss=0.090554 m/s
+safety_regression=false
+```
+
+Interpretation: DP reward progress plus H10 distance is a materially stronger
+outcome-free progress certificate than first-step/H3. It blocks the known
+catastrophic progress-collapse and posterior near-miss examples while
+preserving explicit bucket reporting. However, this is still not proof that
+DP-CAMP is better than DP Top-1. The strict and balanced screens have slightly
+positive posterior mean jerk deltas, while the relaxed screen improves jerk and
+lateral posterior metrics at the cost of a larger bounded progress loss.
+
+Mathematical conclusion: this remains within the CAMP finite-candidate
+contract. The screen reads fixed current-tick candidate constants
+(`dp_candidate_rewards.progress`, H10 open-loop distance, target speed,
+union-red, red-stopping, raw lateral, raw jerk). If later represented as atoms
+with fixed nonnegative scaling, the candidate score remains affine in `w` and
+the simplex/CVaR/L2 master remains convex. The audit does not construct a
+classical Benders master/subproblem/dual/cut and does not make DP sampler,
+postprocessing, PerfectTracker, or closed-loop outcomes part of a Benders
+subproblem.
+
+Decision: accept the DP-reward/H10 certificate as a valid next engineering
+candidate and reject the earlier first-step/H3-only certificate. Do not claim
+SafetyCost improvement, do not train CAMP, and do not run 12/36-run yet. The
+next admissible step is a default-off implementation plan for one or more
+reward/H10 screens with fail-closed metadata and latency accounting, followed
+only by a small paired non-formal smoke if local/AutoDL tests and audit
+metadata pass.
