@@ -17043,9 +17043,147 @@ retraining, CAMP retraining, online selector promotion, or new replay matrix
 were used.
 
 Decision: accept this sensitivity audit as a rejection of the
-“optimize only CAMP atom computation, then rerun Full36” path. The next
+`optimize only CAMP atom computation, then rerun Full36` path. The next
 admissible engineering target is exact-equivalent reward/feasibility latency
 plumbing or a combined exact-equivalent CAMP-selection plus reward-scoring
 latency plan. Do not run a new Full36 replay until a projected exact-equivalent
 combined plan clears the conservative proportional model with meaningful
 per-run margin.
+
+### Combined Latency Component-Savings Sensitivity Audit
+
+Commit:
+
+- Local/GitHub/AutoDL CAMP:
+  `39ae39797e0155fec4a5bb6e5f4cff253be5d804`
+  (`Add DP combined latency savings sensitivity`).
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Purpose:
+
+The previous sensitivity audit rejected a CAMP-only atom-computation
+optimization as insufficient. This audit extends the same read-only projection
+to fractional reward-scoring savings and combined exact-equivalent engineering
+scenarios. It separates two notions:
+
+1. `camp_side_exact_equivalence_candidate`: the saving can be pursued inside
+   CAMP-side computation while keeping atom values and affine scoring
+   unchanged.
+2. `exact_equivalence_engineering_candidate`: the saving can be considered only
+   if all reward outputs, feasibility masks, atoms, scores, and selected
+   trajectories remain exactly equivalent under the existing tolerances.
+
+Reward/feasibility plumbing is explicitly not a CAMP Benders subproblem or cut
+source.
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_latency_savings_sensitivity.py `
+  camp_core\tests\test_diffusion_planner_projected_latency_tail.py `
+  camp_core\tests\test_diffusion_planner_clearance_latency_projection.py -q
+
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_latency_savings_sensitivity.py `
+  camp_core\tests\test_diffusion_planner_latency_savings_sensitivity.py
+
+git diff --check
+```
+
+Result: `6 passed`; compile and diff checks passed.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_latency_savings_sensitivity.py \
+  camp_core/tests/test_diffusion_planner_projected_latency_tail.py \
+  camp_core/tests/test_diffusion_planner_clearance_latency_projection.py -q
+```
+
+Result: `6 passed`.
+
+Audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_devgrid_57cd0d1
+OUT=$ROOT/combined_latency_savings_sensitivity_39ae397
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_latency_savings_sensitivity.py \
+  --root "$ROOT" \
+  --label no_outcome_full36_combined_latency_savings_sensitivity_39ae397 \
+  --reference_old_clearance_p95_ms 9.296867 \
+  --reference_new_clearance_p95_ms 0.858788 \
+  --reference_source old_exact_off_smoke_vs_vectorized_smoke_sha_88bee7f5494de1cf9ad49cd5c17b772bdd337274f4211ff24f284b2c32d2a140 \
+  --output_json "$OUT/combined_latency_savings_sensitivity.json" \
+  --output_md "$OUT/combined_latency_savings_sensitivity.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `combined_latency_savings_sensitivity.json` | `f296c5636f954a2a0cf64734efd414ab440adbe59e5b2b5803103a38d025bf04` |
+| `combined_latency_savings_sensitivity.md` | `a1a18f13302b37d4f63f79653cdbdd8d4f27684280a12948ccb7aa5f265d9708` |
+
+Key sensitivity results:
+
+| Projection mode | Scenario | Exact engineering candidate | Runs over `100 ms` | Run-p95 distribution p95 | Max shortfall |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `constant_new_p95` | `no_extra_saving` | yes | `4 / 36` | `100.398759` | `4.471944` |
+| `constant_new_p95` | `reward_scoring_10pct_saving` | yes | `1 / 36` | `97.390284` | `1.240096` |
+| `constant_new_p95` | `reward_scoring_25pct_saving` | yes | `0 / 36` | `93.186998` | `null` |
+| `constant_new_p95` | `camp_atom_50pct_plus_reward_10pct` | yes | `0 / 36` | `95.643702` | `null` |
+| `scale_by_smoke_p95_ratio` | `no_extra_saving` | yes | `4 / 36` | `101.000880` | `11.469578` |
+| `scale_by_smoke_p95_ratio` | `reward_scoring_10pct_saving` | yes | `1 / 36` | `97.983563` | `8.498877` |
+| `scale_by_smoke_p95_ratio` | `reward_scoring_25pct_saving` | yes | `1 / 36` | `93.751388` | `3.904493` |
+| `scale_by_smoke_p95_ratio` | `reward_scoring_50pct_saving` | yes | `0 / 36` | `86.446678` | `null` |
+| `scale_by_smoke_p95_ratio` | `camp_atom_50pct_plus_reward_10pct` | yes | `1 / 36` | `96.143864` | `6.680325` |
+| `scale_by_smoke_p95_ratio` | `camp_atom_50pct_plus_reward_25pct` | yes | `1 / 36` | `91.797058` | `2.123662` |
+| `scale_by_smoke_p95_ratio` | `camp_atom_50pct_plus_reward_50pct` | yes | `0 / 36` | `84.576868` | `null` |
+
+Remaining conservative-model blocker:
+
+| Scenario | Remaining run | Projected p95 | Shortfall |
+| --- | --- | ---: | ---: |
+| `reward_scoring_10pct_saving` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `108.498877` | `8.498877` |
+| `reward_scoring_25pct_saving` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `103.904493` | `3.904493` |
+| `camp_atom_50pct_plus_reward_10pct` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `106.680325` | `6.680325` |
+| `camp_atom_50pct_plus_reward_25pct` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `102.123662` | `2.123662` |
+
+Interpretation:
+
+1. Under the less conservative constant/cap clearance model, `reward 25%` or
+   `camp atom 50% + reward 10%` is enough to clear the projected gate.
+2. Under the conservative proportional clearance model, the same moderate
+   savings are not enough. The only tested exact-engineering scenarios that
+   clear the projected gate are `reward_scoring_50pct_saving` and
+   `camp_atom_50pct_plus_reward_50pct`.
+3. The remaining blocker is always
+   `sample_map_tl_route_59_to_86/seed_1/npc_4/tl_off/static`; this run should
+   be the focus of the next exact-equivalent reward-scoring attribution.
+4. This evidence is still a projection, not a replay measurement, and it does
+   not justify online selector promotion, formal seeds, CAMP retraining, or a
+   Full36 replay.
+
+Mathematical boundary: the combined scenarios are hypothetical runtime
+savings over fixed current-tick logs. They do not change candidates, atom
+values, feasibility masks, weights, affine CAMP scoring, convex master
+structure, Benders-style logic, or selected trajectories. Reward-side work is
+engineering plumbing only, not a CAMP/Benders subproblem.
+
+Decision: accept combined sensitivity as evidence that the next useful step is
+not implementation yet, but reward-scoring internal attribution on the blocker
+run and tail rows. Reject `reward 10%`, `reward 25%`, and
+`camp atom 50% + reward 25%` as sufficient conservative-gate plans. Do not run
+new replays until a concrete exact-equivalent optimization path can plausibly
+approach the `reward 50%` projected saving or produce an equivalent combined
+margin under the proportional clearance model.
