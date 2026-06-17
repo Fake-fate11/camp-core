@@ -11465,3 +11465,116 @@ target as a predeclared progress-certificate design audit: compare candidate
 descriptors such as H10 rollout distance, route progress, and state-conditioned
 step reach against hidden outcome opportunities, choose conservative budgets,
 and only then consider a default-off finite-candidate selector smoke.
+
+## Progress-certificate design audit
+
+Commit `a8ff98e` added a read-only analyzer:
+
+```text
+scripts/integrations/analyze_diffusion_planner_progress_certificate_design.py
+```
+
+The analyzer asks a narrower question than selector evaluation: given the
+existing fixed DP candidate set and offline outcome labels, which outcome-free
+current-tick progress descriptor can expose the hidden outcome-joint
+opportunities found above? It does not change selection, train CAMP, modify
+Diffusion Planner, or use outcome labels as online atoms.
+
+Remote command:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_progress_certificate_design.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --label redstopfloor05_outcome_labels \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_certificate_design_a8ff98e/progress_certificate_design.json \
+  --output_md \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_certificate_design_a8ff98e/progress_certificate_design.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `progress_certificate_design.json` | `b5b55525c0f4f499749ed91e0161c119b01767574fc84999767e43e122c40793` |
+| `progress_certificate_design.md` | `0ac5cb06e1ce6ce83d7c360c785bc82903fa57bb66b4dd5513b091c3ceec2e3b` |
+
+Remote test:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python \
+  -m pytest camp_core/tests/test_diffusion_planner_progress_certificate_design.py -q
+
+2 passed in 0.30s
+```
+
+Record counts:
+
+```text
+logs=36
+records=7200
+nonfallback=5939
+fallback=1261
+route_progress_available_records=0
+```
+
+The certificate rule is deliberately outcome-free: a candidate must remain in
+the fixed finite candidate set, be base-feasible, have union-red and
+red-stopping costs no worse than the selected candidate, and have descriptor
+loss within the declared progress budget. Candidate outcomes are used only as
+offline labels for measuring whether the certificate exposes useful hidden
+opportunities.
+
+At the predeclared `0.10 m` progress budget:
+
+```text
+nonfallback_records=5939
+outcome_joint_records=1916
+current_proxy_joint_records=235
+hidden_outcome_joint_records=1685
+```
+
+Descriptor coverage at the same budget:
+
+| Descriptor | Available | Outcome-joint certified | Hidden-joint certified | Hidden capture | Proxy-comfort hidden | Proxy-comfort precision |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `progress_shortfall_atom` | `5939` | `499` | `268` | `0.159050` | `0` | `0.982979` |
+| `route_progress` | `0` | `0` | `0` | `0.000000` | `0` | `0.000000` |
+| `step_reach` | `5939` | `1902` | `1671` | `0.991691` | `1088` | `0.516445` |
+| `tracker_first_step_reach` | `5939` | `1903` | `1672` | `0.992285` | `1089` | `0.516634` |
+| `tracker_target_speed` | `5939` | `1365` | `1139` | `0.675964` | `712` | `0.462525` |
+| `rollout_h3_distance` | `5939` | `1726` | `1495` | `0.887240` | `954` | `0.496855` |
+| `rollout_h5_distance` | `5939` | `1438` | `1208` | `0.716914` | `742` | `0.470019` |
+| `rollout_h10_distance` | `5939` | `978` | `753` | `0.446884` | `390` | `0.419509` |
+
+Interpretation:
+
+1. The existing `progress_shortfall_atom` is too restrictive for this candidate
+   pool: at `0.10 m`, it exposes only `268/1685` hidden outcome-joint records.
+2. `route_progress` is unavailable in this artifact, so it cannot support the
+   next selector design without first changing logging or candidate metadata.
+3. First-step descriptors expose nearly all hidden outcome-joint records, and
+   H3 rollout distance exposes most of them. However, their proxy-comfort
+   precision is only about `0.50`, so they are not by themselves deployable
+   online acceptance rules.
+4. Longer-horizon H10 distance is more conservative but loses more hidden
+   opportunity coverage. It is useful as a guard candidate, not as a standalone
+   recovery mechanism.
+
+Mathematical conclusion: this remains a fixed finite-candidate diagnostic. The
+descriptors are current-tick constants; if any of them is later atomized with a
+fixed nonnegative scale, CAMP scores remain affine in `w` and the simplex/CVaR/L2
+master remains convex. This audit does not construct a classical Benders
+master/subproblem/dual/cut, does not claim trajectory-coordinate convexity, and
+does not make DP sampler, smoothing, postprocessing, PerfectTracker, or future
+closed-loop outcomes part of a Benders subproblem.
+
+Decision: accept the analyzer and artifact as evidence that an outcome-free
+progress certificate is plausible, but reject online selector deployment from
+this result alone. The next admissible engineering step is to predeclare a
+state-conditioned finite-candidate certificate that combines a first-step or H3
+progress descriptor with explicit safety, comfort, and latency gates, then test
+it first as a default-off offline selector screen. If that screen cannot pass
+SafetyCost v1 hard gates and bucket coverage, keep the current DP-CAMP path in
+shadow mode.
