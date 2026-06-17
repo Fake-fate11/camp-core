@@ -9924,3 +9924,21 @@ seeds and not retraining: use this gate as a prerequisite for any larger
 paired non-formal replay, and only then evaluate whether the current online
 integration path has enough latency and behavior margin for the development
 matrix.
+
+This audit record itself was committed, pushed, and synced as:
+
+```text
+6cb5dc6c141d5766be2e20b4b1fa42850b49759f
+Document DP CAMP dataset contract gate
+```
+
+After synchronization, local CAMP, GitHub `origin/main`, and AutoDL CAMP all
+matched that commit. AutoDL Diffusion Planner remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+The only remaining local untracked files were the existing session handoff
+artifacts, and the only remaining AutoDL untracked files were the existing
+handoff/integration notes listed above. They were left untouched.
