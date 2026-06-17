@@ -11846,3 +11846,123 @@ next admissible step is a default-off implementation plan for one or more
 reward/H10 screens with fail-closed metadata and latency accounting, followed
 only by a small paired non-formal smoke if local/AutoDL tests and audit
 metadata pass.
+
+## Bucketed candidate availability oracle audit
+
+Commit `664025d` extends the offline candidate availability oracle with an
+optional explicit scenario bucket manifest. This is a read-only evaluation
+change: it relabels fixed selection logs by inspected route/run metadata,
+keeps candidate outcomes as offline labels only, and does not change the
+online selector, CAMP weights, DP, or the finite-candidate Benders-style
+training object.
+
+Local tests:
+
+```text
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_candidate_availability.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability.py
+
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_candidate_availability.py \
+  camp_core\tests\test_diffusion_planner_hidden_outcome_gap.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_manifest.py \
+  camp_core\tests\test_diffusion_planner_safety_comparison_relabel.py \
+  -q
+
+15 passed in 2.81s
+```
+
+AutoDL sync and test:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_availability.py \
+  camp_core/tests/test_diffusion_planner_hidden_outcome_gap.py \
+  camp_core/tests/test_diffusion_planner_scenario_bucket_audit.py \
+  camp_core/tests/test_diffusion_planner_scenario_bucket_manifest.py \
+  camp_core/tests/test_diffusion_planner_safety_comparison_relabel.py \
+  -q
+
+15 passed in 2.03s
+```
+
+Remote analysis command:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_candidate_availability.py \
+  --root \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest \
+    configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_availability_bucketed_664025d/candidate_availability_bucketed.json \
+  --output_md \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_availability_bucketed_664025d/candidate_availability_bucketed.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `candidate_availability_bucketed.json` | `f0a39b4e94c7f16dc5838ab16abf4783f93663359fcdaa90c19fbb8a8b42b3d3` |
+| `candidate_availability_bucketed.md` | `880b008c7d40b9c45b232054088df4502c73e74625c2ef033573eddf1570fc6a` |
+
+Record coverage:
+
+```text
+logs=36
+records=7200
+nonfallback=5939
+fallback=1261
+```
+
+Explicit bucket record counts:
+
+| Bucket | Records | Nonfallback | Fallback |
+| --- | ---: | ---: | ---: |
+| `overall` | `7200` | `5939` | `1261` |
+| `normal` | `600` | `600` | `0` |
+| `traffic_light` | `2400` | `1810` | `590` |
+| `red_light_turn` | `1200` | `942` | `258` |
+| `sharp_turn` | `2400` | `1916` | `484` |
+
+At the predeclared `0.10 m` progress budget, the outcome-labeled oracle sees:
+
+| Bucket | Nonfallback | Outcome joint | Proxy joint | Hidden outcome |
+| --- | ---: | ---: | ---: | ---: |
+| `overall` | `5939` | `1916` | `235` | `1404` |
+| `normal` | `600` | `62` | `26` | `0` |
+| `traffic_light` | `1810` | `861` | `96` | `684` |
+| `red_light_turn` | `942` | `153` | `85` | `4` |
+| `sharp_turn` | `1916` | `288` | `138` | `7` |
+
+Interpretation: the candidate pool contains many outcome-labeled joint-comfort
+opportunities, but most of the gap between outcome labels and current-tick
+proxy visibility is concentrated in the broader `traffic_light` bucket. The
+`normal` bucket has zero hidden outcome opportunities at the same budget, while
+`red_light_turn` and `sharp_turn` have only small residual hidden counts under
+the current development manifest. This means the next engineering question is
+not a global retune: it is whether a traffic-light-specific fixed
+finite-candidate certificate can expose the hidden outcome opportunities
+without violating SafetyCost hard gates or latency.
+
+Mathematical conclusion: bucket labels remain evaluation metadata. The proxy
+side uses fixed current-tick finite-candidate constants; candidate closed-loop
+outcomes are offline labels for oracle attribution only. This audit does not
+create a classical Benders subproblem and does not make DP sampling,
+postprocessing, PerfectTracker, closed-loop future states, or trajectory
+coordinates optimization variables.
+
+Decision: accept the bucketed oracle audit as a development diagnostic. It
+does not prove CAMP is better than DP Top-1, and it does not authorize 12-run
+or 36-run promotion. The next admissible step is to inspect the traffic-light
+hidden opportunities and identify which fixed current-tick candidate signals
+could legally expose them; if no such signal exists, keep the policy in shadow
+or treat the DP candidate pool/proxy schema as the bottleneck.
