@@ -10286,3 +10286,59 @@ Predeclared remote check after push: generate a manifest skeleton from the
 existing `redstopfloor05` SafetyCost comparison JSON. Expected result: three
 routes, 36 run keys, empty route/run-key bucket labels, and therefore no new
 critical-bucket claim.
+
+The implementation was committed, pushed, and synced to AutoDL as:
+
+```text
+b7e8cf398cd4d4d5fdeab911bc1e1a71fa177751
+Add DP CAMP scenario bucket manifest builder
+```
+
+AutoDL CAMP matched that commit after a fast-forward pull. AutoDL Diffusion
+Planner remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Remote skeleton generation command:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/build_diffusion_planner_scenario_bucket_manifest.py \
+  --comparison_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_score_v1_07c3b9a/safety_score_v1_comparison.json \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_manifest_skeleton_b7e8cf3/scenario_buckets_skeleton.json \
+  --include_run_keys
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `scenario_buckets_skeleton.json` | `9e78d7d69caabe6daab4672ddbb2d915e8bb610c56d59da2838e14843a890279` |
+
+Remote skeleton result:
+
+| Field | Value |
+| --- | ---: |
+| Routes | 3 |
+| Run keys | 36 |
+| Unlabeled routes | 3 |
+| Unlabeled run keys | 36 |
+
+Routes present in the existing full36 SafetyCost comparison:
+
+```text
+nishishinjuku_release_auto_route
+sample_map_route_2_to_104
+sample_map_tl_route_59_to_86
+```
+
+All route and run-key bucket lists are intentionally empty. Decision: accept
+the skeleton builder and reject any attempt to label these routes from names,
+traffic-light flags, or SafetyCost outcomes alone. The next admissible step is
+a route/scenario-definition inspection pass that records geometry and traffic
+control evidence before filling manifest labels.
