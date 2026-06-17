@@ -10895,3 +10895,131 @@ candidate closed-loop outcome labels are generated or attached under a fixed,
 offline, non-formal process. The next admissible step is to design that
 label-generation pass for existing fixed finite candidates, still without
 modifying DP or selecting online trajectories.
+
+## Candidate outcome label-pass plan
+
+A direct post-hoc attachment of candidate closed-loop outcomes to the current
+redstopfloor05 logs is not supported by the stored fields. The current
+selection logs contain selected index, atoms, feasibility, DP rewards, and the
+current-tick proxy atoms, but they do not store the complete candidate
+trajectories, NPC branch futures, red-light geometry, or tracker descriptors
+needed to recompute `compute_candidate_closed_loop_outcomes` after the fact.
+Historical outcome roots collected those labels during replay with
+`--camp_collect_closed_loop_outcomes`; they are not evidence that the current
+redstopfloor05 logs can be repaired in place.
+
+A command-planning tool was added:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_outcome_label_pass.py
+```
+
+The tool reads an existing paired comparison JSON, extracts the exact
+non-formal scenario grid for a source variant, rejects formal seeds, requires
+perfect tracking, and emits a static-only benchmark-matrix command with
+`--camp_collect_closed_loop_outcomes` and `--skip_compare`. It does not run DP,
+does not train CAMP, does not change online selection, and does not make a
+Benders or trajectory-coordinate convexity claim.
+
+Local verification:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_candidate_outcome_label_pass_plan.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability_inputs.py
+
+7 passed
+
+python -m ruff check \
+  scripts\integrations\plan_diffusion_planner_candidate_outcome_label_pass.py \
+  camp_core\tests\test_diffusion_planner_candidate_outcome_label_pass_plan.py
+
+All checks passed
+
+python -m py_compile scripts\integrations\plan_diffusion_planner_candidate_outcome_label_pass.py
+
+passed
+
+git diff --check
+
+passed
+```
+
+The tool was committed, pushed, and synced to AutoDL as:
+
+```text
+d97b7c220e24ee97e70ec5969d8fc8b26edb1815
+Add DP CAMP candidate outcome label pass planner
+```
+
+AutoDL verification:
+
+```text
+CAMP_HEAD=d97b7c220e24ee97e70ec5969d8fc8b26edb1815
+CAMP_ORIGIN=d97b7c220e24ee97e70ec5969d8fc8b26edb1815
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+7 passed
+```
+
+Remote output root:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_label_pass_plan_d97b7c2
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `candidate_outcome_label_pass_plan.json` | `1641e9c179ea1d88994c3551af0426578c27eb06e87c8c72b05917d1ea39db84` |
+| `candidate_outcome_label_pass_plan.md` | `fcbd431c700e68f6978cdb567e4d65f7653d29f8415c2ca4bdf3ca576ab398cf` |
+
+Plan summary:
+
+| Item | Value |
+| --- | --- |
+| Source variant | `v10_redstopfloor05` |
+| Scenario count | `36` |
+| Routes | `3` |
+| Seeds | `1,2,3` |
+| Formal seeds | absent |
+| NPC caps | `0,4` |
+| Traffic lights | `off,on` |
+| Steps | `200` |
+| Advance mode | `perfect` |
+| Candidates | `8` |
+| Candidate noise scale | `1.0` |
+| Outcome horizon | `30` |
+| Planned matrix variant | `static` only |
+| Planned comparison | skipped |
+| Outcome collection | enabled |
+
+Planned routes:
+
+```text
+nishishinjuku_release_auto_route=/root/autodl-tmp/camp_dp_assets/nishishinjuku_release_auto_route.pkl
+sample_map_route_2_to_104=/root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl
+sample_map_tl_route_59_to_86=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+```
+
+The plan uses the verified redstopfloor05 assets:
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy
+```
+
+Mathematical conclusion: the label pass, if run, would regenerate a fixed
+finite candidate set under the same non-formal scenario grid and attach
+candidate closed-loop outcomes as offline labels. These labels remain outside
+the CAMP finite-candidate master and must not be used by online selection.
+For any later training run, only the resulting fixed atoms, feasibility masks,
+and offline labels may enter the robust-margin oracle.
+
+Decision: accept the label-pass plan as the next admissible run design. Do not
+claim candidate availability, SafetyCost improvement, or development-gate
+progress from the plan alone. The next step is to run this planned non-formal
+label pass on AutoDL, then require input readiness, dataset audit with
+`closed_loop_outcome_policy=required`, and candidate availability analysis
+before any selector or weight change.
