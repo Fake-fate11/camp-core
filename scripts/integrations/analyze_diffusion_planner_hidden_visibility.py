@@ -137,6 +137,62 @@ SCREEN_SPECS: tuple[dict[str, Any], ...] = (
         ),
     },
     {
+        "name": "escape_route_nonworse_lower_m200_h10_min_m005_score0",
+        "description": (
+            "route-progress lower-band sensitivity with H10 distance loss "
+            ">= -0.05 m and CAMP score nonworse"
+        ),
+        "progress_delta_min": -2.00,
+        "progress_delta_max": 0.05,
+        "filters": (
+            {"field": "route_progress_loss", "max": 0.0},
+            {"field": "h10_distance_loss", "min": -0.05},
+            {"field": "score_delta", "max": 0.0},
+        ),
+    },
+    {
+        "name": "escape_route_nonworse_lower_m200_h10_min_m010_score0",
+        "description": (
+            "route-progress lower-band sensitivity with H10 distance loss "
+            ">= -0.10 m and CAMP score nonworse"
+        ),
+        "progress_delta_min": -2.00,
+        "progress_delta_max": 0.05,
+        "filters": (
+            {"field": "route_progress_loss", "max": 0.0},
+            {"field": "h10_distance_loss", "min": -0.10},
+            {"field": "score_delta", "max": 0.0},
+        ),
+    },
+    {
+        "name": "escape_route_nonworse_lower_m200_h10_min_m015_score0",
+        "description": (
+            "route-progress lower-band sensitivity with H10 distance loss "
+            ">= -0.15 m and CAMP score nonworse"
+        ),
+        "progress_delta_min": -2.00,
+        "progress_delta_max": 0.05,
+        "filters": (
+            {"field": "route_progress_loss", "max": 0.0},
+            {"field": "h10_distance_loss", "min": -0.15},
+            {"field": "score_delta", "max": 0.0},
+        ),
+    },
+    {
+        "name": "escape_route_nonworse_lower_m200_h10_min_m020_score0",
+        "description": (
+            "route-progress lower-band sensitivity with H10 distance loss "
+            ">= -0.20 m and CAMP score nonworse"
+        ),
+        "progress_delta_min": -2.00,
+        "progress_delta_max": 0.05,
+        "filters": (
+            {"field": "route_progress_loss", "max": 0.0},
+            {"field": "h10_distance_loss", "min": -0.20},
+            {"field": "score_delta", "max": 0.0},
+        ),
+    },
+    {
         "name": "escape_lower_m020_p005_score0",
         "description": "lower-band recovery contrast: progress_delta [-0.20, 0.05] and score nonworse",
         "progress_delta_min": -0.20,

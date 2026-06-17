@@ -107,6 +107,14 @@ def test_hidden_visibility_reports_escape_recovery_and_missing_route(tmp_path) -
     assert route_lower["false_escape_records"] == 0
     assert route_lower["hidden_remaining_records"] == 1
 
+    route_h10_min = screens[
+        "escape_route_nonworse_lower_m200_h10_min_m005_score0"
+    ]["summary"]
+    assert route_h10_min["descriptor_missing_records"] == 1
+    assert route_h10_min["escape_override_records"] == 1
+    assert route_h10_min["true_recovery_records"] == 1
+    assert route_h10_min["false_escape_records"] == 0
+
     markdown = render_markdown(report)
     assert "Hidden Visibility Audit" in markdown
     assert "escape_p010_h10_p005_score0" in markdown
