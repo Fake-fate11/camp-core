@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,13 @@ for path in (ROOT, PACKAGE_ROOT):
 
 from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
     iter_selection_log_paths,
+    parse_selection_log_metadata,
+)
+from scripts.integrations.compare_diffusion_planner_camp_replays import (  # noqa: E402
+    SUPPORTED_SCENARIO_BUCKETS,
+    _load_scenario_bucket_manifest,
+    _run_key,
+    _scenario_buckets,
 )
 
 
@@ -40,22 +48,31 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--root", type=Path, action="append", default=[])
     parser.add_argument("--selection_log", type=Path, action="append", default=[])
+    parser.add_argument("--scenario_bucket_manifest", type=Path, default=None)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     return parser.parse_args()
 
 
-def analyze(paths: list[Path]) -> dict[str, Any]:
+def analyze(
+    paths: list[Path],
+    *,
+    scenario_bucket_manifest: Path | None = None,
+) -> dict[str, Any]:
     log_paths = iter_selection_log_paths(paths)
     if not log_paths:
         raise ValueError("No selection logs were found.")
+    manifest = _load_scenario_bucket_manifest(scenario_bucket_manifest)
     records: list[dict[str, Any]] = []
     for log_path in log_paths:
+        context = _log_context(log_path, manifest)
         payload = json.loads(log_path.read_text(encoding="utf-8-sig"))
         if not isinstance(payload, list) or not payload:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
         for index, record in enumerate(payload):
-            records.append(_load_record(record, f"{log_path} record {index}"))
+            loaded = _load_record(record, f"{log_path} record {index}")
+            loaded["scenario_buckets"] = context["scenario_buckets"]
+            records.append(loaded)
 
     budgets = [_budget_report(records, budget) for budget in PROGRESS_BUDGETS_M]
     return {
@@ -65,6 +82,12 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
             "training": False,
             "online_selector_change": False,
             "future_outcome_leakage": "offline labels only",
+            "scenario_bucket_manifest": (
+                None
+                if scenario_bucket_manifest is None
+                else str(scenario_bucket_manifest)
+            ),
+            "explicit_bucket_labels_only": True,
             "progress_budgets_m": list(PROGRESS_BUDGETS_M),
             "outcome_pareto_definition": (
                 "candidate outcome progress within budget, collision/near-miss/"
@@ -77,16 +100,68 @@ def analyze(paths: list[Path]) -> dict[str, Any]:
                 "horizon-lateral nonworse, and at least one proxy comfort "
                 "metric strictly better"
             ),
+            "math_boundary": (
+                "Bucket labels are evaluation metadata only. Proxy quantities "
+                "are fixed current-tick finite-candidate constants; candidate "
+                "outcomes remain offline labels and are not online selector "
+                "inputs or a Benders subproblem."
+            ),
         },
         "records": {
             "logs": len(log_paths),
             "total": len(records),
             "nonfallback": sum(int(record["feasible"].any()) for record in records),
             "fallback": sum(int(not record["feasible"].any()) for record in records),
+            "scenario_bucket_counts": _scenario_bucket_counts(records),
         },
         "diversity": _diversity_report(records),
         "budgets": budgets,
     }
+
+
+def _log_context(log_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    metadata = parse_selection_log_metadata(log_path)
+    validation_summary = _read_json_if_exists(
+        log_path.with_name("camp_validation_summary.json")
+    )
+    benchmark = validation_summary.get("benchmark", {})
+    if not isinstance(benchmark, dict):
+        benchmark = {}
+    route = benchmark.get("route")
+    route_name = Path(str(route)).stem if route is not None else metadata.route
+    traffic_lights = benchmark.get("traffic_lights")
+    if traffic_lights is None:
+        traffic_lights = metadata.traffic_light == "on"
+    max_npcs = benchmark.get("max_npcs")
+    if max_npcs is None:
+        max_npcs = metadata.npc_count
+    seed = benchmark.get("seed")
+    if seed is None:
+        seed = metadata.seed
+    row = {
+        "run_key": _run_key(validation_summary, log_path.parent),
+        "route": route,
+        "route_name": route_name,
+        "seed": seed,
+        "max_npcs": max_npcs,
+        "traffic_lights": bool(traffic_lights),
+        "advance_mode": benchmark.get(
+            "advance_mode",
+            validation_summary.get("advance_mode"),
+        ),
+    }
+    return {
+        **row,
+        "log_path": str(log_path),
+        "scenario_buckets": _scenario_buckets(row, manifest),
+    }
+
+
+def _read_json_if_exists(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    return payload if isinstance(payload, dict) else {}
 
 
 def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
@@ -136,6 +211,18 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
 
 
 def _budget_report(records: list[dict[str, Any]], budget: float) -> dict[str, Any]:
+    report = _budget_report_flat(records, budget)
+    report["by_bucket"] = [
+        {
+            "bucket": bucket_name,
+            **_budget_report_flat(bucket_records, budget),
+        }
+        for bucket_name, bucket_records in _records_by_bucket(records).items()
+    ]
+    return report
+
+
+def _budget_report_flat(records: list[dict[str, Any]], budget: float) -> dict[str, Any]:
     nonfallback = 0
     outcome_weak = 0
     outcome_joint = 0
@@ -223,6 +310,46 @@ def _budget_report(records: list[dict[str, Any]], budget: float) -> dict[str, An
             name: _mean(values) for name, values in best_proxy_deltas.items()
         },
     }
+
+
+def _records_by_bucket(records: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for record in records:
+        buckets = record.get("scenario_buckets")
+        if not isinstance(buckets, list) or not buckets:
+            buckets = ["overall"]
+        for bucket in buckets:
+            if bucket not in SUPPORTED_SCENARIO_BUCKETS:
+                raise ValueError(f"Unsupported scenario bucket: {bucket}")
+            grouped[str(bucket)].append(record)
+    return {bucket: grouped[bucket] for bucket in _ordered_buckets(grouped)}
+
+
+def _scenario_bucket_counts(records: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    counts: dict[str, dict[str, int]] = {}
+    for bucket, bucket_records in _records_by_bucket(records).items():
+        counts[bucket] = {
+            "records": len(bucket_records),
+            "nonfallback": sum(int(record["feasible"].any()) for record in bucket_records),
+            "fallback": sum(int(not record["feasible"].any()) for record in bucket_records),
+        }
+    return counts
+
+
+def _ordered_buckets(grouped: dict[str, list[dict[str, Any]]]) -> list[str]:
+    order = [
+        "overall",
+        "normal",
+        "traffic_light",
+        "red_light_turn",
+        "sharp_turn",
+        "npc_interaction",
+        "dense_scene",
+        "lane_change_or_merge",
+    ]
+    return [bucket for bucket in order if bucket in grouped] + sorted(
+        bucket for bucket in grouped if bucket not in order
+    )
 
 
 def _outcome_pareto_mask(record: dict[str, Any], budget: float) -> np.ndarray:
@@ -460,6 +587,28 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"{_fmt(best['mean_jerk_mps3'])} | "
             f"{_fmt(best['mean_lateral_acceleration_mps2'])} |"
         )
+    lines.extend(
+        [
+            "",
+            "## Scenario Buckets",
+            "",
+            "| Progress budget | Bucket | Nonfallback | Outcome joint | Proxy joint | Hidden outcome |",
+            "| ---: | --- | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for budget in report["budgets"]:
+        for bucket in budget.get("by_bucket", []):
+            lines.append(
+                f"| {budget['progress_budget_m']:.2f} | "
+                f"`{bucket['bucket']}` | "
+                f"{bucket['nonfallback_records']} | "
+                f"{bucket['outcome_joint_records']} "
+                f"({bucket['outcome_joint_rate']:.6f}) | "
+                f"{bucket['proxy_joint_records']} "
+                f"({bucket['proxy_joint_rate']:.6f}) | "
+                f"{bucket['hidden_outcome_weak_records']} "
+                f"({bucket['hidden_outcome_weak_rate']:.6f}) |"
+            )
     diversity = report["diversity"]
     lines.extend(
         [
@@ -487,7 +636,7 @@ def main() -> None:
     paths = list(args.root) + list(args.selection_log)
     if not paths:
         raise SystemExit("Provide at least one --root or --selection_log.")
-    report = analyze(paths)
+    report = analyze(paths, scenario_bucket_manifest=args.scenario_bucket_manifest)
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(
