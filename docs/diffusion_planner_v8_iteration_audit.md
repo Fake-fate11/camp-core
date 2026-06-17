@@ -9729,3 +9729,71 @@ admissible step is still default-off and non-formal: run a very small replay
 smoke only to confirm the new metadata appears in real generated
 `camp_replay_summary.json` and survives summarization. It should not be treated
 as safety/performance evidence and must not use formal seeds.
+
+### Replay finite-candidate contract metadata smoke
+
+The default-off metadata gate above was verified in a real Diffusion Planner
+replay on AutoDL. This was a two-step non-formal smoke only; it did not train
+CAMP, modify DP, change selector logic, run a paired matrix, or use formal
+seeds.
+
+Configuration:
+
+```text
+Output root: /root/autodl-tmp/camp_dp_contract_metadata_smoke_cc5ad26_seed101_steps2
+CAMP commit: cc5ad26c02eaa9f2bc769edd5ea83fa4df403218
+DP commit: 7a1d33da277a1992ec474b5383a0c963c72e04e4
+Route: sample_map_tl_route_59_to_86.pkl
+Seed: 101
+Steps: 2
+NPCs: 0
+Traffic lights: on
+Candidates: 4
+Selector: static redstopfloor05
+Feasibility source: dp_reward
+Fallback mode: uniform
+Advance mode: perfect
+```
+
+The remote verifier checked both `camp_replay_summary.json` and
+`camp_validation_summary.json` and required the exact same
+`dp_camp_finite_candidate_contract` block in both files. The verified fields
+were:
+
+```text
+schema_version = dp_camp_finite_candidate_contract_v1
+enabled = true
+selector_mode = static
+num_candidates = 4
+score = a_ik^T w
+classical_benders_claim = false
+feasibility_source = dp_reward
+fallback_mode = uniform
+atom_contract.fixed_before_scoring = true
+weight_contract.affine_score_in_weights = true
+excluded_from_subproblem contains Diffusion Planner neural sampler
+```
+
+The smoke ended by `max_steps` after two selection records. The validation
+summary reported `selection_steps=2`, `selector_mode=static`,
+`num_candidates=4`, `fallback_rate=0.0`, and `n_npc_spawned=0`. These runtime
+metrics are recorded only to identify the artifact; the run is too small and
+was not designed to support safety, comfort, latency, or completion claims.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `PREDECLARE.txt` | `99cea7104ef5025d2b513408375fde3f149dae9d5afd7032b710e681f2e1f12c` |
+| `run.log` | `a17ea45835b230bd0b9a8e33cac81204a8346d35f177f8df0983a80fa856606a` |
+| `camp_replay_summary.json` | `5096d7fab53d31926856221289a1ed40b4622d248d2ab149635e89532b1ba203` |
+| `camp_validation_summary.json` | `ff80373314f4f9f4e7926d73f98152a3ea76fe9d72209575f6df9dec240f7f00` |
+| `camp_selection_log.json` | `f8a61d371c78f2d3b83b707165fb4309e47749e4bdee21ae976c5e183e268996` |
+| `contract_metadata_smoke_audit.json` | `2f222f15d5e57fa54742565855bc7d796284fa98d7a49406669cadb5f6e0689a` |
+
+Decision: accept the replay metadata smoke. Future replay artifacts now carry
+the finite-candidate mathematical contract in both generated and summarized
+metadata. The next admissible step remains a non-formal integration gate:
+either add a dataset-audit check that requires this metadata for DP-CAMP runs,
+or run a slightly larger paired smoke only if the audit check first proves the
+metadata is enforced. Formal seeds remain frozen.
