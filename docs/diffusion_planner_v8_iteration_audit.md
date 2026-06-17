@@ -9797,3 +9797,130 @@ metadata. The next admissible step remains a non-formal integration gate:
 either add a dataset-audit check that requires this metadata for DP-CAMP runs,
 or run a slightly larger paired smoke only if the audit check first proves the
 metadata is enforced. Formal seeds remain frozen.
+
+### Dataset audit finite-candidate contract gate
+
+The next integration gate was implemented as a dataset-audit requirement rather
+than a selector change. `scripts/integrations/audit_diffusion_planner_camp_dataset.py`
+now accepts:
+
+```text
+--require_finite_candidate_contract
+```
+
+When enabled, the audit requires `camp_validation_summary.json` to carry a
+`dp_camp_finite_candidate_contract` block with:
+
+- schema version `dp_camp_finite_candidate_contract_v1`;
+- `enabled=true`;
+- selector mode in `{uniform, static, linear}`;
+- exact expected candidate count;
+- affine score form `a_ik^T w`;
+- finite feasible-candidate `argmin` selection rule;
+- atom contract flags for fixed finite nonnegative normalized atoms;
+- simplex and affine-in-weights weight contract flags;
+- feasibility source in `{context, dp_reward}`;
+- fallback mode in `{uniform, learned}`;
+- fail-closed wording that stays inside the same current-tick candidate set;
+- training claim limited to finite-candidate generalized Benders-style
+  cutting-plane training over logged fixed candidates;
+- `classical_benders_claim=false`;
+- the exact list of components excluded from the subproblem: DP neural sampler,
+  Savitzky-Golay smoothing, `postprocess_reference`, PerfectTracker state
+  transition, closed-loop simulator future states, and route/traffic-light
+  geometry.
+
+This gate makes the mathematical boundary machine-checkable for generated DP
+replay artifacts. It does not change Diffusion Planner, CAMP weights, atom
+schema, online selection behavior, or fallback policy. It also does not provide
+new safety, comfort, latency, or completion evidence.
+
+Local verification for the implementation commit:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_dataset_audit.py
+
+42 passed in 1.32s
+
+git diff --check -- \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  camp_core/tests/test_diffusion_planner_dataset_audit.py
+
+passed
+```
+
+The implementation was committed and pushed as:
+
+```text
+f4d1320fd3cd12779e3b108ef486d47ceca0abe2
+Gate DP CAMP finite-candidate dataset contract
+```
+
+AutoDL CAMP was then fast-forwarded from `3f2d7c0` to `f4d1320`. The remote
+checkout still had unrelated untracked files:
+
+```text
+diffusion_planner_integration.md
+dp_camp_device_handoff.md
+test_diffusion_planner_benchmark_matrix.py
+```
+
+Those files were left untouched. The fixed Diffusion Planner checkout remained:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+The new audit gate was run against the existing non-formal two-step metadata
+smoke artifact:
+
+```text
+/root/autodl-tmp/camp_dp_contract_metadata_smoke_cc5ad26_seed101_steps2
+```
+
+Command:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --selection_log \
+    /root/autodl-tmp/camp_dp_contract_metadata_smoke_cc5ad26_seed101_steps2/camp_selection_log.json \
+  --atom_scales \
+    /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --expected_logs 1 \
+  --expected_candidates 4 \
+  --expected_advance_mode perfect \
+  --closed_loop_outcome_policy forbidden \
+  --require_finite_candidate_contract \
+  --output_json \
+    /root/autodl-tmp/camp_dp_contract_metadata_smoke_cc5ad26_seed101_steps2/dataset_contract_audit.json
+```
+
+Remote result:
+
+```text
+Dataset audit passed: 1 logs, 2 records
+counts: logs=1, records=2, candidates=8, all_infeasible_records=0
+closed_loop_outcome_policy=forbidden
+complete_closed_loop_outcomes=false
+finite_candidate_contract_required=true
+finite_candidate_contract_verified=true
+finite_candidate_contract_logs=1
+```
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `dataset_contract_audit.json` | `2b8b81caa431d36b3c24b4d302187cb349afb669f3133035be109f8adab6a310` |
+
+Decision: accept this as a non-formal auditability milestone. The DP-CAMP
+finite-candidate mathematical contract is now documented, emitted by replay
+metadata, preserved by replay summarization, and enforceable by dataset audit
+on a real DP replay artifact. The next admissible work is still not formal
+seeds and not retraining: use this gate as a prerequisite for any larger
+paired non-formal replay, and only then evaluate whether the current online
+integration path has enough latency and behavior margin for the development
+matrix.
