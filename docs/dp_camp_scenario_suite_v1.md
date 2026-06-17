@@ -101,6 +101,23 @@ Filters may match only scenario configuration fields: `route`, `route_name`,
 `traffic_lights`, and `advance_mode`. They must not match closed-loop outcomes
 or SafetyCost components.
 
+The current versioned development manifest for the existing redstopfloor05
+full36 artifacts is:
+
+```text
+configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json
+```
+
+This file is intentionally development-only. It records the route-inspection
+labels already audited for the existing artifacts: `sharp_turn` for
+`sample_map_tl_route_59_to_86`, traffic-light labels only when
+`traffic_lights=true`, and `normal` only for the traffic-light-off,
+zero-NPC `sample_map_route_2_to_104` runs. It also records the known missing
+coverage for `npc_interaction`, `dense_scene`, and `lane_change_or_merge`.
+Do not use it to claim final coverage or to label new artifacts unless their
+route names and run configuration fields match the same inspected scenario
+definitions.
+
 ## Development Gate
 
 Before claiming DP-CAMP improves over DP Top-1, the comparison must satisfy the

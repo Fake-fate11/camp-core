@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -13,6 +14,9 @@ from scripts.integrations.compare_diffusion_planner_camp_replays import (
     _safety_gate_assessments,
     _scenario_buckets,
 )
+
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_safety_cost_v1_uses_weighted_clipped_components() -> None:
@@ -176,3 +180,51 @@ def test_scenario_bucket_manifest_rejects_outcome_filter_fields(tmp_path) -> Non
 
     with pytest.raises(ValueError, match="unsupported match field"):
         _load_scenario_bucket_manifest(manifest_path)
+
+
+def test_committed_development_scenario_manifest_is_explicit_only() -> None:
+    manifest_path = (
+        ROOT
+        / "configs"
+        / "integrations"
+        / "dp_camp_development_scenario_buckets_redstopfloor05_v1.json"
+    )
+    manifest = _load_scenario_bucket_manifest(manifest_path)
+
+    assert manifest["default_buckets"] == []
+    assert _scenario_buckets(
+        {
+            "route_name": "sample_map_tl_route_59_to_86",
+            "traffic_lights": True,
+            "max_npcs": 4,
+            "run_key": "sample59-on",
+        },
+        manifest,
+    ) == ["overall", "sharp_turn", "traffic_light", "red_light_turn"]
+    assert _scenario_buckets(
+        {
+            "route_name": "sample_map_tl_route_59_to_86",
+            "traffic_lights": False,
+            "max_npcs": 4,
+            "run_key": "sample59-off",
+        },
+        manifest,
+    ) == ["overall", "sharp_turn"]
+    assert _scenario_buckets(
+        {
+            "route_name": "sample_map_route_2_to_104",
+            "traffic_lights": False,
+            "max_npcs": 0,
+            "run_key": "normal",
+        },
+        manifest,
+    ) == ["overall", "normal"]
+    assert _scenario_buckets(
+        {
+            "route_name": "sample_map_route_2_to_104",
+            "traffic_lights": False,
+            "max_npcs": 4,
+            "run_key": "npc-not-yet-labeled",
+        },
+        manifest,
+    ) == ["overall"]

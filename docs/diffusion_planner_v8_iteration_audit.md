@@ -10621,3 +10621,41 @@ NPC interaction, dense scenes, and lane-change/merge. Even in the covered
 buckets, `redstopfloor05` fails the hard gate and has positive SafetyCost
 deltas. The next admissible step is scenario-suite design or route generation
 for the missing buckets, not CAMP weight tuning.
+
+## Versioned development scenario manifest
+
+The route-inspection-backed development manifest used for the existing
+redstopfloor05 full36 artifacts is now versioned in the repository:
+
+```text
+configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json
+```
+
+This is a reproducibility milestone only. It records the same explicit labels
+used in the AutoDL `scenario_filter_manifest_56e09ad` recomputation:
+
+- `sample_map_tl_route_59_to_86` receives route-level `sharp_turn` from route
+  geometry evidence.
+- `nishishinjuku_release_auto_route` receives `traffic_light` only when
+  `traffic_lights=true`.
+- `sample_map_tl_route_59_to_86` receives `traffic_light` and
+  `red_light_turn` only when `traffic_lights=true`.
+- `sample_map_route_2_to_104` receives `normal` only when
+  `traffic_lights=false` and `max_npcs=0`.
+
+The manifest metadata records the known missing buckets:
+
+```text
+npc_interaction
+dense_scene
+lane_change_or_merge
+```
+
+Mathematical conclusion: this manifest changes only evaluation metadata. It
+does not modify DP, CAMP weights, candidate generation, atoms, feasibility
+masks, affine scoring, or the finite-candidate generalized Benders-style
+cutting-plane master.
+
+Decision: accept the versioned manifest as a reproducibility improvement for
+development audits. Reject any claim that it improves `redstopfloor05` or makes
+the current full36 suite complete.
