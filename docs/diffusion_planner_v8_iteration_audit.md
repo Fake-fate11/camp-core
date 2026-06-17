@@ -9943,3 +9943,176 @@ matched that commit. AutoDL Diffusion Planner remained fixed at:
 The only remaining local untracked files were the existing session handoff
 artifacts, and the only remaining AutoDL untracked files were the existing
 handoff/integration notes listed above. They were left untouched.
+
+### SafetyCost v1 comparison gate
+
+The next evaluation milestone defined a composite DP-CAMP safety score instead
+of continuing selector tuning. The contract is documented in:
+
+```text
+docs/dp_camp_safety_score_v1.md
+```
+
+SafetyCost v1 is a lower-is-better weighted-and-clipped replay summary score:
+
+```text
+SafetyCost_v1 =
+  100 * obb_collision_rate
++  10 * near_miss_rate
++  20 * lane_violation_rate
++  30 * red_light_violation_rate
++  15 * planned_red_light_violation_rate
++   1 * clip(mean_jerk_magnitude_mps3 / 10.0, 0, 10)
++   2 * clip(mean_lateral_acceleration_mps2 / 2.0, 0, 10)
++   2 * clip(1.0 - route_completion_rate, 0, 1)
+```
+
+This mirrors the Trajectron++ CAMP reporting principle that safety metrics must
+be weighted and clipped before aggregation so rare outliers do not dominate the
+claim. It is an evaluation score only. It does not change CAMP weights, DP
+weights, candidate generation, the simulator, the finite-candidate mathematical
+contract, or the Benders-style master.
+
+The compare tool was extended in:
+
+```text
+scripts/integrations/compare_diffusion_planner_camp_replays.py
+```
+
+New outputs:
+
+- per-run `safety_cost_v1` and component breakdowns;
+- aggregate SafetyCost mean and upper-tail `safety_cost_v1_cvar90`;
+- paired CAMP-minus-Top1 SafetyCost delta with deterministic 10,000-resample
+  bootstrap CI;
+- paired CVaR90 delta;
+- hard-gate assessment;
+- explicit scenario bucket support through a JSON manifest.
+
+The hard gate requires:
+
+- collision, near-miss, lane, and realized-red paired deltas to be nonpositive
+  with CI high at most zero;
+- completion CI low not below `-0.001`;
+- variant p95 selection latency CI high at most `95 ms`, leaving `5 ms` margin
+  under the `100 ms` budget;
+- every paired CAMP run to carry `dp_camp_finite_candidate_contract_v1`;
+- formal seeds `11/12/13` absent.
+
+The claim rule is strict: CAMP may be called better than DP Top-1 only if this
+hard gate passes and `ci95_high(SafetyCost_CAMP - SafetyCost_Top1) < 0`.
+
+Local verification:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_safety_score_compare.py \
+  camp_core\tests\test_diffusion_planner_integration.py \
+  -k "comparison or safety_cost"
+
+4 passed, 107 deselected
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_safety_score_compare.py
+
+3 passed
+
+python -m py_compile \
+  scripts\integrations\compare_diffusion_planner_camp_replays.py
+
+passed
+
+git diff --check -- \
+  scripts/integrations/compare_diffusion_planner_camp_replays.py \
+  camp_core/tests/test_diffusion_planner_safety_score_compare.py \
+  docs/dp_camp_safety_score_v1.md
+
+passed
+```
+
+The implementation was committed, pushed, and synced to AutoDL as:
+
+```text
+07c3b9ac0dec8859b560c671fbda4e6f17423176
+Add DP CAMP SafetyCost comparison gate
+```
+
+AutoDL CAMP matched that commit. AutoDL Diffusion Planner remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+The first read-only SafetyCost v1 recomputation used the existing non-formal
+36-run `redstopfloor05` development artifacts. It did not run new replay,
+train CAMP, modify DP, use formal seeds, or relabel scenarios. No scenario
+bucket manifest was supplied, so all runs are bucketed as `overall` only.
+
+Output root:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_score_v1_07c3b9a
+```
+
+Command source:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/compare_diffusion_planner_camp_replays.py \
+  --baseline top1 \
+  --variant top1=<36 existing top1 replay dirs from prior comparison> \
+  --variant v10_redstopfloor05=<36 existing redstopfloor05 replay dirs> \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_score_v1_07c3b9a/safety_score_v1_comparison.json \
+  --output_markdown \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_score_v1_07c3b9a/safety_score_v1_comparison.md \
+  --require_strict_pairing
+```
+
+The actual command was assembled from the prior
+`comparison/benchmark_comparison.json` to avoid manually rewriting all 72
+paths. Pairing remained strict: 36 Top-1 runs, 36 `v10_redstopfloor05` runs, 36
+common keys, zero missing keys, and zero duplicate keys.
+
+Artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_score_v1_comparison.json` | `ca254ed88182a55b603c803a3167a3deb692319e038f880b2bedb656c8c80a27` |
+| `safety_score_v1_comparison.md` | `b207f611e05b2e85f3c36bf55e248e9ba29f03b023587d5401b1ebd7bd6fb424` |
+
+SafetyCost v1 result for `v10_redstopfloor05 - top1`:
+
+| Metric | Paired delta |
+| --- | ---: |
+| SafetyCost v1 mean | `+1.636354 [1.128720, 2.435982]` |
+| SafetyCost v1 CVaR90 delta | `+4.877437 [1.558574, 10.598288]` |
+| Route completion | `+0.011982 [0.008380, 0.016005]` |
+| Realized red-light rate | `+0.006142 [0.000000, 0.018425]` |
+| Planned red-light rate | `+0.012500 [-0.001667, 0.035000]` |
+| Mean jerk | `+12.116891 [10.277971, 14.019839]` |
+| Mean lateral acceleration | `+0.044929 [0.028234, 0.064603]` |
+
+Hard-gate result:
+
+| Gate | Result |
+| --- | --- |
+| Collision nonworse | Pass |
+| Near-miss nonworse | Fail |
+| Lane nonworse | Fail |
+| Realized red nonworse | Fail |
+| Completion not significantly lower | Pass |
+| Latency margin | Pass (`p95_selection_latency_ms` CI high `92.622 ms`) |
+| Finite-candidate contract metadata | Fail (`0/36` legacy runs carried the new metadata block) |
+| Formal seeds absent | Pass |
+
+Decision: reject `redstopfloor05` as a comprehensive-safety improvement over
+DP Top-1 under SafetyCost v1. This agrees with the earlier metric-by-metric
+interpretation: `redstopfloor05` is mathematically certified and improves route
+completion, but it has worse composite safety cost, worse tail risk, and fails
+hard safety gates. The next admissible engineering step is to use SafetyCost v1
+as the default comparison gate for any larger non-formal scenario suite. A
+larger suite must include explicit scenario bucket manifests before critical
+bucket claims such as red-light turn, sharp turn, dense NPC, or lane change are
+made.
