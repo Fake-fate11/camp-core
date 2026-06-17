@@ -10398,3 +10398,80 @@ routes present in the existing `redstopfloor05` full36 SafetyCost comparison:
 `nishishinjuku_release_auto_route`, `sample_map_route_2_to_104`, and
 `sample_map_tl_route_59_to_86`. The expected output is an evidence artifact,
 not a filled manifest.
+
+The implementation was committed, pushed, and synced to AutoDL as:
+
+```text
+8a3b0a43507621f793ea516c2cc1df8f079a5373
+Add DP CAMP route scenario inspection
+```
+
+The inspection was then extended with per-lanelet evidence and synced as:
+
+```text
+a9fc312293b584165140dc713631f2eb46c1554c
+Add lanelet evidence to DP route inspection
+```
+
+AutoDL CAMP matched `a9fc312293b584165140dc713631f2eb46c1554c`. AutoDL
+Diffusion Planner remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Remote route inspection command:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/inspect_diffusion_planner_routes.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --comparison_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_score_v1_07c3b9a/safety_score_v1_comparison.json \
+  --route \
+    nishishinjuku_release_auto_route=/root/autodl-tmp/camp_dp_assets/nishishinjuku_release_auto_route.pkl \
+  --route \
+    sample_map_route_2_to_104=/root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl \
+  --route \
+    sample_map_tl_route_59_to_86=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/route_inspection_a9fc312/route_scenario_inspection.json \
+  --output_markdown \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/route_inspection_a9fc312/route_scenario_inspection.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `route_scenario_inspection.json` | `ac7ec6c7b2f7028722905cb3ba41a99f5f249c491bbd62ab9bf8f6a3b15d5f3d` |
+| `route_scenario_inspection.md` | `1cf907cab6dbfad29d6ae06fd31eed74a20d3672347d6c5a4c66290e120a5575` |
+
+Route evidence:
+
+| Route | Length m | TL lanelets/groups | Max 10 m turn | Max 25 m turn | Run keys | TL modes | NPC counts |
+| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| `nishishinjuku_release_auto_route` | `747.198` | `5/5` | `29.210 deg` | `68.632 deg` | `12` | `[False, True]` | `[0, 4]` |
+| `sample_map_route_2_to_104` | `338.996` | `0/0` | `6.277 deg` | `14.806 deg` | `12` | `[False, True]` | `[0, 4]` |
+| `sample_map_tl_route_59_to_86` | `501.934` | `4/4` | `84.735 deg` | `90.209 deg` | `12` | `[False, True]` | `[0, 4]` |
+
+Per-lanelet traffic-light evidence shows that `sample_map_tl_route_59_to_86`
+has traffic-light lanelets with large local net heading changes:
+
+| Route lanelet | Group | Cumulative range m | Net heading change |
+| ---: | ---: | ---: | ---: |
+| `59` | `1021` | `0.000-14.219` | `90.000 deg` |
+| `33` | `1009` | `67.311-82.184` | `79.533 deg` |
+| `57` | `1018` | `221.904-236.291` | `89.939 deg` |
+| `16` | `1026` | `285.334-301.066` | `81.221 deg` |
+
+Decision: accept the route inspection artifact as scenario-definition evidence.
+It supports explicit future labeling of traffic-light and red-light-turn
+run-key buckets for inspected traffic-light-enabled runs, especially
+`sample_map_tl_route_59_to_86`. It does not by itself pass the coverage gate,
+because the existing comparison mixes `traffic_lights=True/False`; applying a
+route-level traffic-light label would mislabel the off runs. The next
+admissible step is to add or use an explicit run-key/filter manifest so labels
+can depend on route name plus run-level traffic-light/NPC configuration without
+using replay outcomes.
