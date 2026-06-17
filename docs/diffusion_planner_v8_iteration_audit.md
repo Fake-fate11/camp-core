@@ -14926,3 +14926,144 @@ NPC smoke is still above 100 ms, and the clearance descriptor did not expose
 the route-H10 near-miss failure. The next admissible step is a no-outcome
 offline shadow audit that combines the already logged route-progress, H10
 lower-bound, and v2 clearance descriptor fields without changing selection.
+
+### No-outcome route-H10-clearance shadow certificate audit
+
+Commit `d5c72e7da78df85e41d450997a9488e5e4ddbadc` added a dedicated
+no-outcome analyzer:
+
+```text
+scripts/integrations/analyze_diffusion_planner_no_outcome_shadow_certificate.py
+camp_core/tests/test_diffusion_planner_no_outcome_shadow_certificate.py
+```
+
+Commit `45bafb28c30e98f3f0c120046cd1ed0f443ae59b` then relaxed only the
+diagnostic provenance parser so that `min_obstacle_clearance_lower_bound_m`
+may contain `null` on records with no active obstacle slots. The screen still
+requires finite soft and near-miss clearance hinge costs.
+
+The analyzer is intentionally narrower than the previous route-H10 posterior
+selector audit:
+
+1. It rejects any log with non-null `candidate_closed_loop_outcomes`.
+2. It reads only fixed current-tick fields: finite candidate feasibility,
+   affine CAMP scores, route progress, H10 open-loop distance, and v2
+   clearance hinge costs.
+3. It reports what a default-off finite-candidate certificate would do, but it
+   does not change selection and does not score outcomes.
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_no_outcome_shadow_certificate.py \
+  camp_core\tests\test_diffusion_planner_route_h10_shadow_selector.py \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_are_current_tick_hinges \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_reports_obb_mode \
+  -q
+# 5 passed
+
+py -3.12 -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_no_outcome_shadow_certificate.py \
+  camp_core\tests\test_diffusion_planner_no_outcome_shadow_certificate.py
+# passed
+
+git diff --check
+# passed
+```
+
+AutoDL CAMP was advanced to
+`45bafb28c30e98f3f0c120046cd1ed0f443ae59b` using a git bundle. AutoDL DP
+remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL targeted
+test result:
+
+```text
+camp_core/tests/test_diffusion_planner_no_outcome_shadow_certificate.py
+# 2 passed
+```
+
+No-outcome audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/obstacle_clearance_nishiseed2_832a76b_20260617_v2
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_shadow_certificate_45bafb2
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_no_outcome_shadow_certificate.py \
+  --root "$ROOT" \
+  --label nishiseed2_v2_no_outcome \
+  --output_json "$OUT/no_outcome_shadow_certificate.json" \
+  --output_md "$OUT/no_outcome_shadow_certificate.md"
+```
+
+Artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_shadow_certificate_45bafb2
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `no_outcome_shadow_certificate.json` | `ba4a0c7c8d885d098afa305b3d946f08bc6942286366e2d7eb987d0092fa111b` |
+| `no_outcome_shadow_certificate.md` | `e93b6c4d65c945e11f440c60f349cd4d19b00a48038f6e20014561e1b086353a` |
+
+No-outcome audit summary:
+
+```text
+records.total=140
+records.candidate0_feasible=126
+records.fallback=14
+records.closed_loop_outcome_records=0
+descriptor_coverage.candidate_route_progress_records=140
+descriptor_coverage.h10_distance_records=140
+descriptor_coverage.obstacle_clearance_v2_records=140
+descriptor_coverage.all_required_records=140
+latency_ms.shadow_obstacle_clearance.p95=2.522506
+```
+
+Screen results:
+
+| Screen | Descriptor available | Opportunity | Shadow changes candidate0 | Shadow differs from logged | Stage counts |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `route_h10_score0` | `126` | `26` | `26` | `120` | `candidate0_retain_empty_mask:100, fallback_retain_logged:14, shadow_candidate:26` |
+| `route_h10_clearance_nonworse` | `126` | `26` | `26` | `120` | `candidate0_retain_empty_mask:100, fallback_retain_logged:14, shadow_candidate:26` |
+| `route_h10_clearance_zero` | `126` | `26` | `26` | `120` | `candidate0_retain_empty_mask:100, fallback_retain_logged:14, shadow_candidate:26` |
+
+Interpretation:
+
+1. The no-outcome audit path is now implemented and verified. It enforces the
+   intended no-leakage boundary by rejecting non-null closed-loop outcome
+   labels.
+2. On this single nishishinjuku NPC smoke, all required current-tick
+   descriptors are present on every record, and v2 obstacle-clearance latency
+   remains low.
+3. The clearance guard is inactive on this artifact: all three screens produce
+   identical opportunities and shadow selections. This is consistent with the
+   previous v2 observation that the route-H10 near-miss steps have large
+   current-tick clearance lower bounds and zero clearance hinge costs.
+4. The large `shadow_differs_from_logged=120` count is not a success signal.
+   It mostly reflects that this certificate is measured against the logged
+   redstopfloor05 selector on a single route smoke, without posterior safety
+   labels and without changing selection.
+
+Mathematical boundary: this analyzer is a finite-candidate diagnostic only.
+The screen predicates are current-tick constants over the fixed DP candidate
+set. If promoted later, route progress, H10 lower-bound, and clearance hinge
+terms must be represented as nonnegative fixed atoms or lexicographic guards,
+leaving CAMP scoring affine in the master weights. No DP model component,
+postprocessing step, PerfectTracker transition, closed-loop outcome,
+SafetyCost result, or trajectory-coordinate optimization is treated as a
+Benders subproblem or cut source.
+
+Decision: accept the no-outcome analyzer and its single-artifact smoke result
+as a readiness check. Reject any selector promotion from this evidence. The
+next admissible step is to collect or reuse a broader no-outcome development
+grid with route-progress, H10, and v2 clearance logging enabled, then run this
+analyzer plus dataset audit and latency summaries before considering any
+online/default-off selector implementation.
