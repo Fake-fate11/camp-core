@@ -51,6 +51,23 @@ NESTED_FIELDS = (
     "latency_ms_camp_scoring",
 )
 
+REWARD_BREAKDOWN_FIELDS = (
+    "latency_ms_reward_npz_dump",
+    "latency_ms_reward_tensor_setup",
+    "latency_ms_reward_sg_smoothing",
+    "latency_ms_reward_candidate_tensor_transfer",
+    "latency_ms_reward_batch_compute",
+    "latency_ms_reward_postprocess",
+    "latency_ms_reward_full_horizon_red_light",
+    "latency_ms_reward_red_route_points",
+    "latency_ms_reward_feasibility",
+    "latency_ms_reward_field_extraction",
+    "latency_ms_reward_step_reach_guard",
+    "latency_ms_reward_route_progress",
+    "latency_ms_reward_route_progress_guard",
+    "latency_ms_reward_lexicographic_filter",
+)
+
 REMOVAL_FIELDS = (
     "latency_ms_candidate_generation",
     "latency_ms_reward_scoring",
@@ -151,7 +168,12 @@ def analyze(
         },
         "overall_latency_ms": {
             field: _summary(_values(rows, field))
-            for field in (TOTAL_FIELD, *CRITICAL_PATH_FIELDS, *NESTED_FIELDS)
+            for field in (
+                TOTAL_FIELD,
+                *CRITICAL_PATH_FIELDS,
+                *NESTED_FIELDS,
+                *REWARD_BREAKDOWN_FIELDS,
+            )
         },
         "tail_mean_latency_ms": _field_means(tail_rows),
         "derived_latency_ms": _derived_latency(rows),
@@ -175,7 +197,12 @@ def _load_rows(paths: list[Path]) -> list[dict[str, Any]]:
                 continue
             latencies = {
                 field: _finite(record.get(field))
-                for field in (TOTAL_FIELD, *CRITICAL_PATH_FIELDS, *NESTED_FIELDS)
+                for field in (
+                    TOTAL_FIELD,
+                    *CRITICAL_PATH_FIELDS,
+                    *NESTED_FIELDS,
+                    *REWARD_BREAKDOWN_FIELDS,
+                )
             }
             rows.append(
                 {
@@ -203,6 +230,8 @@ def _derived_latency(rows: list[dict[str, Any]]) -> dict[str, Any]:
     non_candidate: list[float] = []
     residual: list[float] = []
     critical_sum_values: list[float] = []
+    reward_breakdown_sum_values: list[float] = []
+    reward_breakdown_residual: list[float] = []
     for row in rows:
         total = _finite(row["latencies"].get(TOTAL_FIELD))
         if total is None:
@@ -218,16 +247,35 @@ def _derived_latency(rows: list[dict[str, Any]]) -> dict[str, Any]:
         )
         critical_sum_values.append(critical_sum)
         residual.append(total - critical_sum)
+        reward_total = _finite(row["latencies"].get("latency_ms_reward_scoring"))
+        reward_components = [
+            _finite(row["latencies"].get(field))
+            for field in REWARD_BREAKDOWN_FIELDS
+        ]
+        finite_reward_components = [
+            float(value) for value in reward_components if value is not None
+        ]
+        if reward_total is not None and finite_reward_components:
+            reward_sum = sum(finite_reward_components)
+            reward_breakdown_sum_values.append(reward_sum)
+            reward_breakdown_residual.append(float(reward_total) - reward_sum)
     return {
         "non_candidate_generation": _summary(non_candidate),
         "critical_path_sum": _summary(critical_sum_values),
         "uninstrumented_residual": _summary(residual),
+        "reward_breakdown_sum": _summary(reward_breakdown_sum_values),
+        "reward_unattributed_residual": _summary(reward_breakdown_residual),
     }
 
 
 def _field_means(rows: list[dict[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
-    for field in (TOTAL_FIELD, *CRITICAL_PATH_FIELDS, *NESTED_FIELDS):
+    for field in (
+        TOTAL_FIELD,
+        *CRITICAL_PATH_FIELDS,
+        *NESTED_FIELDS,
+        *REWARD_BREAKDOWN_FIELDS,
+    ):
         values = _values(rows, field)
         result[field] = {
             "n": len(values),
@@ -276,7 +324,12 @@ def _examples(rows: list[dict[str, Any]], max_examples: int) -> list[dict[str, A
     for row in sorted_rows[:max_examples]:
         latencies = {
             field: row["latencies"].get(field)
-            for field in (TOTAL_FIELD, *CRITICAL_PATH_FIELDS, *NESTED_FIELDS)
+            for field in (
+                TOTAL_FIELD,
+                *CRITICAL_PATH_FIELDS,
+                *NESTED_FIELDS,
+                *REWARD_BREAKDOWN_FIELDS,
+            )
             if row["latencies"].get(field) is not None
         }
         examples.append(

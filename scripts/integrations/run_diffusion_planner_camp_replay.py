@@ -1799,19 +1799,21 @@ def _score_candidate_batch(
     reward_config: Any,
     spawn_config: Any,
     reward_horizon_steps: int,
-) -> tuple[list[dict[str, Any]], np.ndarray, float]:
+) -> tuple[list[dict[str, Any]], np.ndarray, float, dict[str, float]]:
     if map_cache is None:
         raise RuntimeError("Candidate reward scoring requires Diffusion Planner map_cache.")
 
     import torch
     from rlvr.reward import compute_red_light_score_batch, compute_reward_batch
 
+    batch_start = time.perf_counter()
     npz_data = tensor_converter_module.dump_step_npz(
         scene,
         map_cache,
         future_len=int(model_args.future_len),
         predicted_neighbor_num=int(model_args.predicted_neighbor_num),
     )
+    npz_done = time.perf_counter()
 
     def _to_tensor(array: np.ndarray) -> torch.Tensor:
         tensor = torch.from_numpy(np.asarray(array)).float().to(device)
@@ -1838,6 +1840,7 @@ def _score_candidate_batch(
                 axis=-1,
             )
         reward_data[key] = _to_tensor(array)
+    tensor_setup_done = time.perf_counter()
 
     scored_candidates = np.asarray(candidates, dtype=np.float32).copy()
     if bool(getattr(spawn_config, "sg_smooth_enabled", False)):
@@ -1851,16 +1854,22 @@ def _score_candidate_batch(
                 for candidate in scored_candidates
             ]
         )
+    smoothing_done = time.perf_counter()
     full_trajectories = torch.from_numpy(scored_candidates).float().to(device)
     reward_trajectories = full_trajectories[:, :reward_horizon_steps]
+    candidate_tensor_done = time.perf_counter()
+    reward_compute_start = time.perf_counter()
+    raw_reward_breakdowns = compute_reward_batch(
+        reward_trajectories,
+        reward_data,
+        reward_config,
+    )
+    reward_compute_done = time.perf_counter()
     reward_breakdowns = [
         asdict(breakdown)
-        for breakdown in compute_reward_batch(
-            reward_trajectories,
-            reward_data,
-            reward_config,
-        )
+        for breakdown in raw_reward_breakdowns
     ]
+    reward_postprocess_done = time.perf_counter()
     full_red_start = time.perf_counter()
     full_red_scores = compute_red_light_score_batch(
         full_trajectories,
@@ -1871,8 +1880,38 @@ def _score_candidate_batch(
         -full_red_scores.detach().cpu().numpy().astype(np.float64),
         0.0,
     )
-    full_red_latency_ms = (time.perf_counter() - full_red_start) * 1000.0
-    return reward_breakdowns, full_red_cost, full_red_latency_ms
+    full_red_done = time.perf_counter()
+    full_red_latency_ms = (full_red_done - full_red_start) * 1000.0
+    latency_breakdown_ms = {
+        "latency_ms_reward_npz_dump": (npz_done - batch_start) * 1000.0,
+        "latency_ms_reward_tensor_setup": (tensor_setup_done - npz_done) * 1000.0,
+        "latency_ms_reward_sg_smoothing": (
+            smoothing_done - tensor_setup_done
+        )
+        * 1000.0,
+        "latency_ms_reward_candidate_tensor_transfer": (
+            candidate_tensor_done - smoothing_done
+        )
+        * 1000.0,
+        "latency_ms_reward_batch_compute": (
+            reward_compute_done - reward_compute_start
+        )
+        * 1000.0,
+        "latency_ms_reward_postprocess": (
+            reward_postprocess_done - reward_compute_done
+        )
+        * 1000.0,
+        "latency_ms_reward_full_horizon_red_light": (
+            full_red_done - full_red_start
+        )
+        * 1000.0,
+    }
+    return (
+        reward_breakdowns,
+        full_red_cost,
+        full_red_latency_ms,
+        latency_breakdown_ms,
+    )
 
 
 def _candidate_feasibility_from_rewards(
@@ -2406,7 +2445,12 @@ def _evaluate_splice_shadow_rule(
         blend_steps=int(blend_steps),
         heading_mode=str(heading_mode),
     )
-    transformed_rewards, transformed_full_red_cost, full_red_latency_ms = (
+    (
+        transformed_rewards,
+        transformed_full_red_cost,
+        full_red_latency_ms,
+        _transformed_reward_latency_breakdown_ms,
+    ) = (
         _score_candidate_batch(
             replay_module=replay_module,
             tensor_converter_module=tensor_converter_module,
@@ -2872,6 +2916,22 @@ def _install_camp_predictor(
         candidate_full_horizon_planned_red_light_cost = None
         candidate_horizon_union_planned_red_light_cost = None
         full_horizon_red_light_latency_ms = 0.0
+        reward_latency_breakdown_ms = {
+            "latency_ms_reward_npz_dump": 0.0,
+            "latency_ms_reward_tensor_setup": 0.0,
+            "latency_ms_reward_sg_smoothing": 0.0,
+            "latency_ms_reward_candidate_tensor_transfer": 0.0,
+            "latency_ms_reward_batch_compute": 0.0,
+            "latency_ms_reward_postprocess": 0.0,
+            "latency_ms_reward_full_horizon_red_light": 0.0,
+            "latency_ms_reward_red_route_points": 0.0,
+            "latency_ms_reward_feasibility": 0.0,
+            "latency_ms_reward_field_extraction": 0.0,
+            "latency_ms_reward_step_reach_guard": 0.0,
+            "latency_ms_reward_route_progress": 0.0,
+            "latency_ms_reward_route_progress_guard": 0.0,
+            "latency_ms_reward_lexicographic_filter": 0.0,
+        }
         candidate_route_progress = None
         candidate_step_reach = _candidate_step_reach(candidates)
         perfect_tracker_command_start = time.perf_counter()
@@ -2934,7 +2994,11 @@ def _install_camp_predictor(
         candidate_step_reach_guard_relaxed = False
         lexicographic_stage_counts = None
         candidate_planned_red_light_cost = None
+        reward_red_route_points_start = time.perf_counter()
         red_route_points = red_route_points_from_scene(scene, ego_id)
+        reward_latency_breakdown_ms["latency_ms_reward_red_route_points"] = (
+            time.perf_counter() - reward_red_route_points_start
+        ) * 1000.0
         external_feasible_mask = None
         external_infeasibility_reasons = None
         if feasibility_source == "dp_reward":
@@ -2942,6 +3006,7 @@ def _install_camp_predictor(
                 candidate_rewards,
                 candidate_full_horizon_planned_red_light_cost,
                 full_horizon_red_light_latency_ms,
+                reward_batch_latency_breakdown_ms,
             ) = _score_candidate_batch(
                 replay_module=replay_module,
                 tensor_converter_module=tensor_converter_module,
@@ -2954,6 +3019,8 @@ def _install_camp_predictor(
                 spawn_config=spawn_config,
                 reward_horizon_steps=reward_horizon_steps,
             )
+            reward_latency_breakdown_ms.update(reward_batch_latency_breakdown_ms)
+            reward_feasibility_start = time.perf_counter()
             (
                 external_feasible_mask,
                 external_infeasibility_reasons,
@@ -2962,6 +3029,10 @@ def _install_camp_predictor(
                 min_progress_ratio,
                 min_candidate0_progress_ratio,
             )
+            reward_latency_breakdown_ms["latency_ms_reward_feasibility"] = (
+                time.perf_counter() - reward_feasibility_start
+            ) * 1000.0
+            reward_field_extraction_start = time.perf_counter()
             candidate_progress = np.asarray(
                 [reward["progress"] for reward in candidate_rewards],
                 dtype=np.float64,
@@ -2974,7 +3045,11 @@ def _install_camp_predictor(
                 candidate_planned_red_light_cost,
                 candidate_full_horizon_planned_red_light_cost,
             )
+            reward_latency_breakdown_ms["latency_ms_reward_field_extraction"] = (
+                time.perf_counter() - reward_field_extraction_start
+            ) * 1000.0
         if min_candidate0_step_reach_ratio is not None:
+            reward_step_reach_guard_start = time.perf_counter()
             (
                 external_feasible_mask,
                 external_infeasibility_reasons,
@@ -2986,7 +3061,11 @@ def _install_camp_predictor(
                 min_candidate0_step_reach_ratio,
                 preserve_any_feasible=candidate0_step_reach_preserve_feasible,
             )
+            reward_latency_breakdown_ms["latency_ms_reward_step_reach_guard"] = (
+                time.perf_counter() - reward_step_reach_guard_start
+            ) * 1000.0
         if min_candidate0_route_progress_ratio is not None or shadow_route_progress:
+            reward_route_progress_start = time.perf_counter()
             route_centerline_ego = _ego_frame_xy(
                 route_centerline,
                 np.asarray(ego_agent.current_position, dtype=np.float64),
@@ -2997,7 +3076,11 @@ def _install_camp_predictor(
                 candidates[:, :route_horizon],
                 route_centerline_ego,
             )
+            reward_latency_breakdown_ms["latency_ms_reward_route_progress"] = (
+                time.perf_counter() - reward_route_progress_start
+            ) * 1000.0
         if min_candidate0_route_progress_ratio is not None:
+            reward_route_progress_guard_start = time.perf_counter()
             (
                 external_feasible_mask,
                 external_infeasibility_reasons,
@@ -3007,11 +3090,15 @@ def _install_camp_predictor(
                 candidate_route_progress,
                 min_candidate0_route_progress_ratio,
             )
+            reward_latency_breakdown_ms["latency_ms_reward_route_progress_guard"] = (
+                time.perf_counter() - reward_route_progress_guard_start
+            ) * 1000.0
         if lexicographic_progress_epsilon_m is not None:
             if candidate_progress is None or candidate_planned_red_light_cost is None:
                 raise RuntimeError(
                     "Lexicographic preselection requires DP reward candidate fields."
                 )
+            reward_lexicographic_filter_start = time.perf_counter()
             (
                 external_feasible_mask,
                 external_infeasibility_reasons,
@@ -3034,6 +3121,9 @@ def _install_camp_predictor(
                 jerk_epsilon=lexicographic_jerk_epsilon,
                 lateral_epsilon=lexicographic_lateral_epsilon,
             )
+            reward_latency_breakdown_ms[
+                "latency_ms_reward_lexicographic_filter"
+            ] = (time.perf_counter() - reward_lexicographic_filter_start) * 1000.0
         reward_scoring_done = time.perf_counter()
         if collect_closed_loop_outcomes:
             candidate_outcomes = compute_candidate_closed_loop_outcomes(
@@ -3231,6 +3321,7 @@ def _install_camp_predictor(
                 reward_scoring_done - perfect_tracker_open_loop_done
             )
             * 1000.0,
+            **reward_latency_breakdown_ms,
             "latency_ms_shadow_perfect_tracker_command": (
                 shadow_perfect_tracker_command_latency_ms
             ),

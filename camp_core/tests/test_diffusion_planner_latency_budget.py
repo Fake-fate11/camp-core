@@ -39,6 +39,15 @@ def test_latency_budget_reports_tail_and_removal_sensitivity(tmp_path) -> None:
     assert report["derived_latency_ms"]["non_candidate_generation"][
         "p95"
     ] == pytest.approx(59.5)
+    assert report["overall_latency_ms"]["latency_ms_reward_batch_compute"][
+        "p95"
+    ] == pytest.approx(28.5)
+    assert report["derived_latency_ms"]["reward_breakdown_sum"][
+        "p95"
+    ] == pytest.approx(39.5)
+    assert report["derived_latency_ms"]["reward_unattributed_residual"][
+        "p95"
+    ] == pytest.approx(0.0)
 
     markdown = render_markdown(report)
     assert "DP-CAMP Latency Budget Attribution" in markdown
@@ -75,6 +84,20 @@ def _record(
         "latency_ms_traffic_light_hybrid_postselection": 0.0,
         "latency_ms_perfect_tracker_command_postselection": 0.0,
         "latency_ms_shadow_full_horizon_red_light": 1.0,
+        "latency_ms_reward_npz_dump": 1.0,
+        "latency_ms_reward_tensor_setup": 2.0,
+        "latency_ms_reward_sg_smoothing": 0.0,
+        "latency_ms_reward_candidate_tensor_transfer": 1.0,
+        "latency_ms_reward_batch_compute": reward - 11.0,
+        "latency_ms_reward_postprocess": 1.0,
+        "latency_ms_reward_full_horizon_red_light": 4.0,
+        "latency_ms_reward_red_route_points": 0.5,
+        "latency_ms_reward_feasibility": 0.5,
+        "latency_ms_reward_field_extraction": 0.5,
+        "latency_ms_reward_step_reach_guard": 0.0,
+        "latency_ms_reward_route_progress": 0.5,
+        "latency_ms_reward_route_progress_guard": 0.0,
+        "latency_ms_reward_lexicographic_filter": 0.0,
         "latency_ms_camp_atom_computation": 2.0,
         "latency_ms_camp_feasibility": 1.0,
         "latency_ms_camp_collision_checks": 4.0,

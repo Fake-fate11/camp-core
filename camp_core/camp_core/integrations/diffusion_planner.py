@@ -2280,6 +2280,34 @@ def summarize_selection_records(
         ),
         "latency_ms_context_and_obstacles": "context_and_obstacles_latency_ms",
         "latency_ms_reward_scoring": "reward_scoring_latency_ms",
+        "latency_ms_reward_npz_dump": "reward_npz_dump_latency_ms",
+        "latency_ms_reward_tensor_setup": "reward_tensor_setup_latency_ms",
+        "latency_ms_reward_sg_smoothing": "reward_sg_smoothing_latency_ms",
+        "latency_ms_reward_candidate_tensor_transfer": (
+            "reward_candidate_tensor_transfer_latency_ms"
+        ),
+        "latency_ms_reward_batch_compute": "reward_batch_compute_latency_ms",
+        "latency_ms_reward_postprocess": "reward_postprocess_latency_ms",
+        "latency_ms_reward_full_horizon_red_light": (
+            "reward_full_horizon_red_light_latency_ms"
+        ),
+        "latency_ms_reward_red_route_points": (
+            "reward_red_route_points_latency_ms"
+        ),
+        "latency_ms_reward_feasibility": "reward_feasibility_latency_ms",
+        "latency_ms_reward_field_extraction": (
+            "reward_field_extraction_latency_ms"
+        ),
+        "latency_ms_reward_step_reach_guard": (
+            "reward_step_reach_guard_latency_ms"
+        ),
+        "latency_ms_reward_route_progress": "reward_route_progress_latency_ms",
+        "latency_ms_reward_route_progress_guard": (
+            "reward_route_progress_guard_latency_ms"
+        ),
+        "latency_ms_reward_lexicographic_filter": (
+            "reward_lexicographic_filter_latency_ms"
+        ),
         "latency_ms_outcome_collection": "outcome_collection_latency_ms",
         "latency_ms_red_stopping_margin_atom": (
             "red_stopping_margin_atom_latency_ms"
