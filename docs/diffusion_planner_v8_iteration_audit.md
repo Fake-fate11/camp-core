@@ -14649,3 +14649,132 @@ Next step: write the finite-candidate lexicographic route-progress plus H10
 lower-bound rule as a default-off, fail-closed selector proposal, then verify it
 with a no-outcome shadow-only audit and local/AutoDL tests before any replay
 smoke.
+
+### Route-progress plus H10 shadow selector audit
+
+Commit `ec8efe248cca45c5a46592e9cdfa0b462707f4ba` added a default-off offline
+audit for the finite-candidate route-progress plus H10 lower-bound selector:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_h10_shadow_selector.py
+camp_core/tests/test_diffusion_planner_route_h10_shadow_selector.py
+```
+
+Commit `f6e7cb7a3a7bf9185ce01d0120531ecf5f1735a5` extended the report with
+stage-level outcome summaries so that the protected base band and the
+route-H10 escape can be judged separately.
+
+Local verification:
+
+```bash
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_hidden_visibility.py \
+  camp_core\tests\test_diffusion_planner_route_h10_shadow_selector.py \
+  -q
+
+py -3.12 -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_route_h10_shadow_selector.py \
+  camp_core\tests\test_diffusion_planner_route_h10_shadow_selector.py
+
+git diff --check
+```
+
+Result: `2 passed`, compileall passed, and whitespace check passed. AutoDL was
+fast-forwarded to `f6e7cb7a3a7bf9185ce01d0120531ecf5f1735a5`; the targeted
+route-H10 test passed on AutoDL, and DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Full36 audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/shadow_route_progress_full36_d5c2075
+OUT=$ROOT/route_h10_shadow_selector_f6e7cb7
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_route_h10_shadow_selector.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label route_h10_shadow_selector_full36_f6e7cb7 \
+  --output_json "$OUT/route_h10_shadow_selector.json" \
+  --output_md "$OUT/route_h10_shadow_selector.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `route_h10_shadow_selector_f6e7cb7/route_h10_shadow_selector.json` | `9ac51716651bd03f46217a2faaf50ea3d9cdecd506c040475af30d1b6c04d164` |
+| `route_h10_shadow_selector_f6e7cb7/route_h10_shadow_selector.md` | `9404b5c9da844e22f462dd596c7de83b90ba7db024a17ac74b0d5ca5ca98f2ad` |
+
+Full36 records:
+
+```text
+logs=36
+records=7200
+nonfallback=5939
+fallback=1261
+candidate0_feasible=5639
+candidate0_infeasible=300
+descriptor_missing_when_escape_needed=0
+```
+
+Shadow selector stage counts over candidate0-feasible records:
+
+| Stage | Records |
+| --- | ---: |
+| `base` | `1541` |
+| `candidate0_retain_empty_mask` | `3486` |
+| `route_h10_escape` | `612` |
+
+Comparison against DP candidate0:
+
+| Selector | Overrides | True | False | Mean safety delta | CVaR90 safety delta | Hard bool worse |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| shadow route-H10 selector | `2153` | `2116` | `37` | `-0.006433` | `0.161312` | `near_miss:2` |
+| logged redstopfloor05 selector | `5478` | `943` | `4535` | `0.199437` | `2.038179` | `lane_violation:4, near_miss:7` |
+
+Stage-level attribution:
+
+| Stage | Overrides | True | False | Mean safety delta | CVaR90 safety delta | Hard bool worse | False reasons |
+| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| `base` | `1541` | `1506` | `35` | `-0.007948` | `0.077186` | none | `outcome_progress_loss_exceeds_budget:35` |
+| `route_h10_escape` | `612` | `610` | `2` | `-0.002617` | `0.318433` | `near_miss:2` | `outcome_near_miss_worse:2` |
+
+The two route-H10 hard-gate failures occur on
+`nishishinjuku_release_auto_route`, seed `2`, NPC `4`, traffic lights enabled,
+at selection steps `117` and `133`. In both records, candidate0 and the selected
+route-H10 escape have zero current-tick red-light and red-stopping proxy cost;
+the regression is NPC near-miss, not red-light behavior.
+
+An ad hoc current-tick red-improvement trigger was checked without changing the
+artifact. Requiring strict `union_red` or `red_stopping` improvement removes the
+two near-miss failures, but leaves only `1` route-H10 escape. This is too narrow
+to serve as the main selector, but it confirms that the current failure mode is
+not a red-light risk-response case.
+
+The selection logs do not contain `candidate_obstacles`; they contain posterior
+`candidate_closed_loop_outcomes[*].min_obstacle_clearance_m`, but that field is
+an outcome label and cannot be used online. Therefore the current full36
+artifact cannot support a legal no-leakage candidate-level NPC clearance guard.
+
+Mathematical boundary: the audited route-progress and H10 quantities are fixed
+current-tick finite-candidate constants and can be represented later as
+nonnegative hinge atoms without breaking affine CAMP scoring or convex
+simplex/CVaR/L2 master updates. The posterior near-miss and
+`min_obstacle_clearance_m` labels cannot be atoms, selector inputs, Benders
+subproblem data, or cut sources. A future NPC clearance atom is admissible only
+if it is computed from current simulator state and candidate geometry before
+selection, then logged as a candidate-level descriptor such as a nonnegative
+clearance violation hinge.
+
+Decision: reject the current route-progress plus H10 lower-bound selector for
+online promotion. It improves substantially over the logged redstopfloor05
+selector in this posterior audit, but it still has `2` hard-gate near-miss
+regressions and positive CVaR90 safety delta. Do not run formal seeds, CAMP
+retraining, or replay matrices from this selector. The next admissible step is a
+default-off diagnostic replay extension that logs a candidate-level current-tick
+NPC clearance descriptor, followed by a no-outcome shadow audit combining
+route-progress, H10 lower-bound, and clearance hinge guards.
