@@ -13649,3 +13649,156 @@ mechanism, especially posterior progress loss and lane/near-miss exposure. A
 candidate composite rule must beat `progress_shortfall_p005` on false overrides
 and hard-gate worse counts while recovering more of its 766 hidden
 opportunities before any online selector implementation is considered.
+
+## Composite guard audit
+
+Code state for the composite guard implementation:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for implementation:
+a620738ee1bb0c8ba1b578eb4dec31a3e4aa2e87
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+Added:
+scripts/integrations/analyze_diffusion_planner_composite_guard.py
+camp_core/tests/test_diffusion_planner_composite_guard.py
+```
+
+Local verification before committing `a620738`:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_composite_guard.py \
+  -q
+# 1 passed in 0.50s
+
+python -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_composite_guard.py \
+  camp_core\tests\test_diffusion_planner_composite_guard.py
+# passed
+
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_composite_guard.py \
+  camp_core\tests\test_diffusion_planner_composite_guard.py
+# All checks passed
+
+git diff --check
+# passed
+```
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+. /etc/network_turbo
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# a620738ee1bb0c8ba1b578eb4dec31a3e4aa2e87
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_composite_guard.py \
+  -q
+# 1 passed in 0.33s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/analyze_diffusion_planner_composite_guard.py \
+  camp_core/tests/test_diffusion_planner_composite_guard.py
+# passed
+```
+
+Audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_composite_guard.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label redstopfloor05_outcome_labels \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/composite_guard_a620738/composite_guard.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/composite_guard_a620738/composite_guard.md
+```
+
+Artifact paths and SHA:
+
+```text
+Composite guard JSON:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/composite_guard_a620738/composite_guard.json
+sha256 33d5905574e2302099854d98bdde7c1a8019610d6f97438ff29e43eb54efa54b
+
+Composite guard Markdown:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/composite_guard_a620738/composite_guard.md
+sha256 0b41236fae7462b64beef5ce8be24d418745f9d6efe0c4fcee4371fb7ff2b183
+```
+
+Scope: this audit keeps DP as a fixed black-box candidate source and evaluates
+only deterministic finite-candidate guards. Candidate outcomes are posterior
+labels only. No online selector, atom schema, CAMP weights, DP sampler,
+postprocessing, tracker, simulator, smoke run, 36-run, formal seed, or training
+path is changed.
+
+Overall result on 36 logs / 7200 records / 5639 candidate0-feasible records:
+
+| Rule | Overrides | True | False | Hidden | Safety<0 | Safety>0 | Mean safety | CVaR90 safety | Bool hard-gate worse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `baseline_shortfall_any_p005` | `2475` | `2430` | `45` | `766` | `2030` | `445` | `+0.024715` | `+0.547965` | lane `4`, near-miss `4` |
+| `banded_shortfall_m010_p005` | `1541` | `1506` | `35` | `1692` | `1080` | `461` | `-0.007948` | `+0.077186` | none |
+| `banded_shortfall_m020_p005` | `1909` | `1871` | `38` | `1326` | `1456` | `453` | `+0.001559` | `+0.227684` | near-miss `3` |
+| `tiered_banded_m010_escape_p010_h10_p005_score0` | `1573` | `1522` | `51` | `1675` | `1093` | `480` | `-0.007588` | `+0.078595` | none |
+| `tiered_banded_m020_escape_p010_h10_p005_score0` | `1939` | `1886` | `53` | `1311` | `1468` | `471` | `+0.001716` | `+0.226710` | near-miss `3` |
+| `intersect_shortfall_p010_h10_p005_score0` | `2066` | `1999` | `67` | `1180` | `1912` | `154` | `+0.027668` | `+0.607063` | lane `4`, near-miss `4` |
+
+Interpretation:
+
+1. The observed false-positive mechanism is partly exposed by an outcome-free
+   current-tick signal: excessively negative `progress_shortfall` relative to
+   candidate0. Filtering to a bounded band `[-0.10, 0.05]` eliminates all
+   posterior lane/near-miss hard-gate worse records in this artifact and turns
+   the mean candidate-label safety delta negative.
+2. The banded rule is too conservative for online promotion. It drops overrides
+   from 2475 to 1541 and increases hidden opportunities from 766 to 1692.
+   This protects hard gates but loses too much candidate coverage.
+3. The tiered H10/score escape recovers only 32 records for the `[-0.10,0.05]`
+   band, with 16 additional true and 16 additional false overrides. It preserves
+   the no-bool-hard-gate-worse property but does not materially solve hidden
+   candidate visibility.
+4. The non-tiered intersect contrast is not viable. It keeps many overrides but
+   reintroduces the same lane/near-miss hard-gate worse cases as the baseline
+   and increases false overrides.
+5. This is a useful diagnostic, not an online selector. The current logged
+   proxy set can either protect hard gates by becoming conservative or preserve
+   coverage while retaining hard-gate risk; it does not yet provide an
+   industrially acceptable composite override.
+
+Mathematical conclusion: the composite audit remains inside the CAMP-side
+finite-candidate contract. The rule inputs are fixed current-tick constants:
+feasibility, `progress_shortfall` delta, H10 open-loop distance delta,
+red proxies, proxy jerk/lateral, selection score, and deterministic candidate
+index. Outcome labels are used only for posterior evaluation. If the banded
+progress delta or H10 loss are later atomized, they must be fixed, finite,
+nonnegative after scaling, and score-affine in the CAMP master variable. No
+claim is made that DP, SG smoothing, `postprocess_reference`, PerfectTracker,
+closed-loop future states, SafetyCost, or trajectory coordinates are Benders
+subproblems or cut sources.
+
+Decision: accept the composite guard audit tool and artifact. Reject all tested
+composite rules for online promotion and do not run sample59 smoke, 36-run,
+formal seeds, or CAMP retraining. The next admissible step is candidate
+visibility analysis focused on the 1692 hidden cases under
+`banded_shortfall_m010_p005`: identify which current-tick, outcome-free
+features could recover true safety-improving candidates without reintroducing
+the previously eliminated lane/near-miss hard-gate violations. If no such
+feature exists in the current logs, the correct engineering move is to add
+shadow-only logging of a new DP/current-map diagnostic rather than weakening
+hard gates.
