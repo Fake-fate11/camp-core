@@ -9555,3 +9555,30 @@ This milestone does not train CAMP, retrain DP, change the selector, run a new
 audit of the deployed `redstopfloor05` asset against this contract: exact atom
 schema, normalization, weights, lower bounds, CVaR/simplex/L2 settings, active
 cuts, convergence/full-epigraph evidence, and training labels.
+
+Verification:
+
+```text
+git diff --check -- docs/dp_camp_benders_formalization.md \
+  docs/diffusion_planner_v8_iteration_audit.md
+
+@'
+from pathlib import Path
+root = Path.cwd()
+for p in [
+    'scripts/train/train_camp_select.py',
+    'camp_core/camp_core/outer_master/parametric_cvxpy_master.py',
+    'camp_core/camp_core/outer_master/benders_master.py',
+    'camp_core/camp_core/integrations/diffusion_planner.py',
+    'camp_core/camp_core/outer_master/robust_margin_master.py',
+    'scripts/integrations/train_diffusion_planner_robust_camp.py',
+]:
+    assert (root / p).exists(), p
+'@ | python -
+```
+
+Both documentation checks passed locally. The formalization artifact SHA-256 is:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `docs/dp_camp_benders_formalization.md` | `5fe5e6830af84ac9dd1477c44a4db8be317c6f807b226be4af851de24dbbdf12` |
