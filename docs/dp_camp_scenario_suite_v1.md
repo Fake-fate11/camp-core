@@ -72,6 +72,30 @@ Passing this readiness check only authorizes the offline oracle input contract.
 It does not authorize an online selector, CAMP weight tuning, DP changes,
 formal seeds, or a new 36-run.
 
+If the readiness check fails only because candidate outcome labels are missing,
+predeclare a non-formal label-generation replay pass before running it:
+
+```bash
+python scripts/integrations/plan_diffusion_planner_candidate_outcome_label_pass.py \
+  --comparison_json /path/to/safety_score_v1_comparison.json \
+  --source_variant v10_redstopfloor05 \
+  --label_output_root /path/to/outcome_label_pass \
+  --diffusion_repo /path/to/Diffusion-Planner \
+  --model_path /path/to/diffusion_planner.pth \
+  --model_args /path/to/diffusion_planner.param.json \
+  --config /path/to/replay_default.json \
+  --reward_config configs/integrations/dp_camp_reward_eval.json \
+  --camp_atom_scales /path/to/redstopfloor05/atom_scales_dp_static.json \
+  --camp_static_weights /path/to/redstopfloor05/offline_weights_dp_static.npy \
+  --output_json /path/to/outcome_label_pass_plan.json \
+  --output_md /path/to/outcome_label_pass_plan.md
+```
+
+The generated command reruns the same non-formal scenario grid with
+`--camp_collect_closed_loop_outcomes`, `--variants static`, and
+`--skip_compare`. This is the admissible way to attach outcome labels when the
+existing logs did not store enough candidate state for post-hoc labeling.
+
 To start a manifest without inventing labels, generate a skeleton from an
 existing SafetyCost comparison JSON:
 
