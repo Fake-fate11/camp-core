@@ -10770,3 +10770,128 @@ infrastructure for existing artifacts. Reject any improvement claim for
 fail the hard gate, and three required scenario buckets remain uncovered. The
 next admissible engineering step remains scenario-suite expansion and candidate
 availability analysis, not CAMP weight tuning.
+
+## Candidate availability input readiness audit
+
+Before running the outcome-labeled candidate availability oracle, the current
+selection logs must prove that the required finite-candidate inputs are present:
+selected index, feasible mask, current-tick proxy costs, and candidate
+closed-loop outcome labels. A new read-only readiness tool was added:
+
+```text
+scripts/integrations/audit_diffusion_planner_candidate_availability_inputs.py
+```
+
+This tool does not select trajectories, train CAMP, modify DP, run formal
+seeds, or evaluate an online selector. It only checks whether existing
+selection logs satisfy the input contract for the offline oracle. Proxy costs
+may come from top-level candidate fields or fixed atom columns when the
+selection log schema stores them as atoms.
+
+Local verification:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_candidate_availability_inputs.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability_compare.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability_blockers.py
+
+12 passed
+
+python -m ruff check \
+  scripts\integrations\audit_diffusion_planner_candidate_availability_inputs.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability_inputs.py
+
+All checks passed
+
+python -m py_compile scripts\integrations\audit_diffusion_planner_candidate_availability_inputs.py
+
+passed
+
+git diff --check
+
+passed
+```
+
+The tool was committed, pushed, and synced to AutoDL as:
+
+```text
+6981c07fb2f0cfeaffa57d22433a990d411eba4b
+Add DP CAMP candidate availability input audit
+```
+
+AutoDL verification:
+
+```text
+CAMP_HEAD=6981c07fb2f0cfeaffa57d22433a990d411eba4b
+CAMP_ORIGIN=6981c07fb2f0cfeaffa57d22433a990d411eba4b
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+12 passed
+```
+
+Remote output root:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_availability_input_readiness_6981c07
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `candidate_availability_input_readiness.json` | `3747e7fb2aaf7d5893fd0a636e48c64e4dda52859bf4f1bd4552f328e38a3380` |
+| `candidate_availability_input_readiness.md` | `f45d9d2f89fb516a53994d2fa0bbeca7fddffe77fce5c162d5f427f9bba3ddfb` |
+
+Readiness result:
+
+| Field | Records | Rate |
+| --- | ---: | ---: |
+| `candidate_closed_loop_outcomes_complete` | `0` | `0.000000` |
+| `progress_shortfall` | `7200` | `1.000000` |
+| `proxy_jerk` | `7200` | `1.000000` |
+| `proxy_lateral` | `7200` | `1.000000` |
+| `red_stopping` | `7200` | `1.000000` |
+| `union_red` | `7200` | `1.000000` |
+
+Record summary:
+
+```text
+logs=36
+records=7200
+nonfallback_records=5998
+fallback_records=1202
+```
+
+Proxy sources:
+
+```text
+progress_shortfall: atom:progress_shortfall
+proxy_jerk: candidate_dp_prior_jerk_excess_cost
+proxy_lateral: atom:planned_lateral_acceleration_cost
+red_stopping: candidate_red_stopping_margin_cost
+union_red: atom:planned_red_light_cost
+```
+
+Readiness decision:
+
+```text
+candidate_availability_oracle_ready=false
+outcome_labels_ready=false
+current_tick_proxy_inputs_ready=true
+next_step=generate_or_attach_candidate_closed_loop_outcomes_before_running_oracle
+```
+
+Mathematical conclusion: current-tick finite-candidate proxy inputs are present
+for the existing redstopfloor05 logs, but the outcome-labeled oracle cannot be
+run because all `candidate_closed_loop_outcomes` entries are missing or null.
+Using only proxy atoms would be an outcome-free diagnostic, not the requested
+candidate availability oracle against SafetyCost/hard-gate outcomes.
+
+Decision: accept the readiness tool and artifact. Reject running or reporting
+the outcome-labeled candidate availability oracle on these artifacts until
+candidate closed-loop outcome labels are generated or attached under a fixed,
+offline, non-formal process. The next admissible step is to design that
+label-generation pass for existing fixed finite candidates, still without
+modifying DP or selecting online trajectories.
