@@ -729,13 +729,22 @@ def _bool_worse_summary(events: list[dict[str, Any]]) -> dict[str, int]:
     return {
         field: sum(
             int(
-                event["selected_candidate"]["candidate_label_delta"]["bool_delta"][field]
+                _event_candidate_payload(event)["candidate_label_delta"]["bool_delta"][
+                    field
+                ]
                 > 0
             )
             for event in events
         )
         for field in BOOL_OUTCOMES
     }
+
+
+def _event_candidate_payload(event: dict[str, Any]) -> dict[str, Any]:
+    payload = event.get("selected_candidate", event.get("candidate_payload"))
+    if not isinstance(payload, dict):
+        raise ValueError("Event is missing a selected candidate payload.")
+    return payload
 
 
 def _event_examples(

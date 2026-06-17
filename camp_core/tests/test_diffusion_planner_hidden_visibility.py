@@ -39,6 +39,24 @@ def test_hidden_visibility_reports_escape_recovery_and_missing_route(tmp_path) -
                     _outcome(1, progress=9.0, jerk=3.0, lateral=0.5),
                 ],
             ),
+            _record(
+                selected=1,
+                feasible=[True, True],
+                progress_shortfall=[0.20, 0.22],
+                proxy_lateral=[0.8, 0.7],
+                h10_distance=[10.0, 10.0],
+                score=[0.2, 0.1],
+                outcomes=[
+                    _outcome(0, progress=10.0, jerk=5.0, lateral=1.0),
+                    _outcome(
+                        1,
+                        progress=9.0,
+                        jerk=3.0,
+                        lateral=0.5,
+                        lane_violation=True,
+                    ),
+                ],
+            ),
         ],
     )
 
@@ -46,6 +64,8 @@ def test_hidden_visibility_reports_escape_recovery_and_missing_route(tmp_path) -
 
     base = report["base_rule"]
     assert base["hidden_outcome_records"] == 1
+    assert base["override_records"] == 1
+    assert base["hard_gate_bool_worse_records"]["lane_violation"] == 1
     assert base["hidden_blocker_counts"]["progress_delta_exceeds_budget"] == 1
 
     screens = {row["name"]: row for row in report["screens"]}
@@ -156,6 +176,7 @@ def _outcome(
     progress: float,
     jerk: float,
     lateral: float,
+    lane_violation: bool = False,
 ) -> dict:
     return {
         "candidate_index": index,
@@ -163,7 +184,7 @@ def _outcome(
         "progress_m": progress,
         "collision": False,
         "near_miss": False,
-        "lane_violation": False,
+        "lane_violation": lane_violation,
         "red_light_violation": False,
         "mean_jerk_mps3": jerk,
         "mean_lateral_acceleration_mps2": lateral,
