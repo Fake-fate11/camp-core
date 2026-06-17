@@ -14,6 +14,7 @@ from scripts.integrations.summarize_diffusion_planner_camp_replay import (
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_generation_contract,
     _configure_candidate_guidance,
+    _dp_camp_finite_candidate_contract,
     _lower_union_red_donor_indices,
     _raw_candidate_prefix_payload,
     _summarize_splice_shadow_rule_records,
@@ -33,6 +34,12 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
         "candidate_generation_contract": {
             "schema_version": "dp_candidate_generation_contract_v1",
             "guidance_enabled": False,
+        },
+        "dp_camp_finite_candidate_contract": {
+            "schema_version": "dp_camp_finite_candidate_contract_v1",
+            "enabled": True,
+            "score": "a_ik^T w",
+            "classical_benders_claim": False,
         },
         "camp_microbenchmark_snapshots": {
             "enabled": True,
@@ -76,6 +83,13 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
         "dp_candidate_generation_contract_v1"
     )
     assert not merged["candidate_generation_contract"]["guidance_enabled"]
+    assert merged["dp_camp_finite_candidate_contract"]["schema_version"] == (
+        "dp_camp_finite_candidate_contract_v1"
+    )
+    assert merged["dp_camp_finite_candidate_contract"]["score"] == "a_ik^T w"
+    assert not merged["dp_camp_finite_candidate_contract"][
+        "classical_benders_claim"
+    ]
     assert merged["camp_microbenchmark_snapshots"]["requested_steps"] == [0, 1]
     assert not merged["camp_microbenchmark_snapshots"]["selection_effect"]
     assert merged["camp_raw_candidate_prefix_logging"]["steps"] == 10
@@ -149,6 +163,56 @@ def test_candidate_generation_contract_records_fixed_dp_sampling_boundary() -> N
     assert contract["changes_candidate_set"]
     assert not contract["changes_camp_score"]
     assert not contract["changes_diffusion_planner_weights"]
+
+
+def test_dp_camp_finite_candidate_contract_records_math_boundary() -> None:
+    contract = _dp_camp_finite_candidate_contract(
+        selector_mode="static",
+        num_candidates=8,
+        feasibility_source="dp_reward",
+        fallback_mode="learned",
+        atom_clip=10.0,
+    )
+
+    assert contract["schema_version"] == "dp_camp_finite_candidate_contract_v1"
+    assert contract["enabled"]
+    assert contract["num_candidates"] == 8
+    assert contract["score"] == "a_ik^T w"
+    assert contract["selection_rule"] == (
+        "argmin over finite feasible candidates by CAMP selection score"
+    )
+    assert contract["atom_contract"]["fixed_before_scoring"]
+    assert contract["atom_contract"]["nonnegative_after_normalization"]
+    assert contract["weight_contract"]["simplex_weights_expected"]
+    assert contract["weight_contract"]["affine_score_in_weights"]
+    assert contract["feasibility_source"] == "dp_reward"
+    assert contract["fallback_mode"] == "learned"
+    assert "finite-candidate generalized Benders-style" in contract[
+        "training_claim"
+    ]
+    assert not contract["classical_benders_claim"]
+    assert "Diffusion Planner neural sampler" in contract[
+        "excluded_from_subproblem"
+    ]
+    assert "closed-loop simulator future states" in contract[
+        "excluded_from_subproblem"
+    ]
+
+
+def test_top1_finite_candidate_contract_is_disabled() -> None:
+    contract = _dp_camp_finite_candidate_contract(
+        selector_mode="top1",
+        num_candidates=8,
+        feasibility_source="context",
+        fallback_mode="uniform",
+        atom_clip=10.0,
+    )
+
+    assert not contract["enabled"]
+    assert contract["num_candidates"] == 1
+    assert contract["score"] is None
+    assert contract["training_claim"] is None
+    assert not contract["classical_benders_claim"]
 
 
 def test_candidate_generation_contract_records_enabled_guidance() -> None:

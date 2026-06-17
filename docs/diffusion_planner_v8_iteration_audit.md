@@ -9676,3 +9676,56 @@ default-off DP-CAMP selector metadata/fail-closed behavior and paired
 non-formal checks after the integration path proves it preserves the fixed
 finite-candidate contract. Do not retrain CAMP, modify DP, or run formal seeds
 from this audit alone.
+
+### Replay finite-candidate contract metadata gate
+
+After accepting the `redstopfloor05` mathematical contract, the next engineering
+step was an auditability gate rather than a selector change. The replay runner
+now records an explicit `dp_camp_finite_candidate_contract` block in
+`camp_replay_summary.json`, and the resummarizer preserves it in
+`camp_validation_summary.json`.
+
+The new metadata block records:
+
+- schema version `dp_camp_finite_candidate_contract_v1`;
+- whether CAMP finite-candidate selection is enabled;
+- selector mode, candidate count, feasibility source, fallback mode, and atom
+  clip;
+- the candidate set boundary as the fixed current-tick DP candidate tensor
+  before CAMP scoring;
+- the affine score form `a_ik^T w`;
+- the finite feasible-candidate `argmin` selection rule;
+- atom and weight contract flags: fixed before scoring, finite, nonnegative
+  after normalization, simplex weights expected, and score affine in weights;
+- fail-closed behavior for all-infeasible finite sets;
+- the valid training claim as finite-candidate generalized Benders-style
+  cutting-plane training over logged fixed candidates only;
+- `classical_benders_claim=false`;
+- excluded components: DP neural sampler, SG smoothing, `postprocess_reference`,
+  PerfectTracker state transition, closed-loop simulator future states, and
+  route/traffic-light geometry.
+
+This is intentionally a metadata gate. It does not change the online selector,
+candidate generation, CAMP weights, DP weights, atom schema, fallback policy,
+or any replay experiment. It makes future non-formal and formal artifacts
+self-describing enough to audit whether the run preserved the mathematical
+contract documented in `docs/dp_camp_benders_formalization.md`.
+
+Verification:
+
+```text
+python -m pytest camp_core\tests\test_diffusion_planner_replay_summary.py
+16 passed
+
+git diff --check -- scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/summarize_diffusion_planner_camp_replay.py \
+  camp_core/tests/test_diffusion_planner_replay_summary.py \
+  docs/diffusion_planner_v8_iteration_audit.md
+passed
+```
+
+Decision: accept this as a small engineering integration milestone. The next
+admissible step is still default-off and non-formal: run a very small replay
+smoke only to confirm the new metadata appears in real generated
+`camp_replay_summary.json` and survives summarization. It should not be treated
+as safety/performance evidence and must not use formal seeds.

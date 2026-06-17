@@ -1857,6 +1857,70 @@ def _candidate_generation_contract(
     }
 
 
+def _dp_camp_finite_candidate_contract(
+    *,
+    selector_mode: str,
+    num_candidates: int,
+    feasibility_source: str,
+    fallback_mode: str,
+    atom_clip: float,
+) -> dict[str, Any]:
+    enabled = selector_mode != "top1"
+    return {
+        "schema_version": "dp_camp_finite_candidate_contract_v1",
+        "enabled": enabled,
+        "selector_mode": str(selector_mode),
+        "num_candidates": int(num_candidates) if enabled else 1,
+        "candidate_set": (
+            "fixed current-tick Diffusion Planner candidate tensor before "
+            "CAMP scoring"
+            if enabled
+            else "upstream Diffusion Planner top-1 only"
+        ),
+        "score": "a_ik^T w" if enabled else None,
+        "selection_rule": (
+            "argmin over finite feasible candidates by CAMP selection score"
+            if enabled
+            else "upstream Diffusion Planner selected trajectory"
+        ),
+        "atom_contract": {
+            "fixed_before_scoring": bool(enabled),
+            "finite": bool(enabled),
+            "nonnegative_after_normalization": bool(enabled),
+            "clip": float(atom_clip) if enabled else None,
+        },
+        "weight_contract": {
+            "simplex_weights_expected": bool(enabled),
+            "affine_score_in_weights": bool(enabled),
+        },
+        "feasibility_source": str(feasibility_source) if enabled else None,
+        "fail_closed_policy": (
+            "if the finite feasible set is empty, selection stays inside the "
+            "same current-tick candidate set and uses the configured fallback "
+            "mode"
+            if enabled
+            else None
+        ),
+        "fallback_mode": str(fallback_mode) if enabled else None,
+        "training_claim": (
+            "finite-candidate generalized Benders-style cutting-plane "
+            "training applies only to logged fixed candidates with fixed atoms, "
+            "oracle labels, and nonnegative margins"
+            if enabled
+            else None
+        ),
+        "classical_benders_claim": False,
+        "excluded_from_subproblem": [
+            "Diffusion Planner neural sampler",
+            "Savitzky-Golay smoothing",
+            "postprocess_reference",
+            "PerfectTracker state transition",
+            "closed-loop simulator future states",
+            "route and traffic-light geometry",
+        ],
+    }
+
+
 def _raw_candidate_prefix_payload(
     candidates: np.ndarray,
     steps: int,
@@ -3362,6 +3426,13 @@ def main() -> None:
         if records is not None
         else None
     )
+    finite_candidate_contract = _dp_camp_finite_candidate_contract(
+        selector_mode=args.camp_selector_mode,
+        num_candidates=args.num_candidates,
+        feasibility_source=args.camp_feasibility_source,
+        fallback_mode=args.camp_fallback_mode,
+        atom_clip=args.camp_atom_clip,
+    )
     effective_splice_shadow_rule = _summarize_splice_shadow_rule_records(
         records,
         enabled=bool(args.camp_splice_shadow_rule),
@@ -3384,6 +3455,7 @@ def main() -> None:
             if records is not None
             else None
         ),
+        "dp_camp_finite_candidate_contract": finite_candidate_contract,
         "camp_microbenchmark_snapshots": (
             {
                 "enabled": True,
