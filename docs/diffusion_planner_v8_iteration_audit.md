@@ -12751,3 +12751,181 @@ candidate 0 or the original CAMP baseline, then determine which current-tick
 atoms/proxies made those worse choices look attractive. A future selector must
 be more explicitly Top-1-preserving and should override only when the
 candidate-level evidence clears a stricter SafetyCost/hard-gate certificate.
+
+## Traffic-light hybrid failure attribution
+
+Code/documentation state:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for attribution implementation:
+956f4c3f27500a05fc5a3e791de4c8bc7b1f1590
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+Added:
+scripts/integrations/analyze_diffusion_planner_traffic_light_hybrid_failure_attribution.py
+camp_core/tests/test_diffusion_planner_traffic_light_hybrid_failure_attribution.py
+```
+
+Local verification before committing `956f4c3`:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_traffic_light_hybrid_failure_attribution.py \
+  -q
+# 2 passed in 0.20s
+
+python -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_traffic_light_hybrid_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_traffic_light_hybrid_failure_attribution.py
+# passed
+
+git diff --check
+# passed
+
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_traffic_light_hybrid_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_traffic_light_hybrid_failure_attribution.py
+# All checks passed
+```
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# 956f4c3f27500a05fc5a3e791de4c8bc7b1f1590
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_traffic_light_hybrid_failure_attribution.py \
+  -q
+# 2 passed in 0.14s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/analyze_diffusion_planner_traffic_light_hybrid_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_traffic_light_hybrid_failure_attribution.py
+# passed
+```
+
+Attribution command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_traffic_light_hybrid_failure_attribution.py \
+  --root /root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0 \
+  --baseline_root /root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc \
+  --label traffic_light_hybrid_sample59_smoke_41840e0 \
+  --output_json /root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0/failure_attribution_956f4c3/traffic_light_hybrid_failure_attribution.json \
+  --output_md /root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0/failure_attribution_956f4c3/traffic_light_hybrid_failure_attribution.md
+```
+
+Artifact paths and SHA:
+
+```text
+Failure attribution JSON:
+/root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0/failure_attribution_956f4c3/traffic_light_hybrid_failure_attribution.json
+sha256 bb712a161a03e6bda43a12b8b4fa41fa6f1d5c295e20a25a9b99f004fb816beb
+
+Failure attribution Markdown:
+/root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0/failure_attribution_956f4c3/traffic_light_hybrid_failure_attribution.md
+sha256 6932123517f5413016cd194042f8e7941056a8fc54b4a5d936743359aeccc1c3
+```
+
+Read-only attribution result:
+
+```text
+runs: 12
+records: 2400
+hybrid-changed records: 28
+selected nonzero records after hybrid: 2164 (0.901667)
+
+hybrid reasons:
+- traffic_lights_disabled: 1200
+- no_admissible_traffic_light_hybrid_candidate: 994
+- fallback_or_no_base_feasible_candidate: 178
+- selected_admissible_traffic_light_hybrid_candidate: 28
+
+hybrid change types:
+- nonzero_to_nonzero: 19
+- to_candidate0: 9
+- away_from_candidate0: 0
+```
+
+Feature deltas for the 28 changed records are reported as
+`selected_after_hybrid - selected_before_hybrid`:
+
+| Feature | Mean delta | Sign pattern |
+| --- | ---: | --- |
+| CAMP affine score | `+0.00447632` | worse in all 28 |
+| DP total reward proxy | `-0.062418` | worse in all 28 |
+| DP progress proxy | `-0.0330626` | worse in all 28 |
+| Raw jerk proxy | `-0.0332337` | better in all 28 |
+| Raw lateral proxy | `-0.00269563` | better in all 28 |
+| Union red exposure | `0.0` | no change in all 28 |
+| Red stopping exposure | `0.0` | no change in all 28 |
+| H10 rollout distance | `-0.00784927` | worse in 25, better in 3 |
+| H3 rollout distance | `-0.000575` | mixed |
+| First-step reach | `0.0` | no change in all 28 |
+
+Feature deltas against candidate 0 show that the changed hybrid choices were
+not consistently better than DP Top-1:
+
+| Feature | Mean delta vs candidate 0 | Sign pattern |
+| --- | ---: | --- |
+| Raw jerk proxy | `+0.0291454` | worse in 7, equal in 21 |
+| Raw lateral proxy | `-0.00105264` | better in 15, worse in 4, equal in 9 |
+| CAMP affine score | `-0.00080207` | better in 7, worse in 12, equal in 9 |
+| DP total reward proxy | `+0.027817` | better in 9, worse in 10, equal in 9 |
+
+Run-level paired deltas against the existing no-hybrid sample59 baseline root
+were useful for attribution only:
+
+| Run key | Changed ticks | SafetyCost v1 delta | Planned red delta | Near miss delta | Mean jerk delta |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `seed_1/npc_0/tl_on` | 3 | `-0.935687` | `0.0` | `0.0` | `-8.07659` |
+| `seed_1/npc_4/tl_on` | 1 | `+0.659598` | `0.0` | `+0.215` | `-6.15014` |
+| `seed_2/npc_0/tl_on` | 19 | `-1.16328` | `-0.04` | `0.0` | `-5.56014` |
+| `seed_2/npc_4/tl_on` | 1 | `-12.9364` | `-0.325` | `+0.01` | `-13.9365` |
+| `seed_3/npc_0/tl_on` | 2 | `-0.580833` | `0.0` | `0.0` | `-5.69688` |
+| `seed_3/npc_4/tl_on` | 2 | `-1.4508` | `0.0` | `0.0` | `-6.66011` |
+
+Attribution conclusion: the traffic-light hybrid screen was not the main
+source of the Top-1 regression. It changed only 28/2400 records, returned to
+candidate 0 in 9 records, and never moved away from candidate 0. The broader
+Top-1 comparison failure is mainly inherited from the base static
+`redstopfloor05` selector, which selected nonzero candidates in 2164/2400
+records. Where the hybrid did change a tick, it traded away the original CAMP
+affine score, DP total proxy, DP progress proxy, and H10 rollout distance for
+small raw jerk/lateral proxy improvements, with no same-tick red-light exposure
+benefit.
+
+Mathematical conclusion: this attribution is read-only and outcome-auditing; it
+does not alter the finite-candidate CAMP contract. The admissible next design
+must not be another traffic-light threshold tweak. It should first address the
+base static selector's non-Top-1 behavior using a Top-1-preserving finite
+candidate contract: DP remains the fixed black-box candidate generator; CAMP
+may score fixed atoms and finite candidates; any non-Top-1 selection must be
+justified by a predeclared current-tick safety certificate and strict
+paired-gate evidence. If the safety certificate is atomized, the score must
+remain affine in the CAMP master variable, with fixed finite diagnostics and no
+closed-loop future outcome leakage.
+
+Decision: keep `step_h10_guard_005` rejected/default-off. Do not run a 36-run,
+do not touch formal seeds, and do not train new CAMP weights from this result.
+The next iteration should be an offline, read-only Top-1-preservation audit:
+compare base static `redstopfloor05` selected candidates against candidate 0
+across the existing sample59 artifacts, identify exactly which affine atoms and
+feasibility filters cause the 2164 nonzero selections, and propose a
+predeclared finite-candidate rule that defaults to candidate 0 unless a
+candidate clears a strict current-tick SafetyCost/hard-gate certificate.
