@@ -11966,3 +11966,129 @@ or 36-run promotion. The next admissible step is to inspect the traffic-light
 hidden opportunities and identify which fixed current-tick candidate signals
 could legally expose them; if no such signal exists, keep the policy in shadow
 or treat the DP candidate pool/proxy schema as the bottleneck.
+
+## Bucketed progress-certificate descriptor audit
+
+Commit `9629500` extends the progress-certificate design audit with the same
+explicit scenario bucket manifest used by the SafetyCost and candidate
+availability tools. This is still a read-only descriptor audit: it does not
+change online selection, train CAMP, modify Diffusion Planner, or use outcome
+labels as online atoms.
+
+Local verification:
+
+```text
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_progress_certificate_design.py \
+  camp_core\tests\test_diffusion_planner_progress_certificate_design.py
+
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_progress_certificate_design.py \
+  camp_core\tests\test_diffusion_planner_hidden_outcome_gap.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py \
+  -q
+
+12 passed in 1.50s
+```
+
+AutoDL sync and test:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_certificate_design.py \
+  camp_core/tests/test_diffusion_planner_hidden_outcome_gap.py \
+  camp_core/tests/test_diffusion_planner_candidate_availability.py \
+  camp_core/tests/test_diffusion_planner_scenario_bucket_audit.py \
+  -q
+
+12 passed in 1.07s
+```
+
+Remote analysis command:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_progress_certificate_design.py \
+  --root \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest \
+    configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label redstopfloor05_outcome_labels \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_certificate_bucketed_9629500/progress_certificate_bucketed.json \
+  --output_md \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_certificate_bucketed_9629500/progress_certificate_bucketed.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `progress_certificate_bucketed.json` | `f8f7e749903dacc4be7987b41e43ac9df2e6d2e18cc6c367bfc26a459e916f12` |
+| `progress_certificate_bucketed.md` | `5094c9e9f0f830cce8854bf3f2f0d9e726fd77be24ff6d56ae98584db8e2ec23` |
+
+Record coverage:
+
+```text
+logs=36
+records=7200
+nonfallback=5939
+fallback=1261
+route_progress_available_records=0
+```
+
+At the predeclared `0.10 m` progress budget, descriptor capture by bucket:
+
+| Bucket | Descriptor | Hidden capture | Proxy-comfort hidden capture | Proxy-comfort precision |
+| --- | --- | ---: | ---: | ---: |
+| `traffic_light` | `progress_shortfall_atom` | `73/767` (`0.095176`) | `0/767` (`0.000000`) | `0.979167` |
+| `traffic_light` | `step_reach` | `760/767` (`0.990874`) | `521/767` (`0.679270`) | `0.691789` |
+| `traffic_light` | `tracker_target_speed` | `514/767` (`0.670143`) | `354/767` (`0.461538`) | `0.639485` |
+| `traffic_light` | `rollout_h3_distance` | `671/767` (`0.874837`) | `452/767` (`0.589309`) | `0.670762` |
+| `traffic_light` | `rollout_h10_distance` | `314/767` (`0.409387`) | `192/767` (`0.250326`) | `0.590062` |
+| `red_light_turn` | `progress_shortfall_atom` | `65/70` (`0.928571`) | `0/70` (`0.000000`) | `0.976471` |
+| `red_light_turn` | `step_reach` | `69/70` (`0.985714`) | `0/70` (`0.000000`) | `0.238506` |
+| `red_light_turn` | `rollout_h3_distance` | `69/70` (`0.985714`) | `0/70` (`0.000000`) | `0.241983` |
+| `sharp_turn` | `progress_shortfall_atom` | `146/154` (`0.948052`) | `0/154` (`0.000000`) | `0.971014` |
+| `sharp_turn` | `step_reach` | `153/154` (`0.993506`) | `2/154` (`0.012987`) | `0.188105` |
+| `sharp_turn` | `rollout_h3_distance` | `153/154` (`0.993506`) | `2/154` (`0.012987`) | `0.189679` |
+| `normal` | `step_reach` | `36/36` (`1.000000`) | `0/36` (`0.000000`) | `0.143646` |
+
+Interpretation:
+
+1. The broad `traffic_light` bucket is the only current development bucket
+   where first-step/H3-style progress descriptors expose many hidden
+   outcome-joint candidates while also retaining a substantial proxy-comfort
+   subset.
+2. The same descriptors are not clean generic rules. In `red_light_turn`,
+   `sharp_turn`, and `normal`, they often capture hidden candidates but almost
+   never with proxy-comfort-hidden support, and their proxy-comfort precision
+   is poor. A global relaxation would repeat the rejected first-step/H3 route.
+3. `rollout_h10_distance` is safer and consistent with the accepted
+   reward/H10 screen direction, but it captures only `192/767` proxy-comfort
+   hidden traffic-light cases at `0.10 m`; it is a guard, not a recovery rule.
+4. `route_progress` is unavailable in the current artifacts, so it cannot be
+   used for a development selector without a predeclared logging/candidate
+   metadata change.
+
+Mathematical conclusion: this remains within the finite-candidate diagnostic
+contract. Scenario buckets are evaluation metadata; all tested descriptors are
+fixed current-tick candidate constants. If a future traffic-light-specific
+descriptor is atomized with fixed nonnegative scaling, CAMP scoring remains
+affine in `w` and the simplex/CVaR/L2 master remains convex. This audit does
+not construct a classical Benders subproblem and does not make DP sampling,
+postprocessing, PerfectTracker, closed-loop outcomes, or trajectory
+coordinates optimization variables.
+
+Decision: accept the bucketed progress-certificate audit. Reject any global
+first-step/H3 relaxation. The next admissible design is a strictly default-off
+traffic-light-only offline screen that combines a high-recall descriptor
+(`step_reach` or H3) with a conservative long-horizon guard
+(`dp_candidate_rewards.progress` plus H10 distance), no-worse union-red and
+red-stopping, strict proxy comfort, deterministic tie-break, and posterior
+SafetyCost/hard-gate rejection criteria before any smoke run.
