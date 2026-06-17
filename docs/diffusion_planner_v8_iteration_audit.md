@@ -11166,3 +11166,302 @@ analysis that explains the hidden-outcome gap by route/bucket/tick context and
 predeclares whether a fixed current-tick proxy atom or deterministic
 finite-candidate preprocessing rule can expose those opportunities without
 using future outcomes online.
+
+## Hidden outcome gap attribution
+
+The next read-only diagnostic was added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_hidden_outcome_gap.py
+```
+
+It reuses the existing candidate availability definitions:
+
+- outcome joint: the candidate passes the outcome Pareto mask and is strictly
+  better than the selected candidate on both outcome jerk and outcome lateral
+  acceleration;
+- proxy joint: the candidate passes the fixed current-tick proxy Pareto mask
+  and is strictly better than the selected candidate on both proxy jerk and
+  proxy lateral acceleration;
+- hidden joint: an outcome-joint candidate exists, but no proxy-joint candidate
+  exists for the same tick and progress budget.
+
+The tool attributes hidden opportunities by route, explicit scenario bucket,
+run context, and 50-tick bin. It uses the committed scenario manifest:
+
+```text
+configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json
+```
+
+It does not rerun DP, train CAMP, change weights, change atoms, alter
+feasibility, or select trajectories. Candidate outcomes remain offline labels
+only.
+
+Local verification for the analyzer milestone:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_hidden_outcome_gap.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability_blockers.py -q
+
+8 passed
+
+python -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_hidden_outcome_gap.py
+
+passed
+
+python -m ruff check \
+  scripts/integrations/analyze_diffusion_planner_hidden_outcome_gap.py \
+  camp_core/tests/test_diffusion_planner_hidden_outcome_gap.py
+
+All checks passed
+
+git diff --check
+
+passed
+```
+
+The analyzer was committed and pushed as:
+
+```text
+4037ab11430f20b125361bc3cd062f2c8c4d3e85
+Add DP CAMP hidden outcome gap audit
+```
+
+AutoDL was fast-forwarded to that commit and the analyzer test passed remotely:
+
+```text
+2 passed
+```
+
+Remote diagnostic command:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_hidden_outcome_gap.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest \
+    /root/autodl-tmp/camp_core/configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/hidden_outcome_gap_4037ab1/hidden_outcome_gap.json \
+  --output_md \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/hidden_outcome_gap_4037ab1/hidden_outcome_gap.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `hidden_outcome_gap.json` | `f9a5e03db73649ad51bc1ca120990632ec49e0476f33732658ab35403af9172e` |
+| `hidden_outcome_gap.md` | `b88772877f5a1a3ff924818f1a029dccd3cff1609eb05f59af47ac1e00c08ee2` |
+
+Record counts:
+
+```text
+logs=36
+records=7200
+nonfallback=5939
+fallback=1261
+```
+
+Overall hidden-gap summary:
+
+| Progress budget | Outcome joint | Proxy joint | Hidden joint | Hidden / outcome |
+| ---: | ---: | ---: | ---: | ---: |
+| `0.00 m` | `1454` (`0.244822`) | `1` (`0.000168`) | `1453` (`0.244654`) | `0.999312` |
+| `0.05 m` | `1645` (`0.276983`) | `103` (`0.017343`) | `1542` (`0.259640`) | `0.937386` |
+| `0.10 m` | `1916` (`0.322613`) | `235` (`0.039569`) | `1685` (`0.283718`) | `0.879436` |
+| `0.25 m` | `2848` (`0.479542`) | `901` (`0.151709`) | `1953` (`0.328843`) | `0.685744` |
+
+At the predeclared 0.10 m progress budget, hidden opportunities are concentrated
+by route as follows:
+
+| Route | Nonfallback | Outcome joint | Proxy joint | Hidden joint | Hidden / outcome |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `nishishinjuku_release_auto_route` | `1826` | `1453` (`0.795728`) | `22` (`0.012048`) | `1431` (`0.783680`) | `0.984859` |
+| `sample_map_tl_route_59_to_86` | `1916` | `288` (`0.150313`) | `138` (`0.072025`) | `154` (`0.080376`) | `0.534722` |
+| `sample_map_route_2_to_104` | `2197` | `175` (`0.079654`) | `75` (`0.034137`) | `100` (`0.045517`) | `0.571429` |
+
+At the same budget, hidden opportunities by explicit scenario bucket are:
+
+| Bucket | Nonfallback | Outcome joint | Proxy joint | Hidden joint | Hidden / outcome |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `overall` | `5939` | `1916` (`0.322613`) | `235` (`0.039569`) | `1685` (`0.283718`) | `0.879436` |
+| `traffic_light` | `1810` | `861` (`0.475691`) | `96` (`0.053039`) | `767` (`0.423757`) | `0.890825` |
+| `sharp_turn` | `1916` | `288` (`0.150313`) | `138` (`0.072025`) | `154` (`0.080376`) | `0.534722` |
+| `red_light_turn` | `942` | `153` (`0.162420`) | `85` (`0.090234`) | `70` (`0.074310`) | `0.457516` |
+| `normal` | `600` | `62` (`0.103333`) | `26` (`0.043333`) | `36` (`0.060000`) | `0.580645` |
+
+The hidden opportunities are also time-dependent. At 0.10 m, later ticks carry
+most hidden records:
+
+| Tick bin | Nonfallback | Outcome joint | Proxy joint | Hidden joint | Hidden / outcome |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `0000-0049` | `1364` | `126` (`0.092375`) | `42` (`0.030792`) | `86` (`0.063050`) | `0.682540` |
+| `0050-0099` | `1667` | `513` (`0.307738`) | `60` (`0.035993`) | `453` (`0.271746`) | `0.883041` |
+| `0100-0149` | `1619` | `661` (`0.408277`) | `77` (`0.047560`) | `584` (`0.360716`) | `0.883510` |
+| `0150-0199` | `1289` | `616` (`0.477890`) | `56` (`0.043445`) | `562` (`0.435997`) | `0.912338` |
+
+Proxy blocker counts for the best hidden outcome candidate at 0.10 m:
+
+```text
+proxy_progress_shortfall_blocked=1431
+proxy_joint_comfort_not_strict=589
+proxy_safety_proxy_blocked=1
+```
+
+Hidden-candidate delta summary at 0.10 m:
+
+```text
+outcome_progress_delta_mean=+0.169677 m
+outcome_jerk_delta_mean=-0.567966 m/s^3
+outcome_lateral_delta_mean=-0.036970 m/s^2
+proxy_progress_shortfall_delta_mean=+1.067593
+proxy_progress_shortfall_delta_p50=+0.893070
+proxy_progress_shortfall_delta_p90=+2.334815
+proxy_jerk_delta_mean=-0.313045
+proxy_lateral_delta_mean=-0.036970
+proxy_union_red_delta_mean=0.000000
+proxy_red_stopping_delta_mean=0.000141
+```
+
+Interpretation: the candidate pool contains many outcome-labeled joint-comfort
+opportunities, and those opportunities are not primarily blocked by red-light
+or safety proxy regressions. The dominant blocker is the current
+`progress_shortfall` proxy: the best hidden outcome candidates often have equal
+or better realized outcome progress, but look much worse under the current-tick
+progress-shortfall atom. This explains why a selector-only change over the
+existing proxy score is unlikely to recover the hidden opportunities.
+
+Mathematical conclusion: this is still an offline diagnostic over fixed
+finite candidates. The hidden outcome labels are not admissible online atoms and
+do not create a Benders subproblem. A future admissible design must expose these
+opportunities through fixed current-tick quantities, for example a predeclared
+progress-proxy alignment audit using existing outcome-free fields such as
+`candidate_route_progress`, `candidate_step_reach`,
+`candidate_perfect_tracker_first_step_reach_m`, or the stored fixed-candidate
+PerfectTracker open-loop rollout descriptors.
+
+Decision: accept the hidden-gap attribution as evidence that the bottleneck is
+proxy progress alignment, not candidate-pool emptiness. Reject online selector
+implementation, CAMP retraining, DP modification, and any 12/36-run expansion
+from this result alone. The next admissible step is a read-only
+progress-proxy alignment audit that tests whether any existing current-tick
+finite-candidate progress descriptor can expose the hidden outcome-joint
+candidates without using outcome labels online.
+
+## Progress-deficit attribution on outcome-labeled candidates
+
+The repository already contained the next required read-only diagnostic:
+
+```text
+scripts/integrations/analyze_diffusion_planner_progress_deficit_attribution.py
+```
+
+For every nonfallback record, it selects the safety-preserving joint-comfort
+candidate with the minimum outcome progress deficit, then compares that
+candidate with the selected candidate using fixed current-tick descriptors:
+`candidate_step_reach`, `candidate_perfect_tracker_first_step_reach_m`,
+PerfectTracker target speed, H3/H5/H10 open-loop rollout distance, DP-prior
+jerk excess, horizon lateral cost, union-red, and red-stopping cost. Candidate
+outcomes are used only to choose the offline label candidate for attribution;
+they are not online selector inputs.
+
+Remote command:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_progress_deficit_attribution.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --label redstopfloor05_outcome_labels \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_deficit_attribution_4037ab1/progress_deficit_attribution.json \
+  --output_md \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_deficit_attribution_4037ab1/progress_deficit_attribution.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `progress_deficit_attribution.json` | `67b672dcc6d7935029bc34715627e1c6ef017e526283e5cd6cdae2ac0408a3b3` |
+| `progress_deficit_attribution.md` | `1eddac28199b4fd935a3abd5a5cb1b645835cb76ee30254b4cdd14eec52c458b` |
+
+Record counts:
+
+```text
+logs=36
+records=7200
+nonfallback=5939
+fallback=1261
+with_safety_joint_comfort=4203
+without_safety_joint_comfort=1736
+```
+
+Minimum outcome progress deficit among safety-preserving joint-comfort
+candidates:
+
+```text
+count=4203
+mean=0.651946 m
+p50=0.131145 m
+p90=0.578572 m
+p95=0.816842 m
+candidate_progress_no_loss_rate=0.345943
+```
+
+Fixed current-tick descriptor deltas for the chosen attribution candidate:
+
+| Quantity | Mean | P50 | P90 | P95 |
+| --- | ---: | ---: | ---: | ---: |
+| Outcome progress delta m | `-0.580246` | `-0.131145` | `0.000000` | `0.000000` |
+| Candidate step reach delta m | `-0.010436` | `-0.004574` | `0.003882` | `0.009058` |
+| PerfectTracker first-step reach delta m | `-0.010195` | `-0.004458` | `0.004014` | `0.009291` |
+| PerfectTracker target speed delta m/s | `-0.101952` | `-0.044582` | `0.040136` | `0.092906` |
+| H3 rollout distance delta m | `-0.045838` | `-0.024273` | `0.002130` | `0.012417` |
+| H5 rollout distance delta m | `-0.083124` | `-0.044982` | `0.001199` | `0.015733` |
+| H10 rollout distance delta m | `-0.184276` | `-0.103234` | `-0.006975` | `0.015855` |
+| DP-prior jerk-excess delta | `-0.187635` | `-0.033302` | `0.000000` | `0.000000` |
+| Horizon lateral delta | `-0.019436` | `-0.008964` | `-0.001232` | `-0.000536` |
+| Union-red delta | `0.002022` | `0.000000` | `0.000000` | `0.000000` |
+| Red-stopping delta | `0.000249` | `0.000000` | `0.000000` | `0.000000` |
+
+Rates:
+
+```text
+candidate_lower_first_step_reach_rate=0.785867
+candidate_lower_h3_distance_rate=0.877468
+candidate_lower_target_speed_rate=0.785867
+candidate_restart_push_rate=0.000000
+selected_restart_push_rate=0.000000
+restart_push_changed_rate=0.000000
+```
+
+Interpretation: the best safety-preserving joint-comfort alternatives usually
+improve jerk and lateral proxy values, and they rarely regress union-red or
+red-stopping costs. Their blocker is progress representation. Most of them
+have lower first-step reach, lower short-horizon PerfectTracker rollout
+distance, and lower target speed, even when the eventual outcome progress is
+acceptable or better. This makes a naive relaxation of the existing
+`progress_shortfall` atom unsafe: it could admit comfort-improving but
+progress-sacrificing candidates without a current-tick certificate that the
+closed-loop outcome remains acceptable.
+
+Mathematical conclusion: the current evidence still does not justify an online
+selector or CAMP retraining. A valid next design must first define an
+outcome-free finite-candidate progress certificate with explicit budgets,
+probably using a longer-horizon or state-conditioned descriptor rather than the
+single existing `progress_shortfall` atom. If that certificate is atomized, it
+must remain a fixed nonnegative current-tick coefficient so the score stays
+affine in CAMP weights and the simplex/CVaR/L2 master stays convex. Without a
+separate master/subproblem/dual/cut construction, it remains a finite-candidate
+diagnostic or selector, not classical Benders.
+
+Decision: reject immediate selector deployment and reject any 12/36-run
+promotion from the current outcome-label evidence. Accept the next engineering
+target as a predeclared progress-certificate design audit: compare candidate
+descriptors such as H10 rollout distance, route progress, and state-conditioned
+step reach against hidden outcome opportunities, choose conservative budgets,
+and only then consider a default-off finite-candidate selector smoke.
