@@ -9512,3 +9512,46 @@ splice, or (2) a richer future shadow log that stores transformed per-donor
 reward arrays so budget/feasibility attribution does not require repeated DP
 reward recomputation. Do not train CAMP, retrain DP, alter atom schema, or use
 formal seeds from this screen.
+
+### DP-CAMP Benders-style formalization contract
+
+After rejecting the current H-anchor splice family, the next milestone is a
+mathematical contract rather than another selector or replay experiment. The
+contract is documented in:
+
+```text
+docs/dp_camp_benders_formalization.md
+```
+
+It restates the old Trajectron++ CAMP proof object as a finite maximum of
+affine risk-response functions exposed to a CVXPY CVaR/simplex master through
+active affine cuts. It then defines the DP-specific counterpart over the fixed
+finite candidate set already generated at each current tick:
+
+```text
+q_i(w) = max(0, max_{k in F_i} m_ik + (a_i,o_i - a_ik)^T w).
+```
+
+Here `a_ik` are fixed normalized nonnegative DP-CAMP atoms, `o_i` is the
+offline oracle candidate for a training record, `m_ik` is the nonnegative
+outcome margin, and `F_i` is the fixed feasible candidate set. The active
+candidate gives the supporting cut
+
+```text
+ell_i >= m_i,k* + (a_i,o_i - a_i,k*)^T w.
+```
+
+Decision: accept this as a documentation and mathematical-boundary milestone
+only. The valid DP-CAMP claim is finite-candidate generalized Benders-style
+cutting-plane optimization, not classical LP-dual Benders. The DP neural
+sampler, Savitzky-Golay smoothing, `postprocess_reference`, PerfectTracker,
+closed-loop simulator, route geometry, and reward scorer are not optimization
+variables in this subproblem. They may produce fixed candidates, diagnostics,
+feasibility flags, or offline labels, but they do not provide trajectory
+coordinate convexity or recourse dual cuts.
+
+This milestone does not train CAMP, retrain DP, change the selector, run a new
+12/36 matrix, or use formal seeds. The next admissible step is a read-only
+audit of the deployed `redstopfloor05` asset against this contract: exact atom
+schema, normalization, weights, lower bounds, CVaR/simplex/L2 settings, active
+cuts, convergence/full-epigraph evidence, and training labels.
