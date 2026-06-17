@@ -100,7 +100,63 @@ SCREENS: tuple[dict[str, Any], ...] = (
         ],
         "require_raw_jerk_nondegrading": True,
     },
+    {
+        "name": "reward_h10_guard_strict_005",
+        "default_budgets": {
+            "dp_reward_progress_loss_m": 0.05,
+            "h10_distance_loss_m": 0.05,
+            "target_speed_loss_mps": 0.05,
+        },
+        "bucket_overrides": [],
+        "require_raw_jerk_nondegrading": True,
+    },
+    {
+        "name": "reward_h10_guard_balanced_010",
+        "default_budgets": {
+            "dp_reward_progress_loss_m": 0.10,
+            "h10_distance_loss_m": 0.10,
+            "target_speed_loss_mps": 0.10,
+        },
+        "bucket_overrides": [
+            {
+                "if_any_bucket": ["traffic_light", "red_light_turn"],
+                "budgets": {
+                    "dp_reward_progress_loss_m": 0.05,
+                    "h10_distance_loss_m": 0.05,
+                    "target_speed_loss_mps": 0.05,
+                },
+            }
+        ],
+        "require_raw_jerk_nondegrading": True,
+    },
+    {
+        "name": "reward_h10_guard_relaxed_noncritical_025",
+        "default_budgets": {
+            "dp_reward_progress_loss_m": 0.25,
+            "h10_distance_loss_m": 0.10,
+            "target_speed_loss_mps": 0.10,
+        },
+        "bucket_overrides": [
+            {
+                "if_any_bucket": ["traffic_light", "red_light_turn", "sharp_turn"],
+                "budgets": {
+                    "dp_reward_progress_loss_m": 0.05,
+                    "h10_distance_loss_m": 0.05,
+                    "target_speed_loss_mps": 0.05,
+                },
+            }
+        ],
+        "require_raw_jerk_nondegrading": True,
+    },
 )
+LOSS_FIELD_TO_RECORD_FIELD = {
+    "first_step_loss_m": "first_step_reach",
+    "h3_distance_loss_m": "h3_distance",
+    "h10_distance_loss_m": "h10_distance",
+    "target_speed_loss_mps": "target_speed",
+    "dp_reward_progress_loss_m": "dp_reward_progress",
+    "route_progress_loss_m": "route_progress",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -207,12 +263,12 @@ def analyze(
             "max_examples": int(max_examples),
             "screens": _screen_metadata(),
             "selection_rule": (
-                "base feasible, union-red and red-stopping nonworse, first-step "
-                "reach/H3 rollout/target-speed losses inside state-conditioned "
-                "budgets, strict raw lateral improvement, optional raw jerk "
-                "nondegradation; tie-break by raw lateral, raw jerk, descriptor "
-                "losses, original CAMP score, then candidate index; retain "
-                "baseline if no candidate is admissible"
+                "base feasible, union-red and red-stopping nonworse, declared "
+                "progress-descriptor/rollout/target-speed losses inside "
+                "state-conditioned budgets, strict raw lateral improvement, "
+                "optional raw jerk nondegradation; tie-break by raw lateral, "
+                "raw jerk, descriptor losses, original CAMP score, then "
+                "candidate index; retain baseline if no candidate is admissible"
             ),
             "math_boundary": (
                 "All screen inputs are fixed current-tick finite-candidate "
@@ -255,11 +311,8 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
     if selected < 0 or selected >= candidate_count:
         raise ValueError(f"{label} selected_index is out of range.")
     rollout = record.get("candidate_perfect_tracker_open_loop_rollout")
-    if not isinstance(rollout, dict) or "3" not in rollout:
-        raise ValueError(f"{label} is missing H3 open-loop rollout distance.")
-    h3_payload = rollout["3"]
-    if not isinstance(h3_payload, dict):
-        raise ValueError(f"{label} H3 open-loop rollout must be an object.")
+    if not isinstance(rollout, dict):
+        raise ValueError(f"{label} is missing open-loop rollout distances.")
     return {
         "selected_index": selected,
         "feasible": _bool_vector(
@@ -298,9 +351,20 @@ def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
             f"{label} candidate_perfect_tracker_target_speed_mps",
         ),
         "h3_distance": _vector(
-            h3_payload.get("distance_m"),
+            _rollout_distance(rollout, "3", label),
             candidate_count,
             f"{label} H3 rollout distance_m",
+        ),
+        "h10_distance": _vector(
+            _rollout_distance(rollout, "10", label),
+            candidate_count,
+            f"{label} H10 rollout distance_m",
+        ),
+        "dp_reward_progress": _required_reward_progress(record, candidate_count, label),
+        "route_progress": _optional_vector(
+            record.get("candidate_route_progress"),
+            candidate_count,
+            f"{label} candidate_route_progress",
         ),
         "raw_lateral": _vector(
             record.get("candidate_horizon_lateral_acceleration_cost"),
@@ -331,7 +395,7 @@ def _screen_record(
         if fallback
         else _admissible_mask(record, screen, budgets)
     )
-    chosen = _choose(record, admissible) if admissible.any() else selected
+    chosen = _choose(record, admissible, budgets) if admissible.any() else selected
     row = _result_row(record, chosen, fallback=fallback, opportunity=bool(admissible.any()))
     row.update(
         {
@@ -363,37 +427,40 @@ def _admissible_mask(
     budgets: dict[str, float],
 ) -> np.ndarray:
     selected = int(record["selected_index"])
-    first_step_loss = _loss(record["first_step_reach"], selected)
-    h3_loss = _loss(record["h3_distance"], selected)
-    target_loss = _loss(record["target_speed"], selected)
     admissible = (
         record["feasible"].copy()
         & (record["union_red"] <= record["union_red"][selected] + TOL)
         & (record["red_stopping"] <= record["red_stopping"][selected] + TOL)
-        & (first_step_loss <= budgets["first_step_loss_m"] + TOL)
-        & (h3_loss <= budgets["h3_distance_loss_m"] + TOL)
-        & (target_loss <= budgets["target_speed_loss_mps"] + TOL)
         & (record["raw_lateral"] < record["raw_lateral"][selected] - TOL)
     )
+    for budget_name, budget_value in budgets.items():
+        values = record[LOSS_FIELD_TO_RECORD_FIELD[budget_name]]
+        if values is None:
+            admissible &= False
+            continue
+        admissible &= _loss(values, selected) <= budget_value + TOL
     if bool(screen["require_raw_jerk_nondegrading"]):
         admissible &= record["raw_jerk"] <= record["raw_jerk"][selected] + TOL
     admissible[selected] = False
     return admissible
 
 
-def _choose(record: dict[str, Any], admissible: np.ndarray) -> int:
+def _choose(
+    record: dict[str, Any],
+    admissible: np.ndarray,
+    budgets: dict[str, float],
+) -> int:
     indices = np.flatnonzero(admissible)
     selected = int(record["selected_index"])
-    first_step_loss = _loss(record["first_step_reach"], selected)
-    h3_loss = _loss(record["h3_distance"], selected)
-    target_loss = _loss(record["target_speed"], selected)
+    loss_arrays = [
+        _loss(record[LOSS_FIELD_TO_RECORD_FIELD[budget_name]], selected)[indices]
+        for budget_name in budgets
+    ]
     order = np.lexsort(
         (
             indices,
             record["selection_scores"][indices],
-            target_loss[indices],
-            h3_loss[indices],
-            first_step_loss[indices],
+            *reversed(loss_arrays),
             record["raw_jerk"][indices],
             record["raw_lateral"][indices],
         )
@@ -415,14 +482,18 @@ def _result_row(
         "changed": bool(chosen != selected),
         "selected_index": selected,
         "chosen_index": int(chosen),
-        "first_step_loss_m": float(_loss(record["first_step_reach"], selected)[chosen]),
-        "h3_distance_loss_m": float(_loss(record["h3_distance"], selected)[chosen]),
-        "target_speed_loss_mps": float(_loss(record["target_speed"], selected)[chosen]),
         "raw_lateral_delta": float(record["raw_lateral"][chosen] - record["raw_lateral"][selected]),
         "raw_jerk_delta": float(record["raw_jerk"][chosen] - record["raw_jerk"][selected]),
         "union_red_delta": float(record["union_red"][chosen] - record["union_red"][selected]),
         "red_stopping_delta": float(record["red_stopping"][chosen] - record["red_stopping"][selected]),
     }
+    for budget_name, record_name in LOSS_FIELD_TO_RECORD_FIELD.items():
+        values = record[record_name]
+        row[budget_name] = (
+            None
+            if values is None
+            else float(_loss(values, selected)[chosen])
+        )
     for field in OUTCOME_DELTA_FIELDS:
         row[f"outcome_{field}_delta"] = _outcome_number(record, chosen, field) - _outcome_number(
             record,
@@ -520,14 +591,23 @@ def _delta_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "outcome_mean_lateral_acceleration_mps2_delta",
         "first_step_loss_m",
         "h3_distance_loss_m",
+        "h10_distance_loss_m",
         "target_speed_loss_mps",
+        "dp_reward_progress_loss_m",
+        "route_progress_loss_m",
         "raw_lateral_delta",
         "raw_jerk_delta",
         "union_red_delta",
         "red_stopping_delta",
     )
     return {
-        field: _stats([float(row[field]) for row in rows])
+        field: _stats(
+            [
+                float(row[field])
+                for row in rows
+                if row.get(field) is not None
+            ]
+        )
         for field in fields
     }
 
@@ -597,7 +677,10 @@ def _example(row: dict[str, Any]) -> dict[str, Any]:
             ),
             "first_step_loss_m": row["first_step_loss_m"],
             "h3_distance_loss_m": row["h3_distance_loss_m"],
+            "h10_distance_loss_m": row["h10_distance_loss_m"],
             "target_speed_loss_mps": row["target_speed_loss_mps"],
+            "dp_reward_progress_loss_m": row["dp_reward_progress_loss_m"],
+            "route_progress_loss_m": row["route_progress_loss_m"],
             "raw_lateral": row["raw_lateral_delta"],
             "raw_jerk": row["raw_jerk_delta"],
             "union_red": row["union_red_delta"],
@@ -629,13 +712,55 @@ def _outcomes(values: Any, size: int, label: str) -> list[dict[str, Any]]:
     return values
 
 
-def _vector(values: Any, size: int, label: str) -> np.ndarray:
+def _rollout_distance(rollout: dict[str, Any], horizon: str, label: str) -> Any:
+    payload = rollout.get(horizon)
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label} is missing H{horizon} open-loop rollout distance.")
+    return payload.get("distance_m")
+
+
+def _required_reward_progress(
+    record: dict[str, Any],
+    candidate_count: int,
+    label: str,
+) -> np.ndarray:
+    rewards = record.get("dp_candidate_rewards")
+    if not isinstance(rewards, list) or len(rewards) != candidate_count:
+        raise ValueError(f"{label} must contain {candidate_count} DP rewards.")
+    try:
+        values = [reward.get("progress") for reward in rewards]
+    except AttributeError as exc:
+        raise ValueError(f"{label} DP rewards must be objects.") from exc
+    return _vector(
+        values,
+        candidate_count,
+        f"{label} dp_candidate_rewards progress",
+        allow_negative=True,
+    )
+
+
+def _optional_vector(values: Any, size: int, label: str) -> np.ndarray | None:
+    if values is None:
+        return None
+    try:
+        return _vector(values, size, label, allow_negative=True)
+    except ValueError:
+        return None
+
+
+def _vector(
+    values: Any,
+    size: int,
+    label: str,
+    *,
+    allow_negative: bool = False,
+) -> np.ndarray:
     array = np.asarray(values, dtype=np.float64).reshape(-1)
     if array.size != size:
         raise ValueError(f"{label} has {array.size} values; expected {size}.")
     if not np.all(np.isfinite(array)):
         raise ValueError(f"{label} must contain finite values.")
-    if np.any(array < 0.0):
+    if not allow_negative and np.any(array < 0.0):
         raise ValueError(f"{label} must be nonnegative.")
     return array
 

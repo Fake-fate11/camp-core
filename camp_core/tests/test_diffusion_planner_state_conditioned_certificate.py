@@ -50,7 +50,14 @@ def _record() -> dict:
         "candidate_perfect_tracker_target_speed_mps": [5.00, 4.93, 4.94],
         "candidate_perfect_tracker_open_loop_rollout": {
             "3": {"distance_m": [3.00, 2.93, 2.94]},
+            "10": {"distance_m": [10.00, 9.93, 9.94]},
         },
+        "dp_candidate_rewards": [
+            {"progress": 10.00},
+            {"progress": 9.93},
+            {"progress": 9.94},
+        ],
+        "candidate_route_progress": None,
         "candidate_horizon_lateral_acceleration_cost": [2.0, 1.0, 0.8],
         "candidate_dp_prior_jerk_excess_cost": [1.0, 0.5, 0.2],
     }
@@ -122,6 +129,31 @@ def test_balanced_screen_applies_critical_bucket_budget(tmp_path) -> None:
     }["traffic_light"]
     assert traffic_bucket["records"] == 1
     assert traffic_bucket["changed"] == 0
+
+
+def test_reward_h10_screen_uses_long_horizon_progress_budget(tmp_path) -> None:
+    log_path, manifest_path = _write_log(tmp_path, [_record()], traffic_lights=False)
+
+    report = analyze([log_path], scenario_bucket_manifest=manifest_path, label="unit")
+    screen = _screen(report, "reward_h10_guard_balanced_010")
+
+    assert screen["overall"]["changed"] == 1
+    assert screen["overall"]["posterior_joint_comfort_improvements"] == 1
+    assert screen["changed_delta_summary"]["dp_reward_progress_loss_m"][
+        "mean"
+    ] == pytest.approx(0.06)
+    assert screen["changed_delta_summary"]["h10_distance_loss_m"]["mean"] == pytest.approx(
+        0.06
+    )
+
+
+def test_reward_h10_screen_applies_critical_bucket_budget(tmp_path) -> None:
+    log_path, manifest_path = _write_log(tmp_path, [_record()], traffic_lights=True)
+
+    report = analyze([log_path], scenario_bucket_manifest=manifest_path, label="unit")
+    screen = _screen(report, "reward_h10_guard_balanced_010")
+
+    assert screen["overall"]["changed"] == 0
 
 
 def test_screen_reports_posterior_safety_regression(tmp_path) -> None:
