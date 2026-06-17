@@ -36,6 +36,7 @@ class Scenario:
     name: str
     component: str | None
     camp_side_exact_equivalence_candidate: bool
+    exact_equivalence_engineering_candidate: bool
     admissibility_note: str
     saving_fn: Callable[[dict[str, float]], float]
 
@@ -193,6 +194,7 @@ def _scenarios() -> tuple[Scenario, ...]:
             name="no_extra_saving",
             component=None,
             camp_side_exact_equivalence_candidate=True,
+            exact_equivalence_engineering_candidate=True,
             admissibility_note="baseline projection after clearance replacement only",
             saving_fn=lambda _latencies: 0.0,
         ),
@@ -200,6 +202,7 @@ def _scenarios() -> tuple[Scenario, ...]:
             name="camp_atom_computation_25pct_saving",
             component=ATOM_FIELD,
             camp_side_exact_equivalence_candidate=True,
+            exact_equivalence_engineering_candidate=True,
             admissibility_note=(
                 "CAMP-side optimization candidate only if atom values remain bitwise "
                 "or numerically equivalent within the existing tolerance"
@@ -210,6 +213,7 @@ def _scenarios() -> tuple[Scenario, ...]:
             name="camp_atom_computation_50pct_saving",
             component=ATOM_FIELD,
             camp_side_exact_equivalence_candidate=True,
+            exact_equivalence_engineering_candidate=True,
             admissibility_note=(
                 "CAMP-side optimization candidate only if atom values remain bitwise "
                 "or numerically equivalent within the existing tolerance"
@@ -220,6 +224,7 @@ def _scenarios() -> tuple[Scenario, ...]:
             name="camp_atom_computation_zero_upper_bound",
             component=ATOM_FIELD,
             camp_side_exact_equivalence_candidate=True,
+            exact_equivalence_engineering_candidate=False,
             admissibility_note=(
                 "upper bound on CAMP-side atom-computation savings; not a promised "
                 "implementation target"
@@ -227,9 +232,85 @@ def _scenarios() -> tuple[Scenario, ...]:
             saving_fn=lambda latencies: _latency(latencies, ATOM_FIELD),
         ),
         Scenario(
+            name="reward_scoring_10pct_saving",
+            component=REWARD_FIELD,
+            camp_side_exact_equivalence_candidate=False,
+            exact_equivalence_engineering_candidate=True,
+            admissibility_note=(
+                "reward/feasibility plumbing candidate only if reward outputs and "
+                "feasibility masks remain exactly equivalent"
+            ),
+            saving_fn=lambda latencies: 0.10 * _latency(latencies, REWARD_FIELD),
+        ),
+        Scenario(
+            name="reward_scoring_25pct_saving",
+            component=REWARD_FIELD,
+            camp_side_exact_equivalence_candidate=False,
+            exact_equivalence_engineering_candidate=True,
+            admissibility_note=(
+                "reward/feasibility plumbing candidate only if reward outputs and "
+                "feasibility masks remain exactly equivalent"
+            ),
+            saving_fn=lambda latencies: 0.25 * _latency(latencies, REWARD_FIELD),
+        ),
+        Scenario(
+            name="reward_scoring_50pct_saving",
+            component=REWARD_FIELD,
+            camp_side_exact_equivalence_candidate=False,
+            exact_equivalence_engineering_candidate=True,
+            admissibility_note=(
+                "reward/feasibility plumbing candidate only if reward outputs and "
+                "feasibility masks remain exactly equivalent"
+            ),
+            saving_fn=lambda latencies: 0.50 * _latency(latencies, REWARD_FIELD),
+        ),
+        Scenario(
+            name="camp_atom_50pct_plus_reward_10pct",
+            component=f"{ATOM_FIELD}+{REWARD_FIELD}",
+            camp_side_exact_equivalence_candidate=False,
+            exact_equivalence_engineering_candidate=True,
+            admissibility_note=(
+                "combined exact-equivalent engineering candidate; reward plumbing "
+                "must not be described as a CAMP Benders subproblem"
+            ),
+            saving_fn=lambda latencies: (
+                0.50 * _latency(latencies, ATOM_FIELD)
+                + 0.10 * _latency(latencies, REWARD_FIELD)
+            ),
+        ),
+        Scenario(
+            name="camp_atom_50pct_plus_reward_25pct",
+            component=f"{ATOM_FIELD}+{REWARD_FIELD}",
+            camp_side_exact_equivalence_candidate=False,
+            exact_equivalence_engineering_candidate=True,
+            admissibility_note=(
+                "combined exact-equivalent engineering candidate; reward plumbing "
+                "must not be described as a CAMP Benders subproblem"
+            ),
+            saving_fn=lambda latencies: (
+                0.50 * _latency(latencies, ATOM_FIELD)
+                + 0.25 * _latency(latencies, REWARD_FIELD)
+            ),
+        ),
+        Scenario(
+            name="camp_atom_50pct_plus_reward_50pct",
+            component=f"{ATOM_FIELD}+{REWARD_FIELD}",
+            camp_side_exact_equivalence_candidate=False,
+            exact_equivalence_engineering_candidate=True,
+            admissibility_note=(
+                "combined exact-equivalent engineering candidate; reward plumbing "
+                "must not be described as a CAMP Benders subproblem"
+            ),
+            saving_fn=lambda latencies: (
+                0.50 * _latency(latencies, ATOM_FIELD)
+                + 0.50 * _latency(latencies, REWARD_FIELD)
+            ),
+        ),
+        Scenario(
             name="camp_selection_zero_upper_bound",
             component=CAMP_SELECTION_FIELD,
             camp_side_exact_equivalence_candidate=False,
+            exact_equivalence_engineering_candidate=False,
             admissibility_note=(
                 "broad diagnostic upper bound; removing all CAMP selection latency "
                 "is not an implementation plan"
@@ -240,6 +321,7 @@ def _scenarios() -> tuple[Scenario, ...]:
             name="reward_scoring_zero_engineering_upper_bound",
             component=REWARD_FIELD,
             camp_side_exact_equivalence_candidate=False,
+            exact_equivalence_engineering_candidate=False,
             admissibility_note=(
                 "reward scoring is instrumentation/plumbing here, not a CAMP "
                 "Benders subproblem or cut source"
@@ -250,6 +332,7 @@ def _scenarios() -> tuple[Scenario, ...]:
             name="candidate_generation_zero_inadmissible_upper_bound",
             component=CANDIDATE_FIELD,
             camp_side_exact_equivalence_candidate=False,
+            exact_equivalence_engineering_candidate=False,
             admissibility_note=(
                 "inadmissible under the current goal because DP is fixed as a "
                 "black-box candidate generator"
@@ -289,6 +372,9 @@ def _mode_report(
             "component": scenario.component,
             "camp_side_exact_equivalence_candidate": (
                 scenario.camp_side_exact_equivalence_candidate
+            ),
+            "exact_equivalence_engineering_candidate": (
+                scenario.exact_equivalence_engineering_candidate
             ),
             "admissibility_note": scenario.admissibility_note,
             "runs": len(run_summaries),
@@ -489,8 +575,8 @@ def render_markdown(report: dict[str, Any]) -> str:
             [
                 f"### `{mode_name}`",
                 "",
-                "| Scenario | CAMP-Side Exact Candidate | Runs Over Budget | P95 of Run P95 | Shortfall Max | Mean Record Saving | Note |",
-                "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
+                "| Scenario | CAMP-Side Exact Candidate | Exact Engineering Candidate | Runs Over Budget | P95 of Run P95 | Shortfall Max | Mean Record Saving | Note |",
+                "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
             ]
         )
         for scenario_name, scenario in mode["scenarios"].items():
@@ -498,6 +584,7 @@ def render_markdown(report: dict[str, Any]) -> str:
                 "| "
                 f"`{scenario_name}` | "
                 f"`{scenario['camp_side_exact_equivalence_candidate']}` | "
+                f"`{scenario['exact_equivalence_engineering_candidate']}` | "
                 f"`{scenario['runs_over_budget']} / {scenario['runs']}` | "
                 f"{_fmt(scenario['per_run_p95_ms']['p95'])} | "
                 f"{_fmt(scenario['per_run_shortfall_ms']['max'])} | "

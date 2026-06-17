@@ -57,12 +57,33 @@ def test_latency_savings_sensitivity_marks_admissible_camp_atom_upper_bound(
     assert scenarios["camp_atom_computation_25pct_saving"][
         "camp_side_exact_equivalence_candidate"
     ] is True
+    assert scenarios["camp_atom_computation_25pct_saving"][
+        "exact_equivalence_engineering_candidate"
+    ] is True
+    assert scenarios["reward_scoring_10pct_saving"][
+        "camp_side_exact_equivalence_candidate"
+    ] is False
+    assert scenarios["reward_scoring_10pct_saving"][
+        "exact_equivalence_engineering_candidate"
+    ] is True
+    assert scenarios["camp_atom_50pct_plus_reward_10pct"][
+        "exact_equivalence_engineering_candidate"
+    ] is True
+    assert scenarios["camp_atom_50pct_plus_reward_10pct"][
+        "runs_over_budget"
+    ] == 0
     assert scenarios["candidate_generation_zero_inadmissible_upper_bound"][
         "camp_side_exact_equivalence_candidate"
+    ] is False
+    assert scenarios["candidate_generation_zero_inadmissible_upper_bound"][
+        "exact_equivalence_engineering_candidate"
     ] is False
     assert scenarios["camp_atom_computation_50pct_saving"][
         "mean_record_saving_ms"
     ]["mean"] == pytest.approx(3.25)
+    assert scenarios["camp_atom_50pct_plus_reward_10pct"][
+        "mean_record_saving_ms"
+    ]["mean"] == pytest.approx(5.25)
     assert scenarios["no_extra_saving"]["per_run_shortfall_ms"][
         "max"
     ] == pytest.approx(1.0)
