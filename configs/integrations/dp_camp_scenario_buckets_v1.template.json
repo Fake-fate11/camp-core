@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "schema_version": "dp_camp_scenario_buckets_v1",
+    "purpose": "Explicit-only scenario bucket labels for DP-CAMP SafetyCost comparisons.",
+    "labeling_rule": "Do not infer critical buckets from route names or outcome metrics. Add labels only after inspecting the route/scenario definition."
+  },
+  "supported_buckets": [
+    "overall",
+    "normal",
+    "traffic_light",
+    "red_light_turn",
+    "sharp_turn",
+    "npc_interaction",
+    "dense_scene",
+    "lane_change_or_merge"
+  ],
+  "routes": {},
+  "run_keys": {},
+  "default_buckets": []
+}

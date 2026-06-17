@@ -10116,3 +10116,60 @@ as the default comparison gate for any larger non-formal scenario suite. A
 larger suite must include explicit scenario bucket manifests before critical
 bucket claims such as red-light turn, sharp turn, dense NPC, or lane change are
 made.
+
+## Scenario bucket coverage audit entry point
+
+The next development gate is scenario coverage, not selector tuning. This
+milestone adds an explicit-only scenario bucket entry point so future
+SafetyCost v1 comparisons can report whether normal, traffic-light,
+red-light-turn, sharp-turn, NPC interaction, dense-scene, and lane-change/merge
+conditions are actually represented.
+
+Implementation:
+
+- `configs/integrations/dp_camp_scenario_buckets_v1.template.json` is an empty
+  manifest template. It contains no route labels and therefore does not
+  fabricate critical scenario coverage.
+- `docs/dp_camp_scenario_suite_v1.md` defines the scenario bucket development
+  gate and repeats the mathematical boundary: bucket labels are evaluation
+  metadata only, not CAMP atoms, not selector logic, and not a Benders
+  subproblem.
+- `scripts/integrations/audit_diffusion_planner_scenario_buckets.py` consumes a
+  SafetyCost comparison JSON, recomputes bucket-level aggregates, paired
+  deltas, hard-gate status, and coverage gaps, and can fail on missing required
+  buckets with `--fail_on_missing_required`.
+
+This is read-only analysis infrastructure. It does not modify DP, retrain CAMP,
+change `redstopfloor05`, change the atom schema, run formal seeds, or run a
+new replay matrix.
+
+Local verification:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py \
+  camp_core\tests\test_diffusion_planner_safety_score_compare.py
+
+6 passed
+
+python -m py_compile \
+  scripts\integrations\audit_diffusion_planner_scenario_buckets.py
+
+passed
+
+python -m ruff check \
+  scripts\integrations\audit_diffusion_planner_scenario_buckets.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py
+
+All checks passed
+
+git diff --check
+
+passed
+```
+
+Predeclared remote check after push: run the new bucket audit on the existing
+`redstopfloor05` SafetyCost v1 comparison JSON. Because that comparison was
+generated without a bucket manifest, the expected result is `overall` coverage
+only and missing required scenario buckets. That is a coverage-gap finding, not
+a selector regression.
