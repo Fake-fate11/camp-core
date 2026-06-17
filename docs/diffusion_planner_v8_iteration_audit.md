@@ -15738,3 +15738,213 @@ matrices, and formal seeds from this evidence. The next admissible engineering
 step is a reward-scoring decomposition and replacement design that preserves
 the current finite-candidate CAMP math contract before any broader online
 experiment.
+
+### Reward-scoring latency decomposition instrumentation and smoke
+
+Commit `fdc818085486fc664522b312c0c02f70d24d27c6` adds reward-scoring latency
+subfields without changing DP, candidate generation, atoms, weights, feasibility
+semantics, or selection. The replay log now decomposes the existing
+`latency_ms_reward_scoring` bucket into:
+
+```text
+latency_ms_reward_npz_dump
+latency_ms_reward_tensor_setup
+latency_ms_reward_sg_smoothing
+latency_ms_reward_candidate_tensor_transfer
+latency_ms_reward_batch_compute
+latency_ms_reward_postprocess
+latency_ms_reward_full_horizon_red_light
+latency_ms_reward_red_route_points
+latency_ms_reward_feasibility
+latency_ms_reward_field_extraction
+latency_ms_reward_step_reach_guard
+latency_ms_reward_route_progress
+latency_ms_reward_route_progress_guard
+latency_ms_reward_lexicographic_filter
+```
+
+`analyze_diffusion_planner_latency_budget.py` now treats these as nested
+diagnostic fields and reports `reward_breakdown_sum` plus
+`reward_unattributed_residual`.
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_latency_budget.py \
+  camp_core\tests\test_diffusion_planner_integration.py::test_summarize_selection_records_reports_candidate_usage \
+  camp_core\tests\test_diffusion_planner_integration.py::test_dp_reward_feasibility_applies_candidate0_progress_guard \
+  -q
+# 3 passed
+
+py -3.12 -m compileall -q \
+  scripts\integrations\run_diffusion_planner_camp_replay.py \
+  scripts\integrations\analyze_diffusion_planner_latency_budget.py \
+  camp_core\camp_core\integrations\diffusion_planner.py \
+  camp_core\tests\test_diffusion_planner_latency_budget.py \
+  camp_core\tests\test_diffusion_planner_integration.py
+# passed
+
+git diff --check
+# passed
+```
+
+AutoDL was synchronized to
+`fdc818085486fc664522b312c0c02f70d24d27c6`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL targeted verification used
+the same pytest selection plus compileall and `git diff --check`; all passed.
+
+No-outcome reward-latency diagnostic smoke:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/reward_latency_decomp_fdc8180_sample_tl_seed1_npc4_tloff_static
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+REPLAY_NO_PNG=1 \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --map_path /root/autodl-tmp/camp_dp_assets/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm \
+  --route /root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --model_path /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth \
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --output_dir "$OUT" \
+  --device cuda \
+  --advance_mode perfect \
+  --steps 200 \
+  --seed 1 \
+  --max_npcs 4 \
+  --spawn_probability 0.3 \
+  --traffic_lights off \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --camp_selector_mode static \
+  --camp_atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --camp_static_weights /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy \
+  --num_candidates 8 \
+  --candidate_noise_scale 1.0 \
+  --candidate_reference_blend_steps 5 \
+  --camp_lane_corridor_buffer 1.0 \
+  --camp_feasibility_source dp_reward \
+  --camp_fallback_mode learned \
+  --camp_min_progress_ratio 0.8 \
+  --camp_shadow_route_progress \
+  --camp_shadow_obstacle_clearance \
+  --camp_reward_horizon_steps 30 \
+  --camp_outcome_horizon_steps 30 \
+  --near_miss_threshold_m 2.0
+```
+
+Audit commands:
+
+```bash
+AUDIT=$OUT/audit_fdc8180
+SCALES=/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --selection_log "$OUT/camp_selection_log.json" \
+  --atom_scales "$SCALES" \
+  --expected_logs 1 \
+  --expected_candidates 8 \
+  --expected_advance_mode perfect \
+  --closed_loop_outcome_policy forbidden \
+  --forbid_seed 11 \
+  --forbid_seed 12 \
+  --forbid_seed 13 \
+  --required_candidate_field candidate_route_progress \
+  --require_perfect_tracker_open_loop_rollout \
+  --require_full_horizon_red_light_shadow \
+  --require_finite_candidate_contract \
+  --output_json "$AUDIT/dataset_audit_reward_latency_decomp.json"
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_latency_budget.py \
+  --selection_log "$OUT/camp_selection_log.json" \
+  --label reward_latency_decomp_fdc8180_sample_tl_seed1_npc4_tloff_static \
+  --output_json "$AUDIT/latency_budget_reward_decomp.json" \
+  --output_md "$AUDIT/latency_budget_reward_decomp.md"
+```
+
+Dataset audit passed with `1` log and `200` records. It forbids closed-loop
+outcome labels, confirms `candidate_route_progress`, requires the finite
+candidate contract, and forbids formal seeds `11/12/13`.
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `aecbd4aa31de41e3e09e448199e7735a55a6216a310cca1e264809ba343e0de2` |
+| `camp_validation_summary.json` | `e7a3c5e6d76107a12ecf7bd62670112554bbf4829e8d84be66bcf72ba5b7890f` |
+| `camp_replay_summary.json` | `ced362088a14079a8078757a786c2d21af57cb9f893af1f63900448650a45d01` |
+| `dataset_audit_reward_latency_decomp.json` | `384d275c10f317fb7647a477c7d9290d210dc6ec4c275912501cd701473c97a0` |
+| `latency_budget_reward_decomp.json` | `a08ad7e5b279a47553523b74e23f82be86093224251262609cb5fa5adb1ce155` |
+| `latency_budget_reward_decomp.md` | `839b416f9fec51c5628f2535ab33699c9de66d14a3a0b7db22ac5cb3fea4e06f` |
+
+Reward-latency smoke summary:
+
+| Quantity | Mean | p95 | Max |
+| --- | ---: | ---: | ---: |
+| total including candidate generation | `101.706329 ms` | `108.367819 ms` | `297.693390 ms` |
+| candidate generation | `57.337520 ms` | `57.854581 ms` | `60.801134 ms` |
+| reward scoring | `28.215771 ms` | `29.322685 ms` | `209.042622 ms` |
+| reward npz dump | `2.005146 ms` | `2.126100 ms` | `2.390109 ms` |
+| reward tensor setup | `0.378060 ms` | `0.394133 ms` | `0.522806 ms` |
+| reward SG smoothing | `5.274101 ms` | `5.342995 ms` | `5.597378 ms` |
+| reward candidate tensor transfer | `0.078521 ms` | `0.083757 ms` | `0.093444 ms` |
+| reward batch compute | `13.350961 ms` | `14.430136 ms` | `193.751646 ms` |
+| reward postprocess | `0.054450 ms` | `0.058395 ms` | `0.076419 ms` |
+| reward full-horizon red light | `0.114524 ms` | `0.127154 ms` | `0.132134 ms` |
+| reward red route points | `0.055318 ms` | `0.064109 ms` | `0.219128 ms` |
+| reward feasibility | `0.065681 ms` | `0.079747 ms` | `0.467242 ms` |
+| reward field extraction | `0.007584 ms` | `0.009026 ms` | `0.009343 ms` |
+| reward route progress | `6.779380 ms` | `6.867220 ms` | `9.122293 ms` |
+| obstacle clearance shadow | `5.130386 ms` | `9.300296 ms` | `10.588693 ms` |
+| CAMP selection | `7.003787 ms` | `8.644735 ms` | `200.422055 ms` |
+| reward breakdown sum | `28.163724 ms` | `29.273057 ms` | `208.987467 ms` |
+| reward unattributed residual | `0.052046 ms` | `0.059128 ms` | `0.150087 ms` |
+
+Removal sensitivity:
+
+| Removed component | Remaining total p95 | p95 reduction |
+| --- | ---: | ---: |
+| candidate generation | `51.149401 ms` | `57.218418 ms` |
+| reward scoring | `79.238951 ms` | `29.128868 ms` |
+| CAMP selection | `99.952558 ms` | `8.415261 ms` |
+| obstacle clearance shadow | `98.988998 ms` | `9.378820 ms` |
+
+Interpretation:
+
+1. The new reward subfields explain the reward bucket: the unattributed reward
+   residual p95 is only `0.059128 ms`.
+2. `compute_reward_batch` is the largest reward-internal p95 component
+   (`14.430136 ms`) and also creates the largest max spike
+   (`193.751646 ms`). This is the first reward-side target to understand.
+3. Route-progress projection (`6.867220 ms` p95) and SG smoothing
+   (`5.342995 ms` p95) are the next largest stable reward-side components.
+   These are current-tick diagnostics, but any optimization must preserve the
+   fixed finite-candidate values used by the audit.
+4. Full-horizon red-light scoring is not the reward bottleneck in this smoke
+   (`0.127154 ms` p95). Removing or weakening red-light diagnostics would be
+   mathematically and empirically unjustified from this evidence.
+5. The total p95 remains above `100 ms`; this smoke does not pass the
+   industrial latency gate and is not a selector promotion result.
+
+Mathematical boundary: these added latency fields are timing diagnostics only.
+They are not atoms, weights, constraints, oracle labels, subproblem outputs, or
+cuts. They read only current-tick computation durations and do not enter CAMP
+scores. The finite candidate set, nonnegative fixed atoms, affine score in
+weights, and simplex/CVaR/L2 master assumptions remain unchanged.
+
+Decision: accept the reward-latency decomposition instrumentation and this
+single no-outcome smoke as a diagnostic milestone. Reject online selector
+promotion, new CAMP weights, broader 12/36 online matrices, and formal seeds.
+The next admissible step is to design and audit a reward-cost replacement or
+cache plan that targets `compute_reward_batch`, route-progress projection, and
+SG smoothing while proving that every replacement feature remains current-tick,
+finite-candidate, nonnegative, and score-affine.
