@@ -15365,3 +15365,218 @@ obstacle-clearance descriptor needs another latency-focused diagnostic or a
 cheaper state-conditioned guard. Do not train new CAMP weights, do not run
 formal seeds, and do not run a new 12/36 online selector matrix from this
 evidence.
+
+### Exact-OBB diagnostic default-off smoke
+
+The Full36 no-outcome latency failure was traced to near-threshold exact OBB
+distance diagnostics inside `candidate_obstacle_clearance`. The online-eligible
+clearance atoms and no-outcome screens use the conservative bounding-circle
+lower bound and hinge costs; exact OBB distance was only a diagnostic payload.
+Commit `b3dcbc19a4e9e4636c674828d50fae430c077c7d` therefore made exact OBB
+diagnostics explicitly optional and default-off for replay/matrix commands:
+
+```text
+compute_candidate_obstacle_clearance_diagnostics(..., evaluate_exact_obb=True)
+  remains available for direct debug/tests.
+
+run_diffusion_planner_camp_replay.py
+  default: lower-bound-only obstacle-clearance shadow
+  debug: --camp_shadow_obstacle_clearance_exact_obb
+
+run_diffusion_planner_camp_benchmark_matrix.py
+  forwards --camp_shadow_obstacle_clearance_exact_obb only when explicitly set.
+```
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_are_current_tick_hinges \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_reports_obb_mode \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_can_skip_exact_obb \
+  camp_core\tests\test_diffusion_planner_benchmark_matrix.py::test_variant_command_threads_fallback_mode_into_camp_variants \
+  camp_core\tests\test_diffusion_planner_benchmark_matrix.py::test_variant_command_forwards_exact_obb_debug_flag_only_when_requested \
+  -q
+# 5 passed
+
+py -3.12 -m compileall -q \
+  camp_core\camp_core\integrations\diffusion_planner.py \
+  scripts\integrations\run_diffusion_planner_camp_replay.py \
+  scripts\integrations\run_diffusion_planner_camp_benchmark_matrix.py \
+  camp_core\tests\test_diffusion_planner_integration.py \
+  camp_core\tests\test_diffusion_planner_benchmark_matrix.py
+# passed
+
+git diff --check
+# passed
+```
+
+AutoDL was synchronized to `b3dcbc19a4e9e4636c674828d50fae430c077c7d` with a
+git bundle. DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL targeted verification:
+
+```text
+camp_core/tests/test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_are_current_tick_hinges
+camp_core/tests/test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_reports_obb_mode
+camp_core/tests/test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_can_skip_exact_obb
+camp_core/tests/test_diffusion_planner_benchmark_matrix.py::test_variant_command_threads_fallback_mode_into_camp_variants
+camp_core/tests/test_diffusion_planner_benchmark_matrix.py::test_variant_command_forwards_exact_obb_debug_flag_only_when_requested
+# 5 passed
+```
+
+Latency smoke command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_exact_obb_off_b3dcbc1_sample_tl_seed1_npc4_tloff_static
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+REPLAY_NO_PNG=1 \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --map_path /root/autodl-tmp/camp_dp_assets/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm \
+  --route /root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --model_path /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth \
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --output_dir "$OUT" \
+  --device cuda \
+  --advance_mode perfect \
+  --steps 200 \
+  --seed 1 \
+  --max_npcs 4 \
+  --spawn_probability 0.3 \
+  --traffic_lights off \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --camp_selector_mode static \
+  --camp_atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --camp_static_weights /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy \
+  --num_candidates 8 \
+  --candidate_noise_scale 1.0 \
+  --candidate_reference_blend_steps 5 \
+  --camp_lane_corridor_buffer 1.0 \
+  --camp_feasibility_source dp_reward \
+  --camp_fallback_mode learned \
+  --camp_min_progress_ratio 0.8 \
+  --camp_shadow_route_progress \
+  --camp_shadow_obstacle_clearance \
+  --camp_reward_horizon_steps 30 \
+  --camp_outcome_horizon_steps 30 \
+  --near_miss_threshold_m 2.0
+```
+
+Smoke audit commands:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_exact_obb_off_b3dcbc1_sample_tl_seed1_npc4_tloff_static
+OUT=$ROOT/audit_b3dcbc1
+SCALES=/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --selection_log "$ROOT/camp_selection_log.json" \
+  --atom_scales "$SCALES" \
+  --expected_logs 1 \
+  --expected_candidates 8 \
+  --expected_advance_mode perfect \
+  --closed_loop_outcome_policy forbidden \
+  --forbid_seed 11 \
+  --forbid_seed 12 \
+  --forbid_seed 13 \
+  --required_candidate_field candidate_route_progress \
+  --require_perfect_tracker_open_loop_rollout \
+  --require_full_horizon_red_light_shadow \
+  --require_finite_candidate_contract \
+  --output_json "$OUT/dataset_audit_no_outcome_exact_obb_off.json"
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_no_outcome_shadow_certificate.py \
+  --selection_log "$ROOT/camp_selection_log.json" \
+  --label no_outcome_exact_obb_off_b3dcbc1_sample_tl_seed1_npc4_tloff_static \
+  --output_json "$OUT/no_outcome_shadow_certificate_exact_obb_off.json" \
+  --output_md "$OUT/no_outcome_shadow_certificate_exact_obb_off.md"
+```
+
+Smoke result:
+
+```text
+records=200
+closed_loop_outcome_records=0
+candidate_route_progress_records=200
+h10_distance_records=200
+obstacle_clearance_v2_records=200
+perfect_tracker_open_loop_rollout_records=200
+full_horizon_red_light_shadow_records=200
+finite_candidate_contract_logs=1
+
+exact_obb_enabled=false
+exact_evaluated_pairs.p95=0
+exact_evaluated_pairs.max=0
+obstacle_slots.mean=2.2
+obstacle_slots.max=4
+
+latency_ms_shadow_obstacle_clearance:
+mean=5.148374
+p50=4.690808
+p95=9.296867
+max=9.540996
+
+latency_ms_including_candidate_generation:
+mean=102.801354
+p50=100.980750
+p95=109.424894
+max=311.714364
+```
+
+Comparison to the previous exact-on worst Full36 run:
+
+| Run | Clearance p95 | Clearance max | Exact-pair p95 | Total p95 |
+| --- | ---: | ---: | ---: | ---: |
+| exact-on v2 Full36 worst run | `98.279118 ms` | `116.254320 ms` | `45` | `204.791084 ms` |
+| exact-off smoke | `9.296867 ms` | `9.540996 ms` | `0` | `109.424894 ms` |
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `d1ba39591d701104e2361665e40bf3fbbfec573de67f6b9a24c43c8360485b14` |
+| `camp_validation_summary.json` | `4bdfe40eaf6a934bdba502cdbad856a0259e87abb8971abbfc88d657c4b728e8` |
+| `camp_replay_summary.json` | `ea353db03cd3dfe8b4b6ec2265a22060f4ee051369990b3b6acfe925e632300c` |
+| `dataset_audit_no_outcome_exact_obb_off.json` | `75920b249ac5b99f5c13a027eac56b916ecee78ea95c3c285b9cd0d7f1ca07b0` |
+| `no_outcome_shadow_certificate_exact_obb_off.json` | `b0440af5c0352122360762dd8b0113828bbd5f2ee051970821eaa685123d5bf8` |
+| `no_outcome_shadow_certificate_exact_obb_off.md` | `f467dcf3d4bde550e33c2e7fbdf2024a5d4122b77e6127af584101140ccea139` |
+
+Interpretation:
+
+1. The exact-OBB default-off change is accepted as a deployability improvement.
+   It removes a diagnostic-only cost path while preserving the current-tick
+   lower-bound hinge atoms that would be admissible in a finite-candidate CAMP
+   selector.
+2. This is still not enough to pass the development gate. The representative
+   worst-case smoke still has `latency_ms_including_candidate_generation.p95`
+   above `100 ms`, with reward scoring and the remaining CAMP path now forming
+   the visible latency floor.
+3. The old exact-on Full36 artifact and the new smoke are not treated as a
+   paired behavioral comparison. DP candidate sampling is not being used here
+   as a deterministic equivalence oracle. The selection-invariance claim comes
+   from code structure and unit tests: exact OBB affects only diagnostic exact
+   fields, while lower-bound clearance and hinge costs are unchanged.
+
+Mathematical boundary: disabling exact OBB does not weaken the CAMP/Benders-style
+contract because exact OBB was never an online atom, selector input, oracle
+label, subproblem result, or cut source. The admissible obstacle feature remains
+a fixed current-tick nonnegative lower-bound hinge over a finite DP candidate
+set. CAMP scores remain affine in weights; no trajectory-coordinate convexity
+or classical Benders claim is introduced.
+
+Decision: keep the exact-OBB default-off implementation. Reject online selector
+promotion and reject new 12/36-run replay matrices from this smoke because the
+overall latency p95 is still above the industrial target. The next admissible
+step is a latency-focused attribution of the remaining `~109 ms` p95 floor,
+especially reward scoring, candidate generation, and residual CAMP selection
+components, before any broader rerun.

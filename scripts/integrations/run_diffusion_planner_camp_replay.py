@@ -4056,8 +4056,8 @@ def main() -> None:
             "definition": (
                 "current-tick candidate trajectory versus current-tick "
                 "predicted/static obstacle geometry; reports conservative "
-                "clearance lower-bound hinges and near-threshold exact OBB "
-                "diagnostics"
+                "clearance lower-bound hinges and can optionally report "
+                "near-threshold exact OBB diagnostics"
             ),
             "exact_obb_enabled": bool(
                 args.camp_shadow_obstacle_clearance_exact_obb
