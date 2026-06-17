@@ -13121,3 +13121,182 @@ allows a nonzero candidate only when a predeclared current-tick certificate can
 explain why the candidate is likely to match the outcome oracle. That design
 must explicitly constrain the `progress_shortfall`-driven override mechanism
 instead of adding another traffic-light or comfort threshold patch.
+
+## Top-1-preserving counterfactual certificate audit
+
+Code/documentation state:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for counterfactual implementation:
+d113405e73c31de31fe6863b1746b5ace072a151
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+Added:
+scripts/integrations/analyze_diffusion_planner_top1_preserving_counterfactual.py
+camp_core/tests/test_diffusion_planner_top1_preserving_counterfactual.py
+
+Implementation commits:
+dc6857fb2786cd5bf1b47c847f783666ed2da58b
+d113405e73c31de31fe6863b1746b5ace072a151
+```
+
+Local verification:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_top1_preserving_counterfactual.py \
+  -q
+# 2 passed in 0.47s
+
+python -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_top1_preserving_counterfactual.py \
+  camp_core\tests\test_diffusion_planner_top1_preserving_counterfactual.py
+# passed
+
+git diff --check
+# passed
+
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_top1_preserving_counterfactual.py \
+  camp_core\tests\test_diffusion_planner_top1_preserving_counterfactual.py
+# All checks passed
+```
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# d113405e73c31de31fe6863b1746b5ace072a151
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_top1_preserving_counterfactual.py \
+  -q
+# 2 passed in 0.35s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/analyze_diffusion_planner_top1_preserving_counterfactual.py \
+  camp_core/tests/test_diffusion_planner_top1_preserving_counterfactual.py
+# passed
+```
+
+Counterfactual command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_top1_preserving_counterfactual.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label redstopfloor05_outcome_labels \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preserving_counterfactual_d113405/top1_preserving_counterfactual.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preserving_counterfactual_d113405/top1_preserving_counterfactual.md
+```
+
+Artifact paths and SHA:
+
+```text
+Top-1-preserving counterfactual JSON:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preserving_counterfactual_d113405/top1_preserving_counterfactual.json
+sha256 844b6e9f16b18459dd6847a672d127efab5c1adf93775962ce065a94bd50a124
+
+Top-1-preserving counterfactual Markdown:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preserving_counterfactual_d113405/top1_preserving_counterfactual.md
+sha256 6e743ce3ee770bd603faa80fab3f5237818006cc8b5a539d4087f82a89c51864
+```
+
+Counterfactual contract:
+
+```text
+If candidate0 is feasible:
+  select candidate0 unless a predeclared current-tick certificate admits a
+  nonzero candidate.
+If candidate0 is infeasible or all candidates are infeasible:
+  retain the logged CAMP baseline selection.
+
+Rules evaluated:
+- top1_only
+- strict_joint_comfort_p005
+- strict_joint_comfort_p010
+- strict_any_comfort_p005
+- strict_red_or_joint_comfort_p005
+```
+
+The rules use only current-tick fixed candidate diagnostics:
+`feasible_mask`, `progress_shortfall`, union planned red-light cost, red
+stopping cost, proxy jerk, proxy lateral, affine score, and candidate index.
+Candidate closed-loop outcomes are posterior labels only. The reported
+`candidate_label_safety_delta` is not a closed-loop run SafetyCost v1; it is a
+candidate-outcome-label proxy using the SafetyCost v1 event weights and
+comfort normalizations, with candidate progress loss replacing route
+shortfall.
+
+Overall result:
+
+| Rule | Overrides | True overrides | False overrides | Hidden outcome | Mean label safety delta | CVaR90 label safety delta | Bool hard-gate worse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `top1_only` | `0` | `0` | `0` | `3214` | n/a | n/a | all zero |
+| `strict_joint_comfort_p005` | `0` | `0` | `0` | `3214` | n/a | n/a | all zero |
+| `strict_joint_comfort_p010` | `0` | `0` | `0` | `3476` | n/a | n/a | all zero |
+| `strict_any_comfort_p005` | `2475` | `2430` | `45` | `766` | `+0.024715` | `+0.547965` | lane `4`, near-miss `4` |
+| `strict_red_or_joint_comfort_p005` | `5` | `5` | `0` | `3209` | `-0.023355` | `-0.011449` | all zero |
+
+Scenario bucket digest:
+
+| Rule | Bucket | Overrides | True | False | Hidden | Mean label safety delta | CVaR90 label safety delta | Bool hard-gate worse |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `strict_any_comfort_p005` | `normal` | `278` | `278` | `0` | `0` | `-0.010202` | `+0.065232` | all zero |
+| `strict_any_comfort_p005` | `traffic_light` | `791` | `764` | `27` | `380` | `+0.071272` | `+1.055255` | lane `2`, near-miss `4` |
+| `strict_any_comfort_p005` | `red_light_turn` | `452` | `429` | `23` | `11` | `+0.078440` | `+0.939743` | lane `2` |
+| `strict_any_comfort_p005` | `sharp_turn` | `920` | `879` | `41` | `17` | `+0.076327` | `+0.951803` | lane `4` |
+| `strict_red_or_joint_comfort_p005` | `traffic_light` | `5` | `5` | `0` | `1148` | `-0.023355` | `-0.011449` | all zero |
+| `strict_red_or_joint_comfort_p005` | `red_light_turn` | `5` | `5` | `0` | `442` | `-0.023355` | `-0.011449` | all zero |
+| `strict_red_or_joint_comfort_p005` | `sharp_turn` | `5` | `5` | `0` | `907` | `-0.023355` | `-0.011449` | all zero |
+
+Interpretation:
+
+1. The default `top1_only` rule is fail-closed and safe by construction, but it
+   misses 3,214 outcome-labeled opportunities at the `0.05 m` budget. It is a
+   baseline, not a CAMP improvement.
+2. Requiring both proxy jerk and proxy lateral to strictly improve is too
+   conservative on this artifact: it admits zero candidates even at `0.10 m`.
+3. Weakening the comfort trigger to either proxy jerk or proxy lateral gives
+   useful coverage, but fails the development gate before any smoke: it has 45
+   false overrides, positive mean and CVaR90 candidate-label safety delta, and
+   actual posterior lane/near-miss hard-gate worse events.
+4. The red-or-joint comfort rule is the only one with zero false overrides and
+   negative candidate-label safety delta, but it covers only 5 records and
+   leaves 3,209 hidden outcome opportunities. That is not enough evidence to
+   implement an online selector or run a 12-run smoke.
+
+Mathematical conclusion: the counterfactual selector family remains inside the
+CAMP-side finite-candidate contract. It is deterministic, nonempty, and
+fail-closed: candidate0 is retained whenever feasible unless the fixed
+certificate admits a candidate; if candidate0 is infeasible, the logged CAMP
+baseline is retained. All certificate inputs are fixed current-tick
+finite-candidate constants. If these diagnostics are atomized with fixed
+nonnegative scaling, the score can remain affine in the CAMP master variable.
+No DP sampler, smoothing, postprocessing, PerfectTracker rollout, closed-loop
+state, SafetyCost evaluator, or trajectory coordinate is promoted to a
+Benders subproblem or cut source.
+
+Decision: accept the counterfactual audit implementation and artifact. Reject
+all evaluated rules for online promotion. Do not implement a default-off online
+selector, do not run sample59 smoke, do not run a 36-run, do not touch formal
+seeds, and do not retrain CAMP from this result. The next admissible step is
+to diagnose the 766 hidden outcome opportunities left by
+`strict_any_comfort_p005` and the 45 false overrides it creates. A viable next
+certificate must keep the zero-hard-gate property of `strict_red_or_joint`
+while recovering materially more of the hidden outcome opportunities, using
+only current-tick finite-candidate diagnostics.
