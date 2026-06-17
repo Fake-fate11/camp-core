@@ -10659,3 +10659,114 @@ cutting-plane master.
 Decision: accept the versioned manifest as a reproducibility improvement for
 development audits. Reject any claim that it improves `redstopfloor05` or makes
 the current full36 suite complete.
+
+## SafetyCost comparison relabel reproducibility check
+
+The existing redstopfloor05 replay directories are not required for scenario
+bucket recomputation as long as the SafetyCost comparison JSON retains route
+and run-configuration fields. A new metadata-only relabel tool was added:
+
+```text
+scripts/integrations/relabel_diffusion_planner_safety_comparison.py
+```
+
+It reads an existing comparison JSON, reapplies an explicit scenario bucket
+manifest, recomputes aggregates, paired deltas, SafetyCost v1 hard gates, and
+pairing audit fields, and writes a new comparison JSON/Markdown. It does not
+rerun DP, CAMP selection, PerfectTracker, closed-loop simulation, or training.
+
+Local verification:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_safety_comparison_relabel.py \
+  camp_core\tests\test_diffusion_planner_safety_score_compare.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_manifest.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py
+
+15 passed
+
+python -m ruff check \
+  scripts\integrations\relabel_diffusion_planner_safety_comparison.py \
+  camp_core\tests\test_diffusion_planner_safety_comparison_relabel.py \
+  camp_core\tests\test_diffusion_planner_safety_score_compare.py
+
+All checks passed
+
+python -m py_compile scripts\integrations\relabel_diffusion_planner_safety_comparison.py
+
+passed
+
+git diff --check
+
+passed
+```
+
+The tool was committed, pushed, and synced to AutoDL as:
+
+```text
+ba62357589c00f9e6a323787d5ea18ac7a6c977a
+Add DP CAMP safety comparison relabel tool
+```
+
+AutoDL verification:
+
+```text
+CAMP_HEAD=ba62357589c00f9e6a323787d5ea18ac7a6c977a
+CAMP_ORIGIN=ba62357589c00f9e6a323787d5ea18ac7a6c977a
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+15 passed
+```
+
+Remote output root:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_relabel_ba62357
+```
+
+Input comparison:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_score_v1_07c3b9a/safety_score_v1_comparison.json
+```
+
+Manifest:
+
+```text
+/root/autodl-tmp/camp_core/configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_score_v1_bucketed_comparison.json` | `c7562429cf0a5831036f57e844f60b8c0c456cf3525d8ece4e1bdf99d5f75852` |
+| `safety_score_v1_bucketed_comparison.md` | `6194ba2b536532e720acf5874f992132e4cb58373e26302e43596097844b05b5` |
+| `scenario_bucket_coverage.json` | `f72bf2f34015ed33c07e82c564663a170976ce4f29adc2d9c39cb0199c23536e` |
+| `scenario_bucket_coverage.md` | `e61504b8ac51989306c63f5905d6f064f53428c0528a8d762e32e25266623cae` |
+
+Bucket coverage and gate result:
+
+| Bucket | Run keys | Strict pairing | Hard gate | SafetyCost claim | Mean SafetyCost delta | CI95 low | CI95 high |
+| --- | ---: | --- | --- | --- | ---: | ---: | ---: |
+| `overall` | `36` | yes | fail | fail | `+1.636354` | `+1.120940` | `+2.450326` |
+| `normal` | `3` | yes | fail | fail | `+0.727142` | `+0.656163` | `+0.780721` |
+| `traffic_light` | `12` | yes | fail | fail | `+2.322308` | `+0.966325` | `+4.522844` |
+| `red_light_turn` | `6` | yes | fail | fail | `+2.927210` | `+0.311772` | `+7.315351` |
+| `sharp_turn` | `12` | yes | fail | fail | `+1.810889` | `+0.494978` | `+4.084322` |
+
+Missing required buckets remain:
+
+```text
+npc_interaction
+dense_scene
+lane_change_or_merge
+```
+
+Decision: accept the relabel tool and committed manifest as reproducibility
+infrastructure for existing artifacts. Reject any improvement claim for
+`redstopfloor05`: all covered buckets still have positive SafetyCost deltas and
+fail the hard gate, and three required scenario buckets remain uncovered. The
+next admissible engineering step remains scenario-suite expansion and candidate
+availability analysis, not CAMP weight tuning.
