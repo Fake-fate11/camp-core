@@ -16628,3 +16628,140 @@ next admissible step is a no-outcome Full36 latency rerun or an equivalent
 predeclared development-grid latency audit using the vectorized descriptor,
 followed by the route/H10/clearance shadow selector audit if the p95 latency
 budget has real margin.
+
+### Clearance Latency Projection Audit on Existing No-Outcome Full36 Logs
+
+Commit:
+
+- Local/GitHub/AutoDL CAMP: `1b34a45bbb9e075fad9788e69e7ce4db5d6d01de`
+  (`Add DP clearance latency projection audit`).
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The continuation prompt still referenced `d5c2075be56d9486a71a280fc2e17b515740b8ff`,
+but live inspection showed the current authoritative CAMP state was already
+`8bd5df51e0254906b2530340611204fb39257134` before this iteration and
+`1b34a45bbb9e075fad9788e69e7ce4db5d6d01de` after the projection-audit commit.
+AutoDL `git pull --ff-only` hung on the GitHub connection, so the exact
+`8bd5df5 -> 1b34a45` update was transferred as a verified Git bundle and
+fast-forwarded on AutoDL without touching existing untracked files.
+
+Purpose:
+
+This audit asks whether the single-smoke clearance vectorization result is
+large enough to justify a broader no-outcome Full36 replay. It does not run a
+new replay and does not change online selection. It projects existing
+Full36 per-record total latency by replacing the old measured clearance
+latency with three predeclared replacement models:
+
+1. `constant_new_p95`: replace each old clearance value by the new smoke p95
+   (`0.858788 ms`).
+2. `cap_at_new_p95`: replace by `min(old_clearance, 0.858788 ms)`.
+3. `scale_by_smoke_p95_ratio`: multiply each old clearance value by
+   `0.858788 / 9.296867`.
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_clearance_latency_projection.py `
+  camp_core\tests\test_diffusion_planner_latency_budget.py -q
+
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_clearance_latency_projection.py `
+  camp_core\tests\test_diffusion_planner_clearance_latency_projection.py
+
+git diff --check
+```
+
+Result: `3 passed`; compile and diff checks passed.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_clearance_latency_projection.py \
+  camp_core/tests/test_diffusion_planner_latency_budget.py -q
+```
+
+Result: `3 passed`.
+
+Projection command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_devgrid_57cd0d1
+OUT=$ROOT/clearance_latency_projection_1b34a45
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_clearance_latency_projection.py \
+  --root "$ROOT" \
+  --label no_outcome_full36_clearance_projection_1b34a45 \
+  --reference_old_clearance_p95_ms 9.296867 \
+  --reference_new_clearance_p95_ms 0.858788 \
+  --reference_source old_exact_off_smoke_vs_vectorized_smoke_sha_88bee7f5494de1cf9ad49cd5c17b772bdd337274f4211ff24f284b2c32d2a140 \
+  --output_json "$OUT/clearance_latency_projection.json" \
+  --output_md "$OUT/clearance_latency_projection.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `clearance_latency_projection.json` | `501a1609ad8934d0a5a44906a2eacec156401ac216622ceb0300cd445d43b28f` |
+| `clearance_latency_projection.md` | `64d43bd10e7512e27da848e3df89fee7d720695f6a4d379091568eed60005735` |
+
+Projection summary:
+
+| Quantity | Baseline | `constant_new_p95` | `cap_at_new_p95` | `scale_by_smoke_p95_ratio` |
+| --- | ---: | ---: | ---: | ---: |
+| logs | `36` | `36` | `36` | `36` |
+| records | `7200` | `7200` | `7200` | `7200` |
+| missing total/clearance | `0 / 0` | `0 / 0` | `0 / 0` | `0 / 0` |
+| record-level total p95 | `118.412714 ms` | `98.059038 ms` | `98.034612 ms` | `98.459287 ms` |
+| per-run p95 distribution p95 | `146.198818 ms` | `100.398759 ms` | `100.398759 ms` | `101.000880 ms` |
+| runs over `100 ms` | `15 / 36` | `4 / 36` | `4 / 36` | `4 / 36` |
+
+Remaining projected over-budget runs:
+
+| Mode | Run | Baseline p95 | Projected p95 |
+| --- | --- | ---: | ---: |
+| `constant_new_p95` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `204.791084` | `104.471944` |
+| `constant_new_p95` | `sample_map/sample_map_tl_route_59_to_86/seed_2/npc_4/spawn_0p3/tl_off/static` | `109.938423` | `100.839536` |
+| `constant_new_p95` | `sample_map/sample_map_tl_route_59_to_86/seed_3/npc_4/spawn_0p3/tl_on/static` | `107.039037` | `100.251833` |
+| `constant_new_p95` | `nishishinjuku/nishishinjuku_release_auto_route/seed_3/npc_4/spawn_0p3/tl_on/static` | `127.487494` | `100.020717` |
+| `scale_by_smoke_p95_ratio` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `204.791084` | `111.469578` |
+| `scale_by_smoke_p95_ratio` | `sample_map/sample_map_tl_route_59_to_86/seed_2/npc_4/spawn_0p3/tl_on/static` | `144.509146` | `101.157018` |
+| `scale_by_smoke_p95_ratio` | `sample_map/sample_map_tl_route_59_to_86/seed_2/npc_4/spawn_0p3/tl_off/static` | `109.938423` | `100.948834` |
+| `scale_by_smoke_p95_ratio` | `nishishinjuku/nishishinjuku_release_auto_route/seed_3/npc_4/spawn_0p3/tl_on/static` | `127.487494` | `100.623074` |
+
+Interpretation:
+
+1. Clearance vectorization is material at development-grid scale: the
+   projected over-budget count falls from `15/36` to `4/36`, and record-level
+   total p95 falls below `100 ms` under all three sensitivity modes.
+2. The latency gate is still not passed. Per-run p95 remains above the
+   `100 ms` target in `4/36` runs, and the worst projected run is still
+   `104.471944 ms` under the constant/cap models and `111.469578 ms` under the
+   proportional model.
+3. The next bottleneck is no longer solely clearance. The remaining tail is
+   concentrated in `npc_4` runs on `sample_map_tl_route_59_to_86` and one
+   `nishishinjuku` traffic-light run, so the next engineering step should
+   diagnose non-clearance tail components before spending a full replay matrix.
+
+Mathematical boundary: this projection is a finite-log, read-only engineering
+diagnostic. It uses current tick latency fields only to estimate runtime impact.
+It does not define CAMP atoms, online selector inputs, a Benders subproblem,
+duals, or cuts. No outcome labels, formal seeds, DP modification, DP retraining,
+CAMP retraining, or online selector promotion were used.
+
+Decision: accept the projection analyzer and projection artifact as a useful
+development-grid latency diagnostic. Reject claiming a Full36 latency gate pass
+from this evidence. The next admissible step is a targeted tail-component audit
+on the remaining projected over-budget logs, followed by either a small
+non-formal smoke confirming the specific tail fix or a no-outcome Full36 rerun
+only if the tail audit indicates enough margin.
