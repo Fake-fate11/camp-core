@@ -12092,3 +12092,137 @@ traffic-light-only offline screen that combines a high-recall descriptor
 (`dp_candidate_rewards.progress` plus H10 distance), no-worse union-red and
 red-stopping, strict proxy comfort, deterministic tie-break, and posterior
 SafetyCost/hard-gate rejection criteria before any smoke run.
+
+## Traffic-light hybrid certificate screen audit
+
+Commit `047725a` adds two default-off read-only traffic-light-only screens to
+the existing state-conditioned certificate analyzer:
+
+- `traffic_light_hybrid_step_h10_guard_005`
+- `traffic_light_hybrid_h3_h10_guard_005`
+
+Both screens activate only when the explicit scenario buckets contain
+`traffic_light`. They require base feasibility, union-red and red-stopping
+nonworse than the selected candidate, strict raw lateral improvement, strict
+raw jerk improvement, target-speed loss within `0.05 m/s`, DP-reward progress
+loss within `0.05 m`, and H10 rollout distance loss within `0.05 m`. The step
+variant additionally allows first-step loss up to `0.10 m`; the H3 variant
+allows H3 rollout-distance loss up to `0.10 m`. The baseline candidate is
+retained if no candidate passes.
+
+Local verification:
+
+```text
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_state_conditioned_certificate.py \
+  camp_core\tests\test_diffusion_planner_state_conditioned_certificate.py
+
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_state_conditioned_certificate.py \
+  camp_core\tests\test_diffusion_planner_hidden_outcome_gap.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py \
+  camp_core\tests\test_diffusion_planner_candidate_availability.py \
+  -q
+
+16 passed in 1.38s
+```
+
+AutoDL sync and test:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_state_conditioned_certificate.py \
+  camp_core/tests/test_diffusion_planner_hidden_outcome_gap.py \
+  camp_core/tests/test_diffusion_planner_scenario_bucket_audit.py \
+  camp_core/tests/test_diffusion_planner_candidate_availability.py \
+  -q
+
+16 passed in 1.08s
+```
+
+Remote analysis command:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_state_conditioned_certificate.py \
+  --root \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest \
+    configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label redstopfloor05_outcome_labels \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_conditioned_certificate_047725a/state_conditioned_certificate.json \
+  --output_md \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_conditioned_certificate_047725a/state_conditioned_certificate.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `state_conditioned_certificate.json` | `384d0e6377239530c43b594c804f1198388f9dad7bbb37b05cb8540044f4b833` |
+| `state_conditioned_certificate.md` | `1b1e856e7bc7543ad68a2e0c3b6fdc7e2150f3251c55cba5e42eedf265fce567` |
+
+The two hybrid screens produced identical selected candidates on the current
+artifact, which means the long-horizon DP reward/H10/target-speed guard is
+dominant over the step-vs-H3 choice.
+
+Posterior result:
+
+| Screen | Changed | Posterior joint comfort | Safety regressions | Progress delta mean | Progress delta min | Jerk delta mean | Lateral delta mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `traffic_light_hybrid_step_h10_guard_005` | `41` | `41` | `0` | `-0.035831 m` | `-0.060693 m` | `-0.049751` | `-0.002667` |
+| `traffic_light_hybrid_h3_h10_guard_005` | `41` | `41` | `0` | `-0.035831 m` | `-0.060693 m` | `-0.049751` | `-0.002667` |
+| `reward_h10_guard_strict_005` | `328` | `183` | `0` | `-0.028783 m` | `-0.109144 m` | `+0.003401` | `-0.004370` |
+
+Bucket-level result for either hybrid screen:
+
+| Bucket | Records | Changed | Posterior joint comfort | Safety regressions |
+| --- | ---: | ---: | ---: | ---: |
+| `overall` | `5939` | `41` | `41` | `0` |
+| `traffic_light` | `1810` | `41` | `41` | `0` |
+| `red_light_turn` | `942` | `40` | `40` | `0` |
+| `sharp_turn` | `1916` | `40` | `40` | `0` |
+| `normal` | `600` | `0` | `0` | `0` |
+
+Mean selector-side losses for changed records:
+
+```text
+first_step_loss_m=0.001149
+H3_loss_m=0.005618
+H10_loss_m=0.010503
+dp_reward_progress_loss_m=0.034823
+target_speed_loss_mps=0.011491
+```
+
+Interpretation: the hybrid screen is much more conservative than
+`reward_h10_guard_strict_005`, but it removes the positive posterior jerk mean
+seen in that screen and every changed record is a posterior joint comfort
+improvement on the existing labels. Because `red_light_turn` and `sharp_turn`
+overlap with the traffic-light route labels, the changed records appear in
+those buckets too; the screen itself is still gated by `traffic_light` and has
+zero changes in `normal`.
+
+This does not prove DP-CAMP is better than DP Top-1. It is a safe-looking
+offline candidate for a default-off selector slice, but only on the current
+non-formal artifact and still without paired replay SafetyCost evidence.
+
+Mathematical conclusion: the screen remains a finite-candidate diagnostic. All
+selection-side quantities are current-tick constants, and the rule is
+fail-closed and deterministic. If later atomized with fixed nonnegative scales,
+the score remains affine in `w` and the simplex/CVaR/L2 master remains convex.
+The screen is not classical Benders and does not make DP sampling,
+postprocessing, PerfectTracker, closed-loop outcomes, or trajectory
+coordinates part of a Benders subproblem.
+
+Decision: accept the traffic-light hybrid screen as the next default-off
+engineering candidate. Do not claim improvement, do not run 12/36-run, and do
+not train CAMP. The next admissible step is to implement this screen in replay
+behind an explicit disabled-by-default CLI flag with complete metadata,
+fail-closed audit fields, latency accounting, and strict mutual exclusion from
+previous rejected postselectors. Only after local/AutoDL tests pass should a
+small paired non-formal smoke be considered.
