@@ -144,6 +144,14 @@ FULL_HORIZON_RED_LIGHT_METADATA = {
         "candidate_horizon_union_planned_red_light_cost"
     ),
 }
+DP_CAMP_FINITE_CANDIDATE_EXCLUSIONS = [
+    "Diffusion Planner neural sampler",
+    "Savitzky-Golay smoothing",
+    "postprocess_reference",
+    "PerfectTracker state transition",
+    "closed-loop simulator future states",
+    "route and traffic-light geometry",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -265,6 +273,14 @@ def parse_args() -> argparse.Namespace:
             "shadow and its h30 monotonicity contract."
         ),
     )
+    parser.add_argument(
+        "--require_finite_candidate_contract",
+        action="store_true",
+        help=(
+            "Require replay summary metadata that certifies the DP-CAMP "
+            "finite-candidate affine-score contract."
+        ),
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     return parser.parse_args()
 
@@ -288,6 +304,7 @@ def audit_training_dataset(
     require_perfect_tracker_command_postselection: bool = False,
     require_perfect_tracker_open_loop_rollout: bool = False,
     require_full_horizon_red_light_shadow: bool = False,
+    require_finite_candidate_contract: bool = False,
 ) -> dict[str, Any]:
     scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
     if scales.size == 0 or not np.all(np.isfinite(scales)) or np.any(scales <= 0.0):
@@ -385,6 +402,7 @@ def audit_training_dataset(
     perfect_tracker_command_postselection_records = 0
     perfect_tracker_open_loop_records = 0
     full_horizon_red_light_records = 0
+    finite_candidate_contract_logs = 0
     candidate_field_reports = {
         field: {
             "records": 0,
@@ -449,6 +467,13 @@ def audit_training_dataset(
                     f"{summary_path} does not certify lateral-comfort shadow "
                     f"horizon {expected_lateral_comfort_horizon_steps}."
                 )
+        if require_finite_candidate_contract:
+            _validate_finite_candidate_contract_summary(
+                summary_path,
+                validation_summary.get("dp_camp_finite_candidate_contract"),
+                expected_candidates=expected_candidates,
+            )
+            finite_candidate_contract_logs += 1
         if expected_lexicographic is not None:
             _validate_lexicographic_summary(
                 summary_path,
@@ -775,6 +800,13 @@ def audit_training_dataset(
             "full_horizon_red_light_shadow_records": (
                 full_horizon_red_light_records
             ),
+            "finite_candidate_contract_required": (
+                require_finite_candidate_contract
+            ),
+            "finite_candidate_contract_verified": (
+                require_finite_candidate_contract
+            ),
+            "finite_candidate_contract_logs": finite_candidate_contract_logs,
         },
         "candidate_fields": candidate_field_reports,
         "logs": log_reports,
@@ -847,6 +879,93 @@ def _validate_lexicographic_summary(
                 f"{summary_path} lexicographic {key}={actual!r}, "
                 f"expected {expected_value!r}."
             )
+
+
+def _validate_finite_candidate_contract_summary(
+    summary_path: Path,
+    metadata: Any,
+    *,
+    expected_candidates: int,
+) -> None:
+    if not isinstance(metadata, dict):
+        raise ValueError(
+            f"{summary_path} does not certify the DP-CAMP finite-candidate "
+            "contract."
+        )
+    if (
+        metadata.get("schema_version")
+        != "dp_camp_finite_candidate_contract_v1"
+        or metadata.get("enabled") is not True
+        or metadata.get("selector_mode") not in {"uniform", "static", "linear"}
+        or metadata.get("num_candidates") != expected_candidates
+        or metadata.get("score") != "a_ik^T w"
+        or metadata.get("selection_rule")
+        != "argmin over finite feasible candidates by CAMP selection score"
+        or metadata.get("classical_benders_claim") is not False
+    ):
+        raise ValueError(
+            f"{summary_path} has invalid DP-CAMP finite-candidate contract "
+            "metadata."
+        )
+    atom_contract = metadata.get("atom_contract")
+    if (
+        not isinstance(atom_contract, dict)
+        or atom_contract.get("fixed_before_scoring") is not True
+        or atom_contract.get("finite") is not True
+        or atom_contract.get("nonnegative_after_normalization") is not True
+    ):
+        raise ValueError(
+            f"{summary_path} has invalid DP-CAMP atom contract metadata."
+        )
+    clip = atom_contract.get("clip")
+    if (
+        isinstance(clip, bool)
+        or not isinstance(clip, (int, float))
+        or not np.isfinite(float(clip))
+        or float(clip) <= 0.0
+    ):
+        raise ValueError(
+            f"{summary_path} has invalid DP-CAMP atom clip metadata."
+        )
+    weight_contract = metadata.get("weight_contract")
+    if (
+        not isinstance(weight_contract, dict)
+        or weight_contract.get("simplex_weights_expected") is not True
+        or weight_contract.get("affine_score_in_weights") is not True
+    ):
+        raise ValueError(
+            f"{summary_path} has invalid DP-CAMP weight contract metadata."
+        )
+    if metadata.get("feasibility_source") not in {"context", "dp_reward"}:
+        raise ValueError(
+            f"{summary_path} has invalid DP-CAMP feasibility source metadata."
+        )
+    if metadata.get("fallback_mode") not in {"uniform", "learned"}:
+        raise ValueError(
+            f"{summary_path} has invalid DP-CAMP fallback metadata."
+        )
+    fail_closed = metadata.get("fail_closed_policy")
+    if (
+        not isinstance(fail_closed, str)
+        or "same current-tick candidate set" not in fail_closed
+    ):
+        raise ValueError(
+            f"{summary_path} does not certify fail-closed DP-CAMP fallback."
+        )
+    training_claim = metadata.get("training_claim")
+    if (
+        not isinstance(training_claim, str)
+        or "finite-candidate generalized Benders-style" not in training_claim
+        or "logged fixed candidates" not in training_claim
+    ):
+        raise ValueError(
+            f"{summary_path} has invalid DP-CAMP training-claim metadata."
+        )
+    exclusions = metadata.get("excluded_from_subproblem")
+    if exclusions != DP_CAMP_FINITE_CANDIDATE_EXCLUSIONS:
+        raise ValueError(
+            f"{summary_path} has invalid DP-CAMP subproblem exclusion metadata."
+        )
 
 
 def _validate_lexicographic_stage_counts(
@@ -1807,6 +1926,9 @@ def main() -> None:
         ),
         require_full_horizon_red_light_shadow=(
             args.require_full_horizon_red_light_shadow
+        ),
+        require_finite_candidate_contract=(
+            args.require_finite_candidate_contract
         ),
     )
     report["artifacts"] = {

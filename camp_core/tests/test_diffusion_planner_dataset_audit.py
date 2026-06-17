@@ -410,6 +410,59 @@ def test_dataset_audit_rejects_legacy_unaligned_tracker_shadow(
         )
 
 
+def test_dataset_audit_certifies_finite_candidate_contract(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_finite_candidate_contract(log_path)
+
+    report = audit_training_dataset(
+        [log_path],
+        atom_scales=np.ones(12),
+        expected_logs=1,
+        expected_candidates=2,
+        require_finite_candidate_contract=True,
+    )
+
+    assert report["passed"]
+    assert report["checks"]["finite_candidate_contract_required"]
+    assert report["checks"]["finite_candidate_contract_verified"]
+    assert report["checks"]["finite_candidate_contract_logs"] == 1
+
+
+def test_dataset_audit_requires_finite_candidate_contract(tmp_path) -> None:
+    log_path = _write_completed_log(tmp_path)
+
+    with pytest.raises(ValueError, match="finite-candidate contract"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            require_finite_candidate_contract=True,
+        )
+
+
+def test_dataset_audit_rejects_classical_benders_contract_claim(
+    tmp_path,
+) -> None:
+    log_path = _write_completed_log(tmp_path)
+    _add_finite_candidate_contract(log_path)
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["dp_camp_finite_candidate_contract"][
+        "classical_benders_claim"
+    ] = True
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="finite-candidate contract"):
+        audit_training_dataset(
+            [log_path],
+            atom_scales=np.ones(12),
+            expected_logs=1,
+            expected_candidates=2,
+            require_finite_candidate_contract=True,
+        )
+
+
 def test_dataset_audit_rejects_tracker_preprocessing_mismatch(
     tmp_path,
 ) -> None:
@@ -888,6 +941,57 @@ def _write_completed_log(tmp_path, *, seed=1):
         encoding="utf-8",
     )
     return log_path
+
+
+def _add_finite_candidate_contract(log_path) -> None:
+    summary_path = log_path.with_name("camp_validation_summary.json")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["dp_camp_finite_candidate_contract"] = {
+        "schema_version": "dp_camp_finite_candidate_contract_v1",
+        "enabled": True,
+        "selector_mode": "static",
+        "num_candidates": 2,
+        "candidate_set": (
+            "fixed current-tick Diffusion Planner candidate tensor before "
+            "CAMP scoring"
+        ),
+        "score": "a_ik^T w",
+        "selection_rule": (
+            "argmin over finite feasible candidates by CAMP selection score"
+        ),
+        "atom_contract": {
+            "fixed_before_scoring": True,
+            "finite": True,
+            "nonnegative_after_normalization": True,
+            "clip": 10.0,
+        },
+        "weight_contract": {
+            "simplex_weights_expected": True,
+            "affine_score_in_weights": True,
+        },
+        "feasibility_source": "dp_reward",
+        "fail_closed_policy": (
+            "if the finite feasible set is empty, selection stays inside the "
+            "same current-tick candidate set and uses the configured fallback "
+            "mode"
+        ),
+        "fallback_mode": "uniform",
+        "training_claim": (
+            "finite-candidate generalized Benders-style cutting-plane "
+            "training applies only to logged fixed candidates with fixed atoms, "
+            "oracle labels, and nonnegative margins"
+        ),
+        "classical_benders_claim": False,
+        "excluded_from_subproblem": [
+            "Diffusion Planner neural sampler",
+            "Savitzky-Golay smoothing",
+            "postprocess_reference",
+            "PerfectTracker state transition",
+            "closed-loop simulator future states",
+            "route and traffic-light geometry",
+        ],
+    }
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
 
 
 def _add_lexicographic_contract(log_path) -> None:
