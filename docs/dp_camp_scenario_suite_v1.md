@@ -40,6 +40,22 @@ an experiment-specific file and filled after route inspection.
 5. Only after bucket coverage and SafetyCost hard gates are both clean should a
    larger non-formal matrix be considered.
 
+If the original replay directories are not available but an existing
+SafetyCost comparison JSON still contains the benchmark configuration fields,
+relabel and recompute the comparison without rerunning DP:
+
+```bash
+python scripts/integrations/relabel_diffusion_planner_safety_comparison.py \
+  --input_json /path/to/safety_score_v1_comparison.json \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --output_json /path/to/safety_score_v1_bucketed_comparison.json \
+  --output_markdown /path/to/safety_score_v1_bucketed_comparison.md \
+  --require_strict_pairing
+```
+
+This is still a metadata-only recomputation. It does not rerun the DP sampler,
+CAMP selector, tracker, simulator, or training.
+
 To start a manifest without inventing labels, generate a skeleton from an
 existing SafetyCost comparison JSON:
 
