@@ -28,6 +28,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     atom_schema_for_dimension,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
+    compute_candidate_obstacle_clearance_diagnostics,
     compute_dp_prior_comfort_excess_costs,
     compute_dp_prior_deviation_costs,
     compute_lateral_comfort_shadow_costs,
@@ -220,6 +221,15 @@ def parse_args() -> argparse.Namespace:
             "Compute and log candidate route-centerline progress without "
             "changing feasibility, scores, or selection. This is a shadow-only "
             "diagnostic for offline CAMP visibility audits."
+        ),
+    )
+    parser.add_argument(
+        "--camp_shadow_obstacle_clearance",
+        action="store_true",
+        help=(
+            "Compute and log current-tick candidate obstacle-clearance hinge "
+            "diagnostics without changing feasibility, scores, or selection. "
+            "This is a shadow-only diagnostic for offline CAMP visibility audits."
         ),
     )
     parser.add_argument(
@@ -2666,6 +2676,7 @@ def _install_camp_predictor(
     min_candidate0_progress_ratio: float | None,
     min_candidate0_route_progress_ratio: float | None,
     shadow_route_progress: bool,
+    shadow_obstacle_clearance: bool,
     min_candidate0_step_reach_ratio: float | None,
     candidate0_step_reach_preserve_feasible: bool,
     lexicographic_progress_epsilon_m: float | None,
@@ -2825,6 +2836,25 @@ def _install_camp_predictor(
             replay_module.SceneNPCManager.is_static_npc,
         )
         context_and_obstacles_done = time.perf_counter()
+        candidate_obstacle_clearance = None
+        shadow_obstacle_clearance_latency_ms = 0.0
+        if shadow_obstacle_clearance:
+            obstacle_clearance_start = time.perf_counter()
+            candidate_obstacle_clearance = (
+                compute_candidate_obstacle_clearance_diagnostics(
+                    candidates,
+                    context,
+                    candidate_obstacles=obstacles,
+                    horizon_steps=outcome_horizon_steps,
+                    near_miss_threshold_m=near_miss_threshold_m,
+                    ego_length=ego_length,
+                    ego_width=ego_width,
+                    ego_wheelbase=ego_wheelbase,
+                )
+            )
+            shadow_obstacle_clearance_latency_ms = (
+                time.perf_counter() - obstacle_clearance_start
+            ) * 1000.0
         candidate_rewards = None
         candidate_outcomes = None
         candidate_progress = None
@@ -3482,6 +3512,7 @@ def _install_camp_predictor(
                     if candidate_route_progress is not None
                     else None
                 ),
+                "candidate_obstacle_clearance": candidate_obstacle_clearance,
                 "candidate_step_reach": (
                     candidate_step_reach.tolist()
                     if candidate_step_reach is not None
@@ -3533,6 +3564,9 @@ def _install_camp_predictor(
                 ),
                 "latency_ms_shadow_lateral_comfort": (
                     shadow_lateral_comfort_latency_ms
+                ),
+                "latency_ms_shadow_obstacle_clearance": (
+                    shadow_obstacle_clearance_latency_ms
                 ),
                 "red_stopping_margin_used_as_atom": (
                     "red_stopping_margin_cost"
@@ -3654,6 +3688,7 @@ def main() -> None:
                 args.camp_min_candidate0_route_progress_ratio
             ),
             shadow_route_progress=bool(args.camp_shadow_route_progress),
+            shadow_obstacle_clearance=bool(args.camp_shadow_obstacle_clearance),
             min_candidate0_step_reach_ratio=(
                 args.camp_min_candidate0_step_reach_ratio
             ),
@@ -3800,6 +3835,9 @@ def main() -> None:
     )
     effective_shadow_route_progress = (
         bool(args.camp_shadow_route_progress) if records is not None else None
+    )
+    effective_shadow_obstacle_clearance = (
+        bool(args.camp_shadow_obstacle_clearance) if records is not None else None
     )
     effective_min_candidate0_step_reach_ratio = (
         args.camp_min_candidate0_step_reach_ratio
@@ -3994,6 +4032,25 @@ def main() -> None:
             "logged_field": "candidate_route_progress",
         }
         if effective_shadow_route_progress is not None
+        else None,
+        "camp_shadow_obstacle_clearance": {
+            "enabled": effective_shadow_obstacle_clearance,
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "logged_field": "candidate_obstacle_clearance",
+            "descriptor_schema": "candidate_current_tick_obstacle_clearance_v1",
+            "definition": (
+                "current-tick candidate trajectory versus current-tick "
+                "predicted/static obstacle geometry; reports min clearance "
+                "and nonnegative clearance hinge violations"
+            ),
+            "soft_clearance_threshold_m": (
+                float(args.camp_safety_radius + args.camp_clearance_margin)
+            ),
+            "near_miss_threshold_m": float(args.near_miss_threshold_m),
+            "requested_horizon_steps": int(args.camp_outcome_horizon_steps),
+        }
+        if effective_shadow_obstacle_clearance is not None
         else None,
         "camp_min_candidate0_step_reach_ratio": (
             effective_min_candidate0_step_reach_ratio
@@ -4220,6 +4277,9 @@ def main() -> None:
         effective_min_candidate0_route_progress_ratio
     )
     validation["camp_shadow_route_progress"] = summary["camp_shadow_route_progress"]
+    validation["camp_shadow_obstacle_clearance"] = summary[
+        "camp_shadow_obstacle_clearance"
+    ]
     validation["camp_min_candidate0_step_reach_ratio"] = (
         effective_min_candidate0_step_reach_ratio
     )

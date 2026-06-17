@@ -50,6 +50,7 @@ def _make_args() -> SimpleNamespace:
         camp_min_candidate0_progress_ratio=0.95,
         camp_min_candidate0_route_progress_ratio=0.98,
         camp_shadow_route_progress=True,
+        camp_shadow_obstacle_clearance=True,
         camp_min_candidate0_step_reach_ratio=0.99,
         camp_candidate0_step_reach_preserve_feasible=True,
         camp_lexicographic_progress_epsilon_m=2.0,
@@ -101,6 +102,7 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     route_guard_idx = static_cmd.index("--camp_min_candidate0_route_progress_ratio")
     assert static_cmd[route_guard_idx + 1] == "0.98"
     assert "--camp_shadow_route_progress" in static_cmd
+    assert "--camp_shadow_obstacle_clearance" in static_cmd
     assert "--camp_min_candidate0_step_reach_ratio" in static_cmd
     step_guard_idx = static_cmd.index("--camp_min_candidate0_step_reach_ratio")
     assert static_cmd[step_guard_idx + 1] == "0.99"
@@ -133,6 +135,7 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_min_candidate0_progress_ratio" not in top1_cmd
     assert "--camp_min_candidate0_route_progress_ratio" not in top1_cmd
     assert "--camp_shadow_route_progress" not in top1_cmd
+    assert "--camp_shadow_obstacle_clearance" not in top1_cmd
     assert "--camp_min_candidate0_step_reach_ratio" not in top1_cmd
     assert "--camp_candidate0_step_reach_preserve_feasible" not in top1_cmd
     assert "--candidate_reference_blend_steps" not in top1_cmd

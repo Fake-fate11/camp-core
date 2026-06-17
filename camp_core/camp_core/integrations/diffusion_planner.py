@@ -1879,7 +1879,9 @@ def compute_candidate_closed_loop_outcomes(
     """
     trajectories = np.asarray(candidates, dtype=np.float64)
     if trajectories.ndim != 3 or trajectories.shape[2] < 2:
-        raise ValueError(f"candidates must have shape [K,T,>=2], got {trajectories.shape}.")
+        raise ValueError(
+            f"candidates must have shape [K,T,>=2], got {trajectories.shape}."
+        )
     horizon = min(max(int(horizon_steps), 2), trajectories.shape[1])
     dt = float(context.dt)
     score_weights = dict(DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS)
@@ -1951,7 +1953,11 @@ def compute_candidate_closed_loop_outcomes(
                         obs_width = max(float(row[4]), 1e-3)
                         obs_wheelbase = (
                             float(row[5])
-                            if row.shape[0] >= 6 and np.isfinite(row[5]) and row[5] > 0
+                            if (
+                                row.shape[0] >= 6
+                                and np.isfinite(row[5])
+                                and row[5] > 0
+                            )
                             else None
                         )
                         ego_box = _obb_corners(
@@ -2012,6 +2018,163 @@ def compute_candidate_closed_loop_outcomes(
     return outcomes
 
 
+def compute_candidate_obstacle_clearance_diagnostics(
+    candidates: np.ndarray,
+    context: DriverAtomContext,
+    *,
+    candidate_obstacles: Optional[np.ndarray] = None,
+    horizon_steps: int = 30,
+    soft_clearance_threshold_m: Optional[float] = None,
+    near_miss_threshold_m: float = 2.0,
+    ego_length: float = 4.5,
+    ego_width: float = 1.9,
+    ego_wheelbase: float = 2.925,
+) -> dict[str, Any]:
+    """Current-tick candidate obstacle-clearance diagnostics.
+
+    This uses the fixed candidate trajectories and fixed obstacle predictions
+    available at the current planning tick. It is a shadow descriptor for
+    offline audits, not a realized closed-loop outcome label.
+    """
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.ndim != 3 or trajectories.shape[2] < 2:
+        raise ValueError(f"candidates must have shape [K,T,>=2], got {trajectories.shape}.")
+    horizon = min(max(int(horizon_steps), 2), trajectories.shape[1])
+    soft_threshold = (
+        float(context.safety_radius) + float(context.clearance_soft_margin)
+        if soft_clearance_threshold_m is None
+        else float(soft_clearance_threshold_m)
+    )
+    if not np.isfinite(soft_threshold) or soft_threshold < 0.0:
+        raise ValueError("soft_clearance_threshold_m must be finite and nonnegative.")
+    near_miss_threshold = float(near_miss_threshold_m)
+    if not np.isfinite(near_miss_threshold) or near_miss_threshold < 0.0:
+        raise ValueError("near_miss_threshold_m must be finite and nonnegative.")
+
+    obstacles = None
+    if candidate_obstacles is not None:
+        obstacles = np.asarray(candidate_obstacles, dtype=np.float64)
+        if obstacles.ndim == 3:
+            obstacles = np.broadcast_to(
+                obstacles[np.newaxis],
+                (trajectories.shape[0],) + obstacles.shape,
+            )
+        if obstacles.ndim != 4 or obstacles.shape[0] != trajectories.shape[0]:
+            raise ValueError(
+                "candidate_obstacles must have shape [K,M,T,D] or [M,T,D], "
+                f"got {obstacles.shape}."
+            )
+        if obstacles.shape[-1] < 2:
+            raise ValueError("Obstacle trajectories need at least x/y coordinates.")
+
+    min_clearances: list[float | None] = []
+    soft_violations: list[float] = []
+    near_miss_violations: list[float] = []
+    obstacle_slots: list[int] = []
+    geometry_modes: list[str] = []
+
+    for candidate_idx, candidate in enumerate(trajectories):
+        branch = candidate[:horizon]
+        headings = _trajectory_headings(branch)
+        min_clearance = float("inf")
+        slots = 0
+        used_obb = False
+
+        if context.static_obstacles is not None and len(context.static_obstacles) > 0:
+            static_xy = np.asarray(context.static_obstacles, dtype=np.float64)[:, :2]
+            distances = np.linalg.norm(
+                branch[:, np.newaxis, :2] - static_xy[np.newaxis, :, :],
+                axis=-1,
+            )
+            if distances.size:
+                slots += int(static_xy.shape[0])
+                min_clearance = min(min_clearance, float(np.min(distances)))
+
+        if obstacles is not None:
+            candidate_obstacle = obstacles[candidate_idx]
+            for obstacle in candidate_obstacle:
+                obstacle_horizon = min(horizon, obstacle.shape[0])
+                rows = obstacle[:obstacle_horizon]
+                valid = np.all(np.isfinite(rows[:, :2]), axis=1)
+                valid &= np.linalg.norm(rows[:, :2], axis=1) >= 1e-8
+                if not valid.any():
+                    continue
+                slots += 1
+                for step_idx in np.flatnonzero(valid):
+                    row = rows[int(step_idx)]
+                    if row.shape[0] >= 5 and np.all(np.isfinite(row[:5])):
+                        obs_heading = float(row[2])
+                        obs_length = max(float(row[3]), 1e-3)
+                        obs_width = max(float(row[4]), 1e-3)
+                        obs_wheelbase = (
+                            float(row[5])
+                            if row.shape[0] >= 6 and np.isfinite(row[5]) and row[5] > 0
+                            else None
+                        )
+                        ego_box = _obb_corners(
+                            float(branch[int(step_idx), 0]),
+                            float(branch[int(step_idx), 1]),
+                            float(headings[int(step_idx)]),
+                            float(ego_length),
+                            float(ego_width),
+                            float(ego_wheelbase),
+                        )
+                        obs_box = _obb_corners(
+                            float(row[0]),
+                            float(row[1]),
+                            obs_heading,
+                            obs_length,
+                            obs_width,
+                            obs_wheelbase,
+                        )
+                        clearance = _obb_distance(ego_box, obs_box)
+                        used_obb = True
+                    else:
+                        clearance = float(
+                            np.linalg.norm(branch[int(step_idx), :2] - row[:2])
+                        )
+                    min_clearance = min(min_clearance, clearance)
+
+        finite_clearance = (
+            float(min_clearance) if np.isfinite(min_clearance) else None
+        )
+        soft_violation = (
+            max(0.0, soft_threshold - float(min_clearance))
+            if finite_clearance is not None
+            else 0.0
+        )
+        near_miss_violation = (
+            max(0.0, near_miss_threshold - float(min_clearance))
+            if finite_clearance is not None
+            else 0.0
+        )
+        min_clearances.append(finite_clearance)
+        soft_violations.append(float(soft_violation))
+        near_miss_violations.append(float(near_miss_violation))
+        obstacle_slots.append(slots)
+        geometry_modes.append("obb" if used_obb else "point")
+
+    return {
+        "schema_version": "candidate_current_tick_obstacle_clearance_v1",
+        "selection_effect": False,
+        "future_outcome_leakage": False,
+        "horizon_steps": int(horizon),
+        "soft_clearance_threshold_m": float(soft_threshold),
+        "near_miss_threshold_m": float(near_miss_threshold),
+        "min_obstacle_clearance_m": min_clearances,
+        "soft_clearance_violation_m": soft_violations,
+        "soft_clearance_violation_cost": [
+            float(value * value) for value in soft_violations
+        ],
+        "near_miss_violation_m": near_miss_violations,
+        "near_miss_violation_cost": [
+            float(value * value) for value in near_miss_violations
+        ],
+        "obstacle_slots": obstacle_slots,
+        "geometry_mode": geometry_modes,
+    }
+
+
 @dataclass(frozen=True)
 class CAMPSelectionResult:
     selected_index: int
@@ -2051,6 +2214,9 @@ def summarize_selection_records(
         ),
         "latency_ms_shadow_lateral_comfort": (
             "shadow_lateral_comfort_latency_ms"
+        ),
+        "latency_ms_shadow_obstacle_clearance": (
+            "shadow_obstacle_clearance_latency_ms"
         ),
         "latency_ms_shadow_perfect_tracker_command": (
             "shadow_perfect_tracker_command_latency_ms"

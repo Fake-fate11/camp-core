@@ -29,6 +29,7 @@ from camp_core.integrations.diffusion_planner import (
     blend_candidate_prefix_with_reference,
     build_context_from_scene,
     compute_candidate_closed_loop_outcomes,
+    compute_candidate_obstacle_clearance_diagnostics,
     compute_dp_prior_comfort_excess_costs,
     compute_dp_prior_deviation_costs,
     compute_lateral_comfort_shadow_costs,
@@ -507,6 +508,85 @@ def test_candidate_closed_loop_outcomes_capture_branch_metrics() -> None:
     assert outcomes[2]["lane_violation"]
     assert outcomes[1]["value"] < outcomes[0]["value"]
     assert outcomes[2]["value"] < outcomes[0]["value"]
+
+
+def test_candidate_obstacle_clearance_diagnostics_are_current_tick_hinges() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=10.0,
+        speed_limit=50.0,
+        desired_speed=5.0,
+        safety_radius=1.0,
+        clearance_soft_margin=1.0,
+    )
+    x = np.linspace(0.0, 4.0, 8)
+    colliding = np.column_stack([x, np.zeros_like(x)])
+    clear = np.column_stack([x, np.full_like(x, 4.0)])
+    candidates = np.stack([colliding, clear])
+    obstacles = np.zeros((2, 1, 8, 2), dtype=np.float64)
+    obstacles[:, 0, :, 0] = x
+
+    diagnostics = compute_candidate_obstacle_clearance_diagnostics(
+        candidates,
+        context,
+        candidate_obstacles=obstacles,
+        horizon_steps=8,
+        near_miss_threshold_m=2.0,
+    )
+
+    assert (
+        diagnostics["schema_version"]
+        == "candidate_current_tick_obstacle_clearance_v1"
+    )
+    assert diagnostics["selection_effect"] is False
+    assert diagnostics["future_outcome_leakage"] is False
+    assert diagnostics["horizon_steps"] == 8
+    np.testing.assert_allclose(diagnostics["min_obstacle_clearance_m"], [0.0, 4.0])
+    np.testing.assert_allclose(diagnostics["soft_clearance_violation_m"], [2.0, 0.0])
+    np.testing.assert_allclose(diagnostics["soft_clearance_violation_cost"], [4.0, 0.0])
+    np.testing.assert_allclose(diagnostics["near_miss_violation_m"], [2.0, 0.0])
+    assert diagnostics["obstacle_slots"] == [1, 1]
+    assert diagnostics["geometry_mode"] == ["point", "point"]
+
+
+def test_candidate_obstacle_clearance_diagnostics_reports_obb_mode() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, -10.0], [0.0, 10.0]]),
+        lane_half_width=20.0,
+        speed_limit=50.0,
+        desired_speed=5.0,
+        safety_radius=0.1,
+        clearance_soft_margin=1.9,
+    )
+    y = np.linspace(0.0, 3.5, 8)
+    colliding = np.column_stack(
+        [np.zeros_like(y), y, np.ones_like(y), np.zeros_like(y)]
+    )
+    clear = np.column_stack(
+        [np.full_like(y, 6.0), y, np.ones_like(y), np.zeros_like(y)]
+    )
+    candidates = np.stack([colliding, clear])
+    obstacles = np.zeros((2, 1, 8, 6), dtype=np.float64)
+    obstacles[:, 0, :, 0] = 0.0
+    obstacles[:, 0, :, 1] = 1.0
+    obstacles[:, 0, :, 2] = np.pi / 2.0
+    obstacles[:, 0, :, 3] = 4.5
+    obstacles[:, 0, :, 4] = 1.9
+    obstacles[:, 0, :, 5] = 2.9
+
+    diagnostics = compute_candidate_obstacle_clearance_diagnostics(
+        candidates,
+        context,
+        candidate_obstacles=obstacles,
+        horizon_steps=8,
+    )
+
+    assert diagnostics["geometry_mode"] == ["obb", "obb"]
+    assert diagnostics["min_obstacle_clearance_m"][0] == pytest.approx(0.0)
+    assert diagnostics["min_obstacle_clearance_m"][1] > 0.0
+    assert diagnostics["soft_clearance_violation_cost"][0] > 0.0
 
 
 def test_red_stopping_margin_cost_is_continuous_before_hard_violation() -> None:
@@ -1638,6 +1718,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_shadow_dp_prior_deviation": 0.2,
             "latency_ms_shadow_dp_prior_comfort_excess": 0.1,
             "latency_ms_shadow_lateral_comfort": 0.2,
+            "latency_ms_shadow_obstacle_clearance": 0.4,
             "latency_ms_shadow_perfect_tracker_command": 0.25,
             "latency_ms_context_and_obstacles": 1.0,
             "latency_ms_reward_scoring": 2.0,
@@ -1658,6 +1739,7 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
             "latency_ms_shadow_dp_prior_deviation": 0.4,
             "latency_ms_shadow_dp_prior_comfort_excess": 0.3,
             "latency_ms_shadow_lateral_comfort": 0.4,
+            "latency_ms_shadow_obstacle_clearance": 0.6,
             "latency_ms_shadow_perfect_tracker_command": 0.35,
             "latency_ms_context_and_obstacles": 2.0,
             "latency_ms_reward_scoring": 4.0,
@@ -1691,6 +1773,9 @@ def test_summarize_selection_records_reports_candidate_usage() -> None:
     )
     assert summary["mean_shadow_lateral_comfort_latency_ms"] == pytest.approx(
         0.3
+    )
+    assert summary["mean_shadow_obstacle_clearance_latency_ms"] == pytest.approx(
+        0.5
     )
     assert summary[
         "mean_shadow_perfect_tracker_command_latency_ms"
