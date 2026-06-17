@@ -115,6 +115,12 @@ def test_route_h10_shadow_selector_is_fail_closed_and_reports_logged_delta(tmp_p
     assert report["shadow_vs_logged"]["shadow_removes_logged_override_records"] == 1
     assert report["shadow_vs_logged"]["shadow_adds_override_records"] == 1
 
+    assert report["by_stage"]["route_h10_escape"]["override_records"] == 1
+    assert report["by_stage"]["route_h10_escape"]["false_override_records"] == 0
+    assert report["by_stage"]["base"]["override_records"] == 1
+    assert report["by_stage"]["base"]["false_override_records"] == 0
+    assert report["by_stage"]["candidate0_retain_empty_mask"]["override_records"] == 0
+
     route_examples = report["examples"]["route_h10_escape"]
     assert len(route_examples) == 1
     assert route_examples[0]["selected"] == 1

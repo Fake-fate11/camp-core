@@ -222,6 +222,7 @@ def analyze(
             payload_key="logged_candidate",
         ),
         "shadow_vs_logged": _shadow_vs_logged_summary(candidate0_events),
+        "by_stage": _stage_report(candidate0_events),
         "by_bucket": _bucket_report(candidate0_events),
         "examples": _examples(candidate0_events, max_examples=max_examples),
     }
@@ -429,6 +430,39 @@ def _shadow_vs_logged_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _stage_report(events: list[dict[str, Any]]) -> dict[str, Any]:
+    stages = sorted({str(event["stage"]) for event in events})
+    return {
+        stage: _stage_summary(
+            [event for event in events if event["stage"] == stage]
+        )
+        for stage in stages
+    }
+
+
+def _stage_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
+    overrides = [event for event in events if event["selected"] != 0]
+    true_overrides = [event for event in overrides if event["true_override"]]
+    false_overrides = [event for event in overrides if event["false_override"]]
+    deltas = [
+        event["selected_candidate"]["candidate_label_delta"]
+        for event in overrides
+    ]
+    return {
+        "records": len(events),
+        "override_records": len(overrides),
+        "true_override_records": len(true_overrides),
+        "false_override_records": len(false_overrides),
+        "candidate_label_safety_delta": _stats(
+            [delta["candidate_label_safety_delta"] for delta in deltas]
+        ),
+        "hard_gate_bool_worse_records": _bool_worse_summary(deltas),
+        "false_reason_counts": _counter(
+            reason for event in false_overrides for reason in event["false_reasons"]
+        ),
+    }
+
+
 def _bucket_report(events: list[dict[str, Any]]) -> dict[str, Any]:
     report: dict[str, Any] = {"overall": _bucket_summary(events)}
     for bucket in SUPPORTED_SCENARIO_BUCKETS:
@@ -568,6 +602,23 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append(
             f"| `{bucket}` | {row['records']} | {row['shadow_override_records']} | "
             f"{row['route_h10_escape_records']} | {row['false_override_records']} | "
+            f"{_nonzero_counts(row['hard_gate_bool_worse_records'])} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Stage Outcome Summary",
+            "",
+            "| Stage | Records | Overrides | True | False | Mean safety delta | CVaR90 safety delta | Hard bool worse |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+        ]
+    )
+    for stage, row in report["by_stage"].items():
+        safety = row["candidate_label_safety_delta"]
+        lines.append(
+            f"| `{stage}` | {row['records']} | {row['override_records']} | "
+            f"{row['true_override_records']} | {row['false_override_records']} | "
+            f"{_fmt(safety['mean'])} | {_fmt(safety['cvar90'])} | "
             f"{_nonzero_counts(row['hard_gate_bool_worse_records'])} |"
         )
     lines.extend(
