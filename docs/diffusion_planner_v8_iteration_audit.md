@@ -16424,3 +16424,207 @@ engineering step is not another route-progress mapping attempt; it is either
 to use route/H10/clearance as separate conservative finite-candidate atoms or
 to reduce the latency of the already logged current-tick clearance descriptor
 before re-running no-outcome shadow audits.
+
+### Vectorized obstacle-clearance descriptor
+
+Commit `3d980374479e31257c6fb5a2a476763f58f2385f` vectorizes the lower-bound
+portion of `compute_candidate_obstacle_clearance_diagnostics`. The schema and
+math definition remain unchanged:
+
+```text
+schema_version=candidate_current_tick_obstacle_clearance_v2
+selection_effect=false
+future_outcome_leakage=false
+exact_obb_enabled remains default-off
+```
+
+The change replaces the Python obstacle-step loop for the online-eligible
+bounding-circle lower-bound hinge with vectorized NumPy operations. Optional
+exact OBB diagnostics are preserved and still run only when explicitly enabled
+and only for near-threshold lower-bound pairs. This changes no DP weights,
+sampler, candidate set, CAMP weights, atom schema, replay selector, or formal
+seed usage.
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_are_current_tick_hinges \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_reports_obb_mode \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_obstacle_clearance_diagnostics_can_skip_exact_obb \
+  camp_core\tests\test_diffusion_planner_component_benchmark.py \
+  camp_core\tests\test_diffusion_planner_no_outcome_shadow_certificate.py \
+  -q
+# 11 passed
+
+py -3.12 -m compileall -q camp_core\camp_core\integrations\diffusion_planner.py
+# passed
+
+git diff --check
+# passed
+```
+
+AutoDL was synchronized to
+`3d980374479e31257c6fb5a2a476763f58f2385f`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The same targeted pytest
+selection, compileall, and `git diff --check` passed on AutoDL.
+
+Synthetic equivalence microbenchmark:
+
+```text
+Input: K=8, M=4, T=30, OBB lower-bound mode, exact OBB disabled.
+The vectorized output matched a slow reference loop for:
+min_obstacle_clearance_lower_bound_m,
+soft_clearance_violation_cost,
+near_miss_violation_cost,
+obstacle_slots,
+geometry_mode.
+
+Local p95:
+vectorized=6.312925 ms
+slow_reference=53.857420 ms
+p95_speedup=8.531294
+
+AutoDL p95:
+vectorized=1.164613 ms
+slow_reference=9.232306 ms
+p95_speedup=7.927361
+```
+
+No-outcome latency smoke:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_vectorized_3d98037_sample_tl_seed1_npc4_tloff_static
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+REPLAY_NO_PNG=1 \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --map_path /root/autodl-tmp/camp_dp_assets/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm \
+  --route /root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --model_path /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth \
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --output_dir "$OUT" \
+  --device cuda \
+  --advance_mode perfect \
+  --steps 200 \
+  --seed 1 \
+  --max_npcs 4 \
+  --spawn_probability 0.3 \
+  --traffic_lights off \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --camp_selector_mode static \
+  --camp_atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --camp_static_weights /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy \
+  --num_candidates 8 \
+  --candidate_noise_scale 1.0 \
+  --candidate_reference_blend_steps 5 \
+  --camp_lane_corridor_buffer 1.0 \
+  --camp_feasibility_source dp_reward \
+  --camp_fallback_mode learned \
+  --camp_min_progress_ratio 0.8 \
+  --camp_shadow_route_progress \
+  --camp_shadow_obstacle_clearance \
+  --camp_reward_horizon_steps 30 \
+  --camp_outcome_horizon_steps 30 \
+  --near_miss_threshold_m 2.0
+```
+
+Audit commands:
+
+```bash
+AUDIT=$OUT/audit_3d98037
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --selection_log "$OUT/camp_selection_log.json" \
+  --atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --expected_logs 1 \
+  --expected_candidates 8 \
+  --expected_advance_mode perfect \
+  --closed_loop_outcome_policy forbidden \
+  --forbid_seed 11 \
+  --forbid_seed 12 \
+  --forbid_seed 13 \
+  --required_candidate_field candidate_route_progress \
+  --require_finite_candidate_contract \
+  --output_json "$AUDIT/dataset_audit_clearance_vectorized.json"
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_latency_budget.py \
+  --selection_log "$OUT/camp_selection_log.json" \
+  --label clearance_vectorized_3d98037_sample_tl_seed1_npc4_tloff_static \
+  --output_json "$AUDIT/latency_budget_clearance_vectorized.json" \
+  --output_md "$AUDIT/latency_budget_clearance_vectorized.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `573e1715ea7d89c386629297d884d19afb176c3fb475a6644e85764ca5b4575b` |
+| `camp_validation_summary.json` | `679566e4cb621e9c1939ee5903fa58a4b933e1bf5bdbd3204badbb3d54415cda` |
+| `camp_replay_summary.json` | `51d2ec096db5012bff6ff51a6ba3cdd4f5423cd9863eed72da711a81f02818f9` |
+| `dataset_audit_clearance_vectorized.json` | `220d730b99643a1047f434ad6cea68235715287759f481ff57117f6b9d472ebb` |
+| `latency_budget_clearance_vectorized.json` | `88bee7f5494de1cf9ad49cd5c17b772bdd337274f4211ff24f284b2c32d2a140` |
+| `latency_budget_clearance_vectorized.md` | `874889942347d9bba3ab2b44a653f882057c675fcb7552f249706925c3efba01` |
+
+Latency comparison against the previous exact-OBB-off smoke
+`no_outcome_exact_obb_off_b3dcbc1_sample_tl_seed1_npc4_tloff_static`:
+
+| Quantity | Old p95 | New p95 |
+| --- | ---: | ---: |
+| `latency_ms_shadow_obstacle_clearance` | `9.296867 ms` | `0.858788 ms` |
+| `latency_ms_including_candidate_generation` | `109.424894 ms` | `99.199241 ms` |
+| `latency_ms_candidate_generation` | `58.762836 ms` | `59.183047 ms` |
+| `latency_ms_camp_selection` | `8.915116 ms` | `8.466316 ms` |
+| `latency_ms_reward_scoring` | `30.120930 ms` | `29.040589 ms` |
+
+Clearance descriptor invariants on both old and new smoke:
+
+```text
+records=200
+clearance_records=200
+exact_obb_enabled=false
+obstacle_slots.mean=2.2
+obstacle_slots.p95=4.0
+obstacle_slots.max=4.0
+exact_pairs.p95=0
+exact_pairs.max=0
+soft_nonzero=590
+near_nonzero=577
+```
+
+Interpretation:
+
+1. The vectorized descriptor keeps the same finite current-tick lower-bound
+   hinge semantics while removing most of the Python loop overhead.
+2. On the single no-outcome latency smoke, clearance p95 falls from
+   `9.296867 ms` to `0.858788 ms`, and total p95 falls below the `100 ms`
+   development target (`99.199241 ms`). This is a useful diagnostic milestone,
+   not a full development-gate pass.
+3. The replay still has large max latency (`280.378 ms`) from non-clearance
+   sources, including reward scoring and CAMP selection outliers, so a broader
+   Full36 no-outcome rerun is required before any online/default-off selector
+   promotion.
+
+Mathematical boundary: the clearance descriptor remains a fixed current-tick
+finite-candidate diagnostic and can be used later only as a nonnegative hinge
+or deterministic finite-candidate guard. It is not a Benders subproblem, dual,
+or cut source. No closed-loop future outcome labels were used in this smoke or
+dataset audit.
+
+Decision: accept the vectorized clearance descriptor and single no-outcome
+latency smoke as a positive engineering milestone. Reject formal seeds,
+CAMP retraining, and online selector promotion from this evidence alone. The
+next admissible step is a no-outcome Full36 latency rerun or an equivalent
+predeclared development-grid latency audit using the vectorized descriptor,
+followed by the route/H10/clearance shadow selector audit if the p95 latency
+budget has real margin.
