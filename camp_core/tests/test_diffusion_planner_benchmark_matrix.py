@@ -55,6 +55,7 @@ def _make_args() -> SimpleNamespace:
         camp_lexicographic_jerk_epsilon=1.0,
         camp_lexicographic_lateral_epsilon=0.05,
         camp_perfect_tracker_command_postselection=True,
+        camp_traffic_light_hybrid_postselection="off",
         camp_underprogress_relaxation=False,
         camp_underprogress_progress_loss_budget_m=1.5,
         camp_underprogress_h3_distance_loss_budget_m=0.1,
@@ -192,6 +193,39 @@ def test_variant_command_threads_underprogress_relaxation_when_enabled() -> None
     assert static_cmd[lateral_idx + 1] == "2.0"
 
 
+def test_variant_command_threads_traffic_light_hybrid_into_camp_variants_only() -> None:
+    args = _make_args()
+    args.camp_lexicographic_progress_epsilon_m = None
+    args.camp_perfect_tracker_command_postselection = False
+    args.camp_traffic_light_hybrid_postselection = "step_h10_guard_005"
+
+    static_cmd = _variant_command(
+        variant="static",
+        output_dir=Path("F:/out/static"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+
+    hybrid_idx = static_cmd.index("--camp_traffic_light_hybrid_postselection")
+    assert static_cmd[hybrid_idx + 1] == "step_h10_guard_005"
+
+    top1_cmd = _variant_command(
+        variant="top1",
+        output_dir=Path("F:/out/top1"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+    assert "--camp_traffic_light_hybrid_postselection" not in top1_cmd
+
+
 def test_variant_command_threads_splice_shadow_rule_into_camp_variants_only() -> None:
     args = _make_args()
     args.camp_lexicographic_progress_epsilon_m = None
@@ -261,4 +295,48 @@ def test_validate_args_rejects_splice_shadow_with_selection_effecting_rules() ->
     args.camp_perfect_tracker_command_postselection = False
     args.camp_underprogress_relaxation = True
     with pytest.raises(ValueError, match="camp_underprogress_relaxation"):
+        _validate_args(args)
+
+
+def test_validate_args_rejects_traffic_light_hybrid_without_required_contract() -> None:
+    args = _make_args()
+    args.camp_lexicographic_progress_epsilon_m = None
+    args.camp_perfect_tracker_command_postselection = False
+    args.camp_traffic_light_hybrid_postselection = "h3_h10_guard_005"
+    _validate_args(args)
+
+    args.camp_feasibility_source = "context"
+    with pytest.raises(ValueError, match="camp_feasibility_source dp_reward"):
+        _validate_args(args)
+
+    args.camp_feasibility_source = "dp_reward"
+    args.reward_config = None
+    with pytest.raises(ValueError, match="reward_config"):
+        _validate_args(args)
+
+
+def test_validate_args_rejects_traffic_light_hybrid_with_other_postselectors() -> None:
+    args = _make_args()
+    args.camp_lexicographic_progress_epsilon_m = 1.0
+    args.camp_perfect_tracker_command_postselection = False
+    args.camp_traffic_light_hybrid_postselection = "step_h10_guard_005"
+    with pytest.raises(ValueError, match="camp_lexicographic_progress_epsilon_m"):
+        _validate_args(args)
+
+    args.camp_lexicographic_progress_epsilon_m = None
+    args.camp_perfect_tracker_command_postselection = True
+    with pytest.raises(
+        ValueError,
+        match="camp_perfect_tracker_command_postselection",
+    ):
+        _validate_args(args)
+
+    args.camp_perfect_tracker_command_postselection = False
+    args.camp_underprogress_relaxation = True
+    with pytest.raises(ValueError, match="camp_underprogress_relaxation"):
+        _validate_args(args)
+
+    args.camp_underprogress_relaxation = False
+    args.camp_splice_shadow_rule = True
+    with pytest.raises(ValueError, match="camp_splice_shadow_rule"):
         _validate_args(args)

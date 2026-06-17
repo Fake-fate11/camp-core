@@ -11,6 +11,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "scripts" / "integrations" / "run_diffusion_planner_camp_replay.py"
 COMPARE = ROOT / "scripts" / "integrations" / "compare_diffusion_planner_camp_replays.py"
+TRAFFIC_LIGHT_HYBRID_POSTSELECTION_MODES = (
+    "off",
+    "step_h10_guard_005",
+    "h3_h10_guard_005",
+)
 
 
 def _parse_named_path(value: str) -> tuple[str, Path]:
@@ -202,6 +207,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--camp_perfect_tracker_command_postselection",
         action="store_true",
+    )
+    parser.add_argument(
+        "--camp_traffic_light_hybrid_postselection",
+        choices=TRAFFIC_LIGHT_HYBRID_POSTSELECTION_MODES,
+        default="off",
+        help=(
+            "Default-off traffic-light-only postselection forwarded to CAMP "
+            "variants only. Requires dp_reward feasibility and is mutually "
+            "exclusive with other selection-effecting postselectors."
+        ),
     )
     parser.add_argument("--camp_underprogress_relaxation", action="store_true")
     parser.add_argument(
@@ -406,6 +421,13 @@ def _variant_command(
             )
         if args.camp_perfect_tracker_command_postselection:
             cmd.append("--camp_perfect_tracker_command_postselection")
+        if args.camp_traffic_light_hybrid_postselection != "off":
+            cmd.extend(
+                [
+                    "--camp_traffic_light_hybrid_postselection",
+                    args.camp_traffic_light_hybrid_postselection,
+                ]
+            )
         if args.camp_underprogress_relaxation:
             cmd.append("--camp_underprogress_relaxation")
             cmd.extend(
@@ -464,6 +486,40 @@ def _validate_args(args: argparse.Namespace) -> None:
         )
     if args.camp_log_raw_candidate_prefix_steps < 0:
         raise ValueError("--camp_log_raw_candidate_prefix_steps must be non-negative.")
+    traffic_light_hybrid_enabled = (
+        args.camp_traffic_light_hybrid_postselection != "off"
+    )
+    if traffic_light_hybrid_enabled:
+        if args.camp_feasibility_source != "dp_reward":
+            raise ValueError(
+                "--camp_traffic_light_hybrid_postselection requires "
+                "--camp_feasibility_source dp_reward."
+            )
+        if args.reward_config is None:
+            raise ValueError(
+                "--camp_traffic_light_hybrid_postselection requires "
+                "--reward_config."
+            )
+        if args.camp_lexicographic_progress_epsilon_m is not None:
+            raise ValueError(
+                "--camp_traffic_light_hybrid_postselection cannot be combined "
+                "with --camp_lexicographic_progress_epsilon_m."
+            )
+        if args.camp_perfect_tracker_command_postselection:
+            raise ValueError(
+                "--camp_traffic_light_hybrid_postselection cannot be combined "
+                "with --camp_perfect_tracker_command_postselection."
+            )
+        if args.camp_underprogress_relaxation:
+            raise ValueError(
+                "--camp_traffic_light_hybrid_postselection cannot be combined "
+                "with --camp_underprogress_relaxation."
+            )
+        if args.camp_splice_shadow_rule:
+            raise ValueError(
+                "--camp_traffic_light_hybrid_postselection cannot be combined "
+                "with --camp_splice_shadow_rule."
+            )
     if args.camp_splice_shadow_rule:
         if args.camp_feasibility_source != "dp_reward":
             raise ValueError(
