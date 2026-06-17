@@ -12597,3 +12597,157 @@ uses `--scenario_bucket_manifest
 configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json`
 and `--require_strict_pairing`. Without those flags, a matrix run is collection
 only and cannot be used as development-gate evidence.
+
+## Traffic-light hybrid sample59 strict-gate smoke result
+
+Code/documentation state:
+
+```text
+CAMP local/GitHub/AutoDL HEAD:
+41840e0acd5a31d2055947f94fc50003f89d90ed
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Predeclared non-formal smoke command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --route sample_map_tl_route_59_to_86=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --model_path /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth \
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --reward_config configs/integrations/dp_camp_reward_eval.json \
+  --output_root /root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0 \
+  --steps 200 \
+  --seeds 1,2,3 \
+  --max_npcs 0,4 \
+  --spawn_probabilities 0.3 \
+  --traffic_light_modes on,off \
+  --variants top1,static \
+  --camp_atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --camp_static_weights /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy \
+  --num_candidates 8 \
+  --candidate_noise_scale 1.0 \
+  --candidate_reference_blend_steps 5 \
+  --camp_feasibility_source dp_reward \
+  --camp_fallback_mode learned \
+  --camp_min_progress_ratio 0.8 \
+  --camp_reward_horizon_steps 30 \
+  --camp_traffic_light_hybrid_postselection step_h10_guard_005 \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --require_strict_pairing \
+  --resume
+```
+
+Asset/dry-run audit:
+
+```text
+All required assets existed:
+/root/autodl-tmp/Diffusion-Planner
+/root/autodl-tmp/camp_dp_assets/diffusion_planner.pth
+/root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json
+/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+/root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy
+/root/autodl-tmp/camp_core/configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json
+/root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json
+
+Dry-run confirmed:
+- seeds: 1,2,3 only; no formal seeds 11,12,13;
+- variants: top1, static only;
+- 12 paired run keys and 24 replay commands;
+- aggregate compare includes --scenario_bucket_manifest and
+  --require_strict_pairing.
+```
+
+Artifact paths and SHA:
+
+```text
+Root:
+/root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0
+
+Run log:
+/root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0.run.log
+sha256 2dc77b0311cef06ba3b491fd96a909e8418c9909482acda53b426c09da2fef4c
+
+Comparison JSON:
+/root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0/benchmark_comparison.json
+sha256 15bcdab9e7eaa148f315411a9d872bdb8cae0a3cd4755956d689ef57429a2342
+
+Comparison Markdown:
+/root/autodl-tmp/camp_dp_traffic_light_hybrid_sample59_smoke_41840e0/benchmark_comparison.md
+sha256 73aeb6de5a7a6bd91158f505f00a22f0fb7798844d8eed0f9e9beafccaaabb6c
+```
+
+Pairing and contract gates:
+
+```text
+top1 runs: 12
+static runs: 12
+common run keys: 12
+union run keys: 12
+missing keys: none
+duplicate keys: none
+strictly_paired: true
+
+static summaries: 12
+finite-candidate contract verified: 12/12
+traffic-light hybrid metadata enabled: 12/12
+formal seeds present: 0
+```
+
+Aggregate result for `static - top1`:
+
+| Metric | Delta / status |
+| --- | ---: |
+| SafetyCost v1 | `+0.113350`, 95% CI `[+0.020770, +0.235245]` |
+| SafetyCost v1 CVaR90 delta | `+0.373838`, 95% CI `[+0.000275, +0.680226]` |
+| Route completion | `-0.000395`, within `0.001` tolerance |
+| OBB collision | `0.0`, nonworse |
+| Near miss | `+0.000417`, hard gate failed |
+| Lane violation | `-0.000417`, nonworse |
+| Realized red light | `0.0`, nonworse |
+| Planned red light | `+0.005417` |
+| Mean jerk | `+0.381034 m/s^3` |
+| Mean p95 selection latency | `92.024 ms`, 95% CI high `93.856 ms`, latency gate passed |
+| Hard gate | failed |
+| SafetyCost claim | failed |
+
+Scenario bucket deltas:
+
+| Bucket | n pairs | SafetyCost v1 delta | CVaR90 delta | Notes |
+| --- | ---: | ---: | ---: | --- |
+| `overall` | 12 | `+0.113350` `[+0.022013, +0.240510]` | `+0.373838` `[+0.009428, +0.680226]` | failed |
+| `sharp_turn` | 12 | `+0.113350` `[+0.022013, +0.240510]` | `+0.373838` `[+0.009428, +0.680226]` | failed |
+| `traffic_light` | 6 | `+0.192722` `[+0.011026, +0.418117]` | `+0.680226` `[-0.043800, +0.680226]` | failed |
+| `red_light_turn` | 6 | `+0.192722` `[+0.011026, +0.418117]` | `+0.680226` `[-0.043800, +0.680226]` | failed |
+
+Coverage caveat: this sample59-only smoke covers `overall`, `sharp_turn`,
+`traffic_light`, and `red_light_turn` under the development manifest. It still
+does not cover `normal`, `npc_interaction`, `dense_scene`, or
+`lane_change_or_merge`, so even a pass would not have been sufficient for the
+broader development gate.
+
+Mathematical conclusion: the smoke preserves the CAMP-side finite-candidate
+contract and does not introduce a DP Benders claim. The traffic-light hybrid
+postselector uses current-tick fixed candidate diagnostics and remains a
+finite-candidate selector slice. The rejection is empirical and gate-based: the
+selected fixed candidates are worse than DP Top-1 under SafetyCost v1 and the
+near-miss hard gate despite preserving the mathematical contract.
+
+Decision: reject promotion of
+`--camp_traffic_light_hybrid_postselection step_h10_guard_005`. Do not run a
+36-run, do not touch formal seeds, and do not train CAMP from this result. The
+next admissible step is a read-only failure attribution on this smoke artifact:
+identify the exact changed ticks/runs where the hybrid selector diverges from
+candidate 0 or the original CAMP baseline, then determine which current-tick
+atoms/proxies made those worse choices look attractive. A future selector must
+be more explicitly Top-1-preserving and should override only when the
+candidate-level evidence clears a stricter SafetyCost/hard-gate certificate.
