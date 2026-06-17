@@ -223,6 +223,24 @@ def _mode_report(
         "runs": len(run_summaries),
         "runs_over_budget": len(over_budget_runs),
         "tail_rows": len(tail_rows),
+        "overall_reward_scoring_ms": _summary(
+            _latency_values(projected_rows, REWARD_FIELD)
+        ),
+        "overall_reward_breakdown_sum_ms": _summary(
+            [_reward_breakdown_sum(row["latencies"]) for row in projected_rows]
+        ),
+        "overall_reward_unattributed_residual_ms": _summary(
+            [_reward_residual(row["latencies"]) for row in projected_rows]
+        ),
+        "overall_reward_breakdown_ms": _component_summaries(
+            projected_rows,
+            REWARD_BREAKDOWN_FIELDS,
+        ),
+        "top_reward_components_by_overall_mean_ms": _top_components(
+            projected_rows,
+            fields=(*REWARD_BREAKDOWN_FIELDS, "reward_unattributed_residual"),
+            max_examples=max_examples,
+        ),
         "tail_reward_scoring_ms": _summary(
             _latency_values(tail_rows, REWARD_FIELD)
         ),
@@ -637,6 +655,30 @@ def render_markdown(report: dict[str, Any]) -> str:
                     "reward_unattributed_residual",
                     mode["tail_reward_unattributed_residual_ms"],
                 ),
+                "",
+                "| Overall Reward Summary | Mean | P50 | P95 | Max | N |",
+                "| --- | ---: | ---: | ---: | ---: | ---: |",
+                _summary_row("reward_scoring", mode["overall_reward_scoring_ms"]),
+                _summary_row(
+                    "reward_breakdown_sum",
+                    mode["overall_reward_breakdown_sum_ms"],
+                ),
+                _summary_row(
+                    "reward_unattributed_residual",
+                    mode["overall_reward_unattributed_residual_ms"],
+                ),
+                "",
+                "| Top Overall Reward Component | Mean | P95 | Max | N |",
+                "| --- | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for row in mode["top_reward_components_by_overall_mean_ms"]:
+            lines.append(
+                f"| `{row['field']}` | {_fmt(row['mean'])} | "
+                f"{_fmt(row['p95'])} | {_fmt(row['max'])} | {row['n']} |"
+            )
+        lines.extend(
+            [
                 "",
                 "| Top Reward Component | Mean | P95 | Max | N |",
                 "| --- | ---: | ---: | ---: | ---: |",

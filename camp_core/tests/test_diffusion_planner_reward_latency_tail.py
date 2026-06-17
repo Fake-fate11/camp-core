@@ -73,6 +73,14 @@ def test_reward_latency_tail_attributes_breakdown_and_savings(tmp_path) -> None:
 
     mode = report["projection_modes"]["constant_new_p95"]
     assert mode["runs_over_budget"] == 1
+    assert mode["overall_reward_scoring_ms"]["mean"] == pytest.approx(32.5)
+    assert mode["overall_reward_breakdown_sum_ms"]["mean"] == pytest.approx(22.25)
+    assert mode["overall_reward_unattributed_residual_ms"][
+        "mean"
+    ] == pytest.approx(10.25)
+    assert mode["top_reward_components_by_overall_mean_ms"][0]["field"] == (
+        "latency_ms_reward_batch_compute"
+    )
     assert mode["tail_rows"] == 1
     assert mode["tail_reward_scoring_ms"]["mean"] == pytest.approx(50.0)
     assert mode["tail_reward_breakdown_sum_ms"]["mean"] == pytest.approx(35.0)
