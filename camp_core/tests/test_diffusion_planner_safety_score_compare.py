@@ -110,3 +110,69 @@ def test_scenario_bucket_manifest_is_explicit_only(tmp_path) -> None:
         {"route_name": "unlabeled", "run_key": "other"},
         manifest,
     ) == ["overall"]
+
+
+def test_scenario_bucket_manifest_filters_match_configuration_only(tmp_path) -> None:
+    manifest_path = tmp_path / "buckets.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "routes": {
+                    "sample59": ["sharp_turn"],
+                },
+                "filters": [
+                    {
+                        "name": "sample59_tl_on",
+                        "match": {
+                            "route_name": "sample59",
+                            "traffic_lights": True,
+                            "max_npcs": [0, 4],
+                        },
+                        "buckets": ["traffic_light", "red_light_turn"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    manifest = _load_scenario_bucket_manifest(manifest_path)
+
+    assert _scenario_buckets(
+        {
+            "route_name": "sample59",
+            "run_key": "run-on",
+            "traffic_lights": True,
+            "max_npcs": 4,
+        },
+        manifest,
+    ) == ["overall", "sharp_turn", "traffic_light", "red_light_turn"]
+    assert _scenario_buckets(
+        {
+            "route_name": "sample59",
+            "run_key": "run-off",
+            "traffic_lights": False,
+            "max_npcs": 4,
+        },
+        manifest,
+    ) == ["overall", "sharp_turn"]
+
+
+def test_scenario_bucket_manifest_rejects_outcome_filter_fields(tmp_path) -> None:
+    manifest_path = tmp_path / "buckets.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "filters": [
+                    {
+                        "name": "metric_leak",
+                        "match": {"red_light_violation_rate": 0.0},
+                        "buckets": ["traffic_light"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unsupported match field"):
+        _load_scenario_bucket_manifest(manifest_path)

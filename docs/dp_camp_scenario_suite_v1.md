@@ -74,6 +74,33 @@ groups on the route, and run-level traffic/NPC settings. It still does not
 apply labels. In mixed `traffic_lights=true/false` matrices, traffic-light
 buckets should usually be run-key labels rather than route-level labels.
 
+For mixed matrices, prefer explicit filters over route-wide labels:
+
+```json
+{
+  "routes": {
+    "sample_map_tl_route_59_to_86": ["sharp_turn"]
+  },
+  "filters": [
+    {
+      "name": "sample59_tl_on_red_light_turn",
+      "match": {
+        "route_name": "sample_map_tl_route_59_to_86",
+        "traffic_lights": true
+      },
+      "buckets": ["traffic_light", "red_light_turn"]
+    }
+  ],
+  "run_keys": {},
+  "default_buckets": []
+}
+```
+
+Filters may match only scenario configuration fields: `route`, `route_name`,
+`route_stem`, `seed`, `steps`, `max_npcs`, `spawn_probability`,
+`traffic_lights`, and `advance_mode`. They must not match closed-loop outcomes
+or SafetyCost components.
+
 ## Development Gate
 
 Before claiming DP-CAMP improves over DP Top-1, the comparison must satisfy the

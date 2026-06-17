@@ -110,6 +110,17 @@ SUPPORTED_SCENARIO_BUCKETS = {
     "dense_scene",
     "lane_change_or_merge",
 }
+SCENARIO_BUCKET_FILTER_FIELDS = {
+    "route",
+    "route_name",
+    "route_stem",
+    "seed",
+    "steps",
+    "max_npcs",
+    "spawn_probability",
+    "traffic_lights",
+    "advance_mode",
+}
 
 
 def _read_json(path: Path) -> Any:
@@ -618,19 +629,22 @@ def _stratified_statistics(
 
 def _load_scenario_bucket_manifest(path: Path | None) -> dict[str, Any]:
     if path is None:
-        return {"run_keys": {}, "routes": {}, "default_buckets": []}
+        return {"run_keys": {}, "routes": {}, "filters": [], "default_buckets": []}
     raw = _read_json(path)
     if not isinstance(raw, dict):
         raise ValueError(f"{path} must contain a JSON object.")
     manifest = {
         "run_keys": raw.get("run_keys", {}),
         "routes": raw.get("routes", {}),
+        "filters": raw.get("filters", []),
         "default_buckets": raw.get("default_buckets", []),
     }
     if not isinstance(manifest["run_keys"], dict):
         raise ValueError("scenario bucket manifest run_keys must be an object.")
     if not isinstance(manifest["routes"], dict):
         raise ValueError("scenario bucket manifest routes must be an object.")
+    if not isinstance(manifest["filters"], list):
+        raise ValueError("scenario bucket manifest filters must be a list.")
     if not isinstance(manifest["default_buckets"], list):
         raise ValueError("scenario bucket manifest default_buckets must be a list.")
     for source in ("run_keys", "routes"):
@@ -641,6 +655,8 @@ def _load_scenario_bucket_manifest(path: Path | None) -> dict[str, Any]:
                     "strings to lists."
                 )
             _validate_scenario_buckets(buckets)
+    for index, entry in enumerate(manifest["filters"]):
+        _validate_scenario_bucket_filter(entry, index)
     _validate_scenario_buckets(manifest["default_buckets"])
     return manifest
 
@@ -656,6 +672,44 @@ def _validate_scenario_buckets(buckets: list[Any]) -> None:
             "Unsupported scenario bucket(s): "
             f"{invalid}. Supported buckets: {sorted(SUPPORTED_SCENARIO_BUCKETS)}."
         )
+
+
+def _validate_scenario_bucket_filter(entry: Any, index: int) -> None:
+    if not isinstance(entry, dict):
+        raise ValueError(f"scenario bucket filter {index} must be an object.")
+    name = entry.get("name", f"filter_{index}")
+    if not isinstance(name, str) or not name:
+        raise ValueError(f"scenario bucket filter {index} name must be a string.")
+    match = entry.get("match")
+    buckets = entry.get("buckets")
+    if not isinstance(match, dict) or not match:
+        raise ValueError(f"scenario bucket filter {name!r} match must be an object.")
+    if not isinstance(buckets, list):
+        raise ValueError(f"scenario bucket filter {name!r} buckets must be a list.")
+    invalid_fields = sorted(set(match) - SCENARIO_BUCKET_FILTER_FIELDS)
+    if invalid_fields:
+        raise ValueError(
+            f"scenario bucket filter {name!r} uses unsupported match field(s): "
+            f"{invalid_fields}. Supported fields: "
+            f"{sorted(SCENARIO_BUCKET_FILTER_FIELDS)}."
+        )
+    for field, value in match.items():
+        if isinstance(value, dict):
+            raise ValueError(
+                f"scenario bucket filter {name!r} field {field!r} must be a "
+                "scalar or list of scalars."
+            )
+        values = value if isinstance(value, list) else [value]
+        if not values:
+            raise ValueError(
+                f"scenario bucket filter {name!r} field {field!r} has no values."
+            )
+        if any(isinstance(item, dict) or isinstance(item, list) for item in values):
+            raise ValueError(
+                f"scenario bucket filter {name!r} field {field!r} must contain "
+                "only scalar values."
+            )
+    _validate_scenario_buckets(buckets)
 
 
 def _scenario_buckets(
@@ -674,11 +728,58 @@ def _scenario_buckets(
         for bucket in manifest_routes.get(str(route_name), []):
             if bucket not in buckets:
                 buckets.append(bucket)
+    for entry in manifest.get("filters", []):
+        if _scenario_bucket_filter_matches(row, entry):
+            for bucket in entry.get("buckets", []):
+                if bucket not in buckets:
+                    buckets.append(bucket)
     if len(buckets) == 1:
         for bucket in manifest.get("default_buckets", []):
             if bucket not in buckets:
                 buckets.append(bucket)
     return buckets
+
+
+def _scenario_bucket_filter_matches(
+    row: dict[str, Any],
+    entry: dict[str, Any],
+) -> bool:
+    match = entry.get("match", {})
+    return all(
+        _scenario_value_matches(_scenario_filter_value(row, field), expected)
+        for field, expected in match.items()
+    )
+
+
+def _scenario_filter_value(row: dict[str, Any], field: str) -> Any:
+    if field == "route_stem":
+        route = row.get("route")
+        if route is not None:
+            return Path(str(route)).stem
+        route_name = row.get("route_name")
+        return None if route_name is None else str(route_name)
+    if field not in SCENARIO_BUCKET_FILTER_FIELDS:
+        raise ValueError(f"Unsupported scenario bucket filter field: {field}")
+    return row.get(field)
+
+
+def _scenario_value_matches(actual: Any, expected: Any) -> bool:
+    values = expected if isinstance(expected, list) else [expected]
+    return any(_scenario_scalar_matches(actual, value) for value in values)
+
+
+def _scenario_scalar_matches(actual: Any, expected: Any) -> bool:
+    if isinstance(actual, bool) or isinstance(expected, bool):
+        return (
+            isinstance(actual, bool)
+            and isinstance(expected, bool)
+            and actual is expected
+        )
+    if actual is None or expected is None:
+        return actual is expected
+    if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
+        return abs(float(actual) - float(expected)) <= 1e-9
+    return str(actual) == str(expected)
 
 
 def _expand_scenario_bucket_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

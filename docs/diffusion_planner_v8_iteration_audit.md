@@ -10475,3 +10475,79 @@ route-level traffic-light label would mislabel the off runs. The next
 admissible step is to add or use an explicit run-key/filter manifest so labels
 can depend on route name plus run-level traffic-light/NPC configuration without
 using replay outcomes.
+
+## Scenario bucket filter manifest support
+
+The route inspection artifact showed why route-wide labels are insufficient:
+the same route appears under both `traffic_lights=True` and
+`traffic_lights=False`. This milestone extends the scenario bucket manifest so
+labels can be applied through explicit filters over benchmark/scenario
+configuration fields instead of absolute run-key strings or outcome metrics.
+
+Implementation:
+
+- `scripts/integrations/compare_diffusion_planner_camp_replays.py` now accepts
+  an optional manifest field `filters`.
+- Each filter has `name`, `match`, and `buckets`. Matches are exact and may use
+  only scenario configuration fields:
+
+```text
+route
+route_name
+route_stem
+seed
+steps
+max_npcs
+spawn_probability
+traffic_lights
+advance_mode
+```
+
+- Outcome and metric fields such as collisions, red-light violation,
+  completion, jerk, latency, or SafetyCost are rejected as filter fields.
+- Existing `routes`, `run_keys`, and `default_buckets` behavior remains
+  backward compatible.
+- `configs/integrations/dp_camp_scenario_buckets_v1.template.json`,
+  `docs/dp_camp_safety_score_v1.md`, and
+  `docs/dp_camp_scenario_suite_v1.md` now document the filter field.
+
+This changes only evaluation metadata assignment. It does not modify DP, run
+replay, train CAMP, alter atoms, alter the finite-candidate master, or create a
+Benders subproblem.
+
+Local verification:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_safety_score_compare.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_manifest.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py \
+  camp_core\tests\test_diffusion_planner_route_inspection.py
+
+15 passed
+
+python -m py_compile \
+  scripts\integrations\compare_diffusion_planner_camp_replays.py \
+  scripts\integrations\build_diffusion_planner_scenario_bucket_manifest.py \
+  scripts\integrations\audit_diffusion_planner_scenario_buckets.py
+
+passed
+
+python -m ruff check \
+  scripts\integrations\compare_diffusion_planner_camp_replays.py \
+  scripts\integrations\build_diffusion_planner_scenario_bucket_manifest.py \
+  camp_core\tests\test_diffusion_planner_safety_score_compare.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_manifest.py
+
+All checks passed
+
+git diff --check
+
+passed
+```
+
+Predeclared remote check after push: create an explicit development manifest
+from the route inspection evidence using filters for `traffic_lights=True`
+runs, rerun the existing SafetyCost comparison with that manifest, and audit
+bucket coverage. This is a metadata reclassification of existing non-formal
+artifacts only; it must not be presented as a new replay or a CAMP improvement.

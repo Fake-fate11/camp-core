@@ -147,6 +147,7 @@ def build_manifest(
         "supported_buckets": sorted(SUPPORTED_SCENARIO_BUCKETS),
         "routes": route_manifest,
         "run_keys": run_key_manifest,
+        "filters": [],
         "default_buckets": [],
         "unlabeled_routes": unlabeled_routes,
         "unlabeled_run_keys": unlabeled_run_keys,

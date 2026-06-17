@@ -55,6 +55,7 @@ def test_manifest_builder_creates_unlabeled_explicit_skeleton() -> None:
         "nishishinjuku_release_auto_route": [],
         "sample_map_tl_route_59_to_86": [],
     }
+    assert manifest["filters"] == []
     assert len(manifest["run_keys"]) == 2
     assert len(manifest["unlabeled_routes"]) == 2
     assert len(manifest["unlabeled_run_keys"]) == 2

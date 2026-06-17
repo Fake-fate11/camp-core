@@ -149,13 +149,26 @@ Optional manifest format:
   "run_keys": {
     "sample59_86|1|200|4|0.3|on|perfect": ["dense_scene"]
   },
+  "filters": [
+    {
+      "name": "sample59_traffic_light_on",
+      "match": {
+        "route_name": "sample59_86",
+        "traffic_lights": true
+      },
+      "buckets": ["traffic_light", "red_light_turn"]
+    }
+  ],
   "default_buckets": []
 }
 ```
 
 Every run is always included in `overall`. Additional buckets come only from
-the manifest. If a route or run key is not in the manifest, it remains
-`overall` only.
+the manifest. `filters` may match only benchmark/scenario configuration fields
+such as `route_name`, `traffic_lights`, `max_npcs`, `spawn_probability`, and
+`advance_mode`; they must not match SafetyCost, collision, completion, or other
+closed-loop outcome fields. If a route, run key, or filter is not in the
+manifest, it remains `overall` only.
 
 ## Current Interpretation
 

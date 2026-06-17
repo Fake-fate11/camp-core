@@ -16,5 +16,6 @@
   ],
   "routes": {},
   "run_keys": {},
+  "filters": [],
   "default_buckets": []
 }
