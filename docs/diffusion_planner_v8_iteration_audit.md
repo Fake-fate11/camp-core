@@ -10173,3 +10173,62 @@ Predeclared remote check after push: run the new bucket audit on the existing
 generated without a bucket manifest, the expected result is `overall` coverage
 only and missing required scenario buckets. That is a coverage-gap finding, not
 a selector regression.
+
+The implementation was committed, pushed, and synced to AutoDL as:
+
+```text
+84a50f923d71188eeee5fd1057bfc64c540925de
+Add DP CAMP scenario bucket audit
+```
+
+AutoDL CAMP matched that commit after a fast-forward pull. AutoDL Diffusion
+Planner remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Remote read-only audit command:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_scenario_buckets.py \
+  --comparison_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_score_v1_07c3b9a/safety_score_v1_comparison.json \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_bucket_audit_84a50f9/scenario_bucket_coverage.json \
+  --output_markdown \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_bucket_audit_84a50f9/scenario_bucket_coverage.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `scenario_bucket_coverage.json` | `a5924b25502353936500218e02f2c02800567d34d8756913f9e91e3f2a53de93` |
+| `scenario_bucket_coverage.md` | `12eb910227d50169b8155bc20bb46b53b73f661e22f335d930c3ea581f96edca` |
+
+Remote result:
+
+| Bucket | Run keys | Strict pairing |
+| --- | ---: | --- |
+| `overall` | 36 | yes |
+
+Missing required buckets:
+
+```text
+normal
+traffic_light
+red_light_turn
+sharp_turn
+npc_interaction
+dense_scene
+lane_change_or_merge
+```
+
+All 36 run keys were `overall` only. Decision: accept the audit tool and
+reject the existing full36 SafetyCost result as evidence for any critical
+scenario bucket. The next admissible step is to label or create a non-formal
+scenario manifest from inspected routes before making red-light-turn,
+sharp-turn, dense-scene, NPC-interaction, or lane-change claims.
