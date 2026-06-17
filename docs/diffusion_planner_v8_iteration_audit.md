@@ -12226,3 +12226,153 @@ behind an explicit disabled-by-default CLI flag with complete metadata,
 fail-closed audit fields, latency accounting, and strict mutual exclusion from
 previous rejected postselectors. Only after local/AutoDL tests pass should a
 small paired non-formal smoke be considered.
+
+## Traffic-light hybrid replay postselector implementation
+
+Implementation commit:
+
+```text
+a622f279413c2398c10c7ec7ae799dd0778403c2
+```
+
+Scope:
+
+1. Added a disabled-by-default replay CLI flag:
+   `--camp_traffic_light_hybrid_postselection`, with modes `off`,
+   `step_h10_guard_005`, and `h3_h10_guard_005`.
+2. The rule is mutually exclusive with lexicographic preselection,
+   underprogress relaxation, PerfectTracker command postselection, and splice
+   shadow. It requires a CAMP selector mode and `--camp_feasibility_source
+   dp_reward`.
+3. The online rule mirrors the accepted offline certificate screen:
+   traffic-light enabled only, base feasible only, union-red and red-stopping
+   nonworse, strict raw lateral and raw jerk improvement, bounded DP-reward
+   progress loss, bounded H10 distance loss, bounded target-speed loss, and
+   either bounded first-step loss or bounded H3 distance loss depending on the
+   mode.
+4. Selection records now include
+   `traffic_light_hybrid_postselection`,
+   `camp_selected_index_before_traffic_light_hybrid_postselection`, and
+   `latency_ms_traffic_light_hybrid_postselection`.
+5. Replay summary, validation summary, and the standalone replay summarizer
+   preserve the new metadata. Core selection summaries now compute mean/p95
+   latency for `traffic_light_hybrid_postselection_latency_ms`.
+
+Local verification:
+
+```text
+git diff --check
+# passed
+
+python -m compileall -q \
+  scripts\integrations\run_diffusion_planner_camp_replay.py \
+  scripts\integrations\summarize_diffusion_planner_camp_replay.py \
+  camp_core\camp_core\integrations\diffusion_planner.py \
+  camp_core\tests\test_diffusion_planner_integration.py \
+  camp_core\tests\test_diffusion_planner_replay_summary.py
+# passed
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_integration.py \
+  camp_core\tests\test_diffusion_planner_replay_summary.py \
+  -q
+# 120 passed, 10 skipped in 1.68s
+```
+
+Local ruff note:
+
+```text
+ruff check <repo paths>
+# reported E902 "stream did not contain valid UTF-8" for every repo target
+
+Python UTF-8 decode check on the same files
+# all five modified files decoded as UTF-8
+
+ruff check <temporary copies of the same five files>
+# All checks passed
+```
+
+Interpretation: the modified file contents pass ruff when copied out of the
+current repo path, and Python decode/compileall both pass in place. The direct
+repo-path ruff failure is treated as a local Windows path/ACL/tooling anomaly,
+not as a code acceptance pass.
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# a622f279413c2398c10c7ec7ae799dd0778403c2
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py \
+  camp_core/tests/test_diffusion_planner_replay_summary.py \
+  -q
+# 130 passed in 2.15s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/summarize_diffusion_planner_camp_replay.py \
+  camp_core/camp_core/integrations/diffusion_planner.py \
+  camp_core/tests/test_diffusion_planner_integration.py \
+  camp_core/tests/test_diffusion_planner_replay_summary.py
+# passed
+```
+
+AutoDL ruff availability:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python -c \
+  "import importlib.util; print(bool(importlib.util.find_spec('ruff')))"
+# False
+```
+
+AutoDL state after sync:
+
+```text
+CAMP HEAD/origin/main:
+a622f279413c2398c10c7ec7ae799dd0778403c2
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+The known AutoDL untracked files remain unhandled:
+
+```text
+diffusion_planner_integration.md
+dp_camp_device_handoff.md
+test_diffusion_planner_benchmark_matrix.py
+```
+
+Artifact path and SHA:
+
+```text
+No replay artifact was generated in this milestone. The artifact is the Git
+implementation commit a622f279413c2398c10c7ec7ae799dd0778403c2.
+```
+
+Mathematical conclusion: the implementation is a finite-candidate selector
+slice, not classical Benders. It operates only on current-tick fixed candidate
+constants already logged or computed for the replay tick: feasible mask,
+selection scores, DP reward progress, union-red, red-stopping, raw jerk,
+raw lateral, PerfectTracker command target speed, first-step reach, and
+PerfectTracker open-loop H3/H10 distances. It does not use candidate outcome
+labels, closed-loop future outcomes, DP sampler variables, postprocessing
+variables, PerfectTracker state-transition variables, or trajectory-coordinate
+optimization variables. If later atomized with fixed nonnegative scaling, the
+score remains affine in `w` and the simplex/CVaR/L2 master remains convex.
+
+Decision: accept the default-off implementation as an engineering milestone.
+Do not claim DP-CAMP is better than DP Top-1, do not run a 36-run, and do not
+train CAMP from this implementation alone. The next admissible step is a small
+paired non-formal smoke on sample59 seeds 1/2/3 only if the command line carries
+the finite-candidate contract metadata, the hybrid flag is explicit, and the
+comparison is evaluated with SafetyCost v1 plus hard gates and scenario
+buckets. If the smoke fails any hard gate or critical bucket check, keep the
+selector shadow/default-off and reject promotion.
