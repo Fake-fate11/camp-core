@@ -10232,3 +10232,57 @@ reject the existing full36 SafetyCost result as evidence for any critical
 scenario bucket. The next admissible step is to label or create a non-formal
 scenario manifest from inspected routes before making red-light-turn,
 sharp-turn, dense-scene, NPC-interaction, or lane-change claims.
+
+## Scenario bucket manifest skeleton builder
+
+The prior bucket audit proved that the existing full36 SafetyCost comparison
+has no critical-bucket evidence. The next engineering step is not to guess
+labels from route names or metrics, but to create an explicit manifest skeleton
+from the comparison rows so route/run-key inspection has a concrete target.
+
+Implementation:
+
+- `scripts/integrations/build_diffusion_planner_scenario_bucket_manifest.py`
+  reads a SafetyCost comparison JSON and writes a
+  `dp_camp_scenario_buckets_v1` manifest skeleton.
+- The skeleton records every route, run key, seed, step count, NPC count,
+  spawn probability, traffic-light mode, and tracker mode.
+- By default, every route and run key has an empty bucket list. Optional
+  `--route_bucket` and `--run_key_bucket` labels must be supplied explicitly
+  and are rejected if the route or run key is absent from the comparison.
+- The builder does not inspect outcomes, infer labels from metrics, change the
+  selector, train CAMP, modify DP, or run a replay.
+
+Local verification:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_manifest.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py \
+  camp_core\tests\test_diffusion_planner_safety_score_compare.py
+
+10 passed
+
+python -m py_compile \
+  scripts\integrations\build_diffusion_planner_scenario_bucket_manifest.py \
+  scripts\integrations\audit_diffusion_planner_scenario_buckets.py
+
+passed
+
+python -m ruff check \
+  scripts\integrations\build_diffusion_planner_scenario_bucket_manifest.py \
+  scripts\integrations\audit_diffusion_planner_scenario_buckets.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_manifest.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py
+
+All checks passed
+
+git diff --check
+
+passed
+```
+
+Predeclared remote check after push: generate a manifest skeleton from the
+existing `redstopfloor05` SafetyCost comparison JSON. Expected result: three
+routes, 36 run keys, empty route/run-key bucket labels, and therefore no new
+critical-bucket claim.

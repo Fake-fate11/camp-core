@@ -40,6 +40,23 @@ an experiment-specific file and filled after route inspection.
 5. Only after bucket coverage and SafetyCost hard gates are both clean should a
    larger non-formal matrix be considered.
 
+To start a manifest without inventing labels, generate a skeleton from an
+existing SafetyCost comparison JSON:
+
+```bash
+python scripts/integrations/build_diffusion_planner_scenario_bucket_manifest.py \
+  --comparison_json /path/to/safety_score_v1_comparison.json \
+  --output_json /path/to/scenario_buckets.json \
+  --include_run_keys
+```
+
+The generated file records every route, run key, seed, NPC count, spawn
+probability, traffic-light mode, and tracker mode. Route and run-key bucket
+lists are empty until an inspected scenario definition justifies explicit
+labels. Optional `--route_bucket ROUTE=BUCKET[,BUCKET]` and
+`--run_key_bucket RUN_KEY=BUCKET[,BUCKET]` may be used only after that
+inspection.
+
 ## Development Gate
 
 Before claiming DP-CAMP improves over DP Top-1, the comparison must satisfy the
