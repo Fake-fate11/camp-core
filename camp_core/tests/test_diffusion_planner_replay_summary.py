@@ -14,6 +14,7 @@ from scripts.integrations.summarize_diffusion_planner_camp_replay import (
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_generation_contract,
     _configure_candidate_guidance,
+    _copy_replay_contract_metadata_to_validation,
     _dp_camp_finite_candidate_contract,
     _lower_union_red_donor_indices,
     _raw_candidate_prefix_payload,
@@ -103,6 +104,32 @@ def test_replay_summary_metadata_survives_metric_resummarization() -> None:
         "effective_horizon_steps"
     ] == 30
     assert merged["benchmark"]["seed"] == 101
+
+
+def test_replay_contract_metadata_is_copied_to_validation_summary() -> None:
+    validation = {"selection_steps": 3}
+    replay_summary = {
+        "candidate_generation_contract": {
+            "schema_version": "dp_candidate_generation_contract_v1",
+        },
+        "dp_camp_finite_candidate_contract": {
+            "schema_version": "dp_camp_finite_candidate_contract_v1",
+            "classical_benders_claim": False,
+        },
+    }
+
+    _copy_replay_contract_metadata_to_validation(validation, replay_summary)
+
+    assert validation["selection_steps"] == 3
+    assert validation["candidate_generation_contract"]["schema_version"] == (
+        "dp_candidate_generation_contract_v1"
+    )
+    assert validation["dp_camp_finite_candidate_contract"]["schema_version"] == (
+        "dp_camp_finite_candidate_contract_v1"
+    )
+    assert not validation["dp_camp_finite_candidate_contract"][
+        "classical_benders_claim"
+    ]
 
 
 def test_existing_summary_metrics_survive_partial_resummarization() -> None:

@@ -1921,6 +1921,17 @@ def _dp_camp_finite_candidate_contract(
     }
 
 
+def _copy_replay_contract_metadata_to_validation(
+    validation: dict[str, Any],
+    replay_summary: dict[str, Any],
+) -> None:
+    for key in (
+        "candidate_generation_contract",
+        "dp_camp_finite_candidate_contract",
+    ):
+        validation[key] = replay_summary.get(key)
+
+
 def _raw_candidate_prefix_payload(
     candidates: np.ndarray,
     steps: int,
@@ -3749,6 +3760,7 @@ def main() -> None:
     validation["camp_shadow_full_horizon_red_light"] = summary[
         "camp_shadow_full_horizon_red_light"
     ]
+    _copy_replay_contract_metadata_to_validation(validation, summary)
     validation["benchmark"] = summary["benchmark"]
     validation["benchmark_key"] = (
         f"route={args.route}|seed={args.seed}|steps={args.steps}|"

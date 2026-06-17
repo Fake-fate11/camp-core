@@ -11023,3 +11023,146 @@ progress from the plan alone. The next step is to run this planned non-formal
 label pass on AutoDL, then require input readiness, dataset audit with
 `closed_loop_outcome_policy=required`, and candidate availability analysis
 before any selector or weight change.
+
+## Candidate outcome label-pass audit
+
+The planned static outcome-label pass was run on AutoDL against the fixed DP
+checkpoint, frozen `redstopfloor05` CAMP weights, perfect tracking, K=8
+candidates, seeds `1/2/3`, NPC caps `0/4`, traffic lights off/on, and the three
+predeclared routes. Formal seeds `11/12/13` were not used.
+
+Run artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2
+```
+
+Run status:
+
+```text
+RUN_STATUS=done
+SUMMARIES=36
+SELECTION_LOGS=36
+COUNTS_BY_ROUTE
+     12 nishishinjuku_release_auto_route
+     12 sample_map_route_2_to_104
+     12 sample_map_tl_route_59_to_86
+```
+
+The first strict dataset audit with `--require_finite_candidate_contract`
+failed because the generated `camp_validation_summary.json` files did not carry
+the `dp_camp_finite_candidate_contract` block. This was a validation-summary
+metadata propagation defect: the paired `camp_replay_summary.json` files already
+contained both `candidate_generation_contract` and
+`dp_camp_finite_candidate_contract` with the expected schema versions. No DP
+run, candidate generation, CAMP scoring, feasibility mask, selector decision, or
+closed-loop outcome label was changed.
+
+The existing validation summaries were repaired by rerunning the repository
+summarizer over the 36 replay output directories:
+
+```text
+python scripts/integrations/summarize_diffusion_planner_camp_replay.py \
+  --output_dir <each candidate_outcome_labels_static_d97b7c2 run directory>
+```
+
+A code patch now also copies the replay-level contract metadata into
+`camp_validation_summary.json` during replay generation, so future benchmark
+outputs are audit-ready without the post-run summarizer step.
+
+Audit artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_label_audit_a838f7d
+```
+
+Audit artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `candidate_availability_input_readiness.json` | `ab2a7c5cf01651827de7aa4c1508ec6b0b5a86bcad9257d1516cc9b12426c582` |
+| `candidate_availability_input_readiness.md` | `c478aae3f4fe4fe673c6c2a2aa769a838d4bc5b98f184b1b9cd2b993795bb723` |
+| `dataset_audit_required_outcomes.json` | `a650ad4b71898db1c778f54c60275d8323f68e4f9e5f1d7e6c5124e479b50341` |
+| `candidate_availability_oracle.json` | `0634deee6c75c4c1426ec1a27727b8f4ee1ae369dc66380decfb42a7a3ca9ff7` |
+| `candidate_availability_oracle.md` | `2881917cd453899f57b82c7eb625d91a11c9b46f34388ed6610e9ead08a6e93f` |
+| `candidate_availability_blockers.json` | `8ba9aa2082c80c7c1e65475195738be77e57ef148f755861ded03a8f2469770f` |
+| `candidate_availability_blockers.md` | `7cfa59d64687c03c9ebdbae0a591c25ed8c8a27ee1f296ddad5dfabe20e237de` |
+
+Strict dataset audit result:
+
+```text
+passed=true
+logs=36
+records=7200
+candidates=57600
+closed_loop_outcome_policy=required
+closed_loop_outcome_records=7200
+outcome_candidate_coverage=1.0
+finite_candidate_contract_required=true
+finite_candidate_contract_verified=true
+finite_candidate_contract_logs=36
+forbidden_seed_check=true
+advance_mode_verified=true
+schema=dp_camp_v10_14d
+num_atoms=14
+```
+
+Candidate availability input readiness:
+
+```text
+records=7200
+nonfallback_records=5939
+fallback_records=1261
+candidate_counts={8: 7200}
+current_tick_proxy_inputs_ready=true
+outcome_labels_ready=true
+candidate_availability_oracle_ready=true
+```
+
+Outcome-labeled K=8 candidate availability among nonfallback records:
+
+| Progress budget | Outcome joint | Proxy joint | Hidden outcome | Proxy-only |
+| ---: | ---: | ---: | ---: | ---: |
+| `0.00 m` | `1454` (`0.244822`) | `1` (`0.000168`) | `1445` (`0.243307`) | `56` (`0.009429`) |
+| `0.05 m` | `1645` (`0.276983`) | `103` (`0.017343`) | `1430` (`0.240781`) | `215` (`0.036201`) |
+| `0.10 m` | `1916` (`0.322613`) | `235` (`0.039569`) | `1404` (`0.236403`) | `392` (`0.066004`) |
+| `0.25 m` | `2848` (`0.479542`) | `901` (`0.151709`) | `1202` (`0.202391`) | `674` (`0.113487`) |
+
+Blocker audit:
+
+```text
+feasible_alternatives=5800 (0.976595), mean_candidates=6.528203
+joint_comfort_alternatives=4204 (0.707863), mean_candidates=2.374137
+safety_preserving_joint_comfort_alternatives=4203 (0.707695), mean_candidates=2.373127
+safety_joint_progress_deficit_mean=0.651946 m
+safety_joint_progress_deficit_p50=0.131145 m
+safety_joint_progress_deficit_p90=0.578572 m
+safety_joint_progress_deficit_p95=0.816842 m
+```
+
+The blocker table shows that candidate availability is not zero: many fixed
+candidate pools contain outcome-labeled joint-comfort improvements. The current
+proxy feature set, however, sees only a small subset of those improvements.
+At a 0.10 m progress budget, for example, the outcome oracle finds 1916 joint
+records while the proxy screen finds 235; 1404 records are hidden outcome
+opportunities. The dominant blocker for strict budgets is progress loss, not
+safety infeasibility: at 0.10 m, failed records are split into 1735 with no
+joint-comfort alternative, 2287 progress-blocked records, and only 1
+safety-blocked record.
+
+Mathematical conclusion: this remains an offline label audit over fixed
+current-tick finite candidates. The candidate closed-loop outcomes are future
+labels used only to measure candidate availability; they are not online atoms,
+not selector inputs, not a DP trajectory-coordinate convexity claim, and not a
+Benders subproblem. The replay metadata gate now certifies the existing
+finite-candidate generalized Benders-style CAMP master boundary for every run,
+but the oracle result does not prove that the current online proxy selector can
+recover the outcome improvements.
+
+Decision: accept the outcome-label pass and oracle as a valid development-gate
+diagnostic. Reject any claim that `redstopfloor05` is now better than DP Top-1
+or that an online selector is ready. The next admissible step is a read-only
+analysis that explains the hidden-outcome gap by route/bucket/tick context and
+predeclares whether a fixed current-tick proxy atom or deterministic
+finite-candidate preprocessing rule can expose those opportunities without
+using future outcomes online.
