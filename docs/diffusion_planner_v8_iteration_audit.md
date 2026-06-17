@@ -11578,3 +11578,136 @@ progress descriptor with explicit safety, comfort, and latency gates, then test
 it first as a default-off offline selector screen. If that screen cannot pass
 SafetyCost v1 hard gates and bucket coverage, keep the current DP-CAMP path in
 shadow mode.
+
+## State-conditioned certificate screen audit
+
+Commit `47845e5` added a default-off read-only analyzer and commit `7fc2c16`
+added posterior examples for safety regressions and worst progress losses:
+
+```text
+scripts/integrations/analyze_diffusion_planner_state_conditioned_certificate.py
+```
+
+The analyzer tests predeclared finite-candidate screens that combine
+current-tick first-step reach, H3 PerfectTracker open-loop distance, target
+speed, union-red, red-stopping, lateral cost, and jerk cost. Scenario buckets
+only choose conservative budgets; they are not atoms, not learned weights, and
+not outcome-derived labels. Candidate closed-loop outcomes are used only for
+posterior audit.
+
+Remote command:
+
+```text
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_state_conditioned_certificate.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest \
+    /root/autodl-tmp/camp_core/configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label redstopfloor05_outcome_labels \
+  --output_json \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_conditioned_certificate_7fc2c16/state_conditioned_certificate.json \
+  --output_md \
+    /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_conditioned_certificate_7fc2c16/state_conditioned_certificate.md
+```
+
+Remote artifact SHA-256:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `state_conditioned_certificate.json` | `81cbbd96ed33af648f29dd9e36be562b1af566305f23f3e199bc484fd2dabd2a` |
+| `state_conditioned_certificate.md` | `aa6cf0e10b480c82447b82024c00f5419aeaab003abb1edf2f002883ef217882` |
+
+Remote test:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_state_conditioned_certificate.py \
+  camp_core/tests/test_diffusion_planner_hidden_outcome_gap.py \
+  camp_core/tests/test_diffusion_planner_scenario_bucket_audit.py \
+  -q
+
+8 passed in 1.03s
+```
+
+Record counts:
+
+```text
+logs=36
+records=7200
+nonfallback=5939
+fallback=1261
+```
+
+Overall posterior result:
+
+| Screen | Changed | Posterior joint comfort | Safety regressions | Progress delta mean | Jerk delta mean | Lateral delta mean | First-step loss mean | H3 loss mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `state_guard_strict_005` | `3356` | `2437` | `1 near_miss` | `-0.895581 m` | `-0.170757` | `-0.014700` | `0.001734 m` | `0.015788 m` |
+| `state_guard_balanced_010` | `3902` | `2752` | `1 near_miss` | `-0.863154 m` | `-0.174827` | `-0.015654` | `0.003439 m` | `0.023785 m` |
+| `state_guard_relaxed_noncritical_025` | `3902` | `2752` | `1 near_miss` | `-0.863154 m` | `-0.174827` | `-0.015654` | `0.003439 m` | `0.023785 m` |
+
+Bucket-level summary for `state_guard_balanced_010`:
+
+| Bucket | Records | Changed | Posterior joint comfort | Safety regressions |
+| --- | ---: | ---: | ---: | ---: |
+| `overall` | `5939` | `3902` | `2752` | `1` |
+| `traffic_light` | `1810` | `999` | `812` | `1` |
+| `red_light_turn` | `942` | `624` | `455` | `0` |
+| `sharp_turn` | `1916` | `1380` | `1017` | `0` |
+| `normal` | `600` | `487` | `280` | `0` |
+
+The single posterior safety regression is a near-miss in
+`nishishinjuku_release_auto_route`, seed `2`, `max_npcs=4`,
+`traffic_lights=True`, selection step `134`, changing selected candidate `2`
+to candidate `0`. The screen saw only small current-tick losses:
+
+```text
+first_step_loss=0.001273 m
+H3_loss=0.049962 m
+target_speed_loss=0.012729 m/s
+union_red_delta=0
+red_stopping_delta=0
+outcome_progress_delta=0
+outcome_jerk_delta=+0.112426
+outcome_lateral_delta=-0.002847
+```
+
+The worst progress-loss example is also in
+`nishishinjuku_release_auto_route`, seed `3`, `max_npcs=0`,
+`traffic_lights=True`, selection step `149`, changing selected candidate `7`
+to candidate `0`:
+
+```text
+first_step_loss=0
+H3_loss=0.040716 m
+target_speed_loss=0
+union_red_delta=0
+red_stopping_delta=0
+outcome_progress_delta=-298.389663 m
+outcome_jerk_delta=-0.738102
+outcome_lateral_delta=-0.012449
+```
+
+Interpretation: first-step reach plus H3 distance is not a sufficient
+outcome-free progress certificate for this candidate pool. It can select
+comfort-improving candidates with tiny current-tick losses while causing large
+closed-loop progress collapse. The screen also violates the posterior safety
+direction through one near-miss regression in the traffic-light bucket. This
+fails the development-gate spirit before any replay smoke is justified.
+
+Mathematical conclusion: the analyzer itself is valid as a finite-candidate
+diagnostic. All selector-side quantities are fixed current-tick constants, so a
+future atomization with fixed nonnegative scales would keep CAMP scoring
+affine in `w` and preserve the simplex/CVaR/L2 master convexity. The tested
+screens, however, are rejected as engineering policies. They do not construct
+a classical Benders subproblem and do not prove DP-CAMP superiority.
+
+Decision: accept the state-conditioned analyzer as a reusable rejection gate.
+Reject the first-step/H3 certificate screens for online implementation,
+default-off smoke, CAMP retraining, 12-run, or 36-run promotion. The next
+admissible step is to either (a) add a stronger outcome-free long-horizon
+progress certificate using already logged DP reward progress or H10/route
+progress metadata, then repeat this bucketed posterior gate, or (b) keep the
+current path in shadow mode if no such current-tick certificate can block the
+large progress-collapse examples without reintroducing safety regressions.
