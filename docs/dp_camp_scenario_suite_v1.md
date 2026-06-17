@@ -56,6 +56,22 @@ python scripts/integrations/relabel_diffusion_planner_safety_comparison.py \
 This is still a metadata-only recomputation. It does not rerun the DP sampler,
 CAMP selector, tracker, simulator, or training.
 
+Before running the outcome-labeled candidate availability oracle, audit that
+the selection logs actually carry the required labels and current-tick proxy
+inputs:
+
+```bash
+python scripts/integrations/audit_diffusion_planner_candidate_availability_inputs.py \
+  --root /path/to/development_run_root \
+  --output_json /path/to/candidate_availability_input_readiness.json \
+  --output_md /path/to/candidate_availability_input_readiness.md \
+  --fail_on_not_ready
+```
+
+Passing this readiness check only authorizes the offline oracle input contract.
+It does not authorize an online selector, CAMP weight tuning, DP changes,
+formal seeds, or a new 36-run.
+
 To start a manifest without inventing labels, generate a skeleton from an
 existing SafetyCost comparison JSON:
 
