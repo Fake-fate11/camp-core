@@ -13502,3 +13502,150 @@ such as `candidate_route_progress`, `candidate_step_reach`,
 `candidate_perfect_tracker_target_speed_mps`, and H3/H5/H10 open-loop rollout
 distance. The target is to reduce the 762 progress-shortfall hidden blockers
 without reintroducing the 45 false-override failure mode.
+
+## Progress proxy guard audit
+
+Code/documentation state:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for progress proxy guard implementation:
+9ba9c78ca0e8157be86c6a5ae5419e2a72f7cada
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+Added:
+scripts/integrations/analyze_diffusion_planner_progress_proxy_guard.py
+camp_core/tests/test_diffusion_planner_progress_proxy_guard.py
+```
+
+Local verification before committing `9ba9c78`:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_progress_proxy_guard.py \
+  -q
+# 1 passed in 0.55s
+
+python -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_progress_proxy_guard.py \
+  camp_core\tests\test_diffusion_planner_progress_proxy_guard.py
+# passed
+
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_progress_proxy_guard.py \
+  camp_core\tests\test_diffusion_planner_progress_proxy_guard.py
+# All checks passed
+
+git diff --check
+# passed
+```
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# 9ba9c78ca0e8157be86c6a5ae5419e2a72f7cada
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_proxy_guard.py \
+  -q
+# 1 passed in 0.32s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/analyze_diffusion_planner_progress_proxy_guard.py \
+  camp_core/tests/test_diffusion_planner_progress_proxy_guard.py
+# passed
+```
+
+Audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_progress_proxy_guard.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label redstopfloor05_outcome_labels \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_proxy_guard_9ba9c78/progress_proxy_guard.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_proxy_guard_9ba9c78/progress_proxy_guard.md
+```
+
+Artifact paths and SHA:
+
+```text
+Progress proxy guard JSON:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_proxy_guard_9ba9c78/progress_proxy_guard.json
+sha256 173db0412231e9595dca9ba3dbf6e046ee6ced31df11818784afbee7617fd22b
+
+Progress proxy guard Markdown:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/progress_proxy_guard_9ba9c78/progress_proxy_guard.md
+sha256 edfba263aa4bfd4e92fce6a1fdbe35c55dbc557984fd991ed38d0d30444edc26
+```
+
+Scope: this audit swaps only the progress guard inside the already rejected
+any-comfort Top-1-preserving certificate. The common certificate remains:
+candidate0 feasible, nonzero base-feasible candidate, red proxies nonworse,
+proxy jerk/lateral nonworse, and at least one proxy comfort metric strictly
+better. Candidate outcomes are posterior labels only.
+
+Overall result:
+
+| Descriptor guard | Available | Overrides | True | False | Hidden | Mean override label safety delta | CVaR90 override label safety delta | Bool hard-gate worse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `progress_shortfall_p005` | `5639` | `2475` | `2430` | `45` | `766` | `+0.024715` | `+0.547965` | lane `4`, near-miss `4` |
+| `route_progress_loss005` | `0` | `0` | `0` | `0` | `0` | n/a | n/a | all zero |
+| `route_progress_loss010` | `0` | `0` | `0` | `0` | `0` | n/a | n/a | all zero |
+| `step_reach_loss005` | `5639` | `4523` | `2526` | `1997` | `18` | `+1.654178` | `+15.412951` | lane `2`, near-miss `6` |
+| `tracker_first_step_reach_loss005` | `5639` | `4525` | `2528` | `1997` | `16` | `+1.653408` | `+15.412951` | lane `2`, near-miss `6` |
+| `target_speed_loss005` | `5639` | `3657` | `2069` | `1588` | `574` | `+1.258204` | `+11.747174` | lane `2`, near-miss `6` |
+| `h3_rollout_distance_loss005` | `5639` | `4231` | `2359` | `1872` | `235` | `+1.443427` | `+13.331187` | lane `4`, near-miss `6` |
+| `h5_rollout_distance_loss005` | `5639` | `3919` | `2209` | `1710` | `434` | `+0.744194` | `+6.570457` | lane `4`, near-miss `6` |
+| `h10_rollout_distance_loss005` | `5639` | `3366` | `2167` | `1199` | `621` | `+0.393579` | `+3.600969` | lane `4`, near-miss `5` |
+| `h10_rollout_distance_loss010` | `5639` | `3873` | `2218` | `1655` | `449` | `+0.732186` | `+6.539325` | lane `4`, near-miss `6` |
+
+Interpretation:
+
+1. `candidate_route_progress` is not available in this outcome-labeled root,
+   so it cannot currently serve as a validated online guard without regenerating
+   labels or logging repair.
+2. Step reach, PerfectTracker first-step reach, target speed, and H3/H5/H10
+   rollout distances reduce some hidden opportunities, but all introduce far
+   more false overrides than `progress_shortfall_p005`. Their mean and CVaR90
+   candidate-label safety deltas are strongly positive, and each creates
+   posterior lane/near-miss hard-gate worse cases.
+3. H10 rollout distance at `0.05 m` is the least bad of the tested alternatives
+   by mean safety delta, but it still has 1,199 false overrides and hard-gate
+   worse events. This is not close to an online or smoke-ready rule.
+4. The failure mode is not fixed by simply replacing `progress_shortfall` with
+   another single current-tick progress descriptor. The alternatives either
+   miss many hidden opportunities or admit too many false positives.
+
+Mathematical conclusion: all audited descriptors are fixed current-tick
+finite-candidate diagnostics. The audit does not use outcome labels as online
+inputs and does not change the CAMP atom schema, weights, selector, DP sampler,
+postprocessing, tracker, simulator, or SafetyCost evaluator. If any descriptor
+is later atomized, it must be fixed, finite, nonnegative after scaling, and
+score-affine in the CAMP master variable. No classical Benders claim is made
+for trajectory coordinates or simulator outcomes.
+
+Decision: accept the progress proxy guard audit implementation and artifact.
+Reject every tested single-descriptor replacement for online promotion. Do not
+run sample59 smoke, 36-run, formal seeds, or CAMP retraining. The next
+admissible step is a stricter composite guard audit, not another single-proxy
+swap: candidate rules should combine an outcome-free progress descriptor with
+additional current-tick constraints that target the observed false-positive
+mechanism, especially posterior progress loss and lane/near-miss exposure. A
+candidate composite rule must beat `progress_shortfall_p005` on false overrides
+and hard-gate worse counts while recovering more of its 766 hidden
+opportunities before any online selector implementation is considered.
