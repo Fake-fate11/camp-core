@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from scripts.integrations.run_diffusion_planner_camp_benchmark_matrix import (
+    _compare_command,
     _validate_args,
     _variant_command,
 )
@@ -71,6 +72,9 @@ def _make_args() -> SimpleNamespace:
         camp_outcome_jerk_penalty=0.25,
         camp_outcome_lateral_acceleration_penalty=1.0,
         variants=("top1", "uniform", "static", "theta"),
+        output_root=Path("F:/out/matrix"),
+        scenario_bucket_manifest=None,
+        require_strict_pairing=False,
     )
 
 
@@ -340,3 +344,26 @@ def test_validate_args_rejects_traffic_light_hybrid_with_other_postselectors() -
     args.camp_splice_shadow_rule = True
     with pytest.raises(ValueError, match="camp_splice_shadow_rule"):
         _validate_args(args)
+
+
+def test_compare_command_threads_bucket_manifest_and_strict_pairing() -> None:
+    args = _make_args()
+    args.scenario_bucket_manifest = Path(
+        "F:/camp_core-main/configs/integrations/buckets.json"
+    )
+    args.require_strict_pairing = True
+    runs = [
+        ("top1", Path("F:/out/matrix/route/seed_1/top1")),
+        ("static", Path("F:/out/matrix/route/seed_1/static")),
+    ]
+
+    cmd = _compare_command(runs, args)
+
+    manifest_idx = cmd.index("--scenario_bucket_manifest")
+    assert cmd[manifest_idx + 1] == str(args.scenario_bucket_manifest)
+    assert "--require_strict_pairing" in cmd
+    assert "--output_json" in cmd
+    output_idx = cmd.index("--output_json")
+    assert cmd[output_idx + 1] == str(
+        args.output_root / "benchmark_comparison.json"
+    )

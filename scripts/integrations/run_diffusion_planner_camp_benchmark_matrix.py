@@ -261,6 +261,20 @@ def parse_args() -> argparse.Namespace:
         help="Skip aggregate comparison, for example during uniform-only collection.",
     )
     parser.add_argument(
+        "--scenario_bucket_manifest",
+        type=Path,
+        default=None,
+        help=(
+            "Optional scenario bucket manifest forwarded to the aggregate "
+            "comparison gate."
+        ),
+    )
+    parser.add_argument(
+        "--require_strict_pairing",
+        action="store_true",
+        help="Require strict run-key pairing in the aggregate comparison gate.",
+    )
+    parser.add_argument(
         "--render_png",
         action="store_true",
         help="Render per-step PNGs. By default REPLAY_NO_PNG=1 is set.",
@@ -479,6 +493,30 @@ def _variant_command(
     return cmd
 
 
+def _compare_command(
+    runs: list[tuple[str, Path]],
+    args: argparse.Namespace,
+) -> list[str]:
+    compare_cmd = [sys.executable, str(COMPARE), "--baseline", "top1"]
+    for variant, output_dir in runs:
+        compare_cmd.extend(["--variant", f"{variant}={output_dir}"])
+    if args.scenario_bucket_manifest is not None:
+        compare_cmd.extend(
+            ["--scenario_bucket_manifest", str(args.scenario_bucket_manifest)]
+        )
+    if args.require_strict_pairing:
+        compare_cmd.append("--require_strict_pairing")
+    compare_cmd.extend(
+        [
+            "--output_json",
+            str(args.output_root / "benchmark_comparison.json"),
+            "--output_markdown",
+            str(args.output_root / "benchmark_comparison.md"),
+        ]
+    )
+    return compare_cmd
+
+
 def _validate_args(args: argparse.Namespace) -> None:
     if args.camp_feasibility_source == "dp_reward" and args.reward_config is None:
         raise ValueError(
@@ -612,17 +650,7 @@ def main() -> None:
             "otherwise pass --skip_compare."
         )
 
-    compare_cmd = [sys.executable, str(COMPARE), "--baseline", "top1"]
-    for variant, output_dir in runs:
-        compare_cmd.extend(["--variant", f"{variant}={output_dir}"])
-    compare_cmd.extend(
-        [
-            "--output_json",
-            str(args.output_root / "benchmark_comparison.json"),
-            "--output_markdown",
-            str(args.output_root / "benchmark_comparison.md"),
-        ]
-    )
+    compare_cmd = _compare_command(runs, args)
     print(" ".join(compare_cmd), flush=True)
     if not args.dry_run:
         subprocess.run(compare_cmd, check=True)
