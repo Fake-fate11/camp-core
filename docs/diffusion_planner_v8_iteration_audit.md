@@ -17317,3 +17317,196 @@ breakdown timings for
 `sample_map_tl_route_59_to_86/seed_1/npc_4/tl_off/static`, followed by the same
 reward-tail attribution. Do not run a new Full36 matrix, train CAMP, use formal
 seeds, or promote an online selector from this evidence.
+
+### Blocker-Focused Reward Breakdown Instrumentation Smoke
+
+Commits:
+
+- Smoke run CAMP commit:
+  `da89c50153b05381068667e7ce2d69ad39c61554`
+  (`Record DP reward latency tail audit`).
+- Reward-tail analyzer enhancement:
+  `e02a56bfd46e1735369d9877aa40844e5fc035d4`
+  (`Report overall DP reward latency attribution`).
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Purpose:
+
+This is the blocker-focused, non-formal, instrumentation-only smoke requested
+by the previous audit. It reruns only
+`sample_map_tl_route_59_to_86/seed_1/npc_4/tl_off/static` with current logging
+so reward-scoring latency has nonzero internal breakdown fields. It is not a
+12-run, 36-run, formal-seed run, training run, online selector promotion, or DP
+change.
+
+Smoke command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/reward_breakdown_smoke_da89c50_sample_tl_seed1_npc4_tloff_static
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+REPLAY_NO_PNG=1 \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --map_path /root/autodl-tmp/camp_dp_assets/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm \
+  --route /root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --model_path /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth \
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --output_dir "$OUT" \
+  --device cuda \
+  --advance_mode perfect \
+  --steps 200 \
+  --seed 1 \
+  --max_npcs 4 \
+  --spawn_probability 0.3 \
+  --traffic_lights off \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --camp_selector_mode static \
+  --camp_atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --camp_static_weights /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy \
+  --num_candidates 8 \
+  --candidate_noise_scale 1.0 \
+  --candidate_reference_blend_steps 5 \
+  --camp_lane_corridor_buffer 1.0 \
+  --camp_feasibility_source dp_reward \
+  --camp_fallback_mode learned \
+  --camp_min_progress_ratio 0.8 \
+  --camp_shadow_route_progress \
+  --camp_shadow_obstacle_clearance \
+  --camp_reward_horizon_steps 30 \
+  --camp_outcome_horizon_steps 30 \
+  --near_miss_threshold_m 2.0
+```
+
+Audit commands:
+
+```bash
+AUDIT=$OUT/audit_da89c50
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --selection_log "$OUT/camp_selection_log.json" \
+  --atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --expected_logs 1 \
+  --expected_candidates 8 \
+  --expected_advance_mode perfect \
+  --closed_loop_outcome_policy forbidden \
+  --forbid_seed 11 \
+  --forbid_seed 12 \
+  --forbid_seed 13 \
+  --required_candidate_field candidate_route_progress \
+  --require_finite_candidate_contract \
+  --output_json "$AUDIT/dataset_audit_reward_breakdown_smoke.json"
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_latency_budget.py \
+  --selection_log "$OUT/camp_selection_log.json" \
+  --label reward_breakdown_smoke_da89c50_sample_tl_seed1_npc4_tloff_static \
+  --output_json "$AUDIT/latency_budget_reward_breakdown_smoke.json" \
+  --output_md "$AUDIT/latency_budget_reward_breakdown_smoke.md"
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_reward_latency_tail.py \
+  --selection_log "$OUT/camp_selection_log.json" \
+  --label reward_breakdown_smoke_e02a56b_sample_tl_seed1_npc4_tloff_static \
+  --reference_old_clearance_p95_ms 9.296867 \
+  --reference_new_clearance_p95_ms 0.858788 \
+  --reference_source old_exact_off_smoke_vs_vectorized_smoke_sha_88bee7f5494de1cf9ad49cd5c17b772bdd337274f4211ff24f284b2c32d2a140 \
+  --output_json "$AUDIT/reward_latency_tail_reward_breakdown_smoke_e02a56b.json" \
+  --output_md "$AUDIT/reward_latency_tail_reward_breakdown_smoke_e02a56b.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `18c6106e9dca6e5093263a067df2344107ff4e755988dbbfde43a46155492823` |
+| `camp_validation_summary.json` | `2a9598c0ab46251449e7bdc47a4d130b5616f33f3a971d5f71dbca49b30843b9` |
+| `camp_replay_summary.json` | `e8376e2b2f0a2bc6b74d3e90a826ab93eedae88c74fb855201cd1733a2e91b45` |
+| `dataset_audit_reward_breakdown_smoke.json` | `e295bf21c5bc0970a1a9f26a204953470eb1a86e18bbf3ab6efe25f17471e01f` |
+| `latency_budget_reward_breakdown_smoke.json` | `98160a548c15a3573baf77b7b4143f89938b3ef2f74155651ff66f86dab1e794` |
+| `latency_budget_reward_breakdown_smoke.md` | `c5160f5efc7413a0e50b06ae8917c287b7dd713a487b2a1b7521d4c2ffab0d82` |
+| `reward_latency_tail_reward_breakdown_smoke_e02a56b.json` | `f0a69f4884bc65220ff0abcc3a63f110f325131bdd07e78486d414eee0579322` |
+| `reward_latency_tail_reward_breakdown_smoke_e02a56b.md` | `b158889bfdcb6e3ddbbe9527977b603be94877ad973662c35471ee8899ad47a8` |
+
+Dataset audit:
+
+- passed `1` log and `200` records;
+- `closed_loop_outcome_policy=forbidden`;
+- formal seeds `11/12/13` forbidden;
+- `candidate_route_progress` required;
+- finite-candidate contract required.
+
+Latency summary:
+
+| Metric | P95 |
+| --- | ---: |
+| `latency_ms_including_candidate_generation` | `99.847964` |
+| `latency_ms_reward_scoring` | `29.968980` |
+| `latency_ms_reward_batch_compute` | `14.318304` |
+| `latency_ms_reward_route_progress` | `6.952000` |
+| `latency_ms_reward_sg_smoothing` | `5.285364` |
+| `latency_ms_camp_selection` | `8.430465` |
+| `latency_ms_shadow_obstacle_clearance` | `0.858692` |
+
+Reward attribution:
+
+The old Full36 logs had zero reward-breakdown fields, but this current-code
+smoke has nonzero breakdown fields on all 200 records. The reward residual is
+small:
+
+| Quantity | Mean | P95 | Max |
+| --- | ---: | ---: | ---: |
+| `latency_ms_reward_scoring` | `27.838365` | `29.968980` | `215.947859` |
+| reward breakdown sum | `27.798792` | `29.923968` | `215.899331` |
+| reward unattributed residual | `0.039574` | `0.046726` | `0.058055` |
+
+Top all-record reward components:
+
+| Component | Mean | P95 | Max |
+| --- | ---: | ---: | ---: |
+| `latency_ms_reward_batch_compute` | `13.164841` | `14.318304` | `200.497136` |
+| `latency_ms_reward_route_progress` | `6.840850` | `6.952000` | `9.671570` |
+| `latency_ms_reward_sg_smoothing` | `5.261901` | `5.285364` | `11.257770` |
+| `latency_ms_reward_npz_dump` | `1.851800` | `1.936098` | `4.695484` |
+| `latency_ms_reward_tensor_setup` | `0.337449` | `0.349120` | `0.951539` |
+
+The single smoke no longer has an over-budget projected run (`0 / 1` under all
+three clearance projection modes), so the reward-tail rows are empty by
+definition. For all-record sensitivity, removing half of the instrumented
+reward breakdown would project the single run to roughly `84.88-85.65 ms`,
+while half of `reward_batch_compute` alone projects roughly `92.23-93.00 ms`.
+
+Interpretation:
+
+1. The current instrumentation is sufficient: reward breakdown nearly accounts
+   for all reward scoring latency (`residual p95=0.046726 ms`).
+2. The main reward-side targets are now concrete engineering components:
+   `reward_batch_compute`, `reward_route_progress`, and `reward_sg_smoothing`.
+3. This single smoke passes the `100 ms` per-run p95 target with very little
+   margin (`99.847964 ms`). It is useful instrumentation evidence, not a
+   development-grid pass.
+4. Because the old Full36 logs lack reward breakdown fields, these component
+   proportions cannot be safely projected across all 36 runs without a broader
+   instrumentation artifact.
+
+Mathematical boundary: this smoke and attribution do not change DP, candidate
+generation, postprocessing, PerfectTracker, CAMP atoms, weights, feasible sets,
+the affine score, the convex master, or any Benders-style logic. Reward timing
+is engineering latency plumbing only.
+
+Decision: accept the blocker smoke as proof that current-code reward
+breakdown instrumentation is usable. Reject Full36 rerun, online selector
+promotion, CAMP retraining, and formal seeds from this single-smoke evidence.
+The next admissible step is an exact-equivalent reward-latency engineering plan
+or microbenchmark for `reward_batch_compute`, `reward_route_progress`, and
+`reward_sg_smoothing`; only after a concrete exact-equivalent plan projects
+enough margin under the conservative model should a broader non-formal replay
+be considered.
