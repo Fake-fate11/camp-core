@@ -14086,3 +14086,302 @@ non-formal outcome-labeled artifact with `--camp_shadow_route_progress` enabled
 for the same development setup, then rerun hidden-visibility analysis to check
 whether `route_progress_loss` becomes available and separates hidden-good from
 risky-common candidates without hard-gate regressions.
+
+## Targeted shadow route-progress label pass
+
+Code state for the route-progress visibility screen:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for analyzer extension:
+6b973613ebe09f006ab0f0f2f72a0b717b3da601
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+Modified:
+scripts/integrations/analyze_diffusion_planner_hidden_visibility.py
+camp_core/tests/test_diffusion_planner_hidden_visibility.py
+```
+
+Added shadow-only screens:
+
+```text
+escape_route_nonworse_lower_m200_p005_score0
+escape_route_nonworse_lower_m200_p005_h10_p005_score0
+```
+
+These screens keep the protected base rule but, only when the base rule keeps
+candidate0 and an outcome-label oracle candidate exists, allow lower-band
+recovery down to `progress_delta >= -2.0 m` if `route_progress_loss <= 0` and
+the CAMP score is nonworse. The second screen also requires H10 open-loop
+distance loss `<= 0.05 m`.
+
+Local verification before committing `6b97361`:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_hidden_visibility.py \
+  -q
+# 1 passed in 0.66s
+
+python -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_hidden_visibility.py \
+  camp_core\tests\test_diffusion_planner_hidden_visibility.py
+# passed
+
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_hidden_visibility.py \
+  camp_core\tests\test_diffusion_planner_hidden_visibility.py
+# All checks passed
+
+git diff --check
+# passed
+```
+
+Targeted label-pass scope:
+
+```text
+Artifact root:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/shadow_route_progress_sample59_seed2_61a20a4
+
+Route:
+sample_map_tl_route_59_to_86
+
+Seed:
+2
+
+NPC counts:
+0, 4
+
+Traffic lights:
+on
+
+Steps:
+200
+
+Variant:
+static redstopfloor05
+
+Selection-effecting route guard:
+disabled; camp_min_candidate0_route_progress_ratio = null
+
+Shadow diagnostic:
+--camp_shadow_route_progress
+```
+
+Replay command template:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --map_path /root/autodl-tmp/camp_dp_assets/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm \
+  --route /root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --model_path /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth \
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --device cuda \
+  --steps 200 \
+  --seed 2 \
+  --max_npcs <0-or-4> \
+  --spawn_probability 0.3 \
+  --traffic_lights on \
+  --advance_mode perfect \
+  --reward_config configs/integrations/dp_camp_reward_eval.json \
+  --camp_selector_mode static \
+  --camp_atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --camp_static_weights /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy \
+  --num_candidates 8 \
+  --candidate_noise_scale 1.0 \
+  --camp_feasibility_source dp_reward \
+  --camp_fallback_mode uniform \
+  --camp_min_progress_ratio 0.8 \
+  --camp_reward_horizon_steps 30 \
+  --camp_collect_closed_loop_outcomes \
+  --camp_outcome_horizon_steps 30 \
+  --camp_shadow_route_progress \
+  --near_miss_threshold_m 2.0 \
+  --output_dir <artifact-root>/sample_map_tl_route_59_to_86/seed_2/npc_<0-or-4>/spawn_0p3/tl_on/static
+```
+
+Route-progress logging check:
+
+```text
+npc_0: records=200, route_progress_nonnull=200, vector length=8
+npc_4: records=200, route_progress_nonnull=200, vector length=8
+
+camp_shadow_route_progress:
+{enabled: true, selection_effect: false, logged_field: candidate_route_progress}
+
+camp_min_candidate0_route_progress_ratio:
+null
+```
+
+Dataset/readiness audits:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/shadow_route_progress_sample59_seed2_61a20a4
+OUT=$ROOT/readiness_audit_6b97361
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --root "$ROOT" \
+  --atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --expected_logs 2 \
+  --expected_candidates 8 \
+  --expected_advance_mode perfect \
+  --required_candidate_field candidate_route_progress \
+  --closed_loop_outcome_policy required \
+  --forbid_seed 11 --forbid_seed 12 --forbid_seed 13 \
+  --require_finite_candidate_contract \
+  --output_json "$OUT/dataset_audit_required_outcomes.json"
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_candidate_availability_inputs.py \
+  --root "$ROOT" \
+  --output_json "$OUT/candidate_availability_input_readiness.json" \
+  --output_md "$OUT/candidate_availability_input_readiness.md" \
+  --fail_on_not_ready
+```
+
+Readiness result:
+
+```text
+Dataset audit:
+passed=true
+logs=2
+records=400
+candidates=3200
+all_infeasible_records=114
+closed_loop_outcome_policy=required
+finite_candidate_contract_verified=true
+forbidden_seed_check=true
+required_candidate_field=candidate_route_progress
+
+Candidate availability input readiness:
+candidate_availability_oracle_ready=true
+current_tick_proxy_inputs_ready=true
+outcome_labels_ready=true
+candidate_counts={8: 400}
+nonfallback_records=286
+fallback_records=114
+```
+
+Readiness artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `dataset_audit_required_outcomes.json` | `fc41b12141ebd6756623be9254345c135ea6788d11535bbb137950b7cea224ba` |
+| `candidate_availability_input_readiness.json` | `4e6bced80940d70ee148320b20d22deeb53e0e566554c6f9791470fd8cfcab01` |
+| `candidate_availability_input_readiness.md` | `4b49fd609178a4220ed0fc4455df76a72d9845c8c34cbde23219744f0edcb3fb` |
+
+Hidden-visibility command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/shadow_route_progress_sample59_seed2_61a20a4
+OUT=$ROOT/hidden_visibility_route_progress_6b97361
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_hidden_visibility.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label shadow_route_progress_sample59_seed2 \
+  --output_json "$OUT/hidden_visibility.json" \
+  --output_md "$OUT/hidden_visibility.md"
+```
+
+Hidden-visibility artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `hidden_visibility.json` | `ef679649b46a88a164a7ec5b0c059b48b7eb3a4f9fb435bd5644ad2be5fd0884` |
+| `hidden_visibility.md` | `f80b38b596d8d16580fa612c8347b9f97b475a65c9a3960456fb151274e9864f` |
+
+Targeted hidden-visibility result:
+
+```text
+records=400
+logs=2
+candidate0_feasible=267
+nonfallback=286
+fallback=114
+
+protected base overrides=107
+protected base true overrides=103
+protected base false overrides=4
+protected base hidden outcome records=27
+protected base bool hard-gate worse: all zero
+hidden blockers:
+  progress_delta_below_lower_band=25
+  red_stopping_worse=3
+  union_red_worse=4
+```
+
+Feature separation in this targeted artifact:
+
+| Feature | Hidden best oracle p10/p50/p90 | Risky common p10/p50/p90 |
+| --- | --- | --- |
+| `route_progress_loss` | `-0.6978 / -0.2418 / -0.1256` | `+0.1003 / +0.3027 / +0.8046` |
+| `progress_delta` | `-0.6820 / -0.2349 / -0.1219` | `+0.0810 / +0.2911 / +0.7925` |
+| `score_delta` | `-0.1678 / -0.0584 / -0.0275` | `+0.0119 / +0.0576 / +0.1630` |
+| `h10_distance_loss` | `-0.2132 / -0.0734 / -0.0104` | `+0.0045 / +0.0675 / +0.1876` |
+
+Escape screen result:
+
+| Screen | Escape | True | False | Hidden remaining | Mean safety | CVaR90 safety | Bool hard-gate worse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `escape_p010_route_p005_score0` | `0` | `0` | `0` | `27` | n/a | n/a | none |
+| `escape_route_nonworse_lower_m200_p005_score0` | `23` | `23` | `0` | `4` | `-0.033225` | `-0.003654` | none |
+| `escape_route_nonworse_lower_m200_p005_h10_p005_score0` | `23` | `23` | `0` | `4` | `-0.027064` | `-0.003654` | none |
+| `escape_lower_m020_p005_score0` | `6` | `6` | `0` | `21` | `-0.005694` | `-0.002305` | none |
+| `escape_lower_m020_p005_h10_p005_score0` | `6` | `6` | `0` | `21` | `-0.005694` | `-0.002305` | none |
+
+Interpretation:
+
+1. `candidate_route_progress` is now available and finite for every record in
+   this targeted artifact.
+2. In these two sample59 seed-2 traffic-light runs, `route_progress_loss <= 0`
+   sharply separates hidden-good candidates from risky-common candidates.
+   Hidden-good candidates are route-progress nonworse/better than candidate0,
+   while risky-common candidates have positive route-progress loss.
+3. The route-progress lower-band screen recovers `23/27` hidden opportunities
+   with zero posterior false escape and zero bool hard-gate worsening. This is
+   the first positive evidence that a current-tick, outcome-free diagnostic can
+   recover lower-band hidden candidates without weakening hard gates.
+4. The evidence is intentionally narrow: only `sample59_86`, seed `2`,
+   traffic-lights on, NPC counts `0/4`. It is not a selector promotion gate and
+   does not justify sample59 12-run smoke, 36-run, formal seeds, or CAMP
+   retraining.
+
+Mathematical conclusion: the route-progress screen remains inside the
+CAMP-side finite-candidate contract. It uses fixed current-tick route-centerline
+projection values already logged with each candidate. Online use would require
+a fixed nonnegative atom such as `max(0, progress_0 - progress_k) / scale` or a
+finite-candidate lexicographic guard with deterministic fail-closed fallback.
+Outcome labels are used only to evaluate true/false recovery after the fact.
+No DP sampler, SG smoothing, `postprocess_reference`, PerfectTracker,
+closed-loop future state, SafetyCost, or trajectory-coordinate optimization is
+treated as a Benders subproblem or cut source.
+
+Decision: accept the targeted shadow route-progress label pass and analyzer
+extension as a positive diagnostic milestone. Reject online promotion from this
+targeted evidence alone. The next admissible step is to expand the same
+shadow-only route-progress label pass to the full predeclared non-formal
+development grid, or at minimum all three routes and seeds `1/2/3`, then rerun
+hidden-visibility and bucketed hard-gate analysis. Only if the route-progress
+lower-band screen remains hard-gate safe and materially recovers hidden
+candidates across buckets should a default-off online selector implementation
+be considered.
