@@ -21,6 +21,7 @@ def test_hidden_visibility_reports_escape_recovery_and_missing_route(tmp_path) -
                 progress_shortfall=[0.20, 0.28],
                 proxy_lateral=[0.8, 0.7],
                 h10_distance=[10.0, 9.98],
+                route_progress=None,
                 score=[0.2, 0.1],
                 outcomes=[
                     _outcome(0, progress=10.0, jerk=5.0, lateral=1.0),
@@ -33,6 +34,7 @@ def test_hidden_visibility_reports_escape_recovery_and_missing_route(tmp_path) -
                 progress_shortfall=[0.20, 0.40],
                 proxy_lateral=[0.8, 0.7],
                 h10_distance=[10.0, 9.98],
+                route_progress=None,
                 score=[0.2, 0.1],
                 outcomes=[
                     _outcome(0, progress=10.0, jerk=5.0, lateral=1.0),
@@ -45,6 +47,7 @@ def test_hidden_visibility_reports_escape_recovery_and_missing_route(tmp_path) -
                 progress_shortfall=[0.20, 0.22],
                 proxy_lateral=[0.8, 0.7],
                 h10_distance=[10.0, 10.0],
+                route_progress=None,
                 score=[0.2, 0.1],
                 outcomes=[
                     _outcome(0, progress=10.0, jerk=5.0, lateral=1.0),
@@ -57,29 +60,52 @@ def test_hidden_visibility_reports_escape_recovery_and_missing_route(tmp_path) -
                     ),
                 ],
             ),
+            _record(
+                selected=0,
+                feasible=[True, True],
+                progress_shortfall=[1.00, 0.40],
+                proxy_lateral=[0.8, 0.7],
+                h10_distance=[10.0, 10.0],
+                route_progress=[10.0, 10.4],
+                score=[0.2, 0.1],
+                outcomes=[
+                    _outcome(0, progress=10.0, jerk=5.0, lateral=1.0),
+                    _outcome(1, progress=10.0, jerk=3.0, lateral=0.5),
+                ],
+            ),
         ],
     )
 
     report = analyze([root], label="unit", max_examples=2)
 
     base = report["base_rule"]
-    assert base["hidden_outcome_records"] == 1
+    assert base["hidden_outcome_records"] == 2
     assert base["override_records"] == 1
     assert base["hard_gate_bool_worse_records"]["lane_violation"] == 1
     assert base["hidden_blocker_counts"]["progress_delta_exceeds_budget"] == 1
+    assert base["hidden_blocker_counts"]["progress_delta_below_lower_band"] == 1
 
     screens = {row["name"]: row for row in report["screens"]}
     h10 = screens["escape_p010_h10_p005_score0"]["summary"]
-    assert h10["base_hidden_context_records"] == 1
+    assert h10["base_hidden_context_records"] == 2
     assert h10["escape_override_records"] == 1
     assert h10["true_recovery_records"] == 1
     assert h10["false_escape_records"] == 0
-    assert h10["hidden_remaining_records"] == 0
+    assert h10["hidden_remaining_records"] == 1
 
     route = screens["escape_p010_route_p005_score0"]["summary"]
     assert route["descriptor_missing_records"] == 1
     assert route["escape_override_records"] == 0
-    assert route["hidden_remaining_records"] == 1
+    assert route["hidden_remaining_records"] == 2
+
+    route_lower = screens[
+        "escape_route_nonworse_lower_m200_p005_score0"
+    ]["summary"]
+    assert route_lower["descriptor_missing_records"] == 1
+    assert route_lower["escape_override_records"] == 1
+    assert route_lower["true_recovery_records"] == 1
+    assert route_lower["false_escape_records"] == 0
+    assert route_lower["hidden_remaining_records"] == 1
 
     markdown = render_markdown(report)
     assert "Hidden Visibility Audit" in markdown
@@ -119,6 +145,7 @@ def _record(
     progress_shortfall: list[float],
     proxy_lateral: list[float],
     h10_distance: list[float],
+    route_progress: list[float] | None,
     score: list[float],
     outcomes: list[dict],
 ) -> dict:
@@ -160,6 +187,7 @@ def _record(
         "candidate_horizon_union_planned_red_light_cost": [0.0] * len(feasible),
         "candidate_red_stopping_margin_cost": [0.0] * len(feasible),
         "candidate_step_reach": h10_distance,
+        "candidate_route_progress": route_progress,
         "candidate_perfect_tracker_first_step_reach_m": h10_distance,
         "candidate_perfect_tracker_target_speed_mps": h10_distance,
         "candidate_perfect_tracker_open_loop_rollout": {

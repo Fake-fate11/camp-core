@@ -109,6 +109,34 @@ SCREEN_SPECS: tuple[dict[str, Any], ...] = (
         ),
     },
     {
+        "name": "escape_route_nonworse_lower_m200_p005_score0",
+        "description": (
+            "route-progress lower-band recovery: allow progress_delta down to "
+            "-2.0 m only when route-progress is nonworse than candidate0 and "
+            "the CAMP score is nonworse"
+        ),
+        "progress_delta_min": -2.00,
+        "progress_delta_max": 0.05,
+        "filters": (
+            {"field": "route_progress_loss", "max": 0.0},
+            {"field": "score_delta", "max": 0.0},
+        ),
+    },
+    {
+        "name": "escape_route_nonworse_lower_m200_p005_h10_p005_score0",
+        "description": (
+            "same route-progress lower-band recovery with an additional "
+            "H10 open-loop distance loss <= 0.05 m guard"
+        ),
+        "progress_delta_min": -2.00,
+        "progress_delta_max": 0.05,
+        "filters": (
+            {"field": "route_progress_loss", "max": 0.0},
+            {"field": "h10_distance_loss", "max": 0.05},
+            {"field": "score_delta", "max": 0.0},
+        ),
+    },
+    {
         "name": "escape_lower_m020_p005_score0",
         "description": "lower-band recovery contrast: progress_delta [-0.20, 0.05] and score nonworse",
         "progress_delta_min": -0.20,
