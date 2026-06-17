@@ -13300,3 +13300,205 @@ to diagnose the 766 hidden outcome opportunities left by
 certificate must keep the zero-hard-gate property of `strict_red_or_joint`
 while recovering materially more of the hidden outcome opportunities, using
 only current-tick finite-candidate diagnostics.
+
+## Top-1-preserving failure attribution
+
+Code/documentation state:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for failure attribution implementation:
+3914fc24b98a9d077411c20b858ac9e629e2a82c
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+Added:
+scripts/integrations/analyze_diffusion_planner_top1_preserving_failure_attribution.py
+camp_core/tests/test_diffusion_planner_top1_preserving_failure_attribution.py
+```
+
+Local verification before committing `3914fc2`:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_top1_preserving_failure_attribution.py \
+  -q
+# 1 passed in 0.50s
+
+python -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_top1_preserving_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_top1_preserving_failure_attribution.py
+# passed
+
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_top1_preserving_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_top1_preserving_failure_attribution.py
+# All checks passed
+
+git diff --check
+# passed
+```
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# 3914fc24b98a9d077411c20b858ac9e629e2a82c
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_top1_preserving_failure_attribution.py \
+  -q
+# 1 passed in 0.33s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/analyze_diffusion_planner_top1_preserving_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_top1_preserving_failure_attribution.py
+# passed
+```
+
+Attribution command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_top1_preserving_failure_attribution.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --rule strict_any_comfort_p005 \
+  --label redstopfloor05_outcome_labels \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preserving_failure_attribution_3914fc2/top1_preserving_failure_attribution.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preserving_failure_attribution_3914fc2/top1_preserving_failure_attribution.md
+```
+
+Artifact paths and SHA:
+
+```text
+Top-1-preserving failure attribution JSON:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preserving_failure_attribution_3914fc2/top1_preserving_failure_attribution.json
+sha256 ec2cfce2988e88afdbe3148f0116b8e1178dedbf698791509503c11b470b085d
+
+Top-1-preserving failure attribution Markdown:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preserving_failure_attribution_3914fc2/top1_preserving_failure_attribution.md
+sha256 87540d6bc92ae9153c8792af79670c0745788402e350705758bccca787cf8961
+```
+
+Scope: this is a posterior attribution of the already rejected
+`strict_any_comfort_p005` counterfactual. It does not change CAMP selection,
+does not add online features, does not use outcome labels online, and does not
+authorize smoke/formal runs.
+
+Attribution records:
+
+```text
+logs: 36
+records: 7200
+candidate0 feasible: 5639
+strict_any_comfort_p005 overrides: 2475
+true overrides: 2430
+false overrides: 45
+hidden outcome opportunities: 766
+```
+
+False override attribution:
+
+| False reason | Records |
+| --- | ---: |
+| `outcome_progress_loss_exceeds_budget` | `41` |
+| `outcome_lane_violation_worse` | `4` |
+| `outcome_near_miss_worse` | `4` |
+
+False override posterior deltas:
+
+| Quantity | Mean | p50 | p90 | CVaR90 |
+| --- | ---: | ---: | ---: | ---: |
+| Candidate-label safety delta | `+2.695321` | `+0.083592` | `+9.975013` | `+18.085182` |
+| Outcome progress delta | `-0.111991 m` | `-0.062693 m` | `-0.050057 m` | `-0.016686 m` |
+| Outcome jerk delta | `-0.977071 m/s^3` | `-0.311361` | `-0.070417` | `-0.038248` |
+| Outcome lateral delta | `-0.097621 m/s^2` | `-0.021709` | `-0.012714` | `-0.008733` |
+
+False override current-tick proxy deltas:
+
+| Proxy delta | Mean | p50 | p90 | CVaR90 |
+| --- | ---: | ---: | ---: | ---: |
+| `progress_shortfall` | `-0.080080` | `+0.029566` | `+0.047528` | `+0.048685` |
+| `proxy_jerk` | `0.000000` | `0.000000` | `0.000000` | `0.000000` |
+| `proxy_lateral` | `-0.097621` | `-0.021709` | `-0.012714` | `-0.008733` |
+| `selection_score` | `-0.077217` | `-0.008493` | `+0.005887` | `+0.010007` |
+| `union_red` | `0.000000` | `0.000000` | `0.000000` | `0.000000` |
+| `red_stopping` | `0.000000` | `0.000000` | `0.000000` | `0.000000` |
+
+False overrides are not red-light failures. They are mostly lateral-improving
+proxy choices that appear admissible under `progress_shortfall <= 0.05 m` but
+still lose more than the posterior outcome progress budget or introduce
+posterior lane/near-miss events. Tightening red or comfort thresholds alone
+does not address this failure mode.
+
+Hidden outcome attribution:
+
+| Hidden blocker | Records |
+| --- | ---: |
+| `progress_shortfall_exceeds_budget` | `762` |
+| `union_red_worse` | `3` |
+| `red_stopping_worse` | `2` |
+
+Hidden best-candidate posterior deltas:
+
+| Quantity | Mean | p50 | p90 | CVaR90 |
+| --- | ---: | ---: | ---: | ---: |
+| Candidate-label safety delta | `-0.081842` | `-0.053780` | `-0.022837` | `-0.007711` |
+| Outcome progress delta | `+0.391860 m` | `0.000000 m` | `0.000000 m` | `+0.399299 m` |
+| Outcome jerk delta | `-0.428219 m/s^3` | `-0.328512` | `-0.115526` | `-0.068620` |
+| Outcome lateral delta | `-0.027290 m/s^2` | `-0.020974` | `-0.005056` | `-0.002503` |
+
+Hidden best-candidate current-tick proxy deltas:
+
+| Proxy delta | Mean | p50 | p90 | CVaR90 |
+| --- | ---: | ---: | ---: | ---: |
+| `progress_shortfall` | `+0.732152` | `+0.582485` | `+1.501063` | `+2.040917` |
+| `proxy_jerk` | `0.000000` | `0.000000` | `0.000000` | `0.000000` |
+| `proxy_lateral` | `-0.027290` | `-0.020974` | `-0.005056` | `-0.002503` |
+| `selection_score` | `+0.142213` | `+0.113094` | `+0.315361` | `+0.424764` |
+| `union_red` | `+0.003264` | `0.000000` | `0.000000` | `+0.003264` |
+| `red_stopping` | `+0.001646` | `0.000000` | `0.000000` | `+0.010714` |
+
+Hidden opportunities are overwhelmingly blocked by `progress_shortfall`, even
+though their posterior outcomes are safety-improving and often progress-neutral
+or progress-positive. The hidden best candidates generally have no proxy jerk
+change and a lateral proxy improvement, but the `progress_shortfall` proxy
+assigns a large penalty that is not reflected in posterior candidate progress.
+
+Bucket summary:
+
+| Bucket | False records | Hidden records | Notes |
+| --- | ---: | ---: | --- |
+| `traffic_light` | `27` | `380` | false mean safety delta `+2.929527`; hidden mean safety delta `-0.069964` |
+| `red_light_turn` | `23` | `11` | false mean safety delta `+1.713300`; hidden mean safety delta `-0.001908` |
+| `sharp_turn` | `41` | `17` | false mean safety delta `+1.990198`; hidden mean safety delta `+0.000860` |
+
+Mathematical conclusion: the attribution stays inside the CAMP-side
+finite-candidate contract. It evaluates fixed finite candidates and fixed
+current-tick diagnostics; outcome labels are used only to classify posterior
+false/hidden cases. No online selector, atom schema, CAMP master, DP sampler,
+tracker, simulator, SafetyCost run metric, or trajectory coordinate is changed
+or claimed as a Benders subproblem.
+
+Decision: accept the failure-attribution tool and artifact. Continue rejecting
+`strict_any_comfort_p005` and all previously evaluated counterfactual rules for
+online promotion. Do not run sample59 smoke, 36-run, formal seeds, or CAMP
+retraining. The next admissible step is to design a progress-proxy replacement
+or guard audit using current-tick diagnostics already logged in the artifact
+such as `candidate_route_progress`, `candidate_step_reach`,
+`candidate_perfect_tracker_first_step_reach_m`,
+`candidate_perfect_tracker_target_speed_mps`, and H3/H5/H10 open-loop rollout
+distance. The target is to reduce the 762 progress-shortfall hidden blockers
+without reintroducing the 45 false-override failure mode.
