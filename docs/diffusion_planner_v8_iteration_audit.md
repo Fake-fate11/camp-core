@@ -12929,3 +12929,195 @@ across the existing sample59 artifacts, identify exactly which affine atoms and
 feasibility filters cause the 2164 nonzero selections, and propose a
 predeclared finite-candidate rule that defaults to candidate 0 unless a
 candidate clears a strict current-tick SafetyCost/hard-gate certificate.
+
+## Top-1 preservation attribution
+
+Code/documentation state:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for attribution implementation:
+680f92dfb29662bc7e135cd60ce28934d1b0822e
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+Added:
+scripts/integrations/analyze_diffusion_planner_top1_preservation.py
+camp_core/tests/test_diffusion_planner_top1_preservation.py
+```
+
+Local verification before committing `680f92d`:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_top1_preservation.py \
+  -q
+# 2 passed in 1.27s
+
+python -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_top1_preservation.py \
+  camp_core\tests\test_diffusion_planner_top1_preservation.py
+# passed
+
+git diff --check
+# passed
+
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_top1_preservation.py \
+  camp_core\tests\test_diffusion_planner_top1_preservation.py
+# All checks passed
+```
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# 680f92dfb29662bc7e135cd60ce28934d1b0822e
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_top1_preservation.py \
+  -q
+# 2 passed in 0.35s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/analyze_diffusion_planner_top1_preservation.py \
+  camp_core/tests/test_diffusion_planner_top1_preservation.py
+# passed
+```
+
+Attribution command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_top1_preservation.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label redstopfloor05_outcome_labels \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preservation_attribution_680f92d/top1_preservation_attribution.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preservation_attribution_680f92d/top1_preservation_attribution.md
+```
+
+Artifact paths and SHA:
+
+```text
+Top-1 preservation attribution JSON:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preservation_attribution_680f92d/top1_preservation_attribution.json
+sha256 2241d32d72b82af7fdd0ab7858315e12842661a93b319eda0529e0ab6ff6eefe
+
+Top-1 preservation attribution Markdown:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_preservation_attribution_680f92d/top1_preservation_attribution.md
+sha256 2f061209f027ea7130800e73199f75a2c304255948cf0aa0a29b30dd4a1ff5b9
+```
+
+Scope note: the previous traffic-light hybrid failure attribution used the
+sample59 smoke artifact because it audited the rejected hybrid postselector.
+This Top-1 preservation attribution needs candidate closed-loop outcome labels
+to separate candidate availability from proxy visibility, so it uses the
+existing outcome-labeled `redstopfloor05` root
+`candidate_outcome_labels_static_d97b7c2` with the versioned development bucket
+manifest. This is still non-formal, read-only, and does not authorize formal
+seeds.
+
+Read-only attribution result:
+
+```text
+runs/logs: 36
+records: 7200
+nonfallback / fallback: 5939 / 1261
+selected nonzero: 6874 (0.954722)
+candidate0 feasible records: 5639
+candidate0 feasible active overrides: 5478 (0.971449)
+candidate0 infeasible selected nonzero: 300
+all-infeasible selected nonzero: 1096
+
+preservation categories:
+- all_infeasible_selected_candidate0: 165
+- all_infeasible_selected_nonzero: 1096
+- candidate0_feasible_selected_candidate0: 161
+- candidate0_feasible_selected_nonzero: 5478
+- candidate0_infeasible_selected_nonzero: 300
+```
+
+Active override score attribution for the 5,478 records where candidate0 was
+feasible but `redstopfloor05` selected a nonzero sampled candidate:
+
+| Quantity | Value |
+| --- | ---: |
+| Mean selection score delta, selected - candidate0 | `-0.108999` |
+| Mean affine contribution residual | `0.000000` |
+| Mean outcome progress delta, selected - candidate0 | `+0.507174 m` |
+| Mean outcome jerk delta, selected - candidate0 | `+0.013225 m/s^3` |
+| Median outcome jerk delta, selected - candidate0 | `-0.007755 m/s^3` |
+| Mean outcome lateral delta, selected - candidate0 | `+0.006316 m/s^2` |
+
+Top affine contribution drivers for active overrides:
+
+| Atom | Sum contribution | Mean contribution | Attractive count | Repulsive count | Mean raw delta | Mean weight |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `progress_shortfall` | `-671.424297` | `-0.122567` | `5353` | `125` | `-0.542361` | `0.479370` |
+| `red_stopping_margin_cost` | `-3.000000` | `-0.000548` | `7` | `1` | `-0.001166` | `0.050000` |
+| `dp_prior_jerk_excess_cost` | `+70.877963` | `+0.012939` | `0` | `2632` | `+0.155055` | `0.059344` |
+| `jerk_early` | `+6.211375` | `+0.001134` | `2688` | `2790` | `+2.097434` | `0.410287` |
+
+Interpretation: the base static selector's active non-Top-1 behavior is driven
+primarily by `progress_shortfall`. Red stopping contributes negligibly, while
+the weighted jerk-related terms are net repulsive against the sampled
+candidate. This explains why traffic-light and comfort postselectors were
+trying to patch symptoms rather than the dominant score mechanism.
+
+Candidate availability oracle relative to feasible candidate0:
+
+| Progress budget | Candidate0 feasible | Outcome override available | Proxy override available | Hidden outcome | Proxy only | Selected matches outcome | Selected without outcome |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.00 m` | `5639` | `2792` (`0.495123`) | `1983` (`0.351658`) | `834` (`0.147899`) | `25` (`0.004433`) | `902` (`0.164659`) | `2744` (`0.500913`) |
+| `0.05 m` | `5639` | `3214` (`0.569959`) | `2475` (`0.438908`) | `766` (`0.135840`) | `27` (`0.004788`) | `943` (`0.172143`) | `2341` (`0.427346`) |
+| `0.10 m` | `5639` | `3476` (`0.616421`) | `2781` (`0.493173`) | `715` (`0.126796`) | `20` (`0.003547`) | `961` (`0.175429`) | `2085` (`0.380613`) |
+| `0.25 m` | `5639` | `4054` (`0.718922`) | `3552` (`0.629899`) | `517` (`0.091683`) | `15` (`0.002660`) | `987` (`0.180175`) | `1527` (`0.278751`) |
+
+At the predeclared `0.05 m` progress budget, outcome-labeled better candidates
+exist in 3,214/5,639 candidate0-feasible records, but the current selected
+candidate matches that outcome oracle in only 943/5,478 active overrides. In
+2,341/5,478 active overrides, `redstopfloor05` selects a nonzero candidate even
+though no outcome-superior override over candidate0 exists under the same
+budget. This is the strongest current evidence that the dominant online proxy
+does not align tightly enough with the closed-loop oracle.
+
+Scenario bucket digest at the `0.05 m` budget:
+
+| Bucket | Records | Active overrides | Override rate | Outcome available | Selected matches outcome | Selected without outcome |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `overall` | `7200` | `5478` | `0.971449` | `3214` | `943` | `2341` |
+| `normal` | `600` | `596` | `0.993333` | `278` | `124` | `320` |
+| `traffic_light` | `2400` | `1652` | `0.958793` | `1153` | `288` | `534` |
+| `red_light_turn` | `1200` | `869` | `0.962348` | `447` | `141` | `429` |
+| `sharp_turn` | `2400` | `1740` | `0.966667` | `912` | `284` | `843` |
+
+Mathematical conclusion: this audit preserves the CAMP-side finite-candidate
+contract. It uses fixed current-tick atoms, masks, weights, and scores for
+online-relevant attribution, and uses candidate closed-loop outcomes only as
+offline labels. The score contribution residual is zero to reported precision,
+so the active override explanation is exactly affine in the logged CAMP
+selection weights. DP sampling, smoothing, postprocessing, PerfectTracker,
+closed-loop state, SafetyCost v1, and trajectory coordinates remain outside the
+Benders-style layer.
+
+Decision: accept this read-only attribution milestone. Reject any claim that
+the current `redstopfloor05` selector is better than DP Top-1, and do not run a
+new smoke, 36-run, formal seed, or retraining from this result. The next
+admissible step is to design an offline-only Top-1-preserving counterfactual
+selector that defaults to candidate0 whenever candidate0 is feasible, and
+allows a nonzero candidate only when a predeclared current-tick certificate can
+explain why the candidate is likely to match the outcome oracle. That design
+must explicitly constrain the `progress_shortfall`-driven override mechanism
+instead of adding another traffic-light or comfort threshold patch.
