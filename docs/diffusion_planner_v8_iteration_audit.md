@@ -12376,3 +12376,102 @@ the finite-candidate contract metadata, the hybrid flag is explicit, and the
 comparison is evaluated with SafetyCost v1 plus hard gates and scenario
 buckets. If the smoke fails any hard gate or critical bucket check, keep the
 selector shadow/default-off and reject promotion.
+
+## Traffic-light hybrid benchmark-matrix wrapper gate
+
+Implementation commit:
+
+```text
+d15d74686d0373d5d7e2c92706aa937ec2005162
+```
+
+Scope:
+
+1. Added `--camp_traffic_light_hybrid_postselection` to
+   `scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py`, with
+   modes `off`, `step_h10_guard_005`, and `h3_h10_guard_005`.
+2. The wrapper forwards the flag only to CAMP variants and never to `top1`.
+3. The wrapper validates that the hybrid selector requires
+   `--camp_feasibility_source dp_reward` and `--reward_config`.
+4. The wrapper rejects combining the hybrid selector with lexicographic
+   preselection, PerfectTracker command postselection, underprogress
+   relaxation, or splice shadow.
+
+Local verification:
+
+```text
+git diff --check
+# passed
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'
+python -m pytest camp_core\tests\test_diffusion_planner_benchmark_matrix.py -q
+# 8 passed in 0.09s
+
+python -m compileall -q \
+  scripts\integrations\run_diffusion_planner_camp_benchmark_matrix.py \
+  camp_core\tests\test_diffusion_planner_benchmark_matrix.py
+# passed
+
+ruff check <temporary copies of the two modified files>
+# All checks passed
+```
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# d15d74686d0373d5d7e2c92706aa937ec2005162
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py \
+  -q
+# 8 passed in 0.03s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py
+# passed
+```
+
+AutoDL state after sync:
+
+```text
+CAMP HEAD/origin/main:
+d15d74686d0373d5d7e2c92706aa937ec2005162
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+The known AutoDL untracked files remain unhandled:
+
+```text
+diffusion_planner_integration.md
+dp_camp_device_handoff.md
+test_diffusion_planner_benchmark_matrix.py
+```
+
+Artifact path and SHA:
+
+```text
+No replay artifact was generated in this milestone. The artifact is the Git
+implementation commit d15d74686d0373d5d7e2c92706aa937ec2005162.
+```
+
+Mathematical conclusion: this wrapper change does not alter CAMP mathematics,
+candidate generation, DP weights, CAMP weights, atom schema, or replay
+selection rules. It only makes the already documented finite-candidate hybrid
+selector reachable through the matched benchmark matrix with explicit CLI
+metadata and validation. It introduces no classical Benders claim.
+
+Decision: accept the wrapper gate. The next admissible step is to predeclare
+and run only a small paired non-formal sample59 smoke for `top1` versus static
+`redstopfloor05` with the explicit hybrid flag, strict pairing, SafetyCost v1,
+hard gates, scenario buckets, no formal seeds, and latency checks. A failed
+hard gate, critical bucket, CVaR90, or p95 latency result must reject promotion
+and keep the selector default-off.
