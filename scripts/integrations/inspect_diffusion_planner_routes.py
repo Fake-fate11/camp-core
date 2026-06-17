@@ -148,6 +148,7 @@ def inspect_route_geometry(
     if len(lanelet_ids) != len(centerlines):
         raise ValueError("lanelet_ids and centerlines must have the same length.")
     route_points = _concatenate_centerlines(centerlines)
+    lanelet_geometry = _lanelet_geometry(lanelet_ids, centerlines, traffic_light_groups)
     segment_vectors = np.diff(route_points, axis=0)
     segment_lengths = np.linalg.norm(segment_vectors, axis=1)
     valid = segment_lengths > 1e-6
@@ -184,7 +185,55 @@ def inspect_route_geometry(
         "traffic_light_group_count": len(tl_groups),
         "map_traffic_light_lanelet_count": len(traffic_light_groups),
         "map_traffic_light_group_count": len(set(traffic_light_groups.values())),
+        "lanelet_geometry": lanelet_geometry,
+        "traffic_light_lanelet_geometry": [
+            row for row in lanelet_geometry if row["traffic_light_group_id"] is not None
+        ],
     }
+
+
+def _lanelet_geometry(
+    lanelet_ids: list[int],
+    centerlines: list[np.ndarray],
+    traffic_light_groups: dict[int, int],
+) -> list[dict[str, Any]]:
+    rows = []
+    cumulative = 0.0
+    for index, (lanelet_id, centerline) in enumerate(zip(lanelet_ids, centerlines)):
+        points = np.asarray(centerline, dtype=np.float64)[:, :2]
+        vectors = np.diff(points, axis=0)
+        lengths = np.linalg.norm(vectors, axis=1)
+        valid = lengths > 1e-6
+        lanelet_length = float(np.sum(lengths[valid]))
+        if np.any(valid):
+            headings = np.arctan2(vectors[valid, 1], vectors[valid, 0])
+            heading_deltas = _wrapped_diffs(headings)
+            max_single = (
+                float(np.rad2deg(np.max(np.abs(heading_deltas))))
+                if heading_deltas.size
+                else 0.0
+            )
+            net_heading = float(
+                np.rad2deg(abs(_wrap_angle(float(headings[-1] - headings[0]))))
+            )
+        else:
+            max_single = 0.0
+            net_heading = 0.0
+        group_id = traffic_light_groups.get(lanelet_id)
+        rows.append(
+            {
+                "route_index": index,
+                "lanelet_id": lanelet_id,
+                "length_m": lanelet_length,
+                "cumulative_start_m": cumulative,
+                "cumulative_end_m": cumulative + lanelet_length,
+                "net_heading_change_deg": net_heading,
+                "max_single_step_heading_change_deg": max_single,
+                "traffic_light_group_id": None if group_id is None else int(group_id),
+            }
+        )
+        cumulative += lanelet_length
+    return rows
 
 
 def _install_diffusion_repo(diffusion_repo: Path) -> None:

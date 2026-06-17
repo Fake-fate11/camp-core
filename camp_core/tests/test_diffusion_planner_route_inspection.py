@@ -24,6 +24,18 @@ def test_route_inspection_reports_turn_and_traffic_light_evidence() -> None:
     assert report["max_10m_net_heading_change_deg"] == 90.0
     assert report["traffic_light_lanelet_ids"] == [2]
     assert report["traffic_light_group_ids"] == [99]
+    assert report["traffic_light_lanelet_geometry"] == [
+        {
+            "route_index": 1,
+            "lanelet_id": 2,
+            "length_m": 10.0,
+            "cumulative_start_m": 10.0,
+            "cumulative_end_m": 20.0,
+            "net_heading_change_deg": 0.0,
+            "max_single_step_heading_change_deg": 0.0,
+            "traffic_light_group_id": 99,
+        }
+    ]
 
 
 def test_route_inspection_keeps_straight_route_low_turn() -> None:
