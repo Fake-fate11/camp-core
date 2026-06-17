@@ -9582,3 +9582,97 @@ Both documentation checks passed locally. The formalization artifact SHA-256 is:
 | Artifact | SHA-256 |
 | --- | --- |
 | `docs/dp_camp_benders_formalization.md` | `5fe5e6830af84ac9dd1477c44a4db8be317c6f807b226be4af851de24dbbdf12` |
+
+### Post-formalization redstopfloor05 contract audit
+
+The read-only post-formalization audit was run against the deployed
+`redstopfloor05` asset after local/GitHub/AutoDL CAMP had advanced to:
+
+```text
+d03e52ad0d484a23fbe0612eea4cccaf28871368
+```
+
+AutoDL CAMP was checked out at the same commit. AutoDL's local
+`origin/main` tracking ref remained stale, so `git status` reported
+`main...origin/main [ahead 18]`, but the checked-out HEAD matched local and
+GitHub. The fixed Diffusion Planner checkout remained:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+No DP code, DP weights, CAMP weights, selector code, formal seeds, or existing
+untracked migration files were changed. The audited asset was:
+
+```text
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263
+```
+
+The audit used `source /etc/profile` and the AutoDL `camp` Python environment
+to read the asset JSON and NPY files directly. The relevant files and hashes
+were:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `atom_scales_dp_static.json` | `a50d6d5b26888bdc0d2715dbfce525d3725697fa6e6565b6dd7ae9e8dd105b15` |
+| `offline_weights_dp_static.npy` | `dbfe8333c8a2f7944710003d1bcf39fda84626b9c5728c80bddf6f5d41be81b1` |
+| `training_summary.json` | `b6ced7c71240e9c8b3d1c6c47470ea7411069edeb48825d24ec2f8f693951e32` |
+| `full_epigraph_consistency.json` | `12733885d22a50308b52ec6090af49f6ab973300a33394b140a24e5776b3c0c3` |
+| `outcome_weights.json` | `9df61a4fbeeba3908113aedabf06fed1c92f0737613ccf9da93399902fa52425` |
+| `offline_counterfactual_red_lower_bounds.json` | `f7b23d8c91e0c8d0afc26a2ec880f582e44184887b6e0c1a13118b00e2267905` |
+| `train_stdout.log` | `afd8ff09f918c3bdd99ce335e36d5d9e7ce4d41f97e8bf750e3116cf4a5abce6` |
+
+Contract checklist:
+
+| Requirement from `docs/dp_camp_benders_formalization.md` | Evidence | Audit result |
+| --- | --- | --- |
+| Fixed finite candidate set per training record | Training summary reports static mode, `num_candidates=8`, `training_scope=feasible_ranking`, 7,200 input records, 5,979 records retained after dropping 1,221 records without feasible/eligible candidates. | Pass for the retained robust-margin master records. Dropped all-infeasible records are outside the convex master and remain an online fail-closed policy concern. |
+| Positive atom dimension and fixed atom schema | `atom_schema_version=dp_camp_v10_14d`, `num_atoms=14`, atom names match the deployed v10 schema. | Pass. |
+| Finite positive normalization scales | All 14 scales are finite and positive, with minimum scale `1e-06`. | Pass. |
+| Finite nonnegative normalized atom/cost direction | `robust_margin_master.py` rejects nonfinite or negative normalized atoms before solving; the saved training passed this path and the full epigraph audit. | Pass by code invariant plus successful saved audit. |
+| Simplex weights | Saved weight vector has shape `(14,)`, finite entries, minimum `0.0`, maximum `0.4793703457629436`, and sum `0.9999999999999997`. | Pass within floating-point tolerance. |
+| Lower-bound feasible set | Only configured lower bound is `red_stopping_margin_cost >= 0.05`; lower-bound sum is `0.05`; saved slack is `-1.54e-13`. | Pass within numerical tolerance; feasible simplex is nonempty. |
+| Nonnegative finite margins and feasible oracle | Training used margin scale `0.1`, margin clip `2.0`; the training entry point drops records without finite feasible candidates; `outcome_oracle_and_margins` enforces finite feasible outcomes and clips margins to `[0, margin_clip]`. | Pass for the retained training records. |
+| CVaR/simplex/L2 convex master | Summary reports `objective=robust_margin_cvar`, `risk_type=cvar`, `alpha=0.9`, `l2_reg=0.0001`, `solver=CLARABEL`, `solver_status=optimal`. | Pass. |
+| Active finite-candidate cuts | Cutting-plane history converged in four iterations with total active cuts `7111`; cut histogram over 4,848 train records is `{1: 2899, 2: 1652, 3: 280, 4: 17}`. | Pass. |
+| Full finite-candidate epigraph consistency | `full_epigraph_consistency.json` reports `passed=true`, `finite_pieces=37030`, `saved_minus_full_objective=-5.162e-12`, `weight_linf_distance=1.226e-10`, `full_worst_unique=8`. | Pass. |
+| Naming boundary | The audited object is a finite-candidate generalized Benders-style cutting-plane master. It does not introduce DP trajectory-coordinate convexity, LP-dual recourse variables, or strong-duality cuts. | Pass as long as later writing keeps this name boundary. |
+
+The learned static weights remain:
+
+| Atom | Weight |
+| --- | ---: |
+| `jerk_early` | 0.410286878894 |
+| `jerk_late` | 0.000000000001 |
+| `jerk_full` | 0.000000000001 |
+| `rms_acceleration` | 0.000000000000 |
+| `speed_limit_margin_0_0` | 0.000630102016 |
+| `speed_limit_margin_0_5` | 0.000000000000 |
+| `speed_limit_margin_1_0` | 0.000000000000 |
+| `lane_deviation` | 0.000000000000 |
+| `clearance` | 0.000368953150 |
+| `progress_shortfall` | 0.479370345763 |
+| `planned_red_light_cost` | 0.000000000000 |
+| `planned_lateral_acceleration_cost` | 0.000000000000 |
+| `red_stopping_margin_cost` | 0.0499999999998 |
+| `dp_prior_jerk_excess_cost` | 0.059343720175 |
+
+Outcome-label weights were unchanged: progress `2.0`, collision `100.0`,
+near miss `10.0`, lane violation `20.0`, red light `30.0`, mean jerk `1.0`,
+and mean lateral acceleration `2.0`. Train oracle match was
+`0.880569306930693`; validation oracle match was `0.9045092838196287`.
+Train CVaR was `0.11025719644616892`; validation CVaR was
+`0.07891120510944721`.
+
+Decision: accept `redstopfloor05` as satisfying the DP-CAMP mathematical
+contract for a static finite-candidate generalized Benders-style
+robust-margin master. This is a mathematical/training-object acceptance only.
+It does not complete the industrial development gate and does not authorize
+formal seeds. Prior full36 evidence still shows lateral comfort remains far
+worse than Top-1, and mean per-run p95 selection latency was close to the
+100 ms budget. Therefore the next admissible step is an engineering
+integration gate, not a new mathematical claim: implement or audit only
+default-off DP-CAMP selector metadata/fail-closed behavior and paired
+non-formal checks after the integration path proves it preserves the fixed
+finite-candidate contract. Do not retrain CAMP, modify DP, or run formal seeds
+from this audit alone.
