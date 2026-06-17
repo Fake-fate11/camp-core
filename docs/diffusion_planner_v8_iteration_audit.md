@@ -9925,14 +9925,15 @@ paired non-formal replay, and only then evaluate whether the current online
 integration path has enough latency and behavior margin for the development
 matrix.
 
-This audit record itself was committed, pushed, and synced as:
+The first audit record for this dataset-contract milestone was committed,
+pushed, and synced as:
 
 ```text
 6cb5dc6c141d5766be2e20b4b1fa42850b49759f
 Document DP CAMP dataset contract gate
 ```
 
-After synchronization, local CAMP, GitHub `origin/main`, and AutoDL CAMP all
+At that checkpoint, local CAMP, GitHub `origin/main`, and AutoDL CAMP all
 matched that commit. AutoDL Diffusion Planner remained fixed at:
 
 ```text
