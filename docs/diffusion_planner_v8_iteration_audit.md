@@ -14385,3 +14385,267 @@ hidden-visibility and bucketed hard-gate analysis. Only if the route-progress
 lower-band screen remains hard-gate safe and materially recovers hidden
 candidates across buckets should a default-off online selector implementation
 be considered.
+
+## Full36 shadow route-progress label pass
+
+Code state for the expanded shadow-only label pass:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for replay artifact generation:
+d5c2075be56d9486a71a280fc2e17b515740b8ff
+
+CAMP local/GitHub/AutoDL HEAD for H10-lower analyzer rerun:
+b2d916ddf01c16555ff428ca5c287164bc4fbd90
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Scope:
+
+```text
+Artifact root:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/shadow_route_progress_full36_d5c2075
+
+Routes:
+sample_map_tl_route_59_to_86
+sample_map_route_2_to_104
+nishishinjuku_release_auto_route
+
+Seeds:
+1, 2, 3
+
+NPC counts:
+0, 4
+
+Traffic lights:
+off, on
+
+Steps:
+200
+
+Variant:
+static redstopfloor05
+
+Selection-effecting route guard:
+disabled; camp_min_candidate0_route_progress_ratio = null
+
+Shadow diagnostic:
+--camp_shadow_route_progress
+
+Candidate outcomes:
+--camp_collect_closed_loop_outcomes, horizon 30, posterior labels only
+```
+
+The run was split into three disjoint route jobs writing the same root with
+`--resume`; the main full command later skipped helper-completed directories.
+All three jobs exited `0`. Final coverage:
+
+```text
+completed_summaries=36
+selection_logs=36
+routes_completed:
+  12 nishishinjuku_release_auto_route
+  12 sample_map_route_2_to_104
+  12 sample_map_tl_route_59_to_86
+missing_expected=0
+```
+
+Dataset and readiness audits:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/shadow_route_progress_full36_d5c2075
+OUT=$ROOT/audit_d5c2075
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --root "$ROOT" \
+  --atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --expected_logs 36 \
+  --expected_candidates 8 \
+  --expected_advance_mode perfect \
+  --required_candidate_field candidate_route_progress \
+  --closed_loop_outcome_policy required \
+  --forbid_seed 11 --forbid_seed 12 --forbid_seed 13 \
+  --require_finite_candidate_contract \
+  --output_json "$OUT/dataset_audit_required_outcomes.json"
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_candidate_availability_inputs.py \
+  --root "$ROOT" \
+  --output_json "$OUT/candidate_availability_input_readiness.json" \
+  --output_md "$OUT/candidate_availability_input_readiness.md" \
+  --fail_on_not_ready
+```
+
+Audit result:
+
+```text
+dataset_audit.passed=true
+logs=36
+records=7200
+candidates=57600
+all_infeasible_records=1261
+candidate_counts={8: 7200}
+candidate_availability_oracle_ready=true
+current_tick_proxy_inputs_ready=true
+outcome_labels_ready=true
+formal seeds 11/12/13 absent
+```
+
+Audit artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `dataset_audit_required_outcomes.json` | `b266b9ca48fceb3422de6dab6608794ae3e25960941ce92c363686e7801d7a5a` |
+| `candidate_availability_input_readiness.json` | `ab2a7c5cf01651827de7aa4c1508ec6b0b5a86bcad9257d1516cc9b12426c582` |
+| `candidate_availability_input_readiness.md` | `c478aae3f4fe4fe673c6c2a2aa769a838d4bc5b98f184b1b9cd2b993795bb723` |
+| `predeclare_shadow_route_progress_full36_d5c2075.txt` | `db93f46edcce472766a58107b1c0c8afe1093f23d7b944a503751996c3f80c00` |
+| `predeclare_shadow_route_progress_full36_d5c2075_sample2.txt` | `7805ed87bb428625ca471c1775ff2e50c1f2cb7661f7acd197cc81753587718c` |
+| `predeclare_shadow_route_progress_full36_d5c2075_nishishinjuku.txt` | `88e04d7b9a6502f5de08149b8da1c2c89377f2ea4d1d5a1fb3d14da97170b907` |
+
+Hidden-visibility rerun with the H10-lower sensitivity screens added in
+`b2d916d`:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/shadow_route_progress_full36_d5c2075
+OUT=$ROOT/audit_b2d916d
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_hidden_visibility.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label shadow_route_progress_full36_h10_lower \
+  --output_json "$OUT/hidden_visibility.json" \
+  --output_md "$OUT/hidden_visibility.md"
+```
+
+Hidden-visibility artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `audit_b2d916d/hidden_visibility.json` | `d26f6e2f1cee56849df4767681690fbc7565a674dbd96b607df19b9df420e3a4` |
+| `audit_b2d916d/hidden_visibility.md` | `0d071965884107a26ea87dcd7d8d039b5c735d71c1aee4bf3a4b9e62a5ab056d` |
+
+Full36 hidden-visibility totals:
+
+```text
+records=7200
+logs=36
+candidate0_feasible=5639
+nonfallback=5939
+fallback=1261
+base_hidden_context_records=1692
+```
+
+Screen results:
+
+| Screen | Escape | True | False | Hidden remaining | Mean safety | CVaR90 safety | Bool hard-gate worse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `escape_route_nonworse_lower_m200_p005_score0` | `921` | `919` | `2` | `771` | `-0.023214` | `0.209884` | `near_miss:2` |
+| `escape_route_nonworse_lower_m200_p005_h10_p005_score0` | `869` | `867` | `2` | `823` | `-0.018648` | `0.224750` | `near_miss:2` |
+| `escape_route_nonworse_lower_m200_h10_min_m005_score0` | `303` | `303` | `0` | `1389` | `-0.042837` | `-0.002960` | none |
+| `escape_route_nonworse_lower_m200_h10_min_m010_score0` | `468` | `468` | `0` | `1224` | `-0.037510` | `-0.002637` | none |
+| `escape_route_nonworse_lower_m200_h10_min_m015_score0` | `610` | `610` | `0` | `1082` | `-0.035286` | `-0.003040` | none |
+| `escape_route_nonworse_lower_m200_h10_min_m020_score0` | `738` | `736` | `2` | `954` | `-0.009831` | `0.265366` | `near_miss:2` |
+
+Bucket detail for the strongest zero-false H10-lower screen
+`escape_route_nonworse_lower_m200_h10_min_m015_score0`:
+
+| Bucket | Hidden contexts | Escape | True | False | Hidden remaining |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| overall | `1692` | `610` | `610` | `0` | `1082` |
+| normal | `130` | `81` | `81` | `0` | `49` |
+| traffic_light | `614` | `179` | `179` | `0` | `435` |
+| red_light_turn | `84` | `69` | `69` | `0` | `15` |
+| sharp_turn | `166` | `132` | `132` | `0` | `34` |
+
+False-escape attribution for the rejected route-progress lower-band screen:
+
+```text
+Both posterior false escapes occur in:
+nishishinjuku_release_auto_route, seed=2, max_npcs=4, traffic_lights=true.
+
+selection_step=92:
+selected candidate 1
+false reason: outcome_near_miss_worse
+candidate_label_safety_delta=+9.943471
+progress_delta=-0.140615
+route_progress_loss=0.0
+h10_distance_loss=-0.187265
+score_delta=-0.041247
+
+selection_step=121:
+selected candidate 6
+false reason: outcome_near_miss_worse
+candidate_label_safety_delta=+9.922577
+progress_delta=-0.382462
+route_progress_loss=0.0
+h10_distance_loss=-0.160604
+score_delta=-0.109239
+```
+
+Interpretation:
+
+1. The broad route-progress lower-band screen is rejected for online promotion.
+   It is no longer full36 safe: two NPC near-miss false escapes appear on
+   `nishishinjuku`, and CVaR90 safety becomes positive.
+2. The failure mode is not red-light exposure. It is an NPC interaction case
+   where route progress is nonworse and CAMP score is lower, but the chosen
+   candidate is materially more aggressive over the H10 PerfectTracker
+   open-loop proxy.
+3. Adding a current-tick H10 lower-bound guard is promising as an offline
+   sensitivity result. `h10_distance_loss >= -0.15 m` recovers `610/1692`
+   hidden contexts with zero posterior false escapes and no hard-gate boolean
+   worsening across the labeled buckets. Relaxing to `-0.20 m` reintroduces the
+   two near-miss false escapes, so `-0.20 m` is rejected.
+4. This is still not an online selector gate. The H10 lower-bound screen was
+   added after the full36 failure attribution and must be treated as a
+   development sensitivity, not as predeclared validation. The next admissible
+   step is to formalize the finite-candidate lexicographic rule using
+   route-progress and H10 lower-bound atoms/proxies, then run a default-off
+   no-outcome shadow selector audit before any online replay matrix.
+
+Latency note:
+
+```text
+latency_ms_including_candidate_generation p95 = 831.907 ms
+latency_ms_outcome_collection p95 = 707.316 ms
+latency_ms_candidate_generation p95 = 95.188 ms
+latency_ms_camp_selection p95 = 9.584 ms
+latency_ms_shadow_perfect_tracker_open_loop p95 = 1.094 ms
+```
+
+This artifact is offline label-pass evidence, not deployable latency evidence,
+because it intentionally collects posterior closed-loop candidate outcomes.
+The H10 open-loop proxy itself is current-tick and cheap in this artifact, but
+any online selector implementation still needs a no-outcome latency smoke with
+the exact deployed metadata before it can be considered industrially usable.
+
+Mathematical boundary: all accepted or rejected screen features here are fixed
+current-tick finite-candidate diagnostics. Candidate outcomes are posterior
+labels used only for offline true/false attribution. If route-progress or H10
+lower-bound terms are atomized later, they must be represented as fixed
+nonnegative transforms such as `max(0, progress_0 - progress_k) / scale` and
+`max(0, h10_distance_k - h10_distance_0 - budget) / scale` or an equivalent
+finite-candidate lexicographic guard. The score remains affine in CAMP master
+variables. No DP sampler, Savitzky-Golay smoothing, `postprocess_reference`,
+PerfectTracker state transition, closed-loop future state, SafetyCost, or
+trajectory-coordinate optimization is treated as a Benders subproblem or cut
+source.
+
+Decision: accept the full36 shadow-route-progress artifact and H10-lower
+sensitivity analysis as offline diagnostic evidence. Reject the original
+route-progress lower-band screen and the `h10_min_m020` relaxation. Do not run
+formal seeds, CAMP retraining, or online selector matrices from this result.
+Next step: write the finite-candidate lexicographic route-progress plus H10
+lower-bound rule as a default-off, fail-closed selector proposal, then verify it
+with a no-outcome shadow-only audit and local/AutoDL tests before any replay
+smoke.
