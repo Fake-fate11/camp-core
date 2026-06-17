@@ -1390,6 +1390,41 @@ def _obb_center_and_radius(
     return center, radius
 
 
+def _obb_centers_and_radii(
+    xy: np.ndarray,
+    headings: np.ndarray,
+    lengths: np.ndarray,
+    widths: np.ndarray,
+    wheelbases: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    xy_values = np.asarray(xy, dtype=np.float64)
+    heading_values = np.asarray(headings, dtype=np.float64).reshape(-1)
+    length_values = np.asarray(lengths, dtype=np.float64).reshape(-1)
+    width_values = np.asarray(widths, dtype=np.float64).reshape(-1)
+    if xy_values.shape != (heading_values.size, 2):
+        raise ValueError("xy must have shape [N,2].")
+    if (
+        length_values.shape != heading_values.shape
+        or width_values.shape != heading_values.shape
+    ):
+        raise ValueError("lengths and widths must match headings.")
+    if wheelbases is None:
+        offsets = np.zeros_like(heading_values)
+    else:
+        wheelbase_values = np.asarray(wheelbases, dtype=np.float64).reshape(-1)
+        if wheelbase_values.shape != heading_values.shape:
+            raise ValueError("wheelbases must match headings.")
+        offsets = np.where(
+            np.isfinite(wheelbase_values) & (wheelbase_values > 0.0),
+            wheelbase_values / 2.0,
+            0.0,
+        )
+    directions = np.column_stack((np.cos(heading_values), np.sin(heading_values)))
+    centers = xy_values + offsets[:, np.newaxis] * directions
+    radii = np.hypot(length_values / 2.0, width_values / 2.0)
+    return centers, radii
+
+
 def _obb_collides(corners_a: np.ndarray, corners_b: np.ndarray) -> bool:
     for corners in (corners_a, corners_b):
         for idx in range(4):
@@ -2100,45 +2135,68 @@ def compute_candidate_obstacle_clearance_diagnostics(
 
         if obstacles is not None:
             candidate_obstacle = obstacles[candidate_idx]
-            for obstacle in candidate_obstacle:
-                obstacle_horizon = min(horizon, obstacle.shape[0])
-                rows = obstacle[:obstacle_horizon]
-                valid = np.all(np.isfinite(rows[:, :2]), axis=1)
-                valid &= np.linalg.norm(rows[:, :2], axis=1) >= 1e-8
-                if not valid.any():
-                    continue
-                slots += 1
-                for step_idx in np.flatnonzero(valid):
-                    row = rows[int(step_idx)]
-                    if row.shape[0] >= 5 and np.all(np.isfinite(row[:5])):
-                        obs_heading = float(row[2])
-                        obs_length = max(float(row[3]), 1e-3)
-                        obs_width = max(float(row[4]), 1e-3)
-                        obs_wheelbase = (
-                            float(row[5])
-                            if row.shape[0] >= 6 and np.isfinite(row[5]) and row[5] > 0
-                            else None
+            obstacle_horizon = min(horizon, candidate_obstacle.shape[1])
+            rows = candidate_obstacle[:, :obstacle_horizon]
+            valid = np.all(np.isfinite(rows[:, :, :2]), axis=2)
+            valid &= np.linalg.norm(rows[:, :, :2], axis=2) >= 1e-8
+            if valid.any():
+                slots += int(np.count_nonzero(valid.any(axis=1)))
+                if rows.shape[2] >= 5:
+                    obb_valid = valid & np.all(np.isfinite(rows[:, :, :5]), axis=2)
+                else:
+                    obb_valid = np.zeros_like(valid, dtype=bool)
+                if obb_valid.any():
+                    obstacle_indices, step_indices = np.nonzero(obb_valid)
+                    obb_rows = rows[obstacle_indices, step_indices]
+                    obs_lengths = np.maximum(obb_rows[:, 3], 1e-3)
+                    obs_widths = np.maximum(obb_rows[:, 4], 1e-3)
+                    obs_wheelbases = (
+                        obb_rows[:, 5]
+                        if rows.shape[2] >= 6
+                        else np.full(obb_rows.shape[0], np.nan)
+                    )
+                    ego_centers, ego_radii = _obb_centers_and_radii(
+                        branch[step_indices, :2],
+                        headings[step_indices],
+                        np.full(step_indices.size, float(ego_length)),
+                        np.full(step_indices.size, float(ego_width)),
+                        np.full(step_indices.size, float(ego_wheelbase)),
+                    )
+                    obs_centers, obs_radii = _obb_centers_and_radii(
+                        obb_rows[:, :2],
+                        obb_rows[:, 2],
+                        obs_lengths,
+                        obs_widths,
+                        obs_wheelbases,
+                    )
+                    clearances = np.maximum(
+                        0.0,
+                        np.linalg.norm(ego_centers - obs_centers, axis=1)
+                        - ego_radii
+                        - obs_radii,
+                    )
+                    if clearances.size:
+                        min_lower_bound = min(
+                            min_lower_bound,
+                            float(np.min(clearances)),
                         )
-                        ego_center, ego_radius = _obb_center_and_radius(
-                            float(branch[int(step_idx), 0]),
-                            float(branch[int(step_idx), 1]),
-                            float(headings[int(step_idx)]),
-                            float(ego_length),
-                            float(ego_width),
-                            float(ego_wheelbase),
-                        )
-                        obs_center, obs_radius = _obb_center_and_radius(
-                            float(row[0]),
-                            float(row[1]),
-                            obs_heading,
-                            obs_length,
-                            obs_width,
-                            obs_wheelbase,
-                        )
-                        center_distance = float(np.linalg.norm(ego_center - obs_center))
-                        clearance = max(0.0, center_distance - ego_radius - obs_radius)
-                        used_obb = True
-                        if evaluate_exact_obb and clearance <= exact_trigger:
+                    used_obb = True
+                    if evaluate_exact_obb:
+                        for row, step_idx, clearance in zip(
+                            obb_rows,
+                            step_indices,
+                            clearances,
+                            strict=True,
+                        ):
+                            if float(clearance) > exact_trigger:
+                                continue
+                            obs_wheelbase = (
+                                float(row[5])
+                                if row.shape[0] >= 6
+                                and np.isfinite(row[5])
+                                and row[5] > 0
+                                else None
+                            )
                             ego_box = _obb_corners(
                                 float(branch[int(step_idx), 0]),
                                 float(branch[int(step_idx), 1]),
@@ -2150,9 +2208,9 @@ def compute_candidate_obstacle_clearance_diagnostics(
                             obs_box = _obb_corners(
                                 float(row[0]),
                                 float(row[1]),
-                                obs_heading,
-                                obs_length,
-                                obs_width,
+                                float(row[2]),
+                                max(float(row[3]), 1e-3),
+                                max(float(row[4]), 1e-3),
                                 obs_wheelbase,
                             )
                             exact_clearance = _obb_distance(ego_box, obs_box)
@@ -2161,11 +2219,19 @@ def compute_candidate_obstacle_clearance_diagnostics(
                                 exact_clearance,
                             )
                             exact_obb_pairs += 1
-                    else:
-                        clearance = float(
-                            np.linalg.norm(branch[int(step_idx), :2] - row[:2])
+                point_valid = valid & ~obb_valid
+                if point_valid.any():
+                    _, step_indices = np.nonzero(point_valid)
+                    point_rows = rows[point_valid]
+                    point_clearances = np.linalg.norm(
+                        branch[step_indices, :2] - point_rows[:, :2],
+                        axis=1,
+                    )
+                    if point_clearances.size:
+                        min_lower_bound = min(
+                            min_lower_bound,
+                            float(np.min(point_clearances)),
                         )
-                    min_lower_bound = min(min_lower_bound, clearance)
 
         finite_lower_bound = (
             float(min_lower_bound) if np.isfinite(min_lower_bound) else None
