@@ -12475,3 +12475,125 @@ and run only a small paired non-formal sample59 smoke for `top1` versus static
 hard gates, scenario buckets, no formal seeds, and latency checks. A failed
 hard gate, critical bucket, CVaR90, or p95 latency result must reject promotion
 and keep the selector default-off.
+
+## Benchmark comparison strict-gate forwarding
+
+Implementation commit:
+
+```text
+43620544f070ae53ab4bf4ad7df5e2f228873644
+```
+
+Scope:
+
+1. Added `--scenario_bucket_manifest` to
+   `scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py` and
+   forward it to `compare_diffusion_planner_camp_replays.py`.
+2. Added `--require_strict_pairing` to the benchmark matrix wrapper and forward
+   it to the aggregate comparison command.
+3. Extracted the comparison command builder into `_compare_command(...)` so the
+   strict gate can be tested without running the full replay matrix.
+4. Added a focused unit test proving that the wrapper comparison command carries
+   the scenario bucket manifest, strict-pairing flag, and expected output paths.
+
+Initial state audit:
+
+```text
+Local/GitHub before implementation:
+## main...origin/main
+e14f7a9b15373517b9f2c2847ea87a6ea767c81c
+origin/main = e14f7a9b15373517b9f2c2847ea87a6ea767c81c
+
+Known local untracked files left untouched:
+camp-dp-session-2b67d33-20260615-231639-HANDOFF.md
+camp-dp-session-8ae0950-20260616-235726/
+slides prompt.md
+
+AutoDL CAMP before implementation:
+## main...origin/main
+e14f7a9b15373517b9f2c2847ea87a6ea767c81c
+origin/main = e14f7a9b15373517b9f2c2847ea87a6ea767c81c
+
+Known AutoDL untracked files left untouched:
+diffusion_planner_integration.md
+dp_camp_device_handoff.md
+test_diffusion_planner_benchmark_matrix.py
+
+AutoDL DP:
+## tier4-main...origin/tier4-main
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Local verification:
+
+```text
+python -m pytest camp_core\tests\test_diffusion_planner_benchmark_matrix.py -q
+# 9 passed in 0.08s
+
+python -m compileall -q \
+  scripts\integrations\run_diffusion_planner_camp_benchmark_matrix.py \
+  camp_core\tests\test_diffusion_planner_benchmark_matrix.py
+# passed
+
+git diff --check
+# passed
+
+python -m ruff check \
+  scripts\integrations\run_diffusion_planner_camp_benchmark_matrix.py \
+  camp_core\tests\test_diffusion_planner_benchmark_matrix.py
+# E902 stream did not contain valid UTF-8 on the direct repo paths.
+
+ruff check <temporary copies of the two modified files>
+# All checks passed
+```
+
+The direct repo-path ruff failure is treated as the same local Windows
+path/tooling anomaly observed in prior milestones: both files start with ASCII
+`from`, contain no NUL bytes, compile successfully, and pass ruff after copying
+to a temporary path.
+
+AutoDL sync and verification for the implementation commit:
+
+```text
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# 43620544f070ae53ab4bf4ad7df5e2f228873644
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py \
+  -q
+# 9 passed in 0.04s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py
+# passed
+
+AutoDL DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact path and SHA:
+
+```text
+No replay artifact was generated in this milestone. The artifact is the Git
+implementation commit 43620544f070ae53ab4bf4ad7df5e2f228873644.
+```
+
+Mathematical conclusion: this wrapper change does not alter DP, candidate
+generation, CAMP weights, atom schema, finite-candidate scoring, or any online
+selection rule. It only makes the benchmark matrix's aggregate comparison carry
+the predeclared scenario bucket manifest and strict-pairing requirement. It
+therefore strengthens the development gate evidence path and introduces no new
+Benders, subproblem, or trajectory-coordinate convexity claim.
+
+Decision: accept the strict-gate forwarding milestone. The next admissible
+action is a small paired non-formal sample59 smoke only if the matrix command
+uses `--scenario_bucket_manifest
+configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json`
+and `--require_strict_pairing`. Without those flags, a matrix run is collection
+only and cannot be used as development-gate evidence.
