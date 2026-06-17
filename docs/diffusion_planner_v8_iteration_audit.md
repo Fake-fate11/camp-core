@@ -13802,3 +13802,180 @@ the previously eliminated lane/near-miss hard-gate violations. If no such
 feature exists in the current logs, the correct engineering move is to add
 shadow-only logging of a new DP/current-map diagnostic rather than weakening
 hard gates.
+
+## Hidden candidate visibility audit
+
+Code state for the hidden-visibility implementation:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for implementation:
+effec62b7ab0269a37d1dfc1b926d18f618e3b0b
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+Added:
+scripts/integrations/analyze_diffusion_planner_hidden_visibility.py
+camp_core/tests/test_diffusion_planner_hidden_visibility.py
+
+Fix:
+effec62b7ab0269a37d1dfc1b926d18f618e3b0b
+```
+
+Local verification before committing `effec62`:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_hidden_visibility.py \
+  -q
+# 1 passed in 0.52s
+
+python -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_hidden_visibility.py \
+  camp_core\tests\test_diffusion_planner_hidden_visibility.py
+# passed
+
+python -m ruff check \
+  scripts\integrations\analyze_diffusion_planner_hidden_visibility.py \
+  camp_core\tests\test_diffusion_planner_hidden_visibility.py
+# All checks passed
+
+git diff --check
+# passed
+```
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+. /etc/network_turbo
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# effec62b7ab0269a37d1dfc1b926d18f618e3b0b
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_hidden_visibility.py \
+  -q
+# 1 passed in 0.35s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/analyze_diffusion_planner_hidden_visibility.py \
+  camp_core/tests/test_diffusion_planner_hidden_visibility.py
+# passed
+```
+
+Audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_hidden_visibility.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --label redstopfloor05_outcome_labels \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/hidden_visibility_effec62/hidden_visibility.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/hidden_visibility_effec62/hidden_visibility.md
+```
+
+Artifact paths and SHA:
+
+```text
+Hidden visibility JSON:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/hidden_visibility_effec62/hidden_visibility.json
+sha256 dbc9e2f41c8a8470addafabb343af5a9bba029f56ba7c85fd5152db2dd8ebe9c
+
+Hidden visibility Markdown:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/hidden_visibility_effec62/hidden_visibility.md
+sha256 86d01f48caa4a0d94771879704d237b09cba6a5a0e7daa8519a8a614fe6b3eed
+```
+
+Scope: this audit keeps `banded_shortfall_m010_p005` as the protected baseline
+and evaluates shadow-only escape screens only in records where that protected
+baseline keeps candidate0 while an outcome-label oracle candidate exists. It
+does not change online selection, atoms, CAMP weights, DP, tracker, simulator,
+smoke runs, formal seeds, or training.
+
+Base protected rule recap:
+
+```text
+candidate0-feasible records: 5639
+protected-rule overrides: 1541
+protected-rule false overrides: 35
+protected-rule hidden outcome records: 1692
+risky common candidates in hidden contexts: 2498
+bool hard-gate worse under protected-rule overrides: all zero
+hidden blockers:
+  progress_delta_below_lower_band: 749
+  progress_delta_exceeds_budget: 941
+  red_stopping_worse: 3
+  union_red_worse: 4
+```
+
+Feature availability and overlap:
+
+| Feature | Hidden best oracle p10/p50/p90 | Risky common p10/p50/p90 | Availability |
+| --- | --- | --- | --- |
+| `progress_delta` | `-0.6595 / +0.1578 / +1.1461` | `+0.0848 / +0.2433 / +0.6783` | available |
+| `score_delta` | `-0.1641 / +0.0178 / +0.2270` | `+0.0127 / +0.0479 / +0.1428` | available |
+| `h10_distance_loss` | `-0.2236 / +0.0425 / +0.3617` | `-0.0086 / +0.0554 / +0.1946` | available |
+| `step_reach_loss` | `-0.0163 / +0.0025 / +0.0305` | `-0.0037 / +0.0025 / +0.0130` | available |
+| `target_speed_loss` | `-0.1611 / +0.0257 / +0.2991` | `-0.0375 / +0.0252 / +0.1300` | available |
+| `route_progress_loss` | n/a | n/a | missing for all 1692 hidden and 2498 risky-common rows |
+| `proxy_lateral_delta` | `-0.0477 / -0.0120 / -0.0008` | `-0.0357 / -0.0054 / -0.0008` | available |
+
+Shadow-only escape screen results:
+
+| Screen | Escape | True recovery | False escape | Hidden remaining | Mean escape safety | CVaR90 escape safety | Bool hard-gate worse | Missing descriptors |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| `escape_p010_score0` | `34` | `29` | `5` | `1658` | `-0.048207` | `+0.027288` | none | `0` |
+| `escape_p010_h10_p005_score0` | `17` | `16` | `1` | `1675` | `-0.033131` | `+0.030256` | none | `0` |
+| `escape_p010_h5_p005_score0` | `20` | `19` | `1` | `1672` | `-0.040772` | `+0.030256` | none | `0` |
+| `escape_p010_step_p005_score0` | `34` | `29` | `5` | `1658` | `-0.048207` | `+0.027288` | none | `0` |
+| `escape_p010_target_speed_p005_score0` | `15` | `14` | `1` | `1677` | `-0.027857` | `+0.030256` | none | `0` |
+| `escape_p010_route_p005_score0` | `0` | `0` | `0` | `1692` | n/a | n/a | none | `1692` |
+| `escape_lower_m020_p005_score0` | `366` | `365` | `1` | `1326` | `-0.007745` | `+0.265762` | near-miss `1` | `0` |
+| `escape_lower_m020_p005_h10_p005_score0` | `331` | `330` | `1` | `1361` | `-0.001208` | `+0.289522` | near-miss `1` | `0` |
+
+Interpretation:
+
+1. The existing logged current-tick features do not provide a good recovery
+   signal for the protected rule. The hard-gate-safe escape screens recover only
+   14 to 29 true hidden cases out of 1692.
+2. The lower-band recovery screens recover many more hidden cases, but they
+   reintroduce a posterior near-miss hard-gate worse record and have weak tail
+   safety (`CVaR90` around `+0.27` to `+0.29`). That violates the development
+   gate even though the mean remains slightly negative.
+3. `route_progress_loss` cannot currently be evaluated in this labeled root:
+   the field name exists in some logs, but the loaded descriptor is unavailable
+   for all hidden and risky-common rows. It cannot be promoted or used as
+   evidence without repaired shadow logging.
+4. `h10_distance_loss`, `step_reach_loss`, `target_speed_loss`,
+   `score_delta`, and `proxy_lateral_delta` have substantial distribution
+   overlap between hidden-good and risky-common candidates. They are useful for
+   diagnosis but not sufficient as a selector escape.
+
+Mathematical conclusion: the audit remains inside the CAMP-side finite-candidate
+contract. All screen inputs are fixed current-tick finite-candidate diagnostics.
+Outcome labels only classify hidden, recovered, and false cases. If a later
+feature is atomized, use nonnegative fixed transforms such as upper/lower hinge
+violations or bounded-window costs so CAMP scores remain affine in the master
+variables. No DP sampler, postprocess, tracker, closed-loop future state,
+SafetyCost, or trajectory-coordinate optimization is treated as a Benders
+subproblem or cut source.
+
+Decision: accept the hidden-visibility audit implementation and artifact.
+Reject all tested escape screens for online promotion. Do not run sample59
+smoke, 36-run, formal seeds, or CAMP retraining. The next engineering step is
+not to weaken the protected hard gates; it is to add default-off shadow-only
+logging for a new route/map-aligned progress diagnostic, then regenerate or
+repair outcome-labeled artifacts so the diagnostic is available for the hidden
+and risky-common rows.
