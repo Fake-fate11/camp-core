@@ -214,6 +214,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--camp_shadow_route_progress",
+        action="store_true",
+        help=(
+            "Compute and log candidate route-centerline progress without "
+            "changing feasibility, scores, or selection. This is a shadow-only "
+            "diagnostic for offline CAMP visibility audits."
+        ),
+    )
+    parser.add_argument(
         "--camp_min_candidate0_step_reach_ratio",
         type=float,
         default=None,
@@ -2656,6 +2665,7 @@ def _install_camp_predictor(
     min_progress_ratio: float,
     min_candidate0_progress_ratio: float | None,
     min_candidate0_route_progress_ratio: float | None,
+    shadow_route_progress: bool,
     min_candidate0_step_reach_ratio: float | None,
     candidate0_step_reach_preserve_feasible: bool,
     lexicographic_progress_epsilon_m: float | None,
@@ -2935,7 +2945,7 @@ def _install_camp_predictor(
                 min_candidate0_step_reach_ratio,
                 preserve_any_feasible=candidate0_step_reach_preserve_feasible,
             )
-        if min_candidate0_route_progress_ratio is not None:
+        if min_candidate0_route_progress_ratio is not None or shadow_route_progress:
             route_centerline_ego = _ego_frame_xy(
                 route_centerline,
                 np.asarray(ego_agent.current_position, dtype=np.float64),
@@ -2946,6 +2956,7 @@ def _install_camp_predictor(
                 candidates[:, :route_horizon],
                 route_centerline_ego,
             )
+        if min_candidate0_route_progress_ratio is not None:
             (
                 external_feasible_mask,
                 external_infeasibility_reasons,
@@ -3642,6 +3653,7 @@ def main() -> None:
             min_candidate0_route_progress_ratio=(
                 args.camp_min_candidate0_route_progress_ratio
             ),
+            shadow_route_progress=bool(args.camp_shadow_route_progress),
             min_candidate0_step_reach_ratio=(
                 args.camp_min_candidate0_step_reach_ratio
             ),
@@ -3785,6 +3797,9 @@ def main() -> None:
         args.camp_min_candidate0_route_progress_ratio
         if records is not None
         else None
+    )
+    effective_shadow_route_progress = (
+        bool(args.camp_shadow_route_progress) if records is not None else None
     )
     effective_min_candidate0_step_reach_ratio = (
         args.camp_min_candidate0_step_reach_ratio
@@ -3973,6 +3988,13 @@ def main() -> None:
         "camp_min_candidate0_route_progress_ratio": (
             effective_min_candidate0_route_progress_ratio
         ),
+        "camp_shadow_route_progress": {
+            "enabled": effective_shadow_route_progress,
+            "selection_effect": False,
+            "logged_field": "candidate_route_progress",
+        }
+        if effective_shadow_route_progress is not None
+        else None,
         "camp_min_candidate0_step_reach_ratio": (
             effective_min_candidate0_step_reach_ratio
         ),
@@ -4197,6 +4219,7 @@ def main() -> None:
     validation["camp_min_candidate0_route_progress_ratio"] = (
         effective_min_candidate0_route_progress_ratio
     )
+    validation["camp_shadow_route_progress"] = summary["camp_shadow_route_progress"]
     validation["camp_min_candidate0_step_reach_ratio"] = (
         effective_min_candidate0_step_reach_ratio
     )

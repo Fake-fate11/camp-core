@@ -175,6 +175,7 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=None,
     )
+    parser.add_argument("--camp_shadow_route_progress", action="store_true")
     parser.add_argument(
         "--camp_min_candidate0_step_reach_ratio",
         type=float,
@@ -411,6 +412,8 @@ def _variant_command(
                     str(args.camp_min_candidate0_route_progress_ratio),
                 ]
             )
+        if args.camp_shadow_route_progress:
+            cmd.append("--camp_shadow_route_progress")
         if args.camp_min_candidate0_step_reach_ratio is not None:
             cmd.extend(
                 [
