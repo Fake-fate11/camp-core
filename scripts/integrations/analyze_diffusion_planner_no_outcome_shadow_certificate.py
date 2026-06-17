@@ -314,9 +314,28 @@ def _vector(values: Any, size: int, label: str) -> np.ndarray:
     return arr
 
 
-def _optional_vector(values: Any, size: int, label: str) -> np.ndarray | None:
+def _optional_vector(
+    values: Any,
+    size: int,
+    label: str,
+    *,
+    nullable: bool = False,
+) -> np.ndarray | list[float | None] | None:
     if values is None:
         return None
+    if nullable:
+        if not isinstance(values, list) or len(values) != size:
+            raise ValueError(f"{label} must be a nullable vector of length {size}.")
+        result: list[float | None] = []
+        for value in values:
+            if value is None:
+                result.append(None)
+                continue
+            numeric = float(value)
+            if not np.isfinite(numeric):
+                raise ValueError(f"{label} must contain finite numeric values or null.")
+            result.append(numeric)
+        return result
     return _vector(values, size, label)
 
 
@@ -381,6 +400,7 @@ def _clearance(
             payload.get("min_obstacle_clearance_lower_bound_m"),
             candidate_count,
             f"{label} min_obstacle_clearance_lower_bound_m",
+            nullable=True,
         ),
         "exact_pairs": _optional_vector(
             payload.get("exact_evaluated_pairs"),
