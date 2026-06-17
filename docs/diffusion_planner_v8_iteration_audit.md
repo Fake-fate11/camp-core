@@ -15580,3 +15580,161 @@ overall latency p95 is still above the industrial target. The next admissible
 step is a latency-focused attribution of the remaining `~109 ms` p95 floor,
 especially reward scoring, candidate generation, and residual CAMP selection
 components, before any broader rerun.
+
+### Latency budget attribution after exact-OBB default-off
+
+Commit `61d700345a5b9a4f8d9904ea5035bf7d6f14b45e` added a read-only latency
+budget analyzer:
+
+```text
+scripts/integrations/analyze_diffusion_planner_latency_budget.py
+camp_core/tests/test_diffusion_planner_latency_budget.py
+```
+
+The analyzer reads existing `camp_selection_log.json` files or an artifact
+root, uses no closed-loop outcome labels, changes no selector, and trains no
+weights. Its purpose is latency attribution only.
+
+Verification at implementation time:
+
+```text
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_latency_budget.py -q
+# 1 passed
+
+py -3.12 -m compileall -q \
+  scripts\integrations\analyze_diffusion_planner_latency_budget.py \
+  camp_core\tests\test_diffusion_planner_latency_budget.py
+# passed
+
+git diff --check
+# passed
+```
+
+AutoDL was synchronized to
+`61d700345a5b9a4f8d9904ea5035bf7d6f14b45e`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL targeted verification:
+
+```text
+camp_core/tests/test_diffusion_planner_latency_budget.py
+# 1 passed
+```
+
+Analyzer commands:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+SMOKE=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_exact_obb_off_b3dcbc1_sample_tl_seed1_npc4_tloff_static
+SMOKE_OUT=$SMOKE/latency_budget_61d7003
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_latency_budget.py \
+  --selection_log "$SMOKE/camp_selection_log.json" \
+  --label no_outcome_exact_obb_off_b3dcbc1_sample_tl_seed1_npc4_tloff_static \
+  --output_json "$SMOKE_OUT/latency_budget.json" \
+  --output_md "$SMOKE_OUT/latency_budget.md"
+
+GRID=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_devgrid_57cd0d1
+GRID_OUT=$GRID/offline_gate_audit_57cd0d1/latency_budget_61d7003
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_latency_budget.py \
+  --root "$GRID" \
+  --label no_outcome_full36_route_h10_clearance_57cd0d1 \
+  --output_json "$GRID_OUT/latency_budget.json" \
+  --output_md "$GRID_OUT/latency_budget.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `no_outcome_exact_obb_off.../latency_budget_61d7003/latency_budget.json` | `39d6a54b3941cf70a35cfa703697e5acbc57385e31df6b68375331980fa381de` |
+| `no_outcome_exact_obb_off.../latency_budget_61d7003/latency_budget.md` | `b8f7292d1c31152ece7e11d01a6920b45b680a64e4d3833862b8a1d9da07175d` |
+| `no_outcome_devgrid_57cd0d1/.../latency_budget_61d7003/latency_budget.json` | `27be782c894103c925eef9d3f6f3597b54e0d45a7e464edd85da6924a6bb30fa` |
+| `no_outcome_devgrid_57cd0d1/.../latency_budget_61d7003/latency_budget.md` | `2bbe831909c1e7312de470b89c6a7a2b34cd62587e9bc26efc21d9313e9e9ca9` |
+
+Exact-OBB-off smoke latency summary:
+
+| Quantity | Mean | p95 | Max |
+| --- | ---: | ---: | ---: |
+| total including candidate generation | `102.801354 ms` | `109.424894 ms` | `311.714364 ms` |
+| candidate generation | `57.589893 ms` | `58.762836 ms` | `83.103469 ms` |
+| reward scoring | `28.775702 ms` | `30.120930 ms` | `205.798348 ms` |
+| CAMP selection | `7.163944 ms` | `8.915116 ms` | `213.910233 ms` |
+| obstacle clearance shadow | `5.148374 ms` | `9.296867 ms` | `9.540996 ms` |
+| H10 open-loop shadow | `1.034807 ms` | `1.047682 ms` | `1.211481 ms` |
+| context and obstacles | `1.326262 ms` | `1.455620 ms` | `2.011809 ms` |
+| critical-path sum | `102.749035 ms` | `109.375071 ms` | `311.665178 ms` |
+| non-candidate-generation remainder | `45.211461 ms` | `51.772334 ms` | `254.679419 ms` |
+| uninstrumented residual | `0.052318 ms` | `0.062334 ms` | `0.182581 ms` |
+
+Exact-OBB-off smoke removal sensitivity:
+
+| Removed component | Remaining total p95 | p95 reduction |
+| --- | ---: | ---: |
+| candidate generation | `51.772334 ms` | `57.652560 ms` |
+| reward scoring | `79.673602 ms` | `29.751292 ms` |
+| CAMP selection | `100.594106 ms` | `8.830788 ms` |
+| obstacle clearance shadow | `100.384059 ms` | `9.040835 ms` |
+
+Full36 no-outcome grid latency summary:
+
+| Quantity | Mean | p95 | Max |
+| --- | ---: | ---: | ---: |
+| total including candidate generation | `94.935122 ms` | `118.412714 ms` | `317.124351 ms` |
+| candidate generation | `56.591838 ms` | `60.368221 ms` | `84.938101 ms` |
+| reward scoring | `25.366729 ms` | `29.072235 ms` | `221.673478 ms` |
+| CAMP selection | `5.950883 ms` | `6.812007 ms` | `190.699888 ms` |
+| obstacle clearance shadow | `3.453839 ms` | `18.306384 ms` | `116.254320 ms` |
+| H10 open-loop shadow | `1.039569 ms` | `1.076344 ms` | `6.668014 ms` |
+| context and obstacles | `0.752216 ms` | `1.299788 ms` | `6.252378 ms` |
+| critical-path sum | `94.899724 ms` | `118.379148 ms` | `317.075895 ms` |
+| non-candidate-generation remainder | `38.343285 ms` | `60.289992 ms` | `260.485682 ms` |
+| uninstrumented residual | `0.035398 ms` | `0.047099 ms` | `0.628720 ms` |
+
+Full36 no-outcome grid removal sensitivity:
+
+| Removed component | Remaining total p95 | p95 reduction |
+| --- | ---: | ---: |
+| candidate generation | `60.289992 ms` | `58.122722 ms` |
+| reward scoring | `87.849056 ms` | `30.563658 ms` |
+| CAMP selection | `107.953065 ms` | `10.459649 ms` |
+| obstacle clearance shadow | `97.200250 ms` | `21.212464 ms` |
+
+Top-tail notes:
+
+1. The instrumented critical path almost exactly explains total latency:
+   uninstrumented residual p95 is `0.062334 ms` on the smoke and `0.047099 ms`
+   on the Full36 grid.
+2. Candidate generation consumes about `58-60 ms` p95. This is the fixed DP
+   black-box generator cost and is outside the permitted CAMP optimization
+   boundary.
+3. Reward scoring is the largest legal CAMP-side p95 lever, around `29-31 ms`.
+   It currently supplies `dp_reward` feasibility, progress, planned red-light,
+   full/union red-light, and related current-tick diagnostic quantities. It
+   cannot be removed unless those fixed finite-candidate fields or guards are
+   replaced with a mathematically admissible equivalent.
+4. CAMP selection p95 is much smaller than reward scoring, but rare max spikes
+   exist. The worst smoke record is step `147`, with total `311.714364 ms`,
+   CAMP selection `213.910233 ms`, and atom computation `210.768191 ms`. This
+   is a max-latency investigation target, not the current p95 floor.
+5. The Full36 grid still fails the industrial latency gate:
+   `latency_ms_including_candidate_generation.p95 = 118.412714 ms`.
+
+Mathematical boundary: this analyzer does not alter the finite candidate set,
+DP outputs, atoms, weights, master problem, or selector. It reads only logged
+current-tick latency fields and does not use outcome labels. Therefore it makes
+no new Benders, convexity, subproblem, or cut claim. Any future reward-scoring
+replacement must preserve the accepted CAMP contract: finite DP candidates,
+fixed current-tick nonnegative atom values, no future leakage, affine score in
+weights, and convex simplex/CVaR/L2 master behavior.
+
+Decision: accept the latency-budget analyzer and these attribution artifacts.
+Reject online selector promotion, new CAMP weight training, new 12/36 online
+matrices, and formal seeds from this evidence. The next admissible engineering
+step is a reward-scoring decomposition and replacement design that preserves
+the current finite-candidate CAMP math contract before any broader online
+experiment.
