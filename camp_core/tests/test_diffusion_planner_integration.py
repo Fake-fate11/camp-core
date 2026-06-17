@@ -537,12 +537,17 @@ def test_candidate_obstacle_clearance_diagnostics_are_current_tick_hinges() -> N
 
     assert (
         diagnostics["schema_version"]
-        == "candidate_current_tick_obstacle_clearance_v1"
+        == "candidate_current_tick_obstacle_clearance_v2"
     )
     assert diagnostics["selection_effect"] is False
     assert diagnostics["future_outcome_leakage"] is False
     assert diagnostics["horizon_steps"] == 8
     np.testing.assert_allclose(diagnostics["min_obstacle_clearance_m"], [0.0, 4.0])
+    np.testing.assert_allclose(
+        diagnostics["min_obstacle_clearance_lower_bound_m"], [0.0, 4.0]
+    )
+    assert diagnostics["exact_evaluated_pairs"] == [0, 0]
+    assert diagnostics["exact_min_obstacle_clearance_m"] == [None, None]
     np.testing.assert_allclose(diagnostics["soft_clearance_violation_m"], [2.0, 0.0])
     np.testing.assert_allclose(diagnostics["soft_clearance_violation_cost"], [4.0, 0.0])
     np.testing.assert_allclose(diagnostics["near_miss_violation_m"], [2.0, 0.0])
@@ -584,8 +589,13 @@ def test_candidate_obstacle_clearance_diagnostics_reports_obb_mode() -> None:
     )
 
     assert diagnostics["geometry_mode"] == ["obb", "obb"]
+    assert diagnostics["exact_evaluated_pairs"][0] > 0
+    assert diagnostics["exact_evaluated_pairs"][1] == 0
     assert diagnostics["min_obstacle_clearance_m"][0] == pytest.approx(0.0)
     assert diagnostics["min_obstacle_clearance_m"][1] > 0.0
+    assert diagnostics["min_obstacle_clearance_lower_bound_m"][0] == pytest.approx(0.0)
+    assert diagnostics["exact_min_obstacle_clearance_m"][0] == pytest.approx(0.0)
+    assert diagnostics["exact_min_obstacle_clearance_m"][1] is None
     assert diagnostics["soft_clearance_violation_cost"][0] > 0.0
 
 

@@ -2034,7 +2034,9 @@ def compute_candidate_obstacle_clearance_diagnostics(
 
     This uses the fixed candidate trajectories and fixed obstacle predictions
     available at the current planning tick. It is a shadow descriptor for
-    offline audits, not a realized closed-loop outcome label.
+    offline audits, not a realized closed-loop outcome label. Dynamic obstacle
+    OBB checks use a bounding-circle lower bound for the hinge costs and run
+    exact OBB distance only near the configured thresholds.
     """
     trajectories = np.asarray(candidates, dtype=np.float64)
     if trajectories.ndim != 3 or trajectories.shape[2] < 2:
@@ -2050,6 +2052,7 @@ def compute_candidate_obstacle_clearance_diagnostics(
     near_miss_threshold = float(near_miss_threshold_m)
     if not np.isfinite(near_miss_threshold) or near_miss_threshold < 0.0:
         raise ValueError("near_miss_threshold_m must be finite and nonnegative.")
+    exact_trigger = max(soft_threshold, near_miss_threshold)
 
     obstacles = None
     if candidate_obstacles is not None:
@@ -2067,7 +2070,9 @@ def compute_candidate_obstacle_clearance_diagnostics(
         if obstacles.shape[-1] < 2:
             raise ValueError("Obstacle trajectories need at least x/y coordinates.")
 
-    min_clearances: list[float | None] = []
+    min_clearance_lower_bounds: list[float | None] = []
+    exact_obb_min_clearances: list[float | None] = []
+    exact_obb_evaluated_pairs: list[int] = []
     soft_violations: list[float] = []
     near_miss_violations: list[float] = []
     obstacle_slots: list[int] = []
@@ -2076,7 +2081,9 @@ def compute_candidate_obstacle_clearance_diagnostics(
     for candidate_idx, candidate in enumerate(trajectories):
         branch = candidate[:horizon]
         headings = _trajectory_headings(branch)
-        min_clearance = float("inf")
+        min_lower_bound = float("inf")
+        exact_obb_min_clearance = float("inf")
+        exact_obb_pairs = 0
         slots = 0
         used_obb = False
 
@@ -2088,7 +2095,7 @@ def compute_candidate_obstacle_clearance_diagnostics(
             )
             if distances.size:
                 slots += int(static_xy.shape[0])
-                min_clearance = min(min_clearance, float(np.min(distances)))
+                min_lower_bound = min(min_lower_bound, float(np.min(distances)))
 
         if obstacles is not None:
             candidate_obstacle = obstacles[candidate_idx]
@@ -2111,7 +2118,7 @@ def compute_candidate_obstacle_clearance_diagnostics(
                             if row.shape[0] >= 6 and np.isfinite(row[5]) and row[5] > 0
                             else None
                         )
-                        ego_box = _obb_corners(
+                        ego_center, ego_radius = _obb_center_and_radius(
                             float(branch[int(step_idx), 0]),
                             float(branch[int(step_idx), 1]),
                             float(headings[int(step_idx)]),
@@ -2119,7 +2126,7 @@ def compute_candidate_obstacle_clearance_diagnostics(
                             float(ego_width),
                             float(ego_wheelbase),
                         )
-                        obs_box = _obb_corners(
+                        obs_center, obs_radius = _obb_center_and_radius(
                             float(row[0]),
                             float(row[1]),
                             obs_heading,
@@ -2127,41 +2134,83 @@ def compute_candidate_obstacle_clearance_diagnostics(
                             obs_width,
                             obs_wheelbase,
                         )
-                        clearance = _obb_distance(ego_box, obs_box)
+                        center_distance = float(np.linalg.norm(ego_center - obs_center))
+                        clearance = max(0.0, center_distance - ego_radius - obs_radius)
                         used_obb = True
+                        if clearance <= exact_trigger:
+                            ego_box = _obb_corners(
+                                float(branch[int(step_idx), 0]),
+                                float(branch[int(step_idx), 1]),
+                                float(headings[int(step_idx)]),
+                                float(ego_length),
+                                float(ego_width),
+                                float(ego_wheelbase),
+                            )
+                            obs_box = _obb_corners(
+                                float(row[0]),
+                                float(row[1]),
+                                obs_heading,
+                                obs_length,
+                                obs_width,
+                                obs_wheelbase,
+                            )
+                            exact_clearance = _obb_distance(ego_box, obs_box)
+                            exact_obb_min_clearance = min(
+                                exact_obb_min_clearance,
+                                exact_clearance,
+                            )
+                            exact_obb_pairs += 1
                     else:
                         clearance = float(
                             np.linalg.norm(branch[int(step_idx), :2] - row[:2])
                         )
-                    min_clearance = min(min_clearance, clearance)
+                    min_lower_bound = min(min_lower_bound, clearance)
 
-        finite_clearance = (
-            float(min_clearance) if np.isfinite(min_clearance) else None
+        finite_lower_bound = (
+            float(min_lower_bound) if np.isfinite(min_lower_bound) else None
+        )
+        finite_exact_obb_clearance = (
+            float(exact_obb_min_clearance)
+            if np.isfinite(exact_obb_min_clearance)
+            else None
         )
         soft_violation = (
-            max(0.0, soft_threshold - float(min_clearance))
-            if finite_clearance is not None
+            max(0.0, soft_threshold - float(min_lower_bound))
+            if finite_lower_bound is not None
             else 0.0
         )
         near_miss_violation = (
-            max(0.0, near_miss_threshold - float(min_clearance))
-            if finite_clearance is not None
+            max(0.0, near_miss_threshold - float(min_lower_bound))
+            if finite_lower_bound is not None
             else 0.0
         )
-        min_clearances.append(finite_clearance)
+        min_clearance_lower_bounds.append(finite_lower_bound)
+        exact_obb_min_clearances.append(finite_exact_obb_clearance)
+        exact_obb_evaluated_pairs.append(int(exact_obb_pairs))
         soft_violations.append(float(soft_violation))
         near_miss_violations.append(float(near_miss_violation))
         obstacle_slots.append(slots)
         geometry_modes.append("obb" if used_obb else "point")
 
     return {
-        "schema_version": "candidate_current_tick_obstacle_clearance_v1",
+        "schema_version": "candidate_current_tick_obstacle_clearance_v2",
         "selection_effect": False,
         "future_outcome_leakage": False,
+        "definition": (
+            "conservative current-tick obstacle-clearance lower bound; exact OBB "
+            "distance is evaluated only when the bounding-circle lower bound is "
+            "within the configured hinge thresholds"
+        ),
         "horizon_steps": int(horizon),
         "soft_clearance_threshold_m": float(soft_threshold),
         "near_miss_threshold_m": float(near_miss_threshold),
-        "min_obstacle_clearance_m": min_clearances,
+        "exact_evaluation_trigger_m": float(exact_trigger),
+        "min_obstacle_clearance_m": min_clearance_lower_bounds,
+        "min_obstacle_clearance_lower_bound_m": min_clearance_lower_bounds,
+        "exact_min_obstacle_clearance_m": exact_obb_min_clearances,
+        "exact_evaluated_pairs": exact_obb_evaluated_pairs,
+        "exact_obb_min_obstacle_clearance_m": exact_obb_min_clearances,
+        "exact_obb_evaluated_pairs": exact_obb_evaluated_pairs,
         "soft_clearance_violation_m": soft_violations,
         "soft_clearance_violation_cost": [
             float(value * value) for value in soft_violations

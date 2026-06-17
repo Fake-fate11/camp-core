@@ -4038,11 +4038,12 @@ def main() -> None:
             "selection_effect": False,
             "future_outcome_leakage": False,
             "logged_field": "candidate_obstacle_clearance",
-            "descriptor_schema": "candidate_current_tick_obstacle_clearance_v1",
+            "descriptor_schema": "candidate_current_tick_obstacle_clearance_v2",
             "definition": (
                 "current-tick candidate trajectory versus current-tick "
-                "predicted/static obstacle geometry; reports min clearance "
-                "and nonnegative clearance hinge violations"
+                "predicted/static obstacle geometry; reports conservative "
+                "clearance lower-bound hinges and near-threshold exact OBB "
+                "diagnostics"
             ),
             "soft_clearance_threshold_m": (
                 float(args.camp_safety_radius + args.camp_clearance_margin)
