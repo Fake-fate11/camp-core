@@ -16765,3 +16765,148 @@ from this evidence. The next admissible step is a targeted tail-component audit
 on the remaining projected over-budget logs, followed by either a small
 non-formal smoke confirming the specific tail fix or a no-outcome Full36 rerun
 only if the tail audit indicates enough margin.
+
+### Projected Latency Tail Attribution on Remaining Over-Budget Runs
+
+Commit:
+
+- Local/GitHub/AutoDL CAMP:
+  `f5ef1177f0ef47296c3bce5f2b46167553fe8259`
+  (`Add DP projected latency tail audit`).
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Purpose:
+
+The previous projection reduced the development-grid projected over-budget
+count from `15/36` to `4/36`, but it did not pass the per-run `100 ms` p95
+gate. This audit attributes the remaining projected tail without replaying,
+changing selection, training, or reading closed-loop outcomes.
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_projected_latency_tail.py `
+  camp_core\tests\test_diffusion_planner_clearance_latency_projection.py -q
+
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_projected_latency_tail.py `
+  camp_core\tests\test_diffusion_planner_projected_latency_tail.py
+
+git diff --check
+```
+
+Result: `4 passed`; compile and diff checks passed.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_projected_latency_tail.py \
+  camp_core/tests/test_diffusion_planner_clearance_latency_projection.py -q
+```
+
+Result: `4 passed`.
+
+Audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_devgrid_57cd0d1
+OUT=$ROOT/projected_latency_tail_f5ef117
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_projected_latency_tail.py \
+  --root "$ROOT" \
+  --label no_outcome_full36_projected_latency_tail_f5ef117 \
+  --reference_old_clearance_p95_ms 9.296867 \
+  --reference_new_clearance_p95_ms 0.858788 \
+  --reference_source old_exact_off_smoke_vs_vectorized_smoke_sha_88bee7f5494de1cf9ad49cd5c17b772bdd337274f4211ff24f284b2c32d2a140 \
+  --output_json "$OUT/projected_latency_tail.json" \
+  --output_md "$OUT/projected_latency_tail.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `projected_latency_tail.json` | `e14487fb861264e76974dbfe9cc5f4993578d4ffb92c8223321c1571477433c1` |
+| `projected_latency_tail.md` | `2aa6699bbb5a0ef3c4d77578d42c9c67a383216e8652f4aca12b42f66fcc4445` |
+
+Tail summary:
+
+| Mode | Runs over budget | Tail rows | Shortfall mean | Shortfall p95 | Shortfall max |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `constant_new_p95` | `4 / 36` | `40` | `1.396007 ms` | `3.927083 ms` | `4.471944 ms` |
+| `cap_at_new_p95` | `4 / 36` | `40` | `1.396007 ms` | `3.927083 ms` | `4.471944 ms` |
+| `scale_by_smoke_p95_ratio` | `4 / 36` | `40` | `3.549626 ms` | `9.922694 ms` | `11.469578 ms` |
+
+Top primary components across the remaining tail rows:
+
+| Mode | Component | Mean | P95 | Max |
+| --- | --- | ---: | ---: | ---: |
+| `constant_new_p95` | `latency_ms_candidate_generation` | `60.197954` | `68.637244` | `84.938101` |
+| `constant_new_p95` | `latency_ms_reward_scoring` | `47.753345` | `206.013012` | `218.426345` |
+| `constant_new_p95` | `latency_ms_camp_selection` | `24.570530` | `171.482915` | `190.699888` |
+| `scale_by_smoke_p95_ratio` | `latency_ms_candidate_generation` | `59.243097` | `68.637244` | `84.938101` |
+| `scale_by_smoke_p95_ratio` | `latency_ms_reward_scoring` | `47.963396` | `205.847488` | `218.426345` |
+| `scale_by_smoke_p95_ratio` | `latency_ms_camp_selection` | `24.350766` | `166.850207` | `190.699888` |
+
+Nested CAMP tail:
+
+| Mode | Component | Mean | P95 | Max |
+| --- | --- | ---: | ---: | ---: |
+| `constant_new_p95` | `latency_ms_camp_atom_computation` | `20.830185` | `168.914251` | `187.605512` |
+| `constant_new_p95` | `latency_ms_camp_collision_checks` | `3.295744` | `6.183536` | `9.071019` |
+| `scale_by_smoke_p95_ratio` | `latency_ms_camp_atom_computation` | `20.489023` | `163.690204` | `187.605512` |
+| `scale_by_smoke_p95_ratio` | `latency_ms_camp_collision_checks` | `3.425215` | `6.058856` | `9.071019` |
+
+Per-run observations:
+
+| Mode | Run | Projected p95 | Shortfall | Tail note |
+| --- | --- | ---: | ---: | --- |
+| `constant_new_p95` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `104.471944` | `4.471944` | candidate generation mean `59.217512`; reward and CAMP have large tail outliers |
+| `constant_new_p95` | `sample_map/sample_map_tl_route_59_to_86/seed_2/npc_4/spawn_0p3/tl_off/static` | `100.839536` | `0.839536` | shortfall is small; candidate generation remains the largest stable component |
+| `constant_new_p95` | `sample_map/sample_map_tl_route_59_to_86/seed_3/npc_4/spawn_0p3/tl_on/static` | `100.251833` | `0.251833` | shortfall is small; reward/CAMP outliers are present but not a sufficient gate explanation alone |
+| `constant_new_p95` | `nishishinjuku/nishishinjuku_release_auto_route/seed_3/npc_4/spawn_0p3/tl_on/static` | `100.020717` | `0.020717` | effectively at threshold; no online change justified |
+| `scale_by_smoke_p95_ratio` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `111.469578` | `11.469578` | proportional clearance projection is more conservative; this run remains the true blocker |
+| `scale_by_smoke_p95_ratio` | `sample_map/sample_map_tl_route_59_to_86/seed_2/npc_4/spawn_0p3/tl_on/static` | `101.157018` | `1.157018` | small residual shortfall |
+| `scale_by_smoke_p95_ratio` | `sample_map/sample_map_tl_route_59_to_86/seed_2/npc_4/spawn_0p3/tl_off/static` | `100.948834` | `0.948834` | small residual shortfall |
+| `scale_by_smoke_p95_ratio` | `nishishinjuku/nishishinjuku_release_auto_route/seed_3/npc_4/spawn_0p3/tl_on/static` | `100.623074` | `0.623074` | small residual shortfall |
+
+Interpretation:
+
+1. The remaining projected shortfall is small under constant/cap replacement
+   (`max=4.471944 ms`) but not small under the proportional model
+   (`max=11.469578 ms`).
+2. `latency_ms_candidate_generation` is the largest stable component in the
+   remaining p95 tail, but candidate generation belongs to the fixed DP
+   black-box side of the boundary. Reducing it by changing DP sampling is not
+   an admissible CAMP-side fix under the current goal.
+3. The large CAMP-side outlier is `latency_ms_camp_atom_computation`, not
+   collision checking or scoring. That makes exact semantic optimization of
+   current-tick CAMP atom computation an admissible next engineering target,
+   provided the atom values remain identical and the finite-candidate affine
+   CAMP score is unchanged.
+4. Reward scoring has large tail outliers, but it is part of the existing DP
+   reward/feasibility instrumentation rather than a CAMP Benders subproblem.
+   It can be audited or optimized as engineering plumbing only; it must not be
+   reinterpreted as a cut source.
+
+Mathematical boundary: this tail audit is a projection-based latency
+attribution over existing logs. It uses current-tick latency measurements and
+does not alter candidate trajectories, atoms, weights, feasibility, selector
+outputs, or closed-loop outcomes. No outcome labels, formal seeds, DP
+modification, DP retraining, CAMP retraining, online selector promotion, or
+new replay matrix were used.
+
+Decision: accept the tail audit as evidence that the immediate next step should
+not be a Full36 rerun. Reject DP sampling changes and online selector promotion.
+The next admissible task is a component-savings sensitivity audit and then a
+semantics-preserving CAMP atom-computation optimization if the sensitivity
+shows enough p95 margin without changing CAMP mathematics.
