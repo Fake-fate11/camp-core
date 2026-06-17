@@ -14778,3 +14778,151 @@ retraining, or replay matrices from this selector. The next admissible step is a
 default-off diagnostic replay extension that logs a candidate-level current-tick
 NPC clearance descriptor, followed by a no-outcome shadow audit combining
 route-progress, H10 lower-bound, and clearance hinge guards.
+
+### Obstacle-clearance shadow descriptor v2
+
+The route-progress plus H10 selector failure above required a legal
+candidate-level NPC clearance descriptor. Commit
+`4bc6485182ede0c05c39508c84a9e218c5ba6cd6` first added a default-off
+`candidate_obstacle_clearance` shadow log with schema
+`candidate_current_tick_obstacle_clearance_v1`. That v1 descriptor was
+mathematically admissible as a current-tick fixed candidate diagnostic, but it
+computed exact OBB distance for every candidate-obstacle-step pair.
+
+The first nishishinjuku NPC smoke exposed the runtime problem:
+
+```text
+Commit: 4bc6485182ede0c05c39508c84a9e218c5ba6cd6
+Artifact:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/obstacle_clearance_nishiseed2_4bc6485_20260617_202038
+
+Route: nishishinjuku_release_auto_route
+Seed: 2
+NPC max: 4
+Traffic lights: on
+Steps: 140
+Closed-loop candidate outcomes: disabled
+
+records=140
+schema=candidate_current_tick_obstacle_clearance_v1
+mean_shadow_obstacle_clearance_latency_ms=50.409628
+p95_shadow_obstacle_clearance_latency_ms=67.640427
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `fee45daed2811a6afebf0624b95c17c23f3b0a33a51d94939467cce459863b9b` |
+| `camp_replay_summary.json` | `2c1b02e604d1e941d7794c34b2f3f49dd6d4379f97662feb538acceb0b5fb067` |
+| `camp_validation_summary.json` | `32b944368faf691f69bd5e26148f1234dacaa2e7d7a2e43d219b25ea96443d8e` |
+
+Decision: reject v1 exact-OBB clearance as an online descriptor candidate. Its
+inputs are legal, but the measured per-tick latency is far too large for the
+industrial budget.
+
+Commit `832a76b1f32b2b85c9ad98e2617c764e80f383e1` replaced the shadow
+descriptor with schema `candidate_current_tick_obstacle_clearance_v2`. The v2
+definition keeps the descriptor default-off and selection-effect-free, but uses
+a conservative bounding-circle lower bound for each dynamic OBB pair:
+
+```text
+lower_bound = max(0, ||center_ego - center_obstacle|| - radius_ego - radius_obstacle)
+```
+
+The reported hinge costs use this lower bound:
+
+```text
+soft_clearance_violation = max(0, soft_threshold - lower_bound)
+near_miss_violation = max(0, near_miss_threshold - lower_bound)
+```
+
+Exact OBB distance is now evaluated only when the lower bound is already within
+`max(soft_threshold, near_miss_threshold)`, and is logged only as diagnostic
+provenance via `exact_min_obstacle_clearance_m` and `exact_evaluated_pairs`.
+The compatibility field `min_obstacle_clearance_m` now mirrors
+`min_obstacle_clearance_lower_bound_m`.
+
+Local verification for `832a76b1f32b2b85c9ad98e2617c764e80f383e1`:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+py -3.12 -m pytest camp_core\tests -q
+# 337 passed, 5 skipped
+
+py -3.12 -m compileall -q \
+  camp_core\camp_core\integrations\diffusion_planner.py \
+  scripts\integrations\run_diffusion_planner_camp_replay.py \
+  scripts\integrations\run_diffusion_planner_camp_benchmark_matrix.py \
+  camp_core\tests\test_diffusion_planner_integration.py \
+  camp_core\tests\test_diffusion_planner_benchmark_matrix.py
+# passed
+
+git diff --check
+# passed
+```
+
+AutoDL sync used a git bundle because direct GitHub access failed with a GnuTLS
+TLS termination error. AutoDL CAMP was fast-forwarded to
+`832a76b1f32b2b85c9ad98e2617c764e80f383e1`; AutoDL DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Targeted AutoDL tests passed:
+
+```text
+4 passed in 0.61s
+```
+
+The v2 no-outcome nishishinjuku smoke used the same route, seed, NPC setting,
+traffic-light setting, and horizon as the v1 latency smoke:
+
+```text
+Artifact:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/obstacle_clearance_nishiseed2_832a76b_20260617_v2
+
+records=140
+schema=candidate_current_tick_obstacle_clearance_v2
+mean_shadow_obstacle_clearance_latency_ms=2.011791
+p95_shadow_obstacle_clearance_latency_ms=2.522393
+non_null_records=110
+positive_soft_records=0
+exact_evaluated_pairs_total=0
+```
+
+The previously failing route-H10 near-miss steps still do not show a current
+candidate-obstacle clearance violation in this smoke:
+
+```text
+step 117: selected_index=2, min lower-bound range 20.639138..20.661243 m
+step 133: selected_index=6, min lower-bound range 28.837287..28.853339 m
+soft clearance costs: all zero
+exact evaluated pairs: all zero
+```
+
+This means the v2 descriptor is useful as a legal low-latency current-tick
+diagnostic, but it does not explain or solve the route-H10 posterior near-miss
+failures.
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `5bfd2cc46b663ed0ae12ce1283116f8ed1714d35f0bfb71dfb2d2b18a35f7113` |
+| `camp_replay_summary.json` | `efc7a9ad911973e0c32064ffb19b5d6042b918b2ac5d10aad55ef4832d8ec415` |
+| `camp_validation_summary.json` | `673322becac357abc8be7d3787aca148e37b0eb56e985c33d0fd0304eae6b60a` |
+
+Mathematical boundary: v2 clearance lower bounds are computed from the fixed
+current-tick finite candidate set, current predicted obstacle geometry, and
+static obstacles before selection. The resulting hinge values are finite,
+nonnegative constants for the current tick. If atomized later, the CAMP score
+remains affine in the master weights and the simplex/CVaR/L2 master stays
+convex. The optional exact OBB fields are diagnostic provenance only. This does
+not make DP sampling, SG smoothing, `postprocess_reference`, PerfectTracker,
+future closed-loop states, SafetyCost, or trajectory-coordinate optimization a
+Benders subproblem or cut source.
+
+Decision: accept v2 as the current default-off obstacle-clearance logging
+implementation and reject v1 exact-OBB logging for online latency. Do not
+promote any selector from this smoke. The full selection p95 in this single
+NPC smoke is still above 100 ms, and the clearance descriptor did not expose
+the route-H10 near-miss failure. The next admissible step is a no-outcome
+offline shadow audit that combines the already logged route-progress, H10
+lower-bound, and v2 clearance descriptor fields without changing selection.
