@@ -10342,3 +10342,59 @@ the skeleton builder and reject any attempt to label these routes from names,
 traffic-light flags, or SafetyCost outcomes alone. The next admissible step is
 a route/scenario-definition inspection pass that records geometry and traffic
 control evidence before filling manifest labels.
+
+## Route scenario inspection entry point
+
+The manifest skeleton provides targets for labeling, but it still has no
+evidence. This milestone adds a read-only route inspection entry point that
+extracts scenario-definition evidence from the fixed DP `Route` files and
+Lanelet2 maps before any bucket labels are applied.
+
+Implementation:
+
+- `scripts/integrations/inspect_diffusion_planner_routes.py` imports the fixed
+  Tier4 Diffusion Planner checkout, loads saved `Route` pickle files, rebuilds
+  `LaneletSceneBuilder`, and records route geometry and traffic-light
+  regulatory groups on the route.
+- The route geometry report includes route length, endpoint distance, repeated
+  lanelets, total and windowed heading changes, and route lanelets associated
+  with traffic-light regulatory groups.
+- If a SafetyCost comparison JSON is supplied, the report also records the
+  run-level seed, step count, NPC count, spawn probability, traffic-light mode,
+  tracker mode, and run keys for each route.
+- The tool does not apply labels, does not infer labels from metrics, does not
+  modify DP, does not run replay, and does not change CAMP weights or atom
+  definitions.
+
+Local verification:
+
+```text
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; python -m pytest \
+  camp_core\tests\test_diffusion_planner_route_inspection.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_manifest.py \
+  camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py \
+  camp_core\tests\test_diffusion_planner_safety_score_compare.py
+
+13 passed
+
+python -m py_compile \
+  scripts\integrations\inspect_diffusion_planner_routes.py
+
+passed
+
+python -m ruff check \
+  scripts\integrations\inspect_diffusion_planner_routes.py \
+  camp_core\tests\test_diffusion_planner_route_inspection.py
+
+All checks passed
+
+git diff --check
+
+passed
+```
+
+Predeclared remote check after push: run the route inspection tool on the three
+routes present in the existing `redstopfloor05` full36 SafetyCost comparison:
+`nishishinjuku_release_auto_route`, `sample_map_route_2_to_104`, and
+`sample_map_tl_route_59_to_86`. The expected output is an evidence artifact,
+not a filled manifest.

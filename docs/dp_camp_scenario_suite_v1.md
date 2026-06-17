@@ -57,6 +57,23 @@ labels. Optional `--route_bucket ROUTE=BUCKET[,BUCKET]` and
 `--run_key_bucket RUN_KEY=BUCKET[,BUCKET]` may be used only after that
 inspection.
 
+Use the route inspection tool to collect that evidence from fixed DP route
+files and Lanelet2 maps:
+
+```bash
+python scripts/integrations/inspect_diffusion_planner_routes.py \
+  --diffusion_repo /path/to/Diffusion-Planner \
+  --comparison_json /path/to/safety_score_v1_comparison.json \
+  --route sample59=/path/to/sample_route.pkl \
+  --output_json /path/to/route_inspection.json \
+  --output_markdown /path/to/route_inspection.md
+```
+
+The inspection reports route length, turn geometry, traffic-light regulatory
+groups on the route, and run-level traffic/NPC settings. It still does not
+apply labels. In mixed `traffic_lights=true/false` matrices, traffic-light
+buckets should usually be run-key labels rather than route-level labels.
+
 ## Development Gate
 
 Before claiming DP-CAMP improves over DP Top-1, the comparison must satisfy the
