@@ -34,6 +34,7 @@ SUMMARY_KEYS = (
     "min_goal_distance_m",
     "goal_distance_reduction_rate",
     "route_completion_rate",
+    "safety_cost_v1",
     "distance_traveled_m",
     "obb_collision_rate",
     "near_miss_rate",
@@ -62,6 +63,7 @@ BENCHMARK_KEYS = (
 )
 PAPER_METRICS = (
     "route_completion_rate",
+    "safety_cost_v1",
     "obb_collision_rate",
     "near_miss_rate",
     "lane_violation_rate",
@@ -72,6 +74,42 @@ PAPER_METRICS = (
     "p95_selection_latency_ms",
 )
 BOOTSTRAP_RESAMPLES = 10_000
+SAFETY_COST_V1_ALPHA = 0.9
+SAFETY_COST_V1_CLIP = 10.0
+SAFETY_COST_V1_WEIGHTS = {
+    "collision": 100.0,
+    "near_miss": 10.0,
+    "lane_violation": 20.0,
+    "realized_red_light": 30.0,
+    "planned_red_light": 15.0,
+    "mean_jerk": 1.0,
+    "mean_lateral_acceleration": 2.0,
+    "route_shortfall": 2.0,
+}
+SAFETY_COST_V1_NORMALIZATION = {
+    "mean_jerk_magnitude_mps3": 10.0,
+    "mean_lateral_acceleration_mps2": 2.0,
+}
+SAFETY_COST_V1_NO_WORSE_METRICS = (
+    "obb_collision_rate",
+    "near_miss_rate",
+    "lane_violation_rate",
+    "red_light_violation_rate",
+)
+SAFETY_COST_V1_COMPLETION_TOLERANCE = 0.001
+SAFETY_COST_V1_LATENCY_BUDGET_MS = 100.0
+SAFETY_COST_V1_LATENCY_MARGIN_MS = 5.0
+FORMAL_SEEDS = {11, 12, 13}
+SUPPORTED_SCENARIO_BUCKETS = {
+    "overall",
+    "normal",
+    "traffic_light",
+    "red_light_turn",
+    "sharp_turn",
+    "npc_interaction",
+    "dense_scene",
+    "lane_change_or_merge",
+}
 
 
 def _read_json(path: Path) -> Any:
@@ -137,6 +175,199 @@ def _numeric(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return number if number == number else None
+
+
+def _bounded_nonnegative(value: Any, *, upper: float | None = None) -> float | None:
+    number = _numeric(value)
+    if number is None:
+        return None
+    number = max(float(number), 0.0)
+    if upper is not None:
+        number = min(number, float(upper))
+    return number
+
+
+def _safety_cost_v1_components(row: dict[str, Any]) -> dict[str, Any]:
+    """Return normalized weighted SafetyCost v1 components for one run row."""
+
+    raw_components = {
+        "collision": _bounded_nonnegative(row.get("obb_collision_rate"), upper=1.0),
+        "near_miss": _bounded_nonnegative(row.get("near_miss_rate"), upper=1.0),
+        "lane_violation": _bounded_nonnegative(
+            row.get("lane_violation_rate"),
+            upper=1.0,
+        ),
+        "realized_red_light": _bounded_nonnegative(
+            row.get("red_light_violation_rate"),
+            upper=1.0,
+        ),
+        "planned_red_light": _bounded_nonnegative(
+            row.get("planned_red_light_violation_rate"),
+            upper=1.0,
+        ),
+        "route_shortfall": None,
+        "mean_jerk": None,
+        "mean_lateral_acceleration": None,
+    }
+    completion = _numeric(row.get("route_completion_rate"))
+    if completion is not None:
+        raw_components["route_shortfall"] = min(max(1.0 - completion, 0.0), 1.0)
+    jerk = _bounded_nonnegative(row.get("mean_jerk_magnitude_mps3"))
+    if jerk is not None:
+        raw_components["mean_jerk"] = min(
+            jerk / SAFETY_COST_V1_NORMALIZATION["mean_jerk_magnitude_mps3"],
+            SAFETY_COST_V1_CLIP,
+        )
+    lateral = _bounded_nonnegative(row.get("mean_lateral_acceleration_mps2"))
+    if lateral is not None:
+        raw_components["mean_lateral_acceleration"] = min(
+            lateral
+            / SAFETY_COST_V1_NORMALIZATION["mean_lateral_acceleration_mps2"],
+            SAFETY_COST_V1_CLIP,
+        )
+
+    missing = sorted(key for key, value in raw_components.items() if value is None)
+    if missing:
+        return {
+            "available": False,
+            "missing_components": missing,
+            "raw_components": raw_components,
+            "weighted_components": None,
+            "cost": None,
+        }
+    weighted = {
+        key: float(raw_components[key]) * SAFETY_COST_V1_WEIGHTS[key]
+        for key in raw_components
+    }
+    return {
+        "available": True,
+        "missing_components": [],
+        "raw_components": raw_components,
+        "weighted_components": weighted,
+        "cost": float(sum(weighted.values())),
+    }
+
+
+def _apply_safety_cost_v1(row: dict[str, Any]) -> None:
+    components = _safety_cost_v1_components(row)
+    row["safety_cost_v1_components"] = components
+    row["safety_cost_v1"] = components["cost"]
+    row["safety_cost_v1_available"] = bool(components["available"])
+
+
+def _upper_tail_cvar(values: list[float], *, alpha: float) -> float | None:
+    if not values:
+        return None
+    array = np.sort(np.asarray(values, dtype=np.float64))
+    tail_count = max(1, int(np.ceil((1.0 - alpha) * array.size)))
+    return float(np.mean(array[-tail_count:]))
+
+
+def _cvar_ci(
+    values: list[float],
+    *,
+    alpha: float = SAFETY_COST_V1_ALPHA,
+    seed_key: str = "",
+) -> dict[str, Any]:
+    cvar_value = _upper_tail_cvar(values, alpha=alpha)
+    if cvar_value is None:
+        return {
+            "n": 0,
+            "cvar": None,
+            "alpha": alpha,
+            "ci95": None,
+            "ci95_low": None,
+            "ci95_high": None,
+            "ci_method": "bootstrap_percentile",
+        }
+    if len(values) == 1:
+        return {
+            "n": 1,
+            "cvar": cvar_value,
+            "alpha": alpha,
+            "ci95": 0.0,
+            "ci95_low": cvar_value,
+            "ci95_high": cvar_value,
+            "ci_method": "bootstrap_percentile",
+        }
+    array = np.asarray(values, dtype=np.float64)
+    rng = np.random.default_rng(_seed_from_key(seed_key))
+    indices = rng.integers(
+        0,
+        len(array),
+        size=(BOOTSTRAP_RESAMPLES, len(array)),
+    )
+    bootstrap = [
+        _upper_tail_cvar(array[index].tolist(), alpha=alpha)
+        for index in indices
+    ]
+    low, high = np.percentile(np.asarray(bootstrap, dtype=np.float64), [2.5, 97.5])
+    return {
+        "n": len(values),
+        "cvar": cvar_value,
+        "alpha": alpha,
+        "ci95": float((high - low) / 2.0),
+        "ci95_low": float(low),
+        "ci95_high": float(high),
+        "ci_method": "bootstrap_percentile",
+        "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
+    }
+
+
+def _paired_cvar_delta_ci(
+    lhs_values: list[float],
+    rhs_values: list[float],
+    *,
+    alpha: float = SAFETY_COST_V1_ALPHA,
+    seed_key: str = "",
+) -> dict[str, Any]:
+    if len(lhs_values) != len(rhs_values):
+        raise ValueError("paired CVaR deltas require equal-length vectors.")
+    if not lhs_values:
+        return {
+            "n": 0,
+            "cvar_delta": None,
+            "alpha": alpha,
+            "ci95": None,
+            "ci95_low": None,
+            "ci95_high": None,
+            "ci_method": "bootstrap_percentile",
+        }
+    lhs = np.asarray(lhs_values, dtype=np.float64)
+    rhs = np.asarray(rhs_values, dtype=np.float64)
+    delta = float(
+        _upper_tail_cvar(lhs.tolist(), alpha=alpha)
+        - _upper_tail_cvar(rhs.tolist(), alpha=alpha)
+    )
+    if len(lhs_values) == 1:
+        return {
+            "n": 1,
+            "cvar_delta": delta,
+            "alpha": alpha,
+            "ci95": 0.0,
+            "ci95_low": delta,
+            "ci95_high": delta,
+            "ci_method": "bootstrap_percentile",
+        }
+    rng = np.random.default_rng(_seed_from_key(seed_key))
+    indices = rng.integers(0, len(lhs), size=(BOOTSTRAP_RESAMPLES, len(lhs)))
+    bootstrap = []
+    for index in indices:
+        bootstrap.append(
+            _upper_tail_cvar(lhs[index].tolist(), alpha=alpha)
+            - _upper_tail_cvar(rhs[index].tolist(), alpha=alpha)
+        )
+    low, high = np.percentile(np.asarray(bootstrap, dtype=np.float64), [2.5, 97.5])
+    return {
+        "n": len(lhs_values),
+        "cvar_delta": delta,
+        "alpha": alpha,
+        "ci95": float((high - low) / 2.0),
+        "ci95_low": float(low),
+        "ci95_high": float(high),
+        "ci_method": "bootstrap_percentile",
+        "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
+    }
 
 
 def _seed_from_key(key: str) -> int:
@@ -212,6 +443,12 @@ def _aggregate_rows(
                     values,
                     seed_key=f"{seed_prefix}|{variant}|{key}",
                 )
+                if key == "safety_cost_v1":
+                    aggregate["safety_cost_v1_cvar90"] = _cvar_ci(
+                        values,
+                        alpha=SAFETY_COST_V1_ALPHA,
+                        seed_key=f"{seed_prefix}|{variant}|{key}|cvar90",
+                    )
         aggregates.append(aggregate)
     return aggregates
 
@@ -245,16 +482,33 @@ def _paired_deltas(
         }
         for key in SUMMARY_KEYS:
             values = []
+            lhs_safety_values = []
+            rhs_safety_values = []
             for run_key in common_keys:
                 lhs = _numeric(keyed_rows[run_key].get(key))
                 rhs = _numeric(baseline_rows[run_key].get(key))
                 if lhs is not None and rhs is not None:
                     values.append(lhs - rhs)
+                    if key == "safety_cost_v1":
+                        lhs_safety_values.append(lhs)
+                        rhs_safety_values.append(rhs)
             if values:
                 entry[key] = _mean_ci(
                     values,
                     seed_key=f"{seed_prefix}|{baseline}|{variant}|{key}",
                 )
+                if key == "safety_cost_v1":
+                    entry["safety_cost_v1_cvar90_delta"] = (
+                        _paired_cvar_delta_ci(
+                            lhs_safety_values,
+                            rhs_safety_values,
+                            alpha=SAFETY_COST_V1_ALPHA,
+                            seed_key=(
+                                f"{seed_prefix}|{baseline}|{variant}|"
+                                f"{key}|cvar90_delta"
+                            ),
+                        )
+                    )
         deltas.append(entry)
     return deltas
 
@@ -325,13 +579,19 @@ def _stratified_statistics(
         ("route_name",),
         ("max_npcs",),
         ("traffic_lights",),
+        ("scenario_bucket",),
         ("route_name", "max_npcs", "traffic_lights"),
     )
     aggregates = []
     pairwise = []
     for fields in dimensions:
         grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-        for row in rows:
+        source_rows = (
+            _expand_scenario_bucket_rows(rows)
+            if fields == ("scenario_bucket",)
+            else rows
+        )
+        for row in source_rows:
             grouped[_stratum_value(row, fields)].append(row)
         for value, group in sorted(grouped.items()):
             for entry in _aggregate_rows(
@@ -354,6 +614,222 @@ def _stratified_statistics(
                     }
                 )
     return aggregates, pairwise
+
+
+def _load_scenario_bucket_manifest(path: Path | None) -> dict[str, Any]:
+    if path is None:
+        return {"run_keys": {}, "routes": {}, "default_buckets": []}
+    raw = _read_json(path)
+    if not isinstance(raw, dict):
+        raise ValueError(f"{path} must contain a JSON object.")
+    manifest = {
+        "run_keys": raw.get("run_keys", {}),
+        "routes": raw.get("routes", {}),
+        "default_buckets": raw.get("default_buckets", []),
+    }
+    if not isinstance(manifest["run_keys"], dict):
+        raise ValueError("scenario bucket manifest run_keys must be an object.")
+    if not isinstance(manifest["routes"], dict):
+        raise ValueError("scenario bucket manifest routes must be an object.")
+    if not isinstance(manifest["default_buckets"], list):
+        raise ValueError("scenario bucket manifest default_buckets must be a list.")
+    for source in ("run_keys", "routes"):
+        for key, buckets in manifest[source].items():
+            if not isinstance(key, str) or not isinstance(buckets, list):
+                raise ValueError(
+                    f"scenario bucket manifest {source} entries must map "
+                    "strings to lists."
+                )
+            _validate_scenario_buckets(buckets)
+    _validate_scenario_buckets(manifest["default_buckets"])
+    return manifest
+
+
+def _validate_scenario_buckets(buckets: list[Any]) -> None:
+    invalid = [
+        bucket
+        for bucket in buckets
+        if not isinstance(bucket, str) or bucket not in SUPPORTED_SCENARIO_BUCKETS
+    ]
+    if invalid:
+        raise ValueError(
+            "Unsupported scenario bucket(s): "
+            f"{invalid}. Supported buckets: {sorted(SUPPORTED_SCENARIO_BUCKETS)}."
+        )
+
+
+def _scenario_buckets(
+    row: dict[str, Any],
+    manifest: dict[str, Any],
+) -> list[str]:
+    buckets = ["overall"]
+    run_key = str(row.get("run_key"))
+    route_name = row.get("route_name")
+    manifest_run_keys = manifest.get("run_keys", {})
+    manifest_routes = manifest.get("routes", {})
+    for bucket in manifest_run_keys.get(run_key, []):
+        if bucket not in buckets:
+            buckets.append(bucket)
+    if route_name is not None:
+        for bucket in manifest_routes.get(str(route_name), []):
+            if bucket not in buckets:
+                buckets.append(bucket)
+    if len(buckets) == 1:
+        for bucket in manifest.get("default_buckets", []):
+            if bucket not in buckets:
+                buckets.append(bucket)
+    return buckets
+
+
+def _expand_scenario_bucket_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    expanded = []
+    for row in rows:
+        buckets = row.get("scenario_buckets")
+        if not isinstance(buckets, list) or not buckets:
+            buckets = ["overall"]
+        for bucket in buckets:
+            expanded_row = dict(row)
+            expanded_row["scenario_bucket"] = bucket
+            expanded.append(expanded_row)
+    return expanded
+
+
+def _contract_verified_for_row(row: dict[str, Any]) -> bool:
+    value = row.get("finite_candidate_contract_verified")
+    return bool(value)
+
+
+def _uses_formal_seed(row: dict[str, Any]) -> bool:
+    seed = row.get("seed")
+    if isinstance(seed, bool) or seed is None:
+        return False
+    try:
+        return int(seed) in FORMAL_SEEDS
+    except (TypeError, ValueError):
+        return False
+
+
+def _stat_passes_nonworse(stat: Any) -> bool:
+    if not isinstance(stat, dict):
+        return False
+    mean = stat.get("mean")
+    high = stat.get("ci95_high")
+    return (
+        mean is not None
+        and high is not None
+        and float(mean) <= 0.0
+        and float(high) <= 0.0
+    )
+
+
+def _safety_gate_assessments(
+    rows: list[dict[str, Any]],
+    paired_deltas: list[dict[str, Any]],
+    aggregates: list[dict[str, Any]],
+    *,
+    baseline: str,
+) -> list[dict[str, Any]]:
+    by_variant: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
+    for row in rows:
+        by_variant[str(row["variant"])][str(row["run_key"])] = row
+    aggregate_by_variant = {
+        str(aggregate["variant"]): aggregate for aggregate in aggregates
+    }
+    baseline_rows = by_variant.get(baseline, {})
+    assessments = []
+    for delta in paired_deltas:
+        variant = str(delta["variant"])
+        variant_rows = by_variant.get(variant, {})
+        common_keys = sorted(set(baseline_rows) & set(variant_rows))
+        checks: dict[str, Any] = {}
+        for metric in SAFETY_COST_V1_NO_WORSE_METRICS:
+            checks[f"{metric}_nonworse"] = {
+                "passed": _stat_passes_nonworse(delta.get(metric)),
+                "delta": delta.get(metric),
+            }
+        completion_delta = delta.get("route_completion_rate")
+        checks["completion_not_significantly_lower"] = {
+            "passed": (
+                isinstance(completion_delta, dict)
+                and completion_delta.get("ci95_low") is not None
+                and float(completion_delta["ci95_low"])
+                >= -SAFETY_COST_V1_COMPLETION_TOLERANCE
+            ),
+            "delta": completion_delta,
+            "tolerance": SAFETY_COST_V1_COMPLETION_TOLERANCE,
+        }
+        safety_delta = delta.get("safety_cost_v1")
+        checks["safety_cost_significantly_lower"] = {
+            "passed": (
+                isinstance(safety_delta, dict)
+                and safety_delta.get("ci95_high") is not None
+                and float(safety_delta["ci95_high"]) < 0.0
+            ),
+            "delta": safety_delta,
+        }
+        latency = aggregate_by_variant.get(variant, {}).get(
+            "p95_selection_latency_ms"
+        )
+        checks["latency_budget_with_margin"] = {
+            "passed": (
+                isinstance(latency, dict)
+                and latency.get("ci95_high") is not None
+                and float(latency["ci95_high"])
+                <= SAFETY_COST_V1_LATENCY_BUDGET_MS
+                - SAFETY_COST_V1_LATENCY_MARGIN_MS
+            ),
+            "aggregate": latency,
+            "budget_ms": SAFETY_COST_V1_LATENCY_BUDGET_MS,
+            "margin_ms": SAFETY_COST_V1_LATENCY_MARGIN_MS,
+        }
+        contract_rows = [variant_rows[key] for key in common_keys]
+        checks["finite_candidate_contract_verified"] = {
+            "passed": bool(contract_rows)
+            and all(_contract_verified_for_row(row) for row in contract_rows),
+            "verified_rows": sum(
+                int(_contract_verified_for_row(row)) for row in contract_rows
+            ),
+            "required_rows": len(contract_rows),
+        }
+        formal_seed_rows = [
+            row
+            for key in common_keys
+            for row in (baseline_rows[key], variant_rows[key])
+            if _uses_formal_seed(row)
+        ]
+        checks["formal_seeds_absent"] = {
+            "passed": not formal_seed_rows,
+            "formal_seed_rows": [
+                {"variant": row["variant"], "run_key": row["run_key"]}
+                for row in formal_seed_rows
+            ],
+        }
+        hard_gate_keys = [
+            f"{metric}_nonworse" for metric in SAFETY_COST_V1_NO_WORSE_METRICS
+        ] + [
+            "completion_not_significantly_lower",
+            "latency_budget_with_margin",
+            "finite_candidate_contract_verified",
+            "formal_seeds_absent",
+        ]
+        hard_gate_passed = all(checks[key]["passed"] for key in hard_gate_keys)
+        assessment = {
+            "baseline": baseline,
+            "variant": variant,
+            "n_pairs": len(common_keys),
+            "hard_gate_passed": hard_gate_passed,
+            "safety_cost_claim_passed": (
+                hard_gate_passed
+                and checks["safety_cost_significantly_lower"]["passed"]
+            ),
+            "checks": checks,
+            "claim_rule": (
+                "CAMP is better than DP Top-1 only if the hard gate passes "
+                "and paired SafetyCost v1 has ci95_high < 0."
+            ),
+        }
+        assessments.append(assessment)
+    return assessments
 
 
 def _parse_variant(value: str) -> tuple[str, Path]:
@@ -437,6 +913,56 @@ def _paired_markdown_table(rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _safety_gate_markdown_table(rows: list[dict[str, Any]]) -> str:
+    headers = (
+        "baseline",
+        "variant",
+        "n_pairs",
+        "hard_gate_passed",
+        "safety_cost_claim_passed",
+        "safety_cost_delta",
+        "latency_gate",
+        "contract_gate",
+    )
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join(["---"] * len(headers)) + " |",
+    ]
+    for row in rows:
+        checks = row.get("checks", {})
+        safety_delta = checks.get("safety_cost_significantly_lower", {}).get("delta")
+        if isinstance(safety_delta, dict) and safety_delta.get("mean") is not None:
+            safety_value = (
+                f"{safety_delta['mean']:.6g} "
+                f"[{safety_delta['ci95_low']:.3g}, "
+                f"{safety_delta['ci95_high']:.3g}]"
+            )
+        else:
+            safety_value = "None"
+        values = [
+            str(row.get("baseline")),
+            str(row.get("variant")),
+            str(row.get("n_pairs")),
+            str(row.get("hard_gate_passed")),
+            str(row.get("safety_cost_claim_passed")),
+            safety_value,
+            str(
+                checks.get("latency_budget_with_margin", {}).get(
+                    "passed",
+                    False,
+                )
+            ),
+            str(
+                checks.get("finite_candidate_contract_verified", {}).get(
+                    "passed",
+                    False,
+                )
+            ),
+        ]
+        lines.append("| " + " | ".join(values) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Compare multiple DP+CAMP replay summaries under matched settings."
@@ -457,35 +983,65 @@ def main() -> None:
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_markdown", type=Path, default=None)
     parser.add_argument(
+        "--scenario_bucket_manifest",
+        type=Path,
+        default=None,
+        help=(
+            "Optional JSON with run_keys/routes/default_buckets lists. Buckets "
+            "are explicit only; no route is auto-labeled as critical."
+        ),
+    )
+    parser.add_argument(
         "--require_strict_pairing",
         action="store_true",
         help="Fail instead of writing a comparison with missing or duplicate pairs.",
     )
     args = parser.parse_args()
 
+    scenario_bucket_manifest = _load_scenario_bucket_manifest(
+        args.scenario_bucket_manifest
+    )
     rows = []
     for name, output_dir in args.variant:
         summary = _load_or_build_summary(output_dir)
         benchmark = summary.get("benchmark")
         benchmark = benchmark if isinstance(benchmark, dict) else {}
         route = benchmark.get("route")
+        contract = summary.get("dp_camp_finite_candidate_contract")
+        contract_verified = (
+            isinstance(contract, dict)
+            and contract.get("schema_version")
+            == "dp_camp_finite_candidate_contract_v1"
+            and contract.get("classical_benders_claim") is False
+        )
         row = {
             "variant": name,
             "run_key": _run_key(summary, output_dir),
             "output_dir": str(output_dir),
             "route_name": Path(str(route)).stem if route is not None else None,
+            "finite_candidate_contract_verified": contract_verified,
         }
         for key in BENCHMARK_KEYS:
             row[key] = benchmark.get(key)
         for key in SUMMARY_KEYS:
             row[key] = summary.get(key)
+        _apply_safety_cost_v1(row)
+        row["scenario_buckets"] = _scenario_buckets(row, scenario_bucket_manifest)
         rows.append(row)
 
     baseline = args.baseline or rows[0]["variant"]
     aggregates = _aggregate_rows(rows)
     paired_deltas = _paired_deltas(rows, baseline=baseline)
     all_pairwise_deltas = _all_pairwise_deltas(rows)
-    stratified_aggregates, stratified_pairwise_deltas = _stratified_statistics(rows)
+    safety_gate_assessments = _safety_gate_assessments(
+        rows,
+        paired_deltas,
+        aggregates,
+        baseline=baseline,
+    )
+    stratified_aggregates, stratified_pairwise_deltas = _stratified_statistics(
+        rows
+    )
     pairing_audit = _pairing_audit(rows)
     if args.require_strict_pairing:
         require_strict_pairing(pairing_audit)
@@ -495,6 +1051,22 @@ def main() -> None:
         "aggregates": aggregates,
         "paired_deltas": paired_deltas,
         "all_pairwise_deltas": all_pairwise_deltas,
+        "safety_cost_v1": {
+            "weights": SAFETY_COST_V1_WEIGHTS,
+            "normalization": SAFETY_COST_V1_NORMALIZATION,
+            "clip": SAFETY_COST_V1_CLIP,
+            "tail_alpha": SAFETY_COST_V1_ALPHA,
+            "lower_is_better": True,
+            "hard_gate": {
+                "no_worse_metrics": list(SAFETY_COST_V1_NO_WORSE_METRICS),
+                "completion_tolerance": SAFETY_COST_V1_COMPLETION_TOLERANCE,
+                "latency_budget_ms": SAFETY_COST_V1_LATENCY_BUDGET_MS,
+                "latency_margin_ms": SAFETY_COST_V1_LATENCY_MARGIN_MS,
+                "formal_seeds": sorted(FORMAL_SEEDS),
+                "requires_finite_candidate_contract": True,
+            },
+        },
+        "safety_gate_assessments": safety_gate_assessments,
         "stratified_aggregates": stratified_aggregates,
         "stratified_pairwise_deltas": stratified_pairwise_deltas,
         "pairing_audit": pairing_audit,
@@ -518,6 +1090,8 @@ def main() -> None:
             + _aggregate_markdown_table(aggregates)
             + "\n## All Pairwise Deltas (variant - baseline)\n\n"
             + _paired_markdown_table(all_pairwise_deltas)
+            + "\n## SafetyCost v1 Hard Gate\n\n"
+            + _safety_gate_markdown_table(safety_gate_assessments)
             + "\n## Pairing Audit\n\n"
             + "```json\n"
             + json.dumps(pairing_audit, indent=2)
