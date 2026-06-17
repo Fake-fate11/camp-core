@@ -13979,3 +13979,110 @@ not to weaken the protected hard gates; it is to add default-off shadow-only
 logging for a new route/map-aligned progress diagnostic, then regenerate or
 repair outcome-labeled artifacts so the diagnostic is available for the hidden
 and risky-common rows.
+
+## Shadow route-progress logging
+
+Code state for the shadow logging implementation:
+
+```text
+CAMP local/GitHub/AutoDL HEAD for implementation:
+7b61ea2b1434f44c9a814994d0156c68c8d87999
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+Modified:
+scripts/integrations/run_diffusion_planner_camp_replay.py
+scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py
+camp_core/tests/test_diffusion_planner_benchmark_matrix.py
+```
+
+Change summary:
+
+1. Added replay flag `--camp_shadow_route_progress`.
+2. When enabled, replay computes `candidate_route_progress` with the existing
+   `_candidate_route_progress` route-centerline projection and writes it to
+   `camp_selection_log.json`.
+3. The old selector-effecting route guard remains unchanged: feasibility is
+   modified only when `--camp_min_candidate0_route_progress_ratio` is non-null.
+4. The matrix runner forwards `--camp_shadow_route_progress` only to CAMP
+   variants, not `top1`.
+5. Replay summary and validation metadata now include
+   `camp_shadow_route_progress = {enabled, selection_effect: false,
+   logged_field: candidate_route_progress}`.
+
+Local verification before committing `7b61ea2`:
+
+```text
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_benchmark_matrix.py \
+  -q
+# 9 passed in 0.06s
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'
+python -m pytest \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate0_route_progress_guard_uses_route_projection \
+  -q
+# 1 passed in 0.43s
+
+python -m compileall -q \
+  scripts\integrations\run_diffusion_planner_camp_replay.py \
+  scripts\integrations\run_diffusion_planner_camp_benchmark_matrix.py \
+  camp_core\tests\test_diffusion_planner_benchmark_matrix.py
+# passed
+
+git diff --check
+# passed
+```
+
+Note: local `ruff` on the Windows environment reported `E902 stream did not
+contain valid UTF-8` for the existing large replay/matrix files even though
+direct Python UTF-8 decode, `ast.parse`, and `compileall` all succeeded. It was
+not used as a blocking check for this milestone.
+
+AutoDL sync and verification:
+
+```text
+cd /root/autodl-tmp/camp_core
+. /etc/network_turbo
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+# 7b61ea2b1434f44c9a814994d0156c68c8d87999
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate0_route_progress_guard_uses_route_projection \
+  -q
+# 10 passed in 0.38s
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m compileall -q \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py
+# passed
+```
+
+Scope and mathematical boundary: this is an observability-only change. It logs
+a fixed current-tick finite-candidate route-progress diagnostic computed from
+the already generated candidate trajectories and the current route centerline.
+It does not change the DP sampler, candidate set, feasibility mask, CAMP atoms,
+weights, score, selected index, PerfectTracker, simulator, SafetyCost, smoke
+matrix, formal seeds, or any training path. If later atomized, route-progress
+loss should be represented as a fixed nonnegative current-tick atom, for
+example `max(0, progress_0 - progress_k) / scale`, preserving affine CAMP
+scores in the master variables.
+
+Decision: accept this as a default-off observability milestone. It does not
+make CAMP-DP better by itself and is not evidence for online selector
+promotion. The next admissible experiment is to regenerate or repair a small
+non-formal outcome-labeled artifact with `--camp_shadow_route_progress` enabled
+for the same development setup, then rerun hidden-visibility analysis to check
+whether `route_progress_loss` becomes available and separates hidden-good from
+risky-common candidates without hard-gate regressions.
