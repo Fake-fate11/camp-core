@@ -16910,3 +16910,142 @@ not be a Full36 rerun. Reject DP sampling changes and online selector promotion.
 The next admissible task is a component-savings sensitivity audit and then a
 semantics-preserving CAMP atom-computation optimization if the sensitivity
 shows enough p95 margin without changing CAMP mathematics.
+
+### Latency Component-Savings Sensitivity Audit
+
+Commit:
+
+- Local/GitHub/AutoDL CAMP:
+  `0257f1a0c3638cda1338d64765ffb73ff7c866a6`
+  (`Add DP latency savings sensitivity audit`).
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Purpose:
+
+The previous tail attribution identified `latency_ms_camp_atom_computation` as
+the largest CAMP-side outlier, but the development gate is per-run p95, not max
+latency. This audit asks whether plausible or upper-bound component savings
+would actually clear the projected Full36 latency gate before implementing any
+optimization.
+
+The audit remains read-only: it projects per-record total latency after the
+same clearance replacement modes, then subtracts hypothetical savings for
+predeclared components. It does not replay, alter candidate trajectories,
+change atom values, change feasibility, change weights, or alter selection.
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_latency_savings_sensitivity.py `
+  camp_core\tests\test_diffusion_planner_projected_latency_tail.py `
+  camp_core\tests\test_diffusion_planner_clearance_latency_projection.py -q
+
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_latency_savings_sensitivity.py `
+  camp_core\tests\test_diffusion_planner_latency_savings_sensitivity.py
+
+git diff --check
+```
+
+Result: `6 passed`; compile and diff checks passed.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_latency_savings_sensitivity.py \
+  camp_core/tests/test_diffusion_planner_projected_latency_tail.py \
+  camp_core/tests/test_diffusion_planner_clearance_latency_projection.py -q
+```
+
+Result: `6 passed`.
+
+Audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_devgrid_57cd0d1
+OUT=$ROOT/latency_savings_sensitivity_0257f1a
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_latency_savings_sensitivity.py \
+  --root "$ROOT" \
+  --label no_outcome_full36_latency_savings_sensitivity_0257f1a \
+  --reference_old_clearance_p95_ms 9.296867 \
+  --reference_new_clearance_p95_ms 0.858788 \
+  --reference_source old_exact_off_smoke_vs_vectorized_smoke_sha_88bee7f5494de1cf9ad49cd5c17b772bdd337274f4211ff24f284b2c32d2a140 \
+  --output_json "$OUT/latency_savings_sensitivity.json" \
+  --output_md "$OUT/latency_savings_sensitivity.md"
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `latency_savings_sensitivity.json` | `31b586fb8db4bd8aa75e3dd952c41dcd3aaa5dbf85fd0164fd695182a3312b01` |
+| `latency_savings_sensitivity.md` | `cb59dd69c46dd6bedd9f8c82d2808a4e3fdeece4303facc8d706ca06af9c387a` |
+
+Sensitivity summary:
+
+| Projection mode | Scenario | CAMP-side exact-equivalence candidate | Runs over `100 ms` | Run-p95 distribution p95 | Max shortfall |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `constant_new_p95` | `no_extra_saving` | yes | `4 / 36` | `100.398759` | `4.471944` |
+| `constant_new_p95` | `camp_atom_computation_25pct_saving` | yes | `1 / 36` | `99.568805` | `3.656803` |
+| `constant_new_p95` | `camp_atom_computation_50pct_saving` | yes | `1 / 36` | `98.718206` | `2.757182` |
+| `constant_new_p95` | `camp_atom_computation_zero_upper_bound` | yes | `1 / 36` | `96.898324` | `0.532140` |
+| `constant_new_p95` | `camp_selection_zero_upper_bound` | no | `0 / 36` | `94.056313` | `null` |
+| `constant_new_p95` | `reward_scoring_zero_engineering_upper_bound` | no | `0 / 36` | `72.208449` | `null` |
+| `constant_new_p95` | `candidate_generation_zero_inadmissible_upper_bound` | no | `0 / 36` | `42.634679` | `null` |
+| `scale_by_smoke_p95_ratio` | `no_extra_saving` | yes | `4 / 36` | `101.000880` | `11.469578` |
+| `scale_by_smoke_p95_ratio` | `camp_atom_computation_25pct_saving` | yes | `2 / 36` | `100.018174` | `10.507339` |
+| `scale_by_smoke_p95_ratio` | `camp_atom_computation_50pct_saving` | yes | `1 / 36` | `99.109654` | `9.660349` |
+| `scale_by_smoke_p95_ratio` | `camp_atom_computation_zero_upper_bound` | yes | `1 / 36` | `97.190324` | `7.567782` |
+| `scale_by_smoke_p95_ratio` | `camp_selection_zero_upper_bound` | no | `1 / 36` | `94.339530` | `1.004804` |
+| `scale_by_smoke_p95_ratio` | `reward_scoring_zero_engineering_upper_bound` | no | `0 / 36` | `72.367948` | `null` |
+| `scale_by_smoke_p95_ratio` | `candidate_generation_zero_inadmissible_upper_bound` | no | `0 / 36` | `44.384598` | `null` |
+
+Remaining blocker after CAMP-side upper bounds:
+
+| Projection mode | Scenario | Remaining run | Projected p95 | Shortfall |
+| --- | --- | --- | ---: | ---: |
+| `constant_new_p95` | `camp_atom_computation_zero_upper_bound` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `100.532140` | `0.532140` |
+| `scale_by_smoke_p95_ratio` | `camp_atom_computation_zero_upper_bound` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `107.567782` | `7.567782` |
+| `scale_by_smoke_p95_ratio` | `camp_selection_zero_upper_bound` | `sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static` | `101.004804` | `1.004804` |
+
+Interpretation:
+
+1. CAMP atom-computation optimization is useful but insufficient as a sole
+   gate-passing strategy. Even the unrealistic zero-cost upper bound still
+   leaves one projected over-budget run under both the constant/cap and
+   proportional clearance models.
+2. Removing all CAMP selection latency is also insufficient under the more
+   conservative proportional clearance model. Therefore a narrow CAMP atom
+   optimization should not be treated as enough evidence to run a Full36 replay.
+3. Reward-scoring removal clears the projected gate, but reward scoring is
+   instrumentation/plumbing here, not a CAMP Benders subproblem or cut source.
+   Any reward-side optimization must be exact-equivalent and documented as
+   engineering latency work only.
+4. Candidate-generation removal clears the projected gate, but it is explicitly
+   inadmissible under the current objective because DP is fixed as the black-box
+   generator.
+
+Mathematical boundary: component savings are hypothetical runtime projections
+over fixed current-tick logs. They do not change finite candidates, atoms,
+weights, constraints, the affine CAMP score, the simplex/CVaR/L2 master, or any
+Benders-style logic. No outcome labels, formal seeds, DP modification, DP
+retraining, CAMP retraining, online selector promotion, or new replay matrix
+were used.
+
+Decision: accept this sensitivity audit as a rejection of the
+“optimize only CAMP atom computation, then rerun Full36” path. The next
+admissible engineering target is exact-equivalent reward/feasibility latency
+plumbing or a combined exact-equivalent CAMP-selection plus reward-scoring
+latency plan. Do not run a new Full36 replay until a projected exact-equivalent
+combined plan clears the conservative proportional model with meaningful
+per-run margin.
