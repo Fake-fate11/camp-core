@@ -2026,6 +2026,7 @@ def compute_candidate_obstacle_clearance_diagnostics(
     horizon_steps: int = 30,
     soft_clearance_threshold_m: Optional[float] = None,
     near_miss_threshold_m: float = 2.0,
+    evaluate_exact_obb: bool = True,
     ego_length: float = 4.5,
     ego_width: float = 1.9,
     ego_wheelbase: float = 2.925,
@@ -2035,8 +2036,8 @@ def compute_candidate_obstacle_clearance_diagnostics(
     This uses the fixed candidate trajectories and fixed obstacle predictions
     available at the current planning tick. It is a shadow descriptor for
     offline audits, not a realized closed-loop outcome label. Dynamic obstacle
-    OBB checks use a bounding-circle lower bound for the hinge costs and run
-    exact OBB distance only near the configured thresholds.
+    OBB checks use a bounding-circle lower bound for the hinge costs. Optional
+    exact OBB distance is diagnostic only and does not change the hinge costs.
     """
     trajectories = np.asarray(candidates, dtype=np.float64)
     if trajectories.ndim != 3 or trajectories.shape[2] < 2:
@@ -2137,7 +2138,7 @@ def compute_candidate_obstacle_clearance_diagnostics(
                         center_distance = float(np.linalg.norm(ego_center - obs_center))
                         clearance = max(0.0, center_distance - ego_radius - obs_radius)
                         used_obb = True
-                        if clearance <= exact_trigger:
+                        if evaluate_exact_obb and clearance <= exact_trigger:
                             ego_box = _obb_corners(
                                 float(branch[int(step_idx), 0]),
                                 float(branch[int(step_idx), 1]),
@@ -2198,13 +2199,14 @@ def compute_candidate_obstacle_clearance_diagnostics(
         "future_outcome_leakage": False,
         "definition": (
             "conservative current-tick obstacle-clearance lower bound; exact OBB "
-            "distance is evaluated only when the bounding-circle lower bound is "
-            "within the configured hinge thresholds"
+            "distance is an optional diagnostic evaluated only when the "
+            "bounding-circle lower bound is within the configured hinge thresholds"
         ),
         "horizon_steps": int(horizon),
         "soft_clearance_threshold_m": float(soft_threshold),
         "near_miss_threshold_m": float(near_miss_threshold),
         "exact_evaluation_trigger_m": float(exact_trigger),
+        "exact_obb_enabled": bool(evaluate_exact_obb),
         "min_obstacle_clearance_m": min_clearance_lower_bounds,
         "min_obstacle_clearance_lower_bound_m": min_clearance_lower_bounds,
         "exact_min_obstacle_clearance_m": exact_obb_min_clearances,

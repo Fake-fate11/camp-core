@@ -51,6 +51,7 @@ def _make_args() -> SimpleNamespace:
         camp_min_candidate0_route_progress_ratio=0.98,
         camp_shadow_route_progress=True,
         camp_shadow_obstacle_clearance=True,
+        camp_shadow_obstacle_clearance_exact_obb=False,
         camp_min_candidate0_step_reach_ratio=0.99,
         camp_candidate0_step_reach_preserve_feasible=True,
         camp_lexicographic_progress_epsilon_m=2.0,
@@ -103,6 +104,7 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert static_cmd[route_guard_idx + 1] == "0.98"
     assert "--camp_shadow_route_progress" in static_cmd
     assert "--camp_shadow_obstacle_clearance" in static_cmd
+    assert "--camp_shadow_obstacle_clearance_exact_obb" not in static_cmd
     assert "--camp_min_candidate0_step_reach_ratio" in static_cmd
     step_guard_idx = static_cmd.index("--camp_min_candidate0_step_reach_ratio")
     assert static_cmd[step_guard_idx + 1] == "0.99"
@@ -136,6 +138,7 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_min_candidate0_route_progress_ratio" not in top1_cmd
     assert "--camp_shadow_route_progress" not in top1_cmd
     assert "--camp_shadow_obstacle_clearance" not in top1_cmd
+    assert "--camp_shadow_obstacle_clearance_exact_obb" not in top1_cmd
     assert "--camp_min_candidate0_step_reach_ratio" not in top1_cmd
     assert "--camp_candidate0_step_reach_preserve_feasible" not in top1_cmd
     assert "--candidate_reference_blend_steps" not in top1_cmd
@@ -143,6 +146,42 @@ def test_variant_command_threads_fallback_mode_into_camp_variants() -> None:
     assert "--camp_perfect_tracker_command_postselection" not in top1_cmd
     assert "--camp_underprogress_relaxation" not in top1_cmd
     assert "--camp_fallback_atom_scales" not in top1_cmd
+
+
+def test_variant_command_forwards_exact_obb_debug_flag_only_when_requested() -> None:
+    args = _make_args()
+    args.camp_shadow_obstacle_clearance_exact_obb = True
+    static_cmd = _variant_command(
+        variant="static",
+        output_dir=Path("F:/out/static"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+
+    assert "--camp_shadow_obstacle_clearance" in static_cmd
+    assert "--camp_shadow_obstacle_clearance_exact_obb" in static_cmd
+
+    args.camp_shadow_obstacle_clearance = False
+    static_without_clearance = _variant_command(
+        variant="static",
+        output_dir=Path("F:/out/static"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+
+    assert "--camp_shadow_obstacle_clearance" not in static_without_clearance
+    assert (
+        "--camp_shadow_obstacle_clearance_exact_obb"
+        not in static_without_clearance
+    )
 
 
 def test_variant_command_threads_raw_prefix_logging_into_camp_variants_only() -> None:

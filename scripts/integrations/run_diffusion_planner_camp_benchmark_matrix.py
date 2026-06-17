@@ -178,6 +178,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camp_shadow_route_progress", action="store_true")
     parser.add_argument("--camp_shadow_obstacle_clearance", action="store_true")
     parser.add_argument(
+        "--camp_shadow_obstacle_clearance_exact_obb",
+        action="store_true",
+    )
+    parser.add_argument(
         "--camp_min_candidate0_step_reach_ratio",
         type=float,
         default=None,
@@ -417,6 +421,8 @@ def _variant_command(
             cmd.append("--camp_shadow_route_progress")
         if args.camp_shadow_obstacle_clearance:
             cmd.append("--camp_shadow_obstacle_clearance")
+            if args.camp_shadow_obstacle_clearance_exact_obb:
+                cmd.append("--camp_shadow_obstacle_clearance_exact_obb")
         if args.camp_min_candidate0_step_reach_ratio is not None:
             cmd.extend(
                 [

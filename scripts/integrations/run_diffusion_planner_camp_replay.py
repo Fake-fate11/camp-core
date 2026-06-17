@@ -233,6 +233,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--camp_shadow_obstacle_clearance_exact_obb",
+        action="store_true",
+        help=(
+            "Also compute near-threshold exact OBB clearance diagnostics for "
+            "--camp_shadow_obstacle_clearance. Disabled by default because the "
+            "online-eligible clearance hinges use the conservative lower bound."
+        ),
+    )
+    parser.add_argument(
         "--camp_min_candidate0_step_reach_ratio",
         type=float,
         default=None,
@@ -2677,6 +2686,7 @@ def _install_camp_predictor(
     min_candidate0_route_progress_ratio: float | None,
     shadow_route_progress: bool,
     shadow_obstacle_clearance: bool,
+    shadow_obstacle_clearance_exact_obb: bool,
     min_candidate0_step_reach_ratio: float | None,
     candidate0_step_reach_preserve_feasible: bool,
     lexicographic_progress_epsilon_m: float | None,
@@ -2847,6 +2857,7 @@ def _install_camp_predictor(
                     candidate_obstacles=obstacles,
                     horizon_steps=outcome_horizon_steps,
                     near_miss_threshold_m=near_miss_threshold_m,
+                    evaluate_exact_obb=shadow_obstacle_clearance_exact_obb,
                     ego_length=ego_length,
                     ego_width=ego_width,
                     ego_wheelbase=ego_wheelbase,
@@ -3689,6 +3700,9 @@ def main() -> None:
             ),
             shadow_route_progress=bool(args.camp_shadow_route_progress),
             shadow_obstacle_clearance=bool(args.camp_shadow_obstacle_clearance),
+            shadow_obstacle_clearance_exact_obb=bool(
+                args.camp_shadow_obstacle_clearance_exact_obb
+            ),
             min_candidate0_step_reach_ratio=(
                 args.camp_min_candidate0_step_reach_ratio
             ),
@@ -4044,6 +4058,9 @@ def main() -> None:
                 "predicted/static obstacle geometry; reports conservative "
                 "clearance lower-bound hinges and near-threshold exact OBB "
                 "diagnostics"
+            ),
+            "exact_obb_enabled": bool(
+                args.camp_shadow_obstacle_clearance_exact_obb
             ),
             "soft_clearance_threshold_m": (
                 float(args.camp_safety_radius + args.camp_clearance_margin)

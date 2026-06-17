@@ -599,6 +599,63 @@ def test_candidate_obstacle_clearance_diagnostics_reports_obb_mode() -> None:
     assert diagnostics["soft_clearance_violation_cost"][0] > 0.0
 
 
+def test_candidate_obstacle_clearance_diagnostics_can_skip_exact_obb() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, -10.0], [0.0, 10.0]]),
+        lane_half_width=20.0,
+        speed_limit=50.0,
+        desired_speed=5.0,
+        safety_radius=0.1,
+        clearance_soft_margin=1.9,
+    )
+    y = np.linspace(0.0, 3.5, 8)
+    candidate = np.column_stack(
+        [np.zeros_like(y), y, np.ones_like(y), np.zeros_like(y)]
+    )
+    candidates = np.stack([candidate])
+    obstacles = np.zeros((1, 1, 8, 6), dtype=np.float64)
+    obstacles[:, 0, :, 0] = 0.0
+    obstacles[:, 0, :, 1] = 1.0
+    obstacles[:, 0, :, 2] = np.pi / 2.0
+    obstacles[:, 0, :, 3] = 4.5
+    obstacles[:, 0, :, 4] = 1.9
+    obstacles[:, 0, :, 5] = 2.9
+
+    exact = compute_candidate_obstacle_clearance_diagnostics(
+        candidates,
+        context,
+        candidate_obstacles=obstacles,
+        horizon_steps=8,
+    )
+    lower_bound_only = compute_candidate_obstacle_clearance_diagnostics(
+        candidates,
+        context,
+        candidate_obstacles=obstacles,
+        horizon_steps=8,
+        evaluate_exact_obb=False,
+    )
+
+    assert exact["exact_obb_enabled"] is True
+    assert lower_bound_only["exact_obb_enabled"] is False
+    assert exact["exact_evaluated_pairs"][0] > 0
+    assert lower_bound_only["exact_evaluated_pairs"] == [0]
+    assert lower_bound_only["exact_min_obstacle_clearance_m"] == [None]
+    assert lower_bound_only["geometry_mode"] == ["obb"]
+    np.testing.assert_allclose(
+        lower_bound_only["min_obstacle_clearance_lower_bound_m"],
+        exact["min_obstacle_clearance_lower_bound_m"],
+    )
+    np.testing.assert_allclose(
+        lower_bound_only["soft_clearance_violation_cost"],
+        exact["soft_clearance_violation_cost"],
+    )
+    np.testing.assert_allclose(
+        lower_bound_only["near_miss_violation_cost"],
+        exact["near_miss_violation_cost"],
+    )
+
+
 def test_red_stopping_margin_cost_is_continuous_before_hard_violation() -> None:
     candidates = np.array(
         [
