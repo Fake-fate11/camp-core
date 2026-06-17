@@ -15067,3 +15067,301 @@ next admissible step is to collect or reuse a broader no-outcome development
 grid with route-progress, H10, and v2 clearance logging enabled, then run this
 analyzer plus dataset audit and latency summaries before considering any
 online/default-off selector implementation.
+
+## Full36 no-outcome route/H10/clearance shadow grid
+
+After the single-artifact no-outcome smoke, the next development gate was a
+broader no-outcome shadow grid. This grid is not a posterior safety-label pass:
+it is a deployability/readiness audit for the fixed current-tick candidate
+descriptors that a future default-off selector would be allowed to read.
+
+Code state:
+
+```text
+CAMP local/GitHub/AutoDL HEAD:
+57cd0d1ce155bab56a87a9014a62c62bac938930
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Scope:
+
+```text
+Artifact root:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_devgrid_57cd0d1
+
+Routes:
+sample_map_tl_route_59_to_86
+sample_map_route_2_to_104
+nishishinjuku_release_auto_route
+
+Seeds:
+1, 2, 3
+
+NPC counts:
+0, 4
+
+Traffic lights:
+off, on
+
+Steps:
+200
+
+Variant:
+static redstopfloor05
+
+Selection effect:
+disabled; shadow-only diagnostics
+
+Candidate outcomes:
+not collected
+
+Shadow diagnostics:
+--camp_shadow_route_progress
+--camp_shadow_perfect_tracker_open_loop_rollout
+--camp_shadow_full_horizon_red_light
+--camp_shadow_obstacle_clearance
+```
+
+The run completed `36/36` validation summaries and `36/36` selection logs.
+Local, GitHub, and AutoDL CAMP were all checked at `57cd0d1`; AutoDL DP
+remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Dataset audit:
+
+```bash
+cd /root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_outcome_devgrid_57cd0d1
+OUT=$ROOT/offline_gate_audit_57cd0d1
+SCALES=/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --root "$ROOT" \
+  --atom_scales "$SCALES" \
+  --expected_logs 36 \
+  --expected_candidates 8 \
+  --expected_advance_mode perfect \
+  --closed_loop_outcome_policy forbidden \
+  --forbid_seed 11 \
+  --forbid_seed 12 \
+  --forbid_seed 13 \
+  --required_candidate_field candidate_route_progress \
+  --require_perfect_tracker_open_loop_rollout \
+  --require_full_horizon_red_light_shadow \
+  --require_finite_candidate_contract \
+  --output_json "$OUT/dataset_audit_no_outcome_grid.json"
+```
+
+Dataset audit result:
+
+```text
+passed=true
+logs=36
+records=7200
+candidates=57600
+all_infeasible_records=1201
+candidate_route_progress_records=7200
+candidate_route_progress_candidates=57600
+candidate_route_progress_records_with_variation=7200
+closed_loop_outcome_policy=forbidden
+closed_loop_outcome_records=0
+perfect_tracker_open_loop_rollout_records=7200
+full_horizon_red_light_shadow_records=7200
+finite_candidate_contract_logs=36
+formal seeds 11/12/13 absent
+```
+
+Candidate-availability input readiness was also run without
+`--fail_on_not_ready`, because this no-outcome grid is intentionally missing
+posterior labels:
+
+```bash
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_candidate_availability_inputs.py \
+  --root "$ROOT" \
+  --output_json "$OUT/candidate_availability_input_readiness_no_outcome.json" \
+  --output_md "$OUT/candidate_availability_input_readiness_no_outcome.md"
+```
+
+Readiness result:
+
+```text
+candidate_availability_oracle_ready=false
+current_tick_proxy_inputs_ready=true
+outcome_labels_ready=false
+next_step=generate_or_attach_candidate_closed_loop_outcomes_before_running_oracle
+
+field coverage:
+progress_shortfall=7200/7200
+proxy_jerk=7200/7200
+proxy_lateral=7200/7200
+red_stopping=7200/7200
+union_red=7200/7200
+candidate_closed_loop_outcomes_complete=0/7200
+```
+
+No-outcome shadow certificate command:
+
+```bash
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_no_outcome_shadow_certificate.py \
+  --root "$ROOT" \
+  --label no_outcome_devgrid_57cd0d1 \
+  --max_examples 30 \
+  --output_json "$OUT/no_outcome_shadow_certificate_grid.json" \
+  --output_md "$OUT/no_outcome_shadow_certificate_grid.md"
+```
+
+No-outcome certificate summary:
+
+```text
+records.total=7200
+records.logs=36
+records.nonfallback=5999
+records.fallback=1201
+records.candidate0_feasible=5768
+records.closed_loop_outcome_records=0
+descriptor_coverage.all_required_records=7200
+descriptor_coverage.candidate_route_progress_records=7200
+descriptor_coverage.h10_distance_records=7200
+descriptor_coverage.obstacle_clearance_v2_records=7200
+```
+
+Screen results:
+
+| Screen | Descriptor available | Opportunity | Shadow changes candidate0 | Shadow differs from logged | Stage counts |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `route_h10_score0` | `5768` | `1506` | `1506` | `5328` | `candidate0_infeasible_retain_logged:231, candidate0_retain_empty_mask:4262, fallback_retain_logged:1201, shadow_candidate:1506` |
+| `route_h10_clearance_nonworse` | `5768` | `1503` | `1503` | `5329` | `candidate0_infeasible_retain_logged:231, candidate0_retain_empty_mask:4265, fallback_retain_logged:1201, shadow_candidate:1503` |
+| `route_h10_clearance_zero` | `5768` | `1493` | `1493` | `5333` | `candidate0_infeasible_retain_logged:231, candidate0_retain_empty_mask:4275, fallback_retain_logged:1201, shadow_candidate:1493` |
+
+Selected-candidate delta summaries for the strictest
+`route_h10_clearance_zero` screen:
+
+```text
+n=1493
+route_progress_loss.mean=-0.150031
+route_progress_loss.p95=-0.006720
+h10_distance_loss.mean=-0.043629
+h10_distance_loss.p95=0.036639
+score_delta.mean=-0.040774
+score_delta.p95=-0.004062
+progress_delta.mean=-0.148231
+progress_delta.p95=-0.005296
+proxy_jerk_delta.mean=0.0
+proxy_lateral_delta.mean=-0.005471
+soft_clearance_cost.max=0.0
+near_miss_clearance_cost.max=0.0
+```
+
+Latency summary was generated as a read-only artifact over the same 36 logs.
+This is the decisive deployability failure in this round:
+
+```text
+logs=36
+records=7200
+runs_over_100ms_including_candidate_generation_p95=15
+
+overall latency_ms_including_candidate_generation:
+mean=94.935122
+p50=89.570196
+p95=118.412714
+max=317.124351
+
+overall latency_ms_candidate_generation:
+mean=56.591838
+p95=60.368221
+max=84.938101
+
+overall latency_ms_camp_selection:
+mean=5.950883
+p95=6.812007
+max=190.699888
+
+overall latency_ms_shadow_obstacle_clearance:
+mean=3.453839
+p50=0.073134
+p95=18.306384
+max=116.254320
+
+overall latency_ms_shadow_perfect_tracker_open_loop:
+mean=1.039569
+p95=1.076344
+max=6.668014
+```
+
+Per-route latency:
+
+| Route group | Logs | Records | Runs with p95 > 100 ms | Mean run p95 including generation | Max run p95 including generation | Max clearance run p95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `nishishinjuku` | `12` | `2400` | `3` | `98.679664` | `127.487494` | `29.724396` |
+| `sample_map` | `24` | `4800` | `12` | `111.409586` | `204.791084` | `98.279118` |
+
+Worst run:
+
+```text
+sample_map/sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_off/static/camp_validation_summary.json
+including_candidate_generation.p95=204.791084 ms
+shadow_obstacle_clearance.p95=98.279118 ms
+camp_selection.p95=9.787354 ms
+shadow_perfect_tracker_open_loop.p95=1.042030 ms
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `dataset_audit_no_outcome_grid.json` | `4cc70abf37ca7906ea9a93b6a99b8fd32d99eb2f5b0eeda5a8554e646bbe2b34` |
+| `no_outcome_shadow_certificate_grid.json` | `1586567a9c08c2a52a768cb4270ce4480eeb59f32a24c51cf27cd851270c61a8` |
+| `no_outcome_shadow_certificate_grid.md` | `a7980d97309c968ce62ebce9b326e9cf1e1260ec6216809b2c35c845aa361fc3` |
+| `candidate_availability_input_readiness_no_outcome.json` | `91dd7c219a157580c69d51ba3170d0bc41d9e69c4876d24baad7ffece93e8288` |
+| `candidate_availability_input_readiness_no_outcome.md` | `2fd06787876eae6f5a63f98ba0ce674fcf65eb7212b7cdfc5c7a6f06a545941d` |
+| `latency_summary_no_outcome_grid.json` | `d2535d6e69e571de4de5a4837a363143ace6e528cb493ef905d7128f500ca367` |
+| `latency_summary_no_outcome_grid.md` | `728e73d5b9f00a892e362fa86d0e2c4f72be74a1d040c6d7ed084e22a0c593df` |
+
+Interpretation:
+
+1. The no-outcome input contract is strong enough for diagnostic work:
+   route-progress, H10 open-loop rollout, full-horizon red-light shadow, v2
+   clearance descriptors, finite-candidate metadata, and existing CAMP proxy
+   atoms are all present without closed-loop outcome leakage.
+2. This artifact cannot support hidden-visibility or bucketed hard-gate
+   posterior claims, because it intentionally contains no
+   `candidate_closed_loop_outcomes`. The earlier Full36 outcome-labeled pass
+   remains the posterior hard-gate evidence, and it already rejected the
+   route-H10 selector because of two near-miss regressions.
+3. The strict no-outcome route/H10/clearance screen has many shadow
+   opportunities (`1493`), but those are not success claims. They only say that
+   current-tick descriptor masks are nonempty and deterministic over the fixed
+   candidate set. Without posterior labels, they cannot prove lower safety
+   score.
+4. The deployment latency gate fails. Overall p95 including DP candidate
+   generation is `118.413 ms`, and `15/36` runs exceed the 100 ms p95 target.
+   The largest regression is concentrated in sample-map NPC runs where the v2
+   obstacle-clearance shadow still reaches high p95 and max latency despite the
+   bounding-circle optimization.
+
+Mathematical boundary: all logged no-outcome quantities are fixed
+finite-candidate diagnostics at the current tick. If route-progress, H10
+distance, and obstacle-clearance terms are later atomized, they must be
+nonnegative fixed transforms or deterministic finite-candidate guards, leaving
+the CAMP score affine in master weights and the simplex/CVaR/L2 master convex.
+No DP sampler, Savitzky-Golay smoothing, `postprocess_reference`,
+PerfectTracker transition, closed-loop future outcome, SafetyCost result, or
+trajectory-coordinate optimization is treated as a Benders subproblem or cut
+source.
+
+Decision: accept the Full36 no-outcome grid as an input-contract and
+no-leakage audit. Reject online/default-off selector promotion from this
+round. The immediate blocker is deployability latency, not descriptor coverage:
+before another replay matrix or selector implementation, the
+obstacle-clearance descriptor needs another latency-focused diagnostic or a
+cheaper state-conditioned guard. Do not train new CAMP weights, do not run
+formal seeds, and do not run a new 12/36 online selector matrix from this
+evidence.
