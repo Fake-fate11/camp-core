@@ -17670,3 +17670,149 @@ retraining from this one-run smoke. The next admissible step is to design an
 exact-equivalent plan for either `reward_batch_compute` or `reward_route_progress`
 using real snapshot microbenchmarks and selector-equivalence checks before any
 broader non-formal replay.
+
+### Exact-Equivalent Route Progress Projection Slice
+
+Commit:
+
+- CAMP commit:
+  `58f132cdc5dde44fe0a8db3d6ae93c0392d2c746`
+  (`Slice DP route progress projection`).
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Purpose:
+
+The previous SG iteration left `reward_route_progress` as the second largest
+reward-side component. This iteration does not change the route-progress
+definition. It computes the same full-route cumulative arc lengths first, then
+uses the existing conservative `exact_centerline_slice_for_candidates` helper
+to restrict the nearest-segment search to a contiguous route segment slice.
+Each point arc is still evaluated with the original scalar point-to-segment
+projection and the full-route cumulative start value for the winning segment.
+
+Local equivalence and synthetic benchmark:
+
+```text
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate0_route_progress_guard_uses_route_projection \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate_route_progress_preserves_scalar_projection \
+  camp_core/tests/test_diffusion_planner_integration.py::test_reward_scoring_candidates_match_previous_per_candidate_savgol \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py \
+  camp_core/tests/test_diffusion_planner_reward_latency_tail.py \
+  camp_core/tests/test_diffusion_planner_latency_budget.py -q
+```
+
+Result: `12 passed`. A local synthetic benchmark compared the previous scalar
+route-progress implementation with the sliced implementation over route lengths
+from `200` to `20000` segments. All cases were exactly equal by
+`np.array_equal`; selected timing rows:
+
+| Route segments | Previous P95 | Sliced P95 |
+| --- | ---: | ---: |
+| `200` | `6.116910 ms` | `5.670350 ms` |
+| `1000` | `16.350755 ms` | `10.832710 ms` |
+| `5000` | `50.870975 ms` | `28.728105 ms` |
+| `20000` | `318.839445 ms` | `142.096980 ms` |
+
+AutoDL verification:
+
+- AutoDL CAMP after sync:
+  `58f132cdc5dde44fe0a8db3d6ae93c0392d2c746`.
+- AutoDL DP:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Remote targeted tests: `12 passed`.
+
+Non-formal smoke:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/
+  reward_route_sliced_smoke_58f132c_sample_tl_seed1_npc4_tloff_static
+```
+
+This reruns only
+`sample_map_tl_route_59_to_86/seed_1/npc_4/tl_off/static` with the same
+development setup as the prior SG-vectorized smoke. It is not a Full36 run,
+online selector promotion, formal-seed run, CAMP training run, or DP change.
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `1b1a96205652e806ba83ac952bf47e2678ecdfaaab246f57a69a319abf6d35e9` |
+| `camp_validation_summary.json` | `16c12ec0959eff93e42ed4fb3eef6893452d5a0c7f2de9fe53ac6b53604508d8` |
+| `camp_replay_summary.json` | `aa957f748136bb9232698b788920c3bb40e00768e025c7403f306ae74a6def4b` |
+| `dataset_audit_reward_route_sliced_smoke.json` | `3ad4d7a9cf6757352382ac132336d8206311ee23226c80157ba966702f23d576` |
+| `latency_budget_reward_route_sliced_smoke.json` | `4791f3abaedaa48a7c62e5e66fffa18973ef1264554955e1594af1259fa457c9` |
+| `latency_budget_reward_route_sliced_smoke.md` | `db6369d19a15275338ebe2cd97d0e0a08db33733392df2fe117864be75b112ca` |
+| `reward_latency_tail_reward_route_sliced_smoke.json` | `3b06c7f616baa9659044f01e23351fc6cee21e63eac71b1fa7fc34676106f5ab` |
+| `reward_latency_tail_reward_route_sliced_smoke.md` | `50301344bc68b9cf0022f5ecaf941c387af68d32f474e57986e3b2e8f834485d` |
+| `selector_equivalence_vs_reward_sg_vectorized_smoke.json` | `2dfd16a7f7923771a169a2e04f750b7c3be7ce3603315014ac1aeca368818c2a` |
+| `non_latency_tolerance_summary_vs_reward_sg_vectorized_smoke.json` | `e4d4247b95b0eeaa5295b7976357d04c0d89a82d362bd631c831e6c84f6dcf86` |
+
+Dataset and equivalence audits:
+
+- dataset audit passed `1` log and `200` records;
+- `closed_loop_outcome_policy=forbidden`;
+- formal seeds `11/12/13` forbidden;
+- `candidate_route_progress` required;
+- finite-candidate contract required;
+- selector equivalence versus the SG-vectorized smoke passed with exact
+  equality for selected index, feasible mask, infeasibility reasons, atoms,
+  normalized atoms, scores, weights, and selection scores;
+- non-latency record comparison had no nonnumeric mismatches and maximum
+  numeric difference `7.593925488436071e-14`, again limited to
+  `candidate_perfect_tracker_open_loop_rollout` and
+  `candidate_perfect_tracker_postprocessed_reference_prefix`.
+
+Latency summary:
+
+| Metric | SG-vectorized smoke P95 | Route-sliced smoke P95 |
+| --- | ---: | ---: |
+| `latency_ms_including_candidate_generation` | `97.684553` | `95.908343` |
+| `latency_ms_reward_scoring` | `27.691599` | `25.502188` |
+| `latency_ms_reward_sg_smoothing` | `0.467413` | `0.465225` |
+| `latency_ms_reward_batch_compute` | `15.684527` | `15.477383` |
+| `latency_ms_reward_route_progress` | `6.941473` | `4.162828` |
+| `latency_ms_camp_selection` | `8.722617` | `8.607626` |
+| `latency_ms_shadow_obstacle_clearance` | `0.865972` | `0.837803` |
+
+The total per-run p95 is now below `100 ms` with about `4.091657 ms` margin for
+this single smoke. This is still one non-formal run only.
+
+Reward attribution after route slicing:
+
+| Quantity | Mean | P95 | Max |
+| --- | ---: | ---: | ---: |
+| `latency_ms_reward_scoring` | `20.176211` | `25.502188` | `176.000200` |
+| reward breakdown sum | `20.136037` | `25.467786` | `175.961761` |
+| reward unattributed residual | `0.040174` | `0.045843` | `0.386590` |
+
+Top all-record reward components:
+
+| Component | Mean | P95 | Max |
+| --- | ---: | ---: | ---: |
+| `latency_ms_reward_batch_compute` | `13.188276` | `15.477383` | `168.300051` |
+| `latency_ms_reward_route_progress` | `3.988696` | `4.162828` | `8.021023` |
+| `latency_ms_reward_npz_dump` | `1.849583` | `1.979898` | `6.629891` |
+| `latency_ms_reward_sg_smoothing` | `0.454681` | `0.465225` | `0.530813` |
+| `latency_ms_reward_tensor_setup` | `0.335974` | `0.350137` | `0.629492` |
+
+All three clearance projection modes still have `0` over-budget runs for this
+single smoke and `0` reward-tail rows.
+
+Mathematical boundary: this change does not alter DP candidate generation,
+Savitzky-Golay smoothing, `postprocess_reference`, PerfectTracker semantics,
+CAMP atoms, atom normalization, affine scores, feasible masks, simplex/CVaR/L2
+master logic, or the finite-candidate selector. `candidate_route_progress`
+remains a fixed current-tick diagnostic over a fixed route polyline and fixed
+candidate tensor. The slice is a conservative exact search-domain reduction,
+not an approximation and not a learned feature. This is latency engineering,
+not Benders, and it constructs no master/subproblem, dual, or cuts.
+
+Decision: accept the route-progress slice as an exact-equivalent latency
+improvement. Reject Full36 replay, online selector promotion, formal seeds, and
+CAMP retraining from this one-run smoke. The next admissible step is now
+`reward_batch_compute`: inspect whether any exact-equivalent wrapper-side data
+preparation or microbenchmark can reduce/attribute the remaining DP reward
+compute cost without modifying DP or changing reward semantics.
