@@ -19034,6 +19034,46 @@ The skipped tests are solver- or environment-dependent in the local Windows
 environment. The robust-training path must still be rerun on AutoDL before
 accepting this implementation as synchronized and trainable.
 
+AutoDL synchronization and verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git pull --ff-only origin main
+git rev-parse HEAD
+
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+/root/miniconda3/envs/camp/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py \
+  camp_core/tests/test_diffusion_planner_safety_cost_oracle.py \
+  camp_core/tests/test_diffusion_planner_safety_comparison_relabel.py \
+  -k 'safety_cost or robust_margin or robust_training or closed_loop_outcome_labels or atom_schema_validation'
+```
+
+AutoDL state:
+
+- CAMP HEAD after fast-forward:
+  `e54be0b02c167accc7210876495621bc5400501a`.
+- DP HEAD remains fixed:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- CAMP tracked worktree is clean; existing unrelated untracked files remain:
+  `diffusion_planner_integration.md`, `dp_camp_device_handoff.md`,
+  `test_diffusion_planner_benchmark_matrix.py`.
+- DP worktree is clean on `tier4-main`.
+
+AutoDL targeted result:
+
+`24 passed, 109 deselected`.
+
+AutoDL full-suite note:
+
+Running `camp_core/tests` under `/root/miniconda3/envs/camp/bin/python` currently
+uses Python 3.9.25 and fails on pre-existing tests that call
+`zip(..., strict=True)`, which requires Python 3.10+. The base conda Python is
+3.12.3 but lacks `pytest` and `cvxpy`. Therefore this iteration treats the
+AutoDL targeted suite above as the relevant remote verification for the changed
+SafetyCost label and robust-training paths. A Python 3.10+ AutoDL test
+environment remains required before using remote full-suite status as a gate.
+
 Decision:
 
 Accept the local label-source implementation as a narrow engineering step
