@@ -22417,3 +22417,126 @@ the proof gate input for diagnosing why the SafetyCost-trained selector's
 candidate-branch gains did not survive the previous outcome-free deployable
 closed-loop smoke, focusing on dense lane-change candidate feasibility/fallback,
 completion loss, and latency.
+
+### Proof-to-Deployable Gap Summary
+
+Date: 2026-06-19
+
+Status: accept as a read-only bridge report between the candidate-branch
+SafetyCost proof and the deployable closed-loop failure. Reject online
+promotion, Full36, formal seeds, DP retraining, and new CAMP retraining from
+this evidence.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `b8f8f2994b8ef772de136c4a7f4f95008626246b` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | none |
+
+New read-only tooling:
+
+```text
+scripts/integrations/summarize_diffusion_planner_proof_to_deployable_gap.py
+camp_core/tests/test_diffusion_planner_proof_to_deployable_gap.py
+```
+
+The report consolidates existing artifacts only:
+
+| Source artifact | Role |
+| --- | --- |
+| `camp_vs_top1_safety_cost_proof_cb339c3/camp_vs_top1_safety_cost_proof.json` | expanded candidate-branch proof |
+| `deployable_static_failure_diagnosis_73bb83f/deployable_static_failure_diagnosis.json` | static deployable closed-loop failure diagnosis |
+| `top1_fallback_targeted_diagnosis_542d489/top1_fallback_targeted_diagnosis.json` | targeted Top-1 fallback diagnosis |
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/proof_to_deployable_gap_b8f8f29
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/summarize_diffusion_planner_proof_to_deployable_gap.py \
+  --proof_report "$ROOT/camp_vs_top1_safety_cost_proof_cb339c3/camp_vs_top1_safety_cost_proof.json" \
+  --deployable_failure_report "$ROOT/deployable_static_failure_diagnosis_73bb83f/deployable_static_failure_diagnosis.json" \
+  --top1_fallback_report "$ROOT/top1_fallback_targeted_diagnosis_542d489/top1_fallback_targeted_diagnosis.json" \
+  --output_json "$OUT/proof_to_deployable_gap.json" \
+  --output_md "$OUT/proof_to_deployable_gap.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `proof_to_deployable_gap_b8f8f29/proof_to_deployable_gap.json` | `d2e1370338da8e95017b84bcb54e134ce29fd12790b933fcce6fc12e38f57aa1` |
+| `proof_to_deployable_gap_b8f8f29/proof_to_deployable_gap.md` | `cc2b3ed6197ac87a0a12a0be6a3998b5cd1f39fe45c788d98c905b747671d159` |
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/summarize_diffusion_planner_proof_to_deployable_gap.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_proof_to_deployable_gap.py -q
+```
+
+Result: local `1 passed`; AutoDL `1 passed`.
+
+Gap summary:
+
+| Gate / metric | Value |
+| --- | ---: |
+| Candidate-pool opportunity gate | `true`, CI high `-0.993081` |
+| SafetyCost-trained candidate-branch proof | `true`, CI high `-0.139640` |
+| Deployable closed-loop gate | `false` |
+| Static deployable SafetyCost delta mean | `+0.076855` |
+| Static deployable completion delta mean | `-0.014140` |
+| Static deployable lane delta mean | `+0.000833` |
+| Mean static fallback rate | `0.187917` |
+| Mean static candidate feasible rate | `0.740885` |
+
+Worst dense lane-change row:
+
+| Variant | SafetyCost delta | Completion delta | Near-miss delta | Lane delta | p95 latency | Fallback | Feasible |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| static deployable | `+0.741652` | `-0.001879` | `+0.015000` | `+0.035000` | `102.446019 ms` | `0.510000` | `0.460000` |
+| Top-1 fallback targeted | `+0.178550` | `-0.001547` | `-0.010000` | `+0.025000` | `102.201753 ms` | `0.495000` | `0.472500` |
+
+Interpretation:
+
+1. DP Top-1 is not always SafetyCost-optimal: the fixed candidate pools contain
+   hard-guarded opportunities in the required non-formal buckets.
+2. The SafetyCost-trained CAMP selector passes candidate-branch proof, so the
+   affine finite-candidate CAMP framework is not the blocker by itself.
+3. The deployable closed-loop path fails during transfer through outcome-free
+   scoring, feasibility/fallback, postprocess/tracker state, and latency.
+4. `top1` fallback partially fixes the all-infeasible branch but is insufficient:
+   lane-change SafetyCost delta improves by `-0.563102`, yet remains positive
+   at `+0.178550`, with lane delta `+0.025000` and p95 latency still above
+   `100 ms`.
+5. This is not evidence for immediate retraining. The remaining target is a
+   legal current-tick finite-candidate hypothesis focused on dense lane-change
+   feasible ticks: DP-prior/completion preservation, feasible-candidate
+   fallback, or schema calibration.
+
+Mathematical boundary:
+
+This report only consolidates existing artifacts. DP remains a frozen black-box
+candidate generator. CAMP scores remain affine \(a_k^\top w\) over fixed
+current-tick features, and the simplex/CVaR/L2 robust master is unchanged.
+DP-side postselection or fallback logic remains finite-candidate logic, not
+classical Benders decomposition.
+
+Decision:
+
+Accept the gap report as the current proof-to-engineering handoff. Do not train
+or run Full36/formal seeds. The next admissible step is to predeclare an
+offline screen for dense lane-change feasible-tick DP-prior/completion
+preservation, with non-leakage and affine-score compatibility stated before any
+implementation or smoke.
