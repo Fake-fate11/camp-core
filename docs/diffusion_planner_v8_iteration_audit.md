@@ -18029,3 +18029,130 @@ smoke. The next admissible step is to rerun a small paired development grid
 only after deciding whether this latency margin is sufficient, or to continue
 component-level diagnosis of the remaining stable terms (`reward_batch_compute`
 and candidate generation) without changing DP.
+
+### Sample59 Static12 Reward-Latency Grid
+
+Commit:
+
+- CAMP commit:
+  `4d6cc55caf903034978114fc9448bcdeb4e06f47`.
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Purpose:
+
+The single reward-contiguous smoke had an `8.539099 ms` p95 margin under the
+`100 ms` tick budget. This grid tests whether that margin survives a small
+non-formal route-specific development matrix before considering any broader
+latency replay. It is static CAMP only and does not compare policy quality
+against Top-1.
+
+Run scope:
+
+- route: `sample_map_tl_route_59_to_86`;
+- seeds: `1,2,3`;
+- NPC counts: `0,4`;
+- traffic lights: `on,off`;
+- static `redstopfloor05` weights/scales;
+- K=8, candidate noise `1.0`, reference blend `5`;
+- `advance_mode=perfect`;
+- DP-reward feasibility, `camp_min_progress_ratio=0.8`;
+- reward horizon `30`;
+- shadow route progress and obstacle clearance enabled;
+- no outcome labels, no formal seeds, no CAMP training, no DP change.
+
+Command root:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/
+  reward_horizon_contiguous_sample59_static12_4d6cc55
+```
+
+Audit artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `dataset_audit_static12.json` | `cbcb3c165cd77a9cae32c01d0de185058c305f881b6875196075ad6fe1789bb1` |
+| `latency_budget_static12.json` | `fd95626de4f382f1f7e93f9aabde731d88972ef373ed2025f973dfe5f17f6b86` |
+| `latency_budget_static12.md` | `866e50d7f71e8753c0263f654238ff9ab66569db936de25823fcbf7ce5451892` |
+| `reward_latency_tail_static12.json` | `47dc716324c31312ab86dae00856f4f8b89e195f343c787c2d0378a9da092849` |
+| `reward_latency_tail_static12.md` | `45918bfc4bc01398250b980667b3a7fe15289b2570f0c4bb6d55b77e1e12dda6` |
+| `selector_equivalence_vs_no_outcome_sample59_static12.json` | `e0aed68d0a54bde7f46884be46722f85885a92c710435a3d6d9d205a6beab717` |
+| `selector_equivalence_rejected_baseline_summary.json` | `d0f961e740794cf82cf2d6e90682cdece939d710dd7d48b729c2d99635363b09` |
+| `static12_summary.json` | `67b2b042d84e3779e1f066688fda9520f843d7e0c2e9df37f97b18a0a13a9e4d` |
+
+Dataset audit:
+
+- passed `12` logs and `2400` records;
+- `closed_loop_outcome_policy=forbidden`;
+- formal seeds `11/12/13` absent;
+- expected candidate count `8`;
+- expected advance mode `perfect`;
+- expected reference blend steps `5`;
+- `candidate_route_progress` required;
+- finite-candidate contract required.
+
+Latency result:
+
+| Metric | Value |
+| --- | ---: |
+| Runs | `12` |
+| Records | `2400` |
+| Runs with p95 >= 100ms | `0` |
+| Mean per-run p95 total | `88.180047 ms` |
+| Worst per-run p95 total | `94.475350 ms` |
+| Minimum p95 margin to 100ms | `5.524650 ms` |
+| Mean per-run p95 reward scoring | `19.317702 ms` |
+| Worst per-run p95 reward scoring | `21.794716 ms` |
+| Mean per-run p95 reward batch compute | `11.698902 ms` |
+| Worst per-run p95 reward batch compute | `13.343158 ms` |
+| Mean per-run p95 route progress | `4.181485 ms` |
+| Worst per-run p95 route progress | `4.290344 ms` |
+| Mean per-run p95 SG smoothing | `0.462696 ms` |
+| Worst per-run p95 SG smoothing | `0.467913 ms` |
+
+Worst run:
+
+| Field | Value |
+| --- | ---: |
+| Run | `sample_map_tl_route_59_to_86/seed_1/npc_4/spawn_0p3/tl_on/static` |
+| p95 total | `94.475350 ms` |
+| p95 candidate generation | `62.095739 ms` |
+| p95 reward scoring | `21.794716 ms` |
+| p95 reward batch compute | `13.343158 ms` |
+| p95 route progress | `4.216544 ms` |
+| p95 CAMP selection | `9.095867 ms` |
+| Route completion | `0.155321` |
+| Planned red-light violation rate | `0.010000` |
+| Realized red-light violation rate | `0.005025` |
+| Near-miss rate | `0.215000` |
+| Mean absolute jerk | `8.548315` |
+| Mean lateral acceleration | `0.416814` |
+| Fallback rate | `0.280000` |
+| Candidate feasible rate | `0.658125` |
+
+The old
+`no_outcome_devgrid_57cd0d1/sample_map/sample_map_tl_route_59_to_86`
+static logs were checked as a possible behavior-equivalence baseline and
+rejected. They do not match this grid's CAMP configuration:
+`camp_fallback_mode` mismatched on all `2400` records, and selected indices,
+feasible masks, atoms, normalized atoms, and scores had large mismatches.
+Therefore that comparison is retained only as rejected-baseline evidence, not
+as proof of selector equivalence. The valid behavior-equivalence evidence for
+the reward-latency implementation remains the strict single-run chain:
+breakdown smoke -> SG-vectorized smoke -> route-sliced smoke ->
+reward-contiguous smoke.
+
+Mathematical boundary: this grid still exercises the same finite candidate
+selector with fixed current-tick candidate tensors and affine CAMP scores
+\(a_k^\top w\). It does not change DP sampling, DP reward definitions, SG
+smoothing, `postprocess_reference`, PerfectTracker, CAMP atoms, normalization,
+the simplex/CVaR/L2 master, fallback semantics, or training labels. It also
+does not create a classical Benders master/subproblem, dual, or valid cuts.
+
+Decision: accept the Sample59 Static12 grid as positive development latency
+evidence for the exact-equivalent reward-latency changes. It does not justify
+formal seeds, online selector promotion, CAMP retraining, or claims that CAMP
+is better than Top-1. It does justify considering a no-outcome Full36 latency
+rerun as the next gate, provided DP remains fixed and formal seeds remain
+forbidden.
