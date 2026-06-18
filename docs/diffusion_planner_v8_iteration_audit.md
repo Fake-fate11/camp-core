@@ -20192,3 +20192,136 @@ progress-shortfall, jerk/lateral, feasibility/fallback branch, and guard fail
 reasons. Only after that diagnosis should any atom/weight/guard change be
 proposed, and any such change must preserve fixed current-tick nonnegative
 candidate costs and the affine score/convex master boundary.
+
+### Traffic-Turn Top-1 Failure Attribution
+
+Date: 2026-06-18
+
+Purpose:
+
+Explain the failing `traffic_light`, `red_light_turn`, and `sharp_turn`
+development gate without changing DP, CAMP weights, candidate generation,
+candidate postprocessing, or the online selector. These three bucket labels are
+the same `sample_tl_turn` records in this matrix, so this attribution counts the
+traffic-turn set once instead of triple-counting identical records.
+
+Artifact:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `guarded_matrix_audit/traffic_turn_top1_failure_diagnostic.json` | `91f25fd7c80b7af22e8d2736302d822436cb1a76f25f7b33ae456caba5b3c256` |
+| `guarded_matrix_audit/traffic_turn_top1_failure_diagnostic.md` | `d1f21096cbc2dcd2beb89f123ab446d29a8abb3ac52d40b2190f8339524eebaf` |
+
+Scope and boundary:
+
+The diagnostic replays saved finite-candidate records and uses the same raw
+CAMP score, logged baseline, fail-closed guard, and posterior SafetyCost labels
+as the guarded matrix audit. It is read-only, not training, not an online
+selector change, and not a Benders subproblem. Posterior outcomes are used only
+to explain the already-observed failure; they are not admissible online atoms.
+
+Traffic-turn summary:
+
+| Metric | Value |
+| --- | ---: |
+| Records | `600` |
+| Seeds | `1, 2, 3` |
+| Guarded same as DP Top-1 | `56` |
+| Guarded better than DP Top-1 | `477` |
+| Guarded worse than DP Top-1 | `67` |
+| Attempted overrides | `74` |
+| Accepted overrides | `10` |
+| Rejected overrides | `64` |
+| Top-1 ineligible records | `13` |
+| Branch counts | `528` base-feasible, `72` fallback-all-infeasible |
+
+Per-seed SafetyCost v1 delta, guarded minus DP Top-1:
+
+| Seed | Records | Mean delta | Worse | Better | Same Top-1 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| `1` | `200` | `+0.153620` | `23` | `169` | `8` |
+| `2` | `200` | `+0.633360` | `23` | `142` | `35` |
+| `3` | `200` | `-0.036894` | `21` | `166` | `13` |
+
+Component attribution:
+
+| Subset | Records | Mean delta | Lane violation | Planned red | Jerk | Lateral | Route shortfall |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| all traffic-turn | `600` | `+0.250029` | `+0.166667` | `+0.125000` | `+0.009325` | `+0.003409` | `-0.054372` |
+| worse only | `67` | `+2.549140` | `+1.492537` | `+1.119403` | `+0.128211` | `+0.039651` | `-0.230663` |
+| better only | `477` | `-0.043554` | `0.000000` | `0.000000` | `-0.006279` | `-0.001282` | `-0.035993` |
+
+Interpretation:
+
+The average traffic-turn failure is not a broad regression across all records.
+Most records (`477/600`) are better than DP Top-1 by this branch SafetyCost,
+but their gains are small. The positive bucket mean is driven by a small number
+of high-cost outliers: `5` posterior lane-violation-worse records and `5`
+planned-red-worse records. These outliers are large enough to overwhelm the
+many small comfort/progress wins.
+
+Current-tick descriptor deltas, guarded minus DP Top-1:
+
+| Subset | Union red | Red-stop margin cost | Route progress | Progress-shortfall atom | Proxy jerk | Proxy lateral |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| all traffic-turn | `+0.246667` | `+0.224415` | `+1.281034` | `-0.203332` | `+0.254323` | `+0.003409` |
+| worse only | `+2.208955` | `+1.997621` | `+7.043792` | `-0.607575` | `+1.283493` | `+0.039651` |
+| better only | `0.000000` | `+0.001694` | `+0.621984` | `-0.170423` | `+0.139622` | `-0.001282` |
+
+Outcome label deltas, guarded minus DP Top-1:
+
+| Subset | Progress m | Mean jerk | Mean lateral accel | Lane violation | Red-light violation |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| all traffic-turn | `+1.281150` | `+0.093252` | `+0.003409` | `+0.008333` | `0.000000` |
+| worse only | `+7.052127` | `+1.282111` | `+0.039651` | `+0.074627` | `0.000000` |
+| better only | `+0.620959` | `-0.062789` | `-0.001282` | `0.000000` | `0.000000` |
+
+Guard failure mode:
+
+| Fact | Count |
+| --- | ---: |
+| Worse records where `raw == logged == guarded != Top-1` | `58` |
+| Lane-violation-worse records | `5` |
+| Planned-red-worse records | `5` |
+| Union-red-worse records | `5` |
+
+This is the core failure mode. The current guard is defined relative to the
+logged `redstopfloor05` selected candidate. When raw CAMP and logged
+`redstopfloor05` already select the same non-Top-1 candidate, the guard records
+`same_as_logged` and does not compare that candidate against DP Top-1. The
+largest outliers are exactly of this form: `raw == logged == guarded`, with no
+guard failure reason because no override was attempted.
+
+Worst outliers:
+
+| Seed | Step | Raw | Logged | Guarded | Cost delta | Dominant component |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `1` | `2` | `6` | `6` | `6` | `+20.585364` | lane violation `+20` |
+| `2` | `1` | `2` | `2` | `2` | `+20.252734` | lane violation `+20` |
+| `2` | `0` | `2` | `2` | `2` | `+20.176767` | lane violation `+20` |
+| `2` | `2` | `5` | `5` | `5` | `+19.895100` | lane violation `+20` |
+| `1` | `1` | `2` | `2` | `2` | `+18.545654` | lane violation `+20` |
+| `2` | `198` | `6` | `6` | `6` | `+15.054571` | planned red `+15` |
+| `2` | `196` | `2` | `2` | `2` | `+14.014015` | planned red `+15` |
+| `2` | `195` | `4` | `4` | `4` | `+13.982434` | planned red `+15` |
+
+Decision:
+
+Accept this attribution as the explanation for the traffic-turn gate failure.
+Reject online promotion and reject claiming the guarded selector beats DP
+Top-1. The existing fail-closed guard solves a different problem: it blocks
+raw-selector regressions relative to logged `redstopfloor05`. It does not
+provide a Top-1 safety floor.
+
+Next admissible step:
+
+Evaluate a read-only, Top-1-relative safety floor before any online selector
+change. The candidate rule should remain finite-candidate and deterministic:
+start from the existing guarded choice, but fall back to DP Top-1 when the
+chosen candidate is worse than Top-1 on current-tick red-light proxies
+(`candidate_horizon_union_planned_red_light_cost`,
+`candidate_red_stopping_margin_cost`) or on clearly bounded comfort/safety
+proxies. This must be tested offline first against the same SafetyCost v1 and
+bucket gates. Posterior lane-violation labels cannot be used directly; either
+find a current-tick lane-risk proxy with evidence, or treat the lane-violation
+outliers as an unsolved residual risk.
