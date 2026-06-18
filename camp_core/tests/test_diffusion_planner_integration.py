@@ -65,6 +65,7 @@ from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_feasibility_from_rewards,
     _perfect_tracker_candidate_preprocessing,
     _prepare_perfect_tracker_reference_candidates,
+    _prepare_reward_scoring_candidates,
 )
 from scripts.integrations.create_diffusion_planner_smoke_route import (
     _route_geometry,
@@ -2743,6 +2744,55 @@ def test_tracker_reference_candidates_apply_replay_savgol_preprocessing() -> Non
         "savgol_window": 11,
         "savgol_order": 3,
     }
+
+
+def test_reward_scoring_candidates_match_previous_per_candidate_savgol() -> None:
+    from scipy.signal import savgol_filter
+
+    rng = np.random.default_rng(14)
+    candidates = rng.normal(size=(3, 15, 4))
+    heading_norm = np.linalg.norm(candidates[:, :, 2:4], axis=2)
+    candidates[:, :, 2:4] /= heading_norm[:, :, np.newaxis]
+    config = types.SimpleNamespace(
+        sg_smooth_enabled=True,
+        sg_filter_window=11,
+        sg_filter_order=3,
+    )
+
+    expected = np.asarray(candidates, dtype=np.float32).copy()
+    expected = np.stack(
+        [
+            savgol_filter(
+                candidate,
+                config.sg_filter_window,
+                config.sg_filter_order,
+                axis=0,
+            )
+            for candidate in expected
+        ]
+    )
+    expected_heading_norm = np.linalg.norm(expected[:, :, 2:4], axis=2)
+    expected[:, :, 2:4] /= np.clip(
+        expected_heading_norm,
+        1e-6,
+        None,
+    )[:, :, np.newaxis]
+
+    actual = _prepare_reward_scoring_candidates(candidates, config)
+
+    assert actual.dtype == np.float32
+    np.testing.assert_allclose(actual, expected, rtol=0.0, atol=0.0)
+
+
+def test_reward_scoring_candidates_preserve_disabled_copy_semantics() -> None:
+    candidates = np.zeros((1, 3, 4), dtype=np.float64)
+    config = types.SimpleNamespace(sg_smooth_enabled=False)
+
+    actual = _prepare_reward_scoring_candidates(candidates, config)
+
+    assert actual.dtype == np.float32
+    assert not np.shares_memory(actual, candidates)
+    np.testing.assert_array_equal(actual, candidates.astype(np.float32))
 
 
 def test_tracker_reference_candidates_preserve_disabled_preprocessing() -> None:

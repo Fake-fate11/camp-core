@@ -1745,6 +1745,19 @@ def _prepare_perfect_tracker_reference_candidates(
     return smoothed
 
 
+def _prepare_reward_scoring_candidates(
+    candidates: np.ndarray,
+    spawn_config: Any,
+) -> np.ndarray:
+    scored_candidates = np.asarray(candidates, dtype=np.float32).copy()
+    if not bool(getattr(spawn_config, "sg_smooth_enabled", False)):
+        return scored_candidates
+    return _prepare_perfect_tracker_reference_candidates(
+        scored_candidates,
+        spawn_config,
+    )
+
+
 def _append_metric_record(
     *,
     replay_module: Any,
@@ -1842,18 +1855,10 @@ def _score_candidate_batch(
         reward_data[key] = _to_tensor(array)
     tensor_setup_done = time.perf_counter()
 
-    scored_candidates = np.asarray(candidates, dtype=np.float32).copy()
-    if bool(getattr(spawn_config, "sg_smooth_enabled", False)):
-        scored_candidates = np.stack(
-            [
-                replay_module._sg_smooth_trajectory(
-                    candidate,
-                    int(spawn_config.sg_filter_window),
-                    int(spawn_config.sg_filter_order),
-                )
-                for candidate in scored_candidates
-            ]
-        )
+    scored_candidates = _prepare_reward_scoring_candidates(
+        candidates,
+        spawn_config,
+    )
     smoothing_done = time.perf_counter()
     full_trajectories = torch.from_numpy(scored_candidates).float().to(device)
     reward_trajectories = full_trajectories[:, :reward_horizon_steps]
