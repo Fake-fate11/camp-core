@@ -18,12 +18,16 @@ for path in (ROOT, PACKAGE_ROOT):
     if path_str not in sys.path:
         sys.path.insert(0, path_str)
 
-from camp_core.integrations.diffusion_planner import CAMPSelector  # noqa: E402
+from camp_core.integrations.diffusion_planner import (  # noqa: E402
+    CAMPSelector,
+    atom_schema_for_dimension,
+)
 from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
     iter_selection_log_paths,
 )
 from scripts.integrations.analyze_diffusion_planner_safety_cost_oracle import (  # noqa: E402
     DEFAULT_REQUIRED_BUCKETS,
+    EPS,
     FORMAL_SEEDS,
     _aggregate,
     _coverage_gaps,
@@ -150,26 +154,14 @@ def analyze(
             evaluated_rows.append(evaluated_row)
             logged_rows.append(logged_row)
             selection_pairs.append(
-                {
-                    "log_path": str(log_path),
-                    "record_index": int(record_index),
-                    "run_key": context["run_key"],
-                    "scenario_buckets": context["scenario_buckets"],
-                    "logged_index": int(logged_row["camp_index"]),
-                    "evaluated_index": int(selected_index),
-                    "changed": int(logged_row["camp_index"]) != int(selected_index),
-                    "evaluated_minus_logged_cost": (
-                        evaluated_row["costs"]["camp"] - logged_row["costs"]["camp"]
-                    ),
-                    "evaluated_minus_top1": evaluated_row["deltas"]["camp_minus_top1"],
-                    "logged_minus_top1": logged_row["deltas"]["camp_minus_top1"],
-                    "evaluated_minus_hard_guarded_oracle": evaluated_row["deltas"][
-                        "camp_minus_hard_guarded_oracle"
-                    ],
-                    "logged_minus_hard_guarded_oracle": logged_row["deltas"][
-                        "camp_minus_hard_guarded_oracle"
-                    ],
-                }
+                _selection_pair(
+                    record,
+                    evaluated_row=evaluated_row,
+                    logged_row=logged_row,
+                    log_path=log_path,
+                    record_index=record_index,
+                    context=context,
+                )
             )
 
     formal_seed_logs = [log["path"] for log in logs if log["formal_seed"]]
@@ -326,6 +318,15 @@ def _selector_comparison(pairs: list[dict[str, Any]]) -> dict[str, Any]:
         float(np.mean([pair["evaluated_minus_logged_cost"] for pair in log_pairs]))
         for log_pairs in grouped.values()
     ]
+    better = [
+        pair for pair in pairs if pair["evaluated_minus_logged_cost"] < -EPS
+    ]
+    worse = [
+        pair for pair in pairs if pair["evaluated_minus_logged_cost"] > EPS
+    ]
+    same = [
+        pair for pair in pairs if abs(pair["evaluated_minus_logged_cost"]) <= EPS
+    ]
     return {
         "records": len(pairs),
         "logs": len(grouped),
@@ -345,9 +346,218 @@ def _selector_comparison(pairs: list[dict[str, Any]]) -> dict[str, Any]:
             run_level,
             seed_key="evaluated_minus_logged_cost",
         ),
+        "cost_delta_record_counts": {
+            "evaluated_better": len(better),
+            "evaluated_same": len(same),
+            "evaluated_worse": len(worse),
+        },
+        "cost_delta_record_rates": {
+            "evaluated_better": _rate(len(better), len(pairs)),
+            "evaluated_same": _rate(len(same), len(pairs)),
+            "evaluated_worse": _rate(len(worse), len(pairs)),
+        },
+        "raw_component_delta_mean": _mean_nested_delta(pairs, "raw_component_delta"),
+        "weighted_component_delta_mean": _mean_nested_delta(
+            pairs,
+            "weighted_component_delta",
+        ),
+        "hard_component_delta_mean": _mean_nested_delta(pairs, "hard_component_delta"),
+        "selected_atom_delta_mean": _mean_nested_delta(
+            pairs,
+            "selected_atom_delta",
+        ),
+        "when_evaluated_worse": {
+            "records": len(worse),
+            "raw_component_delta_mean": _mean_nested_delta(
+                worse,
+                "raw_component_delta",
+            ),
+            "weighted_component_delta_mean": _mean_nested_delta(
+                worse,
+                "weighted_component_delta",
+            ),
+            "hard_component_delta_mean": _mean_nested_delta(
+                worse,
+                "hard_component_delta",
+            ),
+            "selected_atom_delta_mean": _mean_nested_delta(
+                worse,
+                "selected_atom_delta",
+            ),
+        },
+        "by_bucket": _selector_comparison_by_bucket(pairs),
         "examples": pairs[:20],
         "examples_truncated": len(pairs) > 20,
     }
+
+
+def _selection_pair(
+    record: dict[str, Any],
+    *,
+    evaluated_row: dict[str, Any],
+    logged_row: dict[str, Any],
+    log_path: Path,
+    record_index: int,
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    logged_index = int(logged_row["camp_index"])
+    evaluated_index = int(evaluated_row["camp_index"])
+    atoms = np.asarray(record.get("atoms"), dtype=np.float64)
+    atom_names = _atom_names(record, atoms.shape[1])
+    selected_atom_delta = {
+        atom_names[idx]: float(atoms[evaluated_index, idx] - atoms[logged_index, idx])
+        for idx in range(atoms.shape[1])
+    }
+    evaluated_components = evaluated_row["component_costs"]["camp"]
+    logged_components = logged_row["component_costs"]["camp"]
+    raw_delta = _dict_delta(
+        evaluated_components["raw_components"],
+        logged_components["raw_components"],
+    )
+    weighted_delta = _dict_delta(
+        evaluated_components["weighted_components"],
+        logged_components["weighted_components"],
+    )
+    hard_delta = _dict_delta(
+        evaluated_row["hard_components"]["camp"],
+        logged_row["hard_components"]["camp"],
+    )
+    return {
+        "log_path": str(log_path),
+        "record_index": int(record_index),
+        "run_key": context["run_key"],
+        "scenario_buckets": context["scenario_buckets"],
+        "logged_index": logged_index,
+        "evaluated_index": evaluated_index,
+        "changed": logged_index != evaluated_index,
+        "evaluated_minus_logged_cost": (
+            evaluated_row["costs"]["camp"] - logged_row["costs"]["camp"]
+        ),
+        "evaluated_minus_top1": evaluated_row["deltas"]["camp_minus_top1"],
+        "logged_minus_top1": logged_row["deltas"]["camp_minus_top1"],
+        "evaluated_minus_hard_guarded_oracle": evaluated_row["deltas"][
+            "camp_minus_hard_guarded_oracle"
+        ],
+        "logged_minus_hard_guarded_oracle": logged_row["deltas"][
+            "camp_minus_hard_guarded_oracle"
+        ],
+        "raw_component_delta": raw_delta,
+        "weighted_component_delta": weighted_delta,
+        "hard_component_delta": hard_delta,
+        "selected_atom_delta": selected_atom_delta,
+    }
+
+
+def _atom_names(record: dict[str, Any], num_atoms: int) -> tuple[str, ...]:
+    raw = record.get("atom_names")
+    if isinstance(raw, list) and len(raw) == num_atoms:
+        return tuple(str(name) for name in raw)
+    try:
+        return atom_schema_for_dimension(num_atoms)[1]
+    except ValueError:
+        return tuple(f"atom_{idx}" for idx in range(num_atoms))
+
+
+def _dict_delta(
+    evaluated: dict[str, Any],
+    logged: dict[str, Any],
+) -> dict[str, float]:
+    keys = sorted(set(evaluated) | set(logged))
+    return {
+        key: float(evaluated.get(key, 0.0)) - float(logged.get(key, 0.0))
+        for key in keys
+    }
+
+
+def _rate(count: int, total: int) -> float | None:
+    if total <= 0:
+        return None
+    return float(count) / float(total)
+
+
+def _mean_nested_delta(
+    pairs: list[dict[str, Any]],
+    key: str,
+) -> dict[str, float | None]:
+    if not pairs:
+        return {}
+    names = sorted({name for pair in pairs for name in pair[key]})
+    result: dict[str, float | None] = {}
+    for name in names:
+        values = [float(pair[key].get(name, 0.0)) for pair in pairs]
+        result[name] = float(np.mean(values))
+    return result
+
+
+def _selector_comparison_by_bucket(pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for pair in pairs:
+        buckets = pair.get("scenario_buckets")
+        if not isinstance(buckets, list) or not buckets:
+            buckets = ["overall"]
+        for bucket in buckets:
+            grouped[str(bucket)].append(pair)
+    rows = []
+    for bucket in _ordered_bucket_names(grouped):
+        bucket_pairs = grouped[bucket]
+        by_log: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for pair in bucket_pairs:
+            by_log[str(pair["log_path"])].append(pair)
+        run_level = [
+            float(
+                np.mean(
+                    [pair["evaluated_minus_logged_cost"] for pair in log_pairs]
+                )
+            )
+            for log_pairs in by_log.values()
+        ]
+        rows.append(
+            {
+                "bucket": bucket,
+                "records": len(bucket_pairs),
+                "logs": len(by_log),
+                "changed_record_rate": float(
+                    np.mean([float(pair["changed"]) for pair in bucket_pairs])
+                ),
+                "evaluated_minus_logged_cost_mean": float(
+                    np.mean(
+                        [
+                            pair["evaluated_minus_logged_cost"]
+                            for pair in bucket_pairs
+                        ]
+                    )
+                ),
+                "run_level_evaluated_minus_logged_cost_ci": _mean_ci(
+                    run_level,
+                    seed_key=f"evaluated_minus_logged_cost|bucket:{bucket}",
+                ),
+                "weighted_component_delta_mean": _mean_nested_delta(
+                    bucket_pairs,
+                    "weighted_component_delta",
+                ),
+                "selected_atom_delta_mean": _mean_nested_delta(
+                    bucket_pairs,
+                    "selected_atom_delta",
+                ),
+            }
+        )
+    return rows
+
+
+def _ordered_bucket_names(grouped: dict[str, list[dict[str, Any]]]) -> list[str]:
+    order = (
+        "overall",
+        "normal",
+        "traffic_light",
+        "red_light_turn",
+        "sharp_turn",
+        "npc_interaction",
+        "dense_scene",
+        "lane_change_or_merge",
+    )
+    names = [name for name in order if name in grouped]
+    names.extend(sorted(name for name in grouped if name not in names))
+    return names
 
 
 def render_markdown(report: dict[str, Any]) -> str:
@@ -388,12 +598,35 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"| Changed record rate | {_fmt(comparison['changed_record_rate'])} |",
         f"| Mean evaluated-minus-logged cost | {_fmt(comparison['evaluated_minus_logged_cost_mean'])} |",
         f"| Run-level evaluated-minus-logged CI high | {_fmt(comparison['run_level_evaluated_minus_logged_cost_ci']['ci95_high'])} |",
+        f"| Evaluated-worse record rate | {_fmt(comparison['cost_delta_record_rates']['evaluated_worse'])} |",
+        "",
+        "Mean weighted SafetyCost component deltas, evaluated minus logged:",
+        "",
+        "| Component | Delta |",
+        "| --- | ---: |",
+    ]
+    for name, value in comparison["weighted_component_delta_mean"].items():
+        lines.append(f"| `{name}` | {_fmt(value)} |")
+    lines.extend(
+        [
+            "",
+            "Mean selected atom deltas, evaluated minus logged:",
+            "",
+            "| Atom | Delta |",
+            "| --- | ---: |",
+        ]
+    )
+    for name, value in comparison["selected_atom_delta_mean"].items():
+        lines.append(f"| `{name}` | {_fmt(value)} |")
+    lines.extend(
+        [
         "",
         "## Scenario Buckets",
         "",
         "| Bucket | Records | Eval delta vs Top-1 | Eval CI high | Logged delta vs Top-1 | Logged CI high |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
-    ]
+        ]
+    )
     logged_by_bucket = {
         row["bucket"]: row for row in report["logged_selector"]["by_bucket"]
     }

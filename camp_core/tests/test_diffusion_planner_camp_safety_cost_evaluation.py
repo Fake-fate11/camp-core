@@ -136,6 +136,15 @@ def test_camp_safety_cost_evaluation_reselects_saved_selector(tmp_path) -> None:
     assert logged["run_level_delta_ci"]["camp_minus_top1"]["mean"] == 0.0
     assert comparison["changed_record_rate"] == 1.0
     assert comparison["evaluated_minus_logged_cost_mean"] < 0.0
+    assert comparison["cost_delta_record_counts"] == {
+        "evaluated_better": 1,
+        "evaluated_same": 0,
+        "evaluated_worse": 0,
+    }
+    assert comparison["weighted_component_delta_mean"]["planned_red_light"] < 0.0
+    assert comparison["selected_atom_delta_mean"]["jerk_early"] < 0.0
+    assert comparison["by_bucket"][0]["bucket"] == "overall"
+    assert comparison["by_bucket"][0]["evaluated_minus_logged_cost_mean"] < 0.0
     assert report["analysis"]["future_outcome_leakage"].startswith(
         "candidate_closed_loop_outcomes are used only for offline evaluation"
     )
