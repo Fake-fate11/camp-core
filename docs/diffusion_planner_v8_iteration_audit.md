@@ -21859,3 +21859,173 @@ Decision:
    choices while correcting the harmful high-DP-prior subset. Any such rule must
    be predeclared, no-leakage, fail-closed, and tested first on existing
    outcome-labeled logs.
+
+### DP-Prior and Completion Joint Offline Audit
+
+Date: 2026-06-19
+
+Status: accept as a read-only mechanism diagnosis; reject direct schema
+promotion, CAMP retraining, online selector changes, Full36, and formal seeds.
+The joint audit shows that planned progress/completion preservation is more
+useful than blind DP-prior regularization, but no alpha/beta grid candidate
+passes the comprehensive bucket gate.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `6a003a70c42778adfa18f0bd67f3c347657aa37b` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining in this step | none |
+| Formal seeds | none |
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_dp_prior_completion_joint_audit.py
+camp_core/tests/test_diffusion_planner_dp_prior_completion_joint_audit.py
+```
+
+The virtual selector uses only current-tick finite-candidate quantities:
+
+```text
+score(k)
+  = (1 - alpha - beta) * logged_selection_score(k)
+    + alpha * normalized_dp_prior_deviation(k)
+    + beta * normalized_planned_progress_shortfall(k)
+```
+
+where `alpha + beta < 1`. Outcome labels are used only for posterior SafetyCost,
+hard-component, and progress evaluation.
+
+Mathematical boundary:
+
+`dp_prior_deviation_cost` and `planned_progress_shortfall_cost` are fixed
+candidate coefficients once the DP candidate set is generated. If either is
+later added to CAMP, the score remains affine in weights \(a_k^\top w\), and
+the simplex/CVaR/L2 robust master remains convex. This is still a
+finite-candidate selector audit, not classical Benders decomposition: no DP-side
+subproblem, dual, or valid cuts are constructed.
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_dp_prior_completion_joint_audit.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_dp_prior_completion_joint_audit.py \
+  camp_core/tests/test_diffusion_planner_dp_prior_atom_candidate.py \
+  camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py -q
+```
+
+Result: local `3 passed`; AutoDL new test `1 passed`.
+
+AutoDL commands:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_dp_prior_completion_joint_audit.py \
+  --root "$ROOT/candidate_outcome_labels_static_d97b7c2" \
+  --label candidate_outcome_labels_static_d97b7c2 \
+  --bootstrap_resamples 5000 \
+  --output_json "$ROOT/dp_prior_completion_joint_staticlabels_6a003a7/dp_prior_completion_joint_audit.json" \
+  --output_md "$ROOT/dp_prior_completion_joint_staticlabels_6a003a7/dp_prior_completion_joint_audit.md"
+
+$PY scripts/integrations/analyze_diffusion_planner_dp_prior_completion_joint_audit.py \
+  --root "$ROOT/clearance_outcome_devmatrix_69eb7e0" \
+  --label clearance_outcome_devmatrix_69eb7e0 \
+  --bootstrap_resamples 5000 \
+  --output_json "$ROOT/dp_prior_completion_joint_clearance_6a003a7/dp_prior_completion_joint_audit.json" \
+  --output_md "$ROOT/dp_prior_completion_joint_clearance_6a003a7/dp_prior_completion_joint_audit.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `dp_prior_completion_joint_staticlabels_6a003a7/dp_prior_completion_joint_audit.json` | `0f5193798cdfbf36599413db59c3f895f3dd1d4f5419591409c5947d7a1db4b9` |
+| `dp_prior_completion_joint_staticlabels_6a003a7/dp_prior_completion_joint_audit.md` | `7d880825f46e4c8f587a92833d4b6966f1597c9644f9e1a2701f6f681cfcf774` |
+| `dp_prior_completion_joint_clearance_6a003a7/dp_prior_completion_joint_audit.json` | `82d4039bce0395ab12969b00c5718552703dde99a493105843cbe0204f826cd7` |
+| `dp_prior_completion_joint_clearance_6a003a7/dp_prior_completion_joint_audit.md` | `757459ff9ddbc0288a945cd37bcb5d3ea90ade053b255f65b121a35d4c26e4c9` |
+
+Larger static outcome-label set:
+
+| Item | Value |
+| --- | ---: |
+| Logs / records / candidates | `36 / 7200 / 57600` |
+| Bucket record counts | dense `3600`, lane-change `2400`, normal `600`, NPC `3600`, red-light-turn `1200`, sharp-turn `2400`, traffic-light `3600` |
+| Selected non-Top1 rate | `0.954722` |
+| Overall safer hard-nonworse opportunity | `0.520833` |
+| Overall safer progress-nonworse opportunity | `0.325417` |
+| Harmful current records | `1592` |
+| Beneficial current records | `5282` |
+| Harmful selected with positive DP-prior delta | `1.000000` |
+| Beneficial selected with positive DP-prior delta | `1.000000` |
+
+Best static-label grid candidates:
+
+| Alpha | Beta | Pass | Bucket failures | Safety mean | Safety CI high | CVaR90 | Progress CI low | Changed | Top1 rate | Beneficial preserved | Hard nonworse |
+| ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.00` | `0.02` | no | `3` | `-0.018757` | `-0.006255` | `+0.001282` | `+0.001398` | `0.028750` | `0.043611` | `0.975009` | `1.000000` |
+| `0.00` | `0.01` | no | `4` | `-0.013743` | `-0.003899` | `+0.000502` | `+0.001029` | `0.015556` | `0.044167` | `0.985801` | `1.000000` |
+| `0.01` | `0.02` | no | `5` | `-0.019167` | `-0.006020` | `+0.003136` | `+0.000451` | `0.033056` | `0.045417` | `0.970844` | `0.999861` |
+
+Best static-label bucket failures for `alpha=0.00`, `beta=0.02`:
+
+| Bucket | Safety CI high | Progress CI low | Hard nonworse | Beneficial preserved |
+| --- | ---: | ---: | ---: | ---: |
+| `normal` | `+0.000362` | `-0.001842` | `1.000000` | `0.982270` |
+| `red_light_turn` | `+0.000650` | `+0.001287` | `1.000000` | `0.980501` |
+| `sharp_turn` | `+0.000255` | `+0.002650` | `1.000000` | `0.976356` |
+
+Clearance matrix:
+
+| Item | Value |
+| --- | ---: |
+| Logs / records / candidates | `12 / 2400 / 19200` |
+| Available buckets | dense `1200`, lane-change `600`, NPC `1200`, traffic-light `600`; missing normal/red-light-turn/sharp-turn |
+| Overall safer hard-nonworse opportunity | `0.520417` |
+| Overall safer progress-nonworse opportunity | `0.166667` |
+
+Best clearance grid candidates:
+
+| Alpha | Beta | Pass | Bucket failures | Safety mean | Safety CI high | CVaR90 | Progress CI low | Changed | Top1 rate | Beneficial preserved | Hard nonworse |
+| ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.01` | `0.01` | no | `4` | `-0.014316` | `-0.004186` | `+0.000643` | `+0.061467` | `0.030000` | `0.099583` | `0.977218` | `1.000000` |
+| `0.01` | `0.02` | no | `4` | `-0.013816` | `-0.003694` | `+0.001113` | `+0.066118` | `0.038333` | `0.098750` | `0.964628` | `1.000000` |
+| `0.01` | `0.00` | no | `5` | `-0.008917` | `-0.000299` | `+0.000397` | `-0.006567` | `0.020417` | `0.105833` | `0.985012` | `1.000000` |
+
+Interpretation:
+
+1. The larger static-label audit rejects the idea that DP-prior alone is the
+   right next atom. The best grid candidate is `alpha=0`, `beta=0.02`, meaning
+   planned-progress preservation explains more useful correction than
+   DP-prior-deviation on this data.
+2. Even that best candidate does not pass the comprehensive bucket gate:
+   normal, red-light-turn, and sharp-turn have slightly positive SafetyCost CI
+   highs.
+3. The opportunity rates are high enough that this is not primarily a candidate
+   support failure. Overall, `52.08%` of records have a safer hard-nonworse
+   candidate; `32.54%` also have safer progress-nonworse support.
+4. DP-prior remains entangled: harmful and beneficial current CAMP decisions
+   both have positive DP-prior deltas at rate `1.0`. A blind DP-prior penalty
+   cannot separate useful CAMP deviations from harmful ones.
+5. The next promising direction is state-conditioned or bucket-conditioned
+   finite-candidate logic around planned-progress/completion preservation,
+   especially for normal, red-light-turn, and sharp-turn failure buckets. It
+   must be predeclared, no-leakage, and tested offline before any online smoke.
+
+Decision:
+
+1. Reject direct promotion of `dp_prior_deviation_cost`,
+   `planned_progress_shortfall_cost`, or their simple alpha/beta mixture.
+2. Do not train new CAMP weights, run Full36, or use formal seeds from this
+   audit.
+3. Continue with a state/bucket-conditioned offline design that first explains
+   the three remaining bucket failures for the best progress-preserving rule.
