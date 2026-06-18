@@ -17,9 +17,6 @@ for path in (ROOT, PACKAGE_ROOT):
     if path_str not in sys.path:
         sys.path.insert(0, path_str)
 
-from camp_core.integrations.diffusion_planner import (  # noqa: E402
-    atom_schema_for_dimension,
-)
 from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
     iter_selection_log_paths,
     parse_selection_log_metadata,
@@ -347,19 +344,12 @@ def _select_with_alpha(record: dict[str, Any], alpha: float, scale: float) -> in
 
 
 def _record_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
-    atom_dims = sorted({len(record["scores"]) for record in records})
-    schema_versions = []
-    for dim in atom_dims:
-        try:
-            schema_versions.append(atom_schema_for_dimension(dim)[0])
-        except ValueError:
-            schema_versions.append(f"unknown_{dim}d")
+    candidate_counts = sorted({record["candidate_count"] for record in records})
     return {
         "logs": len({record["context"]["log_path"] for record in records}),
         "total": len(records),
         "candidates": int(sum(record["candidate_count"] for record in records)),
-        "atom_score_dimensions": atom_dims,
-        "atom_schema_versions": schema_versions,
+        "candidate_count_values": candidate_counts,
         "selected_non_top1_rate": float(
             np.mean([record["selected"] != 0 for record in records])
         ),
