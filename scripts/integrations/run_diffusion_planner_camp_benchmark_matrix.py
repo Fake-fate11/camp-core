@@ -162,7 +162,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--camp_fallback_mode",
-        choices=("uniform", "learned"),
+        choices=("uniform", "learned", "top1"),
         default="uniform",
         help="Fallback policy for all-infeasible CAMP candidate sets.",
     )

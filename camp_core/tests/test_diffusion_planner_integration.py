@@ -2371,6 +2371,48 @@ def test_learned_fallback_only_changes_all_infeasible_branch() -> None:
     assert uniform_result.selected_index == 1
 
 
+def test_top1_fallback_preserves_candidate0_only_when_all_infeasible() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=0.1,
+        lane_corridor_buffer=0.0,
+        speed_limit=2.0,
+        desired_speed=1.0,
+    )
+    x_fast = np.linspace(0.5, 8.0, 8)
+    x_slow = np.linspace(0.5, 1.2, 8)
+    candidates = np.stack(
+        [
+            np.column_stack([x_fast, np.full_like(x_fast, 0.12)]),
+            np.column_stack([x_slow, np.full_like(x_slow, 0.5)]),
+        ]
+    )
+    selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=np.eye(9)[7],
+        mode="static",
+        fallback_mode="top1",
+    )
+
+    fallback_result = selector.select(candidates, context)
+    feasible_result = selector.select(
+        candidates,
+        context,
+        external_feasible_mask=np.ones(2, dtype=bool),
+        apply_context_feasibility=False,
+    )
+
+    assert fallback_result.used_fallback
+    assert fallback_result.selected_index == 0
+    assert fallback_result.selection_scores.tolist() == [0.0, np.inf]
+    assert not feasible_result.used_fallback
+    np.testing.assert_allclose(
+        feasible_result.selection_scores,
+        feasible_result.scores,
+    )
+
+
 def test_dedicated_fallback_model_is_used_only_for_all_infeasible_branch() -> None:
     context = DriverAtomContext(
         dt=0.1,

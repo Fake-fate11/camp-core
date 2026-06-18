@@ -940,7 +940,7 @@ def _validate_finite_candidate_contract_summary(
         raise ValueError(
             f"{summary_path} has invalid DP-CAMP feasibility source metadata."
         )
-    if metadata.get("fallback_mode") not in {"uniform", "learned"}:
+    if metadata.get("fallback_mode") not in {"uniform", "learned", "top1"}:
         raise ValueError(
             f"{summary_path} has invalid DP-CAMP fallback metadata."
         )

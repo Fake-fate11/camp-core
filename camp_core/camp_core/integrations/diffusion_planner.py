@@ -2499,9 +2499,9 @@ class CAMPSelector:
             )
         self.linear_activation = linear_activation
         self.feature_clip = float(feature_clip)
-        if fallback_mode not in {"uniform", "learned"}:
+        if fallback_mode not in {"uniform", "learned", "top1"}:
             raise ValueError(
-                "fallback_mode must be 'uniform' or 'learned', "
+                "fallback_mode must be 'uniform', 'learned', or 'top1', "
                 f"got {fallback_mode!r}."
             )
         self.fallback_mode = fallback_mode
@@ -2982,7 +2982,10 @@ class CAMPSelector:
         selection_weights = weights
         selection_normalized = normalized
         if used_fallback:
-            if self.fallback_mode == "learned":
+            if self.fallback_mode == "top1":
+                selection_scores = np.full(candidates.shape[0], np.inf)
+                selection_scores[0] = 0.0
+            elif self.fallback_mode == "learned":
                 if self.fallback_static_weights is None:
                     selection_scores = scores.copy()
                 else:

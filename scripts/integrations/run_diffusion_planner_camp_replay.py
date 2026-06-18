@@ -182,11 +182,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--camp_fallback_mode",
-        choices=("uniform", "learned"),
+        choices=("uniform", "learned", "top1"),
         default="uniform",
         help=(
             "Fallback policy when all candidates are infeasible. uniform keeps "
-            "the legacy average-atom fallback; learned reuses selector scores."
+            "the legacy average-atom fallback; learned reuses selector scores; "
+            "top1 preserves the upstream DP candidate0."
         ),
     )
     parser.add_argument("--camp_atom_clip", type=float, default=10.0)
