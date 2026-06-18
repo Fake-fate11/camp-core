@@ -20325,3 +20325,110 @@ proxies. This must be tested offline first against the same SafetyCost v1 and
 bucket gates. Posterior lane-violation labels cannot be used directly; either
 find a current-tick lane-risk proxy with evidence, or treat the lane-violation
 outliers as an unsolved residual risk.
+
+### Guarded Top-1 Floor Counterfactual
+
+Date: 2026-06-18
+
+Purpose:
+
+Test the proposed Top-1-relative safety floor offline before any online
+selector change. The counterfactual starts from the existing guarded CAMP
+choice, then may fall back to DP Top-1 using only fixed current-tick candidate
+proxies. It is not training, not DP modification, not formal-seed evaluation,
+and not a Benders subproblem.
+
+Implementation state:
+
+| Item | Value |
+| --- | --- |
+| Analysis code commit | `4e6a14a2159d45c6adbbf6235b5e027f2ff4a9c0` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| Matrix root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0` |
+| Formal seeds | none |
+
+Command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+BASE=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0
+TRAIN=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/analyze_diffusion_planner_guarded_top1_floor_counterfactual.py \
+  --root "$BASE" \
+  --atom_scales "$TRAIN/atom_scales_dp_static.json" \
+  --static_weights "$TRAIN/offline_weights_dp_static.npy" \
+  --selector_name safety_cost_v1_guarded_top1_floor_counterfactual \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --output_json "$BASE/top1_floor_counterfactual/guarded_top1_floor_counterfactual.json" \
+  --output_md "$BASE/top1_floor_counterfactual/guarded_top1_floor_counterfactual.md" \
+  --fail_on_formal_seeds \
+  --fail_on_missing_required
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `top1_floor_counterfactual/guarded_top1_floor_counterfactual.json` | `1447ed5470bd2cbb95dc626ccd9dedc48474e2b93813773e3e7b1f3fc63b4f01` |
+| `top1_floor_counterfactual/guarded_top1_floor_counterfactual.md` | `28916c92b285b5c2b62ed47f358bf072b0ff1caafa27fbd00f8da07724990bd8` |
+
+Rules evaluated:
+
+| Rule | Candidate0 feasible required | Top-1 fallbacks | Overall CI high vs Top-1 | Traffic-turn CI high | NPC/dense CI high | Gate |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `guarded_no_top1_floor` | n/a | `0` | `+0.015989` | `+0.633360` | `-0.039532` | fail |
+| `top1_red_floor` | yes | `0` | `+0.016871` | `+0.633360` | `-0.039532` | fail |
+| `top1_red_floor_unconditional` | no | `7` | `-0.015252` | `+0.280213` | `-0.039532` | fail |
+| `top1_red_or_proxy_jerk_floor` | yes | `903` | `+0.014834` | `+0.643310` | `-0.040315` | fail |
+| `top1_red_or_proxy_jerk_floor_unconditional` | no | `1024` | `-0.015734` | `-0.011460` | `+0.033653` | fail |
+| `top1_red_or_proxy_comfort_floor` | yes | `1415` | `+0.036000` | `+0.650522` | `-0.036142` | fail |
+| `top1_red_or_proxy_comfort_floor_unconditional` | no | `1619` | `-0.010724` | `-0.004248` | `+0.003999` | fail |
+
+Interpretation:
+
+1. The conservative red floor requiring candidate0 to be CAMP-base-feasible has
+   zero effect. The traffic-turn red-proxy outliers are blocked by the
+   candidate0 feasible mask, so the rule never falls back to Top-1.
+2. The unconditional red floor can return DP Top-1 and blocks `7` records, but
+   traffic-turn still fails (`CI high +0.280213`). Red proxies alone do not
+   cover the lane-violation outliers.
+3. The unconditional red-or-jerk and red-or-comfort floors fix the
+   traffic-turn bucket, but they fail NPC/dense. They also produce large
+   regressions relative to logged `redstopfloor05`: mean guarded-minus-logged
+   cost is `+0.542293` for unconditional red-or-jerk and `+0.717844` for
+   unconditional red-or-comfort, with positive CI highs.
+4. The proxy-comfort floors fall back to Top-1 on too many records
+   (`1024`-`1619` fallbacks), which suppresses traffic-turn outliers but
+   destroys useful NPC/dense improvements and introduces hard-component
+   regressions in the candidate-branch labels.
+
+Decision:
+
+Reject all evaluated Top-1 floor counterfactuals as development-gate passes.
+Reject online promotion. The evidence narrows the problem: a simple Top-1
+fallback can either be too weak to catch traffic-turn lane/planned-red
+outliers or too broad and harmful to NPC/dense performance. It is not enough
+to bolt a Top-1 floor onto the current guarded selector.
+
+Mathematical boundary:
+
+The counterfactual floor is a deterministic finite-candidate rule over saved
+current-tick constants. Outcome labels are used only for posterior SafetyCost
+evaluation. It does not modify DP, candidate generation, postprocessing,
+PerfectTracker, atom schema, affine scoring, or the simplex/CVaR/L2 CAMP
+master. It is not a classical Benders subproblem.
+
+Next admissible step:
+
+Do not run formal seeds, Full36, online selector promotion, DP modification, or
+CAMP retraining from this evidence. The next offline target should be a
+state-conditioned current-tick certificate that separates traffic-turn
+lane/planned-red outliers from NPC/dense cases before any fallback is allowed.
+The certificate must be specified before evaluation, use fixed nonnegative
+candidate quantities, and show bucket-level SafetyCost improvement without
+positive guarded-minus-logged regression.
