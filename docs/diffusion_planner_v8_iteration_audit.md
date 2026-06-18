@@ -20559,3 +20559,164 @@ and unit tests, then run only the same non-formal 12-run matrix as a paired
 selector smoke. Formal seeds and Full36 remain blocked until that online-path
 smoke preserves the offline development evidence without latency or hard-safety
 regression.
+
+### State-Gated Red-Route Top-1 Floor Online Smoke
+
+Date: 2026-06-18
+
+Status: accept as non-formal online-path development evidence for the default-off
+`state_redroute_top1_red_or_proxy_jerk_floor_unconditional` mode, but reject
+formal seeds, Full36, and online promotion until the small red-turn closed-loop
+lane regression is attributed.
+
+Implementation state:
+
+| Item | Value |
+| --- | --- |
+| CAMP/GitHub/AutoDL code commit | `3fdf71f4a8bfb741507f3634d71d852efe06358d` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| Smoke root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_redroute_top1_floor_online_smoke_3fdf71f` |
+| Baseline paired root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0` |
+| Formal seeds | none |
+
+Implementation summary:
+
+The replay runner now has a default-off
+`--camp_traffic_light_hybrid_postselection state_redroute_top1_red_or_proxy_jerk_floor_unconditional`
+mode. It reuses the existing traffic-light postselection plumbing and metadata,
+but implements the offline winning rule directly:
+
+1. keep the normal CAMP finite-candidate selected index as the baseline;
+2. activate only when `red_route_point_count > 0`;
+3. if the baseline is not candidate `0` and candidate `0` is strictly better on
+   `candidate_horizon_union_planned_red_light_cost`,
+   `candidate_red_stopping_margin_cost`, or
+   `candidate_dp_prior_jerk_excess_cost`, select candidate `0`;
+4. do not require candidate `0` to be base-feasible, matching the offline
+   unconditional diagnostic.
+
+Local and AutoDL narrow tests:
+
+```bash
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py::test_traffic_light_hybrid_postselection_selects_admissible_candidate \
+  camp_core/tests/test_diffusion_planner_integration.py::test_traffic_light_hybrid_postselection_is_traffic_light_gated \
+  camp_core/tests/test_diffusion_planner_integration.py::test_traffic_light_hybrid_postselection_requires_strict_raw_jerk \
+  camp_core/tests/test_diffusion_planner_integration.py::test_traffic_light_hybrid_h3_mode_uses_h3_budget \
+  camp_core/tests/test_diffusion_planner_integration.py::test_state_redroute_top1_floor_can_return_infeasible_candidate0 \
+  camp_core/tests/test_diffusion_planner_integration.py::test_state_redroute_top1_floor_is_red_route_gated \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py \
+  camp_core/tests/test_diffusion_planner_replay_summary.py::test_summarize_traffic_light_hybrid_postselection_records \
+  camp_core/tests/test_diffusion_planner_guarded_top1_floor_counterfactual.py -q
+```
+
+Result: local `21 passed`; AutoDL `21 passed`. A broader local
+`test_diffusion_planner_integration.py` run aborted during a local `torch`
+import in `test_candidate_generation_disables_guidance_by_default`, so the
+useful local verification here is the targeted non-torch subset plus AutoDL.
+
+Online smoke command shape:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT_ROOT="$ROOT/state_redroute_top1_floor_online_smoke_3fdf71f"
+
+# Same 12 non-formal routes/seeds/buckets as the clearance+outcome dev matrix.
+# Variant: static only.
+# Added flag:
+--camp_traffic_light_hybrid_postselection state_redroute_top1_red_or_proxy_jerk_floor_unconditional
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `run_state_redroute_top1_floor_online_smoke.log` | `8928238e10e415fd1f1ecc362231f1139bc0ffe12d110a897fab4e7be36ca183` |
+| `safety_cost_oracle_audit/online_state_redroute_safety_cost.json` | `0689affd1043b2c1b6f066b2361f03a5db6bdf0110d6666493dfc6426c2bffc6` |
+| `safety_cost_oracle_audit/online_state_redroute_safety_cost.md` | `9cd6a2d83414f50dc82df30e6779b1bccf5bd9189934b63e6cfd2e88b3f96a6c` |
+| `paired_vs_redstopfloor05/paired_summary.json` | `bd20155e30d3609fd45acf964a2181c2bd02bbff438859cf44ea0f6a0d6ec48d` |
+| `paired_vs_redstopfloor05/paired_summary.md` | `2fcf0e9888bf7aabca8c903ef121daa068522f9b7356d5f9c6229b1c233947f9` |
+
+SafetyCost v1 selected-log audit:
+
+| Check | Result |
+| --- | --- |
+| Logs / records | `12` / `2400` |
+| Missing required buckets | none |
+| Formal seed logs | `0` |
+| Overall CI high vs DP Top-1 | `-0.040921` |
+| Traffic-light/red-turn/sharp-turn CI high vs DP Top-1 | `-0.011262` |
+| NPC/dense CI high vs DP Top-1 | `-0.039531` |
+| Lane-change CI high vs DP Top-1 | `-0.068733` |
+| Top-1 match rate overall | `0.213333` |
+| Top-1 match rate traffic buckets | `0.558333` |
+
+Postselection behavior:
+
+| Bucket | Changed records | Dominant reason |
+| --- | ---: | --- |
+| normal | `0` | `red_route_point_count_not_positive` |
+| npc_dense | `0` | `red_route_point_count_not_positive` |
+| lane_change | `0` | `red_route_point_count_not_positive` |
+| red_light_turn | `275` | `selected_state_redroute_top1_floor_candidate` |
+
+Overall reason counts:
+
+| Reason | Count |
+| --- | ---: |
+| `red_route_point_count_not_positive` | `1800` |
+| `selected_state_redroute_top1_floor_candidate` | `275` |
+| `top1_not_better_on_red_or_proxy_jerk` | `265` |
+| `baseline_is_top1` | `60` |
+
+Paired closed-loop comparison versus `redstopfloor05`:
+
+| Metric | Overall mean delta | Max delta |
+| --- | ---: | ---: |
+| `obb_collision_rate` | `0.000000` | `0.000000` |
+| `near_miss_rate` | `0.000000` | `0.000000` |
+| `red_light_violation_rate` | `0.000000` | `0.000000` |
+| `planned_red_light_violation_rate` | `-0.002083` | `0.000000` |
+| `lane_violation_rate` | `+0.000833` | `+0.005000` |
+| `route_completion_rate` | `+0.000057` | `+0.000309` |
+| `mean_jerk_magnitude_mps3` | `-0.042453` | `+0.046567` |
+| `p95_selection_latency_ms` | `-46.164968` | `-2.750368` |
+| `p95_traffic_light_hybrid_postselection_latency_ms` | `+0.036804` | `+0.041928` |
+
+Interpretation:
+
+1. The online path reproduces the offline state-gated pattern: only the
+   red-light-turn bucket changes, with `275` Top-1 floor selections; the other
+   `1800` non-red-route records are inactive.
+2. The selected-log SafetyCost v1 gate is satisfied overall and in every
+   required bucket. This is the first online-path smoke where the traffic-turn
+   bucket no longer breaks the Top-1 CI gate.
+3. Paired closed-loop collision, near-miss, and realized red-light rates do not
+   regress against the old `redstopfloor05` matrix. Planned red improves
+   slightly on average.
+4. There is a small closed-loop lane-violation regression in the red-turn
+   bucket: overall mean `+0.000833`, max per-run delta `+0.005000`. This blocks
+   promotion to Full36/formal until attributed.
+5. The postselector itself is cheap in this matrix: max per-run p95 contribution
+   is about `0.041928ms`; total p95 remains dominated by outcome collection,
+   so this matrix still does not clear the formal `<100ms` latency gate.
+
+Mathematical boundary:
+
+The online mode is still a deterministic finite-candidate postselector over
+current-tick constants. It changes only the selected index within the saved DP
+candidate set. DP sampling, Savitzky-Golay smoothing, postprocess_reference,
+PerfectTracker, CAMP atoms, affine score semantics, and the simplex/CVaR/L2
+master are unchanged. This is not a classical Benders subproblem.
+
+Decision:
+
+Accept the mode as a promising development candidate and keep it default-off.
+Reject formal seeds, Full36, and online promotion for now. The next admissible
+step is to attribute the red-light-turn lane regression at the changed-record
+level, decide whether the trigger needs an additional lane/current-corridor
+guard, and rerun only a targeted non-formal smoke if a mathematically valid
+current-tick guard is added.
