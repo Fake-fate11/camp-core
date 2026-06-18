@@ -18768,3 +18768,177 @@ candidate generation logic, CAMP atoms, CAMP weights, affine scoring, SG
 smoothing, `postprocess_reference`, PerfectTracker, fallback semantics, or the
 simplex/CVaR/L2 master. The `lane_change_or_merge` label is supported by
 route topology (`Right` transition) and not by replay outcome metrics.
+
+### Diverse Non-Formal Matrix Oracle Audit
+
+Status audit:
+
+- CAMP commit:
+  `982baba5048b7bd66f3bb2dc9eef6d24a7993517`;
+- DP commit remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`;
+- matrix root:
+  `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f`;
+- outcome-label root:
+  `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static`;
+- formal seeds:
+  `0` records from seeds `11/12/13`;
+- completed logs:
+  `108`;
+- completed records:
+  `21600`.
+
+Matrix completion:
+
+| Route alias | Logs |
+| --- | ---: |
+| `nishishinjuku_lane_change` | `36` |
+| `sample_normal` | `36` |
+| `sample_tl_turn` | `36` |
+
+The first watcher-triggered audit used the predeclared scenario manifest but
+reported every run as `overall` only:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_oracle_diverse_nonformal_py312_9e2158f.json` | `2829f7a434c89c874ff3058769889bae84815958fbff8df420d09fc5b3b30f01` |
+| `safety_cost_oracle_diverse_nonformal_py312_9e2158f.md` | `c9e9439c12cacacb10184a617988de003861501215bf9a9572f7527915e3f166` |
+
+This artifact is rejected for the development gate. The cause was not missing
+scenario execution: the matrix completed all `108` runs. The cause was a
+manifest/auditor compatibility bug. The matrix planner emitted explicit labels
+against route aliases such as `sample_normal`, `sample_tl_turn`, and
+`nishishinjuku_lane_change`, while the oracle analyzer derived `route_name`
+from the route file stem when `benchmark.route` was present. Commit
+`982baba5048b7bd66f3bb2dc9eef6d24a7993517` fixes this by using the structured
+selection-log route alias as `route_name`, while still allowing manifest route
+labels to match the route file stem for older artifacts.
+
+Verification for the fix:
+
+```bash
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_safety_cost_oracle.py \
+  camp_core/tests/test_diffusion_planner_safety_score_compare.py
+```
+
+Local result:
+`14 passed`.
+
+AutoDL result under `/root/miniconda3/envs/camp/bin/python`:
+`14 passed`.
+
+Corrected audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/miniconda3/bin/python \
+  scripts/integrations/analyze_diffusion_planner_safety_cost_oracle.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static \
+  --scenario_bucket_manifest /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_diverse_nonformal_py312_982baba/safety_cost_oracle_diverse_nonformal_py312_982baba.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_diverse_nonformal_py312_982baba/safety_cost_oracle_diverse_nonformal_py312_982baba.md \
+  --fail_on_formal_seeds \
+  --fail_on_missing_required
+```
+
+Corrected audit artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `diverse_nonformal_scenario_buckets_py312_9e2158f.json` | `b28698e87b0217cb7f88b50d8646f8d029a3800e2ed6afecf44ec267eda1d202` |
+| `safety_cost_oracle_diverse_nonformal_py312_982baba.json` | `540a525ce2b22973572793efb6ae11f92c1a01e6993f11e21296a4019d0c296b` |
+| `safety_cost_oracle_diverse_nonformal_py312_982baba.md` | `434d17567d556b0f40e11c549b61e9226f956e035e7970f3df9f12e39278449f` |
+
+Corrected scenario coverage:
+
+| Bucket | Records |
+| --- | ---: |
+| `overall` | `21600` |
+| `normal` | `1200` |
+| `traffic_light` | `3600` |
+| `red_light_turn` | `3600` |
+| `sharp_turn` | `7200` |
+| `npc_interaction` | `1200` |
+| `dense_scene` | `1200` |
+| `lane_change_or_merge` | `7200` |
+
+Coverage gate:
+
+| Check | Result |
+| --- | --- |
+| Missing required buckets | `none` |
+| Formal-seed records | `0` |
+| Overall hard-guarded oracle CI high < 0 | `true` |
+| Required-bucket hard-guarded oracle CI high < 0 | `true` |
+| Opportunity gate passed | `true` |
+
+Overall candidate-branch opportunity:
+
+| Metric | Value |
+| --- | ---: |
+| Mean Top-1 branch cost | `7.991042` |
+| Mean CAMP branch cost | `7.296697` |
+| Mean hard-guarded oracle branch cost | `6.453639` |
+| Hard-guarded oracle mean delta vs Top-1 | `-1.537402` |
+| Hard-guarded oracle delta CI high | `-0.993081` |
+| CAMP mean delta vs Top-1 | `-0.694345` |
+| CAMP delta CI high | `-0.410363` |
+| CAMP mean gap to hard-guarded oracle | `0.843058` |
+| CAMP gap-to-hard-guarded-oracle CI high | `1.278342` |
+| Hard-guarded oracle beats Top-1 rate | `0.861435` |
+| CAMP beats Top-1 rate | `0.685972` |
+| All-infeasible fallback record rate | `0.230509` |
+| Hard-guarded oracle available rate | `0.997917` |
+
+Required-bucket opportunity and current CAMP status:
+
+| Bucket | Logs | Guarded oracle mean delta | Guarded CI high | CAMP mean delta | CAMP CI high | Decision |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `normal` | `6` | `-0.033487` | `-0.032564` | `-0.020180` | `-0.018990` | current CAMP passes this bucket |
+| `traffic_light` | `18` | `-1.053606` | `-0.398793` | `-0.419593` | `0.082183` | current CAMP not significant |
+| `red_light_turn` | `18` | `-1.053606` | `-0.403515` | `-0.419593` | `0.080138` | current CAMP not significant |
+| `sharp_turn` | `36` | `-0.876457` | `-0.491813` | `-0.289041` | `-0.013664` | current CAMP passes this bucket |
+| `npc_interaction` | `6` | `-3.892805` | `-0.772701` | `-3.538976` | `-0.500994` | current CAMP passes this bucket |
+| `dense_scene` | `6` | `-3.892805` | `-0.772294` | `-3.538976` | `-0.500994` | current CAMP passes this bucket |
+| `lane_change_or_merge` | `36` | `-2.412258` | `-1.043864` | `-0.664017` | `-0.267210` | current CAMP passes this bucket |
+
+Latency interpretation:
+
+The matrix was run with `--camp_collect_closed_loop_outcomes`, so the summary
+field `p95_selection_latency_ms` includes offline outcome-label collection.
+It is not a deployable online-selector latency measurement.
+
+| Group | Mean p95 total path ms | Mean p95 outcome collection ms | Mean p95 candidate generation ms | Mean p95 CAMP selection ms |
+| --- | ---: | ---: | ---: | ---: |
+| `overall` | `542.490893` | `454.878978` | `59.564825` | `7.943309` |
+| `nishishinjuku_lane_change` | `417.582654` | `331.587121` | `59.737607` | `11.054641` |
+| `sample_normal` | `385.155705` | `293.919741` | `59.461573` | `6.185901` |
+| `sample_tl_turn` | `824.734319` | `739.130073` | `59.495293` | `6.589386` |
+
+Decision:
+
+Accept the non-formal candidate-pool opportunity gate: the fixed DP candidate
+pool contains hard-guarded alternatives that significantly reduce SafetyCost v1
+in every required explicit bucket without using formal seeds. Reject any claim
+that the current `redstopfloor05` CAMP is already a complete proof: the
+traffic-light and red-light-turn CAMP-vs-Top-1 CI highs remain positive, and
+the deployable online latency gate still needs a no-outcome-label measurement.
+
+Next admissible step:
+
+Design the CAMP learning/calibration stage against the corrected hard-guarded
+oracle labels with an explicit split, preferably route/seed-held-out or
+route-stratified. The training labels may use this offline oracle audit, but
+runtime atoms must remain current-tick only. Do not run formal seeds. Do not
+modify or tune DP. Also run a separate no-outcome-label latency audit before
+claiming the industrial `p95 < 100 ms` gate.
+
+Mathematical boundary:
+
+This iteration only corrected explicit manifest matching and reran an offline
+finite-candidate oracle audit. It does not change Diffusion Planner weights,
+candidate generation, SG smoothing, `postprocess_reference`, PerfectTracker,
+CAMP atom schema, affine scoring, feasible masks, fallback semantics, or the
+simplex/CVaR/L2 master. The corrected bucket labels come from route aliases,
+route topology, and run configuration fields, not outcome metrics.
