@@ -19616,3 +19616,222 @@ fail-closed behavior, and compatibility with the affine CAMP score. If it uses
 clearance or relative-motion proxies, document whether each term is a fixed
 finite-candidate diagnostic, affine in `w`, convex as a weight-feature score,
 or excluded from any Benders claim.
+
+### Guarded SafetyCost Selector Proof-of-Mechanism
+
+Date: 2026-06-18
+
+Purpose:
+
+The lower-bound retry showed the right failure mode but the existing diverse
+seed-3 outcome-labeled logs did not contain `candidate_obstacle_clearance` or
+`candidate_route_progress`; those fields were `null` for all 7,200 records.
+That made a clearance-based hard-safety guard impossible to audit from the old
+seed-3 matrix alone. This iteration therefore generated one targeted
+development-only lane-change log with both posterior outcomes and current-tick
+shadow obstacle-clearance diagnostics.
+
+Targeted non-formal replay:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+/root/miniconda3/bin/python \
+  /root/autodl-tmp/camp_core/scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --model_path /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --output_root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/lane_change_clearance_outcome_seed3_npc4_spawn03_tloff_4d189b1 \
+  --device cuda \
+  --steps 200 \
+  --seeds 3 \
+  --max_npcs 4 \
+  --spawn_probabilities 0.3 \
+  --traffic_light_modes off \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --camp_atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --camp_static_weights /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy \
+  --num_candidates 8 \
+  --candidate_noise_scale 1 \
+  --candidate_reference_blend_steps 5 \
+  --camp_feasibility_source dp_reward \
+  --camp_min_progress_ratio 0.8 \
+  --camp_reward_horizon_steps 30 \
+  --camp_collect_closed_loop_outcomes \
+  --camp_outcome_horizon_steps 30 \
+  --near_miss_threshold_m 2 \
+  --camp_shadow_obstacle_clearance \
+  --variants static \
+  --skip_compare \
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json \
+  --route nishishinjuku_lane_change=/root/autodl-tmp/camp_dp_assets/nishishinjuku_lane_change_route_7_via_8_to_1.pkl
+```
+
+Targeted replay artifact:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `lane_change_clearance_outcome_seed3_npc4_spawn03_tloff_4d189b1/nishishinjuku_lane_change/seed_3/npc_4/spawn_0p3/tl_off/static/camp_selection_log.json` | `b0dec9f5421641a33125fddb4158167ebed4eb4b23951ee4202ef6fc3b9fc568` |
+
+Targeted replay checks:
+
+| Field | Value |
+| --- | ---: |
+| Records | `200` |
+| `candidate_obstacle_clearance` records | `200` |
+| `candidate_closed_loop_outcomes` records | `200` |
+| `candidate_route_progress` records | `0` |
+| Logged selected collision records | `61` |
+| Logged selected near-miss records | `93` |
+| Shadow obstacle-clearance p95 latency | `0.828675 ms` |
+
+Implementation:
+
+Commit `c3a072b` adds
+`scripts/integrations/analyze_diffusion_planner_guarded_safety_selector.py`.
+The analyzer is default-off and offline only. It rescoring fixed candidates
+with a saved CAMP selector, then audits a fail-closed guard against the logged
+baseline selector:
+
+- baseline is `logged_selected_index` from the existing `redstopfloor05` run;
+- raw selector is the saved CAMP weight vector applied to current-tick atoms;
+- guarded selector accepts the raw override only if current-tick diagnostics
+  are nonworse or within predeclared budgets against the logged baseline;
+- otherwise it fails closed to the logged baseline.
+
+The audited guard predicates are:
+
+| Predicate | Direction |
+| --- | --- |
+| base feasibility | raw and logged candidates must be feasible |
+| `progress_shortfall` | raw minus logged `<= 0.05` |
+| target speed | logged minus raw `<= 0.10 m/s` |
+| H10 open-loop distance | logged minus raw `<= 0.10 m` |
+| union planned red-light cost | raw nonworse than logged |
+| red-stopping margin cost | raw nonworse than logged |
+| horizon lateral cost | raw nonworse than logged and raw `<= 2.0` |
+| DP-prior jerk excess | raw nonworse than logged |
+| soft clearance cost | raw nonworse than logged |
+| near-miss clearance cost | raw nonworse than logged |
+| min clearance lower bound | raw nonworse than logged when both are present |
+
+Mathematical boundary:
+
+- The guard is a finite-candidate deterministic filter over fixed current-tick
+  constants. It does not change DP, candidate generation, atoms, affine score
+  semantics, or the simplex/CVaR/L2 robust master.
+- The raw CAMP score remains affine in `w`; the guard is outside the master and
+  is not claimed as a classical Benders subproblem.
+- Candidate outcomes are used only after selection for posterior SafetyCost
+  evaluation.
+- If any required guard descriptor is missing, the audited policy fails closed
+  to the logged baseline.
+
+Local and AutoDL verification:
+
+```bash
+python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_guarded_safety_selector.py \
+  camp_core/tests/test_diffusion_planner_guarded_safety_selector.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core \
+/root/miniconda3/envs/camp/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_guarded_safety_selector.py \
+  camp_core/tests/test_diffusion_planner_camp_safety_cost_evaluation.py
+```
+
+Results:
+
+- Local targeted tests: `4 passed`.
+- AutoDL targeted tests: `4 passed`.
+
+Guarded audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+LOG=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/lane_change_clearance_outcome_seed3_npc4_spawn03_tloff_4d189b1/nishishinjuku_lane_change/seed_3/npc_4/spawn_0p3/tl_off/static/camp_selection_log.json
+TRAIN=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/guarded_safety_selector_lane_change_seed3_npc4_spawn03_tloff_c3a072b
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/analyze_diffusion_planner_guarded_safety_selector.py \
+  --selection_log "$LOG" \
+  --atom_scales "$TRAIN/atom_scales_dp_static.json" \
+  --static_weights "$TRAIN/offline_weights_dp_static.npy" \
+  --selector_name safety_cost_v1_floor_progress20_jerk20_clear2_stop5_dp5_guarded \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --required_bucket lane_change_or_merge \
+  --output_json "$OUT/guarded_safety_selector.json" \
+  --output_md "$OUT/guarded_safety_selector.md" \
+  --fail_on_formal_seeds
+```
+
+Guarded audit artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `guarded_safety_selector_lane_change_seed3_npc4_spawn03_tloff_c3a072b/guarded_safety_selector.json` | `eb17f6eebb03518b978823809fefcf00607c13875edb59bf3592323aad764739` |
+| `guarded_safety_selector_lane_change_seed3_npc4_spawn03_tloff_c3a072b/guarded_safety_selector.md` | `bad1f997e3ac0ce4e94aee63abcdcc0ee2f3ab357750cbc4b8fd26a1846f5638` |
+
+Targeted guarded result:
+
+| Metric | Raw lower-bound selector | Guarded selector | Logged selector |
+| --- | ---: | ---: | ---: |
+| Mean branch cost | `36.805528` | `36.369184` | `36.369494` |
+| Mean delta vs Top-1 | `-2.406139` | `-2.842483` | `-2.842173` |
+| Gap to hard-guarded oracle | `11.920791` | `11.484447` | `11.484757` |
+| Changed rate vs logged | `0.195000` | `0.010000` | n/a |
+| Mean minus logged cost | `+0.436034` | `-0.000310` | n/a |
+| Evaluated better/same/worse vs logged | `28 / 161 / 11` | `2 / 198 / 0` | n/a |
+| Weighted collision delta vs logged | `+0.500000` | `0.000000` | n/a |
+| Weighted route-shortfall delta vs logged | `-0.073205` | `-0.000232` | n/a |
+
+Guard behavior:
+
+| Metric | Value |
+| --- | ---: |
+| Attempted raw overrides | `39` |
+| Accepted overrides | `2` |
+| Rejected overrides | `37` |
+| Raw worse attempts | `11` |
+| Raw worse blocked | `11` |
+| Accepted worse overrides | `0` |
+| Accept rate given attempt | `0.051282` |
+
+Major fail reasons:
+
+| Reason | Count |
+| --- | ---: |
+| `logged_candidate_infeasible` | `32` |
+| `raw_candidate_infeasible` | `32` |
+| `proxy_lateral` | `30` |
+| `proxy_jerk` | `27` |
+| `h10_distance_loss` | `8` |
+| `progress_shortfall_loss` | `6` |
+| `min_clearance_lower_bound` | `5` |
+| `soft_clearance` | `1` |
+| `near_miss_clearance` | `1` |
+
+Decision:
+
+Accept this as a single-log proof-of-mechanism that a strict current-tick,
+fail-closed guard can block the observed lower-bound selector's lane-change
+collision regression against logged `redstopfloor05`. Reject it as a
+development-gate pass: it is one targeted lane-change run, it accepts only
+`2/39` attempted overrides, and it depends on a descriptor that was absent from
+the existing diverse outcome-labeled matrix.
+
+Next admissible step:
+
+Regenerate or extend a small predeclared development matrix with both
+`--camp_collect_closed_loop_outcomes` and `--camp_shadow_obstacle_clearance`
+enabled for the critical buckets, then run the guarded audit over seed-held-out
+logs. The acceptance criterion is not merely "no worse than logged" by failing
+closed everywhere; the guarded selector must retain measurable improvement over
+DP Top-1 while showing no hard-safety regression and no positive
+guarded-minus-logged SafetyCost CI in lane-change/merge and NPC-interaction
+buckets.
