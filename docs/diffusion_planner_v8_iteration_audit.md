@@ -17915,6 +17915,16 @@ PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
 
 Result: `14 passed`.
 
+Broader package tests after the audit commit:
+
+- local `camp_core/tests`: `350 passed, 11 skipped`;
+- AutoDL `camp_core/tests`: `361 passed`.
+
+The local whole-repository `pytest -q` command is not a useful DP-CAMP signal
+on this workstation because collection enters the nested `adaptive-prediction`
+tree and fails before running tests due to missing local dependencies
+(`torch`, `trajectron`, and nested test package imports).
+
 Non-formal smoke:
 
 ```text
