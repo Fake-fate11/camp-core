@@ -20917,3 +20917,175 @@ Decision:
    variants, and oracle/hard-guarded oracle on current candidate pools, then
    explain whether CAMP improves the aggregate safety score or whether DP
    Top-1/candidate support is already too strong for the current CAMP schema.
+
+### CAMP-vs-DP-Top1 Comprehensive SafetyCost Proof Summary
+
+Date: 2026-06-18
+
+Status: accept as a non-formal candidate-branch proof for the
+SafetyCost-trained CAMP selector; reject current `redstopfloor05` as a complete
+proof; reject closed-loop deployment, Full36, formal seeds, DP retraining, and
+new CAMP retraining from this report alone.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `fc93ed0de7e86f12f9f0e7aecc1a447712d4bf2f` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| Proof root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/camp_vs_top1_safety_cost_proof_fc93ed0` |
+| Formal seeds | `0` in source artifacts |
+
+New read-only summary tooling:
+
+```text
+scripts/integrations/summarize_diffusion_planner_camp_safety_cost_proof.py
+camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py
+```
+
+The tool only consolidates existing JSON reports. It does not run DP, generate
+new trajectories, train CAMP, modify weights, change online selection, or use
+formal seeds.
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/camp_vs_top1_safety_cost_proof_fc93ed0
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/summarize_diffusion_planner_camp_safety_cost_proof.py \
+  --oracle_report "$ROOT/safety_cost_oracle_diverse_nonformal_py312_982baba/safety_cost_oracle_diverse_nonformal_py312_982baba.json" \
+  --selector_eval_report "$ROOT/safety_cost_v1_selector_eval_seed3_test_c7e95dd/selector_eval.json" \
+  --state_floor_counterfactual "$ROOT/clearance_outcome_devmatrix_69eb7e0/state_redroute_top1_floor_counterfactual/guarded_top1_floor_counterfactual.json" \
+  --online_state_floor_report "$ROOT/state_redroute_top1_floor_online_smoke_3fdf71f/safety_cost_oracle_audit/online_state_redroute_safety_cost.json" \
+  --lateral_target_report "$ROOT/state_redroute_top1_lateral_nonworse_targeted_smoke_1f8dcdb/analysis/lateral_nonworse_redturn_safety_cost.json" \
+  --output_json "$OUT/camp_vs_top1_safety_cost_proof.json" \
+  --output_md "$OUT/camp_vs_top1_safety_cost_proof.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `camp_vs_top1_safety_cost_proof.json` | `7240767bb64820a03d1092893f898a672fb598462459a8980a13f33a3f4d3e9b` |
+| `camp_vs_top1_safety_cost_proof.md` | `93a364af46d5a37a4a3df57c632d23a452af191183580afd67e8c41eeff1bed4` |
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/summarize_diffusion_planner_camp_safety_cost_proof.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py -q
+```
+
+Result: local `1 passed`; AutoDL `1 passed`; `git diff --check` passed.
+
+Source reports:
+
+| Source | Role |
+| --- | --- |
+| `safety_cost_oracle_diverse_nonformal_py312_982baba/safety_cost_oracle_diverse_nonformal_py312_982baba.json` | Correct 108-log diverse non-formal hard-guarded oracle and current logged CAMP audit |
+| `safety_cost_v1_selector_eval_seed3_test_c7e95dd/selector_eval.json` | 36-log held-out candidate-branch evaluation for the SafetyCost-trained CAMP selector |
+| `clearance_outcome_devmatrix_69eb7e0/state_redroute_top1_floor_counterfactual/guarded_top1_floor_counterfactual.json` | state-gated Top-1-floor counterfactual |
+| `state_redroute_top1_floor_online_smoke_3fdf71f/safety_cost_oracle_audit/online_state_redroute_safety_cost.json` | online state-floor selected-log smoke |
+| `state_redroute_top1_lateral_nonworse_targeted_smoke_1f8dcdb/analysis/lateral_nonworse_redturn_safety_cost.json` | targeted lateral-nonworse red-turn selected-log slice |
+
+Gate summary:
+
+| Gate | Passed | Overall CI high | Bucket failures |
+| --- | --- | ---: | --- |
+| candidate-pool hard-guarded opportunity | yes | `-0.993081` | none |
+| current logged `redstopfloor05` CAMP vs DP Top-1 | no | `-0.410363` | `traffic_light=+0.082183`, `red_light_turn=+0.080138` |
+| SafetyCost-trained CAMP selector vs DP Top-1 | yes | `-0.139640` | none |
+| SafetyCost-trained selector closes hard-guarded oracle gap | no | `+2.840983` | all required buckets still have positive gap CI high |
+| online state-floor selected-log | yes | `-0.040921` | none |
+| lateral-nonworse targeted selected-log | no as comprehensive proof | `-0.013126` | missing normal/NPC/dense/lane-change buckets |
+
+Current logged CAMP on the 108-log diverse non-formal oracle audit:
+
+| Metric | Value |
+| --- | ---: |
+| Logs / records | `108 / 21600` |
+| CAMP minus Top-1 mean / CI high | `-0.694345 / -0.410363` |
+| Hard-guarded oracle minus Top-1 mean / CI high | `-1.537402 / -0.993081` |
+| CAMP gap to hard-guarded oracle mean / CI high | `+0.843058 / +1.278342` |
+| CAMP beats Top-1 rate | `0.685972` |
+| CAMP matches hard-guarded oracle rate | `0.519537` |
+
+Required-bucket current CAMP status:
+
+| Bucket | CAMP minus Top-1 CI high | Hard-guarded oracle minus Top-1 CI high | Decision |
+| --- | ---: | ---: | --- |
+| `normal` | `-0.018990` | `-0.032564` | pass |
+| `traffic_light` | `+0.082183` | `-0.398793` | current CAMP fails; candidate pool has opportunity |
+| `red_light_turn` | `+0.080138` | `-0.403515` | current CAMP fails; candidate pool has opportunity |
+| `sharp_turn` | `-0.013664` | `-0.491813` | pass |
+| `npc_interaction` | `-0.500994` | `-0.772701` | pass |
+| `dense_scene` | `-0.500994` | `-0.772294` | pass |
+| `lane_change_or_merge` | `-0.267210` | `-1.043864` | pass |
+
+SafetyCost-trained CAMP held-out selector evaluation:
+
+| Metric | Evaluated selector | Logged selector on same logs |
+| --- | ---: | ---: |
+| Logs / records | `36 / 7200` | `36 / 7200` |
+| CAMP minus Top-1 mean / CI high | `-0.365584 / -0.139640` | `-0.515237 / -0.177962` |
+| Gap to hard-guarded oracle mean / CI high | `+1.466687 / +2.840983` | `+1.317034 / +2.569201` |
+| CAMP beats Top-1 rate | `0.696667` | `0.676806` |
+| CAMP matches hard-guarded oracle rate | `0.562222` | `0.511806` |
+| Evaluated changed-record rate | `0.252778` | n/a |
+
+All held-out required buckets pass for the SafetyCost-trained selector:
+
+| Bucket | Records | CAMP minus Top-1 CI high |
+| --- | ---: | ---: |
+| `normal` | `400` | `-0.026244` |
+| `traffic_light` | `1200` | `-0.044571` |
+| `red_light_turn` | `1200` | `-0.044571` |
+| `sharp_turn` | `2400` | `-0.003353` |
+| `npc_interaction` | `400` | `-0.047049` |
+| `dense_scene` | `400` | `-0.047049` |
+| `lane_change_or_merge` | `2400` | `-0.424244` |
+
+Mechanism interpretation:
+
+1. DP Top-1 is not always SafetyCost-optimal. The hard-guarded oracle beats
+   Top-1 with negative CI high in every required non-formal bucket of the
+   corrected 108-log audit.
+2. The current logged `redstopfloor05` CAMP is useful overall but not a complete
+   proof: the traffic-light and red-light-turn buckets still fail the
+   CAMP-vs-Top1 CI gate even though candidate support exists.
+3. The SafetyCost-trained CAMP selector proves that the CAMP finite-candidate
+   affine-score framework can select lower SafetyCost branches than DP Top-1 on
+   held-out non-formal logs across all required buckets.
+4. The hard-guarded oracle gap remains open, so the remaining failure is not
+   primarily a DP candidate-support limit. It is a scoring/schema/calibration
+   gap inside the CAMP selector.
+5. The state-gated Top-1-floor and lateral-nonworse routes remain rejected for
+   deployment because selected-log improvement did not survive the closed-loop
+   lane-regression gate.
+
+Mathematical boundary:
+
+This is a candidate-branch proof over fixed DP candidate pools and offline
+candidate outcome labels. It does not claim closed-loop deployment safety. DP is
+treated as a frozen black-box candidate generator. CAMP uses current-tick fixed
+candidate features and affine \(a_k^\top w\) scores; the simplex/CVaR/L2 robust
+master remains convex. The DP-side finite selectors are not classical Benders
+decomposition, and this report does not introduce a master/subproblem/dual/cut
+construction.
+
+Decision:
+
+Accept the candidate-branch proof that a SafetyCost-trained CAMP selector can
+outperform DP Top-1 across the required non-formal buckets. Do not promote any
+online selector yet. The next admissible engineering step is an outcome-free,
+default-off deployable path for the SafetyCost-trained CAMP weights, followed by
+a small paired non-formal closed-loop smoke with hard-safety, completion,
+fallback, and `<100 ms` latency gates. Formal seeds remain frozen.
