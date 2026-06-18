@@ -19382,3 +19382,237 @@ why the newly trained SafetyCost selector lags the logged selector despite
 higher hard-guarded oracle match rate, then test whether adding explicit
 progress/comfort lower-bound constraints or minimum atom weights improves the
 held-out gap without weakening the convex master.
+
+### SafetyCost Selector Gap Attribution and Lower-Bound Retry
+
+Date: 2026-06-18
+
+State audit:
+
+- Local CAMP HEAD: `918cdd426e195a4baef784fce38c9a77aa3b70a2`.
+- GitHub `origin/main`: `918cdd426e195a4baef784fce38c9a77aa3b70a2`.
+- AutoDL CAMP HEAD: `918cdd426e195a4baef784fce38c9a77aa3b70a2`.
+- AutoDL DP HEAD: `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- DP branch/worktree remained fixed; no DP code, checkpoint, smoothing,
+  `postprocess_reference`, PerfectTracker, formal seeds, or candidate logs were
+  changed.
+
+Implementation:
+
+Commit `918cdd4` extends
+`scripts/integrations/evaluate_diffusion_planner_camp_safety_cost.py` with
+selector gap attribution. The evaluator now reports evaluated-minus-logged
+record counts/rates, raw and weighted SafetyCost component deltas, hard
+component deltas, selected atom deltas, worse-case attribution, and the same
+decomposition by scenario bucket. The selector inputs are still only fixed
+current-tick atom vectors and static weights; candidate outcomes are used only
+after selection for audit scoring.
+
+Verification before the lower-bound retry:
+
+- Local targeted tests:
+  `13 passed, 1 skipped, 119 deselected`.
+- Local full tests: `368 passed, 12 skipped`.
+- AutoDL targeted tests:
+  `10 passed`.
+
+Seed-3 gap attribution for the prior SafetyCost selector:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+TRAIN=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_robust_static_seed12_train_c7e95dd
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_selector_gap_seed3_test_918cdd4
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+```
+
+Attribution artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_v1_selector_gap_seed3_test_918cdd4/selector_gap_eval.json` | `3dac4c1625739f51e82b22a72a3f1e7fddded105b721036a38987cc6e25e09e4` |
+| `safety_cost_v1_selector_gap_seed3_test_918cdd4/selector_gap_eval.md` | `b96b1dc1a60a02d57f4e436b49d8dd99f1cf0abf5e88932eb79bb285d80b6ff7` |
+
+Prior selector attribution summary:
+
+| Metric | Value |
+| --- | ---: |
+| Records | `7200` |
+| Changed record rate vs logged | `0.252778` |
+| Evaluated better/same/worse than logged | `1140 / 5380 / 680` |
+| Evaluated selector delta vs Top-1 | `-0.365584`, CI high `-0.139640` |
+| Logged selector delta vs Top-1 | `-0.515237`, CI high `-0.177962` |
+| Evaluated-minus-logged mean cost | `+0.149653` |
+| Evaluated-minus-logged CI | `[-0.003316, +0.360374]` |
+
+Weighted evaluated-minus-logged component deltas:
+
+| Component | Mean delta |
+| --- | ---: |
+| `collision` | `+0.152778` |
+| `near_miss` | `+0.009722` |
+| `route_shortfall` | `-0.006049` |
+| `mean_jerk` | `-0.006655` |
+| `mean_lateral_acceleration` | `-0.000142` |
+| `planned_red_light` | `0.000000` |
+| `realized_red_light` | `0.000000` |
+| `lane_violation` | `0.000000` |
+
+Interpretation: the new SafetyCost-trained selector improves progress and
+comfort-like terms but loses enough collision and near-miss mass to be worse
+than logged `redstopfloor05` overall. The largest bucket regression is
+`lane_change_or_merge`; traffic-light and red-light-turn buckets are slightly
+better than logged.
+
+Predeclared lower-bound retry:
+
+The retry kept the same robust static master and added only convex simplex
+lower bounds:
+
+```bash
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/train_diffusion_planner_robust_camp.py \
+  --output_dir /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4 \
+  --mode static \
+  --label_source safety_cost_v1_hard_guarded \
+  --val_fraction 0.25 \
+  --seed 7 \
+  --max_iter 10 \
+  --require_atom_schema \
+  --min_atom_weight progress_shortfall=0.20 \
+  --min_atom_weight jerk_early=0.20 \
+  --min_atom_weight dp_prior_jerk_excess_cost=0.05 \
+  --min_atom_weight red_stopping_margin_cost=0.05 \
+  --min_atom_weight clearance=0.02 \
+  "${TRAIN_ARGS[@]}"
+```
+
+Mathematical status:
+
+- Feasible set remains a simplex intersected with affine lower bounds; the
+  lower-bound sum is `0.52`, so the feasible set is nonempty.
+- CAMP score remains affine in `w`.
+- The CVaR/simplex/L2 robust master remains convex.
+- This is not a new Benders claim; it is a robust convex master over a finite
+  DP candidate pool with offline SafetyCost labels.
+
+Training result:
+
+| Field | Value |
+| --- | ---: |
+| Eligible records | `10823` |
+| Dropped records | `3577` |
+| Converged | `true` |
+| Final master gap | `0.0` |
+| Train oracle match rate | `0.626529` |
+| Val oracle match rate | `0.601314` |
+| Train CVaR violation | `0.080231` |
+| Val CVaR violation | `0.124569` |
+
+Training artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4/training_summary.json` | `d4cad4e0f6ef59dbff957ea4996636789efdf938225eda73c96923305db67b6f` |
+| `safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4/offline_weights_dp_static.npy` | `776c672ccf71272a35e1e58ef06658383a30dd18154c6746c6e001c3c5d81b39` |
+| `safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4/atom_scales_dp_static.json` | `5b54b45348772022505e8a49456edfdf0ae7b7a9ac35003fe9c8db03f790f333` |
+
+Largest learned weights:
+
+| Atom | Weight |
+| --- | ---: |
+| `jerk_early` | `0.403098` |
+| `progress_shortfall` | `0.200000` |
+| `red_stopping_margin_cost` | `0.148669` |
+| `dp_prior_jerk_excess_cost` | `0.106180` |
+| `speed_limit_margin_1_0` | `0.061922` |
+| `planned_lateral_acceleration_cost` | `0.060132` |
+| `clearance` | `0.020000` |
+
+Seed-3 lower-bound evaluation:
+
+```bash
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/evaluate_diffusion_planner_camp_safety_cost.py \
+  --atom_scales "$TRAIN/atom_scales_dp_static.json" \
+  --static_weights "$TRAIN/offline_weights_dp_static.npy" \
+  --selector_name safety_cost_v1_floor_progress20_jerk20_clear2_stop5_dp5 \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --output_json "$OUT/selector_gap_eval.json" \
+  --output_md "$OUT/selector_gap_eval.md" \
+  --fail_on_formal_seeds \
+  --fail_on_missing_required \
+  "${TEST_ARGS[@]}"
+```
+
+Evaluation artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_v1_selector_gap_seed3_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4/selector_gap_eval.json` | `4e7dd10d6f0dada40f59a68fa9a7ac54f3350df1ec9b4c5f4b4d296854c18e8e` |
+| `safety_cost_v1_selector_gap_seed3_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4/selector_gap_eval.md` | `bb36f08a0438cb8ad0264466918c46cca9b29b08136ab6932f0aeb8bf1c0fa47` |
+
+Lower-bound held-out result:
+
+| Metric | Evaluated selector | Logged selector |
+| --- | ---: | ---: |
+| Mean branch cost | `5.227168` | `5.076169` |
+| Delta vs Top-1 | `-0.364239` | `-0.515237` |
+| Delta-vs-Top-1 CI high | `-0.139441` | `-0.177962` |
+| Gap to hard-guarded oracle | `1.468033` | `1.317034` |
+| Gap-to-oracle CI high | `2.837740` | `2.569201` |
+| Beats Top-1 rate | `0.702917` | `0.676806` |
+| Matches hard-guarded oracle rate | `0.555278` | `0.511806` |
+| Changed record rate | `0.156250` | n/a |
+| Evaluated better/same/worse than logged | `770 / 6075 / 355` | n/a |
+| Evaluated-minus-logged mean cost | `+0.150999` | n/a |
+| Evaluated-minus-logged CI high | `+0.362037` | n/a |
+
+Lower-bound evaluated-minus-logged component deltas:
+
+| Component | Mean delta |
+| --- | ---: |
+| `collision` | `+0.152778` |
+| `near_miss` | `+0.009722` |
+| `route_shortfall` | `-0.010311` |
+| `mean_jerk` | `-0.002234` |
+| `mean_lateral_acceleration` | `+0.001044` |
+| `planned_red_light` | `0.000000` |
+| `realized_red_light` | `0.000000` |
+| `lane_violation` | `0.000000` |
+
+Bucket comparison against logged selector:
+
+| Bucket | Mean cost delta | CI high | Main attribution |
+| --- | ---: | ---: | --- |
+| `normal` | `-0.004852` | `-0.004852` | small jerk gain |
+| `traffic_light` | `-0.003832` | `-0.003574` | small jerk/lateral gain |
+| `red_light_turn` | `-0.003832` | `-0.003574` | small jerk/lateral gain |
+| `sharp_turn` | `+0.012644` | `+0.045625` | near-miss increase |
+| `npc_interaction` | `-0.007206` | `-0.005420` | small jerk gain |
+| `dense_scene` | `-0.007206` | `-0.005420` | small jerk gain |
+| `lane_change_or_merge` | `+0.438059` | `+1.019911` | collision `+0.458333` |
+
+Decision:
+
+Reject the lower-bound retry as a replacement for logged `redstopfloor05` and
+do not promote it to online replay or formal seeds. It preserves the convex
+master and still beats DP Top-1, but it does not close the gap to logged
+`redstopfloor05`; the same hard-safety regression remains, concentrated in
+lane-change/merge collision exposure. Minimum weights improved interpretability
+and reduced the changed-record rate from `0.252778` to `0.156250`, but did not
+create a hard-safety certificate.
+
+Next admissible step:
+
+Before any new 12/36-run or formal evaluation, design a no-outcome hard-safety
+guard or atom that targets the lane-change/merge failure mode using only
+current-tick candidate geometry, route/map context, traffic-light state, and
+NPC state. The first acceptable version should be an offline finite-candidate
+audit, not an online selector: prove nonnegativity, deterministic tie-break,
+fail-closed behavior, and compatibility with the affine CAMP score. If it uses
+clearance or relative-motion proxies, document whether each term is a fixed
+finite-candidate diagnostic, affine in `w`, convex as a weight-feature score,
+or excluded from any Benders claim.
