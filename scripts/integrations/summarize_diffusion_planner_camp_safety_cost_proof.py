@@ -424,8 +424,10 @@ def _decision(
         )
     if lateral_target is not None:
         conclusions.append(
-            "The lateral-nonworse targeted smoke remains selected-log positive, "
-            "but it did not remove the closed-loop lane extra steps."
+            "The lateral-nonworse targeted red-turn slice has negative "
+            "selected-log CAMP-minus-Top-1 SafetyCost, but it is not a "
+            "comprehensive bucket proof and did not remove the closed-loop "
+            "lane extra steps."
         )
     return {
         "status": (
