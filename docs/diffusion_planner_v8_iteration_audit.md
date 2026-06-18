@@ -21239,3 +21239,146 @@ Decision:
    per-run latency. Any new atom, filter, or fallback rule must be specified as
    current-tick finite-candidate logic before implementation and must preserve
    the affine CAMP score and convex robust master boundary.
+
+### Deployable Static Failure Mechanism Diagnosis
+
+Date: 2026-06-18
+
+Status: accept as a read-only failure diagnosis; reject any selector promotion
+or new training from this artifact alone.
+
+Purpose:
+
+The previous smoke established that the SafetyCost-trained static CAMP selector
+does not beat DP Top-1 in outcome-free closed-loop replay. This step connects
+that closed-loop failure to current-tick finite-candidate selector behavior, so
+the next iteration is aimed at the real mechanism instead of another blind
+guard tweak.
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_deployable_static_failure.py
+camp_core/tests/test_diffusion_planner_deployable_static_failure.py
+```
+
+The tool joins `benchmark_comparison.json` with static
+`camp_selection_log.json` files. It does not run DP, retrain CAMP, change
+weights, select new trajectories, or read candidate closed-loop outcome labels.
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SMOKE=$ROOT/safety_cost_v1_deployable_seed3_smoke_retry_266290a
+OUT=$ROOT/deployable_static_failure_diagnosis_73bb83f
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/analyze_diffusion_planner_deployable_static_failure.py \
+  --root "$SMOKE" \
+  --label safety_cost_v1_deployable_seed3_smoke_retry_266290a \
+  --output_json "$OUT/deployable_static_failure_diagnosis.json" \
+  --output_md "$OUT/deployable_static_failure_diagnosis.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `deployable_static_failure_diagnosis.json` | `3fe05b381d329710803fc98fb4f5edc35dde3c97b0ec0113e334320ae4048393` |
+| `deployable_static_failure_diagnosis.md` | `1e73b2f2e6a8fc6ecfa227e0ce1564a7c3ac764bc9457f9cec6ab087b7c53374` |
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_deployable_static_failure.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_deployable_static_failure.py -q
+```
+
+Result: local `1 passed`; AutoDL `1 passed`.
+
+Diagnosis summary:
+
+| Metric | Value |
+| --- | ---: |
+| Static runs | `12` |
+| Static selection records | `2400` |
+| Non-Top1 selected records | `2111` |
+| Mean static fallback rate | `0.187917` |
+| Mean static candidate feasible rate | `0.740885` |
+| Safety gate | `hard_gate_passed=false`, `safety_cost_claim_passed=false` |
+
+Worst runs:
+
+| Route / condition | SafetyCost delta | Completion delta | Near delta | Lane delta | P95 latency | Fallback | Feasible | Main blockers |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `nishishinjuku_lane_change`, NPC `8`, TL `off` | `+0.741652` | `-0.001879` | `+0.015000` | `+0.035000` | `102.446 ms` | `0.510` | `0.460` | `dp_lane_crossing`, `dp_kinematic`, `dp_static_collision`, `dp_collision` |
+| `nishishinjuku_lane_change`, NPC `8`, TL `on` | `+0.339860` | `+0.002188` | `+0.000000` | `-0.010000` | `92.819 ms` | `0.365` | `0.56375` | `dp_lane_crossing`, `dp_kinematic`, `dp_underprogress` |
+| `sample_tl_turn`, NPC `8`, TL `off` | `+0.089719` | `-0.000744` | `+0.000000` | `+0.000000` | `93.072 ms` | `0.165` | `0.6775` | `dynamic_obb_collision`, `dp_underprogress`, `dp_kinematic` |
+| `sample_normal`, NPC `8`, TL `off` | `+0.003432` | `-0.083298` | `-0.045000` | `+0.000000` | `91.647 ms` | `0.070` | `0.831875` | `dp_underprogress`, `dynamic_obb_collision`, `dp_kinematic` |
+| `sample_normal`, NPC `8`, TL `on` | `-0.096126` | `-0.082844` | `-0.045000` | `+0.000000` | `91.362 ms` | `0.065` | `0.836875` | `dp_underprogress`, `dynamic_obb_collision`, `dp_kinematic` |
+
+Current-tick selection behavior relative to DP Top-1:
+
+| Feature | Changed records | Mean run delta selected-minus-Top1 | Better-or-equal rate |
+| --- | ---: | ---: | ---: |
+| `route_progress` | `2111` | `+0.364046` | `0.796804` |
+| `target_speed` | `2111` | `-0.007884` | `0.204613` |
+| `tail_average_speed` | `2111` | `+0.001815` | `0.499991` |
+| `tracker_jerk` | `2111` | `-0.073078` | `0.499661` |
+| `tracker_lateral` | `2111` | `+0.000300` | `0.503585` |
+| `horizon_lateral_cost` | `2111` | `-0.002843` | `0.401402` |
+| `dp_prior_jerk_excess` | `2111` | `+0.199222` | `0.577191` |
+| `dp_prior_lateral_excess` | `2111` | `+0.005992` | `0.401402` |
+| `dp_prior_deviation` | `2111` | `+0.638581` | `0.000000` |
+| `selection_score` | `1845` | `-0.012056` | `1.000000` |
+
+Interpretation:
+
+1. The closed-loop failure is not just a statistical fluctuation in the final
+   aggregate table. Dense lane-change scenes have very high all-infeasible
+   fallback rates and low feasible-candidate rates, especially
+   `nishishinjuku_lane_change` with `8` NPCs and traffic lights off.
+2. Static CAMP frequently departs from DP Top-1 (`2111/2400` records). Its own
+   affine score consistently prefers the selected branch when logged scores are
+   available, but those lower static scores do not translate into closed-loop
+   SafetyCost improvement.
+3. The selected branches often improve route progress relative to Top-1, but
+   they are not reliably better on target speed, lateral comfort, DP-prior
+   lateral excess, or DP-prior deviation. The `dp_prior_deviation` better-rate
+   is `0.0`, so this selector is systematically willing to move away from the
+   DP prior when it changes the choice.
+4. In sample-normal dense scenes, static CAMP reduces near misses but pays a
+   large completion penalty. In lane-change dense scenes, the same deployable
+   static policy degrades SafetyCost, lane, near-miss, and latency. That is a
+   schema/fallback/feasibility robustness problem, not evidence that simply
+   rerunning the same training should help.
+
+Mathematical boundary:
+
+The diagnosis uses closed-loop aggregate metrics only to label which paired
+smoke runs failed. All selector-side feature deltas are current-tick fixed
+finite-candidate quantities. If any of these diagnostics becomes a CAMP atom
+later, it must enter as a fixed coefficient so the score remains affine in
+\(w\) and the simplex/CVaR/L2 robust master remains convex. The diagnostic is
+not a Benders subproblem and does not claim trajectory-coordinate convexity.
+
+Decision:
+
+1. Keep rejecting the SafetyCost-trained static selector for deployable online
+   promotion.
+2. Do not run Full36 or formal seeds.
+3. Do not retrain CAMP until there is a predeclared schema/fallback hypothesis
+   that addresses dense lane-change feasibility and completion/DP-prior
+   deviation without breaking the affine-score boundary.
+4. The next admissible experiment should be a current-tick, default-off,
+   finite-candidate diagnosis or rule focused on dense lane-change:
+   DP-prior-preservation, feasible-candidate fallback, or completion-preserving
+   filtering. Any such rule must first define its acceptance gate and prove
+   non-leakage before implementation.
