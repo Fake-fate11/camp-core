@@ -22357,6 +22357,44 @@ git diff --check
 
 Result: proof-summary test `1 passed`; `git diff --check` passed.
 
+AutoDL verification after sync to `cb339c35474fcd4fe2c639a63ab7cf4d56703c93`:
+
+```text
+cd /root/autodl-tmp/camp_core
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core \
+  /root/miniconda3/envs/camp/bin/python -m py_compile \
+  scripts/integrations/summarize_diffusion_planner_camp_safety_cost_proof.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core \
+  /root/miniconda3/envs/camp/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py -q
+```
+
+Result: AutoDL proof-summary test `1 passed`.
+
+Expanded AutoDL proof artifact:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `camp_vs_top1_safety_cost_proof_cb339c3/camp_vs_top1_safety_cost_proof.json` | `60b2577710f3caf9af3f05feddf4093237fb6521e2ce36935510f7badbde2cae` |
+| `camp_vs_top1_safety_cost_proof_cb339c3/camp_vs_top1_safety_cost_proof.md` | `da799848b1e81b932d9bea1d7d96d6773f1307b1b759c5b134d04f8f2d1d2ec8` |
+
+Key expanded proof fields now visible in the markdown:
+
+| Field | Current logged CAMP | SafetyCost-trained selector |
+| --- | ---: | ---: |
+| Overall CAMP minus Top-1 CI high | `-0.410363` | `-0.139640` |
+| Overall CAMP minus Top-1 CVaR90 CI high | `-1.144778` | `-0.827783` |
+| Hard-guarded oracle available rate | `0.997917` | `0.999583` |
+| CAMP hard-component nonworse min | `0.997778` | `0.996250` |
+
+The expanded report keeps the previous decision: current logged
+`redstopfloor05` is not a complete proof because `traffic_light` and
+`red_light_turn` fail; the SafetyCost-trained selector still passes the
+held-out candidate-branch proof gate; the hard-guarded oracle gap remains open,
+so the remaining issue is CAMP scoring/schema/calibration rather than absence
+of DP candidate support.
+
 A broader local run including
 `camp_core\tests\test_diffusion_planner_safety_cost_oracle.py` was not counted
 as a code failure because pytest could not enumerate sandbox-created temporary
@@ -22374,6 +22412,8 @@ Decision:
 
 Accept this reporting expansion as a small proof-gate completeness improvement.
 It does not authorize online promotion, Full36, formal seeds, DP retraining, or
-new CAMP retraining. The next admissible step is to rerun the comprehensive
-SafetyCost proof summary on AutoDL with these expanded fields and record the
-new JSON/markdown SHA before using the report as the next development gate.
+new CAMP retraining. The next admissible step is to use the expanded report as
+the proof gate input for diagnosing why the SafetyCost-trained selector's
+candidate-branch gains did not survive the previous outcome-free deployable
+closed-loop smoke, focusing on dense lane-change candidate feasibility/fallback,
+completion loss, and latency.
