@@ -19082,3 +19082,89 @@ required evidence is AutoDL targeted tests plus a small robust-training smoke
 using `--label_source safety_cost_v1_hard_guarded` on existing diverse
 non-formal logs, followed by held-out evaluation against DP Top-1 and the
 hard-guarded oracle gap.
+
+### SafetyCost v1 Robust Training Smoke
+
+Date: 2026-06-18
+
+Purpose:
+
+Verify that the new hard-guarded SafetyCost v1 label source trains on real
+non-formal DP candidate-outcome logs, not only synthetic unit-test records.
+This is a trainability smoke, not a CAMP usefulness proof.
+
+Command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_robust_static_smoke_15c02a2
+
+# Three logs each from nishishinjuku_lane_change, sample_normal, and
+# sample_tl_turn; all are non-formal seed 1 logs.
+LOG_ARGS=()
+for route in nishishinjuku_lane_change sample_normal sample_tl_turn; do
+  while IFS= read -r log; do
+    LOG_ARGS+=(--selection_log "$log")
+  done < <(find "$ROOT/$route" -name camp_selection_log.json | sort | head -n 3)
+done
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/train_diffusion_planner_robust_camp.py \
+  --output_dir "$OUT" \
+  --mode static \
+  --label_source safety_cost_v1_hard_guarded \
+  --val_fraction 0.3333333333 \
+  --seed 7 \
+  --max_iter 5 \
+  --require_atom_schema \
+  "${LOG_ARGS[@]}"
+```
+
+Result:
+
+| Field | Value |
+| --- | --- |
+| Input logs | `9` |
+| Input records | `1800` |
+| Training scope | `feasible_ranking` |
+| Label source | `safety_cost_v1_hard_guarded` |
+| Atom schema | `dp_camp_v10_14d` |
+| Verified schema records | `1800` |
+| Eligible records | `1522` |
+| Dropped without eligible candidate | `278` |
+| Solver | `CLARABEL` |
+| Solver status | `optimal` |
+| Converged | `true` |
+| Final master gap | `2.2794856280317077e-12` |
+| Train oracle match rate | `0.621904761904762` |
+| Val oracle match rate | `0.6038135593220338` |
+| Train CVaR violation | `0.02711554363153274` |
+| Val CVaR violation | `0.028527132917738653` |
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `$OUT/training_summary.json` | `a94c4084c6a2fa4c5e99a59e0292e1bfbca725174a15ee4b04222a5f5559ad43` |
+| `$OUT/offline_weights_dp_static.npy` | `c8b58c4a66ee360562ecd870d8217c89a93dde75e1142945f08a1ed63bca68ea` |
+| `$OUT/atom_scales_dp_static.json` | `747dd229a94f26795b48ef773c06248930bc2fe18b67743bafe42fd9c2421c19` |
+
+Interpretation:
+
+The smoke confirms that hard-guarded SafetyCost v1 labels are compatible with
+the existing robust convex CAMP master on real DP candidate-outcome logs. The
+master remains a simplex/CVaR/L2 robust-margin problem over fixed current-tick
+atoms; offline SafetyCost labels are not runtime atoms.
+
+Limitations:
+
+- Only 9 non-formal logs were used, so this does not prove generalization.
+- The artifact is a smoke checkpoint, not a deployable replacement for
+  `redstopfloor05`.
+- No paired closed-loop replay was run for this checkpoint.
+- The next required step is a predeclared train/validation/test split over the
+  full 108-log diverse matrix, followed by outcome-free replay and SafetyCost
+  comparison against DP Top-1, current CAMP, and the hard-guarded oracle gap.
