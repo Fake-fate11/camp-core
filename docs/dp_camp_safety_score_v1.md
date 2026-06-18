@@ -102,10 +102,13 @@ The branch audit is a necessary opportunity test, not a final closed-loop
 SafetyCost claim. It compares:
 
 ```text
-DP Top-1        = candidate index 0
-CAMP selection = logged selected_index
-oracle          = lowest candidate-branch SafetyCost v1 proxy among eligible
-                  current-tick candidates
+DP Top-1             = candidate index 0
+CAMP selection      = logged selected_index
+oracle               = lowest candidate-branch SafetyCost v1 proxy among
+                       eligible current-tick candidates
+hard-guarded oracle  = lowest candidate-branch SafetyCost v1 proxy among
+                       eligible candidates whose collision, near-miss, lane,
+                       and realized-red indicators are no worse than Top-1
 ```
 
 The candidate-branch score reuses the frozen SafetyCost v1 weights, with these
@@ -119,6 +122,11 @@ scope limits:
   eligible branch in the same finite candidate set;
 - the oracle may be used to create offline training labels, but those labels
   are forbidden as online selector inputs.
+
+The hard-guarded oracle is the primary opportunity gate. The unconstrained
+oracle remains a diagnostic: if it improves SafetyCost only by trading away a
+hard component such as lane or realized-red safety, that is not acceptable
+proof that the candidate pool contains deployable CAMP opportunity.
 
 The admissible script is:
 

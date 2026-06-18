@@ -18317,3 +18317,94 @@ scenario matrix and explicit bucket manifest until all required buckets have
 coverage, then rerun the same oracle audit and only proceed to CAMP
 training/calibration if oracle opportunity remains significant under the
 predeclared SafetyCost v1 contract.
+
+### Hard-Guarded Candidate-Branch Oracle Gate
+
+The previous candidate-branch oracle minimized the weighted SafetyCost v1 proxy
+directly. That is useful as a diagnostic, but it can hide a hard-component
+tradeoff. In the existing artifact it made the oracle lane-nonworse rate
+`0.999444`, not `1.0`. This iteration therefore extends the oracle analyzer
+with a `hard_guarded_oracle`: the best eligible candidate whose collision,
+near-miss, lane-violation, and realized-red indicators are all no worse than
+DP Top-1. If no such eligible candidate exists, that tick records no guarded
+opportunity rather than fabricating an improvement.
+
+Run scope:
+
+- source root:
+  `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2`;
+- output root:
+  `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_guarded_candidate_outcome_labels_d97b7c2`;
+- scenario manifest:
+  `/root/autodl-tmp/camp_core/configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json`;
+- logs: `36`;
+- records: `7200`;
+- formal-seed records: `0`.
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_oracle_guarded_candidate_outcome_labels_d97b7c2.json` | `0fabb41d0eee42f84aa60ec2fcff7a49367466aafacf15ec0f7273c12b1f5756` |
+| `safety_cost_oracle_guarded_candidate_outcome_labels_d97b7c2.md` | `285b73a092ca580958f2593fc0e3e70973390475e0305be8001fdd8f71f2889a` |
+
+Overall guarded opportunity:
+
+| Metric | Value |
+| --- | ---: |
+| Mean DP Top-1 branch cost | `12.705345` |
+| Mean CAMP branch cost | `12.266194` |
+| Mean hard-guarded oracle branch cost | `11.702690` |
+| Hard-guarded oracle available rate | `0.999444` |
+| Hard-guarded oracle beats Top-1 rate | `0.952083` |
+| CAMP matches hard-guarded oracle rate | `0.507083` |
+| Hard-guarded oracle mean delta vs Top-1 | `-1.002655` |
+| Hard-guarded oracle delta CI high | `-0.432701` |
+| CAMP mean delta vs Top-1 | `-0.439150` |
+| CAMP delta CI high | `-0.017867` |
+
+Scenario-bucket guarded opportunity:
+
+| Bucket | Records | Logs | Guarded oracle beats Top-1 | Guarded oracle mean delta | CI high |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `overall` | `7200` | `36` | `0.952083` | `-1.002655` | `-0.435099` |
+| `normal` | `600` | `3` | `0.985000` | `-0.040828` | `-0.040309` |
+| `traffic_light` | `2400` | `12` | `0.950000` | `-0.598075` | `-0.052563` |
+| `red_light_turn` | `1200` | `6` | `0.962500` | `-0.804291` | `0.211158` |
+| `sharp_turn` | `2400` | `12` | `0.964167` | `-0.743418` | `0.019043` |
+
+Guard diagnostics:
+
+| Diagnostic | Value |
+| --- | ---: |
+| Hard-guarded oracle collision nonworse vs Top-1 | `1.000000` |
+| Hard-guarded oracle near-miss nonworse vs Top-1 | `1.000000` |
+| Hard-guarded oracle lane nonworse vs Top-1 | `1.000000` |
+| Hard-guarded oracle realized-red nonworse vs Top-1 | `1.000000` |
+| Mean hard-guarded oracle progress delta vs Top-1 | `+0.998325 m` |
+| Mean hard-guarded oracle jerk delta vs Top-1 | `-0.357249 m/s^3` |
+| Mean hard-guarded oracle lateral delta vs Top-1 | `-0.010771 m/s^2` |
+
+Coverage gate:
+
+- missing required buckets:
+  `npc_interaction`, `dense_scene`, `lane_change_or_merge`;
+- overall-only run keys: `15`;
+- hard-guarded oracle opportunity gate: `False`.
+
+Interpretation:
+
+The fixed candidate pool still has strong overall candidate-branch opportunity
+after enforcing hard-component non-regression relative to Top-1. However, this
+is not enough for the development gate: required scenario coverage is missing,
+and `red_light_turn` plus `sharp_turn` still do not have negative CI highs.
+The next admissible action is a predeclared non-formal scenario expansion, not
+CAMP training, formal seeds, or online selector promotion.
+
+Mathematical boundary:
+
+The hard guard is an offline audit filter over fixed candidate labels. It does
+not change DP, candidate generation, SG smoothing, `postprocess_reference`,
+PerfectTracker, online CAMP atoms, affine scoring, fallback policy, or the
+simplex/CVaR/L2 master. It is not a Benders subproblem and cannot be used as an
+online selector because it depends on candidate closed-loop outcome labels.

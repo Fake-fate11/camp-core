@@ -6,6 +6,7 @@ import pytest
 
 from scripts.integrations.analyze_diffusion_planner_safety_cost_oracle import (
     analyze,
+    main,
     render_markdown,
 )
 
@@ -96,20 +97,67 @@ def test_safety_cost_oracle_reports_candidate_pool_opportunity(tmp_path) -> None
 
     assert report["records"]["base_feasible"] == 1
     assert overall["record_rates"]["oracle_beats_top1"] == 1.0
+    assert overall["record_rates"]["hard_guarded_oracle_available"] == 1.0
+    assert overall["record_rates"]["hard_guarded_oracle_beats_top1"] == 1.0
     assert overall["record_rates"]["camp_matches_top1"] == 1.0
     assert overall["record_rates"]["camp_matches_oracle"] == 0.0
+    assert overall["record_rates"]["camp_matches_hard_guarded_oracle"] == 0.0
     assert overall["run_level_delta_ci"]["oracle_minus_top1"]["mean"] < 0.0
+    assert (
+        overall["run_level_delta_ci"]["hard_guarded_oracle_minus_top1"]["mean"]
+        < 0.0
+    )
     assert overall["run_level_delta_ci"]["camp_minus_top1"]["mean"] == 0.0
     assert overall["hard_component_nonworse_rate"][
         "oracle_realized_red_light_vs_top1"
     ] == 1.0
+    assert overall["hard_component_nonworse_rate"][
+        "hard_guarded_oracle_lane_violation_vs_top1"
+    ] == 1.0
     assert overall["planned_red_sources"] == {
         "candidate_horizon_union_planned_red_light_cost": 1
     }
+    assert "normal" in report["coverage_gaps"]["missing_required_buckets"]
+    assert report["opportunity_gate"]["passed"] is False
 
     markdown = render_markdown(report)
     assert "Candidate-Branch SafetyCost v1 Oracle Audit" in markdown
+    assert "Hard-guarded oracle" in markdown
     assert "does not change the online selector" in markdown
+
+
+def test_safety_cost_oracle_reports_hard_guarded_tradeoff(tmp_path) -> None:
+    record = {
+        "num_candidates": 3,
+        "selected_index": 0,
+        "feasible_mask": [True, True, True],
+        "candidate_horizon_union_planned_red_light_cost": [0.0, 0.0, 0.0],
+        "candidate_closed_loop_outcomes": [
+            _outcome(0, progress=10.0, jerk=150.0, lateral=20.0),
+            _outcome(
+                1,
+                progress=10.0,
+                jerk=0.0,
+                lateral=0.0,
+                lane_violation=True,
+            ),
+            _outcome(2, progress=10.0, jerk=150.0, lateral=15.0),
+        ],
+    }
+
+    report = analyze([_write_log(tmp_path, record)], required_buckets=())
+    overall = report["overall"]
+
+    assert overall["record_rates"]["oracle_beats_top1"] == 1.0
+    assert overall["record_rates"]["hard_guarded_oracle_beats_top1"] == 1.0
+    assert overall["hard_component_nonworse_rate"]["oracle_lane_violation_vs_top1"] == 0.0
+    assert overall["hard_component_nonworse_rate"][
+        "hard_guarded_oracle_lane_violation_vs_top1"
+    ] == 1.0
+    assert overall["cost_mean"]["oracle"] < overall["cost_mean"][
+        "hard_guarded_oracle"
+    ] < overall["cost_mean"]["top1"]
+    assert report["opportunity_gate"]["passed"] is True
 
 
 def test_safety_cost_oracle_keeps_fallback_branch_separate(tmp_path) -> None:
@@ -121,6 +169,10 @@ def test_safety_cost_oracle_keeps_fallback_branch_separate(tmp_path) -> None:
     assert report["records"]["fallback_all_infeasible"] == 1
     assert report["overall"]["fallback_all_infeasible_records"] == 1
     assert report["overall"]["record_rates"]["oracle_beats_top1"] == 1.0
+    assert (
+        report["overall"]["record_rates"]["hard_guarded_oracle_beats_top1"]
+        == 1.0
+    )
 
 
 def test_safety_cost_oracle_reports_explicit_scenario_buckets(tmp_path) -> None:
@@ -153,6 +205,13 @@ def test_safety_cost_oracle_reports_explicit_scenario_buckets(tmp_path) -> None:
     assert sorted(buckets) == ["overall", "red_light_turn", "traffic_light"]
     assert buckets["traffic_light"]["record_rates"]["oracle_beats_top1"] == 1.0
     assert report["records"]["scenario_bucket_counts"]["red_light_turn"] == 1
+    assert report["coverage_gaps"]["missing_required_buckets"] == [
+        "normal",
+        "sharp_turn",
+        "npc_interaction",
+        "dense_scene",
+        "lane_change_or_merge",
+    ]
 
 
 def test_safety_cost_oracle_requires_candidate_outcomes(tmp_path) -> None:
@@ -161,3 +220,31 @@ def test_safety_cost_oracle_requires_candidate_outcomes(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="candidate outcomes"):
         analyze([_write_log(tmp_path, record)])
+
+
+def test_safety_cost_oracle_cli_fails_on_missing_required_bucket(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    log_path = _write_log(tmp_path, _record())
+    output_json = tmp_path / "oracle.json"
+    output_md = tmp_path / "oracle.md"
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "analyze_diffusion_planner_safety_cost_oracle.py",
+            "--selection_log",
+            str(log_path),
+            "--output_json",
+            str(output_json),
+            "--output_md",
+            str(output_md),
+            "--fail_on_missing_required",
+        ],
+    )
+
+    with pytest.raises(SystemExit, match="Missing required scenario bucket"):
+        main()
+    assert output_json.is_file()
+    assert output_md.is_file()

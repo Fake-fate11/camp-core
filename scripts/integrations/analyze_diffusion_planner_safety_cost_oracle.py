@@ -64,6 +64,7 @@ ORDERED_BUCKETS = (
     "dense_scene",
     "lane_change_or_merge",
 )
+DEFAULT_REQUIRED_BUCKETS = tuple(bucket for bucket in ORDERED_BUCKETS if bucket != "overall")
 
 
 def parse_args() -> argparse.Namespace:
@@ -83,6 +84,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Exit nonzero if any selection log belongs to seeds 11, 12, or 13.",
     )
+    parser.add_argument(
+        "--required_bucket",
+        action="append",
+        choices=sorted(SUPPORTED_SCENARIO_BUCKETS - {"overall"}),
+        default=None,
+        help=(
+            "Bucket required for opportunity coverage. Repeat to override the "
+            "default normal+critical bucket list."
+        ),
+    )
+    parser.add_argument(
+        "--fail_on_missing_required",
+        action="store_true",
+        help="Exit nonzero if any required scenario bucket has zero records.",
+    )
     return parser.parse_args()
 
 
@@ -91,6 +107,7 @@ def analyze(
     *,
     scenario_bucket_manifest: Path | None = None,
     fail_on_formal_seeds: bool = False,
+    required_buckets: tuple[str, ...] = DEFAULT_REQUIRED_BUCKETS,
 ) -> dict[str, Any]:
     log_paths = iter_selection_log_paths(paths)
     if not log_paths:
@@ -130,6 +147,15 @@ def analyze(
             )
 
     formal_seed_logs = [log["path"] for log in logs if log["formal_seed"]]
+    by_bucket = [
+        {
+            "bucket": bucket,
+            **_aggregate(bucket_rows, seed_key=f"bucket:{bucket}"),
+        }
+        for bucket, bucket_rows in _records_by_bucket(rows).items()
+    ]
+    coverage_gaps = _coverage_gaps(rows, required_buckets)
+    overall = _aggregate(rows, seed_key="overall")
     return {
         "analysis": {
             "name": "dp_camp_candidate_branch_safety_cost_v1_oracle",
@@ -141,6 +167,12 @@ def analyze(
                 "minimum candidate-branch SafetyCost v1 among base-feasible "
                 "candidates; when all candidates are base-infeasible, the "
                 "fallback branch audits all candidates separately"
+            ),
+            "hard_guarded_oracle_definition": (
+                "minimum candidate-branch SafetyCost v1 among eligible "
+                "candidates whose collision, near-miss, lane-violation, and "
+                "realized-red indicators are no worse than DP Top-1; if that "
+                "set is empty, the row records no guarded opportunity"
             ),
             "safety_cost_scope": (
                 "candidate branch proxy, not full closed-loop run-level "
@@ -174,6 +206,7 @@ def analyze(
                 "forbidden" if fail_on_formal_seeds else "reported_only"
             ),
             "formal_seed_logs": formal_seed_logs,
+            "required_buckets": list(required_buckets),
         },
         "logs": {
             "total": len(logs),
@@ -181,14 +214,16 @@ def analyze(
             "items": logs,
         },
         "records": _record_summary(rows),
-        "overall": _aggregate(rows, seed_key="overall"),
-        "by_bucket": [
-            {
-                "bucket": bucket,
-                **_aggregate(bucket_rows, seed_key=f"bucket:{bucket}"),
-            }
-            for bucket, bucket_rows in _records_by_bucket(rows).items()
-        ],
+        "overall": overall,
+        "by_bucket": by_bucket,
+        "coverage_gaps": coverage_gaps,
+        "opportunity_gate": _opportunity_gate(
+            overall,
+            by_bucket,
+            coverage_gaps,
+            formal_seed_logs=formal_seed_logs,
+            required_buckets=required_buckets,
+        ),
     }
 
 
@@ -267,12 +302,23 @@ def _record_row(
     )
     costs = np.asarray([component["cost"] for component in components], dtype=np.float64)
     oracle_index = _oracle_index(costs, eligible)
+    hard_guarded_oracle_index = _hard_guarded_oracle_index(costs, eligible, outcomes)
     top1_cost = float(costs[TOP1_INDEX])
     camp_cost = float(costs[selected_index])
     oracle_cost = float(costs[oracle_index])
+    hard_guarded_oracle_cost = (
+        top1_cost
+        if hard_guarded_oracle_index is None
+        else float(costs[hard_guarded_oracle_index])
+    )
     top1_outcome = outcomes[TOP1_INDEX]
     camp_outcome = outcomes[selected_index]
     oracle_outcome = outcomes[oracle_index]
+    hard_guarded_oracle_outcome = (
+        top1_outcome
+        if hard_guarded_oracle_index is None
+        else outcomes[hard_guarded_oracle_index]
+    )
     return {
         "log_path": str(log_path),
         "record_index": int(record_index),
@@ -287,24 +333,42 @@ def _record_row(
         "top1_index": TOP1_INDEX,
         "camp_index": int(selected_index),
         "oracle_index": int(oracle_index),
+        "hard_guarded_oracle_index": (
+            None
+            if hard_guarded_oracle_index is None
+            else int(hard_guarded_oracle_index)
+        ),
         "top1_eligible": bool(eligible[TOP1_INDEX]),
         "camp_eligible": bool(eligible[selected_index]),
+        "hard_guarded_oracle_available": hard_guarded_oracle_index is not None,
         "planned_red_source": planned_red_source,
         "costs": {
             "top1": top1_cost,
             "camp": camp_cost,
             "oracle": oracle_cost,
+            "hard_guarded_oracle": hard_guarded_oracle_cost,
         },
         "deltas": {
             "camp_minus_top1": camp_cost - top1_cost,
             "oracle_minus_top1": oracle_cost - top1_cost,
+            "hard_guarded_oracle_minus_top1": (
+                hard_guarded_oracle_cost - top1_cost
+            ),
             "camp_minus_oracle": camp_cost - oracle_cost,
+            "camp_minus_hard_guarded_oracle": (
+                camp_cost - hard_guarded_oracle_cost
+            ),
             "oracle_progress_minus_top1_m": _outcome_float(
                 oracle_outcome,
                 "progress_m",
             )
             - _outcome_float(top1_outcome, "progress_m"),
             "camp_progress_minus_top1_m": _outcome_float(camp_outcome, "progress_m")
+            - _outcome_float(top1_outcome, "progress_m"),
+            "hard_guarded_oracle_progress_minus_top1_m": _outcome_float(
+                hard_guarded_oracle_outcome,
+                "progress_m",
+            )
             - _outcome_float(top1_outcome, "progress_m"),
             "oracle_jerk_minus_top1_mps3": _outcome_float(
                 oracle_outcome,
@@ -316,23 +380,51 @@ def _record_row(
                 "mean_lateral_acceleration_mps2",
             )
             - _outcome_float(top1_outcome, "mean_lateral_acceleration_mps2"),
+            "hard_guarded_oracle_jerk_minus_top1_mps3": _outcome_float(
+                hard_guarded_oracle_outcome,
+                "mean_jerk_mps3",
+            )
+            - _outcome_float(top1_outcome, "mean_jerk_mps3"),
+            "hard_guarded_oracle_lateral_minus_top1_mps2": _outcome_float(
+                hard_guarded_oracle_outcome,
+                "mean_lateral_acceleration_mps2",
+            )
+            - _outcome_float(top1_outcome, "mean_lateral_acceleration_mps2"),
         },
         "relations": {
             "oracle_beats_top1": oracle_cost < top1_cost - EPS,
+            "hard_guarded_oracle_available": hard_guarded_oracle_index is not None,
+            "hard_guarded_oracle_beats_top1": (
+                hard_guarded_oracle_index is not None
+                and hard_guarded_oracle_cost < top1_cost - EPS
+            ),
             "camp_beats_top1": camp_cost < top1_cost - EPS,
             "camp_matches_top1": selected_index == TOP1_INDEX,
             "oracle_matches_top1": oracle_index == TOP1_INDEX,
+            "hard_guarded_oracle_matches_top1": (
+                hard_guarded_oracle_index == TOP1_INDEX
+            ),
             "camp_matches_oracle": selected_index == oracle_index,
+            "camp_matches_hard_guarded_oracle": (
+                hard_guarded_oracle_index is not None
+                and selected_index == hard_guarded_oracle_index
+            ),
         },
         "hard_components": {
             "top1": _hard_components(top1_outcome),
             "camp": _hard_components(camp_outcome),
             "oracle": _hard_components(oracle_outcome),
+            "hard_guarded_oracle": _hard_components(hard_guarded_oracle_outcome),
         },
         "component_costs": {
             "top1": components[TOP1_INDEX],
             "camp": components[selected_index],
             "oracle": components[oracle_index],
+            "hard_guarded_oracle": (
+                components[TOP1_INDEX]
+                if hard_guarded_oracle_index is None
+                else components[hard_guarded_oracle_index]
+            ),
         },
     }
 
@@ -392,14 +484,20 @@ def _aggregate(rows: list[dict[str, Any]], *, seed_key: str) -> dict[str, Any]:
         return {
             "records": 0,
             "logs": 0,
-            "cost_mean": _empty_named_metrics(("top1", "camp", "oracle")),
+            "cost_mean": _empty_named_metrics(
+                ("top1", "camp", "oracle", "hard_guarded_oracle")
+            ),
             "record_rates": _empty_named_metrics(
                 (
                     "oracle_beats_top1",
+                    "hard_guarded_oracle_available",
+                    "hard_guarded_oracle_beats_top1",
                     "camp_beats_top1",
                     "camp_matches_top1",
                     "oracle_matches_top1",
+                    "hard_guarded_oracle_matches_top1",
                     "camp_matches_oracle",
+                    "camp_matches_hard_guarded_oracle",
                 )
             ),
             "run_level_delta_ci": {},
@@ -407,14 +505,21 @@ def _aggregate(rows: list[dict[str, Any]], *, seed_key: str) -> dict[str, Any]:
             "progress_and_comfort_delta_mean": {},
             "hard_component_nonworse_rate": {},
         }
-    costs = {name: [row["costs"][name] for row in rows] for name in ("top1", "camp", "oracle")}
+    cost_names = ("top1", "camp", "oracle", "hard_guarded_oracle")
+    costs = {name: [row["costs"][name] for row in rows] for name in cost_names}
     relation_names = tuple(next(iter(rows))["relations"].keys())
     deltas = {
         "camp_minus_top1": [row["deltas"]["camp_minus_top1"] for row in rows],
         "oracle_minus_top1": [
             row["deltas"]["oracle_minus_top1"] for row in rows
         ],
+        "hard_guarded_oracle_minus_top1": [
+            row["deltas"]["hard_guarded_oracle_minus_top1"] for row in rows
+        ],
         "camp_minus_oracle": [row["deltas"]["camp_minus_oracle"] for row in rows],
+        "camp_minus_hard_guarded_oracle": [
+            row["deltas"]["camp_minus_hard_guarded_oracle"] for row in rows
+        ],
     }
     grouped = _rows_by_log(rows)
     run_delta_values = {
@@ -455,14 +560,31 @@ def _aggregate(rows: list[dict[str, Any]], *, seed_key: str) -> dict[str, Any]:
                 alpha=SAFETY_COST_V1_ALPHA,
                 seed_key=f"{seed_key}|oracle_minus_top1|cvar90",
             ),
+            "hard_guarded_oracle_minus_top1": _paired_cvar_delta_ci(
+                [
+                    _mean(
+                        [
+                            row["costs"]["hard_guarded_oracle"]
+                            for row in log_rows
+                        ]
+                    )
+                    for log_rows in grouped.values()
+                ],
+                [_mean([row["costs"]["top1"] for row in log_rows]) for log_rows in grouped.values()],
+                alpha=SAFETY_COST_V1_ALPHA,
+                seed_key=f"{seed_key}|hard_guarded_oracle_minus_top1|cvar90",
+            ),
         },
         "progress_and_comfort_delta_mean": {
             name: _mean([row["deltas"][name] for row in rows])
             for name in (
                 "oracle_progress_minus_top1_m",
                 "camp_progress_minus_top1_m",
+                "hard_guarded_oracle_progress_minus_top1_m",
                 "oracle_jerk_minus_top1_mps3",
                 "oracle_lateral_minus_top1_mps2",
+                "hard_guarded_oracle_jerk_minus_top1_mps3",
+                "hard_guarded_oracle_lateral_minus_top1_mps2",
             )
         },
         "hard_component_nonworse_rate": _hard_component_nonworse_rates(rows),
@@ -489,7 +611,7 @@ def _record_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _hard_component_nonworse_rates(rows: list[dict[str, Any]]) -> dict[str, float | None]:
     result: dict[str, float | None] = {}
-    for candidate_name in ("camp", "oracle"):
+    for candidate_name in ("camp", "oracle", "hard_guarded_oracle"):
         for outcome_field, component_name in BOOL_COMPONENTS:
             result[f"{candidate_name}_{component_name}_vs_top1"] = _mean(
                 [
@@ -532,6 +654,105 @@ def _oracle_index(costs: np.ndarray, eligible: np.ndarray) -> int:
     if indices.size == 0:
         raise ValueError("No eligible candidate for oracle selection.")
     return int(indices[0])
+
+
+def _hard_guarded_oracle_index(
+    costs: np.ndarray,
+    eligible: np.ndarray,
+    outcomes: list[dict[str, Any]],
+) -> int | None:
+    top1_hard = _hard_components(outcomes[TOP1_INDEX])
+    hard_mask = eligible.copy()
+    for outcome_field, _ in BOOL_COMPONENTS:
+        hard_mask &= np.asarray(
+            [
+                float(bool(outcome[outcome_field])) <= top1_hard[outcome_field]
+                for outcome in outcomes
+            ],
+            dtype=bool,
+        )
+    if not hard_mask.any():
+        return None
+    return _oracle_index(costs, hard_mask)
+
+
+def _coverage_gaps(
+    rows: list[dict[str, Any]],
+    required_buckets: tuple[str, ...],
+) -> dict[str, Any]:
+    buckets = _records_by_bucket(rows)
+    missing = [
+        bucket for bucket in required_buckets if len(buckets.get(bucket, [])) == 0
+    ]
+    overall_only_run_keys = sorted(
+        {
+            str(row["run_key"])
+            for row in rows
+            if set(row.get("scenario_buckets") or ["overall"]) == {"overall"}
+        }
+    )
+    return {
+        "required_buckets": list(required_buckets),
+        "missing_required_buckets": missing,
+        "overall_only_run_key_count": len(overall_only_run_keys),
+        "overall_only_run_keys": overall_only_run_keys[:50],
+        "overall_only_run_keys_truncated": len(overall_only_run_keys) > 50,
+    }
+
+
+def _opportunity_gate(
+    overall: dict[str, Any],
+    by_bucket: list[dict[str, Any]],
+    coverage_gaps: dict[str, Any],
+    *,
+    formal_seed_logs: list[str],
+    required_buckets: tuple[str, ...],
+) -> dict[str, Any]:
+    bucket_by_name = {entry["bucket"]: entry for entry in by_bucket}
+    required_bucket_checks = {}
+    for bucket in required_buckets:
+        entry = bucket_by_name.get(bucket)
+        ci_high = None
+        if entry is not None:
+            ci_high = entry.get("run_level_delta_ci", {}).get(
+                "hard_guarded_oracle_minus_top1",
+                {},
+            ).get("ci95_high")
+        required_bucket_checks[bucket] = {
+            "records": 0 if entry is None else int(entry["records"]),
+            "ci95_high": ci_high,
+            "passed": _negative_ci_high(ci_high),
+        }
+    checks = {
+        "no_formal_seed_logs": not formal_seed_logs,
+        "required_bucket_coverage": not coverage_gaps["missing_required_buckets"],
+        "overall_hard_guarded_oracle_ci_high_below_zero": _negative_ci_high(
+            overall.get("run_level_delta_ci", {})
+            .get("hard_guarded_oracle_minus_top1", {})
+            .get("ci95_high")
+        ),
+        "required_bucket_hard_guarded_oracle_ci_high_below_zero": all(
+            check["passed"] for check in required_bucket_checks.values()
+        ),
+    }
+    return {
+        "passed": all(checks.values()),
+        "checks": checks,
+        "required_bucket_checks": required_bucket_checks,
+        "interpretation": (
+            "pass means the outcome-labeled fixed candidate pool has "
+            "predeclared non-formal hard-guarded oracle opportunity in every "
+            "required explicit scenario bucket; it still does not prove an "
+            "online CAMP selector or closed-loop run-level SafetyCost claim"
+        ),
+    }
+
+
+def _negative_ci_high(value: Any) -> bool:
+    try:
+        return float(value) < 0.0
+    except (TypeError, ValueError):
+        return False
 
 
 def _candidate_count(record: dict[str, Any], label: str) -> int:
@@ -665,17 +886,23 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"| Mean Top-1 branch cost | {_fmt(overall['cost_mean']['top1'])} |",
         f"| Mean CAMP branch cost | {_fmt(overall['cost_mean']['camp'])} |",
         f"| Mean oracle branch cost | {_fmt(overall['cost_mean']['oracle'])} |",
+        f"| Mean hard-guarded oracle branch cost | {_fmt(overall['cost_mean']['hard_guarded_oracle'])} |",
         f"| Oracle beats Top-1 rate | {_fmt(overall['record_rates']['oracle_beats_top1'])} |",
+        f"| Hard-guarded oracle available rate | {_fmt(overall['record_rates']['hard_guarded_oracle_available'])} |",
+        f"| Hard-guarded oracle beats Top-1 rate | {_fmt(overall['record_rates']['hard_guarded_oracle_beats_top1'])} |",
         f"| CAMP beats Top-1 rate | {_fmt(overall['record_rates']['camp_beats_top1'])} |",
         f"| CAMP matches oracle rate | {_fmt(overall['record_rates']['camp_matches_oracle'])} |",
+        f"| CAMP matches hard-guarded oracle rate | {_fmt(overall['record_rates']['camp_matches_hard_guarded_oracle'])} |",
         f"| Oracle mean delta vs Top-1 | {_fmt(delta['oracle_minus_top1']['mean'])} |",
         f"| Oracle delta CI high | {_fmt(delta['oracle_minus_top1']['ci95_high'])} |",
+        f"| Hard-guarded oracle mean delta vs Top-1 | {_fmt(delta['hard_guarded_oracle_minus_top1']['mean'])} |",
+        f"| Hard-guarded oracle delta CI high | {_fmt(delta['hard_guarded_oracle_minus_top1']['ci95_high'])} |",
         f"| CAMP mean delta vs Top-1 | {_fmt(delta['camp_minus_top1']['mean'])} |",
         f"| CAMP delta CI high | {_fmt(delta['camp_minus_top1']['ci95_high'])} |",
         "",
         "## Scenario Buckets",
         "",
-        "| Bucket | Records | Logs | Oracle beats Top-1 | Oracle mean delta | CI high | CAMP mean delta |",
+        "| Bucket | Records | Logs | Guarded oracle beats Top-1 | Guarded oracle mean delta | CI high | CAMP mean delta |",
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for row in report["by_bucket"]:
@@ -684,9 +911,9 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"| `{row['bucket']}` | "
             f"{row['records']} | "
             f"{row['logs']} | "
-            f"{_fmt(row['record_rates']['oracle_beats_top1'])} | "
-            f"{_fmt(bucket_delta['oracle_minus_top1']['mean'])} | "
-            f"{_fmt(bucket_delta['oracle_minus_top1']['ci95_high'])} | "
+            f"{_fmt(row['record_rates']['hard_guarded_oracle_beats_top1'])} | "
+            f"{_fmt(bucket_delta['hard_guarded_oracle_minus_top1']['mean'])} | "
+            f"{_fmt(bucket_delta['hard_guarded_oracle_minus_top1']['ci95_high'])} | "
             f"{_fmt(bucket_delta['camp_minus_top1']['mean'])} |"
         )
     hard = overall["hard_component_nonworse_rate"]
@@ -702,9 +929,22 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"| Oracle near-miss nonworse vs Top-1 | {_fmt(hard['oracle_near_miss_vs_top1'])} |",
             f"| Oracle lane nonworse vs Top-1 | {_fmt(hard['oracle_lane_violation_vs_top1'])} |",
             f"| Oracle red-light nonworse vs Top-1 | {_fmt(hard['oracle_realized_red_light_vs_top1'])} |",
+            f"| Hard-guarded oracle collision nonworse vs Top-1 | {_fmt(hard['hard_guarded_oracle_collision_vs_top1'])} |",
+            f"| Hard-guarded oracle near-miss nonworse vs Top-1 | {_fmt(hard['hard_guarded_oracle_near_miss_vs_top1'])} |",
+            f"| Hard-guarded oracle lane nonworse vs Top-1 | {_fmt(hard['hard_guarded_oracle_lane_violation_vs_top1'])} |",
+            f"| Hard-guarded oracle red-light nonworse vs Top-1 | {_fmt(hard['hard_guarded_oracle_realized_red_light_vs_top1'])} |",
             f"| Mean oracle progress delta vs Top-1 (m) | {_fmt(progress['oracle_progress_minus_top1_m'])} |",
+            f"| Mean hard-guarded oracle progress delta vs Top-1 (m) | {_fmt(progress['hard_guarded_oracle_progress_minus_top1_m'])} |",
             f"| Mean oracle jerk delta vs Top-1 (m/s^3) | {_fmt(progress['oracle_jerk_minus_top1_mps3'])} |",
+            f"| Mean hard-guarded oracle jerk delta vs Top-1 (m/s^3) | {_fmt(progress['hard_guarded_oracle_jerk_minus_top1_mps3'])} |",
             f"| Mean oracle lateral delta vs Top-1 (m/s^2) | {_fmt(progress['oracle_lateral_minus_top1_mps2'])} |",
+            f"| Mean hard-guarded oracle lateral delta vs Top-1 (m/s^2) | {_fmt(progress['hard_guarded_oracle_lateral_minus_top1_mps2'])} |",
+            "",
+            "## Coverage Gate",
+            "",
+            f"- Missing required buckets: `{', '.join(report['coverage_gaps']['missing_required_buckets']) or 'none'}`",
+            f"- Overall-only run keys: `{report['coverage_gaps']['overall_only_run_key_count']}`",
+            f"- Hard-guarded oracle opportunity gate passed: `{report['opportunity_gate']['passed']}`",
             "",
             "## Mathematical Boundary",
             "",
@@ -735,6 +975,11 @@ def main() -> None:
         paths,
         scenario_bucket_manifest=args.scenario_bucket_manifest,
         fail_on_formal_seeds=args.fail_on_formal_seeds,
+        required_buckets=(
+            tuple(args.required_bucket)
+            if args.required_bucket is not None
+            else DEFAULT_REQUIRED_BUCKETS
+        ),
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(
@@ -743,6 +988,11 @@ def main() -> None:
     )
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.write_text(render_markdown(report), encoding="utf-8")
+    if args.fail_on_missing_required and report["coverage_gaps"][
+        "missing_required_buckets"
+    ]:
+        missing = ", ".join(report["coverage_gaps"]["missing_required_buckets"])
+        raise SystemExit(f"Missing required scenario bucket coverage: {missing}")
 
 
 if __name__ == "__main__":

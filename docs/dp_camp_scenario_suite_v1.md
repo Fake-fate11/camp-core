@@ -193,6 +193,37 @@ This gate is deliberately stricter than the current `redstopfloor05` evidence.
 Existing full36 results without a bucket manifest remain `overall` only and
 cannot support critical-bucket claims.
 
+## Next Non-Formal Matrix
+
+The guarded candidate-branch oracle audit on the existing
+`candidate_outcome_labels_static_d97b7c2` artifacts shows overall opportunity,
+but it still fails the scenario gate. The known blockers are:
+
+- `npc_interaction`, `dense_scene`, and `lane_change_or_merge` have no explicit
+  coverage;
+- `red_light_turn` and `sharp_turn` have positive hard-guarded oracle CI highs,
+  so they need more non-formal support before training/calibration decisions.
+
+The next matrix must be predeclared before running DP and must remain
+non-formal. It should:
+
+1. reuse the fixed DP commit and static `redstopfloor05` CAMP checkpoint;
+2. collect candidate closed-loop outcome labels only for offline oracle/training
+   labels, never as online selector inputs;
+3. include the existing normal/traffic-light/sharp-turn routes for continuity;
+4. add an NPC stress slice using only configuration-derived labels, for example
+   higher `max_npcs` and spawn probability than the current 4-NPC/0.3 grid;
+5. add a route from the Autoware lane-change sample map, but label it
+   `lane_change_or_merge` only after route inspection confirms the maneuver;
+6. update a development-only manifest rather than relabeling old results by
+   outcome metrics;
+7. run the hard-guarded oracle audit with `--fail_on_formal_seeds` and treat
+   missing buckets or positive required-bucket CI highs as a failed opportunity
+   gate.
+
+If the lane-change map or route is unavailable, the correct outcome is a
+coverage-gap artifact and route-generation task, not a CAMP training run.
+
 ## Mathematical Boundary
 
 Bucket labels are evaluation metadata. They do not change the finite candidate
