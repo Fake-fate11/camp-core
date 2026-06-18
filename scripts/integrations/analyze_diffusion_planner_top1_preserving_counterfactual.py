@@ -480,7 +480,7 @@ def _summarize_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 and delta["progress_loss_m"]
                 > float(row["progress_budget_m"]) + TOL
             )
-            for row, delta in zip(candidate0_rows, deltas, strict=True)
+            for row, delta in zip(candidate0_rows, deltas)
         ),
         "hard_gate_bool_worse_records": bool_worse,
     }

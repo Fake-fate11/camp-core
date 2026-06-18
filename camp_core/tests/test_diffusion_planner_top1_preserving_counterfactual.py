@@ -163,22 +163,22 @@ def _record(
         ],
         "atoms": [
             [progress, 0.0, 0.0, jerk]
-            for progress, jerk in zip(progress_shortfall, proxy_jerk, strict=True)
+            for progress, jerk in zip(progress_shortfall, proxy_jerk)
         ],
         "normalized_atoms": [
             [progress, 0.0, 0.0, jerk]
-            for progress, jerk in zip(progress_shortfall, proxy_jerk, strict=True)
+            for progress, jerk in zip(progress_shortfall, proxy_jerk)
         ],
         "selection_normalized_atoms": [
             [progress, 0.0, 0.0, jerk]
-            for progress, jerk in zip(progress_shortfall, proxy_jerk, strict=True)
+            for progress, jerk in zip(progress_shortfall, proxy_jerk)
         ],
         "weights": weights,
         "selection_weights": weights,
         "scores": scores,
         "selection_scores": [
             score if is_feasible else float("inf")
-            for score, is_feasible in zip(scores, feasible, strict=True)
+            for score, is_feasible in zip(scores, feasible)
         ],
         "feasible_mask": feasible,
         "candidate_closed_loop_outcomes": outcomes,
