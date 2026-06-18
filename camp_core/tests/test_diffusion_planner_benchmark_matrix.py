@@ -275,6 +275,43 @@ def test_variant_command_threads_traffic_light_hybrid_into_camp_variants_only() 
     assert "--camp_traffic_light_hybrid_postselection" not in top1_cmd
 
 
+def test_variant_command_threads_state_redroute_top1_floor_mode() -> None:
+    args = _make_args()
+    args.camp_lexicographic_progress_epsilon_m = None
+    args.camp_perfect_tracker_command_postselection = False
+    args.camp_traffic_light_hybrid_postselection = (
+        "state_redroute_top1_red_or_proxy_jerk_floor_unconditional"
+    )
+
+    static_cmd = _variant_command(
+        variant="static",
+        output_dir=Path("F:/out/static"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+
+    mode_idx = static_cmd.index("--camp_traffic_light_hybrid_postselection")
+    assert static_cmd[mode_idx + 1] == (
+        "state_redroute_top1_red_or_proxy_jerk_floor_unconditional"
+    )
+
+    top1_cmd = _variant_command(
+        variant="top1",
+        output_dir=Path("F:/out/top1"),
+        route=Path("F:/routes/route.pkl"),
+        seed=11,
+        max_npcs=4,
+        spawn_probability=0.2,
+        traffic_lights="on",
+        args=args,
+    )
+    assert "--camp_traffic_light_hybrid_postselection" not in top1_cmd
+
+
 def test_variant_command_threads_splice_shadow_rule_into_camp_variants_only() -> None:
     args = _make_args()
     args.camp_lexicographic_progress_epsilon_m = None

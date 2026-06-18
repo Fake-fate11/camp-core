@@ -15,6 +15,7 @@ TRAFFIC_LIGHT_HYBRID_POSTSELECTION_MODES = (
     "off",
     "step_h10_guard_005",
     "h3_h10_guard_005",
+    "state_redroute_top1_red_or_proxy_jerk_floor_unconditional",
 )
 
 
