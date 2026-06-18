@@ -261,6 +261,25 @@ def _load_record(raw: dict[str, Any], label: str) -> dict[str, Any]:
         raise ValueError(f"{label} DP-prior deviation atom must be zero for candidate0.")
     planned_progress = _planned_progress(raw, candidate_count, label)
     planned_red = _planned_red_values(raw, candidate_count)
+    tracker_jerk = _candidate_feature(
+        raw,
+        candidate_count,
+        label,
+        (
+            "candidate_perfect_tracker_jerk_magnitude_mps3",
+            "candidate_dp_prior_jerk_excess_cost",
+        ),
+    )
+    tracker_lateral = _candidate_feature(
+        raw,
+        candidate_count,
+        label,
+        (
+            "candidate_perfect_tracker_lateral_acceleration_magnitude_mps2",
+            "candidate_horizon_lateral_acceleration_cost",
+            "candidate_dp_prior_lateral_acceleration_excess_cost",
+        ),
+    )
     scores = _vector(
         raw.get("selection_scores"),
         candidate_count,
@@ -288,6 +307,8 @@ def _load_record(raw: dict[str, Any], label: str) -> dict[str, Any]:
         "planned_progress": planned_progress,
         "planned_progress_shortfall": progress_shortfall,
         "planned_red": planned_red,
+        "tracker_jerk": tracker_jerk,
+        "tracker_lateral": tracker_lateral,
         "safety_cost": costs,
         "outcome_progress": outcome_progress,
         "outcomes": outcomes,
@@ -303,6 +324,22 @@ def _planned_progress(raw: dict[str, Any], candidate_count: int, label: str) -> 
             raise ValueError(f"{label} {key} must be nonnegative.")
         return values
     raise ValueError(f"{label} requires candidate_route_progress or candidate_step_reach.")
+
+
+def _candidate_feature(
+    raw: dict[str, Any],
+    candidate_count: int,
+    label: str,
+    keys: tuple[str, ...],
+) -> np.ndarray:
+    for key in keys:
+        if raw.get(key) is None:
+            continue
+        values = _vector(raw.get(key), candidate_count, f"{label} {key}")
+        if np.any(values < 0.0):
+            raise ValueError(f"{label} {key} must be nonnegative.")
+        return values
+    return np.zeros(candidate_count, dtype=np.float64)
 
 
 def _planned_progress_shortfall(
