@@ -20072,7 +20072,7 @@ Predeclared gate summary:
 | --- | --- | --- |
 | 1. All 12 runs complete, no formal seeds, DP fixed | pass | `12` logs, `2400` records, DP `7a1d33d` |
 | 2. Required bucket coverage | pass | no missing required buckets |
-| 3. Guarded selector CI high vs DP Top-1 below zero overall and every required bucket | fail | overall CI high `+0.023539`; traffic-light/red-turn/sharp-turn CI high `+0.633360` |
+| 3. Guarded selector CI high vs DP Top-1 below zero overall and every required bucket | fail | overall CI high `+0.019936`; traffic-light/red-turn/sharp-turn CI high `+0.633360` |
 | 4. Guarded-minus-logged not positive in critical lane-change/NPC buckets | pass as development evidence | lane-change CI high `0.000000`; NPC/dense CI high `-0.000001` |
 | 5. No positive hard collision/near-miss mean vs logged in critical buckets | pass | weighted collision and near-miss deltas are `0.000000` in lane-change, NPC, and dense buckets |
 | 6. Guard not passing by fail-closed everywhere | pass but weak | `26` accepted overrides out of `366` attempts; guarded changed `1.083333%` of records |
@@ -20082,7 +20082,7 @@ Guarded selector vs DP Top-1:
 
 | Bucket | Records | Logs | Mean delta | CI low | CI high | Decision |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| overall | `2400` | `12` | `-1.151239` | `-2.837747` | `+0.023539` | fail |
+| overall | `2400` | `12` | `-1.151239` | `-2.872371` | `+0.019936` | fail |
 | normal | `600` | `3` | `-0.020265` | `-0.022253` | `-0.018622` | pass |
 | traffic_light | `600` | `3` | `+0.250029` | `-0.036894` | `+0.633360` | fail |
 | red_light_turn | `600` | `3` | `+0.250029` | `-0.036894` | `+0.633360` | fail |
