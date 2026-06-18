@@ -119,10 +119,21 @@ def test_safety_cost_oracle_reports_candidate_pool_opportunity(tmp_path) -> None
     }
     assert "normal" in report["coverage_gaps"]["missing_required_buckets"]
     assert report["opportunity_gate"]["passed"] is False
+    diagnostics = report["opportunity_diagnostics"]
+    assert diagnostics["candidate_pool_coverage"]["mean_candidate_count"] == 3.0
+    assert diagnostics["candidate_pool_coverage"][
+        "eligible_candidate_count_distribution"
+    ] == {"3": 1}
+    assert diagnostics["failure_mode_counts"][
+        "camp_not_oracle_when_oracle_beats_top1"
+    ] == 1
+    assert diagnostics["failure_mode_rates"]["camp_worse_than_top1"] == 0.0
 
     markdown = render_markdown(report)
     assert "Candidate-Branch SafetyCost v1 Oracle Audit" in markdown
     assert "Hard-guarded oracle" in markdown
+    assert "Candidate Pool Coverage" in markdown
+    assert "Failure Modes" in markdown
     assert "does not change the online selector" in markdown
 
 
@@ -158,6 +169,38 @@ def test_safety_cost_oracle_reports_hard_guarded_tradeoff(tmp_path) -> None:
         "hard_guarded_oracle"
     ] < overall["cost_mean"]["top1"]
     assert report["opportunity_gate"]["passed"] is True
+
+
+def test_safety_cost_oracle_reports_unavailable_hard_guarded_oracle(
+    tmp_path,
+) -> None:
+    record = {
+        "num_candidates": 3,
+        "selected_index": 1,
+        "feasible_mask": [False, True, True],
+        "candidate_horizon_union_planned_red_light_cost": [0.0, 0.0, 0.0],
+        "candidate_closed_loop_outcomes": [
+            _outcome(0, progress=10.0, jerk=2.0, lateral=0.5),
+            _outcome(1, progress=10.0, jerk=1.0, lateral=0.5, lane_violation=True),
+            _outcome(
+                2,
+                progress=10.0,
+                jerk=1.0,
+                lateral=0.5,
+                red_light_violation=True,
+            ),
+        ],
+    }
+
+    report = analyze([_write_log(tmp_path, record)], required_buckets=())
+    overall = report["overall"]
+
+    assert overall["record_rates"]["hard_guarded_oracle_available"] == 0.0
+    assert overall["failure_mode_counts"]["hard_guarded_oracle_unavailable"] == 1
+    assert overall["candidate_pool_coverage"]["top1_eligible_rate"] == 0.0
+    assert report["opportunity_diagnostics"]["failure_mode_rates"][
+        "hard_guarded_oracle_not_better_than_top1"
+    ] == 1.0
 
 
 def test_safety_cost_oracle_keeps_fallback_branch_separate(tmp_path) -> None:

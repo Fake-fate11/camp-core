@@ -65,6 +65,15 @@ ORDERED_BUCKETS = (
     "lane_change_or_merge",
 )
 DEFAULT_REQUIRED_BUCKETS = tuple(bucket for bucket in ORDERED_BUCKETS if bucket != "overall")
+FAILURE_MODE_NAMES = (
+    "oracle_not_better_than_top1",
+    "hard_guarded_oracle_unavailable",
+    "hard_guarded_oracle_not_better_than_top1",
+    "camp_worse_than_top1",
+    "camp_not_oracle_when_oracle_beats_top1",
+    "camp_not_hard_guarded_oracle_when_available",
+    "fallback_all_infeasible",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -217,6 +226,7 @@ def analyze(
         "overall": overall,
         "by_bucket": by_bucket,
         "coverage_gaps": coverage_gaps,
+        "opportunity_diagnostics": _opportunity_diagnostics(rows),
         "opportunity_gate": _opportunity_gate(
             overall,
             by_bucket,
@@ -504,6 +514,9 @@ def _aggregate(rows: list[dict[str, Any]], *, seed_key: str) -> dict[str, Any]:
             "run_level_cvar90_delta": {},
             "progress_and_comfort_delta_mean": {},
             "hard_component_nonworse_rate": {},
+            "candidate_pool_coverage": {},
+            "failure_mode_counts": {name: 0 for name in FAILURE_MODE_NAMES},
+            "failure_mode_rates": _empty_named_metrics(FAILURE_MODE_NAMES),
         }
     cost_names = ("top1", "camp", "oracle", "hard_guarded_oracle")
     costs = {name: [row["costs"][name] for row in rows] for name in cost_names}
@@ -588,6 +601,9 @@ def _aggregate(rows: list[dict[str, Any]], *, seed_key: str) -> dict[str, Any]:
             )
         },
         "hard_component_nonworse_rate": _hard_component_nonworse_rates(rows),
+        "candidate_pool_coverage": _candidate_pool_coverage(rows),
+        "failure_mode_counts": _failure_mode_counts(rows),
+        "failure_mode_rates": _failure_mode_rates(rows),
         "planned_red_sources": _value_counts(
             [str(row["planned_red_source"]) for row in rows]
         ),
@@ -623,6 +639,130 @@ def _hard_component_nonworse_rates(rows: list[dict[str, Any]]) -> dict[str, floa
                 ]
             )
     return result
+
+
+def _candidate_pool_coverage(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "record_count": len(rows),
+        "base_feasible_rate": _mean(
+            [float(row["branch"] == "base_feasible") for row in rows]
+        ),
+        "fallback_all_infeasible_rate": _mean(
+            [float(row["branch"] == "fallback_all_infeasible") for row in rows]
+        ),
+        "mean_candidate_count": _mean(
+            [float(row["candidate_count"]) for row in rows]
+        ),
+        "mean_eligible_candidate_count": _mean(
+            [float(row["eligible_candidate_count"]) for row in rows]
+        ),
+        "top1_eligible_rate": _mean(
+            [float(row["top1_eligible"]) for row in rows]
+        ),
+        "camp_eligible_rate": _mean(
+            [float(row["camp_eligible"]) for row in rows]
+        ),
+        "hard_guarded_oracle_available_rate": _mean(
+            [float(row["hard_guarded_oracle_available"]) for row in rows]
+        ),
+        "candidate_count_distribution": _value_counts(
+            [str(row["candidate_count"]) for row in rows]
+        ),
+        "eligible_candidate_count_distribution": _value_counts(
+            [str(row["eligible_candidate_count"]) for row in rows]
+        ),
+    }
+
+
+def _failure_mode_flags(row: dict[str, Any]) -> dict[str, bool]:
+    relations = row["relations"]
+    return {
+        "oracle_not_better_than_top1": not relations["oracle_beats_top1"],
+        "hard_guarded_oracle_unavailable": not relations[
+            "hard_guarded_oracle_available"
+        ],
+        "hard_guarded_oracle_not_better_than_top1": not relations[
+            "hard_guarded_oracle_beats_top1"
+        ],
+        "camp_worse_than_top1": row["deltas"]["camp_minus_top1"] > EPS,
+        "camp_not_oracle_when_oracle_beats_top1": (
+            relations["oracle_beats_top1"] and not relations["camp_matches_oracle"]
+        ),
+        "camp_not_hard_guarded_oracle_when_available": (
+            relations["hard_guarded_oracle_available"]
+            and not relations["camp_matches_hard_guarded_oracle"]
+        ),
+        "fallback_all_infeasible": row["branch"] == "fallback_all_infeasible",
+    }
+
+
+def _failure_mode_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts = {name: 0 for name in FAILURE_MODE_NAMES}
+    for row in rows:
+        flags = _failure_mode_flags(row)
+        for name in FAILURE_MODE_NAMES:
+            counts[name] += int(flags[name])
+    return counts
+
+
+def _failure_mode_rates(rows: list[dict[str, Any]]) -> dict[str, float | None]:
+    if not rows:
+        return _empty_named_metrics(FAILURE_MODE_NAMES)
+    counts = _failure_mode_counts(rows)
+    return {name: float(counts[name]) / float(len(rows)) for name in FAILURE_MODE_NAMES}
+
+
+def _opportunity_diagnostics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    grouped = _records_by_bucket(rows)
+    return {
+        "role": (
+            "aggregate diagnostics for why fixed candidate pools do or do not "
+            "contain usable SafetyCost v1 opportunity"
+        ),
+        "candidate_pool_coverage": _candidate_pool_coverage(rows),
+        "failure_mode_counts": _failure_mode_counts(rows),
+        "failure_mode_rates": _failure_mode_rates(rows),
+        "by_bucket": [
+            {
+                "bucket": bucket,
+                "records": len(bucket_rows),
+                "candidate_pool_coverage": _candidate_pool_coverage(bucket_rows),
+                "failure_mode_counts": _failure_mode_counts(bucket_rows),
+                "failure_mode_rates": _failure_mode_rates(bucket_rows),
+            }
+            for bucket, bucket_rows in grouped.items()
+        ],
+        "failure_mode_definitions": {
+            "oracle_not_better_than_top1": (
+                "the unconstrained oracle does not reduce candidate-branch "
+                "SafetyCost v1 below candidate 0"
+            ),
+            "hard_guarded_oracle_unavailable": (
+                "no eligible candidate is nonworse than Top-1 on collision, "
+                "near miss, lane violation, and realized red light"
+            ),
+            "hard_guarded_oracle_not_better_than_top1": (
+                "the hard-guarded oracle is unavailable or does not reduce "
+                "SafetyCost v1 below Top-1"
+            ),
+            "camp_worse_than_top1": (
+                "the logged CAMP-selected candidate has higher branch "
+                "SafetyCost v1 than Top-1"
+            ),
+            "camp_not_oracle_when_oracle_beats_top1": (
+                "the oracle beats Top-1 but the logged CAMP selector chooses "
+                "a different candidate"
+            ),
+            "camp_not_hard_guarded_oracle_when_available": (
+                "a hard-guarded oracle exists but the logged CAMP selector "
+                "chooses a different candidate"
+            ),
+            "fallback_all_infeasible": (
+                "the normal feasible mask rejects every candidate, so the row "
+                "is audited in the fallback branch"
+            ),
+        },
+    }
 
 
 def _records_by_bucket(rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -899,12 +1039,45 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"| Hard-guarded oracle delta CI high | {_fmt(delta['hard_guarded_oracle_minus_top1']['ci95_high'])} |",
         f"| CAMP mean delta vs Top-1 | {_fmt(delta['camp_minus_top1']['mean'])} |",
         f"| CAMP delta CI high | {_fmt(delta['camp_minus_top1']['ci95_high'])} |",
+        f"| CAMP mean gap to oracle | {_fmt(delta['camp_minus_oracle']['mean'])} |",
+        f"| CAMP gap-to-oracle CI high | {_fmt(delta['camp_minus_oracle']['ci95_high'])} |",
+        f"| CAMP mean gap to hard-guarded oracle | {_fmt(delta['camp_minus_hard_guarded_oracle']['mean'])} |",
+        f"| CAMP gap-to-hard-guarded-oracle CI high | {_fmt(delta['camp_minus_hard_guarded_oracle']['ci95_high'])} |",
+        "",
+        "## Candidate Pool Coverage",
+        "",
+        "| Diagnostic | Value |",
+        "| --- | ---: |",
+        f"| Base-feasible record rate | {_fmt(overall['candidate_pool_coverage']['base_feasible_rate'])} |",
+        f"| All-infeasible fallback record rate | {_fmt(overall['candidate_pool_coverage']['fallback_all_infeasible_rate'])} |",
+        f"| Mean candidate count | {_fmt(overall['candidate_pool_coverage']['mean_candidate_count'])} |",
+        f"| Mean eligible candidate count | {_fmt(overall['candidate_pool_coverage']['mean_eligible_candidate_count'])} |",
+        f"| Top-1 eligible rate | {_fmt(overall['candidate_pool_coverage']['top1_eligible_rate'])} |",
+        f"| CAMP eligible rate | {_fmt(overall['candidate_pool_coverage']['camp_eligible_rate'])} |",
+        "",
+        "## Failure Modes",
+        "",
+        "| Failure mode | Count | Rate |",
+        "| --- | ---: | ---: |",
+    ]
+    for name in FAILURE_MODE_NAMES:
+        lines.append(
+            f"| `{name}` | "
+            f"{overall['failure_mode_counts'][name]} | "
+            f"{_fmt(overall['failure_mode_rates'][name])} |"
+        )
+    lines.extend(
+        [
+            "",
+            "These modes are diagnostics over fixed candidate-branch labels. They "
+            "are not runtime selector inputs.",
         "",
         "## Scenario Buckets",
         "",
         "| Bucket | Records | Logs | Guarded oracle beats Top-1 | Guarded oracle mean delta | CI high | CAMP mean delta |",
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
-    ]
+        ]
+    )
     for row in report["by_bucket"]:
         bucket_delta = row["run_level_delta_ci"]
         lines.append(

@@ -9,6 +9,15 @@ and not a Benders subproblem. The Diffusion Planner neural sampler,
 postprocessing, PerfectTracker, and closed-loop simulator remain outside the
 CAMP finite-candidate master.
 
+## Frozen Development Contract
+
+SafetyCost v1 is the frozen development primary score for the current
+DP-CAMP proof stage. Its weights, normalizations, hard gates, scenario buckets,
+and paired bootstrap claim rule are fixed before collecting the next diverse
+non-formal matrix. Any sensitivity analysis must be reported as sensitivity,
+not as the primary claim metric, and cannot be used to choose the final result
+after seeing new runs.
+
 ## Relationship to Trajectron++ CAMP
 
 The Trajectron++ CAMP evaluation reported a weighted-and-clipped safety metric:
@@ -144,6 +153,21 @@ opportunity under a predeclared candidate-branch proxy. It does not prove that
 CAMP improves full closed-loop SafetyCost v1, does not authorize formal seeds,
 and does not make the DP sampler or trajectory coordinates part of a Benders
 subproblem.
+
+The audit also reports opportunity diagnostics:
+
+- candidate-pool coverage: candidate count, eligible candidate count,
+  top-1/CAMP eligibility, hard-guarded oracle availability, and fallback rate;
+- oracle gap: CAMP minus unconstrained oracle and CAMP minus hard-guarded
+  oracle at run-level paired bootstrap granularity;
+- failure modes: no oracle improvement, no hard-guarded candidate, guarded
+  oracle not better than Top-1, CAMP worse than Top-1, CAMP missing an
+  available oracle, and all-infeasible fallback rows;
+- the same diagnostics by explicit scenario bucket when a manifest is supplied.
+
+These diagnostics may guide engineering decisions and training-label design,
+but they are still offline outcome-label analysis. They are not runtime atoms
+and must not be fed to an online selector.
 
 ## Hard Safety Gate
 
