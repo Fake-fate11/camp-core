@@ -19835,3 +19835,161 @@ closed everywhere; the guarded selector must retain measurable improvement over
 DP Top-1 while showing no hard-safety regression and no positive
 guarded-minus-logged SafetyCost CI in lane-change/merge and NPC-interaction
 buckets.
+
+### Predeclared Clearance+Outcome Development Matrix
+
+Date: 2026-06-18
+
+Purpose:
+
+The single lane-change proof-of-mechanism above is insufficient for a
+development gate. This predeclares the next small non-formal matrix before
+looking at new results. The matrix is intended to test whether the fail-closed
+guard blocks hard-safety regressions while preserving measurable improvement
+over DP Top-1 across normal, traffic-light/turning, NPC, and lane-change
+buckets.
+
+Fixed state:
+
+- CAMP start commit: `69eb7e09b68b64c4e14bfaa36e59589932d5d1e4`.
+- DP remains fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Logged baseline selector remains the existing static `redstopfloor05`
+  checkpoint.
+- Evaluated raw selector remains
+  `safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4`.
+- Formal seeds `11/12/13` remain forbidden.
+
+Matrix:
+
+| Cell | Route | Seeds | NPCs | Spawn | Traffic lights | Buckets |
+| --- | --- | --- | ---: | ---: | --- | --- |
+| normal | `sample_normal` | `1,2,3` | `0` | `0.3` | `off` | `normal` |
+| npc_dense | `sample_normal` | `1,2,3` | `8` | `0.6` | `off` | `npc_interaction`, `dense_scene` |
+| red_light_turn | `sample_tl_turn` | `1,2,3` | `0` | `0.3` | `on` | `traffic_light`, `red_light_turn`, `sharp_turn` |
+| lane_change | `nishishinjuku_lane_change` | `1,2,3` | `4` | `0.3` | `off` | `lane_change_or_merge` |
+
+Total planned runs: `12`.
+
+All runs use `steps=200`, `num_candidates=8`, `candidate_noise_scale=1`,
+`candidate_reference_blend_steps=5`, `camp_feasibility_source=dp_reward`,
+`camp_min_progress_ratio=0.8`, `camp_reward_horizon_steps=30`,
+`camp_collect_closed_loop_outcomes`, `camp_outcome_horizon_steps=30`,
+`near_miss_threshold_m=2`, `camp_shadow_obstacle_clearance`, and
+`camp_shadow_route_progress`. `camp_shadow_obstacle_clearance` and
+`camp_shadow_route_progress` are diagnostics only and must report
+`selection_effect=false`.
+
+Output root:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0
+```
+
+Run command template:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+BASE=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0
+COMMON=(
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner
+  --model_path /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json
+  --device cuda
+  --steps 200
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json
+  --camp_atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json
+  --camp_static_weights /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy
+  --num_candidates 8
+  --candidate_noise_scale 1
+  --candidate_reference_blend_steps 5
+  --camp_feasibility_source dp_reward
+  --camp_min_progress_ratio 0.8
+  --camp_reward_horizon_steps 30
+  --camp_collect_closed_loop_outcomes
+  --camp_outcome_horizon_steps 30
+  --near_miss_threshold_m 2
+  --camp_shadow_obstacle_clearance
+  --camp_shadow_route_progress
+  --variants static
+  --skip_compare
+  --scenario_bucket_manifest /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json
+)
+
+/root/miniconda3/bin/python scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  "${COMMON[@]}" \
+  --output_root "$BASE/normal" \
+  --seeds 1,2,3 --max_npcs 0 --spawn_probabilities 0.3 --traffic_light_modes off \
+  --route sample_normal=/root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl
+
+/root/miniconda3/bin/python scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  "${COMMON[@]}" \
+  --output_root "$BASE/npc_dense" \
+  --seeds 1,2,3 --max_npcs 8 --spawn_probabilities 0.6 --traffic_light_modes off \
+  --route sample_normal=/root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl
+
+/root/miniconda3/bin/python scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  "${COMMON[@]}" \
+  --output_root "$BASE/red_light_turn" \
+  --seeds 1,2,3 --max_npcs 0 --spawn_probabilities 0.3 --traffic_light_modes on \
+  --route sample_tl_turn=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+
+/root/miniconda3/bin/python scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  "${COMMON[@]}" \
+  --output_root "$BASE/lane_change" \
+  --seeds 1,2,3 --max_npcs 4 --spawn_probabilities 0.3 --traffic_light_modes off \
+  --route nishishinjuku_lane_change=/root/autodl-tmp/camp_dp_assets/nishishinjuku_lane_change_route_7_via_8_to_1.pkl
+```
+
+Guarded audit:
+
+Use the lower-bound retry weights as the raw selector and the logged
+`redstopfloor05` selected index as the fail-closed baseline:
+
+```bash
+TRAIN=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/analyze_diffusion_planner_guarded_safety_selector.py \
+  --root "$BASE" \
+  --atom_scales "$TRAIN/atom_scales_dp_static.json" \
+  --static_weights "$TRAIN/offline_weights_dp_static.npy" \
+  --selector_name safety_cost_v1_floor_progress20_jerk20_clear2_stop5_dp5_guarded_matrix \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --output_json "$BASE/guarded_matrix_audit/guarded_safety_selector.json" \
+  --output_md "$BASE/guarded_matrix_audit/guarded_safety_selector.md" \
+  --fail_on_formal_seeds \
+  --fail_on_missing_required
+```
+
+Predeclared acceptance criteria:
+
+1. All 12 runs complete; no formal seeds are present; DP commit remains fixed.
+2. Every required bucket has records: `normal`, `traffic_light`,
+   `red_light_turn`, `sharp_turn`, `npc_interaction`, `dense_scene`,
+   `lane_change_or_merge`.
+3. Guarded selector has paired SafetyCost delta versus DP Top-1 with CI high
+   below `0` overall and in every required bucket.
+4. Guarded-minus-logged SafetyCost CI high is not positive in
+   `lane_change_or_merge` or `npc_interaction`/`dense_scene`; if CI is
+   underpowered because only three seeds exist, record the result as
+   development evidence only.
+5. Hard component deltas versus logged have no positive collision or near-miss
+   mean in the critical buckets.
+6. The guard must not pass only by accepting zero meaningful overrides: report
+   accepted override count, accepted-worse count, raw-worse blocked count, and
+   guarded change rate. If it simply fails closed everywhere, reject as not a
+   CAMP improvement even if safety is preserved.
+7. Latency remains diagnostic-only here. Per-run p95 must be reported, but this
+   12-run matrix is not sufficient to clear the formal `<100ms` gate because
+   outcome collection is intentionally enabled and expensive.
+
+Decision rule:
+
+Accept only as development evidence if criteria 1-6 pass. Reject online
+promotion if any hard-safety regression remains, if required buckets are
+missing, or if all apparent improvement is due to fail-closed retention of
+logged `redstopfloor05`.
