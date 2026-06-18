@@ -22029,3 +22029,141 @@ Decision:
    audit.
 3. Continue with a state/bucket-conditioned offline design that first explains
    the three remaining bucket failures for the best progress-preserving rule.
+
+### Joint Progress Rule Bucket Failure Attribution
+
+Date: 2026-06-19
+
+Status: accept as read-only failure attribution for the best joint-audit rule;
+reject online selector changes, CAMP retraining, Full36, and formal seeds. The
+failure buckets are attributed to very small comfort/route-shortfall tails under
+a progress-preserving rule, not to hard safety regression and not to absent
+candidate support.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `601dec4c5ad118a3f4b6d4f3af39a6538dc4a332` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining in this step | none |
+| Formal seeds | none |
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_joint_bucket_failures.py
+camp_core/tests/test_diffusion_planner_joint_bucket_failures.py
+```
+
+The attribution analyzes the previous best joint rule on the 36-log static
+outcome-label set:
+
+```text
+alpha = 0.00
+beta = 0.02
+prior_scale = 7.248407882696634
+progress_scale = 0.08472114637415432
+```
+
+Selection still uses only logged current-tick finite-candidate scores and
+planned-progress shortfall. Candidate outcomes are used only after selection
+for component attribution.
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SRC=$ROOT/candidate_outcome_labels_static_d97b7c2
+OUT=$ROOT/joint_bucket_failure_attribution_601dec4
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_joint_bucket_failures.py \
+  --root "$SRC" \
+  --label candidate_outcome_labels_static_d97b7c2_alpha0_beta0p02 \
+  --alpha 0.0 \
+  --beta 0.02 \
+  --prior_scale 7.248407882696634 \
+  --progress_scale 0.08472114637415432 \
+  --bucket normal \
+  --bucket red_light_turn \
+  --bucket sharp_turn \
+  --bootstrap_resamples 5000 \
+  --output_json "$OUT/joint_bucket_failure_attribution.json" \
+  --output_md "$OUT/joint_bucket_failure_attribution.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `joint_bucket_failure_attribution_601dec4/joint_bucket_failure_attribution.json` | `a9eea215674edecf123fa045b9b050261607989e513f510641d29f4bbc378500` |
+| `joint_bucket_failure_attribution_601dec4/joint_bucket_failure_attribution.md` | `5b7e8a68cae4844000d946ab89f05a388695cabda1c3aa6667ff71e77313a127` |
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_joint_bucket_failures.py \
+  scripts/integrations/analyze_diffusion_planner_dp_prior_completion_joint_audit.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_joint_bucket_failures.py \
+  camp_core/tests/test_diffusion_planner_dp_prior_completion_joint_audit.py \
+  camp_core/tests/test_diffusion_planner_dp_prior_atom_candidate.py \
+  camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py -q
+```
+
+Result: local `4 passed`; AutoDL new test `1 passed`.
+
+Bucket attribution:
+
+| Bucket | Records | Changed | Harmful changed | Beneficial changed | Safety mean | Safety CI high | CVaR90 | Progress CI low | Hard nonworse | Support hard-nonworse | Support progress-nonworse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `normal` | `600` | `0.020000` | `6` | `6` | `+0.0000388` | `+0.000362` | `+0.000269` | `-0.001842` | `1.000000` | `0.378333` | `0.005000` |
+| `red_light_turn` | `1200` | `0.022500` | `13` | `14` | `+0.000113` | `+0.000650` | `+0.000395` | `+0.001287` | `1.000000` | `0.341667` | `0.120000` |
+| `sharp_turn` | `2400` | `0.027500` | `33` | `33` | `-0.008277` | `+0.000255` | `+0.000417` | `+0.002650` | `1.000000` | `0.348750` | `0.114167` |
+
+Component attribution:
+
+| Bucket | Dominant positive components | Dominant negative components | Interpretation |
+| --- | --- | --- | --- |
+| `normal` | jerk `+0.0000295`, route-shortfall `+0.0000310` | lateral `-0.0000217` | tiny comfort/progress tail; not hard safety |
+| `red_light_turn` | lateral `+0.000511`, jerk `+0.000236` | route-shortfall `-0.000633` | progress improves but comfort tail keeps CI high positive |
+| `sharp_turn` | lateral `+0.000701`, jerk `+0.000183` | near-miss `-0.008333`, route-shortfall `-0.000828` | near-miss improves on average, but rare comfort tail blocks strict bucket CI |
+
+Worst changed records show the same pattern: selected and chosen candidates are
+hard-safety nonworse, and the rule generally raises planned progress, but a few
+records pay small jerk/lateral/route-shortfall cost. The largest red-light-turn
+delta is seed `3`, NPC `4`, TL `on`, record `147`, selected `1 -> 7`, with
+planned progress `0.362839 -> 0.370166` and outcome progress
+`10.2041 -> 10.7544`; the positive SafetyCost delta is therefore not a
+completion loss or hard-event regression.
+
+Interpretation:
+
+1. The best progress-preserving rule is close but not deployable. It changes
+   only `2-3%` of records in the failing buckets and preserves hard safety, yet
+   the strict SafetyCost CI high remains slightly positive.
+2. The three failure buckets have meaningful candidate support:
+   hard-nonworse safer-candidate support is `0.378333`, `0.341667`, and
+   `0.348750` for normal, red-light-turn, and sharp-turn respectively.
+3. Progress-nonworse support is the real bottleneck for normal (`0.005000`),
+   while red-light-turn and sharp-turn still have nontrivial progress-nonworse
+   support (`0.120000` and `0.114167`).
+4. This points away from broad DP-prior penalties and toward a state-conditioned
+   finite-candidate rule that prices comfort tail risk only when progress gain
+   is material enough, with stricter comfort guards in normal/sharp-turn cases.
+
+Decision:
+
+1. Do not implement the `alpha=0`, `beta=0.02` rule online.
+2. Do not train new CAMP weights, run Full36, or use formal seeds.
+3. The next admissible step is a predeclared offline state-conditioned rule:
+   progress-preserving candidates may override only when predicted progress gain
+   clears a materiality threshold and jerk/lateral proxy deltas stay within a
+   bucket-specific nonworse/tolerance guard. This must be audited offline before
+   any replay smoke.
