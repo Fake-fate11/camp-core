@@ -62,6 +62,16 @@ FLOOR_RULES: tuple[dict[str, Any], ...] = (
             "Top-1 on current-tick red-light proxies"
         ),
         "checks": ("union_red", "red_stopping"),
+        "require_candidate0_feasible": True,
+    },
+    {
+        "name": "top1_red_floor_unconditional",
+        "description": (
+            "diagnostic contrast: red floor that may return DP Top-1 even "
+            "when the CAMP feasible mask marks candidate0 ineligible"
+        ),
+        "checks": ("union_red", "red_stopping"),
+        "require_candidate0_feasible": False,
     },
     {
         "name": "top1_red_or_proxy_jerk_floor",
@@ -70,6 +80,16 @@ FLOOR_RULES: tuple[dict[str, Any], ...] = (
             "current-tick proxy jerk than Top-1"
         ),
         "checks": ("union_red", "red_stopping", "proxy_jerk"),
+        "require_candidate0_feasible": True,
+    },
+    {
+        "name": "top1_red_or_proxy_jerk_floor_unconditional",
+        "description": (
+            "diagnostic contrast: red-or-jerk floor that may return DP Top-1 "
+            "even when the CAMP feasible mask marks candidate0 ineligible"
+        ),
+        "checks": ("union_red", "red_stopping", "proxy_jerk"),
+        "require_candidate0_feasible": False,
     },
     {
         "name": "top1_red_or_proxy_comfort_floor",
@@ -78,6 +98,16 @@ FLOOR_RULES: tuple[dict[str, Any], ...] = (
             "is worse than Top-1"
         ),
         "checks": ("union_red", "red_stopping", "proxy_jerk", "proxy_lateral"),
+        "require_candidate0_feasible": True,
+    },
+    {
+        "name": "top1_red_or_proxy_comfort_floor_unconditional",
+        "description": (
+            "diagnostic contrast: red-or-comfort floor that may return DP "
+            "Top-1 even when the CAMP feasible mask marks candidate0 ineligible"
+        ),
+        "checks": ("union_red", "red_stopping", "proxy_jerk", "proxy_lateral"),
+        "require_candidate0_feasible": False,
     },
 )
 
@@ -319,10 +349,12 @@ def analyze(
             "selection_contract": (
                 "Compute the saved CAMP raw selection, apply the existing "
                 "fail-closed guard against logged redstopfloor05, then apply a "
-                "deterministic Top-1 floor only when candidate0 is base-feasible "
-                "and the guarded candidate is worse than candidate0 on the "
-                "rule's fixed current-tick proxy checks. If candidate0 is not "
-                "base-feasible, retain the guarded choice."
+                "deterministic Top-1 floor when the guarded candidate is worse "
+                "than candidate0 on the rule's fixed current-tick proxy checks. "
+                "Rules with require_candidate0_feasible=true retain the guarded "
+                "choice when candidate0 is not base-feasible; rules marked "
+                "unconditional are diagnostic contrasts that may return DP "
+                "Top-1 despite the CAMP feasible mask."
             ),
             "math_boundary": (
                 "DP remains a fixed black-box generator. This audit reads "
@@ -358,17 +390,20 @@ def _floor_index(
     if not 0 <= guarded_index < candidate_count:
         raise ValueError(f"{label} guarded index is out of range.")
     checks = tuple(str(check) for check in rule["checks"])
+    require_candidate0_feasible = bool(rule.get("require_candidate0_feasible", True))
     if not checks or guarded_index == 0:
         return guarded_index, {
             "changed_to_top1": False,
             "candidate0_feasible": _candidate0_feasible(record, candidate_count),
+            "require_candidate0_feasible": require_candidate0_feasible,
             "trigger_reasons": [],
         }
     candidate0_feasible = _candidate0_feasible(record, candidate_count)
-    if not candidate0_feasible:
+    if require_candidate0_feasible and not candidate0_feasible:
         return guarded_index, {
             "changed_to_top1": False,
             "candidate0_feasible": False,
+            "require_candidate0_feasible": True,
             "trigger_reasons": ["candidate0_not_base_feasible"],
         }
 
@@ -382,7 +417,8 @@ def _floor_index(
         0 if changed else guarded_index,
         {
             "changed_to_top1": changed,
-            "candidate0_feasible": True,
+            "candidate0_feasible": candidate0_feasible,
+            "require_candidate0_feasible": require_candidate0_feasible,
             "trigger_reasons": trigger_reasons,
         },
     )
@@ -436,6 +472,7 @@ def _floor_event(
         "floor_index": floor_index,
         "changed_to_top1": bool(decision["changed_to_top1"]),
         "candidate0_feasible": bool(decision["candidate0_feasible"]),
+        "require_candidate0_feasible": bool(decision["require_candidate0_feasible"]),
         "trigger_reasons": list(decision["trigger_reasons"]),
         "floor_minus_logged_cost": float(
             floor_row["costs"]["camp"] - logged_row["costs"]["camp"]
@@ -459,6 +496,10 @@ def _floor_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
         "top1_fallback_rate": len(changed) / max(len(events), 1),
         "candidate0_infeasible_records": sum(
             int(not event["candidate0_feasible"]) for event in events
+        ),
+        "candidate0_infeasible_top1_fallbacks": sum(
+            int(event["changed_to_top1"] and not event["candidate0_feasible"])
+            for event in events
         ),
         "trigger_reason_counts": dict(trigger_counts),
         "posterior_worse_than_top1_blocked": sum(
