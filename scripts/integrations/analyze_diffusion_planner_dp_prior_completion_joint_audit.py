@@ -29,6 +29,7 @@ from scripts.integrations.analyze_diffusion_planner_dp_prior_atom_candidate impo
     _hard_nonworse_rate,
     _nonnegative_float,
     _paired_summary,
+    _planned_red_values,
     _robust_positive_scale,
     _summary,
     _vector,
@@ -259,6 +260,7 @@ def _load_record(raw: dict[str, Any], label: str) -> dict[str, Any]:
     if abs(float(dp_prior[0])) > 1e-9:
         raise ValueError(f"{label} DP-prior deviation atom must be zero for candidate0.")
     planned_progress = _planned_progress(raw, candidate_count, label)
+    planned_red = _planned_red_values(raw, candidate_count)
     scores = _vector(
         raw.get("selection_scores"),
         candidate_count,
@@ -285,6 +287,7 @@ def _load_record(raw: dict[str, Any], label: str) -> dict[str, Any]:
         "dp_prior_deviation": dp_prior,
         "planned_progress": planned_progress,
         "planned_progress_shortfall": progress_shortfall,
+        "planned_red": planned_red,
         "safety_cost": costs,
         "outcome_progress": outcome_progress,
         "outcomes": outcomes,
