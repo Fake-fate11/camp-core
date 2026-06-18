@@ -19177,3 +19177,208 @@ last documentation commit for this iteration was transferred with a local
 tracking ref was then updated to the same commit after local `git ls-remote
 origin refs/heads/main` confirmed GitHub pointed to the pushed commit. DP
 remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+### Held-Out SafetyCost v1 Selector Evaluation
+
+Date: 2026-06-18
+
+Purpose:
+
+Move from trainability smoke to the first non-formal held-out
+candidate-branch check. The question is whether a CAMP selector trained with
+offline hard-guarded SafetyCost v1 labels can reduce the frozen
+candidate-branch SafetyCost proxy versus DP Top-1 on logs not used for
+training. This still is not a closed-loop proof.
+
+Implementation:
+
+- Added `scripts/integrations/evaluate_diffusion_planner_camp_safety_cost.py`.
+- The evaluator loads saved static CAMP weights and atom scales, rescoring the
+  fixed current-tick `atoms` in `camp_selection_log.json`.
+- It does not modify logs, DP, candidates, tracker, smoothing, atom schema, or
+  the robust master.
+- Candidate outcomes are used only after selection to score SafetyCost v1;
+  they are not selector inputs.
+- The report includes both the evaluated selector and the logged selector, plus
+  evaluated-minus-logged paired run-level CI.
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main\camp_core;F:\camp_core-main'
+python -m pytest `
+  camp_core/tests/test_diffusion_planner_camp_safety_cost_evaluation.py `
+  camp_core/tests/test_diffusion_planner_safety_cost_oracle.py `
+  camp_core/tests/test_diffusion_planner_integration.py `
+  -k "camp_safety_cost_evaluation or safety_cost_v1_labels or static_training_can_use_safety_cost_v1 or static_robust_training_can_use_safety_cost_v1 or safety_cost_oracle"
+
+python -m pytest camp_core/tests
+```
+
+Local result:
+
+- Targeted: `13 passed, 1 skipped, 119 deselected`.
+- Full local suite: `368 passed, 12 skipped`.
+
+AutoDL targeted verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+/root/miniconda3/envs/camp/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_camp_safety_cost_evaluation.py \
+  camp_core/tests/test_diffusion_planner_safety_cost_oracle.py \
+  -k 'camp_safety_cost_evaluation or safety_cost_oracle'
+```
+
+AutoDL targeted result:
+
+`10 passed`.
+
+Evaluator smoke on the previous 9-log training-smoke checkpoint:
+
+| Metric | Evaluated selector | Logged selector |
+| --- | ---: | ---: |
+| Mean branch cost | `1.259355` | `1.259766` |
+| Mean delta vs Top-1 | `-0.004270` | `-0.003859` |
+| Delta-vs-Top-1 CI high | `0.048262` | `0.050010` |
+| Mean gap to hard-guarded oracle | `0.062976` | `0.063387` |
+| Gap-to-guarded-oracle CI high | `0.105481` | `0.106672` |
+| Changed record rate | `0.313333` | n/a |
+| Evaluated-minus-logged mean cost | `-0.000412` | n/a |
+| Evaluated-minus-logged CI high | `0.003618` | n/a |
+
+Smoke artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_v1_selector_eval_smoke_c7e95dd/selector_eval.json` | `78fdf602e00aaaf9b566297bfd536dc23607d7cc2395db089a1537fc3161f66b` |
+| `safety_cost_v1_selector_eval_smoke_c7e95dd/selector_eval.md` | `8c064ed5b6086180c77fb7b4b4e8ad367d9e6a5f5bf4b26b8944c964746cd590` |
+
+Seed-held-out training:
+
+Training command used seeds 1 and 2 from the 108-log diverse non-formal matrix
+and held out seed 3 for testing:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_robust_static_seed12_train_c7e95dd
+
+TRAIN_ARGS=()
+while IFS= read -r log; do
+  TRAIN_ARGS+=(--selection_log "$log")
+done < <(find "$ROOT" \( -path '*/seed_1/*' -o -path '*/seed_2/*' \) -name camp_selection_log.json | sort)
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/train_diffusion_planner_robust_camp.py \
+  --output_dir "$OUT" \
+  --mode static \
+  --label_source safety_cost_v1_hard_guarded \
+  --val_fraction 0.25 \
+  --seed 7 \
+  --max_iter 10 \
+  --require_atom_schema \
+  "${TRAIN_ARGS[@]}"
+```
+
+Training result:
+
+| Field | Value |
+| --- | ---: |
+| Input logs | `72` |
+| Input records | `14400` |
+| Eligible records | `10823` |
+| Dropped records | `3577` |
+| Train groups | `54` |
+| Val groups | `18` |
+| Converged | `true` |
+| Final master gap | `0.0` |
+| Train oracle match rate | `0.659312` |
+| Val oracle match rate | `0.638658` |
+| Train CVaR violation | `0.052046` |
+| Val CVaR violation | `0.094466` |
+
+Training artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_v1_robust_static_seed12_train_c7e95dd/training_summary.json` | `5f4f536ad6ee730b70b9bb06410a686b07546f5fb4f5740a98c9da0939c07992` |
+| `safety_cost_v1_robust_static_seed12_train_c7e95dd/offline_weights_dp_static.npy` | `d836f81f36509abccfd05031d1d3ba7cf604512d012db1e1e0aa504824d088e6` |
+| `safety_cost_v1_robust_static_seed12_train_c7e95dd/atom_scales_dp_static.json` | `5b54b45348772022505e8a49456edfdf0ae7b7a9ac35003fe9c8db03f790f333` |
+
+Seed-3 held-out candidate-branch evaluation:
+
+```bash
+TEST_ARGS=()
+while IFS= read -r log; do
+  TEST_ARGS+=(--selection_log "$log")
+done < <(find "$ROOT" -path '*/seed_3/*' -name camp_selection_log.json | sort)
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/evaluate_diffusion_planner_camp_safety_cost.py \
+  --atom_scales "$OUT/atom_scales_dp_static.json" \
+  --static_weights "$OUT/offline_weights_dp_static.npy" \
+  --selector_name safety_cost_v1_robust_static_seed12_train_c7e95dd \
+  --scenario_bucket_manifest /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_selector_eval_seed3_test_c7e95dd/selector_eval.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_selector_eval_seed3_test_c7e95dd/selector_eval.md \
+  --fail_on_formal_seeds \
+  --fail_on_missing_required \
+  "${TEST_ARGS[@]}"
+```
+
+Held-out overall result:
+
+| Metric | Evaluated selector | Logged selector |
+| --- | ---: | ---: |
+| Logs | `36` | `36` |
+| Records | `7200` | `7200` |
+| Formal records | `0` | `0` |
+| Mean branch cost | `5.225822` | `5.076169` |
+| Mean delta vs Top-1 | `-0.365584` | `-0.515237` |
+| Delta-vs-Top-1 CI low | `-0.635740` | `-0.900741` |
+| Delta-vs-Top-1 CI high | `-0.139640` | `-0.177962` |
+| Mean gap to hard-guarded oracle | `1.466687` | `1.317034` |
+| Gap-to-guarded-oracle CI high | `2.840983` | `2.569201` |
+| Beats Top-1 rate | `0.696667` | `0.676806` |
+| Matches hard-guarded oracle rate | `0.562222` | `0.511806` |
+| Changed record rate | `0.252778` | n/a |
+| Evaluated-minus-logged mean cost | `+0.149653` | n/a |
+| Evaluated-minus-logged CI high | `+0.360374` | n/a |
+
+Held-out bucket result for evaluated selector:
+
+| Bucket | Records | Logs | Delta vs Top-1 | CI high | Gap to guarded oracle | Gap CI high |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `overall` | `7200` | `36` | `-0.365584` | `-0.135409` | `1.466687` | `2.848185` |
+| `normal` | `400` | `2` | `-0.026244` | `-0.026244` | `0.008002` | `0.008002` |
+| `traffic_light` | `1200` | `6` | `-0.092589` | `-0.044571` | `0.009398` | `0.011460` |
+| `red_light_turn` | `1200` | `6` | `-0.092589` | `-0.044571` | `0.009398` | `0.011415` |
+| `sharp_turn` | `2400` | `12` | `-0.056513` | `-0.003353` | `0.080245` | `0.206691` |
+| `npc_interaction` | `400` | `2` | `-0.052965` | `-0.047049` | `0.055506` | `0.060201` |
+| `dense_scene` | `400` | `2` | `-0.052965` | `-0.047049` | `0.055506` | `0.060201` |
+| `lane_change_or_merge` | `2400` | `12` | `-1.001746` | `-0.424244` | `4.239256` | `7.406796` |
+
+Held-out artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_v1_selector_eval_seed3_test_c7e95dd/selector_eval.json` | `9163b117f8c93a947eb8f9bdf1eb36661e8353339c8ee7eb0e414f4742876da3` |
+| `safety_cost_v1_selector_eval_seed3_test_c7e95dd/selector_eval.md` | `fa5a298083d1a03a59f4fefb05e92f7c37ac8de3bb0badac930bf71df958ce6e` |
+
+Decision:
+
+Accept this as the first seed-held-out candidate-branch evidence that CAMP can
+learn a SafetyCost-improving direction over fixed DP candidates: the evaluated
+selector beats DP Top-1 overall and in every required explicit bucket, with
+CI high below zero and no formal seeds. Reject it as a deployable replacement
+or closed-loop proof: the evaluated selector is worse than the logged
+`redstopfloor05` selector on mean branch cost and evaluated-minus-logged CI high
+is positive. The next admissible step is not formal seeds; it is to diagnose
+why the newly trained SafetyCost selector lags the logged selector despite
+higher hard-guarded oracle match rate, then test whether adding explicit
+progress/comfort lower-bound constraints or minimum atom weights improves the
+held-out gap without weakening the convex master.
