@@ -17510,3 +17510,163 @@ or microbenchmark for `reward_batch_compute`, `reward_route_progress`, and
 `reward_sg_smoothing`; only after a concrete exact-equivalent plan projects
 enough margin under the conservative model should a broader non-formal replay
 be considered.
+
+### Exact-Equivalent Reward SG Smoothing Optimization
+
+Commit:
+
+- CAMP commit:
+  `02c158316e236081de82598eee41d10edad3a6c5`
+  (`Vectorize DP reward SG smoothing`).
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Purpose:
+
+The prior blocker smoke identified three reward-side latency targets:
+`reward_batch_compute`, `reward_route_progress`, and `reward_sg_smoothing`.
+This iteration implements only the exact-equivalent `reward_sg_smoothing`
+change. The previous reward path converted candidates to `float32` and applied
+Diffusion Planner's Savitzky-Golay smoothing one candidate at a time. The new
+path uses the already-tested batch-axis smoothing helper on the same `float32`
+candidate tensor, preserving the same Savitzky-Golay window/order and heading
+renormalization.
+
+Local equivalence and microbenchmark:
+
+```text
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py::test_tracker_reference_candidates_apply_replay_savgol_preprocessing \
+  camp_core/tests/test_diffusion_planner_integration.py::test_reward_scoring_candidates_match_previous_per_candidate_savgol \
+  camp_core/tests/test_diffusion_planner_integration.py::test_reward_scoring_candidates_preserve_disabled_copy_semantics \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py \
+  camp_core/tests/test_diffusion_planner_reward_latency_tail.py \
+  camp_core/tests/test_diffusion_planner_latency_budget.py -q
+```
+
+Result: `12 passed`. A local synthetic SG-only microbenchmark over an `8 x 80 x
+4` candidate tensor had exact output equality (`max_abs_error=0`) and reduced
+SG p95 from about `3.460600 ms` to about `0.803575 ms`. This local benchmark is
+development evidence only; the replay smoke below is the relevant AutoDL
+runtime check.
+
+Rejected route-progress attempt:
+
+An exact scalar-to-batched route-progress projection was prototyped but not
+committed. On a synthetic long-route case (`8 x 30` candidate points and about
+`5000` route segments), it had exact equality but was slower:
+
+| Variant | Median | P95 |
+| --- | ---: | ---: |
+| scalar route progress | `50.123300 ms` | `54.043850 ms` |
+| batched route progress | `92.215250 ms` | `96.973700 ms` |
+
+Decision: reject this route-progress implementation. `reward_route_progress`
+remains a real target, but it needs a different design and a real-snapshot
+microbenchmark before code changes.
+
+AutoDL verification:
+
+- AutoDL CAMP after sync:
+  `02c158316e236081de82598eee41d10edad3a6c5`.
+- AutoDL DP:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Remote targeted tests: `12 passed`.
+
+Non-formal smoke:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/
+  reward_sg_vectorized_smoke_02c1583_sample_tl_seed1_npc4_tloff_static
+```
+
+This reruns only
+`sample_map_tl_route_59_to_86/seed_1/npc_4/tl_off/static` with the same
+development setup as the previous reward-breakdown smoke. It is not a Full36
+run, online selector promotion, formal-seed run, CAMP training run, or DP
+change.
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `ed1a17e6f590951e844bd2622c622c7e107e393e45e9fe648cff4aa6b03d0eea` |
+| `camp_validation_summary.json` | `99dd6c2310ec6658429008c6485167781e30ed465aa02ab46988f14ae929ff2e` |
+| `camp_replay_summary.json` | `6abdbc7302edb3112464e07e1aeb253475ef181676bd8d41c7012dbe43a8111d` |
+| `dataset_audit_reward_sg_vectorized_smoke.json` | `1c0a8eba7651cef50969e707839636942512863fcee4952272e6d7bca7a2a46f` |
+| `latency_budget_reward_sg_vectorized_smoke.json` | `2bd38964f85a2610c2962c83f7f17d14ac24131ce1eabdc2b9d77f0a7adcc915` |
+| `latency_budget_reward_sg_vectorized_smoke.md` | `283c7b912a52faee4f551c7e0062c08c3817dad8acc29fd76f92f0bee1af1cd1` |
+| `reward_latency_tail_reward_sg_vectorized_smoke.json` | `48d34822be5cf0d4cfc74ae865affa88cd6230e0279b080e8a5f8e84ba19d441` |
+| `reward_latency_tail_reward_sg_vectorized_smoke.md` | `21102468401c500e24b318fd5da5d6089f81734d23080a056ad7304b1694c625` |
+| `selector_equivalence_vs_reward_breakdown_smoke.json` | `0a680a50059a81659a870a66eb3e36f0d0df830c83068398d5b893e02d6a9ead` |
+| `non_latency_tolerance_summary_vs_reward_breakdown_smoke.json` | `d98dc6df47f95f3a5fdf18ab3c5b8d3b14f9c27781fdb605a68f90b76b1f346f` |
+
+Dataset and equivalence audits:
+
+- dataset audit passed `1` log and `200` records;
+- `closed_loop_outcome_policy=forbidden`;
+- formal seeds `11/12/13` forbidden;
+- `candidate_route_progress` required;
+- finite-candidate contract required;
+- selector equivalence versus the previous reward-breakdown smoke passed with
+  exact equality for selected index, feasible mask, infeasibility reasons,
+  atoms, normalized atoms, scores, weights, and selection scores;
+- non-latency record comparison had no nonnumeric mismatches and maximum
+  numeric difference `7.593925488436071e-14`, limited to
+  `candidate_perfect_tracker_open_loop_rollout` and
+  `candidate_perfect_tracker_postprocessed_reference_prefix`.
+
+Latency summary:
+
+| Metric | Previous smoke P95 | SG-vectorized smoke P95 |
+| --- | ---: | ---: |
+| `latency_ms_including_candidate_generation` | `99.847964` | `97.684553` |
+| `latency_ms_reward_scoring` | `29.968980` | `27.691599` |
+| `latency_ms_reward_sg_smoothing` | `5.285364` | `0.467413` |
+| `latency_ms_reward_batch_compute` | `14.318304` | `15.684527` |
+| `latency_ms_reward_route_progress` | `6.952000` | `6.941473` |
+| `latency_ms_camp_selection` | `8.430465` | `8.722617` |
+| `latency_ms_shadow_obstacle_clearance` | `0.858692` | `0.865972` |
+
+The total per-run p95 is now below `100 ms` with about `2.315447 ms` margin for
+this single smoke. This is a positive engineering result but still not enough
+for the development gate because it is one run and the old Full36 logs cannot
+be retroactively upgraded into current-code reward-breakdown evidence.
+
+Reward attribution after SG vectorization:
+
+| Quantity | Mean | P95 | Max |
+| --- | ---: | ---: | ---: |
+| `latency_ms_reward_scoring` | `22.993297` | `27.691599` | `180.833546` |
+| reward breakdown sum | `22.954007` | `27.655440` | `180.791772` |
+| reward unattributed residual | `0.039290` | `0.044433` | `0.096203` |
+
+Top all-record reward components:
+
+| Component | Mean | P95 | Max |
+| --- | ---: | ---: | ---: |
+| `latency_ms_reward_batch_compute` | `13.070546` | `15.684527` | `170.443398` |
+| `latency_ms_reward_route_progress` | `6.906255` | `6.941473` | `12.855146` |
+| `latency_ms_reward_npz_dump` | `1.859383` | `1.962090` | `2.892023` |
+| `latency_ms_reward_sg_smoothing` | `0.466525` | `0.467413` | `3.109545` |
+| `latency_ms_reward_tensor_setup` | `0.336077` | `0.340647` | `1.209443` |
+
+All three clearance projection modes still have `0` over-budget runs for this
+single smoke and `0` reward-tail rows.
+
+Mathematical boundary: this change does not modify DP candidate generation,
+Savitzky-Golay parameters, `postprocess_reference`, PerfectTracker semantics,
+CAMP atoms, atom normalization, affine scores, feasible masks, simplex/CVaR/L2
+master logic, or the finite-candidate selector. It only changes the mechanical
+implementation of an already-required current-tick smoothing operation from a
+Python per-candidate loop to a batch-axis SciPy call with exact tested equality.
+This is latency plumbing, not Benders, and it creates no new master/subproblem,
+duals, or cuts.
+
+Decision: accept the SG vectorization as an exact-equivalent latency
+improvement. Reject route-progress vectorization as currently implemented.
+Reject Full36 replay, online selector promotion, formal seeds, and CAMP
+retraining from this one-run smoke. The next admissible step is to design an
+exact-equivalent plan for either `reward_batch_compute` or `reward_route_progress`
+using real snapshot microbenchmarks and selector-equivalence checks before any
+broader non-formal replay.
