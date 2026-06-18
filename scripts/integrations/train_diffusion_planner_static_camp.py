@@ -21,6 +21,11 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     DEFAULT_CLOSED_LOOP_OUTCOME_WEIGHTS,
     atom_schema_for_dimension,
 )
+from scripts.integrations.compare_diffusion_planner_camp_replays import (  # noqa: E402
+    SAFETY_COST_V1_CLIP,
+    SAFETY_COST_V1_NORMALIZATION,
+    SAFETY_COST_V1_WEIGHTS,
+)
 
 
 DEFAULT_PROXY_WEIGHTS = np.array(
@@ -50,6 +55,12 @@ OUTCOME_WEIGHT_TO_FIELD = {
     "mean_jerk": "mean_jerk_mps3",
     "mean_lateral_acceleration": "mean_lateral_acceleration_mps2",
 }
+SAFETY_COST_V1_BOOL_FIELDS = (
+    "collision",
+    "near_miss",
+    "lane_violation",
+    "red_light_violation",
+)
 
 
 def _records_from_path(path: Path) -> list[dict[str, Any]]:
@@ -154,6 +165,145 @@ def load_candidate_closed_loop_outcomes(
     if not values:
         raise ValueError("No candidate closed-loop outcome records were loaded.")
     return np.asarray(values, dtype=np.float64), np.asarray(feasible, dtype=bool)
+
+
+def load_candidate_safety_cost_v1_values(
+    paths: list[Path],
+) -> tuple[np.ndarray, np.ndarray]:
+    values = []
+    feasible = []
+    for path in paths:
+        for record in _records_from_path(path):
+            outcomes = record.get("candidate_closed_loop_outcomes")
+            if not isinstance(outcomes, list):
+                raise ValueError(
+                    f"{path} contains records without candidate_closed_loop_outcomes. "
+                    "Collect logs with --camp_collect_closed_loop_outcomes."
+                )
+            candidate_count = len(outcomes)
+            record_feasible = np.asarray(
+                record.get("feasible_mask"),
+                dtype=bool,
+            ).reshape(-1)
+            if record_feasible.shape != (candidate_count,):
+                raise ValueError(
+                    "feasible_mask must match candidate outcomes, got "
+                    f"{record_feasible.shape} and {candidate_count}."
+                )
+            branch_feasible = (
+                record_feasible
+                if bool(record_feasible.any())
+                else np.ones(candidate_count, dtype=bool)
+            )
+            planned_red = _candidate_planned_red_values(record, candidate_count)
+            progress = np.asarray(
+                [
+                    _outcome_nonnegative_float(outcome, "progress_m")
+                    for outcome in outcomes
+                ],
+                dtype=np.float64,
+            )
+            progress_ref = (
+                float(np.max(progress[branch_feasible]))
+                if branch_feasible.any()
+                else float(np.max(progress))
+            )
+            progress_denom = max(progress_ref, 1.0)
+            top1 = outcomes[0]
+            record_values = []
+            record_feasible_mask = []
+            for index, outcome in enumerate(outcomes):
+                cost = _candidate_safety_cost_v1(
+                    outcome,
+                    planned_red=float(planned_red[index]),
+                    progress_ref=progress_ref,
+                    progress_denom=progress_denom,
+                )
+                record_values.append(-cost)
+                outcome_feasible = bool(outcome.get("feasible", True))
+                hard_nonworse = all(
+                    float(bool(outcome[field])) <= float(bool(top1[field]))
+                    for field in SAFETY_COST_V1_BOOL_FIELDS
+                )
+                record_feasible_mask.append(
+                    bool(branch_feasible[index] and outcome_feasible and hard_nonworse)
+                )
+            values.append(record_values)
+            feasible.append(record_feasible_mask)
+    if not values:
+        raise ValueError("No candidate SafetyCost v1 records were loaded.")
+    return np.asarray(values, dtype=np.float64), np.asarray(feasible, dtype=bool)
+
+
+def _candidate_safety_cost_v1(
+    outcome: dict[str, Any],
+    *,
+    planned_red: float,
+    progress_ref: float,
+    progress_denom: float,
+) -> float:
+    raw_components = {
+        "collision": float(bool(outcome["collision"])),
+        "near_miss": float(bool(outcome["near_miss"])),
+        "lane_violation": float(bool(outcome["lane_violation"])),
+        "realized_red_light": float(bool(outcome["red_light_violation"])),
+        "planned_red_light": min(max(float(planned_red), 0.0), 1.0),
+        "mean_jerk": min(
+            _outcome_nonnegative_float(outcome, "mean_jerk_mps3")
+            / SAFETY_COST_V1_NORMALIZATION["mean_jerk_magnitude_mps3"],
+            SAFETY_COST_V1_CLIP,
+        ),
+        "mean_lateral_acceleration": min(
+            _outcome_nonnegative_float(outcome, "mean_lateral_acceleration_mps2")
+            / SAFETY_COST_V1_NORMALIZATION["mean_lateral_acceleration_mps2"],
+            SAFETY_COST_V1_CLIP,
+        ),
+        "route_shortfall": min(
+            max(
+                (
+                    float(progress_ref)
+                    - _outcome_nonnegative_float(outcome, "progress_m")
+                )
+                / float(progress_denom),
+                0.0,
+            ),
+            1.0,
+        ),
+    }
+    return float(
+        sum(
+            float(raw_components[key]) * SAFETY_COST_V1_WEIGHTS[key]
+            for key in raw_components
+        )
+    )
+
+
+def _candidate_planned_red_values(record: dict[str, Any], size: int) -> np.ndarray:
+    for key in (
+        "candidate_horizon_union_planned_red_light_cost",
+        "candidate_full_horizon_planned_red_light_cost",
+    ):
+        values = record.get(key)
+        if values is not None:
+            vector = np.asarray(values, dtype=np.float64).reshape(-1)
+            if vector.shape != (size,):
+                raise ValueError(f"{key} must have shape [{size}].")
+            if not np.all(np.isfinite(vector)) or np.any(vector < 0.0):
+                raise ValueError(f"{key} must contain finite nonnegative values.")
+            return vector
+    return np.zeros(size, dtype=np.float64)
+
+
+def _outcome_nonnegative_float(outcome: dict[str, Any], field: str) -> float:
+    try:
+        value = float(outcome[field])
+    except (KeyError, TypeError, ValueError):
+        raise ValueError(f"Candidate outcome field {field!r} must be numeric.") from None
+    if not np.isfinite(value) or value < 0.0:
+        raise ValueError(
+            f"Candidate outcome field {field!r} must be finite and nonnegative."
+        )
+    return value
 
 
 def load_outcome_weights(path: Path | None) -> dict[str, float] | None:
@@ -377,7 +527,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scale_percentile", type=float, default=95.0)
     parser.add_argument(
         "--label_source",
-        choices=("dp_reward", "closed_loop_outcome", "proxy"),
+        choices=(
+            "dp_reward",
+            "closed_loop_outcome",
+            "safety_cost_v1_hard_guarded",
+            "proxy",
+        ),
         default="dp_reward",
     )
     parser.add_argument(
@@ -466,6 +621,30 @@ def main() -> None:
         closed_loop_outcomes = closed_loop_outcomes[valid]
         if not atoms.shape[0]:
             raise ValueError("No closed-loop outcome records contain a feasible candidate.")
+    elif args.label_source == "safety_cost_v1_hard_guarded":
+        closed_loop_outcomes, outcome_feasible = load_candidate_safety_cost_v1_values(
+            args.selection_log,
+        )
+        if closed_loop_outcomes.shape != feasible.shape:
+            raise ValueError(
+                "Candidate SafetyCost shape must match feasible_mask, "
+                f"got {closed_loop_outcomes.shape} and {feasible.shape}."
+            )
+        if outcome_feasible.shape != feasible.shape:
+            raise ValueError(
+                "Candidate SafetyCost feasible shape must match feasible_mask, "
+                f"got {outcome_feasible.shape} and {feasible.shape}."
+            )
+        finite_feasible = np.isfinite(closed_loop_outcomes) & outcome_feasible
+        valid = finite_feasible.any(axis=1)
+        dropped_records = int(np.sum(~valid))
+        atoms = atoms[valid]
+        feasible = outcome_feasible[valid]
+        closed_loop_outcomes = closed_loop_outcomes[valid]
+        if not atoms.shape[0]:
+            raise ValueError(
+                "No SafetyCost v1 records contain a hard-guarded feasible candidate."
+            )
     else:
         if args.proxy_weights:
             proxy_weights = np.asarray(json.loads(args.proxy_weights), dtype=np.float64)
@@ -580,9 +759,16 @@ def main() -> None:
             "final claims."
             if args.label_source == "closed_loop_outcome"
             else (
-                "Candidate-level DP rewards are model-based preferences, not "
-                "counterfactual closed-loop outcomes. Closed-loop matched baselines "
-                "remain required for final claims."
+                "Hard-guarded SafetyCost v1 labels are offline candidate-branch "
+                "training targets. Runtime CAMP atoms must not use future "
+                "outcomes, and matched closed-loop baselines remain required "
+                "for final claims."
+                if args.label_source == "safety_cost_v1_hard_guarded"
+                else (
+                    "Candidate-level DP rewards are model-based preferences, not "
+                    "counterfactual closed-loop outcomes. Closed-loop matched "
+                    "baselines remain required for final claims."
+                )
             )
         ),
     }

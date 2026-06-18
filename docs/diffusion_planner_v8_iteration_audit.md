@@ -18942,3 +18942,103 @@ candidate generation, SG smoothing, `postprocess_reference`, PerfectTracker,
 CAMP atom schema, affine scoring, feasible masks, fallback semantics, or the
 simplex/CVaR/L2 master. The corrected bucket labels come from route aliases,
 route topology, and run configuration fields, not outcome metrics.
+
+### Hard-Guarded SafetyCost v1 Training Labels
+
+Date: 2026-06-18
+
+Purpose:
+
+The corrected diverse non-formal oracle audit proved that the fixed DP
+candidate pool contains hard-guarded SafetyCost v1 opportunity, but the current
+`redstopfloor05` CAMP selector still fails the traffic-light and red-light-turn
+bucket proof gate. This iteration starts the next admissible step: expose the
+same offline hard-guarded SafetyCost v1 oracle direction as a CAMP training
+label while keeping the online selector and robust master mathematically
+unchanged.
+
+Implementation:
+
+- `scripts/integrations/train_diffusion_planner_static_camp.py` now provides
+  `load_candidate_safety_cost_v1_values`.
+- The loader computes candidate value as `-SafetyCost_v1`, so the existing
+  reward/oracle utilities can still maximize labels while the metric remains
+  lower-is-better.
+- Candidate eligibility is:
+  `branch_feasible && outcome_feasible && hard_components_nonworse_than_top1`.
+- `branch_feasible` follows the existing candidate-branch oracle convention:
+  use `feasible_mask` when any candidate is base-feasible; otherwise use all
+  candidates for the all-infeasible fallback branch.
+- Hard components are collision, near-miss, lane violation, and realized
+  red-light violation. A candidate is ineligible if any of these is worse than
+  DP Top-1 for the same tick.
+- Planned red-light cost uses
+  `candidate_horizon_union_planned_red_light_cost` first, then
+  `candidate_full_horizon_planned_red_light_cost`, then zero if neither is
+  present.
+- Jerk, lateral acceleration, route shortfall, weights, normalization, and clip
+  reuse the frozen SafetyCost v1 constants from the replay comparison tooling.
+
+Training entry points:
+
+- Static training accepts
+  `--label_source safety_cost_v1_hard_guarded`.
+- Robust CAMP training accepts
+  `--label_source safety_cost_v1_hard_guarded` for both `static` and `theta`
+  modes.
+- `--outcome_weights` remains valid only for
+  `--label_source closed_loop_outcome`.
+- Robust all-infeasible fallback training now requires finite
+  `outcome_feasible` labels instead of silently ranking candidates with invalid
+  closed-loop outcomes.
+- Training summaries record `label_source` and explicitly mark SafetyCost v1
+  labels as offline candidate-branch targets. Runtime CAMP atoms must not use
+  future closed-loop outcomes.
+
+Mathematical boundary:
+
+This change does not modify DP, candidate generation, smoothing,
+`postprocess_reference`, PerfectTracker, CAMP atom schema, CAMP affine score,
+simplex projection, CVaR/L2 robust master, or the saved selector runtime API.
+SafetyCost v1 is used only as an offline supervised/robust-margin label source.
+The online CAMP selector still scores current-tick atoms as an affine function
+of simplex weights. Therefore the convex master remains the existing robust
+margin master; this is not claimed as a classical Benders reformulation of DP
+or trajectory coordinates.
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main\camp_core;F:\camp_core-main'
+python -m py_compile `
+  scripts/integrations/train_diffusion_planner_static_camp.py `
+  scripts/integrations/train_diffusion_planner_robust_camp.py `
+  camp_core/tests/test_diffusion_planner_integration.py
+
+python -m pytest `
+  camp_core/tests/test_diffusion_planner_integration.py `
+  camp_core/tests/test_diffusion_planner_safety_cost_oracle.py `
+  camp_core/tests/test_diffusion_planner_safety_comparison_relabel.py `
+  -k "safety_cost or robust_margin or robust_training or closed_loop_outcome_labels or atom_schema_validation"
+
+python -m pytest camp_core/tests
+```
+
+Local result:
+
+Targeted tests: `19 passed, 5 skipped, 109 deselected`.
+
+Full local suite: `366 passed, 12 skipped`.
+
+The skipped tests are solver- or environment-dependent in the local Windows
+environment. The robust-training path must still be rerun on AutoDL before
+accepting this implementation as synchronized and trainable.
+
+Decision:
+
+Accept the local label-source implementation as a narrow engineering step
+toward CAMP usefulness proof. Do not claim CAMP improvement yet. The next
+required evidence is AutoDL targeted tests plus a small robust-training smoke
+using `--label_source safety_cost_v1_hard_guarded` on existing diverse
+non-formal logs, followed by held-out evaluation against DP Top-1 and the
+hard-guarded oracle gap.

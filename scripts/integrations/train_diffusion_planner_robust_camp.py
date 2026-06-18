@@ -33,6 +33,7 @@ from camp_core.outer_master.robust_margin_master import (  # noqa: E402
 from scripts.integrations.train_diffusion_planner_static_camp import (  # noqa: E402
     atom_names_for_dimension,
     load_candidate_closed_loop_outcomes,
+    load_candidate_safety_cost_v1_values,
     load_outcome_weights,
     load_training_records,
     robust_atom_scales,
@@ -60,6 +61,16 @@ def parse_args() -> argparse.Namespace:
         "--training_scope",
         choices=("feasible_ranking", "all_infeasible_fallback"),
         default="feasible_ranking",
+    )
+    parser.add_argument(
+        "--label_source",
+        choices=("closed_loop_outcome", "safety_cost_v1_hard_guarded"),
+        default="closed_loop_outcome",
+        help=(
+            "Offline candidate-branch target source. SafetyCost v1 labels are "
+            "lower-is-better costs converted to values and hard-guarded against "
+            "Top-1 collision, near-miss, lane, and red-light regressions."
+        ),
     )
     parser.add_argument(
         "--objective",
@@ -246,6 +257,8 @@ def main() -> None:
     if args.training_scope == "all_infeasible_fallback" and args.mode != "static":
         raise ValueError("All-infeasible fallback training currently requires static mode.")
     outcome_weights = load_outcome_weights(args.outcome_weights)
+    if outcome_weights is not None and args.label_source != "closed_loop_outcome":
+        raise ValueError("--outcome_weights requires --label_source closed_loop_outcome.")
     if args.mode == "theta":
         features, atoms, selector_feasible = load_scene_training_records(
             args.selection_log
@@ -255,11 +268,16 @@ def main() -> None:
         features = None
     group_ids = load_scene_training_groups(args.selection_log)
 
-    outcome_values, outcome_feasible = load_candidate_closed_loop_outcomes(
-        args.selection_log,
-        outcome_key=args.outcome_key,
-        outcome_weights=outcome_weights,
-    )
+    if args.label_source == "closed_loop_outcome":
+        outcome_values, outcome_feasible = load_candidate_closed_loop_outcomes(
+            args.selection_log,
+            outcome_key=args.outcome_key,
+            outcome_weights=outcome_weights,
+        )
+    else:
+        outcome_values, outcome_feasible = load_candidate_safety_cost_v1_values(
+            args.selection_log,
+        )
     if outcome_values.shape != selector_feasible.shape:
         raise ValueError(
             "Outcome values must match selector feasibility, "
@@ -273,7 +291,7 @@ def main() -> None:
         )
     else:
         scope_mask = ~selector_feasible.any(axis=1)
-        combined_feasible = np.isfinite(outcome_values)
+        combined_feasible = outcome_feasible & np.isfinite(outcome_values)
     atoms = atoms[scope_mask]
     combined_feasible = combined_feasible[scope_mask]
     outcome_values = outcome_values[scope_mask]
@@ -480,6 +498,7 @@ def main() -> None:
         "training_type": "diffusion_planner_robust_margin_camp",
         "mode": args.mode,
         "training_scope": args.training_scope,
+        "label_source": args.label_source,
         "objective": args.objective,
         "risk_type": args.risk_type,
         "alpha": float(args.alpha),
@@ -493,11 +512,20 @@ def main() -> None:
         "converged": bool(result.converged),
         "final_master_gap": float(result.final_master_gap),
         "selection_logs": [str(path) for path in args.selection_log],
-        "outcome_key": args.outcome_key if outcome_weights is None else None,
-        "outcome_weights_path": (
-            None if args.outcome_weights is None else str(args.outcome_weights)
+        "outcome_key": (
+            args.outcome_key
+            if args.label_source == "closed_loop_outcome" and outcome_weights is None
+            else None
         ),
-        "outcome_weights": outcome_weights,
+        "outcome_weights_path": (
+            str(args.outcome_weights)
+            if args.label_source == "closed_loop_outcome"
+            and args.outcome_weights is not None
+            else None
+        ),
+        "outcome_weights": (
+            outcome_weights if args.label_source == "closed_loop_outcome" else None
+        ),
         "input_records": input_records,
         "scope_records": scope_records,
         "num_records": int(atoms.shape[0]),
@@ -532,10 +560,20 @@ def main() -> None:
         "history": result.history,
         "artifacts": artifact_paths,
         "caveat": (
-            "This checkpoint minimizes mean/CVaR robust outcome-margin "
-            f"violations for scope={args.training_scope!r} over short-horizon "
-            "candidate branches. Matched closed-loop evaluation remains "
-            "required for performance claims."
+            (
+                "This checkpoint minimizes mean/CVaR robust margin violations "
+                "against hard-guarded offline SafetyCost v1 candidate-branch "
+                f"labels for scope={args.training_scope!r}. Runtime CAMP atoms "
+                "must not use future outcomes, and matched closed-loop "
+                "evaluation remains required for performance claims."
+            )
+            if args.label_source == "safety_cost_v1_hard_guarded"
+            else (
+                "This checkpoint minimizes mean/CVaR robust outcome-margin "
+                f"violations for scope={args.training_scope!r} over short-horizon "
+                "candidate branches. Matched closed-loop evaluation remains "
+                "required for performance claims."
+            )
         ),
     }
     summary_path = args.output_dir / "training_summary.json"

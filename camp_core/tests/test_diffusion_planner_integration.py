@@ -87,7 +87,9 @@ from scripts.integrations.train_diffusion_planner_theta import (
 from scripts.integrations.train_diffusion_planner_static_camp import (
     load_candidate_closed_loop_outcomes,
     load_candidate_reward_values,
+    load_candidate_safety_cost_v1_values,
     load_training_records,
+    main as train_static_camp_main,
     oracle_indices,
     reward_oracle_indices,
     robust_atom_scales,
@@ -1161,6 +1163,137 @@ def test_closed_loop_outcome_labels_can_be_reweighted(tmp_path) -> None:
     assert weighted_labels.tolist() == [0]
 
 
+def _safety_cost_outcome(
+    *,
+    progress: float = 10.0,
+    collision: bool = False,
+    near_miss: bool = False,
+    lane_violation: bool = False,
+    red_light_violation: bool = False,
+    mean_jerk: float = 0.1,
+    mean_lateral: float = 0.1,
+    feasible: bool = True,
+) -> dict[str, object]:
+    return {
+        "progress_m": progress,
+        "collision": collision,
+        "near_miss": near_miss,
+        "lane_violation": lane_violation,
+        "red_light_violation": red_light_violation,
+        "mean_jerk_mps3": mean_jerk,
+        "mean_lateral_acceleration_mps2": mean_lateral,
+        "feasible": feasible,
+    }
+
+
+def test_safety_cost_v1_labels_apply_top1_hard_guard(tmp_path) -> None:
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(
+        json.dumps(
+            [
+                {
+                    "atoms": [[0.0] * 9, [1.0] * 9, [2.0] * 9],
+                    "feasible_mask": [True, True, True],
+                    "candidate_horizon_union_planned_red_light_cost": [1.0, 0.0, 0.0],
+                    "candidate_closed_loop_outcomes": [
+                        _safety_cost_outcome(mean_jerk=5.0),
+                        _safety_cost_outcome(red_light_violation=True),
+                        _safety_cost_outcome(progress=11.0),
+                    ],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    values, feasible = load_candidate_safety_cost_v1_values([log_path])
+    labels = reward_oracle_indices(values, feasible)
+
+    assert feasible.tolist() == [[True, False, True]]
+    assert labels.tolist() == [2]
+    assert values[0, 2] > values[0, 0]
+
+
+def test_safety_cost_v1_labels_use_fallback_branch_when_all_base_infeasible(
+    tmp_path,
+) -> None:
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(
+        json.dumps(
+            [
+                {
+                    "atoms": [[0.0] * 9, [1.0] * 9],
+                    "feasible_mask": [False, False],
+                    "candidate_horizon_union_planned_red_light_cost": [1.0, 0.0],
+                    "candidate_closed_loop_outcomes": [
+                        _safety_cost_outcome(mean_jerk=5.0),
+                        _safety_cost_outcome(progress=11.0),
+                    ],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    values, feasible = load_candidate_safety_cost_v1_values([log_path])
+    labels = reward_oracle_indices(values, feasible)
+
+    assert feasible.tolist() == [[True, True]]
+    assert labels.tolist() == [1]
+
+
+def test_static_training_can_use_safety_cost_v1_hard_guarded_labels(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    records = []
+    for progress in (11.0, 12.0):
+        records.append(
+            {
+                "atoms": [
+                    np.ones(len(CAMP_ATOM_NAMES)).tolist(),
+                    np.zeros(len(CAMP_ATOM_NAMES)).tolist(),
+                ],
+                "feasible_mask": [True, True],
+                "candidate_horizon_union_planned_red_light_cost": [1.0, 0.0],
+                "candidate_closed_loop_outcomes": [
+                    _safety_cost_outcome(mean_jerk=5.0),
+                    _safety_cost_outcome(progress=progress),
+                ],
+            }
+        )
+    log_path = tmp_path / "camp_selection_log.json"
+    log_path.write_text(json.dumps(records), encoding="utf-8")
+    output_dir = tmp_path / "static_safety"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "train_diffusion_planner_static_camp.py",
+            "--selection_log",
+            str(log_path),
+            "--output_dir",
+            str(output_dir),
+            "--label_source",
+            "safety_cost_v1_hard_guarded",
+            "--epochs",
+            "10",
+        ],
+    )
+
+    train_static_camp_main()
+
+    summary = json.loads(
+        (output_dir / "training_summary.json").read_text(encoding="utf-8")
+    )
+    weights = np.load(output_dir / "offline_weights_dp_static.npy")
+    assert summary["label_source"] == "safety_cost_v1_hard_guarded"
+    assert summary["oracle_match_rate"] == 1.0
+    assert "future outcomes" in summary["caveat"]
+    np.testing.assert_allclose(weights.sum(), 1.0)
+    assert np.all(weights >= 0.0)
+
+
 def test_robust_margin_oracle_and_margins_exclude_infeasible_candidates() -> None:
     values = np.array([[10.0, 100.0, 4.0], [1.0, 3.0, 2.0]])
     feasible = np.array([[True, False, True], [True, True, False]])
@@ -1468,8 +1601,8 @@ def test_static_robust_training_can_target_all_infeasible_fallback(
                 "atoms": fallback_atoms.tolist(),
                 "feasible_mask": [False, False],
                 "candidate_closed_loop_outcomes": [
-                    {"value": 0.0, "feasible": False},
-                    {"value": 1.0 + group_idx, "feasible": False},
+                    {"value": 0.0, "feasible": True},
+                    {"value": 1.0 + group_idx, "feasible": True},
                 ],
             },
             {
@@ -1522,6 +1655,70 @@ def test_static_robust_training_can_target_all_infeasible_fallback(
     assert summary["final_master_gap"] <= summary["tolerance"]
     assert (output_dir / "atom_scales_dp_fallback.json").is_file()
     assert (output_dir / "offline_weights_dp_fallback.npy").is_file()
+
+
+def test_static_robust_training_can_use_safety_cost_v1_hard_guarded_labels(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    pytest.importorskip("cvxpy")
+    log_paths = []
+    for group_idx in range(3):
+        records = [
+            {
+                "atom_schema_version": "camp_legacy_v1_9d",
+                "atom_names": list(CAMP_ATOM_NAMES),
+                "atoms": [
+                    np.ones(len(CAMP_ATOM_NAMES)).tolist(),
+                    np.zeros(len(CAMP_ATOM_NAMES)).tolist(),
+                ],
+                "feasible_mask": [True, True],
+                "candidate_horizon_union_planned_red_light_cost": [1.0, 0.0],
+                "candidate_closed_loop_outcomes": [
+                    _safety_cost_outcome(mean_jerk=5.0),
+                    _safety_cost_outcome(progress=11.0 + group_idx),
+                ],
+            }
+        ]
+        log_path = tmp_path / f"safety_group_{group_idx}" / "camp_selection_log.json"
+        log_path.parent.mkdir()
+        log_path.write_text(json.dumps(records), encoding="utf-8")
+        log_paths.append(log_path)
+
+    output_dir = tmp_path / "safety_trained"
+    argv = [
+        "train_diffusion_planner_robust_camp.py",
+        "--output_dir",
+        str(output_dir),
+        "--mode",
+        "static",
+        "--label_source",
+        "safety_cost_v1_hard_guarded",
+        "--require_atom_schema",
+        "--val_fraction",
+        str(1.0 / 3.0),
+        "--seed",
+        "7",
+        "--max_iter",
+        "5",
+    ]
+    for log_path in log_paths:
+        argv.extend(["--selection_log", str(log_path)])
+    monkeypatch.setattr(sys, "argv", argv)
+
+    train_robust_camp_main()
+
+    summary = json.loads(
+        (output_dir / "training_summary.json").read_text(encoding="utf-8")
+    )
+    saved_weights = np.load(output_dir / "offline_weights_dp_static.npy")
+    assert summary["label_source"] == "safety_cost_v1_hard_guarded"
+    assert summary["outcome_key"] is None
+    assert summary["outcome_weights"] is None
+    assert summary["converged"]
+    assert "future outcomes" in summary["caveat"]
+    np.testing.assert_allclose(saved_weights.sum(), 1.0)
+    assert np.all(saved_weights >= 0.0)
 
 
 def test_empirical_cvar_emphasizes_worst_case_loss() -> None:
