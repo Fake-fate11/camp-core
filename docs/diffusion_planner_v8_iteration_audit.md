@@ -18518,3 +18518,101 @@ It does not change DP, candidate generation, SG smoothing,
 fallback policy, or the simplex/CVaR/L2 master. Candidate outcomes collected
 by the planned run remain offline labels and are forbidden as online selector
 inputs.
+
+### SafetyCost v1 Opportunity Diagnostics
+
+This iteration freezes the development SafetyCost v1 contract in
+`docs/dp_camp_safety_score_v1.md` before running a new diverse matrix. The
+frozen contract keeps the existing weights, normalizations, hard gates,
+scenario buckets, and paired bootstrap claim rule. Sensitivity analysis remains
+allowed only as sensitivity, not as the primary claim metric.
+
+Implementation:
+
+- commit:
+  `b007e217f1d02e3d5368452752f2e5c904b795ca`;
+- script:
+  `scripts/integrations/analyze_diffusion_planner_safety_cost_oracle.py`;
+- local targeted tests:
+  `python -m pytest camp_core/tests/test_diffusion_planner_safety_cost_oracle.py camp_core/tests/test_diffusion_planner_safety_score_compare.py camp_core/tests/test_diffusion_planner_diverse_scenario_matrix_plan.py`
+  -> `17 passed`;
+- AutoDL targeted tests:
+  same command under `/root/miniconda3/envs/camp/bin/python` -> `17 passed`.
+
+The oracle analyzer now reports:
+
+- candidate-pool coverage: candidate count, eligible candidate count,
+  Top-1/CAMP eligibility, hard-guarded oracle availability, and fallback rate;
+- CAMP-to-oracle and CAMP-to-hard-guarded-oracle run-level gaps;
+- failure modes: no oracle improvement, no hard-guarded candidate, guarded
+  oracle not better than Top-1, CAMP worse than Top-1, CAMP missing an
+  available oracle, and all-infeasible fallback rows;
+- the same diagnostics by explicit scenario bucket.
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/analyze_diffusion_planner_safety_cost_oracle.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest /root/autodl-tmp/camp_core/configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_diagnostics_b007e21/safety_cost_oracle_diagnostics_b007e21.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_diagnostics_b007e21/safety_cost_oracle_diagnostics_b007e21.md \
+  --fail_on_formal_seeds
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_oracle_diagnostics_b007e21.json` | `cbf3bf4b6864158817a530f02de14264080a7d0dcdd1b3e2721883b6d6dfef2d` |
+| `safety_cost_oracle_diagnostics_b007e21.md` | `712ea39fd9179f921df802091af83f49c3fecebc47d383b3285c9c18f1a1d25a` |
+
+Key diagnostics on the existing non-formal outcome-labeled artifact:
+
+| Metric | Value |
+| --- | ---: |
+| Logs | `36` |
+| Records | `7200` |
+| Opportunity gate passed | `False` |
+| Missing required buckets | `npc_interaction`, `dense_scene`, `lane_change_or_merge` |
+| CAMP mean gap to hard-guarded oracle | `+0.563504` |
+| CAMP gap-to-hard-guarded-oracle CI high | `+0.821585` |
+| Base-feasible record rate | `0.824861` |
+| All-infeasible fallback record rate | `0.175139` |
+| Mean candidate count | `8.000000` |
+| Mean eligible candidate count | `7.610833` |
+| Top-1 eligible rate | `0.958333` |
+| CAMP eligible rate | `1.000000` |
+| Hard-guarded oracle available rate | `0.999444` |
+
+Failure-mode diagnostics:
+
+| Failure mode | Count | Rate |
+| --- | ---: | ---: |
+| `oracle_not_better_than_top1` | `345` | `0.047917` |
+| `hard_guarded_oracle_unavailable` | `4` | `0.000556` |
+| `hard_guarded_oracle_not_better_than_top1` | `345` | `0.047917` |
+| `camp_worse_than_top1` | `1592` | `0.221111` |
+| `camp_not_oracle_when_oracle_beats_top1` | `3381` | `0.469583` |
+| `camp_not_hard_guarded_oracle_when_available` | `3545` | `0.492361` |
+| `fallback_all_infeasible` | `1261` | `0.175139` |
+
+Interpretation:
+
+The existing fixed DP candidate pool still contains hard-guarded oracle
+opportunity, but the current CAMP selector leaves a substantial positive gap
+to that oracle and the scenario gate remains incomplete. This supports the
+next step of adding lane-change coverage and then deciding whether CAMP can
+learn the oracle direction; it does not support online selector promotion,
+formal seeds, or a claim that the current CAMP checkpoint is already better
+than DP Top-1.
+
+Mathematical boundary:
+
+The diagnostics are aggregate offline labels over fixed candidate branches.
+They are not runtime atoms, not training inputs by themselves, and not a
+Benders subproblem. They do not change DP, candidate generation, SG smoothing,
+`postprocess_reference`, PerfectTracker, CAMP atom schema, affine score,
+fallback policy, or the simplex/CVaR/L2 master.
