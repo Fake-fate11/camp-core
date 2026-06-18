@@ -21089,3 +21089,153 @@ online selector yet. The next admissible engineering step is an outcome-free,
 default-off deployable path for the SafetyCost-trained CAMP weights, followed by
 a small paired non-formal closed-loop smoke with hard-safety, completion,
 fallback, and `<100 ms` latency gates. Formal seeds remain frozen.
+
+### SafetyCost-Trained Static CAMP Deployable Smoke
+
+Date: 2026-06-18
+
+Status: reject deployable promotion for the SafetyCost-trained static CAMP
+selector. The previous candidate-branch proof remains useful offline evidence,
+but this outcome-free closed-loop smoke does not beat DP Top-1 under the
+predeclared deployable gate.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit | `266290ac1f53be80d68cca824e4b6f7de05e72f2` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining in this step | none |
+| Formal seeds | none |
+
+The first foreground attempt is invalid evidence:
+
+| Item | Value |
+| --- | --- |
+| Root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_deployable_seed3_smoke_266290a` |
+| Outcome | abnormal local exit `1073807364`; no benchmark comparison |
+| Partial contents | `46` files, `6` validation summaries, `3` selection logs |
+| Decision | preserve as failed partial output only; do not use for metrics |
+
+The retry completed:
+
+| Item | Value |
+| --- | --- |
+| Root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_deployable_seed3_smoke_retry_266290a` |
+| Run script | `run_safety_cost_v1_deployable_seed3_smoke_retry.sh` |
+| Log | `run_safety_cost_v1_deployable_seed3_smoke_retry.log` |
+| Variants | `top1`, `static` |
+| Seed | `3` |
+| Routes | `sample_normal`, `sample_tl_turn`, `nishishinjuku_lane_change` |
+| NPC settings | `0`, `8` |
+| Traffic-light modes | `off`, `on` |
+| Replay count | `24` total, `12` strict top1/static pairs |
+| Candidate outcome labels | not collected |
+| Pairing audit | strict; no missing or duplicate run keys |
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `benchmark_comparison.json` | `303b540ed4f443e0a759f1b465ac15dc6859567e79a51b37eddf03cb42bed512` |
+| `benchmark_comparison.md` | `f23f854b8d1a05fad450ffe05c1116c272dbdf0d1aee0133ce02b311a75e6f61` |
+
+Static CAMP weights:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `safety_cost_v1_robust_static_seed12_train_c7e95dd/offline_weights_dp_static.npy` | `d836f81f36509abccfd05031d1d3ba7cf604512d012db1e1e0aa504824d088e6` |
+| `safety_cost_v1_robust_static_seed12_train_c7e95dd/atom_scales_dp_static.json` | `5b54b45348772022505e8a49456edfdf0ae7b7a9ac35003fe9c8db03f790f333` |
+
+Gate result:
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| strict pairing | pass | `12` common pairs, no missing or duplicate keys |
+| finite-candidate contract | pass | `12/12` static rows verified |
+| formal seeds absent | pass | no formal seed rows |
+| collision nonworse | pass | delta `+0.000000`, CI high `+0.000000` |
+| red-light nonworse | pass | realized and planned red deltas both `+0.000000` |
+| aggregate latency gate | pass in script | static p95-selection aggregate mean `89.697504 ms`, CI `[86.909903, 92.810975]` |
+| SafetyCost significantly lower | fail | mean delta `+0.076855`, CI `[-0.037858, +0.226849]` |
+| hard gate | fail | `hard_gate_passed=false` |
+| completion nonworse | fail | mean delta `-0.014140`, CI `[-0.034720, -0.000102]` |
+| lane nonworse | fail | mean delta `+0.000833`, CI `[-0.003750, +0.007917]` |
+| near-miss nonworse | fail | mean delta `-0.006250`, CI `[-0.017500, +0.002500]` |
+
+Aggregate metrics:
+
+| Metric | DP Top-1 | Static CAMP |
+| --- | ---: | ---: |
+| `safety_cost_v1` | `4.45198` | `4.52883` |
+| `route_completion_rate` | `0.491768` | `0.477629` |
+| `near_miss_rate` | `0.0220833` | `0.0158333` |
+| `lane_violation_rate` | `0.0804167` | `0.08125` |
+| `mean_jerk_magnitude_mps3` | `14.019` | `15.0004` |
+| `fallback_rate` | n/a | `0.187917` |
+| `candidate_feasible_rate` | n/a | `0.740885` |
+
+Bucket and route signals:
+
+| Slice | SafetyCost delta mean | CI low | CI high | Notable blocker |
+| --- | ---: | ---: | ---: | --- |
+| overall | `+0.076855` | `-0.036396` | `+0.226791` | claim fails |
+| `sample_normal` | `-0.004874` | `-0.063218` | `+0.036599` | completion delta `-0.042539`, CI high `-0.002007` |
+| `sample_tl_turn` | `+0.010686` | `-0.049107` | `+0.069118` | no significant SafetyCost improvement |
+| `nishishinjuku_lane_change` | `+0.224753` | `-0.091249` | `+0.568425` | dense lane-change failures dominate |
+| `max_npcs=8` | `+0.182553` | `-0.013148` | `+0.430838` | dense-scene degradation |
+| `traffic_lights=false` | `+0.154758` | `+0.019107` | `+0.394475` | significantly worse |
+
+Worst paired rows:
+
+| Route / condition | SafetyCost delta | Completion delta | Near delta | Lane delta | Static p95 latency | Static fallback | Static feasible |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `nishishinjuku_lane_change`, NPC `8`, TL `off` | `+0.741652` | `-0.001879` | `+0.015000` | `+0.035000` | `102.446 ms` | `0.510` | `0.460` |
+| `nishishinjuku_lane_change`, NPC `8`, TL `on` | `+0.339860` | `+0.002188` | `+0.000000` | `-0.010000` | `92.819 ms` | `0.365` | `0.564` |
+| `sample_normal`, NPC `8`, TL `off` | `+0.003432` | `-0.083298` | `-0.045000` | `+0.000000` | `91.647 ms` | `0.070` | `0.832` |
+| `sample_normal`, NPC `8`, TL `on` | `-0.096126` | `-0.082844` | `-0.045000` | `+0.000000` | `91.362 ms` | `0.065` | `0.837` |
+
+Interpretation:
+
+1. The deployable static path does not reproduce the held-out offline
+   SafetyCost proof in closed loop. It uses only current-tick candidate atoms
+   and static weights, so this is not a future-outcome leakage issue.
+2. DP Top-1 remains stronger than the outcome-free static selector on this
+   seed-3 closed-loop smoke. The static selector reduces near misses in the
+   sample normal dense cases, but it buys that reduction with large completion
+   loss and higher jerk, so the comprehensive SafetyCost gate rejects it.
+3. The main deployable failure is dense lane-change behavior:
+   `nishishinjuku_lane_change` with `8` NPCs and traffic lights off has worse
+   SafetyCost, worse near miss, worse lane rate, high fallback, low feasible
+   rate, and a per-run p95 latency above `100 ms`.
+4. The scripted aggregate latency gate passes, but the `102.446 ms` per-run
+   lane-change outlier means there is still not enough industrial latency
+   margin for promotion.
+5. This result does not contradict the candidate-branch proof. It narrows the
+   gap: CAMP has candidate-level SafetyCost opportunity, but the current
+   deployable static scoring/fallback/feasibility behavior is not robust enough
+   for closed-loop use.
+
+Mathematical boundary:
+
+This smoke still treats DP as a frozen black-box candidate generator. The
+static CAMP selector uses current-tick finite candidate features and affine
+scores only. The simplex/CVaR/L2 master semantics and CAMP atom contract are
+unchanged. The closed-loop comparison goes through Savitzky-Golay smoothing,
+`postprocess_reference`, and `PerfectTracker`, but those components are not
+part of a Benders subproblem here. The DP-side selector remains a finite
+candidate selector, not classical Benders decomposition.
+
+Decision:
+
+1. Reject the SafetyCost-trained static CAMP selector for deployable online
+   promotion from this smoke.
+2. Do not run Full36 or formal seeds from this evidence.
+3. Do not retrain DP or CAMP from this evidence alone.
+4. Next work should diagnose the mismatch between the offline
+   candidate-branch proof and deployable closed-loop behavior, focusing first
+   on dense lane-change candidate feasibility/fallback, completion loss, and
+   per-run latency. Any new atom, filter, or fallback rule must be specified as
+   current-tick finite-candidate logic before implementation and must preserve
+   the affine CAMP score and convex robust master boundary.
