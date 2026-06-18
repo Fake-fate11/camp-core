@@ -17816,3 +17816,206 @@ CAMP retraining from this one-run smoke. The next admissible step is now
 `reward_batch_compute`: inspect whether any exact-equivalent wrapper-side data
 preparation or microbenchmark can reduce/attribute the remaining DP reward
 compute cost without modifying DP or changing reward semantics.
+
+### Reward Batch Contiguous Horizon Tensor
+
+Commit:
+
+- CAMP commit:
+  `bd512256ee6b82dd7dd96b34331ffcc945d1db66`
+  (`Optimize DP reward horizon tensor`).
+- DP remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Purpose:
+
+The route-sliced smoke left `latency_ms_reward_batch_compute` as the largest
+reward-internal p95 component. Inspection of the fixed DP reward source showed
+that `compute_reward_batch` is already decorated with `@torch.no_grad()`, so
+adding another `no_grad` wrapper is not a useful optimization. The wrapper-side
+candidate was instead to pass the near-horizon reward tensor as a contiguous
+tensor and call the fixed DP reward functions under `torch.inference_mode()`.
+
+The implementation changes only
+`scripts/integrations/run_diffusion_planner_camp_replay.py`:
+
+- `full_trajectories[:, :reward_horizon_steps]` is materialized as a contiguous
+  near-horizon tensor before calling the fixed DP reward scorer;
+- `compute_reward_batch` and `compute_red_light_score_batch` are called under
+  `torch.inference_mode()`;
+- DP reward code, reward config, candidate generation, SG smoothing,
+  `postprocess_reference`, PerfectTracker, CAMP atoms, normalization, affine
+  scores, feasible masks, simplex/CVaR/L2 master logic, and selector rules are
+  unchanged.
+
+Pre-implementation fixed-snapshot probes:
+
+```text
+/root/autodl-tmp/camp_dp_reward_batch_contiguous_probe_53e4240.json
+/root/autodl-tmp/camp_dp_reward_batch_inference_probe_53e4240.json
+```
+
+Both probes used the eight fixed component snapshots from
+`/root/autodl-tmp/camp_dp_component_microbenchmark_f9baa9f/snapshots`.
+The contiguous/inference probe reported zero output error for reward
+breakdowns and full-horizon red-light scores. Its aggregate p95-of-snapshot-p95
+rows were:
+
+| Variant | p95 of snapshot p95 | Delta vs view |
+| --- | ---: | ---: |
+| view reward | `11.059199 ms` | `0.000000 ms` |
+| view reward under inference mode | `11.168390 ms` | `+0.109191 ms` |
+| contiguous copy plus reward under inference mode | `10.208615 ms` | `-0.850584 ms` |
+
+The earlier contiguous-only probe was mixed: contiguous compute-only was worse
+at p95, while copy-plus-compute looked better. Therefore the accepted code path
+is justified only as the combined contiguous near-horizon tensor plus inference
+mode path, and still requires replay-level validation.
+
+Verification:
+
+Local targeted tests:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core python -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate0_route_progress_guard_uses_route_projection \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate_route_progress_preserves_scalar_projection \
+  camp_core/tests/test_diffusion_planner_integration.py::test_reward_scoring_candidates_match_previous_per_candidate_savgol \
+  camp_core/tests/test_diffusion_planner_integration.py::test_reward_scoring_candidates_preserve_disabled_copy_semantics \
+  camp_core/tests/test_diffusion_planner_integration.py::test_reward_horizon_trajectories_are_contiguous \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py \
+  camp_core/tests/test_diffusion_planner_reward_latency_tail.py \
+  camp_core/tests/test_diffusion_planner_latency_budget.py -q
+```
+
+Result: `13 passed, 1 skipped`.
+
+AutoDL sync note: the commit was pushed to GitHub from the local machine. AutoDL
+could not fetch GitHub directly during this step because its HTTPS connection to
+GitHub timed out, so the same Git commit was transferred with a verified Git
+bundle and applied by `git fetch <bundle> main` plus `git merge --ff-only
+FETCH_HEAD`. AutoDL HEAD became
+`bd512256ee6b82dd7dd96b34331ffcc945d1db66`; its local `origin/main` reference
+remained stale until network access recovers.
+
+Remote targeted tests:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate0_route_progress_guard_uses_route_projection \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate_route_progress_preserves_scalar_projection \
+  camp_core/tests/test_diffusion_planner_integration.py::test_reward_scoring_candidates_match_previous_per_candidate_savgol \
+  camp_core/tests/test_diffusion_planner_integration.py::test_reward_scoring_candidates_preserve_disabled_copy_semantics \
+  camp_core/tests/test_diffusion_planner_integration.py::test_reward_horizon_trajectories_are_contiguous \
+  camp_core/tests/test_diffusion_planner_component_benchmark.py \
+  camp_core/tests/test_diffusion_planner_reward_latency_tail.py \
+  camp_core/tests/test_diffusion_planner_latency_budget.py -q
+```
+
+Result: `14 passed`.
+
+Non-formal smoke:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/
+  reward_batch_contiguous_smoke_bd51225_sample_tl_seed1_npc4_tloff_static
+```
+
+This reruns only
+`sample_map_tl_route_59_to_86/seed_1/npc_4/tl_off/static` with the same setup
+as the route-sliced smoke. It is not a Full36 run, online selector promotion,
+formal-seed run, CAMP training run, or DP change.
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `e0a03f0aba669f611e2eb2e1281cbf88f0c2f8bf780d20250791e1f87d4c84f7` |
+| `camp_validation_summary.json` | `411c6a1491139c542c3be292be330a8f3c2ff4cc8199fc1d3652eff4054173bf` |
+| `camp_replay_summary.json` | `97ac6b7c6d50fe2e3a7d04477e57c46b59b793fafd3af3cd071e0c91910ff238` |
+| `dataset_audit_reward_batch_contiguous_smoke.json` | `5bd2c44d4aa7c6d04a38ab6072ff3aaf11825b9497fad2742f0e0f7574c5369a` |
+| `latency_budget_reward_batch_contiguous_smoke.json` | `3cc4caac5eef3f7e714a2582382d52de6d98e4e0bc2fe0a3e27e09994fb1cb29` |
+| `latency_budget_reward_batch_contiguous_smoke.md` | `7d35fd0036e5d7e57879bd72c01e4cd01a3d87a49a739bfaae6327ca9c4ab338` |
+| `reward_latency_tail_reward_batch_contiguous_smoke.json` | `d14b709eabc3669ba13fdd53b343630f666f138e0e8e4ef9213c179bceec2757` |
+| `reward_latency_tail_reward_batch_contiguous_smoke.md` | `7ed89e231f139dc423494a195907cf76fb6434e5189784b4a8fe7cd0ce799185` |
+| `selector_equivalence_vs_reward_route_sliced_smoke.json` | `097d11d45fdcc28d72ef2d0d0573043b069df721afa7868d9b5c366447f00661` |
+| `non_latency_tolerance_summary_vs_reward_route_sliced_smoke.json` | `fde188d6d6e3a0898220191cfbb989706c027aafaed1c209ea84bccb1b4010b4` |
+| `camp_dp_reward_batch_contiguous_probe_53e4240.json` | `f15835ceebe5706a58a98f933df4f1db69c7b9aeba4bbc6ad986dd87abf671c6` |
+| `camp_dp_reward_batch_inference_probe_53e4240.json` | `31665a8cfbbf86d7f82595d157e19e089fdea8418c202b30c7a26d1602ac5d92` |
+
+Dataset and equivalence audits:
+
+- dataset audit passed `1` log and `200` records;
+- `closed_loop_outcome_policy=forbidden`;
+- formal seeds `11/12/13` forbidden;
+- `candidate_route_progress` required;
+- finite-candidate contract required;
+- selector equivalence versus the route-sliced smoke passed with exact equality
+  for selected index, feasible mask, infeasibility reasons, atoms, normalized
+  atoms, scores, weights, and selection scores;
+- non-latency behavior comparison excluding only latency and run-location path
+  metadata passed across selection, metric, evaluation-state, trajectory,
+  clearance, replay-summary, and validation-summary logs; maximum numeric
+  difference was `6.927791673660977e-14`.
+
+Latency summary:
+
+| Metric | Route-sliced smoke P95 | Reward-contiguous smoke P95 |
+| --- | ---: | ---: |
+| `latency_ms_including_candidate_generation` | `95.908343` | `91.460901` |
+| `latency_ms_reward_scoring` | `25.502188` | `20.847928` |
+| `latency_ms_reward_batch_compute` | `15.477383` | `13.253058` |
+| `latency_ms_reward_candidate_tensor_transfer` | not separately material | `0.088606` |
+| `latency_ms_reward_sg_smoothing` | `0.465225` | `0.457779` |
+| `latency_ms_reward_route_progress` | `4.162828` | `4.166758` |
+| `latency_ms_reward_full_horizon_red_light` | not separately emphasized | `0.130974` |
+| `latency_ms_camp_selection` | `8.607626` | `8.592079` |
+| `latency_ms_shadow_obstacle_clearance` | `0.837803` | `0.860980` |
+
+The total p95 margin in this single smoke is about `8.539099 ms` below the
+`100 ms` tick budget. The strict behavior-equivalence audits mean the lower
+latency does not come from a selector, feasibility, atom, or trajectory change.
+
+Reward attribution after the contiguous reward-horizon change:
+
+| Quantity | Mean | P95 | Max |
+| --- | ---: | ---: | ---: |
+| `latency_ms_reward_scoring` | `19.007363` | `20.847928` | `204.855124` |
+| reward breakdown sum | `18.967621` | `20.810198` | `204.811327` |
+| reward unattributed residual | `0.039742` | `0.046410` | `0.229876` |
+
+Top all-record reward components:
+
+| Component | Mean | P95 | Max |
+| --- | ---: | ---: | ---: |
+| `latency_ms_reward_batch_compute` | `12.027755` | `13.253058` | `196.980607` |
+| `latency_ms_reward_route_progress` | `3.963517` | `4.166758` | `5.647108` |
+| `latency_ms_reward_npz_dump` | `1.824806` | `1.941595` | `2.490368` |
+| `latency_ms_reward_sg_smoothing` | `0.453679` | `0.457779` | `1.458010` |
+| `latency_ms_reward_tensor_setup` | `0.335602` | `0.338426` | `1.890818` |
+
+Closed-loop behavior for this smoke remained the same under the non-latency
+audit. Key values: route completion `0.12775767335529134`, planned red-light
+violation rate `0.0`, realized red-light violation rate `0.0`, mean absolute
+jerk `7.4446096113233855`, mean lateral acceleration
+`0.23776163436030362`, fallback rate `0.35`, and candidate feasible rate
+`0.56375`.
+
+Mathematical boundary: this change is exact-equivalent latency plumbing over
+fixed current-tick tensors. It does not modify the finite candidate set, DP
+reward definition, reward horizon, full-red diagnostic, SG smoothing,
+post-processing, PerfectTracker state transition, CAMP atom schema, atom
+normalization, affine score \(a_k^\top w\), feasible mask semantics, fallback
+policy, or simplex/CVaR/L2 master. It also does not construct a classical
+Benders master/subproblem pair, dual, or cuts. The DP-side finite selector
+remains a finite-candidate selector; CAMP's logged robust training claim
+remains limited to fixed candidates with fixed atoms and oracle margins.
+
+Decision: accept the contiguous reward-horizon tensor plus inference-mode
+wrapper as an exact-equivalent latency improvement. Reject Full36 replay,
+online selector promotion, formal seeds, and CAMP retraining from this single
+smoke. The next admissible step is to rerun a small paired development grid
+only after deciding whether this latency margin is sufficient, or to continue
+component-level diagnosis of the remaining stable terms (`reward_batch_compute`
+and candidate generation) without changing DP.
