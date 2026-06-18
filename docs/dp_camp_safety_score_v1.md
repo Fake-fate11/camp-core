@@ -91,6 +91,52 @@ For paired comparisons, the report includes the CVaR90 difference between the
 variant and Top-1 over the common run keys. This is a tail-risk diagnostic. It
 does not replace the paired mean SafetyCost claim rule above.
 
+## Candidate-Branch Oracle Audit
+
+Before training or promoting a DP-CAMP selector, the candidate pool must show
+that a better choice exists. This is checked with a separate offline
+candidate-branch oracle audit over `camp_selection_log.json` records that carry
+`candidate_closed_loop_outcomes`.
+
+The branch audit is a necessary opportunity test, not a final closed-loop
+SafetyCost claim. It compares:
+
+```text
+DP Top-1        = candidate index 0
+CAMP selection = logged selected_index
+oracle          = lowest candidate-branch SafetyCost v1 proxy among eligible
+                  current-tick candidates
+```
+
+The candidate-branch score reuses the frozen SafetyCost v1 weights, with these
+scope limits:
+
+- collision, near miss, lane violation, realized red light, branch progress,
+  jerk, and lateral acceleration come from candidate branch outcome labels;
+- planned red light uses current-tick candidate red-light certificates when
+  present, not future closed-loop outcomes;
+- route shortfall is approximated by relative progress shortfall from the best
+  eligible branch in the same finite candidate set;
+- the oracle may be used to create offline training labels, but those labels
+  are forbidden as online selector inputs.
+
+The admissible script is:
+
+```bash
+python scripts/integrations/analyze_diffusion_planner_safety_cost_oracle.py \
+  --root /path/to/outcome_labeled_replay_root \
+  --scenario_bucket_manifest /path/to/scenario_buckets.json \
+  --output_json /path/to/safety_cost_oracle.json \
+  --output_md /path/to/safety_cost_oracle.md \
+  --fail_on_formal_seeds
+```
+
+Passing this audit only means the fixed DP candidate pool contains exploitable
+opportunity under a predeclared candidate-branch proxy. It does not prove that
+CAMP improves full closed-loop SafetyCost v1, does not authorize formal seeds,
+and does not make the DP sampler or trajectory coordinates part of a Benders
+subproblem.
+
 ## Hard Safety Gate
 
 The score cannot mask hard safety regressions. A CAMP variant is not accepted as

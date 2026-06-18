@@ -18156,3 +18156,144 @@ formal seeds, online selector promotion, CAMP retraining, or claims that CAMP
 is better than Top-1. It does justify considering a no-outcome Full36 latency
 rerun as the next gate, provided DP remains fixed and formal seeds remain
 forbidden.
+
+### Candidate-Branch SafetyCost v1 Oracle Opportunity Audit
+
+State audit at start of this iteration:
+
+- local CAMP HEAD:
+  `d351bac7b08e628a6771491dd1d6537cfb9391f6`;
+- GitHub `origin/main` HEAD:
+  `d351bac7b08e628a6771491dd1d6537cfb9391f6`;
+- AutoDL CAMP working-tree HEAD:
+  `d351bac7b08e628a6771491dd1d6537cfb9391f6`;
+- AutoDL CAMP `origin/main` remains stale because `git fetch origin main`
+  failed with `GnuTLS recv error (-110)`, but the working tree is already at
+  the GitHub HEAD;
+- AutoDL DP HEAD remains fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`;
+- local untracked handoff/notes files and AutoDL unrelated untracked files
+  were left untouched.
+
+Purpose:
+
+The previous evidence established latency and exact-equivalent reward plumbing,
+but not that CAMP can beat DP Top-1. This iteration adds a read-only offline
+opportunity audit:
+
+```text
+scripts/integrations/analyze_diffusion_planner_safety_cost_oracle.py
+```
+
+It compares, per logged planning tick, DP Top-1 candidate `0`, the logged CAMP
+`selected_index`, and an offline oracle that minimizes a candidate-branch
+SafetyCost v1 proxy over the fixed current DP candidate pool. The audit uses
+candidate closed-loop outcomes only as offline labels. It does not train CAMP,
+change the online selector, change DP, or run formal seeds.
+
+Run scope:
+
+- source root:
+  `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2`;
+- scenario manifest:
+  `/root/autodl-tmp/camp_core/configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json`;
+- logs: `36`;
+- records: `7200`;
+- base-feasible records: `5939`;
+- all-infeasible fallback records: `1261`;
+- formal-seed records: `0`;
+- DP unchanged at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/analyze_diffusion_planner_safety_cost_oracle.py \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --scenario_bucket_manifest /root/autodl-tmp/camp_core/configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_candidate_outcome_labels_d97b7c2/safety_cost_oracle_candidate_outcome_labels_d97b7c2.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_candidate_outcome_labels_d97b7c2/safety_cost_oracle_candidate_outcome_labels_d97b7c2.md \
+  --fail_on_formal_seeds
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `safety_cost_oracle_candidate_outcome_labels_d97b7c2.json` | `0a4ce50ba95a8e01ab527df3e39331b8d0f03ffd5ce4b45e84a4fad297a60c2f` |
+| `safety_cost_oracle_candidate_outcome_labels_d97b7c2.md` | `99e55e34a50d6ac443b8ce20bf90bd2a09138998cf29134e0fba9c8687cfed58` |
+
+Overall candidate-branch opportunity:
+
+| Metric | Value |
+| --- | ---: |
+| Mean DP Top-1 branch cost | `12.705345` |
+| Mean CAMP branch cost | `12.266194` |
+| Mean oracle branch cost | `11.713722` |
+| Oracle beats Top-1 rate | `0.952083` |
+| CAMP beats Top-1 rate | `0.733611` |
+| CAMP matches oracle rate | `0.507361` |
+| Oracle mean delta vs Top-1 | `-0.991623` |
+| Oracle delta CI high | `-0.423511` |
+| CAMP mean delta vs Top-1 | `-0.439150` |
+| CAMP delta CI high | `-0.017867` |
+
+Scenario-bucket opportunity:
+
+| Bucket | Records | Logs | Oracle beats Top-1 | Oracle mean delta | CI high | CAMP mean delta |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `overall` | `7200` | `36` | `0.952083` | `-0.991623` | `-0.417801` | `-0.439150` |
+| `normal` | `600` | `3` | `0.985000` | `-0.040828` | `-0.040309` | `-0.035679` |
+| `traffic_light` | `2400` | `12` | `0.950000` | `-0.581486` | `-0.036383` | `-0.177004` |
+| `red_light_turn` | `1200` | `6` | `0.962500` | `-0.771111` | `0.259780` | `-0.363076` |
+| `sharp_turn` | `2400` | `12` | `0.964167` | `-0.710322` | `0.047848` | `-0.315898` |
+
+Oracle guard diagnostics:
+
+| Diagnostic | Value |
+| --- | ---: |
+| Oracle collision nonworse vs Top-1 | `1.000000` |
+| Oracle near-miss nonworse vs Top-1 | `1.000000` |
+| Oracle lane nonworse vs Top-1 | `0.999444` |
+| Oracle realized-red nonworse vs Top-1 | `1.000000` |
+| Mean oracle progress delta vs Top-1 | `+0.998657 m` |
+| Mean oracle jerk delta vs Top-1 | `-0.357186 m/s^3` |
+| Mean oracle lateral delta vs Top-1 | `-0.010752 m/s^2` |
+
+Interpretation:
+
+- The fixed DP candidate pool contains exploitable candidate-branch SafetyCost
+  opportunity overall: the oracle-vs-Top-1 mean delta is negative with CI high
+  below zero.
+- The current CAMP selector also has a negative candidate-branch delta versus
+  Top-1 on this outcome-labeled development set, but it matches the oracle on
+  only `50.7361%` of ticks, so there is still training/selection gap.
+- Critical-bucket proof is incomplete. `red_light_turn` and `sharp_turn` have
+  positive oracle CI highs, and the current manifest still lacks required
+  `npc_interaction`, `dense_scene`, and `lane_change_or_merge` coverage.
+- This is candidate-branch opportunity evidence, not a closed-loop run-level
+  SafetyCost proof. It must not be used to justify formal seeds, online
+  promotion, or CAMP retraining by itself.
+
+Mathematical boundary:
+
+The analyzer treats DP as a fixed finite candidate generator. Candidate branch
+outcomes are offline labels only. Current-tick planned-red certificates are
+fixed candidate constants. The audit does not change the finite candidate set,
+feasible mask, CAMP atom schema, atom normalization, affine score
+\(a_k^\top w\), fallback policy, SG smoothing, `postprocess_reference`,
+PerfectTracker, DP reward definition, or the simplex/CVaR/L2 master. It does
+not construct a Benders master/subproblem, dual, or cuts.
+
+Decision:
+
+Accept the candidate-branch SafetyCost v1 oracle analyzer and the
+`candidate_outcome_labels_static_d97b7c2` audit as positive opportunity
+evidence. Reject formal seeds, online selector promotion, and CAMP retraining
+from this result alone. The next admissible gate is to extend the non-formal
+scenario matrix and explicit bucket manifest until all required buckets have
+coverage, then rerun the same oracle audit and only proceed to CAMP
+training/calibration if oracle opportunity remains significant under the
+predeclared SafetyCost v1 contract.
