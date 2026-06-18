@@ -19168,3 +19168,12 @@ Limitations:
 - The next required step is a predeclared train/validation/test split over the
   full 108-log diverse matrix, followed by outcome-free replay and SafetyCost
   comparison against DP Top-1, current CAMP, and the hard-guarded oracle gap.
+
+Final synchronization note:
+
+AutoDL could not reach GitHub over HTTPS during the final sync attempt, so the
+last documentation commit for this iteration was transferred with a local
+`git bundle` over SSH and fast-forwarded on AutoDL. The AutoDL `origin/main`
+tracking ref was then updated to the same commit after local `git ls-remote
+origin refs/heads/main` confirmed GitHub pointed to the pushed commit. DP
+remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
