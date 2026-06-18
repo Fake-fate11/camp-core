@@ -20432,3 +20432,130 @@ lane/planned-red outliers from NPC/dense cases before any fallback is allowed.
 The certificate must be specified before evaluation, use fixed nonnegative
 candidate quantities, and show bucket-level SafetyCost improvement without
 positive guarded-minus-logged regression.
+
+### State-Gated Red-Route Top-1 Floor Counterfactual
+
+Date: 2026-06-18
+
+Status: accept as offline development evidence only for the
+`state_redroute_top1_red_or_proxy_jerk_floor_unconditional` diagnostic rule.
+Reject online promotion, Full36, formal seeds, DP modification, and CAMP
+retraining from this result alone.
+
+State audited:
+
+| Item | Value |
+| --- | --- |
+| CAMP/GitHub/AutoDL code commit | `009fc261c91bce3fcd6e2c6538f2a8500dfb4695` |
+| Matrix launch CAMP commit | `90224195a7c440719bce111cbb17ffc9dcc988e0` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| Matrix root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0` |
+| Formal seeds | none |
+
+Command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+BASE=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0
+TRAIN=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+OUT="$BASE/state_redroute_top1_floor_counterfactual"
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/analyze_diffusion_planner_guarded_top1_floor_counterfactual.py \
+  --root "$BASE" \
+  --atom_scales "$TRAIN/atom_scales_dp_static.json" \
+  --static_weights "$TRAIN/offline_weights_dp_static.npy" \
+  --selector_name safety_cost_v1_state_redroute_top1_floor_counterfactual \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --output_json "$OUT/guarded_top1_floor_counterfactual.json" \
+  --output_md "$OUT/guarded_top1_floor_counterfactual.md" \
+  --fail_on_formal_seeds \
+  --fail_on_missing_required
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `state_redroute_top1_floor_counterfactual/guarded_top1_floor_counterfactual.json` | `17b5d303106f69b5666dc3bfbeffab5befd4bac1ee832ed3f6caeb8c32fe992b` |
+| `state_redroute_top1_floor_counterfactual/guarded_top1_floor_counterfactual.md` | `f187065215454bd4064cb8329801c31a7069e3e4433d6842b1f00cc54b7de220` |
+
+State gate:
+
+The new diagnostic rules activate the Top-1 floor only when
+`red_route_point_count > 0`. In this matrix that marks the 600
+traffic-light/red-turn/sharp-turn records and leaves the 1800
+normal/NPC/lane-change records inactive. The gate is a current-tick route and
+traffic-light context count; it is not a posterior outcome label.
+
+Gate summary:
+
+| Rule | State inactive | Top-1 fallbacks | Overall CI high vs Top-1 | Traffic/red/turn CI high | NPC/dense CI high | Lane-change CI high | Gate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `state_redroute_top1_red_floor_unconditional` | `1800` | `7` | `-0.008072` | `+0.280213` | `-0.039532` | `-0.068733` | fail |
+| `state_redroute_top1_red_or_proxy_jerk_floor_unconditional` | `1800` | `276` | `-0.039918` | `-0.011460` | `-0.039532` | `-0.068733` | pass |
+| `state_redroute_top1_red_or_proxy_comfort_floor_unconditional` | `1800` | `398` | `-0.039360` | `-0.004248` | `-0.039532` | `-0.068733` | pass but less minimal |
+
+Preferred development candidate:
+
+`state_redroute_top1_red_or_proxy_jerk_floor_unconditional` is the smallest
+passing state-gated rule in this audit. It passes the required bucket CI gate
+against DP Top-1 while keeping NPC/dense/lane-change behavior effectively at
+the guarded baseline.
+
+| Check | Result |
+| --- | --- |
+| Required bucket coverage | pass |
+| Formal seeds | `0` |
+| Overall SafetyCost CI high vs Top-1 | `-0.039918` |
+| Traffic-light/red-turn/sharp-turn CI high vs Top-1 | `-0.011460` |
+| NPC/dense CI high vs Top-1 | `-0.039532` |
+| Lane-change CI high vs Top-1 | `-0.068733` |
+| Top-1 fallbacks | `276 / 2400` (`11.5%`) |
+| State-inactive records | `1800 / 2400` |
+| Guarded-minus-logged overall mean / CI high | `-0.068722 / +0.000650` |
+| Guarded-minus-logged traffic mean / CI high | `-0.274620 / +0.004331` |
+| Guarded-minus-logged NPC/dense mean / CI high | `-0.000043 / -0.000001` |
+| Guarded-minus-logged lane-change mean / CI high | `-0.000139 / 0.000000` |
+| Weighted collision delta vs logged | `0.000000` |
+| Weighted near-miss delta vs logged | `0.000000` |
+| Weighted lane-violation delta vs logged | `-0.041667` |
+| Weighted planned-red delta vs logged | `-0.031250` |
+
+Interpretation:
+
+1. The state gate fixes the failure mode seen in the unconditional jerk floor:
+   broad NPC/dense fallback is removed because non-red-route records are
+   inactive.
+2. The rule still has a small positive guarded-minus-logged CI high overall
+   and in the traffic buckets, despite negative means. This is underpowered
+   3-seed development evidence, not formal proof of online safety.
+3. Critical non-traffic buckets do not show positive guarded-minus-logged
+   regression: NPC/dense CI high is negative and lane-change CI high is exactly
+   `0.000000`.
+4. The comfort version also passes the Top-1 bucket gate, but it is less
+   minimal: `398` Top-1 fallbacks versus `276` for jerk, and a larger positive
+   guarded-minus-logged CI high. Keep it as a diagnostic contrast, not the
+   preferred candidate.
+
+Mathematical boundary:
+
+This is still a deterministic finite-candidate selector audit over fixed
+current-tick constants. `red_route_point_count`, red-light proxy costs, and
+proxy jerk costs are known at the current tick for the saved candidate set.
+Posterior closed-loop outcomes are used only to evaluate SafetyCost after the
+selection. DP generation, postprocess_reference, PerfectTracker, CAMP atoms,
+affine scoring, and the simplex/CVaR/L2 master are unchanged. This is not a
+classical Benders subproblem.
+
+Next admissible step:
+
+Before any online selector promotion or broader run, implement the preferred
+state-gated jerk rule behind a default-off CLI flag with fail-closed metadata
+and unit tests, then run only the same non-formal 12-run matrix as a paired
+selector smoke. Formal seeds and Full36 remain blocked until that online-path
+smoke preserves the offline development evidence without latency or hard-safety
+regression.
