@@ -20762,6 +20762,22 @@ It is cumulative closed-loop drift from earlier Top-1-floor overrides.
 `candidate0_feasible` is not sufficient: seed 3 had no candidate-0 infeasible
 overrides but still gained the extra lane step at `194`.
 
+At the actual extra lane-violation ticks, the online postselector did not
+switch the candidate. The current tick already arrived in a slightly different
+closed-loop state:
+
+| Seed | Step | Baseline selected | New pre-TL selected | New selected | Changed at step | Reason | Red-route points | Candidate 0 feasible | Baseline lane gate | New lane gate | Baseline speed | New speed |
+| ---: | ---: | ---: | ---: | ---: | --- | --- | ---: | --- | ---: | ---: | ---: | ---: |
+| `1` | `195` | `5` | `5` | `5` | `false` | `top1_not_better_on_red_or_proxy_jerk` | `20` | `false` | `1.0` | `0.0` | `3.391498` | `3.395614` |
+| `3` | `194` | `6` | `6` | `6` | `false` | `top1_not_better_on_red_or_proxy_jerk` | `20` | `false` | `1.0` | `0.0` | `3.415496` | `3.423855` |
+
+The paired positions also differ only slightly at the violation tick:
+seed `1` moved from `[187.144547, 162.642883]` to `[187.254501, 162.536575]`;
+seed `3` moved from `[187.171936, 162.677795]` to `[187.270142, 162.583176]`.
+That is enough for the logged lane gate to flip from `1.0` to `0.0`, but the
+triggering cause is upstream closed-loop state drift rather than a same-step
+candidate-index change.
+
 Offline current-tick guard screen:
 
 | Rule | Changed | Overall CI high vs Top-1 | Traffic/red-turn CI high | Decision |
