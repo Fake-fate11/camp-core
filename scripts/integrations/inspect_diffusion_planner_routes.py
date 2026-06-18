@@ -101,6 +101,7 @@ def inspect_routes(
             lanelet_ids=lanelet_ids,
             centerlines=centerlines,
             traffic_light_groups=traffic_light_groups,
+            transition_relations=_route_transition_relations(builder, lanelet_ids),
         )
         route_name = name or route_path.stem
         route_reports.append(
@@ -142,6 +143,7 @@ def inspect_route_geometry(
     lanelet_ids: list[int],
     centerlines: list[np.ndarray],
     traffic_light_groups: dict[int, int],
+    transition_relations: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     if not lanelet_ids:
         raise ValueError("Route must contain at least one lanelet.")
@@ -169,6 +171,7 @@ def inspect_route_geometry(
         lanelet_id for lanelet_id in lanelet_ids if lanelet_id in traffic_light_groups
     ]
     tl_groups = sorted({int(traffic_light_groups[lanelet_id]) for lanelet_id in tl_lanelets})
+    transition_summary = _transition_relation_summary(transition_relations or [])
     return {
         "route_length_m": route_length,
         "endpoint_distance_m": endpoint_distance,
@@ -185,6 +188,12 @@ def inspect_route_geometry(
         "traffic_light_group_count": len(tl_groups),
         "map_traffic_light_lanelet_count": len(traffic_light_groups),
         "map_traffic_light_group_count": len(set(traffic_light_groups.values())),
+        "transition_relations": transition_relations or [],
+        "transition_relation_counts": transition_summary["counts"],
+        "lateral_transition_count": transition_summary["lateral_transition_count"],
+        "has_lane_change_or_merge_evidence": transition_summary[
+            "has_lane_change_or_merge_evidence"
+        ],
         "lanelet_geometry": lanelet_geometry,
         "traffic_light_lanelet_geometry": [
             row for row in lanelet_geometry if row["traffic_light_group_id"] is not None
@@ -269,6 +278,59 @@ def _traffic_light_groups(builder: Any) -> dict[int, int]:
         return {}
     groups = method()
     return {int(lanelet_id): int(group_id) for lanelet_id, group_id in groups.items()}
+
+
+def _route_transition_relations(
+    builder: Any,
+    lanelet_ids: list[int],
+) -> list[dict[str, Any]]:
+    graph = getattr(builder, "_routing_graph", None)
+    lanelets = getattr(builder, "_ll_by_id", {})
+    if graph is None or not isinstance(lanelets, dict):
+        return []
+    rows = []
+    for from_id, to_id in zip(lanelet_ids[:-1], lanelet_ids[1:]):
+        relation = "unknown"
+        if from_id in lanelets and to_id in lanelets:
+            try:
+                relation = str(graph.routingRelation(lanelets[from_id], lanelets[to_id]))
+            except Exception:
+                relation = "unavailable"
+        rows.append(
+            {
+                "from_lanelet_id": int(from_id),
+                "to_lanelet_id": int(to_id),
+                "relation": relation,
+                "is_lateral": _is_lateral_transition(relation),
+            }
+        )
+    return rows
+
+
+def _transition_relation_summary(
+    transition_relations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    counts: dict[str, int] = {}
+    lateral = 0
+    for row in transition_relations:
+        relation = str(row.get("relation", "unknown"))
+        counts[relation] = counts.get(relation, 0) + 1
+        lateral += int(bool(row.get("is_lateral", _is_lateral_transition(relation))))
+    return {
+        "counts": dict(sorted(counts.items())),
+        "lateral_transition_count": lateral,
+        "has_lane_change_or_merge_evidence": lateral > 0,
+    }
+
+
+def _is_lateral_transition(relation: str) -> bool:
+    normalized = relation.replace("_", "").replace(" ", "").lower()
+    return normalized in {
+        "left",
+        "right",
+        "adjacentleft",
+        "adjacentright",
+    }
 
 
 def _concatenate_centerlines(centerlines: list[np.ndarray]) -> np.ndarray:
@@ -393,6 +455,18 @@ def _labeling_guidance(geometry: dict[str, Any]) -> dict[str, Any]:
                 "total_abs_heading_change_deg"
             ],
         },
+        "lane_change_or_merge_route_evidence": {
+            "has_lateral_transition": geometry[
+                "has_lane_change_or_merge_evidence"
+            ],
+            "lateral_transition_count": geometry["lateral_transition_count"],
+            "transition_relation_counts": geometry["transition_relation_counts"],
+        },
+        "candidate_buckets_supported_by_route_evidence": (
+            ["lane_change_or_merge"]
+            if geometry["has_lane_change_or_merge_evidence"]
+            else []
+        ),
         "labels_to_apply": [],
         "reason": (
             "This tool records route/scenario evidence only. Apply bucket labels "
@@ -419,8 +493,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         "bucket labeling. It does not apply bucket labels and does not infer "
         "labels from replay outcomes.",
         "",
-        "| Route | Length m | Endpoint m | TL lanelets | TL groups | Max 10m turn | Max 25m turn | Run keys | TL modes | NPC counts |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |",
+        "| Route | Length m | Endpoint m | TL lanelets | TL groups | Lateral transitions | Max 10m turn | Max 25m turn | Run keys | TL modes | NPC counts |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |",
     ]
     for route in report["routes"]:
         geom = route["geometry"]
@@ -431,6 +505,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"{geom['endpoint_distance_m']:.3f} | "
             f"{geom['traffic_light_lanelet_count']} | "
             f"{geom['traffic_light_group_count']} | "
+            f"{geom['lateral_transition_count']} | "
             f"{geom['max_10m_net_heading_change_deg']:.3f} | "
             f"{geom['max_25m_net_heading_change_deg']:.3f} | "
             f"{context.get('run_key_count', 'n/a')} | "
