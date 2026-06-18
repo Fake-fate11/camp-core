@@ -332,7 +332,7 @@ def _alpha_report(
         "hard_nonworse_vs_current": _hard_nonworse_rate(records, chosen, selected),
         "hard_nonworse_vs_top1": _hard_nonworse_rate(records, chosen, top1),
         "dp_prior_deviation_selected": _summary(
-            [record["dp_prior_deviation"][idx] for record, idx in zip(records, chosen, strict=True)]
+            [record["dp_prior_deviation"][idx] for record, idx in zip(records, chosen)]
         ),
     }
 
@@ -545,7 +545,7 @@ def _paired_summary(
 
 def _hard_nonworse_rate(records: list[dict[str, Any]], chosen: np.ndarray, reference: np.ndarray) -> float:
     rows = []
-    for record, chosen_idx, reference_idx in zip(records, chosen, reference, strict=True):
+    for record, chosen_idx, reference_idx in zip(records, chosen, reference):
         chosen_outcome = record["outcomes"][int(chosen_idx)]
         reference_outcome = record["outcomes"][int(reference_idx)]
         rows.append(
