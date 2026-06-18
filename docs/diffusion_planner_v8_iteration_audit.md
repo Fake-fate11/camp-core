@@ -22167,3 +22167,136 @@ Decision:
    clears a materiality threshold and jerk/lateral proxy deltas stay within a
    bucket-specific nonworse/tolerance guard. This must be audited offline before
    any replay smoke.
+
+### State-Conditioned Material Progress Rule Audit
+
+Date: 2026-06-19
+
+Status: reject this finite-rule family for online promotion, CAMP retraining,
+Full36, and formal seeds. The rules are mathematically admissible finite
+candidate selectors, but the targeted offline screen still fails on `normal`
+and `red_light_turn`.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `23321ccc82b045d125f0ca22cd3cc307897f35b6` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining in this step | none |
+| Formal seeds | none |
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_state_conditioned_progress_rules.py
+camp_core/tests/test_diffusion_planner_state_conditioned_progress_rules.py
+```
+
+Rule family:
+
+For each target bucket record, keep the logged CAMP selection unless a candidate
+satisfies all current-tick guards:
+
+```text
+candidate_route_progress - selected_route_progress >= progress_gain_threshold
+candidate_tracker_jerk - selected_tracker_jerk <= jerk_tolerance
+candidate_tracker_lateral - selected_tracker_lateral <= lateral_tolerance
+candidate_selection_score - selected_selection_score <= score_margin
+```
+
+The selected replacement is the eligible candidate with largest planned-progress
+gain, then lower positive jerk/lateral delta, then lower logged score, then
+lower index. Candidate outcomes are used only for posterior evaluation.
+
+Mathematical boundary:
+
+All rule inputs are fixed current-tick finite-candidate quantities. If promoted
+as CAMP atoms or guards, these coefficients preserve affine finite-candidate
+scoring and do not alter the simplex/CVaR/L2 robust master. This is not
+classical Benders decomposition because no DP-side subproblem, dual, or valid
+cuts are constructed.
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SRC=$ROOT/candidate_outcome_labels_static_d97b7c2
+OUT=$ROOT/state_conditioned_progress_rule_audit_23321cc
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_state_conditioned_progress_rules.py \
+  --root "$SRC" \
+  --label candidate_outcome_labels_static_d97b7c2_material_progress \
+  --bootstrap_resamples 5000 \
+  --output_json "$OUT/state_conditioned_progress_rule_audit.json" \
+  --output_md "$OUT/state_conditioned_progress_rule_audit.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `state_conditioned_progress_rule_audit_23321cc/state_conditioned_progress_rule_audit.json` | `ab5c8a9ee31f5baa421925a662db9cd5440bd45edda777544a4671137463e188` |
+| `state_conditioned_progress_rule_audit_23321cc/state_conditioned_progress_rule_audit.md` | `2f7728f03b1e6c76e279399f66ff607ed5f222eb6dbc9ac30978249bedf46510` |
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_state_conditioned_progress_rules.py \
+  scripts/integrations/analyze_diffusion_planner_dp_prior_completion_joint_audit.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_state_conditioned_progress_rules.py \
+  camp_core/tests/test_diffusion_planner_joint_bucket_failures.py \
+  camp_core/tests/test_diffusion_planner_dp_prior_completion_joint_audit.py \
+  camp_core/tests/test_diffusion_planner_dp_prior_atom_candidate.py \
+  camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py -q
+```
+
+Result: local `5 passed`; AutoDL new test `1 passed`.
+
+Best ranked rules:
+
+| Rule | Pass | Bucket failures | Safety mean | Safety CI high | Progress CI low | Changed | Beneficial preserved | Hard nonworse |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `progress_ge_0p01_jerk_le_0_lat_le_0_score_le_0p05` | no | `2` | `-0.002075` | `-0.000120` | `-0.000524` | `0.004722` | `0.994699` | `1.000000` |
+| `progress_ge_0p005_jerk_le_0_lat_le_0_score_le_0p05` | no | `3` | `-0.001916` | `+0.000060` | `-0.000992` | `0.010139` | `0.988262` | `1.000000` |
+| `progress_ge_0p02_jerk_le_0_lat_le_0_score_le_0p05` | no | `3` | `-0.000205` | `+0.000080` | `-0.000256` | `0.001111` | `0.998864` | `1.000000` |
+
+Best rule bucket metrics:
+
+| Bucket | Records | Safety mean | Safety CI high | Progress CI low | Changed | Beneficial preserved | Hard nonworse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `normal` | `600` | `+0.000007` | `+0.000291` | `-0.005093` | `0.011667` | `0.991135` | `1.000000` |
+| `red_light_turn` | `1200` | `-0.002913` | `+0.000405` | `-0.002854` | `0.010000` | `0.988858` | `1.000000` |
+| `sharp_turn` | `2400` | `-0.006227` | `-0.000344` | `-0.000677` | `0.011250` | `0.989337` | `1.000000` |
+
+Interpretation:
+
+1. The best rule is extremely conservative: it changes less than `0.5%` of all
+   records and keeps hard nonworse rate at `1.0`.
+2. It still fails the targeted screen because `normal` has positive SafetyCost
+   CI high and realized progress CI low `-0.005093`, while `red_light_turn` has
+   positive SafetyCost CI high and realized progress CI low `-0.002854`.
+3. The planned-progress materiality guard does not reliably imply realized
+   progress non-regression under PerfectTracker/postprocess dynamics. This is
+   strongest in `normal`, where the previous support audit already found only
+   `0.005` safer progress-nonworse support.
+4. `sharp_turn` is the only target bucket that passes the best rule's SafetyCost
+   CI high, but the comprehensive target screen fails because the other two
+   buckets fail.
+
+Decision:
+
+1. Reject this state-conditioned material-progress rule family.
+2. Do not run closed-loop smoke, Full36, formal seeds, or new CAMP training from
+   this evidence.
+3. Stop broad threshold tuning on planned progress alone. The next admissible
+   step is to explain the planned-progress versus realized-progress mismatch,
+   especially in `normal`, using current-tick tracker rollout or postprocess
+   descriptors that remain fixed candidate features.
