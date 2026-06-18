@@ -21693,3 +21693,169 @@ Decision:
    showing fixed current-tick coefficients, nonnegativity, affine scoring, and
    compatibility with the convex robust CAMP master. Only after an atom-level
    offline audit should CAMP retraining be considered.
+
+### DP-Prior-Deviation Atom Candidate Offline Audit
+
+Date: 2026-06-19
+
+Status: accept the atom definition as mathematically admissible; reject direct
+schema promotion, CAMP retraining, online selector changes, Full36, and formal
+seeds from this evidence. The small clearance matrix is promising, but the
+larger static outcome-label set does not pass the predeclared CI screen.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit | `e36c4a62edc1d0b5286cd4b06f1b466e903e511c` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining in this step | none |
+| Formal seeds | none |
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_dp_prior_atom_candidate.py
+camp_core/tests/test_diffusion_planner_dp_prior_atom_candidate.py
+```
+
+The tool evaluates a virtual normalized `dp_prior_deviation_cost` atom on
+existing outcome-labeled selection logs. It uses outcome labels only for
+posterior evaluation. Selection for each alpha uses only logged current-tick
+finite-candidate scores and `candidate_dp_prior_deviation_cost`.
+
+Mathematical boundary:
+
+```text
+dp_prior_deviation_cost(k)
+  = mean_t || xy_candidate_k(t) - xy_DPTop1(t) ||_2^2
+```
+
+For a fixed DP candidate set, this quantity is current-tick computable,
+nonnegative, and has candidate0 value `0`. If appended to the CAMP atom vector,
+it is a fixed coefficient in `a_k^T w`, so affine finite-candidate scoring and
+the simplex/CVaR/L2 convex robust master remain intact. This audit does not
+construct a Benders subproblem, dual, or valid cuts, and it does not claim
+convexity over DP trajectory generation.
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_dp_prior_atom_candidate.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_dp_prior_atom_candidate.py \
+  camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py -q
+```
+
+Result: local `2 passed`; AutoDL `1 passed` for the new test. The AutoDL
+environment does not support `zip(..., strict=True)`, so the script was made
+compatible without changing the selection or cost logic.
+
+AutoDL commands:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_dp_prior_atom_candidate.py \
+  --root "$ROOT/clearance_outcome_devmatrix_69eb7e0" \
+  --label clearance_outcome_devmatrix_69eb7e0 \
+  --bootstrap_resamples 5000 \
+  --output_json "$ROOT/dp_prior_deviation_atom_candidate_e36c4a6/dp_prior_deviation_atom_candidate.json" \
+  --output_md "$ROOT/dp_prior_deviation_atom_candidate_e36c4a6/dp_prior_deviation_atom_candidate.md"
+
+$PY scripts/integrations/analyze_diffusion_planner_dp_prior_atom_candidate.py \
+  --root "$ROOT/candidate_outcome_labels_static_d97b7c2" \
+  --label candidate_outcome_labels_static_d97b7c2 \
+  --bootstrap_resamples 5000 \
+  --output_json "$ROOT/dp_prior_deviation_atom_candidate_staticlabels_e36c4a6/dp_prior_deviation_atom_candidate.json" \
+  --output_md "$ROOT/dp_prior_deviation_atom_candidate_staticlabels_e36c4a6/dp_prior_deviation_atom_candidate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `dp_prior_deviation_atom_candidate_e36c4a6/dp_prior_deviation_atom_candidate.json` | `e7a097c7ee240360d61d69681024aefb60c1d35bee83dea1614355274a744ec8` |
+| `dp_prior_deviation_atom_candidate_e36c4a6/dp_prior_deviation_atom_candidate.md` | `35d4828859f1be2c121e0481d5952f8e08a8ee2cea2772a8095ef22f5e2fc042` |
+| `dp_prior_deviation_atom_candidate_staticlabels_e36c4a6/dp_prior_deviation_atom_candidate.json` | `216388ada680dabb195622d325149e5d32ea95b1c640bdd59c7e5dd0eb84bd66` |
+| `dp_prior_deviation_atom_candidate_staticlabels_e36c4a6/dp_prior_deviation_atom_candidate.md` | `946f4efe1260e7e7c33787e66c79e1859ef792883a3a695cb583298f94bc0d37` |
+
+Clearance outcome matrix result:
+
+| Item | Value |
+| --- | ---: |
+| Logs / records / candidates | `12 / 2400 / 19200` |
+| Candidate count values | `[8]` |
+| Selected non-Top1 rate | `0.902917` |
+| Current selected minus Top1 SafetyCost mean | `-1.15114` |
+| Current selected minus Top1 DP-prior deviation mean | `+0.850909` |
+| Harmful selected records with positive DP-prior delta | `499` |
+| Beneficial selected records with positive DP-prior delta | `1668` |
+
+Clearance alpha screen:
+
+| Alpha | Pass | Safety delta vs current mean | CI high | Changed | Top1 rate | Beneficial preserved | Hard nonworse |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.01` | yes | `-0.008917` | `-0.000299` | `0.020417` | `0.105833` | `0.985012` | `1.000000` |
+| `0.02` | no | `+0.123164` | `+0.285064` | `0.043333` | `0.111667` | `0.965827` | `0.997917` |
+| `0.10` | no | `+0.049773` | `+0.270288` | `0.196667` | `0.177500` | `0.820144` | `0.996250` |
+
+Larger static outcome-label result:
+
+| Item | Value |
+| --- | ---: |
+| Logs / records / candidates | `36 / 7200 / 57600` |
+| Candidate count values | `[8]` |
+| Selected non-Top1 rate | `0.954722` |
+| Current selected minus Top1 SafetyCost mean | `-0.439150` |
+| Current selected minus Top1 DP-prior deviation mean | `+2.891040` |
+| Harmful selected records with positive DP-prior delta | `1592` |
+| Beneficial selected records with positive DP-prior delta | `5282` |
+
+Larger static alpha screen:
+
+| Alpha | Pass | Safety delta vs current mean | CI high | Changed | Top1 rate | Beneficial preserved | Hard nonworse |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.01` | no | `+0.014826` | `+0.047990` | `0.009583` | `0.046528` | `0.990913` | `0.999722` |
+| `0.05` | no | `-0.005328` | `+0.038943` | `0.056111` | `0.059028` | `0.948504` | `0.999722` |
+| `0.10` | no | `-0.017010` | `+0.031775` | `0.107361` | `0.073194` | `0.904960` | `0.999722` |
+| `0.20` | no | `-0.010019` | `+0.064083` | `0.200139` | `0.109861` | `0.823930` | `0.999444` |
+
+Interpretation:
+
+1. `dp_prior_deviation_cost` is mathematically clean and useful as a diagnostic:
+   current CAMP often selects non-Top1 candidates with positive DP-prior
+   deviation, and some of those choices are harmful under SafetyCost.
+2. The small clearance matrix shows a narrow positive result at `alpha=0.01`,
+   changing only about `2%` of records while preserving nearly all beneficial
+   current CAMP choices.
+3. The larger 36-log static outcome-label set does not confirm the effect.
+   Every alpha has nonnegative SafetyCost CI high versus current CAMP, even
+   though hard nonworse remains high.
+4. Therefore the failure is not simply "CAMP forgot to prefer DP Top-1." The
+   DP-prior signal is entangled with cases where CAMP correctly beats Top-1.
+   A standalone DP-prior atom or hard DP-prior selector would risk suppressing
+   beneficial CAMP decisions.
+5. This is not a candidate-support proof failure: the earlier comprehensive
+   SafetyCost proof showed candidate-pool opportunity. This result points to a
+   score/schema/calibration problem requiring a state-conditioned or
+   completion-aware formulation, not blind DP-prior regularization.
+
+Decision:
+
+1. Accept `dp_prior_deviation_cost` as a legal current-tick finite-candidate
+   atom candidate and keep it available for diagnostic analysis.
+2. Reject direct schema promotion, CAMP retraining, online postselection,
+   Full36, and formal seeds from this audit.
+3. The next admissible step is a joint offline audit of DP-prior deviation with
+   completion/progress preservation and scenario buckets, looking for a
+   state-conditioned atom or finite selector that preserves beneficial CAMP
+   choices while correcting the harmful high-DP-prior subset. Any such rule must
+   be predeclared, no-leakage, fail-closed, and tested first on existing
+   outcome-labeled logs.
