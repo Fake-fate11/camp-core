@@ -66,6 +66,7 @@ from scripts.integrations.run_diffusion_planner_camp_replay import (
     _perfect_tracker_candidate_preprocessing,
     _prepare_perfect_tracker_reference_candidates,
     _prepare_reward_scoring_candidates,
+    _reward_horizon_trajectories,
 )
 from scripts.integrations.create_diffusion_planner_smoke_route import (
     _route_geometry,
@@ -2841,6 +2842,19 @@ def test_reward_scoring_candidates_preserve_disabled_copy_semantics() -> None:
     assert actual.dtype == np.float32
     assert not np.shares_memory(actual, candidates)
     np.testing.assert_array_equal(actual, candidates.astype(np.float32))
+
+
+def test_reward_horizon_trajectories_are_contiguous() -> None:
+    torch = pytest.importorskip("torch")
+    full = torch.arange(2 * 8 * 4, dtype=torch.float32).reshape(2, 8, 4)
+    view = full[:, :3]
+    assert not view.is_contiguous()
+
+    actual = _reward_horizon_trajectories(full, 3)
+
+    assert actual.is_contiguous()
+    assert tuple(actual.shape) == (2, 3, 4)
+    torch.testing.assert_close(actual, view)
 
 
 def test_tracker_reference_candidates_preserve_disabled_preprocessing() -> None:

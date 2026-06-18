@@ -1782,6 +1782,13 @@ def _prepare_reward_scoring_candidates(
     )
 
 
+def _reward_horizon_trajectories(
+    full_trajectories: Any,
+    reward_horizon_steps: int,
+) -> Any:
+    return full_trajectories[:, :reward_horizon_steps].contiguous()
+
+
 def _append_metric_record(
     *,
     replay_module: Any,
@@ -1885,14 +1892,18 @@ def _score_candidate_batch(
     )
     smoothing_done = time.perf_counter()
     full_trajectories = torch.from_numpy(scored_candidates).float().to(device)
-    reward_trajectories = full_trajectories[:, :reward_horizon_steps]
+    reward_trajectories = _reward_horizon_trajectories(
+        full_trajectories,
+        reward_horizon_steps,
+    )
     candidate_tensor_done = time.perf_counter()
     reward_compute_start = time.perf_counter()
-    raw_reward_breakdowns = compute_reward_batch(
-        reward_trajectories,
-        reward_data,
-        reward_config,
-    )
+    with torch.inference_mode():
+        raw_reward_breakdowns = compute_reward_batch(
+            reward_trajectories,
+            reward_data,
+            reward_config,
+        )
     reward_compute_done = time.perf_counter()
     reward_breakdowns = [
         asdict(breakdown)
@@ -1900,11 +1911,12 @@ def _score_candidate_batch(
     ]
     reward_postprocess_done = time.perf_counter()
     full_red_start = time.perf_counter()
-    full_red_scores = compute_red_light_score_batch(
-        full_trajectories,
-        reward_data,
-        reward_config,
-    )
+    with torch.inference_mode():
+        full_red_scores = compute_red_light_score_batch(
+            full_trajectories,
+            reward_data,
+            reward_config,
+        )
     full_red_cost = np.maximum(
         -full_red_scores.detach().cpu().numpy().astype(np.float64),
         0.0,
