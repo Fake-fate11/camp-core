@@ -19993,3 +19993,202 @@ Accept only as development evidence if criteria 1-6 pass. Reject online
 promotion if any hard-safety regression remains, if required buckets are
 missing, or if all apparent improvement is due to fail-closed retention of
 logged `redstopfloor05`.
+
+### Clearance+Outcome Guarded Matrix Audit Result
+
+Date: 2026-06-18
+
+Status: reject development-gate pass for the guarded selector. The matrix and
+coverage requirements are satisfied, but the predeclared SafetyCost v1
+selector-vs-DP-Top-1 gate is not satisfied overall or in the
+traffic-light/turning buckets.
+
+State audited:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub CAMP after audit fix | `ff9a5401432849abc1ef141be8b6c46a6de89932` |
+| AutoDL CAMP after bundle sync | `ff9a5401432849abc1ef141be8b6c46a6de89932` |
+| Matrix launch CAMP commit | `90224195a7c440719bce111cbb17ffc9dcc988e0` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| Matrix root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0` |
+| Formal seeds | none present |
+
+Implementation note:
+
+The first guarded audit command exposed a CLI-only bug in
+`analyze_diffusion_planner_guarded_safety_selector.py`: the script treated the
+nonempty `coverage_gaps` dictionary as failure even when
+`missing_required_buckets` was empty. Commit `ff9a540` fixes only that
+`--fail_on_missing_required` condition and adds a CLI regression test. It does
+not change DP candidate generation, CAMP atoms, affine scores, SafetyCost
+labels, guard predicates, or any replay artifact.
+
+Command executed after `ff9a540` was synced to AutoDL:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+BASE=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0
+TRAIN=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_robust_static_seed12_floor_progress20_jerk20_clear2_stop5_dp5_918cdd4
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/analyze_diffusion_planner_guarded_safety_selector.py \
+  --root "$BASE" \
+  --atom_scales "$TRAIN/atom_scales_dp_static.json" \
+  --static_weights "$TRAIN/offline_weights_dp_static.npy" \
+  --selector_name safety_cost_v1_floor_progress20_jerk20_clear2_stop5_dp5_guarded_matrix \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --output_json "$BASE/guarded_matrix_audit/guarded_safety_selector.json" \
+  --output_md "$BASE/guarded_matrix_audit/guarded_safety_selector.md" \
+  --fail_on_formal_seeds \
+  --fail_on_missing_required
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `guarded_matrix_audit/guarded_safety_selector.json` | `35a87ccbe5b8e4137031e377b3bd3c8b8ed3a096056a8ab5d9ccfe80c3ac4379` |
+| `guarded_matrix_audit/guarded_safety_selector.md` | `f255de5ee108e513e9f53bd5b51216ae3ee0b46284dc84712c98ff231c70ada0` |
+| `camp_selection_log.sha256` | present under the matrix root |
+
+Matrix integrity:
+
+| Check | Result |
+| --- | --- |
+| Logs | `12` |
+| Records | `2400` |
+| Records per log | `200` |
+| Required bucket coverage | pass |
+| Missing required buckets | none |
+| Overall-only run keys | `0` |
+| Formal-seed records | `0` |
+
+Predeclared gate summary:
+
+| Gate item | Result | Evidence |
+| --- | --- | --- |
+| 1. All 12 runs complete, no formal seeds, DP fixed | pass | `12` logs, `2400` records, DP `7a1d33d` |
+| 2. Required bucket coverage | pass | no missing required buckets |
+| 3. Guarded selector CI high vs DP Top-1 below zero overall and every required bucket | fail | overall CI high `+0.023539`; traffic-light/red-turn/sharp-turn CI high `+0.633360` |
+| 4. Guarded-minus-logged not positive in critical lane-change/NPC buckets | pass as development evidence | lane-change CI high `0.000000`; NPC/dense CI high `-0.000001` |
+| 5. No positive hard collision/near-miss mean vs logged in critical buckets | pass | weighted collision and near-miss deltas are `0.000000` in lane-change, NPC, and dense buckets |
+| 6. Guard not passing by fail-closed everywhere | pass but weak | `26` accepted overrides out of `366` attempts; guarded changed `1.083333%` of records |
+| 7. Latency | diagnostic only | outcome collection dominates; this matrix cannot clear the formal `<100ms` gate |
+
+Guarded selector vs DP Top-1:
+
+| Bucket | Records | Logs | Mean delta | CI low | CI high | Decision |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| overall | `2400` | `12` | `-1.151239` | `-2.837747` | `+0.023539` | fail |
+| normal | `600` | `3` | `-0.020265` | `-0.022253` | `-0.018622` | pass |
+| traffic_light | `600` | `3` | `+0.250029` | `-0.036894` | `+0.633360` | fail |
+| red_light_turn | `600` | `3` | `+0.250029` | `-0.036894` | `+0.633360` | fail |
+| sharp_turn | `600` | `3` | `+0.250029` | `-0.036894` | `+0.633360` | fail |
+| npc_interaction | `600` | `3` | `-3.835474` | `-9.357299` | `-0.039532` | pass |
+| dense_scene | `600` | `3` | `-3.835474` | `-9.357299` | `-0.039532` | pass |
+| lane_change_or_merge | `600` | `3` | `-0.999248` | `-2.842483` | `-0.068733` | pass |
+
+Opportunity gate:
+
+The hard-guarded oracle opportunity gate also fails in the traffic-light,
+red-light-turn, and sharp-turn buckets. Required bucket coverage is complete,
+but `required_bucket_hard_guarded_oracle_ci_high_below_zero=false`.
+
+Guarded selector vs logged `redstopfloor05`:
+
+| Bucket | Changed rate | Mean delta | CI high | Weighted collision delta | Weighted near-miss delta |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| overall | `0.010833` | `-0.000102` | `-0.000049` | `0.000000` | `0.000000` |
+| traffic_light | `0.016667` | `-0.000143` | `-0.000026` | `0.000000` | `0.000000` |
+| red_light_turn | `0.016667` | `-0.000143` | `-0.000026` | `0.000000` | `0.000000` |
+| sharp_turn | `0.016667` | `-0.000143` | `-0.000026` | `0.000000` | `0.000000` |
+| npc_interaction | `0.006667` | `-0.000043` | `-0.000001` | `0.000000` | `0.000000` |
+| dense_scene | `0.006667` | `-0.000043` | `-0.000001` | `0.000000` | `0.000000` |
+| lane_change_or_merge | `0.005000` | `-0.000139` | `0.000000` | `0.000000` | `0.000000` |
+
+Guard behavior:
+
+| Metric | Value |
+| --- | ---: |
+| Records | `2400` |
+| Attempted overrides | `366` |
+| Accepted overrides | `26` |
+| Rejected overrides | `340` |
+| Accepted worse overrides | `5` |
+| Raw worse attempts | `107` |
+| Raw worse blocked | `102` |
+| Accept rate given attempt | `0.071038` |
+| Guarded changed-record rate | `0.010833` |
+
+Major guard rejection reasons:
+
+| Reason | Count |
+| --- | ---: |
+| `progress_shortfall_loss` | `195` |
+| `proxy_lateral` | `171` |
+| `proxy_jerk` | `111` |
+| `logged_candidate_infeasible` | `108` |
+| `raw_candidate_infeasible` | `108` |
+| `h10_distance_loss` | `68` |
+| `min_clearance_lower_bound` | `47` |
+| `soft_clearance` | `4` |
+| `near_miss_clearance` | `3` |
+
+Latency diagnostic:
+
+| Run | Total p95 ms | Candidate gen p95 ms | Reward scoring p95 ms | Outcome collection p95 ms | CAMP selection p95 ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `lane_change/seed_1` | `625.291175` | `65.809592` | `25.606608` | `488.156599` | `9.751054` |
+| `lane_change/seed_2` | `483.043714` | `64.330897` | `23.948506` | `343.095762` | `9.514722` |
+| `lane_change/seed_3` | `452.587223` | `68.315451` | `24.537883` | `334.670977` | `22.883617` |
+| `normal/seed_1` | `251.508219` | `66.505836` | `20.091619` | `167.390355` | `4.979375` |
+| `normal/seed_2` | `270.804496` | `59.258353` | `17.446184` | `188.532656` | `5.587493` |
+| `normal/seed_3` | `252.511391` | `62.313094` | `19.005216` | `170.220803` | `5.027446` |
+| `npc_dense/seed_1` | `506.638389` | `69.641646` | `22.126616` | `413.353671` | `7.108068` |
+| `npc_dense/seed_2` | `571.677080` | `63.474386` | `20.908656` | `482.250879` | `8.077562` |
+| `npc_dense/seed_3` | `493.455670` | `62.179951` | `21.609280` | `405.431461` | `8.738250` |
+| `red_light_turn/seed_1` | `760.792749` | `65.470282` | `22.369881` | `661.690267` | `5.172221` |
+| `red_light_turn/seed_2` | `721.968645` | `59.690903` | `18.729194` | `627.353014` | `5.156109` |
+| `red_light_turn/seed_3` | `850.760188` | `63.181230` | `19.156075` | `690.600458` | `5.523513` |
+
+Across-run p95 summary:
+
+| Component | Mean run p95 ms | Max run p95 ms |
+| --- | ---: | ---: |
+| total | `520.086578` | `850.760188` |
+| candidate_generation | `64.180968` | `69.641646` |
+| reward_scoring | `21.294643` | `25.606608` |
+| outcome_collection | `414.395575` | `690.600458` |
+| camp_selection | `8.126619` | `22.883617` |
+
+Mathematical boundary:
+
+The guard is a finite-candidate deterministic filter over fixed current-tick
+constants. It does not alter DP, candidate generation, atoms, affine score
+semantics, or the simplex/CVaR/L2 master. If guard diagnostics are atomized
+later, they must remain fixed nonnegative candidate costs. This audit is not a
+classical Benders subproblem.
+
+Decision:
+
+Reject this guarded selector as a development-gate pass and reject online
+promotion, formal seeds, Full36, DP modification, and CAMP retraining from this
+evidence. The useful evidence is narrower: the strict fail-closed guard largely
+blocks raw-selector regressions against logged `redstopfloor05`, but the
+guarded selector does not prove improvement over DP Top-1 under the
+predeclared SafetyCost v1 CI gate, especially in traffic-light/turning
+scenarios.
+
+Next admissible engineering target:
+
+Diagnose why the traffic-light/red-turn/sharp-turn bucket has positive
+guarded-selector SafetyCost delta versus DP Top-1 despite complete coverage.
+Do this as an offline fixed-candidate analysis first: compare selected vs
+Top-1 candidates in those three buckets by planned red, realized red,
+progress-shortfall, jerk/lateral, feasibility/fallback branch, and guard fail
+reasons. Only after that diagnosis should any atom/weight/guard change be
+proposed, and any such change must preserve fixed current-tick nonnegative
+candidate costs and the affine score/convex master boundary.
