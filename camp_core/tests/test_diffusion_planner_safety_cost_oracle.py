@@ -58,11 +58,17 @@ def _record(
     }
 
 
-def _write_log(tmp_path, record: dict[str, object]):
+def _write_log(
+    tmp_path,
+    record: dict[str, object],
+    *,
+    route_dir: str = "sample_map_tl_route_59_to_86",
+    route_path: str = "/routes/sample_map_tl_route_59_to_86.pkl",
+):
     root = (
         tmp_path
         / "dev_root"
-        / "sample_map_tl_route_59_to_86"
+        / route_dir
         / "seed_1"
         / "npc_4"
         / "spawn_0p3"
@@ -76,7 +82,7 @@ def _write_log(tmp_path, record: dict[str, object]):
         json.dumps(
             {
                 "benchmark": {
-                    "route": "/routes/sample_map_tl_route_59_to_86.pkl",
+                    "route": route_path,
                     "seed": 1,
                     "steps": 200,
                     "max_npcs": 4,
@@ -255,6 +261,48 @@ def test_safety_cost_oracle_reports_explicit_scenario_buckets(tmp_path) -> None:
         "dense_scene",
         "lane_change_or_merge",
     ]
+
+
+def test_safety_cost_oracle_matches_matrix_route_alias(tmp_path) -> None:
+    log_path = _write_log(
+        tmp_path,
+        _record(),
+        route_dir="sample_tl_turn",
+        route_path="/routes/sample_map_tl_route_59_to_86.pkl",
+    )
+    manifest_path = tmp_path / "scenario_buckets.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "routes": {"sample_tl_turn": ["sharp_turn"]},
+                "run_keys": {},
+                "filters": [
+                    {
+                        "name": "tl_alias_on",
+                        "match": {
+                            "route_name": "sample_tl_turn",
+                            "traffic_lights": True,
+                        },
+                        "buckets": ["traffic_light", "red_light_turn"],
+                    }
+                ],
+                "default_buckets": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = analyze([log_path], scenario_bucket_manifest=manifest_path)
+    buckets = {row["bucket"]: row for row in report["by_bucket"]}
+
+    assert sorted(buckets) == [
+        "overall",
+        "red_light_turn",
+        "sharp_turn",
+        "traffic_light",
+    ]
+    assert report["records"]["scenario_bucket_counts"]["sharp_turn"] == 1
+    assert report["records"]["scenario_bucket_counts"]["traffic_light"] == 1
 
 
 def test_safety_cost_oracle_requires_candidate_outcomes(tmp_path) -> None:

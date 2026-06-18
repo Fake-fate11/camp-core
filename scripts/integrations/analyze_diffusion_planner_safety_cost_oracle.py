@@ -246,7 +246,10 @@ def _log_context(log_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(benchmark, dict):
         benchmark = {}
     route = benchmark.get("route")
-    route_name = Path(str(route)).stem if route is not None else metadata.route
+    route_stem = Path(str(route)).stem if route is not None else None
+    route_name = metadata.route
+    if not route_name or route_name == "unknown":
+        route_name = route_stem
     traffic_lights = benchmark.get("traffic_lights")
     if traffic_lights is None:
         traffic_lights = metadata.traffic_light == "on"
@@ -260,6 +263,7 @@ def _log_context(log_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
         "run_key": _run_key(validation_summary, log_path.parent),
         "route": route,
         "route_name": route_name,
+        "route_stem": route_stem,
         "seed": seed,
         "steps": benchmark.get("steps"),
         "max_npcs": max_npcs,

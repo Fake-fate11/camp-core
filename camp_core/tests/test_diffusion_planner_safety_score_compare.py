@@ -144,6 +144,7 @@ def test_scenario_bucket_manifest_filters_match_configuration_only(tmp_path) -> 
     assert _scenario_buckets(
         {
             "route_name": "sample59",
+            "route": "/routes/sample_map_tl_route_59_to_86.pkl",
             "run_key": "run-on",
             "traffic_lights": True,
             "max_npcs": 4,
@@ -153,12 +154,26 @@ def test_scenario_bucket_manifest_filters_match_configuration_only(tmp_path) -> 
     assert _scenario_buckets(
         {
             "route_name": "sample59",
+            "route": "/routes/sample_map_tl_route_59_to_86.pkl",
             "run_key": "run-off",
             "traffic_lights": False,
             "max_npcs": 4,
         },
         manifest,
     ) == ["overall", "sharp_turn"]
+
+    stem_manifest = _load_scenario_bucket_manifest(manifest_path)
+    stem_manifest["routes"] = {
+        "sample_map_tl_route_59_to_86": ["lane_change_or_merge"],
+    }
+    assert _scenario_buckets(
+        {
+            "route_name": "sample59",
+            "route": "/routes/sample_map_tl_route_59_to_86.pkl",
+            "run_key": "run-stem",
+        },
+        stem_manifest,
+    ) == ["overall", "lane_change_or_merge"]
 
 
 def test_scenario_bucket_manifest_rejects_outcome_filter_fields(tmp_path) -> None:

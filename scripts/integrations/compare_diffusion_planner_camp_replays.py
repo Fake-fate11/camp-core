@@ -719,13 +719,18 @@ def _scenario_buckets(
     buckets = ["overall"]
     run_key = str(row.get("run_key"))
     route_name = row.get("route_name")
+    route_stem = _scenario_filter_value(row, "route_stem")
     manifest_run_keys = manifest.get("run_keys", {})
     manifest_routes = manifest.get("routes", {})
     for bucket in manifest_run_keys.get(run_key, []):
         if bucket not in buckets:
             buckets.append(bucket)
-    if route_name is not None:
-        for bucket in manifest_routes.get(str(route_name), []):
+    route_labels = []
+    for route_label in (route_name, route_stem):
+        if route_label is not None and route_label not in route_labels:
+            route_labels.append(route_label)
+    for route_label in route_labels:
+        for bucket in manifest_routes.get(str(route_label), []):
             if bucket not in buckets:
                 buckets.append(bucket)
     for entry in manifest.get("filters", []):
