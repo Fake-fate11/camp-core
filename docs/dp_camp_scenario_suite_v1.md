@@ -222,7 +222,17 @@ non-formal. It should:
    gate.
 
 If the lane-change map or route is unavailable, the correct outcome is a
-coverage-gap artifact and route-generation task, not a CAMP training run.
+coverage-gap artifact and route-generation task, not a CAMP training run. The
+current development assets now include a Nishishinjuku lane-change route:
+
+```text
+/root/autodl-tmp/camp_dp_assets/nishishinjuku_lane_change_route_7_via_8_to_1.pkl
+```
+
+Its route-inspection evidence contains one `Right` lanelet2 routing transition
+and two `Successor` transitions, so it may be explicitly labeled
+`lane_change_or_merge` in a development manifest. This label comes from route
+topology, not replay outcomes.
 
 Use the plan-only matrix tool to predeclare this next step:
 
@@ -231,8 +241,10 @@ python scripts/integrations/plan_diffusion_planner_diverse_scenario_matrix.py \
   --oracle_json /path/to/safety_cost_oracle_guarded.json \
   --route sample_normal=/path/to/sample_map_route_2_to_104.pkl \
   --route sample_tl_turn=/path/to/sample_map_tl_route_59_to_86.pkl \
+  --route nishishinjuku_lane_change=/path/to/nishishinjuku_lane_change_route_7_via_8_to_1.pkl \
   --route_bucket sample_normal=normal,npc_interaction,dense_scene \
   --route_bucket sample_tl_turn=traffic_light,red_light_turn,sharp_turn \
+  --route_bucket nishishinjuku_lane_change=lane_change_or_merge \
   --output_root /path/to/nonformal_matrix \
   --output_json /path/to/diverse_nonformal_matrix_plan.json \
   --output_md /path/to/diverse_nonformal_matrix_plan.md \
@@ -249,6 +261,18 @@ python scripts/integrations/plan_diffusion_planner_diverse_scenario_matrix.py \
   --spawn_probabilities 0.3,0.6 \
   --traffic_light_modes off,on
 ```
+
+The current approved non-formal plan with all required buckets covered is:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_matrix_plan_py312_9e2158f.json
+```
+
+It plans `108` static outcome-label runs over three routes and emits a command
+using `/root/miniconda3/bin/python`, because the fixed DP checkout requires a
+Python 3.10+ runtime. Running this command is still only the next non-formal
+outcome-label collection step; it does not itself prove CAMP is better than
+DP Top-1.
 
 The tool emits a scenario-bucket manifest and a static outcome-label matrix
 command. It does not run DP. If the emitted plan has blockers, those blockers

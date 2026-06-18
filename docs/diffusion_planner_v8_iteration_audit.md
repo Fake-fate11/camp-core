@@ -18616,3 +18616,155 @@ They are not runtime atoms, not training inputs by themselves, and not a
 Benders subproblem. They do not change DP, candidate generation, SG smoothing,
 `postprocess_reference`, PerfectTracker, CAMP atom schema, affine score,
 fallback policy, or the simplex/CVaR/L2 master.
+
+### Lane-Change Route Coverage Preparation
+
+The previous diverse matrix plan was blocked because
+`lane_change_or_merge` had zero planned rows. The Autoware lane-change planning
+simulation documentation uses the Nishishinjuku map and sets the initial pose
+and goal pose in adjacent lanes. This iteration therefore treats
+Nishishinjuku as the appropriate open Autoware map family for the missing
+bucket, but requires route-level topology evidence before applying the bucket.
+
+Implementation:
+
+- commit:
+  `9e2158f5b5b12b3c5dc3aaeb7e42738188a9252a`;
+- script:
+  `scripts/integrations/inspect_diffusion_planner_routes.py`;
+- route inspector now records lanelet2 routing transition relations and counts
+  `Left`, `Right`, `adjacentLeft`, and `adjacentRight` as route-level
+  lane-change/merge evidence;
+- local targeted tests:
+  `python -m pytest camp_core/tests/test_diffusion_planner_route_inspection.py camp_core/tests/test_diffusion_planner_diverse_scenario_matrix_plan.py camp_core/tests/test_diffusion_planner_scenario_bucket_manifest.py`
+  -> `12 passed`;
+- AutoDL targeted tests:
+  same route/matrix/manifest tests under the `camp` env -> `12 passed`.
+
+Remote runtime preparation:
+
+- installed `lanelet2==1.2.2` in the AutoDL `camp` env for route/map
+  inspection;
+- installed the minimal DP runtime dependencies in base Python 3.12
+  (`lanelet2==1.2.2`, `timm==1.0.10`, `einops`, `scipy`, `pandas`,
+  `scikit-learn`, `shapely`, `opencv-python`, `tqdm`) because the fixed DP
+  checkout uses Python 3.10+ type-union syntax and cannot run under the
+  Python 3.9 `camp` env.
+
+Generated route artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/create_diffusion_planner_smoke_route.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --map_path /root/autodl-tmp/camp_dp_assets/nishishinjuku_autoware_map/nishishinjuku_autoware_map/lanelet2_map_no_ros.osm \
+  --output /root/autodl-tmp/camp_dp_assets/nishishinjuku_lane_change_route_7_via_8_to_1.pkl \
+  --start_lanelet_id 7 \
+  --via_lanelet_id 8 \
+  --goal_lanelet_id 1 \
+  --min_length_m 100 \
+  --min_endpoint_distance_m 50
+```
+
+Route artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `nishishinjuku_lane_change_route_7_via_8_to_1.pkl` | `4d03a3f99f3d39d51e53389064c83f2a942921b7ddea437c9ed3730ae0fd033b` |
+
+Route evidence:
+
+| Route | Length m | Endpoint m | Route lanelets | Transition counts | Supported bucket evidence |
+| --- | ---: | ---: | ---: | --- | --- |
+| `nishishinjuku_lane_change` | `140.086643` | `63.003799` | `4` | `Right: 1`, `Successor: 2` | `lane_change_or_merge` |
+
+Route inspection artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `route_inspection_lanechange_9e2158f.json` | `7d1826cb472db9997d85552955eaa46237cb87587aac6f289fc1dd32d6050d72` |
+| `route_inspection_lanechange_9e2158f.md` | `dfd6d855d6cf4e51142307229480ee5ce14dd4e455f1b874594333f9da05fb3d` |
+
+Updated diverse matrix plan:
+
+- output root:
+  `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f`;
+- decision:
+  `approved_nonformal_plan_only`;
+- emitted command uses `/root/miniconda3/bin/python`, not the Python 3.9
+  `camp` env;
+- blockers:
+  `[]`;
+- planned runs:
+  `108`;
+- formal seeds:
+  not used.
+
+Planned coverage:
+
+| Bucket | Planned rows |
+| --- | ---: |
+| `overall` | `108` |
+| `normal` | `6` |
+| `traffic_light` | `18` |
+| `red_light_turn` | `18` |
+| `sharp_turn` | `36` |
+| `npc_interaction` | `6` |
+| `dense_scene` | `6` |
+| `lane_change_or_merge` | `36` |
+
+Plan artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `diverse_nonformal_matrix_plan_py312_9e2158f.json` | `dce16dda98c794e6514049f18b223b3d057a6de45f156a9af52d9781c8993bd8` |
+| `diverse_nonformal_matrix_plan_py312_9e2158f.md` | `eb4faa442bcf25dae12efce3c9f49169a244a1b912a8d34037dc1b64a521a5c4` |
+| `diverse_nonformal_scenario_buckets_py312_9e2158f.json` | `b28698e87b0217cb7f88b50d8646f8d029a3800e2ed6afecf44ec267eda1d202` |
+
+Lane-change smoke:
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/miniconda3/bin/python \
+  scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  ... \
+  --steps 5 \
+  --seeds 1 \
+  --max_npcs 0 \
+  --traffic_light_modes off \
+  --variants static \
+  --skip_compare \
+  --route nishishinjuku_lane_change=/root/autodl-tmp/camp_dp_assets/nishishinjuku_lane_change_route_7_via_8_to_1.pkl
+```
+
+Smoke result:
+
+| Metric | Value |
+| --- | ---: |
+| Closed-loop steps | `5` |
+| Selection-log records | `5` |
+| Candidate outcomes present | `True` |
+| Candidate feasible rate | `0.775000` |
+| Fallback rate | `0.200000` |
+| Route completion | `0.012886` |
+| p95 selector latency ms | `379.675211` |
+
+Interpretation:
+
+The lane-change route coverage blocker is resolved at the planning and smoke
+level. The smoke is not SafetyCost evidence because it is only five steps and
+does not run a paired Top-1/CAMP/oracle comparison. The next admissible action
+is to run the approved 108-run non-formal outcome-label matrix with the
+Python 3.12 command emitted by
+`diverse_nonformal_matrix_plan_py312_9e2158f.json`, then rerun the
+hard-guarded SafetyCost oracle audit by explicit scenario bucket.
+
+Mathematical boundary:
+
+The route and matrix-plan work changes only scenario coverage and future
+offline label collection. It does not change Diffusion Planner weights,
+candidate generation logic, CAMP atoms, CAMP weights, affine scoring, SG
+smoothing, `postprocess_reference`, PerfectTracker, fallback semantics, or the
+simplex/CVaR/L2 master. The `lane_change_or_merge` label is supported by
+route topology (`Right` transition) and not by replay outcome metrics.
