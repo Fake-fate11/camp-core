@@ -21550,3 +21550,146 @@ Decision:
    completion-preserving finite filter. It must avoid collapsing CAMP into
    Top-1 on most ticks, and it must pass an offline shadow coverage gate before
    any new targeted smoke.
+
+### Feasible-Tick Top-1 Preservation Shadow Sweep
+
+Date: 2026-06-18
+
+Status: reject feasible-tick Top-1 preservation filters under the predeclared
+shadow screen. Keep `fallback_mode="top1"` as default-off diagnostic only; do
+not implement any feasible-tick Top-1 preservation rule, do not run another
+targeted smoke from this sweep, and do not run Full36/formal.
+
+Purpose:
+
+The `top1` fallback targeted smoke showed that preserving DP Top-1 only on
+all-infeasible CAMP records helps the dense lane-change failure but does not
+pass the closed-loop SafetyCost gate. The remaining failures occur on feasible
+ticks where static CAMP still departs from DP Top-1 and systematically accepts
+larger DP-prior deviation. This sweep tests whether a simple current-tick
+finite-candidate Top-1 preservation filter can address that mechanism without
+collapsing CAMP into DP Top-1.
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_feasible_top1_shadow_sweep.py
+camp_core/tests/test_diffusion_planner_feasible_top1_shadow_sweep.py
+```
+
+The tool evaluates threshold rules over fixed current-tick diagnostics:
+
+```text
+candidate_dp_prior_deviation_cost
+candidate_perfect_tracker_target_speed_mps
+candidate_route_progress
+selection_scores
+```
+
+It does not use future outcome labels, does not run DP, does not change
+selection online, does not train CAMP, and does not alter the affine score.
+
+Predeclared shadow screen:
+
+| Criterion | Value |
+| --- | ---: |
+| maximum total changed-from-static rate | `0.35` |
+| maximum final Top-1 selected rate | `0.50` |
+| minimum changed-from-static rate on bad runs | `0.25` |
+
+Bad runs are the targeted-smoke rows with positive SafetyCost/lane degradation
+or material completion loss. This screen intentionally rejects rules that solve
+the issue by turning most feasible ticks back into DP Top-1.
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SMOKE=$ROOT/top1_fallback_targeted_seed3_smoke_542d489
+OUT=$ROOT/feasible_top1_shadow_sweep_822c1f9
+
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/analyze_diffusion_planner_feasible_top1_shadow_sweep.py \
+  --root "$SMOKE" \
+  --label top1_fallback_targeted_seed3_smoke_542d489 \
+  --max_change_rate 0.35 \
+  --max_top1_selected_rate 0.50 \
+  --min_bad_run_changed_rate 0.25 \
+  --output_json "$OUT/feasible_top1_shadow_sweep.json" \
+  --output_md "$OUT/feasible_top1_shadow_sweep.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `feasible_top1_shadow_sweep.json` | `0566035c0edad8f7308128552f65f1e7f985f9d14dea4097da96f5136c16fc51` |
+| `feasible_top1_shadow_sweep.md` | `e00dfeea3062d020c3a1c74d98f9fcacaa37a284f3706d12e5a08096730eb9ed` |
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_feasible_top1_shadow_sweep.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_feasible_top1_shadow_sweep.py -q
+```
+
+Result: local `1 passed`; AutoDL `1 passed`.
+
+Top ranked rules:
+
+| Rule | Pass | Changed | Top-1 selected | Bad-run changed | Score penalty | DP-prior delta | Target-speed delta |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `prior_ge_0` | false | `0.599167` | `0.925833` | `0.616000` | `0.004268` | `0.389177` | `-0.001018` |
+| `speed_loss_ge_0` | false | `0.525833` | `0.852500` | `0.552000` | `0.003555` | `0.459006` | `-0.000584` |
+| `speed_loss_ge_0p005` | false | `0.400000` | `0.726667` | `0.424000` | `0.002756` | `0.526431` | `-0.000932` |
+| `prior_ge_0p1` | false | `0.390833` | `0.717500` | `0.414000` | `0.003270` | `0.399022` | `-0.002520` |
+| `speed_loss_ge_0p01` | false | `0.248333` | `0.575000` | `0.266000` | `0.001776` | `0.591508` | `-0.002029` |
+| `prior_ge_0p25` | false | `0.247500` | `0.574167` | `0.260000` | `0.002380` | `0.421610` | `-0.003871` |
+| `prior_ge_0p25_and_progress_gain_le_1` | false | `0.230000` | `0.556667` | `0.240000` | `0.002213` | `0.483959` | `-0.004231` |
+| `prior_ge_0p5` | false | `0.151667` | `0.478333` | `0.169000` | `0.001623` | `0.456371` | `-0.004700` |
+
+Interpretation:
+
+1. No tested feasible-tick Top-1 preservation rule satisfies the strict shadow
+   screen.
+2. Rules that cover the bad runs enough also push the overall Top-1 selection
+   rate too high. For example `prior_ge_0p25` reaches the bad-run coverage
+   target (`0.260000`) but selects DP Top-1 on `0.574167` of all records, above
+   the `0.50` limit.
+3. Rules that keep the Top-1 rate acceptable do not cover enough bad-run ticks.
+   For example `prior_ge_0p5` keeps Top-1 selection at `0.478333`, but its
+   bad-run changed rate is only `0.169000`.
+4. Adding a route-progress-gain cap makes the rules narrower but does not solve
+   the tradeoff: `prior_ge_0p25_and_progress_gain_le_1` still exceeds the
+   Top-1-rate limit and misses the bad-run coverage target.
+5. Therefore the remaining feasible-tick failure is not well addressed by a
+   simple thresholded Top-1 preservation filter. The evidence points to a CAMP
+   scoring/schema problem: the model needs a principled way to price
+   DP-prior-deviation and completion tradeoffs, not another hard preservation
+   rule that quietly turns CAMP into DP Top-1.
+
+Mathematical boundary:
+
+Every swept rule uses only fixed current-tick finite-candidate quantities. If
+one of these diagnostics is later promoted into CAMP, it must be an atom with a
+fixed nonnegative coefficient per candidate, preserving the affine score
+\(a_k^\top w\) and the simplex/CVaR/L2 convex master. This sweep does not
+construct a Benders master/subproblem/dual/cut and does not claim convexity over
+trajectory coordinates.
+
+Decision:
+
+1. Reject feasible-tick Top-1 preservation filters from this sweep.
+2. Do not implement a feasible-tick Top-1 filter, do not run another targeted
+   smoke from these thresholds, and do not run Full36/formal.
+3. The next admissible direction is to define and audit a DP-prior-deviation or
+   completion-preservation atom/schema candidate, with a mathematical contract
+   showing fixed current-tick coefficients, nonnegativity, affine scoring, and
+   compatibility with the convex robust CAMP master. Only after an atom-level
+   offline audit should CAMP retraining be considered.
