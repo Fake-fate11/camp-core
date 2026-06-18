@@ -22300,3 +22300,80 @@ Decision:
    step is to explain the planned-progress versus realized-progress mismatch,
    especially in `normal`, using current-tick tracker rollout or postprocess
    descriptors that remain fixed candidate features.
+
+### SafetyCost Proof Summary Evidence Field Expansion
+
+Date: 2026-06-19
+
+Status: accept as a local read-only reporting improvement for the existing
+CAMP-vs-DP-Top1 comprehensive SafetyCost proof summary. This does not change
+DP, CAMP atoms, CAMP weights, selector behavior, training, Full36 eligibility,
+or formal-seed policy.
+
+Synchronization state checked before this edit:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub CAMP HEAD | `9be773672107e46856ac06c91f43f8b5d774ea03` |
+| AutoDL CAMP HEAD | `9be773672107e46856ac06c91f43f8b5d774ea03` |
+| AutoDL DP HEAD | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | none |
+
+New reporting behavior:
+
+```text
+scripts/integrations/summarize_diffusion_planner_camp_safety_cost_proof.py
+camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py
+```
+
+The summary now carries through fields already computed by the source
+SafetyCost oracle/evaluation reports:
+
+1. bucket-level `run_level_cvar90_delta` for CAMP versus DP Top-1 and
+   hard-guarded oracle versus DP Top-1;
+2. bucket-level candidate-pool opportunity coverage, including hard-guarded
+   oracle availability;
+3. hard-component nonworse rates, rendered in markdown as a conservative
+   per-candidate minimum across collision, near miss, lane, and realized red
+   light while preserving full per-component values in JSON.
+
+The reporting remains read-only. Missing fields are displayed as `n/a`; no
+CVaR, hard-component, or opportunity value is inferred when absent from a
+source artifact.
+
+Verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/summarize_diffusion_planner_camp_safety_cost_proof.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_safety_cost_proof_summary.py -q
+
+git diff --check
+```
+
+Result: proof-summary test `1 passed`; `git diff --check` passed.
+
+A broader local run including
+`camp_core\tests\test_diffusion_planner_safety_cost_oracle.py` was not counted
+as a code failure because pytest could not enumerate sandbox-created temporary
+directories under the current Windows ACL/sandbox configuration. The summary
+test itself does not require `tmp_path` and passed.
+
+Mathematical boundary:
+
+This change only exposes existing offline evidence fields. DP remains a frozen
+black-box candidate generator. CAMP scores remain affine in fixed current-tick
+candidate atoms, and the simplex/CVaR/L2 robust master is unchanged. No
+finite-candidate DP-side selector is called classical Benders here.
+
+Decision:
+
+Accept this reporting expansion as a small proof-gate completeness improvement.
+It does not authorize online promotion, Full36, formal seeds, DP retraining, or
+new CAMP retraining. The next admissible step is to rerun the comprehensive
+SafetyCost proof summary on AutoDL with these expanded fields and record the
+new JSON/markdown SHA before using the report as the next development gate.

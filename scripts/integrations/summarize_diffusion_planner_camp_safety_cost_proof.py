@@ -155,6 +155,13 @@ def build_report(
 
 
 def _oracle_summary(report: dict[str, Any]) -> dict[str, Any]:
+    overall = _metrics(_get(report, "overall") or {})
+    by_bucket = _bucket_metrics(report.get("by_bucket") or [])
+    _attach_opportunity_diagnostics(
+        overall=overall,
+        by_bucket=by_bucket,
+        diagnostics=report.get("opportunity_diagnostics") or {},
+    )
     return {
         "source_name": _get(report, "analysis", "name"),
         "logs": _get(report, "logs", "total"),
@@ -165,8 +172,8 @@ def _oracle_summary(report: dict[str, Any]) -> dict[str, Any]:
         "missing_required_buckets": _get(report, "coverage_gaps", "missing_required_buckets")
         or [],
         "opportunity_gate_passed": _get(report, "opportunity_gate", "passed"),
-        "overall": _metrics(_get(report, "overall") or {}),
-        "by_bucket": _bucket_metrics(report.get("by_bucket") or []),
+        "overall": overall,
+        "by_bucket": by_bucket,
         "rates": {
             "camp_beats_top1": _get(report, "overall", "record_rates", "camp_beats_top1"),
             "camp_matches_top1": _get(
@@ -267,6 +274,8 @@ def _metrics(entry: dict[str, Any]) -> dict[str, Any]:
     return {
         "records": entry.get("records"),
         "logs": entry.get("logs"),
+        "record_rates": entry.get("record_rates") or {},
+        "candidate_pool_coverage": entry.get("candidate_pool_coverage") or {},
         "cost_mean": {
             "top1": _get(entry, "cost_mean", "top1"),
             "camp": _get(entry, "cost_mean", "camp"),
@@ -279,11 +288,47 @@ def _metrics(entry: dict[str, Any]) -> dict[str, Any]:
         "camp_minus_hard_guarded_oracle": _ci(
             entry, "camp_minus_hard_guarded_oracle"
         ),
+        "cvar90_camp_minus_top1": _cvar_ci(entry, "camp_minus_top1"),
+        "cvar90_hard_guarded_oracle_minus_top1": _cvar_ci(
+            entry, "hard_guarded_oracle_minus_top1"
+        ),
+        "cvar90_camp_minus_hard_guarded_oracle": _cvar_ci(
+            entry, "camp_minus_hard_guarded_oracle"
+        ),
+        "hard_component_nonworse_rate": entry.get("hard_component_nonworse_rate")
+        or {},
+        "failure_modes": entry.get("failure_mode_rates") or {},
     }
 
 
 def _bucket_metrics(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {str(row.get("bucket")): _metrics(row) for row in rows}
+
+
+def _attach_opportunity_diagnostics(
+    *,
+    overall: dict[str, Any],
+    by_bucket: dict[str, dict[str, Any]],
+    diagnostics: dict[str, Any],
+) -> None:
+    coverage = diagnostics.get("candidate_pool_coverage")
+    if isinstance(coverage, dict):
+        overall["candidate_pool_coverage"] = coverage
+    failures = diagnostics.get("failure_mode_rates")
+    if isinstance(failures, dict):
+        overall["failure_modes"] = failures
+    for row in diagnostics.get("by_bucket") or []:
+        if not isinstance(row, dict):
+            continue
+        bucket = str(row.get("bucket"))
+        if bucket not in by_bucket:
+            continue
+        coverage = row.get("candidate_pool_coverage")
+        if isinstance(coverage, dict):
+            by_bucket[bucket]["candidate_pool_coverage"] = coverage
+        failures = row.get("failure_mode_rates")
+        if isinstance(failures, dict):
+            by_bucket[bucket]["failure_modes"] = failures
 
 
 def _selector_rates(entry: dict[str, Any]) -> dict[str, Any]:
@@ -537,6 +582,7 @@ def render_markdown(report: dict[str, Any]) -> str:
 def _metric_table(summary: dict[str, Any]) -> str:
     overall = summary["overall"]
     rates = summary.get("rates", {})
+    coverage = overall.get("candidate_pool_coverage") or {}
     return "\n".join(
         [
             "| Metric | Value |",
@@ -546,12 +592,18 @@ def _metric_table(summary: dict[str, Any]) -> str:
             f"| Formal seed logs | {_fmt(summary.get('formal_seed_logs'))} |",
             f"| CAMP minus Top-1 mean | {_fmt(_ci_mean(overall, 'camp_minus_top1'))} |",
             f"| CAMP minus Top-1 CI high | {_fmt(_ci_high(overall, 'camp_minus_top1'))} |",
+            f"| CAMP minus Top-1 CVaR90 CI high | {_fmt(_ci_high(overall, 'cvar90_camp_minus_top1'))} |",
             f"| Hard-guarded oracle minus Top-1 mean | {_fmt(_ci_mean(overall, 'hard_guarded_oracle_minus_top1'))} |",
             f"| Hard-guarded oracle minus Top-1 CI high | {_fmt(_ci_high(overall, 'hard_guarded_oracle_minus_top1'))} |",
+            f"| Hard-guarded oracle minus Top-1 CVaR90 CI high | {_fmt(_ci_high(overall, 'cvar90_hard_guarded_oracle_minus_top1'))} |",
             f"| CAMP gap to hard-guarded oracle mean | {_fmt(_ci_mean(overall, 'camp_minus_hard_guarded_oracle'))} |",
             f"| CAMP gap to hard-guarded oracle CI high | {_fmt(_ci_high(overall, 'camp_minus_hard_guarded_oracle'))} |",
             f"| CAMP beats Top-1 rate | {_fmt(rates.get('camp_beats_top1'))} |",
             f"| CAMP matches hard-guarded oracle rate | {_fmt(rates.get('camp_matches_hard_guarded_oracle'))} |",
+            f"| Hard-guarded oracle available rate | {_fmt(_first_not_none(coverage.get('hard_guarded_oracle_available_rate'), rates.get('hard_guarded_oracle_available')))} |",
+            f"| Hard-guarded oracle beats Top-1 rate | {_fmt(rates.get('hard_guarded_oracle_beats_top1'))} |",
+            f"| CAMP hard-component nonworse min | {_fmt(_hard_nonworse_min(overall, 'camp'))} |",
+            f"| Hard-guarded oracle hard-component nonworse min | {_fmt(_hard_nonworse_min(overall, 'hard_guarded_oracle'))} |",
         ]
     )
 
@@ -567,10 +619,12 @@ def _selector_table(summary: dict[str, Any]) -> str:
         f"| Records | {_fmt(summary.get('records'))} | {_fmt(summary.get('records'))} |",
         f"| CAMP minus Top-1 mean | {_fmt(_ci_mean(evaluated['overall'], 'camp_minus_top1'))} | {_fmt(_ci_mean(logged['overall'], 'camp_minus_top1'))} |",
         f"| CAMP minus Top-1 CI high | {_fmt(_ci_high(evaluated['overall'], 'camp_minus_top1'))} | {_fmt(_ci_high(logged['overall'], 'camp_minus_top1'))} |",
+        f"| CAMP minus Top-1 CVaR90 CI high | {_fmt(_ci_high(evaluated['overall'], 'cvar90_camp_minus_top1'))} | {_fmt(_ci_high(logged['overall'], 'cvar90_camp_minus_top1'))} |",
         f"| Gap to hard-guarded oracle mean | {_fmt(_ci_mean(evaluated['overall'], 'camp_minus_hard_guarded_oracle'))} | {_fmt(_ci_mean(logged['overall'], 'camp_minus_hard_guarded_oracle'))} |",
         f"| Gap to hard-guarded oracle CI high | {_fmt(_ci_high(evaluated['overall'], 'camp_minus_hard_guarded_oracle'))} | {_fmt(_ci_high(logged['overall'], 'camp_minus_hard_guarded_oracle'))} |",
         f"| CAMP beats Top-1 rate | {_fmt(evaluated['rates'].get('camp_beats_top1'))} | {_fmt(logged['rates'].get('camp_beats_top1'))} |",
         f"| CAMP matches hard-guarded oracle rate | {_fmt(evaluated['rates'].get('camp_matches_hard_guarded_oracle'))} | {_fmt(logged['rates'].get('camp_matches_hard_guarded_oracle'))} |",
+        f"| CAMP hard-component nonworse min | {_fmt(_hard_nonworse_min(evaluated['overall'], 'camp'))} | {_fmt(_hard_nonworse_min(logged['overall'], 'camp'))} |",
         f"| Evaluated changed record rate | {_fmt(comparison.get('changed_record_rate'))} | n/a |",
         f"| Evaluated minus logged cost mean | {_fmt(comparison.get('evaluated_minus_logged_cost_mean'))} | n/a |",
     ]
@@ -579,19 +633,26 @@ def _selector_table(summary: dict[str, Any]) -> str:
 
 def _bucket_table(summary: dict[str, Any]) -> str:
     rows = [
-        "| Bucket | Records | Logs | CAMP-Top1 mean | CAMP-Top1 CI high | HardOracle-Top1 CI high | Gap CI high |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Bucket | Records | Logs | CAMP-Top1 mean | CAMP-Top1 CI high | CAMP-Top1 CVaR90 CI high | HardOracle-Top1 CI high | HardOracle beats Top1 | HardOracle available | CAMP hard min | HardOracle hard min | Gap CI high |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     buckets = summary.get("by_bucket") or {}
     for bucket in ("overall", *DEFAULT_REQUIRED_BUCKETS):
         entry = buckets.get(bucket)
         if entry is None:
             continue
+        rates = entry.get("record_rates") or {}
+        coverage = entry.get("candidate_pool_coverage") or {}
         rows.append(
             f"| `{bucket}` | {_fmt(entry.get('records'))} | {_fmt(entry.get('logs'))} | "
             f"{_fmt(_ci_mean(entry, 'camp_minus_top1'))} | "
             f"{_fmt(_ci_high(entry, 'camp_minus_top1'))} | "
+            f"{_fmt(_ci_high(entry, 'cvar90_camp_minus_top1'))} | "
             f"{_fmt(_ci_high(entry, 'hard_guarded_oracle_minus_top1'))} | "
+            f"{_fmt(rates.get('hard_guarded_oracle_beats_top1'))} | "
+            f"{_fmt(_first_not_none(coverage.get('hard_guarded_oracle_available_rate'), rates.get('hard_guarded_oracle_available')))} | "
+            f"{_fmt(_hard_nonworse_min(entry, 'camp'))} | "
+            f"{_fmt(_hard_nonworse_min(entry, 'hard_guarded_oracle'))} | "
             f"{_fmt(_ci_high(entry, 'camp_minus_hard_guarded_oracle'))} |"
         )
     return "\n".join(rows)
@@ -599,6 +660,15 @@ def _bucket_table(summary: dict[str, Any]) -> str:
 
 def _ci(entry: dict[str, Any], name: str) -> dict[str, Any]:
     raw = _get(entry, "run_level_delta_ci", name) or {}
+    return {
+        "mean": raw.get("mean"),
+        "ci95_low": raw.get("ci95_low"),
+        "ci95_high": raw.get("ci95_high"),
+    }
+
+
+def _cvar_ci(entry: dict[str, Any], name: str) -> dict[str, Any]:
+    raw = _get(entry, "run_level_cvar90_delta", name) or {}
     return {
         "mean": raw.get("mean"),
         "ci95_low": raw.get("ci95_low"),
@@ -624,6 +694,25 @@ def _bucket_failure_text(failures: dict[str, float | None]) -> str:
     if not failures:
         return "none"
     return ", ".join(f"{bucket}={_fmt(value)}" for bucket, value in failures.items())
+
+
+def _hard_nonworse_min(entry: dict[str, Any], candidate: str) -> float | None:
+    rates = entry.get("hard_component_nonworse_rate") or {}
+    components = ("collision", "near_miss", "lane", "realized_red_light")
+    values = [
+        rates.get(f"{candidate}_{component}_vs_top1") for component in components
+    ]
+    numeric = [float(value) for value in values if value is not None]
+    if not numeric:
+        return None
+    return min(numeric)
+
+
+def _first_not_none(*values: Any) -> Any:
+    for value in values:
+        if value is not None:
+            return value
+    return None
 
 
 def _fmt(value: Any) -> str:
