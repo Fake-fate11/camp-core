@@ -21382,3 +21382,171 @@ Decision:
    DP-prior-preservation, feasible-candidate fallback, or completion-preserving
    filtering. Any such rule must first define its acceptance gate and prove
    non-leakage before implementation.
+
+### Top-1 Failsafe Fallback Shadow and Targeted Smoke
+
+Date: 2026-06-18
+
+Status: accept `top1` fallback mode as a default-off diagnostic implementation;
+reject promotion and reject Full36/formal expansion. The rule materially reduces
+one diagnosed failure mechanism, but the targeted closed-loop smoke still fails
+the predeclared SafetyCost/completion/lane/latency gate.
+
+Hypothesis:
+
+The deployable static smoke showed dense lane-change failures with high
+all-infeasible fallback rates and low feasible-candidate rates. A deterministic
+fail-closed fallback that preserves DP Top-1 when CAMP marks every candidate
+infeasible should reduce the worst arbitrary fallback behavior without changing
+CAMP scores on feasible ticks.
+
+Mathematical rule:
+
+For each fixed DP candidate set \(K_t\) at the current tick, let
+\(F_t \subseteq K_t\) be the CAMP feasibility mask and let candidate `0` be DP
+Top-1. The default-off fallback rule is:
+
+```text
+if F_t is empty:
+    select candidate 0
+else:
+    select argmin_k a_k^T w over feasible candidates as before
+```
+
+This rule is finite-candidate, deterministic, current-tick, and fail-closed to
+the DP baseline. It uses no future outcome labels and does not change DP
+sampling, Savitzky-Golay smoothing, `postprocess_reference`, `PerfectTracker`,
+CAMP atom values, or the affine CAMP score on nonfallback ticks.
+
+New tooling and implementation:
+
+```text
+scripts/integrations/analyze_diffusion_planner_top1_failsafe_shadow.py
+camp_core/tests/test_diffusion_planner_top1_failsafe_shadow.py
+```
+
+Code changes:
+
+| File | Change |
+| --- | --- |
+| `camp_core/camp_core/integrations/diffusion_planner.py` | add `fallback_mode="top1"` branch only for all-infeasible records |
+| `scripts/integrations/run_diffusion_planner_camp_replay.py` | expose CLI choice `--camp_fallback_mode top1` |
+| `scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py` | pass through `top1` fallback mode |
+| `scripts/integrations/audit_diffusion_planner_camp_dataset.py` | accept `top1` in fallback metadata |
+| `camp_core/tests/test_diffusion_planner_integration.py` | verify `top1` fallback selects candidate0 only when all candidates are infeasible |
+
+Verification before smoke:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_top1_failsafe_shadow.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_top1_failsafe_shadow.py \
+  camp_core/tests/test_diffusion_planner_integration.py::test_top1_fallback_preserves_candidate0_only_when_all_infeasible \
+  camp_core/tests/test_diffusion_planner_integration.py::test_learned_fallback_only_changes_all_infeasible_branch \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py::test_variant_command_threads_fallback_mode_into_camp_variants \
+  -q
+```
+
+Result: local `4 passed`; AutoDL `4 passed`.
+
+Shadow audit:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_failsafe_shadow_009737d/top1_failsafe_shadow.json` | `6386ac2dbd3a0ec4b698a3a731c0b78cb4351beaa286d0f03e18981776cf65cb` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_failsafe_shadow_009737d/top1_failsafe_shadow.md` | `e2731c2dea7bdece53a852485c9de1b85dbe37be61c40cb47abc95f11cc0efc3` |
+
+Shadow result:
+
+| Rule | Changed from static | Top-1 selected | All-infeasible restored | Prior trigger | Score penalty mean | Decision |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `static_baseline` | `0.000000` | `0.120417` | `0.000000` | `0.000000` | `0.000000` | baseline |
+| `top1_on_all_infeasible` | `0.159167` | `0.279583` | `0.837362` | `0.000000` | `+0.007293` | admissible targeted smoke candidate |
+| `top1_on_dp_prior_deviation_worse` | `0.649583` | `0.770000` | `0.000000` | `0.649583` | `+0.003153` | too broad for first smoke |
+| `top1_on_all_infeasible_or_dp_prior_deviation_worse` | `0.808750` | `0.929167` | `0.837362` | `0.649583` | `+0.010446` | too close to disabling CAMP |
+| `top1_on_fallback_or_prior_or_speed_loss_0p1` | `0.808750` | `0.929167` | `0.837362` | `0.649583` | `+0.010446` | too close to disabling CAMP |
+
+The chosen smoke candidate was `top1_on_all_infeasible`, because it targets the
+high-fallback failure mode without collapsing most feasible ticks back to
+Top-1.
+
+Targeted non-formal smoke:
+
+| Item | Value |
+| --- | --- |
+| CAMP commit | `542d489c63926c8e31a78fc512ebc41550d0fb55` |
+| DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| Root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/top1_fallback_targeted_seed3_smoke_542d489` |
+| Routes | `sample_normal`, `sample_tl_turn`, `nishishinjuku_lane_change` |
+| Seed / NPC / TL modes | seed `3`, NPC `8`, TL `off,on` |
+| Variants | `top1`, `static` with `--camp_fallback_mode top1` |
+| Pairing | `6` strict pairs, no missing or duplicate keys |
+| Formal seeds | none |
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `benchmark_comparison.json` | `0f4f9cbd6ba3ac020ccfe1487cb443b2c6073082d7b2b27195966e9516cfbd62` |
+| `benchmark_comparison.md` | `cc07dcea85e162025e2ca06c39ed026263b8ba46a16f08a1f556a01deff1d5ac` |
+| `top1_fallback_targeted_diagnosis.json` | `ee6af3cccef830e4d26cd2a2e64767aa2c5b2fcf7824675a975c7e9197b9de00` |
+| `top1_fallback_targeted_diagnosis.md` | `952408f95744e29687a22a58cc83c0128e512d7a21a53e3c6f00b6e87dcda4aa` |
+
+Targeted smoke gate:
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| strict pairing | pass | `6` common pairs |
+| finite-candidate contract | pass | `6/6` static rows verified |
+| formal seeds absent | pass | no formal seed rows |
+| collision nonworse | pass | delta `+0.000000`, CI high `+0.000000` |
+| red-light nonworse | pass | delta `+0.000000`, CI high `+0.000000` |
+| near-miss nonworse | pass | mean delta `-0.016667`, CI high `-0.001667` |
+| SafetyCost significantly lower | fail | mean delta `+0.036206`, CI high `+0.111969` |
+| hard gate | fail | `hard_gate_passed=false` |
+| completion nonworse | fail | mean delta `-0.028156`, CI high `-0.000573` |
+| lane nonworse | fail | mean delta `+0.004167`, CI high `+0.013333` |
+| latency margin | fail | aggregate p95-selection mean `96.206160 ms`, CI high `99.292298 ms`; margin gate requires `<95 ms` |
+
+Run-level deltas:
+
+| Route / condition | SafetyCost delta | Completion delta | Near delta | Lane delta | Fallback | Feasible | P95 latency |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `nishishinjuku_lane_change`, TL `off` | `+0.178550` | `-0.001547` | `-0.010000` | `+0.025000` | `0.495` | `0.4725` | `102.202 ms` |
+| `nishishinjuku_lane_change`, TL `on` | `-0.059884` | `-0.000557` | `+0.000000` | `-0.005000` | `0.370` | `0.575625` | `99.456 ms` |
+| `sample_normal`, TL `off` | `+0.003256` | `-0.083269` | `-0.045000` | `+0.000000` | `0.075` | `0.830625` | `92.749 ms` |
+| `sample_normal`, TL `on` | `-0.100126` | `-0.082810` | `-0.045000` | `+0.000000` | `0.065` | `0.836875` | `91.277 ms` |
+| `sample_tl_turn`, TL `off` | `+0.079417` | `-0.000728` | `+0.000000` | `+0.000000` | `0.170` | `0.675625` | `94.610 ms` |
+| `sample_tl_turn`, TL `on` | `+0.116021` | `-0.000025` | `+0.000000` | `+0.005000` | `0.150` | `0.81125` | `96.944 ms` |
+
+Interpretation:
+
+1. `top1` fallback helps the exact failure mechanism it targets. The previous
+   static smoke had `nishishinjuku_lane_change`, NPC `8`, TL off SafetyCost
+   delta `+0.741652`; the targeted `top1` fallback smoke reduces this to
+   `+0.178550` and also reduces near-miss delta to `-0.010000`.
+2. The rule is still insufficient. The worst lane-change row keeps lane
+   degradation (`+0.025000`) and p95 latency above `100 ms`.
+3. Sample-normal dense scenes still trade near-miss reduction for large
+   completion loss (`-0.083`), which the all-infeasible fallback rule cannot
+   address because most of those ticks remain feasible.
+4. The targeted diagnosis still reports selected non-Top1 records with
+   systematic DP-prior-deviation loss: `dp_prior_deviation` selected-minus-Top1
+   mean run delta `+0.986279` and better-rate `0.0` on changed records.
+5. Therefore the remaining problem is feasible-tick score/schema behavior and
+   completion/DP-prior preservation, not only all-infeasible fallback.
+
+Decision:
+
+1. Keep `fallback_mode="top1"` as a default-off diagnostic mode.
+2. Reject online promotion, Full36, and formal seeds from this smoke.
+3. Do not retrain CAMP or DP from this evidence alone.
+4. The next admissible step is a predeclared feasible-tick DP-prior or
+   completion-preserving finite filter. It must avoid collapsing CAMP into
+   Top-1 on most ticks, and it must pass an offline shadow coverage gate before
+   any new targeted smoke.
