@@ -60,6 +60,58 @@ def test_unconditional_top1_red_floor_can_ignore_feasible_mask(tmp_path) -> None
     }
 
 
+def test_state_redroute_top1_floor_requires_positive_red_route_context(
+    tmp_path,
+) -> None:
+    scales_path, weights_path, names = _write_selector(tmp_path)
+
+    inactive_log_path = _write_log(
+        tmp_path,
+        names,
+        red_route_point_count=0,
+        root_name="inactive_gate",
+    )
+    inactive_report = analyze(
+        [inactive_log_path],
+        atom_scales=scales_path,
+        static_weights=weights_path,
+        selector_name="unit_floor",
+        required_buckets=(),
+    )
+    inactive_rule = {
+        rule["name"]: rule for rule in inactive_report["rules"]
+    }["state_redroute_top1_red_floor_unconditional"]
+
+    assert inactive_rule["floor_summary"]["top1_fallbacks"] == 0
+    assert inactive_rule["floor_summary"]["state_inactive_records"] == 1
+    assert inactive_rule["floor_summary"]["trigger_reason_counts"] == {}
+
+    active_log_path = _write_log(
+        tmp_path,
+        names,
+        candidate0_feasible=False,
+        red_route_point_count=20,
+        root_name="active_gate",
+    )
+    active_report = analyze(
+        [active_log_path],
+        atom_scales=scales_path,
+        static_weights=weights_path,
+        selector_name="unit_floor",
+        required_buckets=(),
+    )
+    active_rule = {
+        rule["name"]: rule for rule in active_report["rules"]
+    }["state_redroute_top1_red_floor_unconditional"]
+
+    assert active_rule["floor_summary"]["top1_fallbacks"] == 1
+    assert active_rule["floor_summary"]["candidate0_infeasible_top1_fallbacks"] == 1
+    assert active_rule["floor_summary"]["state_inactive_records"] == 0
+    assert active_rule["floor_summary"]["trigger_reason_counts"] == {
+        "union_red": 1
+    }
+
+
 def _write_selector(tmp_path):
     version, names = atom_schema_for_dimension(14)
     scales_path = tmp_path / "atom_scales_dp_static.json"
@@ -85,11 +137,13 @@ def _write_log(
     names: tuple[str, ...],
     *,
     candidate0_feasible: bool = True,
+    red_route_point_count: int = 20,
+    root_name: str = "sample_tl_turn",
 ):
     root = (
         tmp_path
         / "dev_root"
-        / "sample_tl_turn"
+        / root_name
         / "seed_1"
         / "npc_0"
         / "spawn_0p3"
@@ -117,6 +171,7 @@ def _write_log(
     record = {
         "num_candidates": 2,
         "selected_index": 1,
+        "red_route_point_count": red_route_point_count,
         "feasible_mask": [candidate0_feasible, True],
         "atom_names": list(names),
         "atoms": _atoms(names),

@@ -74,6 +74,16 @@ FLOOR_RULES: tuple[dict[str, Any], ...] = (
         "require_candidate0_feasible": False,
     },
     {
+        "name": "state_redroute_top1_red_floor_unconditional",
+        "description": (
+            "diagnostic contrast: unconditional red floor activated only when "
+            "red_route_point_count is positive"
+        ),
+        "checks": ("union_red", "red_stopping"),
+        "require_candidate0_feasible": False,
+        "state_gate": "red_route_point_count_positive",
+    },
+    {
         "name": "top1_red_or_proxy_jerk_floor",
         "description": (
             "red floor plus fallback when the guarded candidate has higher "
@@ -92,6 +102,16 @@ FLOOR_RULES: tuple[dict[str, Any], ...] = (
         "require_candidate0_feasible": False,
     },
     {
+        "name": "state_redroute_top1_red_or_proxy_jerk_floor_unconditional",
+        "description": (
+            "diagnostic contrast: unconditional red-or-jerk floor activated "
+            "only when red_route_point_count is positive"
+        ),
+        "checks": ("union_red", "red_stopping", "proxy_jerk"),
+        "require_candidate0_feasible": False,
+        "state_gate": "red_route_point_count_positive",
+    },
+    {
         "name": "top1_red_or_proxy_comfort_floor",
         "description": (
             "red floor plus fallback when either proxy jerk or proxy lateral "
@@ -108,6 +128,16 @@ FLOOR_RULES: tuple[dict[str, Any], ...] = (
         ),
         "checks": ("union_red", "red_stopping", "proxy_jerk", "proxy_lateral"),
         "require_candidate0_feasible": False,
+    },
+    {
+        "name": "state_redroute_top1_red_or_proxy_comfort_floor_unconditional",
+        "description": (
+            "diagnostic contrast: unconditional red-or-comfort floor activated "
+            "only when red_route_point_count is positive"
+        ),
+        "checks": ("union_red", "red_stopping", "proxy_jerk", "proxy_lateral"),
+        "require_candidate0_feasible": False,
+        "state_gate": "red_route_point_count_positive",
     },
 )
 
@@ -354,7 +384,9 @@ def analyze(
                 "Rules with require_candidate0_feasible=true retain the guarded "
                 "choice when candidate0 is not base-feasible; rules marked "
                 "unconditional are diagnostic contrasts that may return DP "
-                "Top-1 despite the CAMP feasible mask."
+                "Top-1 despite the CAMP feasible mask. Rules with a state_gate "
+                "apply the floor only when that current-tick state predicate "
+                "is active."
             ),
             "math_boundary": (
                 "DP remains a fixed black-box generator. This audit reads "
@@ -391,11 +423,23 @@ def _floor_index(
         raise ValueError(f"{label} guarded index is out of range.")
     checks = tuple(str(check) for check in rule["checks"])
     require_candidate0_feasible = bool(rule.get("require_candidate0_feasible", True))
+    state_active, state_reason = _state_gate_active(record, rule)
+    if not state_active:
+        return guarded_index, {
+            "changed_to_top1": False,
+            "candidate0_feasible": _candidate0_feasible(record, candidate_count),
+            "require_candidate0_feasible": require_candidate0_feasible,
+            "state_gate": rule.get("state_gate"),
+            "state_active": False,
+            "trigger_reasons": [state_reason],
+        }
     if not checks or guarded_index == 0:
         return guarded_index, {
             "changed_to_top1": False,
             "candidate0_feasible": _candidate0_feasible(record, candidate_count),
             "require_candidate0_feasible": require_candidate0_feasible,
+            "state_gate": rule.get("state_gate"),
+            "state_active": state_active,
             "trigger_reasons": [],
         }
     candidate0_feasible = _candidate0_feasible(record, candidate_count)
@@ -404,6 +448,8 @@ def _floor_index(
             "changed_to_top1": False,
             "candidate0_feasible": False,
             "require_candidate0_feasible": True,
+            "state_gate": rule.get("state_gate"),
+            "state_active": state_active,
             "trigger_reasons": ["candidate0_not_base_feasible"],
         }
 
@@ -419,9 +465,25 @@ def _floor_index(
             "changed_to_top1": changed,
             "candidate0_feasible": candidate0_feasible,
             "require_candidate0_feasible": require_candidate0_feasible,
+            "state_gate": rule.get("state_gate"),
+            "state_active": state_active,
             "trigger_reasons": trigger_reasons,
         },
     )
+
+
+def _state_gate_active(record: dict[str, Any], rule: dict[str, Any]) -> tuple[bool, str]:
+    gate = rule.get("state_gate")
+    if gate is None:
+        return True, ""
+    if gate == "red_route_point_count_positive":
+        value = record.get("red_route_point_count")
+        try:
+            count = int(value)
+        except (TypeError, ValueError):
+            count = 0
+        return count > 0, "red_route_point_count_not_positive"
+    raise ValueError(f"Unsupported state gate: {gate}")
 
 
 def _candidate0_feasible(record: dict[str, Any], candidate_count: int) -> bool:
@@ -473,6 +535,8 @@ def _floor_event(
         "changed_to_top1": bool(decision["changed_to_top1"]),
         "candidate0_feasible": bool(decision["candidate0_feasible"]),
         "require_candidate0_feasible": bool(decision["require_candidate0_feasible"]),
+        "state_gate": decision["state_gate"],
+        "state_active": bool(decision["state_active"]),
         "trigger_reasons": list(decision["trigger_reasons"]),
         "floor_minus_logged_cost": float(
             floor_row["costs"]["camp"] - logged_row["costs"]["camp"]
@@ -499,6 +563,10 @@ def _floor_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "candidate0_infeasible_top1_fallbacks": sum(
             int(event["changed_to_top1"] and not event["candidate0_feasible"])
+            for event in events
+        ),
+        "state_inactive_records": sum(
+            int(event["state_gate"] is not None and not event["state_active"])
             for event in events
         ),
         "trigger_reason_counts": dict(trigger_counts),
