@@ -132,10 +132,12 @@ def main() -> None:
         fail_on_formal_seeds=args.fail_on_formal_seeds,
         required_buckets=required_buckets,
     )
-    if args.fail_on_missing_required and report["coverage_gaps"]:
+    if args.fail_on_missing_required and report["coverage_gaps"][
+        "missing_required_buckets"
+    ]:
+        missing = ", ".join(report["coverage_gaps"]["missing_required_buckets"])
         raise SystemExit(
-            "Missing required scenario buckets: "
-            + ", ".join(report["coverage_gaps"])
+            f"Missing required scenario bucket coverage: {missing}"
         )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)

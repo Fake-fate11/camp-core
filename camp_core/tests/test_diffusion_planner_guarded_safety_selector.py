@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -140,3 +143,56 @@ def test_guard_allows_current_tick_nonworse_override(tmp_path) -> None:
     assert report["guard_summary"]["attempted_overrides"] == 1
     assert report["guard_summary"]["accepted_overrides"] == 1
     assert report["guard_summary"]["accepted_worse_overrides"] == 1
+
+
+def test_guarded_selector_cli_allows_covered_required_bucket(tmp_path) -> None:
+    scales_path, weights_path, names = _write_selector(tmp_path)
+    log_path = _write_log(tmp_path, names, bad_clearance=False)
+    manifest_path = tmp_path / "scenario_buckets.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "filters": [
+                    {
+                        "name": "unit_lane_change",
+                        "match": {"route_name": "nishishinjuku_lane_change"},
+                        "buckets": ["lane_change_or_merge"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    output_json = tmp_path / "audit.json"
+    output_md = tmp_path / "audit.md"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/integrations/analyze_diffusion_planner_guarded_safety_selector.py",
+            "--selection_log",
+            str(log_path),
+            "--atom_scales",
+            str(scales_path),
+            "--static_weights",
+            str(weights_path),
+            "--scenario_bucket_manifest",
+            str(manifest_path),
+            "--required_bucket",
+            "lane_change_or_merge",
+            "--fail_on_missing_required",
+            "--output_json",
+            str(output_json),
+            "--output_md",
+            str(output_md),
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert output_json.is_file()
+    report = json.loads(output_json.read_text(encoding="utf-8"))
+    assert report["coverage_gaps"]["missing_required_buckets"] == []
