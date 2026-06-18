@@ -43,6 +43,9 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     select_perfect_tracker_command_dominating_candidate,
     summarize_replay_artifacts,
 )
+from camp_core.atoms.driver_atoms import (  # noqa: E402
+    exact_centerline_slice_for_candidates,
+)
 from scripts.integrations.analyze_diffusion_planner_splice_recompute_gate import (  # noqa: E402
     build_splice_candidates,
     fixed_candidate_shadow_rule,
@@ -947,10 +950,29 @@ def _candidate_route_progress(
     valid = lengths > 1e-6
     if not np.any(valid):
         return None
+    valid_segment_indices = np.flatnonzero(valid)
     starts = starts[valid]
     segments = segments[valid]
     lengths = lengths[valid]
     cumulative = np.concatenate([[0.0], np.cumsum(lengths)])
+    cumulative_starts = cumulative[:-1]
+
+    sliced, slice_stats = exact_centerline_slice_for_candidates(
+        centerline[:, :2],
+        candidate_xy,
+    )
+    if not bool(slice_stats.get("fail_closed", True)):
+        segment_start = int(slice_stats["segment_start"])
+        segment_end = int(slice_stats["segment_end"])
+        slice_mask = (
+            (valid_segment_indices >= segment_start)
+            & (valid_segment_indices <= segment_end)
+        )
+        if np.any(slice_mask):
+            starts = starts[slice_mask]
+            segments = segments[slice_mask]
+            lengths = lengths[slice_mask]
+            cumulative_starts = cumulative_starts[slice_mask]
 
     flat = candidate_xy.reshape(-1, 2)
     point_arcs = np.zeros(flat.shape[0], dtype=np.float64)
@@ -961,7 +983,9 @@ def _candidate_route_progress(
         projections = starts + t.reshape(-1, 1) * segments
         distances = np.linalg.norm(projections - point.reshape(1, 2), axis=1)
         best = int(np.argmin(distances))
-        point_arcs[point_idx] = cumulative[best] + t[best] * lengths[best]
+        point_arcs[point_idx] = (
+            cumulative_starts[best] + t[best] * lengths[best]
+        )
     return np.max(point_arcs.reshape(candidate_xy.shape[:2]), axis=1)
 
 

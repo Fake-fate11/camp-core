@@ -2637,6 +2637,54 @@ def test_candidate0_route_progress_guard_uses_route_projection() -> None:
     assert reasons == ((), (), ("route_candidate0_underprogress",))
 
 
+def test_candidate_route_progress_preserves_scalar_projection() -> None:
+    rng = np.random.default_rng(9)
+    route_x = np.linspace(-5.0, 80.0, 300)
+    route = np.column_stack((route_x, 1.5 * np.sin(route_x / 11.0)))
+    route = np.insert(route, 27, route[27], axis=0)
+    candidates = np.zeros((5, 30, 4), dtype=np.float64)
+    candidates[:, :, 0] = np.linspace(0.0, 45.0, 30)
+    candidates[:, :, 1] = rng.normal(scale=0.7, size=(5, 30))
+
+    def scalar_route_progress(
+        local_candidates: np.ndarray,
+        local_route: np.ndarray,
+    ) -> np.ndarray:
+        centerline = np.asarray(local_route, dtype=np.float64)
+        candidate_xy = np.asarray(local_candidates, dtype=np.float64)[..., :2]
+        starts = centerline[:-1, :2]
+        ends = centerline[1:, :2]
+        segments = ends - starts
+        lengths = np.linalg.norm(segments, axis=1)
+        valid = lengths > 1e-6
+        starts = starts[valid]
+        segments = segments[valid]
+        lengths = lengths[valid]
+        cumulative = np.concatenate([[0.0], np.cumsum(lengths)])
+        flat = candidate_xy.reshape(-1, 2)
+        point_arcs = np.zeros(flat.shape[0], dtype=np.float64)
+        for point_idx, point in enumerate(flat):
+            rel = point.reshape(1, 2) - starts
+            t = np.sum(rel * segments, axis=1) / np.maximum(
+                lengths * lengths,
+                1e-12,
+            )
+            t = np.clip(t, 0.0, 1.0)
+            projections = starts + t.reshape(-1, 1) * segments
+            distances = np.linalg.norm(
+                projections - point.reshape(1, 2),
+                axis=1,
+            )
+            best = int(np.argmin(distances))
+            point_arcs[point_idx] = cumulative[best] + t[best] * lengths[best]
+        return np.max(point_arcs.reshape(candidate_xy.shape[:2]), axis=1)
+
+    np.testing.assert_array_equal(
+        _candidate_route_progress(candidates, route),
+        scalar_route_progress(candidates, route),
+    )
+
+
 def test_candidate0_step_reach_guard_matches_perfect_tracker_speed_target() -> None:
     candidates = np.array(
         [
