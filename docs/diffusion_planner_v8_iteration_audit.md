@@ -18408,3 +18408,113 @@ not change DP, candidate generation, SG smoothing, `postprocess_reference`,
 PerfectTracker, online CAMP atoms, affine scoring, fallback policy, or the
 simplex/CVaR/L2 master. It is not a Benders subproblem and cannot be used as an
 online selector because it depends on candidate closed-loop outcome labels.
+
+### Diverse Non-Formal Matrix Planning Gate
+
+Following the hard-guarded oracle result, this iteration adds a plan-only
+matrix tool:
+
+```text
+scripts/integrations/plan_diffusion_planner_diverse_scenario_matrix.py
+```
+
+The tool reads the guarded oracle JSON, explicit route labels, and a proposed
+non-formal grid, then emits:
+
+- a static outcome-label matrix command using
+  `run_diffusion_planner_camp_benchmark_matrix.py`;
+- an explicit scenario bucket manifest;
+- planned bucket counts;
+- blockers when any required bucket remains uncovered.
+
+It does not run DP, train CAMP, alter the online selector, modify Diffusion
+Planner, or infer labels from replay outcomes.
+
+Implementation:
+
+- commit:
+  `80f7ba3e243b5fba9340a7e896eafa7949a0f9bc`;
+- local full test suite:
+  `python -m pytest camp_core/tests` -> `360 passed, 11 skipped`;
+- AutoDL targeted planner/matrix/scenario/oracle tests:
+  `24 passed`.
+
+AutoDL route availability check:
+
+- available route pickles include
+  `sample_map_route_2_to_104.pkl` and
+  `sample_map_tl_route_59_to_86.pkl`;
+- no lane-change route pickle was found under the current
+  `/root/autodl-tmp` route search;
+- available maps in the search were the sample map and Nishishinjuku maps, not
+  a downloaded lane-change sample map.
+
+Plan command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/miniconda3/envs/camp/bin/python \
+  scripts/integrations/plan_diffusion_planner_diverse_scenario_matrix.py \
+  --oracle_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_guarded_candidate_outcome_labels_d97b7c2/safety_cost_oracle_guarded_candidate_outcome_labels_d97b7c2.json \
+  --route sample_normal=/root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl \
+  --route sample_tl_turn=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --route_bucket sample_normal=normal,npc_interaction,dense_scene \
+  --route_bucket sample_tl_turn=traffic_light,red_light_turn,sharp_turn \
+  --output_root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_80f7ba3/candidate_outcome_labels_static \
+  --output_json /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_80f7ba3/diverse_nonformal_matrix_plan.json \
+  --output_md /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_80f7ba3/diverse_nonformal_matrix_plan.md \
+  --output_manifest /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_80f7ba3/diverse_nonformal_scenario_buckets.json \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --model_path /root/autodl-tmp/camp_dp_assets/diffusion_planner.pth \
+  --model_args /root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --camp_atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --camp_static_weights /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy \
+  --seeds 1,2,3 \
+  --max_npcs 0,4,8 \
+  --spawn_probabilities 0.3,0.6 \
+  --traffic_light_modes off,on \
+  --steps 200 \
+  --device cuda
+```
+
+Artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `diverse_nonformal_matrix_plan.json` | `29f49fa4571afd13ca72401a377dd97b623f960e48351db377111dfe437e1d8d` |
+| `diverse_nonformal_matrix_plan.md` | `de326917730b154593c1d0eb5b9472c096453c39c836488330f42042e39b676d` |
+| `diverse_nonformal_scenario_buckets.json` | `aa437762ca404e212a2ff02d7071106e64b9df0c62fc096d0be6d2006338050b` |
+
+Planned coverage:
+
+| Bucket | Planned rows |
+| --- | ---: |
+| `overall` | `72` |
+| `normal` | `6` |
+| `traffic_light` | `18` |
+| `red_light_turn` | `18` |
+| `sharp_turn` | `36` |
+| `npc_interaction` | `6` |
+| `dense_scene` | `6` |
+| `lane_change_or_merge` | `0` |
+
+Decision:
+
+Reject running the emitted 72-run outcome-label command as a complete diverse
+matrix because the plan is still blocked by missing `lane_change_or_merge`
+coverage. Accept the artifact as a precise next-step plan for the currently
+available sample-map assets. The next admissible engineering task is to obtain
+or generate a lane-change route/map artifact, inspect it, label it explicitly
+as `lane_change_or_merge` only if justified, regenerate this plan, and only
+then run the non-formal outcome-label matrix.
+
+Mathematical boundary:
+
+The plan only changes evaluation metadata and future offline label collection.
+It does not change DP, candidate generation, SG smoothing,
+`postprocess_reference`, PerfectTracker, online CAMP atoms, affine scoring,
+fallback policy, or the simplex/CVaR/L2 master. Candidate outcomes collected
+by the planned run remain offline labels and are forbidden as online selector
+inputs.

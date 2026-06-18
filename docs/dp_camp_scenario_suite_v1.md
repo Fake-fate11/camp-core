@@ -224,6 +224,36 @@ non-formal. It should:
 If the lane-change map or route is unavailable, the correct outcome is a
 coverage-gap artifact and route-generation task, not a CAMP training run.
 
+Use the plan-only matrix tool to predeclare this next step:
+
+```bash
+python scripts/integrations/plan_diffusion_planner_diverse_scenario_matrix.py \
+  --oracle_json /path/to/safety_cost_oracle_guarded.json \
+  --route sample_normal=/path/to/sample_map_route_2_to_104.pkl \
+  --route sample_tl_turn=/path/to/sample_map_tl_route_59_to_86.pkl \
+  --route_bucket sample_normal=normal,npc_interaction,dense_scene \
+  --route_bucket sample_tl_turn=traffic_light,red_light_turn,sharp_turn \
+  --output_root /path/to/nonformal_matrix \
+  --output_json /path/to/diverse_nonformal_matrix_plan.json \
+  --output_md /path/to/diverse_nonformal_matrix_plan.md \
+  --output_manifest /path/to/diverse_nonformal_scenario_buckets.json \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --model_path /path/to/diffusion_planner.pth \
+  --model_args /path/to/diffusion_planner.param.json \
+  --config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --reward_config configs/integrations/dp_camp_reward_eval.json \
+  --camp_atom_scales /path/to/atom_scales_dp_static.json \
+  --camp_static_weights /path/to/offline_weights_dp_static.npy \
+  --seeds 1,2,3 \
+  --max_npcs 0,4,8 \
+  --spawn_probabilities 0.3,0.6 \
+  --traffic_light_modes off,on
+```
+
+The tool emits a scenario-bucket manifest and a static outcome-label matrix
+command. It does not run DP. If the emitted plan has blockers, those blockers
+must be resolved before running the command.
+
 ## Mathematical Boundary
 
 Bucket labels are evaluation metadata. They do not change the finite candidate
