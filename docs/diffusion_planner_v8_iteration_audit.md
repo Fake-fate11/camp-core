@@ -20720,3 +20720,184 @@ step is to attribute the red-light-turn lane regression at the changed-record
 level, decide whether the trigger needs an additional lane/current-corridor
 guard, and rerun only a targeted non-formal smoke if a mathematically valid
 current-tick guard is added.
+
+### State-Gated Top-1 Floor Lane Attribution and Lateral Guard
+
+Date: 2026-06-18
+
+Status: reject the lateral-nonworse guard as a fix for the closed-loop
+red-light-turn lane regression. Keep the implementation default-off as a
+diagnostic/development mode only. Do not run Full36, formal seeds, online
+promotion, DP retraining, or CAMP retraining from this result.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit | `1f8dcdb30eb6f99fe0ae4e8617a3d8234cc69ad7` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| Baseline root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/clearance_outcome_devmatrix_69eb7e0` |
+| Original online smoke root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_redroute_top1_floor_online_smoke_3fdf71f` |
+| Lane attribution root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_redroute_top1_floor_online_smoke_3fdf71f/lane_regression_attribution` |
+| Lateral targeted smoke root | `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/state_redroute_top1_lateral_nonworse_targeted_smoke_1f8dcdb` |
+| Formal seeds | `0` in the attribution and targeted smoke artifacts |
+
+Lane-regression attribution artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `lane_regression_attribution/lane_regression_attribution.json` | `c0dbfdd05ce145bd124f5263403d869f34d03ceb294f64c47cf3abffe116dff9` |
+| `lane_regression_attribution/lane_regression_attribution.md` | `9804bc8c1da7dfbe990e221477f0c031030ba6670d059d0f25180d4ebc824b9e` |
+
+The precise red-turn lane regression runs were:
+
+| Seed | Extra lane steps vs baseline | Old Top-1-floor overrides |
+| ---: | --- | ---: |
+| `1` | `[195]` | `78` |
+| `2` | `[]` | `122` |
+| `3` | `[194]` | `75` |
+
+The regression is not a single-tick dominance bug at the extra lane step.
+It is cumulative closed-loop drift from earlier Top-1-floor overrides.
+`candidate0_feasible` is not sufficient: seed 3 had no candidate-0 infeasible
+overrides but still gained the extra lane step at `194`.
+
+Offline current-tick guard screen:
+
+| Rule | Changed | Overall CI high vs Top-1 | Traffic/red-turn CI high | Decision |
+| --- | ---: | ---: | ---: | --- |
+| `current_unconditional` | `277` | `-0.043583` | `-0.011427` | screen-pass |
+| `candidate0_feasible` | `259` | `+0.014508` | `+0.643343` | screen-fail |
+| `progress_loss_le_0p5m` | `219` | `+0.002778` | `+0.564335` | screen-fail |
+| `progress_loss_le_1p0m` | `266` | `-0.021871` | `+0.227426` | screen-fail |
+| `lateral_nonworse` | `231` | `-0.044410` | `-0.013355` | screen-pass |
+| `abs_lateral_le_2mps2` | `277` | `-0.043583` | `-0.011427` | screen-pass but not discriminative |
+| `feasible_and_progress_le_0p5m` | `211` | `+0.014165` | `+0.639608` | screen-fail |
+| `progress_le_0p5m_and_lateral_nonworse` | `174` | `+0.002077` | `+0.562407` | screen-fail |
+
+The only meaningful current-tick screen worth implementing was
+`lateral_nonworse`, because it was deterministic, non-leaking, and screen-passed
+the offline SafetyCost bucket gate while blocking some horizon-lateral-worse
+Top-1 substitutions. It was implemented in commit `1f8dcdb` as default-off mode:
+
+```text
+--camp_traffic_light_hybrid_postselection state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse
+```
+
+The mode applies the previous state-gated red-route Top-1 floor only when
+candidate 0's `candidate_horizon_lateral_acceleration_cost` is no worse than
+the original selected candidate, within the configured tolerance. It records
+the lateral delta/loss and fails closed with
+`top1_horizon_lateral_worse` when the guard blocks the Top-1 floor.
+
+Narrow verification for the implementation:
+
+```text
+git diff --check
+py -3.12 -m py_compile \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py::test_state_redroute_top1_floor_can_return_infeasible_candidate0 \
+  camp_core/tests/test_diffusion_planner_integration.py::test_state_redroute_top1_floor_is_red_route_gated \
+  camp_core/tests/test_diffusion_planner_integration.py::test_state_redroute_top1_floor_lateral_nonworse_blocks_worse_top1 \
+  camp_core/tests/test_diffusion_planner_integration.py::test_state_redroute_top1_floor_lateral_nonworse_allows_nonworse_top1 \
+  camp_core/tests/test_diffusion_planner_benchmark_matrix.py \
+  camp_core/tests/test_diffusion_planner_replay_summary.py::test_summarize_traffic_light_hybrid_postselection_records \
+  -q
+```
+
+Result: local and AutoDL targeted checks passed with `12 passed` for the
+selected non-torch subset in the implementation cycle; the current documentation
+update was rechecked locally with the focused command above as `7 passed`.
+`py_compile` and `git diff --check` also passed.
+
+The first remote targeted smoke attempt used the Python 3.9 CAMP environment
+and failed before running the replay because the fixed DP checkout contains
+Python 3.10 union type syntax (`GuidanceComposer | None`). This is an
+environment/runtime mismatch, not a selector result:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `run_redturn_lateral_nonworse_targeted.log` | `5ba140720e036f0d21353d316503b7eacb66f55a414efe82f213c0223931c537` |
+
+The valid targeted smoke was rerun with `/root/miniconda3/bin/python` and only
+used non-formal seeds `1/2/3`, route `sample_map_tl_route_59_to_86`, NPC count
+`0`, traffic lights on, 200 perfect-tracking steps, eight candidates, and the
+certified `redstopfloor05` static checkpoint.
+
+Targeted smoke artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `run_redturn_lateral_nonworse_targeted_py312.log` | `6eb126594244c52f3ede6db6eeae20e70f660f97c18c09cef2baf06d2106608c` |
+| `analysis/targeted_redturn_lateral_summary.json` | `55c429145121561a3bc521f9d75a93905fd902c4cf099f73688067b703f510c2` |
+| `analysis/targeted_redturn_lateral_summary.md` | `350c6b779e980e01643e90b27837bfd49bcf24bc7e78251e9522d708fccce78c` |
+| `analysis/lateral_nonworse_redturn_safety_cost.json` | `7c5cc057012fc35bae508fb8cf988e733a5502edb0450385db7997cd7f3a9402` |
+| `analysis/lateral_nonworse_redturn_safety_cost.md` | `e6b505abb37404589cb0e578d096cf94e005ad956bb7ba9a3d84a0657d3bd06d` |
+
+Targeted closed-loop result:
+
+| Seed | Baseline lane steps | Old lane steps | Lateral-guard lane steps | Old extra | Lateral-guard extra | Old changed | Lateral-guard changed | Blocked lateral |
+| ---: | ---: | ---: | ---: | --- | --- | ---: | ---: | ---: |
+| `1` | `5` | `6` | `6` | `[195]` | `[195]` | `78` | `65` | `12` |
+| `2` | `1` | `1` | `1` | `[]` | `[]` | `122` | `99` | `24` |
+| `3` | `6` | `7` | `7` | `[194]` | `[194]` | `75` | `67` | `8` |
+
+Aggregate targeted deltas:
+
+| Metric | Old minus baseline | Lateral-guard minus baseline | Lateral-guard minus old |
+| --- | ---: | ---: | ---: |
+| `lane_violation_rate` | `+0.003333333` | `+0.003333333` | `+0.000000000` |
+| `planned_lane_violation_rate` | `-0.026666667` | `-0.025000000` | `+0.001666667` |
+| `planned_red_light_violation_rate` | `-0.008333333` | `-0.008333333` | `+0.000000000` |
+| `red_light_violation_rate` | `+0.000000000` | `+0.000000000` | `+0.000000000` |
+| `obb_collision_rate` | `+0.000000000` | `+0.000000000` | `+0.000000000` |
+| `near_miss_rate` | `+0.000000000` | `+0.000000000` | `+0.000000000` |
+| `route_completion_rate` | `+0.000227816` | `+0.000211119` | `-0.000016696` |
+| `mean_jerk_magnitude_mps3` | `-0.169811994` | `-0.068433515` | `+0.101378479` |
+| `max_lateral_acceleration_mps2` | `+0.008291579` | `+0.009324961` | `+0.001033382` |
+| `p95_traffic_light_hybrid_postselection_latency_ms` | `+0.038921678` | `+0.056248748` | `+0.017327070` |
+
+The targeted selected-log SafetyCost audit over the three red-turn runs still
+passes relative to DP Top-1:
+
+| Bucket | Records | CAMP mean delta vs Top-1 | CI low | CI high | CVaR90 delta | CVaR90 CI high | Hard lane nonworse | Hard red nonworse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `overall` | `600` | `-0.027626107` | `-0.037466935` | `-0.013126017` | `-0.037466935` | `-0.013126017` | `1.0` | `1.0` |
+| `traffic_light` | `600` | `-0.027626107` | `-0.037466935` | `-0.013126017` | `-0.037466935` | `-0.013126017` | `1.0` | `1.0` |
+| `red_light_turn` | `600` | `-0.027626107` | `-0.037466935` | `-0.013126017` | `-0.037466935` | `-0.013126017` | `1.0` | `1.0` |
+| `sharp_turn` | `600` | `-0.027626107` | `-0.037466935` | `-0.013126017` | `-0.037466935` | `-0.013126017` | `1.0` | `1.0` |
+
+However, this selected-log SafetyCost result is not enough to accept the guard,
+because the predeclared blocker was the closed-loop lane-regression gate. The
+extra lane steps are unchanged for seeds `1` and `3`, and the guard makes
+comfort less favorable than the old mode on this targeted slice.
+
+Mathematical boundary:
+
+The lateral-nonworse rule is mathematically admissible as a finite-candidate
+current-tick guard. It uses fixed candidate diagnostics available before
+selection, introduces no future outcome leakage, and does not change DP
+generation, Savitzky-Golay smoothing, `postprocess_reference`, `PerfectTracker`,
+CAMP atoms, affine score semantics, or the simplex/CVaR/L2 robust master.
+If promoted into the CAMP atom schema later, the lateral diagnostic would be a
+fixed coefficient in the affine score. In this experiment it is not promoted;
+it is only a deterministic finite-candidate postselector guard. This is not
+classical Benders decomposition.
+
+Decision:
+
+1. Reject `state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse` as a
+   lane-regression fix. It reduced overrides but did not remove the extra
+   closed-loop lane steps.
+2. Keep the mode default-off for diagnosis and future ablation only. Do not
+   use it for Full36, formal seeds, or online promotion.
+3. Do not retrain DP or CAMP from this evidence.
+4. The next proof-oriented step should move from single-rule guard tweaking to
+   a predeclared comprehensive SafetyCost proof gate over diverse non-formal
+   buckets. That report should compare CAMP selected, DP Top-1, Top-1-floor
+   variants, and oracle/hard-guarded oracle on current candidate pools, then
+   explain whether CAMP improves the aggregate safety score or whether DP
+   Top-1/candidate support is already too strong for the current CAMP schema.
