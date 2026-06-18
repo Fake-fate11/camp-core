@@ -18225,6 +18225,26 @@ Artifact SHA:
 | `safety_cost_oracle_candidate_outcome_labels_d97b7c2.json` | `0a4ce50ba95a8e01ab527df3e39331b8d0f03ffd5ce4b45e84a4fad297a60c2f` |
 | `safety_cost_oracle_candidate_outcome_labels_d97b7c2.md` | `99e55e34a50d6ac443b8ce20bf90bd2a09138998cf29134e0fba9c8687cfed58` |
 
+Implementation and verification:
+
+- implementation commit:
+  `6faf64f7528f476bc8296c9bfb6c09afbf258782`;
+- local full test suite:
+  `python -m pytest camp_core/tests` -> `354 passed, 11 skipped`;
+- local targeted SafetyCost/scenario/oracle tests:
+  `17 passed`;
+- AutoDL fast-forward sync used a local git bundle because remote GitHub fetch
+  still failed; AutoDL CAMP HEAD after sync:
+  `6faf64f7528f476bc8296c9bfb6c09afbf258782`;
+- AutoDL tracked-script rerun reproduced the same JSON/Markdown artifact SHA;
+- AutoDL targeted SafetyCost/scenario/oracle tests:
+  `17 passed`;
+- AutoDL full suite in the existing `camp` conda environment is not a valid
+  regression signal for this iteration: that environment is Python `3.9.25`,
+  while pre-existing tests use `zip(..., strict=True)`, which requires Python
+  3.10+. The run stopped with `348 passed, 17 failed` on those older helper
+  calls. The base Python is `3.12.3` but has no `pytest` installed.
+
 Overall candidate-branch opportunity:
 
 | Metric | Value |
