@@ -61,6 +61,7 @@ TRAFFIC_LIGHT_HYBRID_POSTSELECTION_MODES = (
     "step_h10_guard_005",
     "h3_h10_guard_005",
     "state_redroute_top1_red_or_proxy_jerk_floor_unconditional",
+    "state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse",
 )
 TRAFFIC_LIGHT_HYBRID_POSTSELECTION_BUDGETS = {
     "step_h10_guard_005": {
@@ -76,10 +77,20 @@ TRAFFIC_LIGHT_HYBRID_POSTSELECTION_BUDGETS = {
         "target_speed_loss_mps": 0.05,
     },
     "state_redroute_top1_red_or_proxy_jerk_floor_unconditional": {},
+    "state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse": {
+        "candidate0_horizon_lateral_cost_delta_max": 0.0,
+    },
 }
 TRAFFIC_LIGHT_HYBRID_TOL = 1e-12
 STATE_REDROUTE_TOP1_FLOOR_MODE = (
     "state_redroute_top1_red_or_proxy_jerk_floor_unconditional"
+)
+STATE_REDROUTE_TOP1_FLOOR_LATERAL_NONWORSE_MODE = (
+    "state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse"
+)
+STATE_REDROUTE_TOP1_FLOOR_MODES = (
+    STATE_REDROUTE_TOP1_FLOOR_MODE,
+    STATE_REDROUTE_TOP1_FLOOR_LATERAL_NONWORSE_MODE,
 )
 
 
@@ -1474,22 +1485,29 @@ def _traffic_light_hybrid_budget(mode: str) -> dict[str, float]:
 
 
 def _is_state_redroute_top1_floor_mode(mode: str) -> bool:
-    return mode == STATE_REDROUTE_TOP1_FLOOR_MODE
+    return mode in STATE_REDROUTE_TOP1_FLOOR_MODES
 
 
 def _apply_state_redroute_top1_floor(
     selection: CAMPSelectionResult,
     *,
+    mode: str,
     selected: int,
     candidate_count: int,
     red_route_point_count: int,
     candidate_union_red_cost: np.ndarray,
     candidate_red_stopping_margin_cost: np.ndarray,
     candidate_dp_prior_jerk_excess_cost: np.ndarray,
+    candidate_horizon_lateral_acceleration_cost: np.ndarray,
 ) -> tuple[int, dict[str, Any]]:
+    if mode not in STATE_REDROUTE_TOP1_FLOOR_MODES:
+        raise ValueError(f"Unknown state red-route Top-1 floor mode: {mode}")
     feasible = np.asarray(selection.feasible_mask, dtype=bool).reshape(-1)
     if feasible.shape != (candidate_count,):
         raise ValueError("State red-route Top-1 floor feasible mask shape mismatch.")
+    require_lateral_nonworse = (
+        mode == STATE_REDROUTE_TOP1_FLOOR_LATERAL_NONWORSE_MODE
+    )
     union_red = _candidate_vector(
         candidate_union_red_cost,
         candidate_count=candidate_count,
@@ -1505,14 +1523,21 @@ def _apply_state_redroute_top1_floor(
         candidate_count=candidate_count,
         field_name="candidate_dp_prior_jerk_excess_cost",
     )
+    raw_lateral = _candidate_vector(
+        candidate_horizon_lateral_acceleration_cost,
+        candidate_count=candidate_count,
+        field_name="candidate_horizon_lateral_acceleration_cost",
+    )
     for field_name, values in (
         ("candidate_union_red_cost", union_red),
         ("candidate_red_stopping_margin_cost", red_stopping),
         ("candidate_dp_prior_jerk_excess_cost", raw_jerk),
+        ("candidate_horizon_lateral_acceleration_cost", raw_lateral),
     ):
         if np.any(values < 0.0):
             raise ValueError(f"{field_name} must be nonnegative.")
 
+    budgets = _traffic_light_hybrid_budget(mode)
     stats: dict[str, Any] = {
         "schema_version": "traffic_light_hybrid_postselection_v1",
         "enabled": True,
@@ -1521,8 +1546,8 @@ def _apply_state_redroute_top1_floor(
         "online_selector_change": True,
         "future_outcome_leakage": False,
         "classical_benders_claim": False,
-        "mode": STATE_REDROUTE_TOP1_FLOOR_MODE,
-        "screen_name": f"traffic_light_hybrid_{STATE_REDROUTE_TOP1_FLOOR_MODE}",
+        "mode": str(mode),
+        "screen_name": f"traffic_light_hybrid_{mode}",
         "state_gate": "red_route_point_count_positive",
         "red_route_point_count": int(red_route_point_count),
         "candidate0_feasible": bool(feasible[0]),
@@ -1535,11 +1560,12 @@ def _apply_state_redroute_top1_floor(
         "opportunity": False,
         "candidate_count": int(candidate_count),
         "admissible_candidates": 0,
-        "budgets": {},
+        "budgets": budgets,
         "requires": {
             "red_route_point_count_positive": True,
             "candidate0_feasible": False,
             "selected_worse_than_top1_on_any_check": True,
+            "candidate0_horizon_lateral_nonworse": require_lateral_nonworse,
         },
         "trigger_reasons": [],
         "reason": "not_evaluated",
@@ -1562,6 +1588,26 @@ def _apply_state_redroute_top1_floor(
         stats["reason"] = "top1_not_better_on_red_or_proxy_jerk"
         return int(selected), stats
 
+    lateral_delta = float(raw_lateral[0] - raw_lateral[selected])
+    if require_lateral_nonworse and lateral_delta > TRAFFIC_LIGHT_HYBRID_TOL:
+        stats.update(
+            {
+                "opportunity": True,
+                "reason": "top1_horizon_lateral_worse",
+                "trigger_reasons": trigger_reasons,
+                "losses": {
+                    "candidate0_horizon_lateral_cost_delta": lateral_delta,
+                },
+                "delta": {
+                    "union_red": float(union_red[0] - union_red[selected]),
+                    "red_stopping": float(red_stopping[0] - red_stopping[selected]),
+                    "raw_jerk": float(raw_jerk[0] - raw_jerk[selected]),
+                    "horizon_lateral": lateral_delta,
+                },
+            }
+        )
+        return int(selected), stats
+
     stats.update(
         {
             "changed": True,
@@ -1576,6 +1622,7 @@ def _apply_state_redroute_top1_floor(
                 "union_red": float(union_red[0] - union_red[selected]),
                 "red_stopping": float(red_stopping[0] - red_stopping[selected]),
                 "raw_jerk": float(raw_jerk[0] - raw_jerk[selected]),
+                "horizon_lateral": lateral_delta,
             },
         }
     )
@@ -1605,6 +1652,7 @@ def _apply_traffic_light_hybrid_postselection(
     if _is_state_redroute_top1_floor_mode(mode):
         return _apply_state_redroute_top1_floor(
             selection,
+            mode=mode,
             selected=selected,
             candidate_count=candidate_count,
             red_route_point_count=(
@@ -1616,6 +1664,9 @@ def _apply_traffic_light_hybrid_postselection(
             ),
             candidate_dp_prior_jerk_excess_cost=(
                 candidate_dp_prior_jerk_excess_cost
+            ),
+            candidate_horizon_lateral_acceleration_cost=(
+                candidate_horizon_lateral_acceleration_cost
             ),
         )
     scores = np.asarray(selection.selection_scores, dtype=np.float64).reshape(-1)

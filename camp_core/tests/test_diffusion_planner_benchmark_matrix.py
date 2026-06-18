@@ -275,13 +275,18 @@ def test_variant_command_threads_traffic_light_hybrid_into_camp_variants_only() 
     assert "--camp_traffic_light_hybrid_postselection" not in top1_cmd
 
 
-def test_variant_command_threads_state_redroute_top1_floor_mode() -> None:
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "state_redroute_top1_red_or_proxy_jerk_floor_unconditional",
+        "state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse",
+    ],
+)
+def test_variant_command_threads_state_redroute_top1_floor_mode(mode: str) -> None:
     args = _make_args()
     args.camp_lexicographic_progress_epsilon_m = None
     args.camp_perfect_tracker_command_postselection = False
-    args.camp_traffic_light_hybrid_postselection = (
-        "state_redroute_top1_red_or_proxy_jerk_floor_unconditional"
-    )
+    args.camp_traffic_light_hybrid_postselection = mode
 
     static_cmd = _variant_command(
         variant="static",
@@ -295,9 +300,7 @@ def test_variant_command_threads_state_redroute_top1_floor_mode() -> None:
     )
 
     mode_idx = static_cmd.index("--camp_traffic_light_hybrid_postselection")
-    assert static_cmd[mode_idx + 1] == (
-        "state_redroute_top1_red_or_proxy_jerk_floor_unconditional"
-    )
+    assert static_cmd[mode_idx + 1] == mode
 
     top1_cmd = _variant_command(
         variant="top1",

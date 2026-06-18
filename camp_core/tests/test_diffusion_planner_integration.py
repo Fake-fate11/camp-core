@@ -2678,6 +2678,80 @@ def test_state_redroute_top1_floor_is_red_route_gated() -> None:
     assert stats["reason"] == "red_route_point_count_not_positive"
 
 
+def test_state_redroute_top1_floor_lateral_nonworse_blocks_worse_top1() -> None:
+    selection = replace(
+        _traffic_light_hybrid_base_selection(),
+        selected_index=1,
+        feasible_mask=np.array([True, True, True]),
+    )
+
+    selected, stats = _apply_traffic_light_hybrid_postselection(
+        selection,
+        traffic_lights_enabled=True,
+        mode="state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse",
+        candidate_step_reach=np.zeros(3, dtype=np.float64),
+        candidate_progress=np.zeros(3, dtype=np.float64),
+        candidate_union_red_cost=np.array([0.0, 1.0, 0.5], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.zeros(3, dtype=np.float64),
+        candidate_dp_prior_jerk_excess_cost=np.array(
+            [0.0, 2.0, 1.0], dtype=np.float64
+        ),
+        candidate_horizon_lateral_acceleration_cost=np.array(
+            [0.8, 0.6, 0.7], dtype=np.float64
+        ),
+        candidate_target_speed_mps=np.zeros(3, dtype=np.float64),
+        perfect_tracker_open_loop=_traffic_light_hybrid_rollout(),
+        red_route_point_count=20,
+    )
+
+    assert selected == 1
+    assert stats["changed"] is False
+    assert stats["opportunity"] is True
+    assert stats["reason"] == "top1_horizon_lateral_worse"
+    assert stats["requires"]["candidate0_horizon_lateral_nonworse"] is True
+    assert stats["losses"]["candidate0_horizon_lateral_cost_delta"] == pytest.approx(
+        0.2
+    )
+    assert stats["future_outcome_leakage"] is False
+    assert stats["classical_benders_claim"] is False
+
+
+def test_state_redroute_top1_floor_lateral_nonworse_allows_nonworse_top1() -> None:
+    selection = replace(
+        _traffic_light_hybrid_base_selection(),
+        selected_index=1,
+        feasible_mask=np.array([False, True, True]),
+    )
+
+    selected, stats = _apply_traffic_light_hybrid_postselection(
+        selection,
+        traffic_lights_enabled=True,
+        mode="state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse",
+        candidate_step_reach=np.zeros(3, dtype=np.float64),
+        candidate_progress=np.zeros(3, dtype=np.float64),
+        candidate_union_red_cost=np.array([0.0, 1.0, 0.5], dtype=np.float64),
+        candidate_red_stopping_margin_cost=np.zeros(3, dtype=np.float64),
+        candidate_dp_prior_jerk_excess_cost=np.array(
+            [0.0, 2.0, 1.0], dtype=np.float64
+        ),
+        candidate_horizon_lateral_acceleration_cost=np.array(
+            [0.6, 0.6, 0.7], dtype=np.float64
+        ),
+        candidate_target_speed_mps=np.zeros(3, dtype=np.float64),
+        perfect_tracker_open_loop=_traffic_light_hybrid_rollout(),
+        red_route_point_count=20,
+    )
+
+    assert selected == 0
+    assert stats["changed"] is True
+    assert stats["opportunity"] is True
+    assert stats["candidate0_feasible"] is False
+    assert stats["candidate0_feasible_required"] is False
+    assert stats["requires"]["candidate0_horizon_lateral_nonworse"] is True
+    assert stats["reason"] == "selected_state_redroute_top1_floor_candidate"
+    assert stats["delta"]["horizon_lateral"] == pytest.approx(0.0)
+
+
 def test_underprogress_relaxation_selects_only_soft_blocked_lower_red() -> None:
     candidates = np.zeros((3, 4, 2), dtype=np.float64)
     selection = CAMPSelectionResult(
