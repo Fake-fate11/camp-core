@@ -28819,3 +28819,163 @@ fixed choices were made to label harmful or beneficial switches. CAMP scores
 remain affine `score_k(w)=a_k^T w` over fixed nonnegative simplex weights. No
 DP-side classical Benders decomposition, master/subproblem, dual, or valid cut
 is claimed.
+
+## Strong Progress/Support Certificate Audit (`9892035`)
+
+Date: 2026-06-19
+
+Status: reject the predeclared strong current-tick progress/support certificate
+family. The strictest certificate blocks a large majority of harmful switches,
+but it also blocks most beneficial switches. Relaxed certificates recover
+beneficial switches but allow too many harmful switches, and the allowed switch
+set remains safety/progress negative. This evidence does not authorize replay,
+Full36, formal seeds, online selector promotion, DP changes, or CAMP retraining.
+
+Commit:
+
+```text
+989203520ce5aef01882e1b9b9b83cf54589a1d4 Add DP CAMP strong progress support certificate audit
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_strong_progress_support_certificate.py
+camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_strong_progress_support_certificate.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `13 passed`.
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle from `efa726d9` to
+`989203520ce5aef01882e1b9b9b83cf54589a1d4`. CAMP reached the same commit and
+the fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_strong_progress_support_certificate.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `13 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+FAIL=/root/autodl-tmp/camp_dp_material_weight_failure_attribution_ee271d7/material_weight_failure_attribution.json
+OUT=/root/autodl-tmp/camp_dp_strong_progress_support_certificate_9892035
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_strong_progress_support_certificate.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --failure_attribution_json "$FAIL" \
+  --fail_on_formal_seeds \
+  --label 9892035_diverse_nonformal \
+  --output_json "$OUT/strong_progress_support_certificate.json" \
+  --output_md "$OUT/strong_progress_support_certificate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_strong_progress_support_certificate_9892035/strong_progress_support_certificate.json` | `7cbbbf1b973465897cd285e2226ea745a7f72f5a24f1922374e1d342a00c5fe6` |
+| `/root/autodl-tmp/camp_dp_strong_progress_support_certificate_9892035/strong_progress_support_certificate.md` | `88bede1282f4348f8dd97f464b247dcddcfe3c94f014011f14f351eccc62ddcd` |
+
+Gate result:
+
+```text
+status=strong_progress_support_certificate_rejected
+authorized_next_work=None
+primary_gap=certificate_blocks_beneficial_opportunities
+records=21600
+candidate_rows=172800
+formal_seed_records=0
+```
+
+Descriptor coverage:
+
+Every required current-tick descriptor was available on all `21600` records:
+`progress_loss_m`, `first_step_loss_m`, `speed_loss_mps`,
+`jerk_worse_mps3`, `lateral_worse_mps2`, `yaw_worse_rps`,
+`absolute_lateral_mps2`, and `top1_shape_improvement`.
+
+Best-ranked rows:
+
+| Variant | Certificate | Harmful block | Beneficial retain | Allowed safety mean | Allowed progress mean | Final hard nonworse |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `traffic_top1_guard` | `strict_support_zero_comfort` | `0.904572` | `0.072816` | `0.097641` | `-0.264324` | `0.999907` |
+| `traffic_rule_focus` | `strict_support_zero_comfort` | `0.892390` | `0.088757` | `0.083998` | `-0.263196` | `0.999907` |
+| `uniform_material` | `strict_support_zero_comfort` | `0.885649` | `0.101587` | `0.096816` | `-0.261016` | `0.999907` |
+| `hard_traffic_support` | `strict_support_zero_comfort` | `0.882864` | `0.103896` | `0.083618` | `-0.261385` | `0.999907` |
+| `support_comfort_guard` | `strict_support_zero_comfort` | `0.881207` | `0.107023` | `0.096589` | `-0.259827` | `0.999907` |
+
+Relaxed certificate behavior:
+
+The `tiny_support_nonworse_comfort` rows still block about `0.793` to `0.826`
+of harmful switches, but beneficial retain only rises to about `0.126` to
+`0.167`. The `small_support_small_comfort` and medium-support rows retain more
+beneficial switches, up to about `0.960`, but harmful block falls to about
+`0.184` to `0.481`. Their allowed switch sets also remain safety-positive and
+progress-negative, for example allowed safety means around `0.031` to `0.074`
+and allowed progress means around `-0.298` to `-0.360`.
+
+Interpretation:
+
+The stronger descriptor family confirms the tradeoff rather than fixing it.
+Strict current-tick progress/speed/comfort preservation is effective at
+blocking many harmful Top-1-shape-driven switches, but the same descriptors are
+not separable enough to retain beneficial switches. Relaxing the budgets
+recovers beneficial opportunities but reopens harmful switches and still leaves
+the accepted set worse on safety/progress. The next gate should not tune these
+thresholds further as if they were a selector. It should diagnose descriptor
+separability directly: compare harmful and beneficial switch distributions for
+progress loss, speed loss, tracker comfort, Top-1 improvement, traffic
+improvement, and scenario bucket interactions, then decide whether a new atom
+schema or conditional certificate has real no-leak support.
+
+Decision:
+
+Reject the predeclared strong progress/support certificates. Do not run
+closed-loop replay, Full36, formal seeds, online selector promotion, DP changes,
+or CAMP retraining. The next useful gate is an offline no-leak descriptor
+separability audit over harmful vs beneficial material-weight switches.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. The certificate descriptors
+are fixed current-tick finite-candidate quantities computed before any
+closed-loop outcome label is consulted. They are used only to test whether a
+fixed affine CAMP material score proposal should be allowed in this offline
+counterfactual audit. Closed-loop outcomes are used only afterward to classify
+harmful or beneficial switches. CAMP scores remain affine `score_k(w)=a_k^T w`
+over fixed nonnegative simplex weights, and the simplex/CVaR/L2 master
+convexity boundary is unchanged. No DP-side classical Benders decomposition,
+dual, or valid cut is claimed.
