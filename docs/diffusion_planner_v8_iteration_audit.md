@@ -24760,3 +24760,138 @@ any replay or retraining. Given the repeated same-mode generator evidence, the
 more concrete engineering path is likely `new_mode_seeking_candidate_generation`;
 the more mathematical path is `materially_new_no_leak_atom_schema`. Neither is
 ready for online selector promotion, Full36, formal seeds, or CAMP retraining.
+
+### DP Mode-Seeking Candidate Design Gate
+
+Date: 2026-06-19
+
+Status: accept the mode-seeking candidate design gate as ready for exactly one
+next implementation step: a default-off candidate availability/diversity
+diagnostic. This does not authorize closed-loop replay, online selector
+promotion, Full36, formal seeds, or CAMP retraining.
+
+Commit `a2ec874b6c4fc97a019851b942645ffcf52a1227` adds:
+
+```text
+scripts/integrations/plan_diffusion_planner_mode_seeking_candidate_gate.py
+camp_core/tests/test_diffusion_planner_mode_seeking_candidate_gate.py
+```
+
+The gate consumes the existing next-design preflight and candidate-generation
+controls artifacts only. It does not run Diffusion Planner, generate new
+candidates, train CAMP, change CAMP scoring, or use outcome labels.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_mode_seeking_candidate_gate.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_mode_seeking_candidate_gate.py \
+  camp_core\tests\test_diffusion_planner_next_design_gate.py -q
+
+git diff --check
+
+Result: 5 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle
+`/tmp/camp_core_a2ec874.bundle`, advancing both `HEAD` and `origin/main` to
+`a2ec874b6c4fc97a019851b942645ffcf52a1227`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_mode_seeking_candidate_gate.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_mode_seeking_candidate_gate.py \
+  camp_core/tests/test_diffusion_planner_next_design_gate.py -q
+
+Result: 5 passed
+```
+
+AutoDL gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/mode_seeking_candidate_gate_a2ec874
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/plan_diffusion_planner_mode_seeking_candidate_gate.py \
+  --next_design_preflight_json "$ROOT/next_design_gate_preflight_1020942/next_design_gate_preflight.json" \
+  --candidate_generation_controls_json /root/autodl-tmp/camp_dp_candidate_generation_controls_c896b3d/candidate_generation_controls.json \
+  --label mode_seeking_candidate_gate_a2ec874 \
+  --output_json "$OUT/mode_seeking_candidate_gate.json" \
+  --output_md "$OUT/mode_seeking_candidate_gate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `mode_seeking_candidate_gate_a2ec874/mode_seeking_candidate_gate.json` | `f37618ee3a9dbe06ea87944543b6ed7f6e6cdb6ecd389e358087c3bcf2bdc308` |
+| `mode_seeking_candidate_gate_a2ec874/mode_seeking_candidate_gate.md` | `bd5c2ff7f165842b4c7563ef789d37a2512f9e2ca662a13d0837d4a58d49773d` |
+
+Gate decision:
+
+```text
+status=mode_seeking_candidate_design_gate_ready
+implementation_authorized=True
+authorized_implementation=default_off_candidate_availability_diagnostic
+closed_loop_smoke_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+```
+
+Predeclared diagnostic requirements:
+
+1. Candidate generation must remain a fixed-DP-weight finite candidate-set
+   variant. DP source and DP weights must not change.
+2. The diagnostic must be default-off and metadata logged.
+3. Candidate0 must preserve the unguided Top-1 trajectory with max absolute
+   xy difference no greater than `1e-6`.
+4. The outcome-free availability gate must reject if endpoint/mode diversity
+   remains same-mode, if dense lane-change support is only Top-1 dependent, or
+   if formal seeds are present.
+5. Before any closed-loop smoke, latency must report generation and selection
+   p95 and leave positive margin under the `100 ms` per-run p95 limit.
+
+Predeclared thresholds for the next availability/diversity diagnostic:
+
+```text
+min_endpoint_pairwise_mean_m=0.50
+min_endpoint_pairwise_gain_vs_best_rejected_m=0.25
+min_mode_count_mean=2.0
+non_top1_dense_lane_change_support_rate_min=0.25
+progress_loss_budget_m=0.10
+target_speed_loss_budget_mps=0.20
+jerk_worse_budget_mps3=0.05
+lateral_worse_budget_mps2=0.05
+candidate0_preservation_max_abs_xy_m=1e-6
+```
+
+Mathematical boundary:
+
+DP remains a frozen black-box trajectory candidate generator. A mode-seeking
+diagnostic may only change the finite candidate set produced at the current
+tick under fixed DP weights. CAMP runtime atoms remain current-tick
+finite-candidate quantities; scores remain affine `a_k^T w`; the
+simplex/CVaR/L2 robust master remains convex. This gate is not classical
+Benders decomposition and makes no trajectory-coordinate convexity claim.
+
+Decision:
+
+Accept implementation of only a default-off candidate availability/diversity
+diagnostic with metadata and baseline preservation checks. Do not run
+closed-loop replay, online promotion, Full36, formal seeds, or CAMP retraining
+from this gate alone.
