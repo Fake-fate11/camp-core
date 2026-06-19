@@ -22822,3 +22822,150 @@ better than Top-1 and better than the loose-support alternatives. A follow-up
 screen should require preservation of current CAMP's candidate-branch
 SafetyCost/progress advantage before any default-off implementation is
 considered.
+
+### Dense Lane-Change Current CAMP Advantage Attribution
+
+Date: 2026-06-19
+
+Status: accept as a read-only attribution result and keep rejecting the loose
+finite-filter route. The attribution confirms that many loose-rule overrides
+destroy useful current CAMP choices. It also identifies `selection_scores`
+margin, not planned progress, as the strongest current-tick discriminator in
+this slice.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `c8094c21773aeb38e0df917a5d60fd1764ac91f1` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | none |
+
+New read-only attribution tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_dense_lane_change_camp_advantage.py
+camp_core/tests/test_diffusion_planner_dense_lane_change_camp_advantage.py
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=$ROOT/dense_lane_change_camp_advantage_attribution_c8094c2
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_dense_lane_change_camp_advantage.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_dense_lane_change_camp_advantage.py -q
+
+$PY scripts/integrations/analyze_diffusion_planner_dense_lane_change_camp_advantage.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_dense_lane_change_camp_advantage_c8094c2 \
+  --bootstrap_resamples 5000 \
+  --seed 12345 \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/dense_lane_change_camp_advantage_attribution.json" \
+  --output_md "$OUT/dense_lane_change_camp_advantage_attribution.md"
+```
+
+Verification:
+
+```text
+Local:
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_dense_lane_change_camp_advantage.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_dense_lane_change_camp_advantage.py -q
+
+AutoDL:
+2 passed
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `dense_lane_change_camp_advantage_attribution_c8094c2/dense_lane_change_camp_advantage_attribution.json` | `373298bba3dfbefc8e5a683e32345d7de2f786eed78c9d8aef6fc2bb6fa5c8e9` |
+| `dense_lane_change_camp_advantage_attribution_c8094c2/dense_lane_change_camp_advantage_attribution.md` | `8bf5acda8031cfa63d0a1fda539c8be7b2eab5275cf75003e0d6334bfc9f7883` |
+
+Attribution summary:
+
+| Metric | Value |
+| --- | ---: |
+| Total outcome-labeled records | `21600` |
+| Logs | `108` |
+| Formal seed records | `0` |
+| Dense lane-change records | `2400` |
+| Target records | `987` |
+| Supported target records | `635` |
+| Current CAMP advantage records | `388` |
+| Loose-rule regressions vs current CAMP | `561` |
+| Loose-rule improvements vs current CAMP | `74` |
+
+Outcome groups:
+
+| Group | Records | Loose-current Safety | Current-Top1 Safety | Loose-current Progress | CAMP beats Top1 | CAMP beats loose |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| supported target | `635` | `+0.113520` | `-0.080838` | `-0.741900` | `0.839370` | `0.883465` |
+| current CAMP advantage | `388` | `+0.135654` | `-0.108254` | `-0.948030` | `1.000000` | `1.000000` |
+| loose hurts current | `561` | `+0.131285` | `-0.091213` | `-0.835637` | `0.900178` | `1.000000` |
+| loose helps current | `74` | `-0.021161` | `-0.002186` | `-0.031272` | `0.378378` | `0.000000` |
+
+Descriptor separation:
+
+| Descriptor | Loose hurts mean | Loose helps mean | Hurts - helps |
+| --- | ---: | ---: | ---: |
+| `current_jerk_minus_loose` | `1.390180` | `0.743894` | `+0.646285` |
+| `score_penalty` | `0.083544` | `0.018704` | `+0.064840` |
+| `current_score_minus_loose` | `-0.083544` | `-0.018704` | `-0.064840` |
+| `dp_prior_gain` | `0.370413` | `0.352862` | `+0.017552` |
+| `target_speed_loss` | `0.004495` | `0.001927` | `+0.002568` |
+| `planned_progress_loss` | `0.000000` | `0.000000` | `0.000000` |
+| `current_planned_progress_minus_loose` | `0.000000` | `0.000000` | `0.000000` |
+
+Interpretation:
+
+1. The loose rule is not failing because it accidentally selects Top-1 or lacks
+   candidate support. It fails because it overwrites current CAMP choices that
+   are already better than both DP Top-1 and the loose alternative.
+2. `planned_progress` does not separate harmful from helpful overrides in this
+   slice; both means are zero. This explains why progress-preservation guards
+   did not repair dense lane-change behavior.
+3. The most useful current-tick signal in this diagnostic is the original CAMP
+   score margin. Harmful loose overrides have a much larger mean score penalty
+   (`0.083544`) than helpful ones (`0.018704`), meaning the existing affine CAMP
+   score already contains useful preference information that the loose
+   DP-prior-preservation rule discards.
+4. `current_jerk_minus_loose` is also separated, but in the wrong safety
+   direction for a simple jerk guard: loose candidates often look better by
+   current-tick jerk while harming posterior SafetyCost/progress. This makes it
+   unsuitable as a standalone deployment guard.
+
+Mathematical boundary:
+
+The attribution uses outcomes only to label posterior SafetyCost/progress
+groups. All descriptors are current-tick fixed finite-candidate quantities:
+selection score, DP-prior deviation, planned progress, target speed, and
+jerk/lateral proxies. DP remains frozen. CAMP weights and atom schemas are
+unchanged. This is not classical Benders decomposition because no DP-side
+master/subproblem, dual, or cuts are constructed.
+
+Decision:
+
+Accept the attribution as evidence for the next offline design gate only.
+Reject closed-loop smoke, Full36, formal seeds, online promotion, DP
+modification, and CAMP retraining. The next admissible screen is a predeclared
+score-margin preservation sensitivity analysis: allow loose non-Top-1 support
+only when the original CAMP `selection_score` penalty is small, then evaluate
+whether that preserves current CAMP advantage while retaining any SafetyCost
+improvement versus DP Top-1. Do not implement an online selector until that
+offline screen passes.
