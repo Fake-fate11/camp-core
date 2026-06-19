@@ -24125,3 +24125,179 @@ boundary: inspect whether the failure comes from postprocess/reference
 smoothing, candidate feasibility/fallback transfer, or missing current-tick
 descriptors not yet logged. Any new descriptor must be justified as a
 current-tick finite candidate constant before atomization or selector use.
+
+### DP Materiality Gap Postprocess-Support Diagnostic
+
+Date: 2026-06-19
+
+Status: accept the diagnostic and reject selector/replay promotion from it. The
+existing non-formal outcome-labeled candidate pool contains many posterior
+safety-preserving joint-comfort donor candidates, but the raw DP proxy signal is
+not reliably preserved through the tracker/postprocess/rollout layers that a
+deployable current-tick selector is allowed to read. This is evidence for a
+postprocess/tracker descriptor gap, not for online selection, Full36, formal
+seeds, DP changes, or CAMP retraining.
+
+Commit `e93ab1fc15f85dec443205297d86d23f2c7bb719` hardens the existing
+materiality-gap analyzer:
+
+```text
+scripts/integrations/analyze_diffusion_planner_materiality_gap.py
+camp_core/tests/test_diffusion_planner_materiality_gap.py
+```
+
+The change adds a formal-seed guard, explicit read-only decision metadata, and
+tests for formal seed path detection plus raw-proxy layer-gap decision logic.
+The analyzer still uses posterior outcomes only to choose oracle donors for
+diagnosis. All reported layer quantities are fixed finite-candidate values
+already logged at the current tick.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_materiality_gap.py \
+  scripts\integrations\analyze_diffusion_planner_raw_prefix_geometry.py \
+  scripts\integrations\analyze_diffusion_planner_descriptor_selector_screen.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_materiality_gap.py \
+  camp_core\tests\test_diffusion_planner_raw_prefix_geometry.py \
+  camp_core\tests\test_diffusion_planner_descriptor_selector_screen.py -q
+
+git diff --check
+
+Result: 11 passed
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin
+git merge --ff-only origin/main
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_materiality_gap.py \
+  scripts/integrations/analyze_diffusion_planner_raw_prefix_geometry.py \
+  scripts/integrations/analyze_diffusion_planner_descriptor_selector_screen.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_materiality_gap.py \
+  camp_core/tests/test_diffusion_planner_raw_prefix_geometry.py \
+  camp_core/tests/test_diffusion_planner_descriptor_selector_screen.py -q
+
+Result: 11 passed
+```
+
+AutoDL analysis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=$ROOT/materiality_gap_e93ab1f
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_materiality_gap.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_materiality_gap_e93ab1f \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/materiality_gap.json" \
+  --output_md "$OUT/materiality_gap.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `materiality_gap_e93ab1f/materiality_gap.json` | `a834490903adb4647055b8837c36cad8868ee0e80acc7068ecfbe12d3bc9a916` |
+| `materiality_gap_e93ab1f/materiality_gap.md` | `b5955d3f7dc2941cd28f290b840ff75ea77b842b655abbdc1d6840fb2675c712` |
+
+Record summary:
+
+| Metric | Value |
+| --- | ---: |
+| Logs | `108` |
+| Formal seed logs | `0` |
+| Records | `21600` |
+| Nonfallback records | `16621` |
+| Fallback records | `4979` |
+| With oracle donors | `9322` |
+| Without oracle donors | `7299` |
+
+Layer agreement:
+
+| Layer proxy | Improvement rate | Mean delta | P50 | P90 | P95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Raw DP jerk excess | `0.717979` | `-0.195725` | `-0.088788` | `0.000000` | `0.000000` |
+| Raw horizon lateral | `1.000000` | `-0.008687` | `-0.004072` | `-0.000627` | `-0.000344` |
+| Tracker command jerk | `0.514053` | `-0.053412` | `-0.024170` | `+1.298869` | `+2.012253` |
+| Tracker command lateral | `0.424480` | `+0.001244` | `+0.000690` | `+0.009196` | `+0.012971` |
+| Postprocessed prefix jerk proxy | `0.773868` | `-0.000206` | `-0.000131` | `+0.000119` | `+0.000248` |
+| H3 rollout jerk | `0.625188` | `-0.708021` | `-0.567096` | `+2.092716` | `+3.653134` |
+| H3 rollout lateral | `0.604591` | `-0.004555` | `-0.002517` | `+0.009914` | `+0.015289` |
+
+Key donor deltas:
+
+| Quantity | Mean | P50 | P90 | P95 |
+| --- | ---: | ---: | ---: | ---: |
+| Outcome progress delta m | `-0.315469` | `-0.217210` | `-0.036821` | `0.000000` |
+| Outcome jerk delta m/s^3 | `-0.296658` | `-0.197503` | `-0.032182` | `-0.016272` |
+| Outcome lateral delta m/s^2 | `-0.008687` | `-0.004072` | `-0.000627` | `-0.000344` |
+| Prefix max xy distance m | `0.065154` | `0.046863` | `0.144570` | `0.194570` |
+| Prefix H10 displacement delta m | `-0.057867` | `-0.042210` | `-0.000124` | `+0.017303` |
+| Rollout H3 distance delta m | `-0.005726` | `-0.004143` | `+0.002093` | `+0.004995` |
+
+Prefix materiality rates:
+
+| Threshold | Rate |
+| ---: | ---: |
+| `>=0.001 m` | `0.999464` |
+| `>=0.010 m` | `0.921262` |
+| `>=0.100 m` | `0.188479` |
+
+Interpretation:
+
+1. Posterior donor support is large: `9322/16621` nonfallback records have a
+   safety-preserving donor that improves both closed-loop jerk and lateral
+   acceleration.
+2. Those donors are not free for selection. They lose outcome progress on
+   average (`-0.315469 m`) and have lower H10 displacement on the postprocessed
+   prefix (`-0.057867 m` mean), which agrees with the descriptor-only screen's
+   progress-regression failure.
+3. Raw proxy labels are optimistic relative to the deployable layer. Raw
+   lateral improves in `100%` of donor rows and raw DP jerk excess improves in
+   `71.80%`, but tracker command lateral improves in only `42.45%`, tracker
+   command jerk in `51.41%`, and H3 rollout comfort has positive P90/P95
+   deltas. The signal is not preserved cleanly by the PerfectTracker/
+   postprocess/rollout layers.
+4. Prefix materiality is real but often small: `92.13%` of donors differ from
+   the selected prefix by at least `0.01 m`, but only `18.85%` exceed `0.1 m`.
+   This supports a postprocess/tracker descriptor-gap diagnosis rather than a
+   simple missing threshold over existing atom deltas.
+
+Mathematical boundary:
+
+This is a fixed finite-candidate diagnostic. Posterior outcomes are used only
+to choose oracle donors for attribution after the fact. The measured raw,
+PerfectTracker, postprocessed-prefix, and rollout quantities are current-tick
+finite candidate constants. If a future atom or selector uses any of them, the
+CAMP score must remain affine `a_k^T w`, and the simplex/CVaR/L2 robust master
+remains convex. This diagnostic is not classical Benders decomposition because
+no DP-side master/subproblem, dual, or valid cuts are constructed.
+
+Decision:
+
+Accept the materiality-gap artifact as evidence that the current deployable
+descriptor layer does not preserve the strongest raw proxy donor signal.
+Reject online selector promotion, closed-loop smoke, Full36, formal seeds, DP
+changes, and CAMP retraining from this evidence. The next admissible gate is a
+state-conditioned postprocess/tracker descriptor audit: compare donor rows where
+tracker/postprocess/rollout signals agree with raw proxy gains against donor
+rows where the signal flips, then decide whether a new current-tick finite
+descriptor can be justified. If no such descriptor separates the groups, reject
+further selector calibration and return to candidate-generation support.
