@@ -28506,3 +28506,143 @@ were present in the logs but were not used to build atoms. For each candidate
 \(k\), `score_k(w)=a_k^T w` remains affine in `w`; simplex constraints, CVaR
 terms, and L2 regularization remain convex over the fixed atom matrix. No
 DP-side classical Benders decomposition, dual, or valid cut is claimed.
+
+## Material Atom Weight Sensitivity Audit (`248d4eb`)
+
+Date: 2026-06-19
+
+Status: reject the predeclared material-atom weight directions for promotion.
+The audit is useful as a negative gate: it shows that simply reweighting the
+five available material atoms over the current DP candidate set does not create
+a no-leak offline selector candidate with acceptable safety, CVaR, and progress
+behavior.
+
+Commit:
+
+```text
+248d4eb5e7b091c4f5c6a61ebed557277da7d446 Add DP CAMP material atom weight sensitivity audit
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_material_atom_weight_sensitivity.py
+camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_material_atom_weight_sensitivity.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py \
+  camp_core/tests/test_diffusion_planner_material_atom_schema_availability.py -q
+
+git diff --check
+
+Result: 13 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized from `b49fc6a9` to
+`248d4eb5e7b091c4f5c6a61ebed557277da7d446`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_material_atom_weight_sensitivity.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py \
+  camp_core/tests/test_diffusion_planner_material_atom_schema_availability.py -q
+
+git diff --check
+```
+
+Result: `13 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+AVAIL=/root/autodl-tmp/camp_dp_material_atom_schema_availability_9f8cead/material_atom_schema_availability.json
+OUT=/root/autodl-tmp/camp_dp_material_atom_weight_sensitivity_248d4eb
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_material_atom_weight_sensitivity.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --availability_json "$AVAIL" \
+  --fail_on_formal_seeds \
+  --label 248d4eb_diverse_nonformal \
+  --bootstrap_resamples 1000 \
+  --seed 12345 \
+  --output_json "$OUT/material_atom_weight_sensitivity.json" \
+  --output_md "$OUT/material_atom_weight_sensitivity.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_material_atom_weight_sensitivity_248d4eb/material_atom_weight_sensitivity.json` | `ba86ca149161ae467e8a81b80462c8d754c4694187bfb8209ce414de18962e7c` |
+| `/root/autodl-tmp/camp_dp_material_atom_weight_sensitivity_248d4eb/material_atom_weight_sensitivity.md` | `a17789f9642385ac17a71b1f902860893d0f996149dcf4634276df32b02ab8b0` |
+
+Gate result:
+
+```text
+status=material_atom_weight_sensitivity_rejected
+authorized_next_work=None
+passing_variants=[]
+records=21600
+logs=108
+candidate_rows=172800
+formal_seed_records=0
+source_gate_passed=True
+```
+
+Ranked variants:
+
+| Variant | Pass | Safety mean delta | Safety CI high | Safety CVaR90 | Progress CI low | Hard nonworse | Changed rate |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `hard_traffic_support` | `False` | `0.0182797` | `0.0256448` | `0.251934` | `-0.200943` | `0.999861` | `0.44625` |
+| `traffic_rule_focus` | `False` | `0.0195899` | `0.0270258` | `0.258934` | `-0.210654` | `0.999815` | `0.48287` |
+| `uniform_material` | `False` | `0.0251363` | `0.0333755` | `0.30908` | `-0.201685` | `0.999861` | `0.4575` |
+| `support_comfort_guard` | `False` | `0.026315` | `0.0346524` | `0.313115` | `-0.192795` | `0.999861` | `0.441759` |
+| `traffic_top1_guard` | `False` | `0.0277017` | `0.0360476` | `0.337955` | `-0.340944` | `0.999815` | `0.540602` |
+
+Interpretation:
+
+The source availability gate was valid, so this is not a missing-data failure.
+All five predeclared material atom families are available, but the tested
+simplex weight directions move too many ticks away from the current selection
+without producing a safety improvement. Every tested direction has positive
+SafetyCost mean delta and positive 90th-percentile tail mean versus current
+CAMP, and each has a progress lower CI far beyond the predeclared `-0.05 m`
+budget. Hard outcomes are nearly nonworse but not enough to compensate for the
+safety/progress regression.
+
+Decision:
+
+Reject these fixed material-weight directions. Do not promote them to an
+offline selector screen, do not run closed-loop replay, do not use Full36 or
+formal seeds, and do not train CAMP from this evidence. The next useful gate
+should either redesign the no-leak weighting hypothesis, inspect why the
+material atoms over-select low-progress alternatives, or introduce an explicit
+support/progress preservation certificate before any new selector screen.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. The audited choices used
+only fixed current-tick finite-candidate material atoms for selection.
+Closed-loop outcomes were used only after selection for offline evaluation.
+Each tested weight vector was a nonnegative simplex point, so
+`score_k(w)=a_k^T w` remained affine in `w`; the simplex/CVaR/L2 CAMP master
+convexity boundary was preserved. No DP-side classical Benders decomposition,
+dual, or valid cut is claimed.
