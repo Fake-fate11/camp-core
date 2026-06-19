@@ -26992,3 +26992,177 @@ CAMP, use future closed-loop outcomes, or construct a Benders master/subproblem,
 dual, or cuts. If these diagnostics are later atomized, they must be fixed
 finite-candidate constants so CAMP scores remain affine `a_k^T w`, and the
 simplex/CVaR/L2 robust master remains convex for that fixed finite set.
+
+### Route/Topology Absolute Lateral Guard Audit
+
+Commit `c1cfb5731a712cb00cdfe25163a5eeb85791c254` patches the read-only
+absolute lateral guard analyzer so source-screen rows with zero generated
+candidates are skipped before PerfectTracker diagnostics. This preserves the
+existing generated-row mismatch check while avoiding an invalid empty
+`[K,T,D]` tracker call. The patch does not modify DP, candidate generation,
+CAMP weights, atom schemas, or replay behavior.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_topology_absolute_comfort_guard.py
+camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py
+```
+
+Local checks:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts/integrations/analyze_diffusion_planner_route_topology_absolute_comfort_guard.py `
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py
+
+py -3.12 -m pytest `
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py `
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py `
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py -q
+
+git diff --check
+```
+
+Result: `14 passed`.
+
+AutoDL sync/check:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git pull --ff-only origin main
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py -q
+```
+
+Result: `14 passed`. CAMP HEAD was
+`c1cfb5731a712cb00cdfe25163a5eeb85791c254`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Constant red-stop screen command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_absolute_lateral_guard_c1cfb57_constant
+
+$PY scripts/integrations/analyze_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  --screen_json "$ROOT/route_topology_candidate_screen_53fd5a5/route_topology_candidate_screen.json" \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --label seed2_npc4_tlon_constant_red_stop_absolute_lateral_guard_c1cfb57 \
+  --output_json "$OUT/absolute_lateral_guard.json" \
+  --output_md "$OUT/absolute_lateral_guard.md"
+```
+
+Constant red-stop artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_absolute_lateral_guard_c1cfb57_constant/absolute_lateral_guard.json` | `1c5c05a3ccaf3b4b0114da9620e113e2c5cc1c73681b898a1bb24c3b22e56743` |
+| `route_topology_absolute_lateral_guard_c1cfb57_constant/absolute_lateral_guard.md` | `f4cf9decbc3b3e33943c1bad0d901ab5c509647a6ba98718941ca8a6a62a290b` |
+
+Constant red-stop result:
+
+```text
+status=route_topology_absolute_lateral_guard_support_insufficient
+candidate_rows=92
+lower_union_red_rows=92
+lower_union_red_hard_progress_rows=22
+absolute_lateral_guard_rows=1
+snapshots=21
+snapshots_with_absolute_lateral_guard_support=1
+absolute_lateral_guard_snapshot_support_rate=0.047619047619047616
+min_snapshot_support_rate=0.25
+```
+
+Dominant failure classes:
+
+```text
+absolute_command_lateral_guard_failed=68
+absolute_rollout_lateral_guard_failed=68
+hard_dp_kinematic=62
+hard_dp_red_light=17
+underprogress=4
+absolute_lateral_guard_support=1
+```
+
+Prefix comfort-transfer screen command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_absolute_lateral_guard_c1cfb57_prefix
+
+$PY scripts/integrations/analyze_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  --screen_json "$ROOT/route_topology_comfort_transfer_screen_1f9f245/route_topology_comfort_transfer_screen.json" \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --label seed2_npc4_tlon_prefix_comfort_absolute_lateral_guard_c1cfb57 \
+  --output_json "$OUT/absolute_lateral_guard.json" \
+  --output_md "$OUT/absolute_lateral_guard.md"
+```
+
+Prefix comfort-transfer artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_absolute_lateral_guard_c1cfb57_prefix/absolute_lateral_guard.json` | `544c26bcd199d6bc6e6179f19fb5e7e437abeb0ab2a0f4f6a649e1a7828f1163` |
+| `route_topology_absolute_lateral_guard_c1cfb57_prefix/absolute_lateral_guard.md` | `98f5c815e55e5f75cfaf1852df47d28d6bbf405ea11ddb4f7c687956ccd37515` |
+
+Prefix comfort-transfer result:
+
+```text
+status=route_topology_absolute_lateral_guard_support_insufficient
+candidate_rows=276
+lower_union_red_rows=276
+lower_union_red_hard_progress_rows=8
+absolute_lateral_guard_rows=8
+snapshots=21
+snapshots_with_absolute_lateral_guard_support=3
+absolute_lateral_guard_snapshot_support_rate=0.14285714285714285
+min_snapshot_support_rate=0.25
+```
+
+Dominant failure classes:
+
+```text
+hard_dp_lane_crossing=242
+hard_dp_kinematic=190
+hard_dp_road_border=138
+hard_dp_red_light=74
+absolute_lateral_guard_support=8
+```
+
+Interpretation:
+
+The absolute lateral guard audit does not rescue either rejected route/topology
+candidate family. The constant red-stop family has only one supported snapshot,
+and the prefix comfort-transfer family has three supported snapshots, both below
+the predeclared `0.25` snapshot support gate. The prefix family does stay under
+the documented `max_lat_accel=2.0 m/s^2` lateral guard for its eight
+hard/progress rows, but those rows are too sparse and the family remains
+dominated by lane-crossing, road-border, kinematic, and red-light hard failures.
+
+Decision:
+
+Reject the absolute-lateral-guard rescue route for replay, online selector
+promotion, Full36, formal seeds, DP modification, or CAMP retraining. The next
+justified gate is a materially different lane-valid candidate generator, likely
+one that projects the selected branch into a route/lane-valid corridor before
+red-stop timing instead of blending directly to a centerline target.
+
+Mathematical boundary:
+
+This audit consumes fixed current-tick source-screen candidate rows and
+recomputes PerfectTracker lateral metrics for those finite candidates. It does
+not use closed-loop future outcomes, change DP, change CAMP weights, alter atom
+schemas, or construct a Benders master/subproblem, dual, or cuts. If any of
+these diagnostics later become atoms, they must remain fixed finite-candidate
+quantities so CAMP scores stay affine in `w` and the simplex/CVaR/L2 robust
+master remains convex.
