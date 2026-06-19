@@ -23748,3 +23748,217 @@ and looser guarded-oracle candidates that improve safety but regress comfort.
 If no current-tick descriptor separates the clean posterior support from the
 comfort-regressing support, reject fixed-DP selector calibration and move toward
 candidate/postprocess support analysis while keeping DP frozen.
+
+### DP Candidate Support Mask-Fix Rerun and Descriptor Audit
+
+Date: 2026-06-19
+
+Status: accept the mask-fix rerun and descriptor audit as read-only diagnostics.
+Reject online selector promotion, new replay, Full36, formal seeds, DP changes,
+and CAMP retraining from this evidence.
+
+The earlier `candidate_support_quality_ed576f0` artifact is superseded. During
+the descriptor-audit work, `_branch_mask(record)` in
+`scripts/integrations/analyze_diffusion_planner_candidate_support_quality.py`
+was found to return a view of `record["feasible"]`. The subsequent
+`_outcome_nonregressing_mask(record)` path mutated that view in place, which
+could corrupt later current-tick guard masks inside the same record. Commit
+`823d08bbc5b2931c191b4a670033a6a55ae888c1` fixes this by returning a copied
+branch mask, adds a regression test for non-mutating masks, and adds a
+candidate descriptor audit that compares clean posterior support against
+guarded comfort-regressing support.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit | `823d08bbc5b2931c191b4a670033a6a55ae888c1` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | `0` in the analyzed artifact |
+
+Code and tests:
+
+```text
+scripts/integrations/analyze_diffusion_planner_candidate_support_quality.py
+scripts/integrations/analyze_diffusion_planner_candidate_descriptor_audit.py
+camp_core/tests/test_diffusion_planner_candidate_support_quality.py
+camp_core/tests/test_diffusion_planner_candidate_descriptor_audit.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_candidate_support_quality.py \
+  scripts\integrations\analyze_diffusion_planner_candidate_descriptor_audit.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_candidate_support_quality.py \
+  camp_core\tests\test_diffusion_planner_candidate_descriptor_audit.py -q
+
+git diff --check
+
+Result: 6 passed
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin
+git merge --ff-only origin/main
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_support_quality.py \
+  scripts/integrations/analyze_diffusion_planner_candidate_descriptor_audit.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_support_quality.py \
+  camp_core/tests/test_diffusion_planner_candidate_descriptor_audit.py -q
+
+Result: 6 passed
+```
+
+AutoDL analysis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+SUPPORT_OUT=$ROOT/candidate_support_quality_maskfix_823d08b
+DESC_OUT=$ROOT/candidate_descriptor_audit_823d08b
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_candidate_support_quality.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_candidate_support_quality_maskfix_823d08b \
+  --fail_on_formal_seeds \
+  --output_json "$SUPPORT_OUT/candidate_support_quality.json" \
+  --output_md "$SUPPORT_OUT/candidate_support_quality.md"
+
+$PY scripts/integrations/analyze_diffusion_planner_candidate_descriptor_audit.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_candidate_descriptor_audit_823d08b \
+  --fail_on_formal_seeds \
+  --output_json "$DESC_OUT/candidate_descriptor_audit.json" \
+  --output_md "$DESC_OUT/candidate_descriptor_audit.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_support_quality_maskfix_823d08b/candidate_support_quality.json` | `13deec2beb84e521491da758dea0ee48418be9dd25321ae7d26edfec3160b6ad` |
+| `candidate_support_quality_maskfix_823d08b/candidate_support_quality.md` | `1e62e72c5093288127131666e42f8c0d64d6e7c77e0ba83f7fa0898d0dbfc274` |
+| `candidate_descriptor_audit_823d08b/candidate_descriptor_audit.json` | `df1cafa4fdd56724158bd4f72185cf19d2d3f743a64b6e7b6108c22a25a92e4c` |
+| `candidate_descriptor_audit_823d08b/candidate_descriptor_audit.md` | `60a843d7d57f96d3bf50f80403d554b613a962e5f616ba6fe763cbb65b1ab5eb` |
+
+Corrected support-quality verdict:
+
+| Field | Value |
+| --- | --- |
+| Status | `no_leak_guarded_candidate_support_insufficient` |
+| Online selector authorized | `False` |
+| Closed-loop smoke authorized | `False` |
+| Full36 authorized | `False` |
+| Formal seeds authorized | `False` |
+| CAMP retraining authorized | `False` |
+| Reason | `outcome_support_exists_but_current_tick_guards_fail` |
+
+Corrected dense lane-change strategy comparison:
+
+| Strategy | Changed | Improve | Regress | Safety CI high | Progress CI low | Jerk CI high | Lateral CI high | Hard nonworse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dp_top1` | `0.825417` | `0.200833` | `0.624583` | `+1.874661` | `-0.405827` | `+0.238541` | `+0.009393` | `0.970417` |
+| `loose_supported` | `0.264583` | `0.030833` | `0.233750` | `+0.034979` | `-0.285502` | `+0.186529` | `+0.002152` | `1.000000` |
+| `atom_aware_preserve0` | `0.046667` | `0.020417` | `0.026250` | `+0.003490` | `-0.081423` | `-0.006835` | `-0.000215` | `1.000000` |
+| `oracle_all_candidates` | `0.530417` | `0.530417` | `0.000000` | `-2.692537` | `+0.666434` | `+0.312964` | `+0.007190` | `1.000000` |
+| `oracle_outcome_nonregressing` | `0.101667` | `0.101667` | `0.000000` | `-0.010110` | `+0.008762` | `-0.017757` | `-0.000809` | `1.000000` |
+| `oracle_guarded_strict_progress005_speed010_comfort_nonworse` | `0.189583` | `0.189583` | `0.000000` | `-0.539477` | `+0.193847` | `+0.151180` | `+0.004745` | `1.000000` |
+| `oracle_guarded_loose_progress010_speed020_comfort005` | `0.327500` | `0.327500` | `0.000000` | `-1.181035` | `+0.353006` | `+0.182072` | `+0.004342` | `1.000000` |
+
+Descriptor audit record summary:
+
+| Metric | Value |
+| --- | ---: |
+| Total records | `21600` |
+| Dense lane-change records | `2400` |
+| Formal seed records | `0` |
+| Candidate rows | `1485` |
+| Clean outcome-support rows | `244` |
+| Guarded comfort-regressing rows | `890` |
+
+Descriptor audit groups:
+
+| Group | Records | Safety mean | Progress mean | Jerk mean | Lateral mean | Hard nonworse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `clean_outcome_support` | `244` | `-1.373023` | `+0.888465` | `-0.210693` | `-0.009586` | `1.000000` |
+| `loose_progress010_speed020_comfort005_comfort_clean` | `232` | `-1.631744` | `+0.288154` | `-0.417216` | `-0.023739` | `1.000000` |
+| `loose_progress010_speed020_comfort005_comfort_regressing` | `554` | `-6.411146` | `+2.478225` | `+0.821018` | `+0.023431` | `1.000000` |
+| `strict_progress005_speed010_comfort_nonworse_comfort_clean` | `119` | `-2.058570` | `+0.717025` | `-0.312930` | `-0.018516` | `1.000000` |
+| `strict_progress005_speed010_comfort_nonworse_comfort_regressing` | `336` | `-5.476483` | `+2.685455` | `+0.987614` | `+0.032757` | `1.000000` |
+
+Top current-tick descriptor separators:
+
+| Descriptor | Clean mean | Comfort-regressing guarded mean | Clean - guarded | Std abs diff |
+| --- | ---: | ---: | ---: | ---: |
+| `atom_norm_delta:rms_acceleration` | `-0.008555` | `+0.049744` | `-0.058299` | `1.029954` |
+| `atom_norm_delta:jerk_full` | `-0.007955` | `+0.069805` | `-0.077760` | `1.007189` |
+| `atom_norm_delta:planned_lateral_acceleration_cost` | `-0.012337` | `+0.043687` | `-0.056024` | `0.995085` |
+| `atom_margin:progress_shortfall` | `+0.012807` | `-0.006406` | `+0.019213` | `0.938975` |
+| `tracker_jerk_delta` | `-0.030904` | `-1.399914` | `+1.369009` | `0.930666` |
+| `atom_margin:jerk_full` | `+0.000212` | `+0.004923` | `-0.004712` | `0.928516` |
+| `atom_margin:rms_acceleration` | `+0.000140` | `+0.003529` | `-0.003389` | `0.918419` |
+| `atom_norm_delta:jerk_late` | `-0.007435` | `+0.060928` | `-0.068362` | `0.874959` |
+| `atom_margin:planned_lateral_acceleration_cost` | `+0.000173` | `+0.003168` | `-0.002995` | `0.844852` |
+| `atom_norm_delta:dp_prior_jerk_excess_cost` | `-0.081019` | `+0.979749` | `-1.060768` | `0.839177` |
+| `protective_margin` | `-0.007239` | `+0.078194` | `-0.085433` | `0.835243` |
+| `atom_margin:dp_prior_jerk_excess_cost` | `-0.005367` | `+0.069503` | `-0.074869` | `0.831999` |
+
+Interpretation:
+
+1. The mask-fix changes the guarded oracle counts relative to the superseded
+   `ed576f0` artifact, but the decision does not improve enough to authorize a
+   deployable selector. The corrected no-leak guarded oracle still obtains
+   stronger SafetyCost gains by selecting candidates that are posterior
+   comfort-regressing.
+2. Clean posterior support is real but sparse: only `244` candidate rows are in
+   the clean outcome-support group. This is why an online rule must be proved by
+   a predeclared offline screen before any replay is justified.
+3. The descriptor audit provides useful no-leak features for the next gate.
+   The strongest separators are existing current-tick atom deltas and margins
+   related to acceleration, jerk, lateral acceleration, progress shortfall, and
+   DP-prior jerk excess. These are finite candidate constants at selection
+   time; posterior outcomes are labels only.
+4. The audit does not yet prove that a deterministic descriptor-only finite
+   selector can beat current CAMP. It only identifies candidate descriptors that
+   may separate clean support from comfort-regressing support.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. The descriptor audit reads
+only current-tick finite-candidate quantities for deployable predicates:
+feasibility, planned progress, target speed, tracker jerk/lateral proxies,
+DP-prior deviation, logged affine CAMP score, normalized atom deltas and
+margins, weights, and route context. Posterior outcomes are used only to label
+clean support and comfort-regressing guarded candidates after the fact. CAMP
+scoring remains affine `a_k^T w`, and the simplex/CVaR/L2 robust master remains
+convex. This is not classical Benders decomposition because no DP-side
+master/subproblem, dual, or valid cuts are constructed.
+
+Decision:
+
+Accept the `823d08b` mask-fix and descriptor audit as the next diagnostic
+milestone. Reject online selector promotion, new closed-loop smoke, Full36,
+formal seeds, DP changes, and CAMP retraining from this evidence. The next
+admissible gate is a predeclared, descriptor-only offline selector screen over
+the existing 108-log non-formal outcome-labeled artifacts. That screen must use
+only current-tick descriptors, fail closed to current CAMP when descriptors are
+missing or the admissible set is empty, and prove lower SafetyCost without
+hard-outcome, progress, jerk, lateral, fallback, or latency regressions before
+any default-off online selector or replay is considered.
