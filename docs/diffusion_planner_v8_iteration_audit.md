@@ -25747,3 +25747,178 @@ next coding step must be a design-specific offline gate for a materially new
 candidate-generation or postprocess support mechanism. Do not run replay,
 Full36, formal seeds, online selector promotion, DP modification, or CAMP
 retraining until that design-specific gate passes.
+
+### DP Red/Lane-Preserving Transform Design Gate
+
+Date: 2026-06-19
+
+Status: accept a design-specific offline gate for a materially different
+transformed-candidate mechanism. The gate authorizes only an offline
+`world_frame_donor_tail_bridge` recompute screen over fixed non-formal
+snapshots. It does not authorize replay, online selector promotion, Full36,
+formal seeds, DP modification, or CAMP retraining.
+
+Rationale:
+
+The prior stop-aware splice branch showed real red-risk reduction, but the
+current H-anchor donor-offset transform failed hard feasibility on the
+previously blocked `seed_2/npc_4/tl_on` target records. The reason-smoke and
+H-anchor grid evidence show that the blocker is not budget tuning:
+
+- `56/57` no-budget records had no hard-feasible transformed candidate;
+- lower-red hard-infeasible transformed candidates were blocked mainly by
+  `dp_red_light` and `dp_lane_crossing`;
+- H-anchor length tuning from `10` to `40` produced zero lower-red
+  hard-feasible transformed candidates.
+
+The new gate therefore requires a transform that is materially different from
+the rejected H-anchor splice family. The proposed next design is a
+`world_frame_donor_tail_bridge`: preserve the selected near-term prefix for
+first-step/PerfectTracker behavior, then bridge toward the donor in world
+coordinates and keep the donor suffix in its original map frame rather than
+translating the donor tail into the selected H-anchor frame. Any red/lane claim
+must still come from recomputed DP reward and hard feasibility.
+
+Implementation:
+
+Commit `743e5017a99469314dc2f0a7d2c9b638f158fc47` adds:
+
+```text
+scripts/integrations/plan_diffusion_planner_red_lane_preserving_transform_gate.py
+camp_core/tests/test_diffusion_planner_red_lane_preserving_transform_gate.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_red_lane_preserving_transform_gate.py \
+  camp_core\tests\test_diffusion_planner_red_lane_preserving_transform_gate.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_red_lane_preserving_transform_gate.py -q
+
+git diff --check
+
+Result: 3 passed
+```
+
+Synchronization note:
+
+Local push to GitHub initially failed while the local proxy was active:
+
+```text
+OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443
+```
+
+Temporarily clearing `HTTP_PROXY`/`HTTPS_PROXY` for the single `git push`
+command succeeded. AutoDL direct `git pull` then timed out on GitHub, so AutoDL
+was synchronized with a verified local Git bundle:
+
+```text
+/tmp/camp_core_main_743e501.bundle
+```
+
+The bundle advanced AutoDL CAMP from
+`a93166cd346a518f047350dad4a915bbd92c39ce` to
+`743e5017a99469314dc2f0a7d2c9b638f158fc47`, and the remote tracking ref was
+updated to match `HEAD`. The fixed DP checkout remained:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_red_lane_preserving_transform_gate.py \
+  camp_core/tests/test_diffusion_planner_red_lane_preserving_transform_gate.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_red_lane_preserving_transform_gate.py -q
+
+Result: 3 passed
+```
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/red_lane_preserving_transform_gate_743e501
+
+$PY scripts/integrations/plan_diffusion_planner_red_lane_preserving_transform_gate.py \
+  --candidate_support_gate_json "$ROOT/mode_seeking_candidate0_dense_lanechange_seed3_steps1_91de92a/candidate_generation_support_gate_4b7ad18/candidate_generation_support_gate.json" \
+  --splice_reason_json /root/autodl-tmp/camp_dp_splice_shadow_reason_smoke_4f4c321_seed2_npc4_tlon_steps200/splice_shadow_reason_smoke_4f4c321_steps200.json \
+  --h_anchor_grid_json /root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon/splice_transform_design_grid_summary_347ae79.json \
+  --label world_frame_donor_tail_bridge_gate_743e501 \
+  --output_json "$OUT/red_lane_preserving_transform_gate.json" \
+  --output_md "$OUT/red_lane_preserving_transform_gate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `red_lane_preserving_transform_gate_743e501/red_lane_preserving_transform_gate.json` | `a7ef9409ca5364cc2d8f538cceae044620f4f676e2bcd33d47206c67c669e90f` |
+| `red_lane_preserving_transform_gate_743e501/red_lane_preserving_transform_gate.md` | `fd6bc843d46f1c77eb1650770a96cd30d01f85936fe67466a1c761361e983ecc` |
+
+Gate result:
+
+```text
+status=red_lane_preserving_transform_gate_ready
+authorized_implementation=offline_world_frame_donor_tail_bridge_recompute_screen
+failed_preconditions=[]
+no_budget_records=57
+no_hard_feasible_no_budget_records=56
+lower_union_red_hard_infeasible_reason_counts={
+  "dp_lane_crossing": 83,
+  "dp_red_light": 203
+}
+h_anchor_grid_max_lower_union_red_hard_feasible_count=0.0
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+```
+
+Design contract:
+
+- preserve the selected near-term prefix, at minimum the first-step execution
+  behavior used by PerfectTracker;
+- use lower-red donor trajectories only from fixed current-tick snapshots;
+- bridge in world coordinates toward the donor and keep the donor suffix in
+  its original map frame after the join;
+- recompute Savitzky-Golay/postprocess, DP reward hard feasibility, near/full
+  red-light costs, PerfectTracker command/open-loop proxies, progress loss,
+  and smoothness loss;
+- reject if red/lane hard infeasibility remains dominant, if lower-red
+  hard-feasible snapshot coverage is below the predeclared minimum, or if the
+  latency projection cannot plausibly fit the `<100 ms` p95 budget.
+
+Mathematical boundary:
+
+This is a finite-candidate offline design gate, not a trajectory-coordinate
+optimization proof and not classical Benders decomposition. The future bridge,
+if implemented, must be deterministic for fixed current-tick snapshots and
+fixed hyperparameters. CAMP may only see fixed finite candidate atoms after
+the transform is materialized and recomputed; the score remains affine
+`a_k^T w`, and the simplex/CVaR/L2 master remains convex for that fixed
+candidate set.
+
+Decision:
+
+Accept the gate as the next concrete engineering direction. The next coding
+step is only the offline `world_frame_donor_tail_bridge` recompute screen over
+fixed non-formal snapshots. Do not run paired replay, Full36, formal seeds,
+online selector promotion, DP modification, or CAMP retraining before that
+screen passes.
