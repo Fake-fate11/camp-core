@@ -26279,3 +26279,162 @@ outcomes, or construct a Benders master/subproblem, dual, or cuts. CAMP remains
 valid only if any later diagnostic is atomized as a fixed finite-candidate
 quantity, preserving affine scores `a_k^T w` and the convex simplex/CVaR/L2
 master for that fixed candidate set.
+
+### DP Source Donor Support Gate
+
+Date: 2026-06-19
+
+Status: reject lane-constrained donor search over the existing DP candidate
+pool. The gate confirms the previous attribution from a more direct angle:
+before any bridge transform, the original DP candidate pool itself does not
+contain enough lower-red, DP-hard-feasible, progress/comfort-admissible source
+donors.
+
+Implementation:
+
+Commit `48a8421afacf2e2852da26e71ddd8950d8ea7106` adds:
+
+```text
+scripts/integrations/analyze_diffusion_planner_source_donor_support_gate.py
+camp_core/tests/test_diffusion_planner_source_donor_support_gate.py
+```
+
+The analyzer consumes the existing world-frame bridge screen artifact only to
+identify the same fixed non-formal snapshots. It then recomputes diagnostics on
+the original DP candidate pool, before any transform:
+
+- lower-red source candidates versus the selected baseline;
+- DP hard feasibility and hard reasons;
+- progress-screen feasibility;
+- PerfectTracker command and H3 open-loop comfort blockers.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_source_donor_support_gate.py \
+  camp_core\tests\test_diffusion_planner_source_donor_support_gate.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_source_donor_support_gate.py \
+  camp_core\tests\test_diffusion_planner_world_frame_bridge_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_world_frame_bridge_screen.py -q
+
+git diff --check
+
+Result: 13 passed
+```
+
+Synchronization:
+
+Local/GitHub/AutoDL CAMP were advanced to
+`48a8421afacf2e2852da26e71ddd8950d8ea7106`. AutoDL was synchronized with:
+
+```text
+/tmp/camp_core_main_48a8421.bundle
+```
+
+The fixed AutoDL DP checkout remained:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_source_donor_support_gate.py \
+  camp_core/tests/test_diffusion_planner_source_donor_support_gate.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_source_donor_support_gate.py \
+  camp_core/tests/test_diffusion_planner_world_frame_bridge_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_world_frame_bridge_screen.py -q
+
+Result: 13 passed
+```
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/bin/python
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/source_donor_support_gate_48a8421
+
+$PY scripts/integrations/analyze_diffusion_planner_source_donor_support_gate.py \
+  --bridge_screen_json "$ROOT/world_frame_bridge_screen_3e4de83/world_frame_bridge_screen.json" \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --device cuda \
+  --label seed2_npc4_tlon_source_donor_support_48a8421 \
+  --output_json "$OUT/source_donor_support_gate.json" \
+  --output_md "$OUT/source_donor_support_gate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `source_donor_support_gate_48a8421/source_donor_support_gate.json` | `b917a0e78227ff8c2a090d5c8fe5cfbc16e84ae6906d34bc8f8c0ac44adc4872` |
+| `source_donor_support_gate_48a8421/source_donor_support_gate.md` | `514ea704dbf977ef45a5073883f79ad26dcbfb6f6e36c4e29ec5fbb72cf1bc82` |
+
+Result:
+
+```text
+status=source_donor_support_insufficient
+candidate_rows=399
+lower_union_red_rows=238
+lower_union_red_hard_feasible_rows=1
+lower_union_red_progress_feasible_rows=1
+lower_union_red_comfort_admissible_rows=0
+snapshots=57
+snapshots_with_lower_union_red_hard_feasible=1
+snapshots_with_lower_union_red_comfort_admissible=0
+hard_feasible_snapshot_support_rate=0.017543859649122806
+comfort_admissible_snapshot_support_rate=0.0
+required_min_snapshot_support_rate=0.25
+hard_reason_counts={
+  "dp_lane_crossing": 100,
+  "dp_red_light": 237
+}
+failure_class_counts={
+  "source_comfort_blocked_command_lateral": 1,
+  "source_comfort_blocked_rollout_lateral": 1,
+  "source_lane_invalid": 100,
+  "source_red_timing_invalid": 237
+}
+```
+
+Interpretation:
+
+The existing DP candidate pool has many lower-red source candidates, but almost
+none satisfy DP hard feasibility, and none pass the comfort-admissible gate.
+This rules out a simple lane-constrained donor search over the current
+candidates as the next replay-worthy route. It also strengthens the prior
+failure attribution: the bridge was not primarily losing support through its
+geometry; the source pool lacks usable lower-red candidates.
+
+Decision:
+
+Reject lane-constrained donor search over the existing DP candidate pool. Do
+not run replay, Full36, formal seeds, online selector promotion, DP
+modification, or CAMP retraining from this route. The next justified offline
+gate must target route/topology-aware candidate-generation support, or formally
+reject transform-based support if no DP-black-box-compatible design can create
+fixed current-tick lower-risk hard-feasible candidates.
+
+Mathematical boundary:
+
+This source-donor gate uses only fixed current-tick DP candidate diagnostics.
+It does not modify DP, train CAMP, use future closed-loop outcomes, or
+construct a Benders master/subproblem, dual, or cuts. CAMP remains valid only
+if any future support diagnostic is atomized as fixed finite-candidate
+constants, preserving affine scores `a_k^T w` and the convex simplex/CVaR/L2
+master for that fixed candidate set.
