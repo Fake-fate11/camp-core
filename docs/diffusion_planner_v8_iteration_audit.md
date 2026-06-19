@@ -27947,3 +27947,149 @@ does not change CAMP weights, and does not construct a Benders
 master/subproblem, dual, or valid cuts. If any of these diagnostics become
 CAMP atoms, they must remain fixed finite-candidate quantities so the CAMP
 score stays affine in `w` and the simplex/CVaR/L2 master remains convex.
+
+## Latest-safe Route-Topology Failure-Pattern Audit (`ec19970`)
+
+Date: 2026-06-19
+
+Status: accept the failure-pattern audit as the next design boundary. It
+confirms that `prefix_lane_projected_latest_safe_red_stop` is hard-support
+limited, not merely progress-budget or comfort-guard limited.
+
+Commit:
+
+```text
+ec19970e7b3cd0ad754ccf76de203097f4d20f8a Add DP route topology failure pattern audit
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_topology_failure_patterns.py
+camp_core/tests/test_diffusion_planner_route_topology_failure_patterns.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_topology_failure_patterns.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_route_topology_failure_patterns.py \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py -q
+
+git diff --check
+
+Result: 17 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle to
+`ec19970e7b3cd0ad754ccf76de203097f4d20f8a`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_topology_failure_patterns.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_route_topology_failure_patterns.py \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py -q
+```
+
+Result: `17 passed`.
+
+Audit command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_latest_safe_failure_patterns_ec19970
+
+$PY scripts/integrations/analyze_diffusion_planner_route_topology_failure_patterns.py \
+  --screen_json "$ROOT/route_topology_latest_safe_screen_e7b0f21/route_topology_latest_safe_screen.json" \
+  --label latest_safe_screen_e7b0f21_failure_patterns_ec19970 \
+  --output_json "$OUT/route_topology_failure_patterns.json" \
+  --output_md "$OUT/route_topology_failure_patterns.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_latest_safe_failure_patterns_ec19970/route_topology_failure_patterns.json` | `eacc28f79101f6e7cb80f417fde93e24444edaa40194b0d0fd4f65506b808f83` |
+| `route_topology_latest_safe_failure_patterns_ec19970/route_topology_failure_patterns.md` | `da215ec1bce340645d5fdc0d1edffc99b2dce74b4b6859d3e4f954c9d532b524` |
+
+Result:
+
+```text
+status=route_topology_failure_patterns_hard_support_insufficient
+lower_red_candidate_rows=42
+lower_red_snapshots=21
+hard_feasible_rows=2
+hard_feasible_snapshots=1
+hard_feasible_snapshot_rate=0.047619
+progress_feasible_rows=2
+progress_feasible_snapshots=1
+progress_feasible_snapshot_rate=0.047619
+comfort_admissible_rows=0
+comfort_admissible_snapshots=0
+comfort_admissible_snapshot_rate=0.000000
+status_grid_counts={
+  hard|progress|not_comfort: 2,
+  not_hard|not_progress|not_comfort: 40
+}
+dominant_hard_reason_snapshots={
+  dp_kinematic: 20,
+  dp_red_light: 20,
+  dp_lane_crossing: 17,
+  dp_road_border: 16
+}
+```
+
+Metadata breakdown:
+
+| Group | Rows | Hard | Progress | Comfort | Mean progress loss | Mean red reduction |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `backup=0|offset=0.5` | `21` | `1` | `1` | `0` | `4.305880` | `27.357143` |
+| `backup=1|offset=0.5` | `21` | `1` | `1` | `0` | `5.040218` | `36.190476` |
+
+Interpretation:
+
+1. The latest-safe transform creates large lower-red candidates, but almost all
+   of them are simultaneously not hard-feasible, not progress-feasible, and not
+   comfort-admissible.
+2. The dominant blockers are not a single soft guard: DP kinematics, red timing,
+   lane crossing, and road-border failures appear across most lower-red
+   snapshots.
+3. Increasing the progress budget or relaxing lateral comfort would not rescue
+   the route because only `1/21` lower-red snapshots have any hard-feasible
+   support.
+
+Decision:
+
+Reject further tuning of this lane-projected stop-target family. The next
+generator must be materially different and lane-valid by construction before
+any replay or online selector is considered. Candidate ideas should preserve
+the DP/native route shape or operate as a no-leak DP-candidate-native
+calibration screen rather than forcing a lane-projected stop profile that
+creates lane-crossing and road-border failures.
+
+Mathematical boundary:
+
+This audit reads only fixed current-tick screen rows and predeclared support
+thresholds. It does not run DP, create new candidates, use outcome labels for
+runtime selection, modify DP, change CAMP weights, or claim classical Benders
+decomposition. If any failure-pattern quantity later becomes a CAMP atom, it
+must remain fixed per candidate so `a_k^T w` stays affine and the
+simplex/CVaR/L2 master remains convex.
