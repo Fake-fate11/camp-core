@@ -24301,3 +24301,169 @@ tracker/postprocess/rollout signals agree with raw proxy gains against donor
 rows where the signal flips, then decide whether a new current-tick finite
 descriptor can be justified. If no such descriptor separates the groups, reject
 further selector calibration and return to candidate-generation support.
+
+### DP Postprocess/Tracker Descriptor Audit
+
+Date: 2026-06-19
+
+Status: reject this state-conditioned descriptor family. The audit confirms
+that raw-gain posterior donors mostly fail to preserve deployable comfort
+signals through PerfectTracker, postprocess, and H3 rollout, and the strongest
+non-group-defining current-tick descriptor does not reach the predeclared
+standardized separation gate. This does not authorize online selector
+promotion, closed-loop smoke, Full36, formal seeds, DP changes, or CAMP
+retraining.
+
+Commit `b2438c7da9f6ee108b933632b6b6c789dfea679b` adds:
+
+```text
+scripts/integrations/analyze_diffusion_planner_postprocess_tracker_descriptor_audit.py
+camp_core/tests/test_diffusion_planner_postprocess_tracker_descriptor_audit.py
+```
+
+The analyzer reuses the materiality-gap oracle donor rows. Posterior outcomes
+choose safety-preserving joint-comfort donors and preserved/flipped group labels
+only. Candidate descriptor separation excludes the group-defining tracker,
+prefix-jerk, and H3 rollout mean comfort signals, so those variables cannot
+prove themselves by construction.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_postprocess_tracker_descriptor_audit.py \
+  scripts\integrations\analyze_diffusion_planner_materiality_gap.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_postprocess_tracker_descriptor_audit.py \
+  camp_core\tests\test_diffusion_planner_materiality_gap.py -q
+
+git diff --check
+
+Result: 7 passed
+```
+
+AutoDL sync and verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin
+git merge --ff-only origin/main
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_postprocess_tracker_descriptor_audit.py \
+  scripts/integrations/analyze_diffusion_planner_materiality_gap.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_postprocess_tracker_descriptor_audit.py \
+  camp_core/tests/test_diffusion_planner_materiality_gap.py -q
+
+Result: 7 passed
+```
+
+AutoDL analysis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=$ROOT/postprocess_tracker_descriptor_audit_b2438c7
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_postprocess_tracker_descriptor_audit.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_postprocess_tracker_descriptor_audit_b2438c7 \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/postprocess_tracker_descriptor_audit.json" \
+  --output_md "$OUT/postprocess_tracker_descriptor_audit.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `postprocess_tracker_descriptor_audit_b2438c7/postprocess_tracker_descriptor_audit.json` | `ea1966a36428b9fdaf5ca362d6e3ae2601f7f817f2b8837bf54dd2865054eb6a` |
+| `postprocess_tracker_descriptor_audit_b2438c7/postprocess_tracker_descriptor_audit.md` | `34a5015469bdbe570581075db5846bbbcbaa84f1db47147d58b42d37eb4e6f63` |
+
+Record summary:
+
+| Metric | Value |
+| --- | ---: |
+| Logs | `108` |
+| Formal seed logs | `0` |
+| Records | `21600` |
+| Nonfallback records | `16621` |
+| Fallback records | `4979` |
+| With oracle donors | `9322` |
+| Without oracle donors | `7299` |
+| Raw-gain donor rows | `9322` |
+| Preserved deployable-comfort rows | `724` |
+| Flipped deployable-comfort rows | `8598` |
+| Preserved rate among raw-gain donors | `0.077666` |
+
+Top candidate descriptors, excluding group-defining signals:
+
+| Descriptor | Preserved mean | Flipped mean | Std abs diff |
+| --- | ---: | ---: | ---: |
+| `rollout_h3_max_vector_jerk_mps3_delta` | `-4.676764` | `-1.175274` | `0.632667` |
+| `rollout_h5_max_vector_jerk_mps3_delta` | `-4.692282` | `-1.187891` | `0.606661` |
+| `tracker_command_yaw_rate_delta_rps` | `-0.000641` | `+0.000404` | `0.525743` |
+| `rollout_h5_mean_vector_jerk_mps3_delta` | `-1.783458` | `-0.426114` | `0.506930` |
+| `rollout_h3_max_lateral_acceleration_mps2_delta` | `-0.013173` | `-0.005915` | `0.290295` |
+
+Group-defining signal separation, reported only as a sanity check:
+
+| Signal | Preserved mean | Flipped mean | Std abs diff |
+| --- | ---: | ---: | ---: |
+| `tracker_command_lateral_delta_mps2` | `-0.004120` | `+0.001695` | `0.813598` |
+| `tracker_command_jerk_delta_mps3` | `-1.024478` | `+0.028358` | `0.812426` |
+| `rollout_h3_mean_vector_jerk_mps3_delta` | `-2.622477` | `-0.546813` | `0.635233` |
+| `rollout_h3_mean_lateral_acceleration_mps2_delta` | `-0.010736` | `-0.004034` | `0.384761` |
+| `prefix_jerk_proxy_delta` | `-0.000354` | `-0.000194` | `0.356220` |
+
+Group outcomes:
+
+| Group | Count | Progress mean | Jerk mean | Lateral mean |
+| --- | ---: | ---: | ---: | ---: |
+| All oracle donors | `9322` | `-0.315469` | `-0.296658` | `-0.008687` |
+| Preserved deployable comfort | `724` | `-0.240925` | `-0.272545` | `-0.006040` |
+| Flipped deployable comfort | `8598` | `-0.321746` | `-0.298688` | `-0.008910` |
+
+Interpretation:
+
+1. The deployable preservation slice is small: only `724/9322` raw-gain donor
+   rows preserve all tracked deployable comfort signals.
+2. The strongest non-group-defining descriptor,
+   `rollout_h3_max_vector_jerk_mps3_delta`, has standardized separation
+   `0.632667`, below the predeclared `0.75` gate. The next strongest
+   candidates are also below the gate.
+3. The group-defining signals themselves separate as expected, especially
+   tracker lateral and tracker jerk, but they cannot be treated as independent
+   proof that a new atom family will generalize. They are the labels used to
+   define preserved versus flipped rows.
+4. Preserved rows still lose outcome progress on average (`-0.240925 m`), so
+   even the best deployable-comfort slice is not a free Pareto improvement over
+   the selected branch.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. This audit uses fixed finite
+candidate quantities at the current tick. Signed deltas are diagnostic
+descriptors only; a future CAMP atom would need nonnegative base costs or a
+nonnegative split of signed deltas so the candidate score remains affine
+`a_k^T w` and the simplex/CVaR/L2 robust master remains convex. This is not
+classical Benders decomposition because no DP-side master/subproblem, dual, or
+valid cuts are constructed.
+
+Decision:
+
+Reject this postprocess/tracker descriptor family as a basis for selector
+promotion. Do not run online selector promotion, closed-loop smoke, Full36,
+formal seeds, DP changes, or CAMP retraining from this evidence. The next
+admissible path is not another threshold over the same descriptor family; it is
+to return to candidate-generation/postprocess support or design a materially
+new no-leak atom family with a clearer convex/nonnegative definition before any
+offline selector screen.
