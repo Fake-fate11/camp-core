@@ -23247,3 +23247,174 @@ seeds, DP changes, or CAMP retraining are authorized from this route. The next
 admissible work remains schema/calibration analysis or a new offline proof
 target that preserves current CAMP advantage before considering runtime
 selection.
+
+### Dense Lane-Change Score Schema Calibration Diagnostic
+
+Date: 2026-06-19
+
+Status: accept the diagnostic as an explanation of why current CAMP already
+protects many dense lane-change choices. The logged affine score is exactly
+reconstructable from `selection_normalized_atoms @ selection_weights`, and the
+harmful loose-rule overrides have much larger positive contribution margins
+than helpful overrides. This supports schema/calibration reasoning, but does
+not authorize an online selector, new replay, Full36, formal seeds, DP changes,
+or CAMP retraining.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `b9e5e912ddc1a85f6e37e144b03d43742c213b7f` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | `0` in the analyzed artifact |
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_dense_lane_change_score_calibration.py
+camp_core/tests/test_diffusion_planner_dense_lane_change_score_calibration.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_dense_lane_change_score_calibration.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_dense_lane_change_score_calibration.py -q
+
+git diff --check
+
+Result: 3 passed
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin
+git merge --ff-only origin/main
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_dense_lane_change_score_calibration.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_dense_lane_change_score_calibration.py -q
+
+Result: 3 passed
+```
+
+AutoDL analysis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=$ROOT/dense_lane_change_score_calibration_b9e5e91
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_dense_lane_change_score_calibration.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_dense_lane_change_score_calibration_b9e5e91 \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/dense_lane_change_score_calibration.json" \
+  --output_md "$OUT/dense_lane_change_score_calibration.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `dense_lane_change_score_calibration_b9e5e91/dense_lane_change_score_calibration.json` | `f77bcafcd1e6267ce99a08de1bd1034dd61efde83c22e0fd7b0165a6e24cacb4` |
+| `dense_lane_change_score_calibration_b9e5e91/dense_lane_change_score_calibration.md` | `acadb5fa75ad66a20ba3623be4858573911f434cfdd1cb9c5899112afdb359eb` |
+
+Record summary:
+
+| Metric | Value |
+| --- | ---: |
+| Total records | `21600` |
+| Logs | `108` |
+| Formal seed records | `0` |
+| Dense lane-change records | `2400` |
+| Target records | `987` |
+| Supported target records | `635` |
+| Current CAMP advantage records | `388` |
+| Loose-rule regressions vs current CAMP | `561` |
+| Loose-rule improvements vs current CAMP | `74` |
+
+Score reconstruction:
+
+| Metric | Value |
+| --- | ---: |
+| Records with schema | `21600` |
+| Records missing schema | `0` |
+| Atom dimensions | `14` |
+| Mean absolute score reconstruction error | `0.000000` |
+| Max absolute score reconstruction error | `0.000000` |
+| Mean selected-loose delta reconstruction error | `0.000000` |
+
+Outcome groups:
+
+| Group | Records | Loose-current Safety | Current-Top1 Safety | Loose-current Progress | Score penalty | Contribution margin |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `supported_target` | `635` | `+0.113520` | `-0.080838` | `-0.741900` | `0.075988` | `0.075988` |
+| `camp_advantage` | `388` | `+0.135654` | `-0.108254` | `-0.948030` | `0.085764` | `0.085764` |
+| `loose_hurts_current` | `561` | `+0.131285` | `-0.091212` | `-0.835637` | `0.083544` | `0.083544` |
+| `loose_helps_current` | `74` | `-0.021161` | `-0.002186` | `-0.031272` | `0.018704` | `0.018704` |
+
+Top atom contribution separation:
+
+Positive contribution margin means the logged affine CAMP score penalizes the
+loose alternative more than the current selection.
+
+| Atom | Supported mean | CAMP advantage mean | Loose hurts mean | Loose helps mean | Hurts - helps |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `dp_prior_jerk_excess_cost` | `0.027364` | `0.028916` | `0.031682` | `-0.005371` | `+0.037054` |
+| `jerk_early` | `0.024132` | `0.022162` | `0.027737` | `-0.003197` | `+0.030933` |
+| `progress_shortfall` | `0.024492` | `0.034687` | `0.024125` | `0.027272` | `-0.003147` |
+
+Interpretation:
+
+1. The affine score reconstruction is exact for all analyzed records. The
+   logged score is not a black box at this stage; it decomposes cleanly into
+   atom contribution margins.
+2. Harmful loose overrides are strongly separated from helpful loose overrides
+   by `dp_prior_jerk_excess_cost` and `jerk_early`. These atoms penalize the
+   loose alternative on records where loose later regresses current CAMP.
+3. `progress_shortfall` is important in CAMP-advantage records, but it does not
+   distinguish harmful and helpful loose overrides as cleanly as the jerk-related
+   atoms. This matches the previous rejection of pure progress/score-margin
+   finite filters.
+4. This evidence explains why current CAMP can beat DP Top-1 and why discarding
+   its affine score in favor of DP-prior preservation damages dense lane-change
+   transfer.
+
+Mathematical boundary:
+
+The diagnostic uses posterior outcomes only to group records into
+`camp_advantage`, `loose_hurts_current`, and `loose_helps_current`. The reported
+score schema quantities are fixed current-tick finite-candidate values:
+normalized atoms, logged weights, logged scores, and atom contribution margins.
+The score remains affine `a_k^T w`, and the simplex/CVaR/L2 robust master
+remains convex. DP remains a frozen black-box candidate generator. This is not
+classical Benders decomposition because no DP-side master/subproblem, dual, or
+valid cuts are constructed.
+
+Decision:
+
+Accept this as a schema/calibration explanation, not as a deployable selector.
+No replay, online promotion, Full36, formal seeds, DP modification, or CAMP
+retraining are authorized. The next admissible gate is an offline no-leak proof
+target that preserves current CAMP advantage while testing whether an
+atom-aware calibration or selector can improve dense lane-change outcomes over
+current CAMP. A plausible next screen is predeclared and atom-aware: only
+consider supported alternatives when the current CAMP protective contribution
+from `dp_prior_jerk_excess_cost` and `jerk_early` is not positive, then evaluate
+against current CAMP before any replay. If that does not beat current CAMP with
+confidence and acceptable progress/comfort/fallback behavior, reject the route.
