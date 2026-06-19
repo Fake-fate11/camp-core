@@ -23105,3 +23105,145 @@ single-threshold guard; it is either:
    captures beneficial dense lane-change choices, or
 2. a new offline proof target that directly preserves current CAMP advantage
    before considering any runtime selector.
+
+### Dense Lane-Change Feasible-Support Hardened Audit
+
+Date: 2026-06-19
+
+Status: accept the feasible-support audit as hardened and complete, but do not
+promote any selector from it. The rerun adds an explicit formal-seed guard and
+confirms the old support result on the existing Top-1 fallback targeted smoke:
+non-Top1 support exists under the loose predeclared budget, while stricter
+support is below the default screen threshold. This only authorizes the already
+performed outcome-labeled offline screens; those later screens rejected the
+finite-filter route.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `b133be5404017ad790bfcf50dcc7c939337e0147` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | `0` in the analyzed artifact |
+
+Code changes:
+
+```text
+scripts/integrations/analyze_diffusion_planner_dense_lane_change_feasible_support.py
+camp_core/tests/test_diffusion_planner_dense_lane_change_feasible_support.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_dense_lane_change_feasible_support.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_dense_lane_change_feasible_support.py -q
+
+git diff --check
+
+Result: 5 passed
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin
+git merge --ff-only origin/main
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_dense_lane_change_feasible_support.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_dense_lane_change_feasible_support.py -q
+
+Result: 5 passed
+```
+
+AutoDL analysis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SMOKE=$ROOT/top1_fallback_targeted_seed3_smoke_542d489
+OUT=$ROOT/dense_lane_change_feasible_support_b133be5
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_dense_lane_change_feasible_support.py \
+  --root "$SMOKE" \
+  --comparison "$SMOKE/benchmark_comparison.json" \
+  --label top1_fallback_targeted_seed3_smoke_542d489_dense_lane_change_b133be5 \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/dense_lane_change_feasible_support.json" \
+  --output_md "$OUT/dense_lane_change_feasible_support.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `dense_lane_change_feasible_support_b133be5/dense_lane_change_feasible_support.json` | `c6700af8e381767689d4678cfae6052035ca20806c88fce1550762849e0ff55d` |
+| `dense_lane_change_feasible_support_b133be5/dense_lane_change_feasible_support.md` | `fae6b43848d154b2c595e87acddc7f368099e7d7f9df95466784af940fba535b` |
+
+Support summary:
+
+| Metric | Value |
+| --- | ---: |
+| Static runs | `6` |
+| Dense lane-change runs | `2` |
+| Bad dense lane-change runs | `1` |
+| Selection records | `1200` |
+| Bad dense lane-change records | `200` |
+| Formal seed runs | `0` |
+| Formal seed selection records | `0` |
+| Bad dense target records | `76` |
+
+Rule support:
+
+| Rule | Bad support | Bad Top1 chosen | Bad score penalty | Bad DP-prior gain | Overall support |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `non_top1_progress010_speed020_comfort005` | `0.355263` | `0.000000` | `0.011883` | `0.443804` | `0.312935` |
+| `any_progress005_speed010_comfort_nonworse` | `0.263158` | `0.150000` | `0.012554` | `0.485298` | `0.173853` |
+| `non_top1_progress005_speed010_comfort_nonworse` | `0.223684` | `0.000000` | `0.013778` | `0.525375` | `0.152990` |
+| `top1_progress005_speed010_comfort_nonworse` | `0.131579` | `1.000000` | `0.008751` | `0.377047` | `0.066759` |
+| `non_top1_strict` | `0.118421` | `0.000000` | `0.013948` | `0.230557` | `0.055633` |
+
+Interpretation:
+
+1. The loose non-Top1 feasible-support rule still passes the default support
+   threshold on the bad dense lane-change slice: `0.355263 >= 0.25`.
+2. The stricter non-Top1 rule is below threshold: `0.223684 < 0.25`.
+3. Candidate0 support is not the dominant explanation in this support audit;
+   the top1-only strict support rate is `0.131579`.
+4. This audit reads only current-tick finite-candidate quantities and does not
+   use outcome labels, run a new replay, modify DP, train CAMP, or touch formal
+   seeds.
+
+Mathematical boundary:
+
+All predicates are fixed current-tick finite-candidate quantities: feasibility,
+candidate index, logged selection, DP-prior deviation, planned progress or step
+reach, target speed, tracker jerk/lateral proxies, and selection score. If any
+predicate is later atomized, the CAMP score must remain affine `a_k^T w`, and
+the simplex/CVaR/L2 robust master remains convex. This audit is a finite
+candidate-support diagnostic, not classical Benders decomposition.
+
+Decision:
+
+Finish the feasible-support audit. The correct immediate gate from this audit
+would be an outcome-labeled offline selector screen, not an online replay. That
+gate has already been executed by the loose-rule outcome screen and
+score-margin screen above, and both rejected deployable finite filtering versus
+current CAMP. Therefore no online selector, closed-loop smoke, Full36, formal
+seeds, DP changes, or CAMP retraining are authorized from this route. The next
+admissible work remains schema/calibration analysis or a new offline proof
+target that preserves current CAMP advantage before considering runtime
+selection.
