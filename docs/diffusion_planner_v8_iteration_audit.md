@@ -25218,3 +25218,221 @@ route using `--candidate_guidance_config`, then run the existing
 mode-seeking availability diagnostic. Reject if candidate0 is not preserved,
 endpoint/mode diversity remains insufficient, support is Top-1-only or absent,
 latency lacks p95 margin, or any formal seed is present.
+
+### DP Dense Lane-Change Candidate0-Preserving Guidance Smoke
+
+Date: 2026-06-19
+
+Status: accept the candidate0 preservation repair, but reject the current
+route/lane guidance candidate-generation branch for advancement on this dense
+lane-change smoke. The fixed-DP-weight guidance path now preserves candidate0
+exactly, but it does not improve endpoint diversity, produces no feasible
+dense lane-change support in the smoke tick, and remains far above the `100 ms`
+p95 latency limit.
+
+Implementation correction:
+
+Commit `91de92a7da5852cece9e4b9e6565f4a85b962804` changes
+`guidance_policy="preserve_candidate0"` from a `1 + (K-1)` forward pattern to a
+`K + (K-1)` pattern:
+
+1. run a full unguided `K`-candidate forward pass;
+2. take candidate0 from that full unguided batch;
+3. run guided generation only for candidates `1..K-1`;
+4. concatenate candidate0 with the guided stochastic candidates.
+
+The contract now records:
+
+```text
+candidate0_guidance_policy=full_batch_unguided_forward
+candidate0_preservation_structural=True
+guided_candidate_indices=[1, K-1]
+changes_diffusion_planner_weights=False
+changes_camp_score=False
+```
+
+Reason for the correction:
+
+The first candidate0-preserving implementation used a separate batch-size-1
+unguided candidate0 forward. On the paired dense lane-change smoke this created
+a tiny but gate-failing candidate0 difference:
+
+```text
+root=mode_seeking_candidate0_dense_lanechange_seed3_steps1_123ddef
+candidate0_preservation_max_abs_xy_m=2.384185791015625e-06
+threshold=1e-06
+status=mode_seeking_candidate_availability_rejected
+```
+
+The threshold was not relaxed. The implementation was hardened so guided runs
+obtain candidate0 from the same full unguided batch shape as the baseline.
+
+Local verification for the implementation correction:
+
+```text
+py -3.12 -m py_compile \
+  camp_core\camp_core\integrations\diffusion_planner.py \
+  scripts\integrations\run_diffusion_planner_camp_replay.py \
+  scripts\integrations\analyze_diffusion_planner_mode_seeking_candidate_availability.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_replay_summary.py \
+  camp_core\tests\test_diffusion_planner_mode_seeking_candidate_availability.py \
+  camp_core\tests\test_diffusion_planner_candidate_generation_controls.py -q
+
+Result: 24 passed
+
+KMP_DUPLICATE_LIB_OK=TRUE PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_generation_can_preserve_candidate0_under_guidance \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_generation_preserves_guidance_when_requested \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_generation_rejects_unknown_guidance_policy -q
+
+Result: 3 passed
+```
+
+AutoDL verification:
+
+AutoDL was synchronized by Git bundle
+`/tmp/camp_core_91de92a.bundle`, advancing both `HEAD` and `origin/main` to
+`91de92a7da5852cece9e4b9e6565f4a85b962804`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  camp_core/camp_core/integrations/diffusion_planner.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/analyze_diffusion_planner_mode_seeking_candidate_availability.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate_generation_can_preserve_candidate0_under_guidance \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate_generation_preserves_guidance_when_requested \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate_generation_rejects_unknown_guidance_policy \
+  camp_core/tests/test_diffusion_planner_replay_summary.py::test_candidate_generation_contract_records_fixed_dp_sampling_boundary \
+  camp_core/tests/test_diffusion_planner_replay_summary.py::test_candidate_generation_contract_records_enabled_guidance \
+  camp_core/tests/test_diffusion_planner_mode_seeking_candidate_availability.py \
+  camp_core/tests/test_diffusion_planner_candidate_generation_controls.py -q
+
+Result: 11 passed
+```
+
+Final paired smoke:
+
+```text
+root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/mode_seeking_candidate0_dense_lanechange_seed3_steps1_91de92a
+route=nishishinjuku_lane_change_route_7_via_8_to_1.pkl
+seed=3
+max_npcs=8
+traffic_lights=off
+steps=1
+selector=static
+formal_seeds_present=False
+guidance_config=dp_candidate_guidance_route_centerline_lane.json
+guidance_config_sha=aaff213cd12c845f98ec8997a09ec6641308ee0f0440f31c7ec06bb89cd8e456
+```
+
+Smoke artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `baseline/.../camp_selection_log.json` | `901e8452417cb0859c6e763ac0252a814ec68189fcc6850a9b9d4b662702f56b` |
+| `baseline/.../camp_validation_summary.json` | `e74db803686f334311264b8ac9d44ae71d09677a0b626dad55b82346d8c8996a` |
+| `guided/.../camp_selection_log.json` | `b2e1464f6ad8994c50fefaa74ab7dc2136775241bd4be768c99d163ed0c52096` |
+| `guided/.../camp_validation_summary.json` | `c76bcc24c94bf73a8d5372dcb77eef761a221ab5d1c97568a5b8171a3d748290` |
+| `baseline_run.log` | `5468ab6afcc864b61fd28b9a00b2d5cd5713d05bf561d2c531aff09c5dc2e226` |
+| `guided_run.log` | `68990adc9adaaa55c60e79dad7d92e6803fa8cce7822df186b3339f8f580f417` |
+
+Replay summary:
+
+| Metric | Baseline | Guided |
+| --- | ---: | ---: |
+| p95 selection latency ms | `255.244835` | `382.111991` |
+| p95 candidate-generation latency ms | `65.000536` | `238.642287` |
+| candidate feasible rate | `0.0` | `0.0` |
+| mean feasible candidates | `0.0` | `0.0` |
+| fallback rate | `1.0` | `1.0` |
+| candidate0 structural contract | `False` | `True` |
+
+Availability diagnostic:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/mode_seeking_candidate0_dense_lanechange_seed3_steps1_91de92a
+OUT=$ROOT/availability_diagnostic
+
+$PY scripts/integrations/analyze_diffusion_planner_mode_seeking_candidate_availability.py \
+  --baseline_selection_log "$ROOT/baseline/nishishinjuku_lane_change/seed_3/npc_8/spawn_0p3/tl_off/static/camp_selection_log.json" \
+  --candidate_selection_log "$ROOT/guided/nishishinjuku_lane_change/seed_3/npc_8/spawn_0p3/tl_off/static/camp_selection_log.json" \
+  --label candidate0_preserving_fullbatch_route_lane_dense_lanechange_seed3_steps1_91de92a \
+  --output_json "$OUT/mode_seeking_candidate_availability.json" \
+  --output_md "$OUT/mode_seeking_candidate_availability.md"
+```
+
+Diagnostic artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `availability_diagnostic/mode_seeking_candidate_availability.json` | `14a744a78f4eb85c6815cfaf180c114794ce3b1795052e9e0f908dcd0fc7a55b` |
+| `availability_diagnostic/mode_seeking_candidate_availability.md` | `94ac9b8490c3548ed0e734bd6ce58a970407a933fa995af7da515c2c7ce65e4b` |
+
+Diagnostic result:
+
+```text
+status=mode_seeking_candidate_availability_rejected
+paired_records=1
+candidate_nonfallback_records=0
+candidate0_preserved=True
+candidate0_structural_preservation_contract=True
+fixed_dp_weights=True
+camp_score_unchanged=True
+formal_seeds_absent=True
+endpoint_pairwise_mean_pass=False
+endpoint_gain_pass=False
+mode_count_pass=True
+non_top1_dense_lane_change_support_pass=False
+latency_p95_pass=False
+candidate0_preservation_max_abs_xy_m=0.0
+baseline_endpoint_pairwise_mean_m=0.24300089653778487
+candidate_endpoint_pairwise_mean_m=0.24269501981071567
+endpoint_pairwise_mean_gain_m=-0.0003058767270691931
+candidate_mode_count_mean=2.0
+dense_lane_change_support_target_records=0
+dense_lane_change_support_rate=0.0
+guided_latency_p95_ms=382.1119908243418
+```
+
+Interpretation:
+
+1. Candidate0 preservation is now solved for this paired one-tick diagnostic:
+   both the measured candidate0 prefix equality and the structural contract
+   pass.
+2. The current route/lane guidance config is rejected for dense lane-change
+   advancement: it does not improve endpoint diversity, all guided candidates
+   are infeasible under the current DP reward feasibility gate, and p95 latency
+   is far above `100 ms`.
+3. The failure is not due to CAMP scoring, CAMP weights, DP weight changes, or
+   formal seed leakage. It is a candidate-generation support/latency failure.
+
+Mathematical boundary:
+
+This smoke changes only the finite candidate set produced by fixed DP weights
+under an explicit default-off guidance config. CAMP atoms, CAMP weights, and
+the affine score `a_k^T w` are unchanged; the simplex/CVaR/L2 master remains
+convex for any fixed candidate set. This is not classical Benders
+decomposition and does not claim convexity over trajectory coordinates.
+
+Decision:
+
+Reject the current route/lane guidance config as the mode-seeking path for
+dense lane-change. Do not run closed-loop replay, Full36, formal seeds, online
+promotion, or CAMP retraining from this result. The next admissible step is to
+diagnose whether the failure is caused by the DP reward feasibility gate versus
+true geometric candidate collapse: rerun a read-only availability variant or
+analyzer on the same artifacts using base-feasible/perfect-tracker feasibility
+and endpoint diversity only, without generating new DP candidates.
