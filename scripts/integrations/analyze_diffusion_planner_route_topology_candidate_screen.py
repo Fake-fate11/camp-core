@@ -94,6 +94,7 @@ def parse_args() -> argparse.Namespace:
             "lane_centerline_red_stop",
             "prefix_comfort_red_stop",
             "lane_projected_red_stop",
+            "prefix_lane_projected_red_stop",
         ),
         default="lane_centerline_red_stop",
     )
@@ -435,6 +436,36 @@ def build_route_topology_candidates(
                             "current_speed_mps": float(speed),
                         }
                     )
+                continue
+            if config.generator_policy == "prefix_lane_projected_red_stop":
+                for projected, offset_scale in _lane_projected_red_stop_candidates(
+                    raw[selected_index],
+                    lane=lane,
+                    cumulative=cumulative,
+                    current_s=current_s,
+                    stop_distances=distances,
+                    offset_scales=config.lane_projected_offset_scales,
+                ):
+                    for candidate, prefix, bridge in _prefix_comfort_candidates(
+                        raw[selected_index],
+                        projected[:, :2],
+                        prefix_steps=config.prefix_steps,
+                        bridge_steps=config.bridge_steps,
+                    ):
+                        generated.append(candidate)
+                        metadata.append(
+                            {
+                                "variant": "prefix_lane_projected_red_stop",
+                                "prefix_steps": int(prefix),
+                                "bridge_steps": int(bridge),
+                                "lateral_offset_scale": float(offset_scale),
+                                "red_stop_margin_m": float(margin),
+                                "backup_stop_offset_m": float(backup),
+                                "stop_distance_m": float(stop_distance),
+                                "red_distance_m": float(red_s - current_s),
+                                "current_speed_mps": float(speed),
+                            }
+                        )
                 continue
     if not generated:
         return np.empty((0, raw.shape[1], raw.shape[2]), dtype=np.float64), []
@@ -1291,6 +1322,7 @@ def _validate_config(config: RouteTopologyCandidateConfig) -> None:
         "lane_centerline_red_stop",
         "prefix_comfort_red_stop",
         "lane_projected_red_stop",
+        "prefix_lane_projected_red_stop",
     }:
         raise ValueError("invalid generator_policy.")
     for value in config.red_stop_margins_m:
