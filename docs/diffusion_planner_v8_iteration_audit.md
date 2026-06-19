@@ -24617,3 +24617,146 @@ next admissible engineering path is to propose a materially new no-leak
 atom/schema family or a candidate-generation/postprocess support design with a
 clear argument for why it avoids the already observed progress loss and
 tracker/postprocess preservation failure.
+
+### DP Next Design Gate Preflight
+
+Date: 2026-06-19
+
+Status: accept the preflight as the next design triage gate. It rejects three
+already-tested route families and leaves exactly two conditional next paths:
+`new_mode_seeking_candidate_generation` and
+`materially_new_no_leak_atom_schema`. Neither path is authorized for replay,
+Full36, formal seeds, online selector promotion, or CAMP retraining until a
+separate math/design gate is written and verified.
+
+Commit `10209421ce7f7ac560b0e37408bb3cf6745278a1` adds:
+
+```text
+scripts/integrations/plan_diffusion_planner_next_design_gate.py
+camp_core/tests/test_diffusion_planner_next_design_gate.py
+```
+
+The preflight consumes existing JSON artifacts only:
+
+1. support bottleneck synthesis;
+2. DP-prior/completion joint audit;
+3. candidate-generation controls audit;
+4. K8 and K16/noise spatial-diversity reports.
+
+It does not run DP, generate new candidates, train CAMP, alter the selector,
+or use formal seeds.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_next_design_gate.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_next_design_gate.py \
+  camp_core\tests\test_diffusion_planner_support_bottleneck_summary.py -q
+
+git diff --check
+
+Result: 4 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle because direct GitHub HTTPS had recently
+timed out from the instance. The verified bundle
+`/tmp/camp_core_1020942.bundle` advanced both AutoDL `HEAD` and
+`origin/main` to `10209421ce7f7ac560b0e37408bb3cf6745278a1`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_next_design_gate.py \
+  scripts/integrations/summarize_diffusion_planner_support_bottleneck.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_next_design_gate.py \
+  camp_core/tests/test_diffusion_planner_support_bottleneck_summary.py -q
+
+Result: 4 passed
+```
+
+AutoDL preflight command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/next_design_gate_preflight_1020942
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/plan_diffusion_planner_next_design_gate.py \
+  --support_bottleneck_json "$ROOT/support_bottleneck_synthesis_0fe5a24/support_bottleneck_synthesis.json" \
+  --dp_prior_completion_json "$ROOT/dp_prior_completion_joint_staticlabels_6a003a7/dp_prior_completion_joint_audit.json" \
+  --candidate_generation_controls_json /root/autodl-tmp/camp_dp_candidate_generation_controls_c896b3d/candidate_generation_controls.json \
+  --spatial_diversity_json k8=/root/autodl-tmp/camp_dp_rollout_outcome_sample59_209bdfc/k8_baseline_candidate_spatial_diversity_v2.json \
+  --spatial_diversity_json k16_noise1p0=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise1p0_2212309/k16_noise1p0_candidate_spatial_diversity_v2.json \
+  --spatial_diversity_json k16_noise0p75=/root/autodl-tmp/camp_dp_candidate_availability_k16_noise0p75_2212309/k16_noise0p75_candidate_spatial_diversity_v2.json \
+  --label next_design_preflight_1020942 \
+  --output_json "$OUT/next_design_gate_preflight.json" \
+  --output_md "$OUT/next_design_gate_preflight.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `next_design_gate_preflight_1020942/next_design_gate_preflight.json` | `92798c5e3656838969c54aa0161681e02b8240b2dc4c50322960974dbacf34f1` |
+| `next_design_gate_preflight_1020942/next_design_gate_preflight.md` | `8b248087e290563abd94fb3492e504badad5f62a776f6fc1ff98e1995e07283a` |
+
+Preflight decision:
+
+```text
+status=next_design_preflight_has_conditional_paths
+conditional_paths=
+  new_mode_seeking_candidate_generation
+  materially_new_no_leak_atom_schema
+rejected_paths=
+  current_descriptor_threshold_or_reweighting
+  dp_prior_completion_atom_schema
+  simple_k_noise_or_same_mode_generator
+```
+
+Interpretation:
+
+1. Current descriptor thresholding/reweighting is rejected by the support
+   bottleneck synthesis.
+2. Standalone DP-prior/completion atom schema is rejected by the larger static
+   outcome-label audit: it is mathematically legal but failed the comprehensive
+   bucket gate.
+3. Simple K/noise or same-mode candidate-generation variants are rejected by
+   spatial-diversity evidence: even larger candidate pools remained low-spread
+   and single-mode.
+4. A new mode-seeking candidate-generation design is only conditional. It must
+   be default-off, metadata-logged, fixed-DP-weight, and explicitly treated as
+   a finite candidate-set variant.
+5. A materially new no-leak atom/schema is also only conditional. It must not
+   be a threshold variant of the rejected descriptor family and must prove
+   current-tick finite availability, nonnegativity or nonnegative signed split,
+   affine scoring, and convex robust-master compatibility before any training.
+
+Mathematical boundary:
+
+DP stays a frozen black-box candidate generator. This preflight does not add
+atoms, change candidate generation, or construct a DP-side master/subproblem.
+Any future runtime atom must be a current-tick fixed finite-candidate quantity,
+nonnegative or split into nonnegative signed parts, preserving affine CAMP
+scores `a_k^T w` and the simplex/CVaR/L2 convex master. Candidate-generation
+variants are finite candidate-set changes, not classical Benders decomposition.
+
+Decision:
+
+Accept the two conditional next paths as design directions only. The next
+action should choose one of them and write a predeclared math/design gate before
+any replay or retraining. Given the repeated same-mode generator evidence, the
+more concrete engineering path is likely `new_mode_seeking_candidate_generation`;
+the more mathematical path is `materially_new_no_leak_atom_schema`. Neither is
+ready for online selector promotion, Full36, formal seeds, or CAMP retraining.
