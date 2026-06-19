@@ -27758,3 +27758,192 @@ change DP or CAMP, and does not construct a Benders master/subproblem, dual, or
 cuts. If pruning or budget indicators later become atoms, they must remain
 fixed finite-candidate constants so `a_k^T w` stays affine and the robust
 master over `w` remains convex.
+
+## Latest-safe prefix lane-projected stop target rejected (`e7b0f21`)
+
+Commit: `e7b0f21d5ed9b0a54589c918b332c505010a1881`
+
+Purpose:
+
+The previous pruning audit showed that the smallest support-preserving subset
+was `prefix=3`, red stop margin `2m`, and lane offset scale `0.5`, but that
+the original prefix lane-projected stop target still needed a loose `4.0m`
+progress budget to pass. The latest-safe variant tests a narrower idea:
+preserve the selected DP prefix, keep the same lane projection and candidate
+subset scale, and clamp progress only at the final stop boundary instead of
+using a deceleration profile from the first step.
+
+Implementation:
+
+- Added generator policy `prefix_lane_projected_latest_safe_red_stop`.
+- The policy uses the same deterministic fixed-snapshot candidate machinery as
+  `prefix_lane_projected_red_stop`.
+- The only stop-profile change is that the lane-projected target is capped by a
+  constant `stop_distance` across the horizon, delaying the stop boundary as
+  much as this finite transform allows.
+
+Local verification:
+
+```bash
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  camp_core/tests/test_diffusion_planner_prefix_lane_pruning_budget.py \
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py -q
+
+git diff --check
+```
+
+Result: `20 passed`.
+
+AutoDL sync and verification:
+
+- CAMP was fast-forwarded to `e7b0f21d5ed9b0a54589c918b332c505010a1881`.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Remote tracked status after sync was clean except for the known unrelated
+  untracked files `diffusion_planner_integration.md`,
+  `dp_camp_device_handoff.md`, and
+  `test_diffusion_planner_benchmark_matrix.py`.
+
+Remote verification command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+/root/miniconda3/envs/camp/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+
+/root/miniconda3/envs/camp/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  camp_core/tests/test_diffusion_planner_prefix_lane_pruning_budget.py \
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py -q
+```
+
+Result: `20 passed`.
+
+Screen command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_latest_safe_screen_e7b0f21
+
+/root/miniconda3/bin/python \
+  scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --route_topology_gate_json "$ROOT/route_topology_support_gate_d0a5e4b/route_topology_support_gate.json" \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --device cuda \
+  --generator_policy prefix_lane_projected_latest_safe_red_stop \
+  --red_stop_margin_m 2 \
+  --backup_stop_offset_m 0 \
+  --backup_stop_offset_m 1 \
+  --prefix_step 3 \
+  --bridge_step 10 \
+  --lane_projected_offset_scale 0.5 \
+  --label seed2_npc4_tlon_latest_safe_screen_e7b0f21 \
+  --output_json "$OUT/route_topology_latest_safe_screen.json" \
+  --output_md "$OUT/route_topology_latest_safe_screen.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_latest_safe_screen_e7b0f21/route_topology_latest_safe_screen.json` | `aa4a2726fd023868988e43bf50d835cf95aac946903ac42ea042eced98681df3` |
+| `route_topology_latest_safe_screen_e7b0f21/route_topology_latest_safe_screen.md` | `e7b6e76195bcad265e922a139f31a50779fd163690b13823cc4548d45299ece4` |
+
+Screen result:
+
+```text
+status=route_topology_candidate_support_insufficient
+snapshots=21
+snapshots_with_lower_union_red_hard_feasible=1
+hard_feasible_snapshot_support_rate=0.047619
+snapshots_with_lower_union_red_comfort_admissible=0
+comfort_admissible_snapshot_support_rate=0.000000
+total_latency_p95_ms=58.289920
+candidate_build_p95_ms=12.440312
+generated_reward_p95_ms=19.181434
+```
+
+The latest-safe target still creates strong red reductions in some rows, but
+the support is too sparse. Hard feasibility fails mainly through DP kinematics,
+lane crossing, road border, and red timing. Comfort admissibility remains zero
+under the predeclared gate.
+
+Absolute lateral guard command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_latest_safe_absolute_lateral_guard_e7b0f21
+
+/root/miniconda3/bin/python \
+  scripts/integrations/analyze_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  --screen_json "$ROOT/route_topology_latest_safe_screen_e7b0f21/route_topology_latest_safe_screen.json" \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --label seed2_npc4_tlon_latest_safe_absolute_lateral_guard_e7b0f21 \
+  --output_json "$OUT/absolute_lateral_guard.json" \
+  --output_md "$OUT/absolute_lateral_guard.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_latest_safe_absolute_lateral_guard_e7b0f21/absolute_lateral_guard.json` | `0021dc07f30d70a33537216cae8e0d51d48c809444d4a3e84af5c8d7c294dfa7` |
+| `route_topology_latest_safe_absolute_lateral_guard_e7b0f21/absolute_lateral_guard.md` | `067ed505f3834313baec01d8bc7261de038010e9c907c4fe7da884cd5ac6e43f` |
+
+Absolute guard result:
+
+```text
+status=route_topology_absolute_lateral_guard_support_insufficient
+snapshots=21
+snapshots_with_absolute_lateral_guard_support=1
+absolute_lateral_guard_snapshot_support_rate=0.047619
+failure_class_counts={
+  absolute_lateral_guard_support: 2,
+  hard_dp_kinematic: 40,
+  hard_dp_lane_crossing: 31,
+  hard_dp_red_light: 26,
+  hard_dp_road_border: 30
+}
+```
+
+Decision:
+
+Reject `prefix_lane_projected_latest_safe_red_stop` for replay, online
+promotion, Full36, formal seeds, DP modification, and CAMP retraining. The
+absolute lateral guard confirms that the rejected screen is not merely blocked
+by the relative lateral predicate. The route has insufficient hard-feasible
+support under this lane-projected stop construction family.
+
+Next gate:
+
+Move away from this lane-projected stop-target family and design a materially
+different lane-valid generator. The next generator must first pass a fixed
+offline support screen on the same artifact before any closed-loop replay is
+considered. Good candidates are source-route-shape preserving transforms or
+DP-candidate-native selection/calibration screens that avoid creating
+lane-crossing and road-border failures while still reducing full-horizon red
+exposure.
+
+Mathematical boundary:
+
+This experiment remains a deterministic finite-candidate diagnostic. Every
+screened quantity is computed from current-tick snapshots, fixed map/route
+geometry, fixed DP candidates, and predeclared constants. It uses no
+closed-loop future outcome labels for runtime selection, does not change DP,
+does not change CAMP weights, and does not construct a Benders
+master/subproblem, dual, or valid cuts. If any of these diagnostics become
+CAMP atoms, they must remain fixed finite-candidate quantities so the CAMP
+score stays affine in `w` and the simplex/CVaR/L2 master remains convex.
