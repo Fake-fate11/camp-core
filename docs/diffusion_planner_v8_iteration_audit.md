@@ -30134,3 +30134,173 @@ without making `score_k(w)=a_k^T w` non-affine. The simplex/CVaR/L2 robust
 master remains convex in `w`. This gate still does not construct a classical
 Benders master/subproblem pair, dual variables, or valid cuts for DP-side
 finite-candidate selection.
+
+## Observable State Logging Smoke Plan Gate (`8961660`)
+
+This gate predeclares the first real replay smoke for the new default-off
+observable-state logging path and adds a payload audit tool so the smoke can be
+checked mechanically. It does not run replay, train CAMP, modify DP, change
+online selection, or use formal seeds.
+
+Implementation commit:
+
+```text
+89616604429032dc6cf6a7fd6fc71f9d70ef701a Plan DP CAMP observable logging smoke gate
+```
+
+Changed files:
+
+| File | SHA256 |
+| --- | --- |
+| `scripts/integrations/analyze_diffusion_planner_observable_state_logging_smoke.py` | `9d24934a2ed49b63276aaee569da2bde3fc8066acbe75d1bd6f737a3c325698c` |
+| `scripts/integrations/plan_diffusion_planner_observable_state_logging_smoke.py` | `a7743c8c888b1f24e4efe8850f9a2bf6dc6229908ef42f167664f637211a077c` |
+| `camp_core/tests/test_diffusion_planner_observable_state_logging_smoke.py` | `fd9a66e132cf48734f0e4c9fd299cfcb660b60ce4fdce8789954615311a9589a` |
+
+Local verification:
+
+```powershell
+cd F:\camp_core-main
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_observable_state_logging_smoke.py `
+  scripts\integrations\plan_diffusion_planner_observable_state_logging_smoke.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_state_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_integration.py::test_observable_state_logging_payload_reports_schema_shapes_and_no_leak `
+  camp_core\tests\test_diffusion_planner_integration.py::test_observable_state_logging_payload_allows_empty_red_route `
+  camp_core\tests\test_diffusion_planner_observable_state_logging_design.py `
+  camp_core\tests\test_diffusion_planner_observable_state_inventory.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_observable_support.py -q
+
+py -3.12 scripts\integrations\plan_diffusion_planner_observable_state_logging_smoke.py `
+  --label local_precommit `
+  --output_json $env:TEMP\camp_observable_state_smoke_plan_local.json `
+  --output_md $env:TEMP\camp_observable_state_smoke_plan_local.md
+
+git diff --check
+```
+
+Result: `19 passed`; `py_compile`, local plan generation, and
+`git diff --check` passed.
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by git bundle from `2aa74f5b...` to
+`89616604429032dc6cf6a7fd6fc71f9d70ef701a`. CAMP and its `origin/main`
+tracking ref reached the same commit. The fixed DP checkout remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_state_logging_smoke.py \
+  scripts/integrations/plan_diffusion_planner_observable_state_logging_smoke.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_integration.py::test_observable_state_logging_payload_reports_schema_shapes_and_no_leak \
+  camp_core/tests/test_diffusion_planner_integration.py::test_observable_state_logging_payload_allows_empty_red_route \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_design.py \
+  camp_core/tests/test_diffusion_planner_observable_state_inventory.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_observable_support.py \
+  -q
+```
+
+Result: `19 passed`.
+
+Plan artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_state_logging_smoke_plan_8961660
+mkdir -p "$OUT"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_observable_state_logging_smoke.py \
+  --label 8961660_design_only \
+  --output_json "$OUT/observable_state_logging_smoke_plan.json" \
+  --output_md "$OUT/observable_state_logging_smoke_plan.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_smoke_plan_8961660/observable_state_logging_smoke_plan.json` | `14054b91f9ed271616b1227447ed28748d9ca12a0a7ef7ef58e51f13c6793799` |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_smoke_plan_8961660/observable_state_logging_smoke_plan.md` | `336ac4681fe10ede3c98ae4fb8fbd42d2b5eb4e8f4a7874a3701a69bd34bc90c` |
+
+Gate result:
+
+```text
+status=observable_state_logging_nonformal_smoke_plan_ready
+authorized_next_work=default_off_observable_state_logging_paired_three_step_smoke_only
+closed_loop_replay_authorized=True
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+source_checks=[
+  replay_default_off_logging_cli=True,
+  replay_payload_before_outcomes=True,
+  payload_audit_available=True,
+  selector_equivalence_available=True,
+  dataset_audit_available=True
+]
+```
+
+Predeclared smoke:
+
+- Run two paired nonformal replays on AutoDL:
+  - baseline: logging disabled;
+  - candidate: identical command plus `--camp_observable_state_logging`.
+- Scenario: `sample_map_tl_route_59_to_86`, seed `1`, `npc_4`,
+  `spawn_probability=0.3`, traffic lights `off`, static CAMP, perfect tracking.
+- Scope: exactly `3` replay steps, `8` candidates, fixed DP commit and fixed
+  redstopfloor05 CAMP weights.
+- Required audits:
+  - selector-log equivalence with `--require_equivalent`;
+  - observable-state payload smoke audit with `--require_pass`;
+  - dataset audit with `--closed_loop_outcome_policy forbidden`,
+    `--require_finite_candidate_contract`, and formal seed forbids `11/12/13`.
+
+Accept criteria:
+
+1. Both paired replay commands exit `0`.
+2. Baseline summary reports `camp_observable_state_logging.enabled=false`.
+3. Candidate summary reports `camp_observable_state_logging.enabled=true`.
+4. Candidate records contain non-null `observable_state_logging` payloads.
+5. Payload schema, shapes, finite checks, and latency fields pass audit.
+6. `candidate_closed_loop_outcomes` remains absent.
+7. Selector equivalence passes with selected index, feasibility, atoms, scores,
+   and weights unchanged.
+8. Dataset audit passes finite-candidate contract checks.
+9. No formal seed appears in paths or summaries.
+
+Reject criteria:
+
+1. Any replay, selector-equivalence, payload, or dataset audit fails.
+2. Any selected index or CAMP score/atom field changes between baseline and
+   logging-enabled runs.
+3. Any payload uses future outcome labels or reports `selection_effect=true`.
+4. The smoke expands beyond paired 3-step nonformal scope.
+
+Decision:
+
+Accept the design/tooling gate. The next admissible work is only the
+predeclared paired 3-step nonformal smoke above. This gate still does not
+authorize Full36, formal seeds, online selector promotion, CAMP retraining, DP
+changes, or any safety/performance claim.
+
+Mathematical boundary:
+
+The planned smoke only tests logging of current-tick fixed finite-candidate
+descriptors. It must not change CAMP scores, feasibility, selected indices, DP
+candidates, or PerfectTracker execution. If these descriptors are later
+atomized, they enter fixed coefficients `a_k`; `score_k(w)=a_k^T w` remains
+affine and the simplex/CVaR/L2 master remains convex. This gate still makes no
+classical Benders claim for the DP-side finite-candidate selector.
