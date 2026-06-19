@@ -28229,3 +28229,136 @@ trajectories, modify DP, change CAMP atoms or weights, or construct a Benders
 master/subproblem, dual, or cuts. Any future runtime atom must remain a fixed
 finite-candidate quantity so the score stays affine in `w` and the
 simplex/CVaR/L2 robust master remains convex.
+
+## Material CAMP Atom-Schema Gate (`7efef07`)
+
+Date: 2026-06-19
+
+Status: accept the gate as the next mathematically admissible direction. This
+does not train CAMP, change DP, run replay, or promote an online selector. It
+only authorizes a future offline material-atom availability and convexity audit.
+
+Commit:
+
+```text
+7efef07a49c26017024151a6c2630e58d75944b5 Add DP CAMP material atom schema gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_material_atom_schema_gate.py
+camp_core/tests/test_diffusion_planner_material_atom_schema_gate.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/plan_diffusion_planner_material_atom_schema_gate.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_material_atom_schema_gate.py \
+  camp_core/tests/test_diffusion_planner_next_design_boundary.py -q
+
+git diff --check
+
+Result: 6 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle to
+`7efef07a49c26017024151a6c2630e58d75944b5`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_material_atom_schema_gate.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_material_atom_schema_gate.py \
+  camp_core/tests/test_diffusion_planner_next_design_boundary.py -q
+```
+
+Result: `6 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+SRC=/root/autodl-tmp/camp_dp_next_design_boundary_821cfd7/next_design_boundary.json
+OUT=/root/autodl-tmp/camp_dp_material_atom_schema_gate_7efef07
+
+$PY scripts/integrations/plan_diffusion_planner_material_atom_schema_gate.py \
+  --next_design_boundary_json "$SRC" \
+  --label material_atom_schema_gate_7efef07 \
+  --output_json "$OUT/material_atom_schema_gate.json" \
+  --output_md "$OUT/material_atom_schema_gate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_material_atom_schema_gate_7efef07/material_atom_schema_gate.json` | `16f8ec53d46e70f471acbb3326917cb1eb4ccbdc3eb5a3792af19134759fb167` |
+| `/root/autodl-tmp/camp_dp_material_atom_schema_gate_7efef07/material_atom_schema_gate.md` | `b26b678b3c35c60c1881b1660663830966a958e59c86fe8de36ac13d003b2cd0` |
+
+Gate result:
+
+```text
+status=material_atom_schema_gate_ready
+authorized_implementation=offline_material_atom_schema_availability_audit
+failed_preconditions=[]
+source_authorization_conflicts=[]
+closed_loop_smoke_authorized=false
+online_selector_authorized=false
+full36_authorized=false
+formal_seeds_authorized=false
+camp_retraining_authorized=false
+dp_modification_authorized=false
+```
+
+Proposed schema:
+
+```text
+schema_name=material_support_certificate_atoms_v1
+atom_families=[
+  hard_feasibility_deficit,
+  support_preservation_deficit,
+  comfort_envelope_excess,
+  top1_shape_deviation,
+  traffic_rule_exposure
+]
+```
+
+Interpretation:
+
+The new direction is not another selector threshold grid, not a lane-projected
+stop target, not a donor/graft transform, and not mode-seeking candidate
+generation. It moves the next step back into CAMP's own mathematical interface:
+define fixed current-tick nonnegative atom families that expose the failure
+modes found in prior audits, then audit their availability and convexity before
+any training.
+
+Decision:
+
+Implement only the offline material-atom availability/convexity audit next. Do
+not train CAMP, run replay, promote online selection, use Full36/formal seeds,
+modify DP, or change CAMP weights from this gate alone.
+
+Mathematical boundary:
+
+Candidate generation and DP internals remain frozen. Proposed atoms must be
+fixed current-tick finite-candidate scalars computed after DP candidate
+generation and replay-equivalent postprocessing. For each candidate \(k\),
+`score_k(w)=a_k^T w` stays affine in `w`. Training with simplex constraints,
+CVaR, and L2 regularization remains convex because losses are pointwise maxima
+or weighted sums of affine functions over fixed atoms. No trajectory-coordinate
+convexity or classical Benders decomposition is claimed.
