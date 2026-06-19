@@ -22676,3 +22676,149 @@ modification, or CAMP retraining from this result. The next admissible gate is a
 separate outcome-labeled offline selector screen over the supported loose rule
 family, measuring SafetyCost, hard-component nonworse rate, completion,
 fallback, and Top-1 collapse risk before any closed-loop replay.
+
+### Dense Lane-Change Loose Rule Outcome Screen
+
+Date: 2026-06-19
+
+Status: reject the loose finite-filter route. The previous support audit showed
+that current-tick non-Top-1 alternatives exist, but this outcome-labeled screen
+shows that the concrete loose rule family worsens the current CAMP
+candidate-branch SafetyCost and regresses outcome progress on the dense
+lane-change slice. It still beats DP Top-1 on candidate-branch SafetyCost, so
+the failure is not "Top-1 is unbeatable"; it is that this finite rule sacrifices
+too much of the current CAMP-selected branch.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `b54d23a56af7dc09d71b15d491b7927d800d983d` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | none |
+
+New offline screen tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_dense_lane_change_outcome_screen.py
+camp_core/tests/test_diffusion_planner_dense_lane_change_outcome_screen.py
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=$ROOT/dense_lane_change_loose_rule_outcome_screen_b54d23a
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_dense_lane_change_outcome_screen.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_dense_lane_change_outcome_screen.py -q
+
+$PY scripts/integrations/analyze_diffusion_planner_dense_lane_change_outcome_screen.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_dense_lane_change_loose_rule_b54d23a \
+  --bootstrap_resamples 5000 \
+  --seed 12345 \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/dense_lane_change_loose_rule_outcome_screen.json" \
+  --output_md "$OUT/dense_lane_change_loose_rule_outcome_screen.md"
+```
+
+Verification:
+
+```text
+Local:
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_dense_lane_change_outcome_screen.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_dense_lane_change_outcome_screen.py -q
+
+AutoDL:
+2 passed
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `dense_lane_change_loose_rule_outcome_screen_b54d23a/dense_lane_change_loose_rule_outcome_screen.json` | `dda13ff66e9b7ee4250e8bbb299da555a5dfbd43f98c28a36798e2a68544e105` |
+| `dense_lane_change_loose_rule_outcome_screen_b54d23a/dense_lane_change_loose_rule_outcome_screen.md` | `b1570bb06bde453027123b2701d64ca5e0c162e76c241350021dc3d65fd432bd` |
+
+Screen summary:
+
+| Metric | Value |
+| --- | ---: |
+| Total outcome-labeled records | `21600` |
+| Logs | `108` |
+| Formal seed records | `0` |
+| Dense lane-change records | `2400` |
+| Dense target records | `987` |
+| Supported target records | `635` |
+| Dense support rate | `0.643364` |
+| Changed records | `635` |
+| All-infeasible changed records | `0` |
+| Override Top-1 chosen rate | `0.000000` |
+| Mean DP-prior gain | `0.368368` |
+| Mean progress loss | `0.000000` |
+| Mean target-speed loss | `0.004196` |
+| Mean jerk worse | `0.000834` |
+| Mean lateral worse | `0.003407` |
+| Mean score penalty | `0.075988` |
+
+Dense lane-change posterior metrics:
+
+| Metric | Mean | CI low | CI high | CVaR90 |
+| --- | ---: | ---: | ---: | ---: |
+| SafetyCost vs current CAMP | `+0.030035` | `+0.025374` | `+0.034979` | `+0.249739` |
+| SafetyCost vs DP Top-1 | `-1.251310` | `-1.845620` | `-0.670983` | `+5.447390` |
+| Outcome progress vs current CAMP | `-0.196294` | `-0.285502` | `-0.116279` | n/a |
+| Outcome progress vs DP Top-1 | `-0.055651` | `-0.332532` | `+0.211879` | n/a |
+| Planned progress vs current CAMP | `0.000000` | `0.000000` | `0.000000` | n/a |
+| Hard nonworse vs current CAMP | `1.000000` | n/a | n/a | n/a |
+| Hard nonworse vs DP Top-1 | `0.997292` | n/a | n/a | n/a |
+
+Interpretation:
+
+1. Candidate support is not the blocker for this rule family: the outcome-root
+   screen finds `635/987` supported dense target records, and the override never
+   chooses candidate 0.
+2. The candidate-branch SafetyCost comparison versus DP Top-1 is strongly
+   negative, so DP Top-1 is not the universal safety optimum in these logs.
+3. The rule still fails because it worsens current CAMP by a statistically clear
+   margin and has a negative outcome-progress CI versus current CAMP. The
+   current CAMP-selected branch contains useful SafetyCost/progress information
+   that this loose DP-prior-preserving rule discards.
+4. The planned-progress proxy is unchanged on average, while outcome progress
+   regresses. This is a warning that the current tick progress proxy alone is
+   not strong enough to preserve realized branch quality.
+
+Mathematical boundary:
+
+The screen uses candidate outcomes only after deterministic selection to
+evaluate posterior SafetyCost. Runtime predicates are fixed current-tick
+finite-candidate quantities: feasible mask, candidate 0, logged selected index,
+DP-prior deviation, planned progress, target speed, jerk/lateral proxies, and
+selection score. DP remains frozen. CAMP weights and atom schemas are unchanged.
+This is not classical Benders decomposition: no DP-side master/subproblem,
+duals, or cuts are constructed.
+
+Decision:
+
+Reject the loose dense lane-change finite-filter route and do not run a
+closed-loop smoke, Full36, formal seeds, online promotion, DP modification, or
+CAMP retraining from this evidence. The next admissible work should stop
+treating DP-prior preservation as sufficient and instead diagnose which
+current-tick descriptors distinguish the current CAMP choices that are both
+better than Top-1 and better than the loose-support alternatives. A follow-up
+screen should require preservation of current CAMP's candidate-branch
+SafetyCost/progress advantage before any default-off implementation is
+considered.
