@@ -25587,3 +25587,163 @@ candidate0/first-step PerfectTracker execution behavior while creating
 downstream lane-change comfort diversity with a credible latency plan. If such
 a design cannot explain why it avoids the same support and latency failure, it
 should be rejected before simulation.
+
+### DP Candidate-Generation Support Design Gate
+
+Date: 2026-06-19
+
+Status: accept the design gate as the next triage artifact. It consumes only
+existing JSON diagnostics and does not run DP, generate trajectories, change
+CAMP scoring, train CAMP, run replay, or use formal seeds. The gate records
+that the current route/lane guidance branch is rejected and that the next
+admissible work is only a design-specific offline gate for a materially new
+candidate-generation or postprocess support mechanism.
+
+Implementation:
+
+Commit `4b7ad185b5b39f1160e5f298b378d43aac4d83e8` adds:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_generation_support_gate.py
+camp_core/tests/test_diffusion_planner_candidate_generation_support_gate.py
+```
+
+The tool reads:
+
+1. the mode-seeking availability diagnostic;
+2. the failure-source diagnostic;
+3. optionally, the earlier next-design preflight.
+
+It then classifies already rejected route families and emits a fail-closed
+boundary for the next candidate-generation design. It does not inspect future
+closed-loop outcomes or create new selector inputs.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_candidate_generation_support_gate.py \
+  camp_core\tests\test_diffusion_planner_candidate_generation_support_gate.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_candidate_generation_support_gate.py -q
+
+git diff --check
+
+Result: 3 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by fast-forward Git pull, advancing CAMP from
+`62caf53524b0fd194105e5c3e525e01ae80e08b2` to
+`4b7ad185b5b39f1160e5f298b378d43aac4d83e8`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_candidate_generation_support_gate.py \
+  camp_core/tests/test_diffusion_planner_candidate_generation_support_gate.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_generation_support_gate.py -q
+
+Result: 3 passed
+```
+
+Design-gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SMOKE=$ROOT/mode_seeking_candidate0_dense_lanechange_seed3_steps1_91de92a
+OUT=$SMOKE/candidate_generation_support_gate_4b7ad18
+
+$PY scripts/integrations/plan_diffusion_planner_candidate_generation_support_gate.py \
+  --availability_json "$SMOKE/availability_diagnostic/mode_seeking_candidate_availability.json" \
+  --failure_source_json "$SMOKE/failure_source_diagnostic_bd15e9a/mode_seeking_failure_source.json" \
+  --next_design_preflight_json "$ROOT/next_design_gate_preflight_1020942/next_design_gate_preflight.json" \
+  --label route_lane_guidance_failure_support_gate_4b7ad18 \
+  --output_json "$OUT/candidate_generation_support_gate.json" \
+  --output_md "$OUT/candidate_generation_support_gate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_generation_support_gate_4b7ad18/candidate_generation_support_gate.json` | `c06df2573552adb7654d0ccb584f97e36d789c1ef849b260ade08820922042cd` |
+| `candidate_generation_support_gate_4b7ad18/candidate_generation_support_gate.md` | `4395db24577f4d8fcb1139013bb392ad0b25f711f5f3f8d771da7d9767f100c5` |
+
+Gate result:
+
+```text
+status=candidate_generation_support_gate_requires_new_design
+availability_status=mode_seeking_candidate_availability_rejected
+failure_source_status=mode_seeking_failure_source_candidate_support_insufficient
+source_authorization_conflicts=[]
+authorized_next_work=predeclared_offline_design_gate_only
+
+route_families:
+  current_route_lane_guidance=rejected
+  selector_threshold_or_weight_retraining=blocked
+  closed_loop_or_full36_before_offline_gate=blocked
+  current_descriptor_threshold_or_reweighting=rejected_by_prior_preflight
+  dp_prior_completion_atom_schema=rejected_by_prior_preflight
+  simple_k_noise_or_same_mode_generator=rejected_by_prior_preflight
+
+blocked_actions:
+  closed_loop_smoke_authorized=False
+  online_selector_authorized=False
+  full36_authorized=False
+  formal_seeds_authorized=False
+  camp_retraining_authorized=False
+  dp_modification_authorized=False
+```
+
+Interpretation:
+
+The gate prevents three bad loops:
+
+1. retrying the current route/lane guidance branch after both availability and
+   failure-source diagnostics reject it;
+2. replacing candidate-generation evidence with selector threshold tuning or
+   CAMP retraining;
+3. jumping to closed-loop, Full36, or formal seeds before a design-specific
+   offline support gate passes.
+
+Next-design requirements now encoded by the gate:
+
+- preserve fixed DP weights/source and the CAMP affine finite-candidate
+  contract;
+- preserve candidate0 or explicitly preserve first-step PerfectTracker
+  execution behavior;
+- show non-Top1 dense lane-change support under progress, target-speed, jerk,
+  and lateral budgets;
+- improve endpoint/mode diversity over the rejected route/lane guidance branch;
+- recompute hard feasibility and DP reward/red-light diagnostics for any
+  transformed candidates;
+- show a credible p95 latency margin before any paired replay.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. This gate does not generate
+trajectories, change DP or CAMP weights, add atoms, or construct a DP-side
+master/subproblem. Any next candidate-support design must produce a fixed
+finite current-tick candidate set with outcome-free metadata; CAMP scores
+remain affine `a_k^T w`, and the simplex/CVaR/L2 master remains convex for
+that fixed set. This gate is not classical Benders decomposition.
+
+Decision:
+
+Accept the gate and keep the current route/lane guidance branch rejected. The
+next coding step must be a design-specific offline gate for a materially new
+candidate-generation or postprocess support mechanism. Do not run replay,
+Full36, formal seeds, online selector promotion, DP modification, or CAMP
+retraining until that design-specific gate passes.
