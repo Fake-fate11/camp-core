@@ -109,6 +109,42 @@ def test_route_topology_generator_builds_red_stop_candidates() -> None:
         assert row["red_distance_m"] > row["stop_distance_m"]
 
 
+def test_route_topology_generator_preserves_prefix_for_comfort_policy() -> None:
+    horizon = 80
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.5, 40.0, horizon)
+    candidates[0, :, 1] = np.linspace(0.0, -5.0, horizon)
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 60.0, 66)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red_x = np.linspace(20.0, 24.0, 5)
+    red = np.column_stack([red_x, np.zeros_like(red_x)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=5.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="prefix_comfort_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            prefix_steps=(5,),
+            bridge_steps=(10,),
+        ),
+    )
+
+    assert generated.shape == (1, horizon, 4)
+    assert len(meta) == 1
+    assert meta[0]["variant"] == "prefix_comfort_red_stop"
+    assert meta[0]["prefix_steps"] == 5
+    assert meta[0]["bridge_steps"] == 10
+    np.testing.assert_allclose(generated[0, :5, :2], candidates[0, :5, :2])
+    assert generated[0, -1, 0] <= meta[0]["stop_distance_m"] + 1e-9
+
+
 def test_route_topology_generator_returns_empty_without_red_ahead() -> None:
     candidates = np.zeros((1, 20, 4), dtype=float)
     candidates[:, :, 2] = 1.0

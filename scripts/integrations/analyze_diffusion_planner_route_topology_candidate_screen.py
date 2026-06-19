@@ -51,8 +51,11 @@ SOURCE_CONFLICT_STATUS = "route_topology_candidate_screen_source_conflict"
 
 @dataclass(frozen=True)
 class RouteTopologyCandidateConfig:
+    generator_policy: str = "lane_centerline_red_stop"
     red_stop_margins_m: tuple[float, ...] = (2.0, 4.0, 6.0)
     backup_stop_offsets_m: tuple[float, ...] = (0.0, 1.0)
+    prefix_steps: tuple[int, ...] = (3, 5, 10)
+    bridge_steps: tuple[int, ...] = (10,)
     min_stop_distance_m: float = 2.0
     max_deceleration_mps2: float = 3.0
     default_speed_mps: float = 4.0
@@ -84,8 +87,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reward_config", type=Path, required=True)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--label", default=None)
+    parser.add_argument(
+        "--generator_policy",
+        choices=("lane_centerline_red_stop", "prefix_comfort_red_stop"),
+        default="lane_centerline_red_stop",
+    )
     parser.add_argument("--red_stop_margin_m", action="append", type=float)
     parser.add_argument("--backup_stop_offset_m", action="append", type=float)
+    parser.add_argument("--prefix_step", action="append", type=int)
+    parser.add_argument("--bridge_step", action="append", type=int)
     parser.add_argument("--min_stop_distance_m", type=float, default=2.0)
     parser.add_argument("--max_deceleration_mps2", type=float, default=3.0)
     parser.add_argument("--default_speed_mps", type=float, default=4.0)
@@ -107,6 +117,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     config = RouteTopologyCandidateConfig(
+        generator_policy=args.generator_policy,
         red_stop_margins_m=tuple(
             args.red_stop_margin_m
             if args.red_stop_margin_m is not None
@@ -117,6 +128,10 @@ def main() -> None:
             if args.backup_stop_offset_m is not None
             else (0.0, 1.0)
         ),
+        prefix_steps=tuple(
+            args.prefix_step if args.prefix_step is not None else (3, 5, 10)
+        ),
+        bridge_steps=tuple(args.bridge_step if args.bridge_step is not None else (10,)),
         min_stop_distance_m=args.min_stop_distance_m,
         max_deceleration_mps2=args.max_deceleration_mps2,
         default_speed_mps=args.default_speed_mps,
@@ -346,28 +361,95 @@ def build_route_topology_candidates(
                 current_speed_mps=speed,
                 max_deceleration_mps2=config.max_deceleration_mps2,
             )
-            xy = _interpolate_by_s(lane, cumulative, current_s + distances)
-            candidate = raw[selected_index].copy()
+            target_xy = _interpolate_by_s(lane, cumulative, current_s + distances)
+            if config.generator_policy == "lane_centerline_red_stop":
+                candidate = raw[selected_index].copy()
+                candidate[:, :2] = target_xy
+                if candidate.shape[1] >= 4:
+                    candidate[:, 2:4] = heading_features_from_xy(
+                        target_xy,
+                        fallback=raw[selected_index, :, 2:4],
+                    )
+                generated.append(candidate)
+                metadata.append(
+                    {
+                        "variant": "lane_centerline_red_stop",
+                        "red_stop_margin_m": float(margin),
+                        "backup_stop_offset_m": float(backup),
+                        "stop_distance_m": float(stop_distance),
+                        "red_distance_m": float(red_s - current_s),
+                        "current_speed_mps": float(speed),
+                    }
+                )
+                continue
+            for candidate, prefix, bridge in _prefix_comfort_candidates(
+                raw[selected_index],
+                target_xy,
+                prefix_steps=config.prefix_steps,
+                bridge_steps=config.bridge_steps,
+            ):
+                generated.append(candidate)
+                metadata.append(
+                    {
+                        "variant": "prefix_comfort_red_stop",
+                        "prefix_steps": int(prefix),
+                        "bridge_steps": int(bridge),
+                        "red_stop_margin_m": float(margin),
+                        "backup_stop_offset_m": float(backup),
+                        "stop_distance_m": float(stop_distance),
+                        "red_distance_m": float(red_s - current_s),
+                        "current_speed_mps": float(speed),
+                    }
+                )
+    if not generated:
+        return np.empty((0, raw.shape[1], raw.shape[2]), dtype=np.float64), []
+    return np.stack(generated), metadata
+
+
+def _prefix_comfort_candidates(
+    selected: np.ndarray,
+    target_xy: np.ndarray,
+    *,
+    prefix_steps: tuple[int, ...],
+    bridge_steps: tuple[int, ...],
+) -> list[tuple[np.ndarray, int, int]]:
+    selected_arr = np.asarray(selected, dtype=np.float64)
+    target = np.asarray(target_xy, dtype=np.float64)
+    if selected_arr.ndim != 2 or selected_arr.shape[1] < 2:
+        raise ValueError("selected candidate must be [T,D>=2].")
+    if target.shape != (selected_arr.shape[0], 2):
+        raise ValueError("target_xy must be [T,2] and match selected horizon.")
+    result: list[tuple[np.ndarray, int, int]] = []
+    horizon = selected_arr.shape[0]
+    for prefix in prefix_steps:
+        if prefix < 1 or prefix >= horizon:
+            continue
+        for bridge in bridge_steps:
+            if bridge < 0:
+                continue
+            candidate = selected_arr.copy()
+            xy = selected_arr[:, :2].copy()
+            transition = min(int(bridge), horizon - int(prefix))
+            if transition == 0:
+                xy[int(prefix) :] = target[int(prefix) :]
+            else:
+                for local_step in range(transition):
+                    step = int(prefix) + local_step
+                    u = float(local_step + 1) / float(transition)
+                    weight = _smoothstep(u)
+                    xy[step] = (1.0 - weight) * selected_arr[step, :2] + weight * target[step]
+                tail_start = int(prefix) + transition
+                if tail_start < horizon:
+                    xy[tail_start:] = target[tail_start:]
+            xy[: int(prefix)] = selected_arr[: int(prefix), :2]
             candidate[:, :2] = xy
             if candidate.shape[1] >= 4:
                 candidate[:, 2:4] = heading_features_from_xy(
                     xy,
-                    fallback=raw[selected_index, :, 2:4],
+                    fallback=selected_arr[:, 2:4],
                 )
-            generated.append(candidate)
-            metadata.append(
-                {
-                    "variant": "lane_centerline_red_stop",
-                    "red_stop_margin_m": float(margin),
-                    "backup_stop_offset_m": float(backup),
-                    "stop_distance_m": float(stop_distance),
-                    "red_distance_m": float(red_s - current_s),
-                    "current_speed_mps": float(speed),
-                }
-            )
-    if not generated:
-        return np.empty((0, raw.shape[1], raw.shape[2]), dtype=np.float64), []
-    return np.stack(generated), metadata
+            result.append((candidate, int(prefix), int(bridge)))
+    return result
 
 
 def _analyze_snapshot(
@@ -678,6 +760,11 @@ def _stopping_distance_profile(
     distances = speed * times - 0.5 * deceleration * times * times
     distances = np.maximum.accumulate(np.maximum(distances, 0.0))
     return np.minimum(distances, stop_distance)
+
+
+def _smoothstep(value: float) -> float:
+    clipped = min(1.0, max(0.0, float(value)))
+    return clipped * clipped * (3.0 - 2.0 * clipped)
 
 
 def _interpolate_by_s(
@@ -1055,12 +1142,23 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _validate_config(config: RouteTopologyCandidateConfig) -> None:
+    if config.generator_policy not in {
+        "lane_centerline_red_stop",
+        "prefix_comfort_red_stop",
+    }:
+        raise ValueError("invalid generator_policy.")
     for value in config.red_stop_margins_m:
         if not np.isfinite(float(value)) or float(value) < 0.0:
             raise ValueError("red_stop_margins_m must be nonnegative.")
     for value in config.backup_stop_offsets_m:
         if not np.isfinite(float(value)) or float(value) < 0.0:
             raise ValueError("backup_stop_offsets_m must be nonnegative.")
+    for value in config.prefix_steps:
+        if int(value) < 1:
+            raise ValueError("prefix_steps must be positive.")
+    for value in config.bridge_steps:
+        if int(value) < 0:
+            raise ValueError("bridge_steps must be nonnegative.")
     for name in (
         "min_stop_distance_m",
         "max_deceleration_mps2",
