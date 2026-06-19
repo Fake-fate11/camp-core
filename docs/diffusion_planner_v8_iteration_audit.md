@@ -29633,3 +29633,176 @@ finite-candidate coefficient `a_k`, so CAMP scoring remains affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 master remains convex in `w`. This
 audit does not claim trajectory-coordinate convexity and does not construct a
 DP-side classical Benders decomposition, dual, or valid cut.
+
+## Observable State Inventory Audit (`3cca688`)
+
+Date: 2026-06-19
+
+Status: reject the current logs as a source of new no-leak candidate-state
+descriptors. The previous candidate-set observable-support audit showed that
+eligible oracle opportunities exist, but current descriptors cannot identify
+them well enough. This inventory therefore checks whether the existing
+selection logs already contain the missing current-tick state needed for a new
+descriptor audit. They do not. The logs contain complete coverage for already
+audited reward, Top-1 shape, comfort, traffic, and DP reward proxy fields, but
+no complete new candidate-level lane topology, traffic-light path relation,
+route curvature/turn context, or neighbor interaction state.
+
+Commit:
+
+```text
+3cca68838785f9c57e05eebb655c3c2b8bfb9e59 Add DP CAMP observable state inventory audit
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_observable_state_inventory.py
+camp_core/tests/test_diffusion_planner_observable_state_inventory.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_state_inventory.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_state_inventory.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_observable_support.py \
+  camp_core/tests/test_diffusion_planner_redesigned_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `34 passed`.
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle from `d044d0af` to
+`3cca68838785f9c57e05eebb655c3c2b8bfb9e59`. CAMP reached the same commit and
+the fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_state_inventory.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_state_inventory.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_observable_support.py \
+  camp_core/tests/test_diffusion_planner_redesigned_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `34 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+SUPPORT=/root/autodl-tmp/camp_dp_candidate_set_observable_support_6b18e9f/candidate_set_observable_support.json
+OUT=/root/autodl-tmp/camp_dp_observable_state_inventory_3cca688
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_observable_state_inventory.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --candidate_set_support_json "$SUPPORT" \
+  --fail_on_formal_seeds \
+  --label 3cca688_diverse_nonformal \
+  --output_json "$OUT/observable_state_inventory.json" \
+  --output_md "$OUT/observable_state_inventory.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_observable_state_inventory_3cca688/observable_state_inventory.json` | `847945805347e0cdfca43cb7168ddea1d699cb45dbe666c92c1019671a97b9cb` |
+| `/root/autodl-tmp/camp_dp_observable_state_inventory_3cca688/observable_state_inventory.md` | `7451ce2fa4f3ea8cc41c580b731840d3857336a9c9ead563479780a45c543aee` |
+
+Gate result:
+
+```text
+status=observable_state_inventory_missing_new_logged_state
+primary_bottleneck=missing_logged_candidate_state
+authorized_next_work=default_off_logging_preflight_design_only
+records=21600
+candidate_rows=172800
+formal_seed_records=0
+available_new_candidate_state_families=[]
+partial_new_candidate_state_families=[]
+available_existing_proxy_families=[
+  "dp_reward_lane_proxy",
+  "dp_reward_neighbor_proxy",
+  "dp_scene_aggregate",
+  "existing_comfort_proxy",
+  "existing_shape_support_proxy",
+  "existing_traffic_proxy"
+]
+```
+
+Family inventory:
+
+| Family | Role | Status | Complete record rate | Present record rate |
+| --- | --- | --- | ---: | ---: |
+| `candidate_lane_topology` | new candidate state | missing | `0.000000` | `0.000000` |
+| `candidate_traffic_light_path_relation` | new candidate state | missing | `0.000000` | `0.000000` |
+| `neighbor_interaction_clearance` | new candidate state | missing | `0.000000` | `0.000000` |
+| `route_curvature_turn_context` | new candidate/record state | missing | `0.000000` | `0.000000` |
+| `reward_context_tensors` | new record state | missing | `0.000000` | `0.000000` |
+| `dp_reward_lane_proxy` | existing candidate proxy | available | `1.000000` | `1.000000` |
+| `dp_reward_neighbor_proxy` | existing candidate proxy | available | `1.000000` | `1.000000` |
+| `existing_comfort_proxy` | existing candidate proxy | available | `1.000000` | `1.000000` |
+| `existing_shape_support_proxy` | existing candidate proxy | available | `1.000000` | `1.000000` |
+| `existing_traffic_proxy` | existing candidate proxy | available | `1.000000` | `1.000000` |
+| `dp_scene_aggregate` | existing record proxy | available | `1.000000` | `1.000000` |
+| `scenario_bucket_context` | diagnostic only | available | `1.000000` | `1.000000` |
+
+Interpretation:
+
+The missing-observability bottleneck is not solved by unmined fields in the
+existing nonformal logs. The complete fields are the same families already used
+or audited: Top-1 shape, step reach/progress proxies, comfort proxies, planned
+red-light/red-stopping proxies, DP reward lane/neighbor proxies, and aggregate
+scene features. These are useful for diagnosis but have already failed to
+separate harmful and beneficial switches. The state families that could plausibly
+explain the remaining oracle opportunities are absent at candidate granularity:
+candidate lane topology, candidate-specific traffic-light path relation, route
+curvature/turn context, and neighbor interaction clearance.
+
+Decision:
+
+Reject another offline descriptor or weight screen over the existing logs. The
+only authorized next work is design-only, default-off logging/preflight for new
+no-leak candidate-state descriptors. This logging design must specify exact
+fields, shapes, finite coverage checks, latency accounting, and no-outcome
+leakage tests before any new replay or selector experiment is considered.
+Replay, Full36, formal seeds, online selector promotion, DP changes, and CAMP
+retraining remain blocked.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. This inventory only inspects
+fields recorded before closed-loop outcome labels are consulted and does not
+construct runtime features from outcomes. Any future logged descriptor must be
+converted into a fixed finite-candidate coefficient `a_k` before CAMP scoring,
+so `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
+convex in `w`. This audit does not claim trajectory-coordinate convexity and
+does not construct a DP-side classical Benders decomposition, dual, or valid
+cut.
