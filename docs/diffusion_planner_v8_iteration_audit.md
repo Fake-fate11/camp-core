@@ -25436,3 +25436,154 @@ diagnose whether the failure is caused by the DP reward feasibility gate versus
 true geometric candidate collapse: rerun a read-only availability variant or
 analyzer on the same artifacts using base-feasible/perfect-tracker feasibility
 and endpoint diversity only, without generating new DP candidates.
+
+### DP Dense Lane-Change Failure-Source Diagnostic
+
+Date: 2026-06-19
+
+Status: reject the current route/lane guided candidate-generation branch as a
+candidate-support failure, not as an isolated DP reward-feasibility-gate
+failure. The diagnostic is read-only over the existing `91de92a` one-step
+dense lane-change smoke artifacts and does not run DP, create new candidates,
+change CAMP scoring, train CAMP, or run any formal seed.
+
+Implementation:
+
+Commit `bd15e9a584fe74a009b75f0df6ed9add7bd4f9b6` adds
+`scripts/integrations/analyze_diffusion_planner_mode_seeking_failure_source.py`
+and
+`camp_core/tests/test_diffusion_planner_mode_seeking_failure_source.py`.
+The analyzer separates two cases:
+
+1. `mode_seeking_failure_source_reward_gate_suspect`: no reward-feasible
+   guided candidates, but candidate0 is preserved, contract/formal gates pass,
+   endpoint diversity improves enough, and current-tick PerfectTracker proxy
+   support exists under predeclared progress/speed/comfort budgets.
+2. `mode_seeking_failure_source_candidate_support_insufficient`: geometry,
+   PerfectTracker proxy support, latency, or contract/formal gates are
+   insufficient, so the branch is not a reward-gate-only failure.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_mode_seeking_failure_source.py \
+  camp_core\tests\test_diffusion_planner_mode_seeking_failure_source.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_mode_seeking_failure_source.py -q
+
+git diff --check
+
+Result: 4 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by fast-forward Git pull, advancing CAMP from
+`750a1e9b07cd482eaddccd793da35c5a7da6c214` to
+`bd15e9a584fe74a009b75f0df6ed9add7bd4f9b6`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_mode_seeking_failure_source.py \
+  camp_core/tests/test_diffusion_planner_mode_seeking_failure_source.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_mode_seeking_failure_source.py -q
+
+Result: 4 passed
+```
+
+Read-only diagnostic command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/mode_seeking_candidate0_dense_lanechange_seed3_steps1_91de92a
+OUT=$ROOT/failure_source_diagnostic_bd15e9a
+
+$PY scripts/integrations/analyze_diffusion_planner_mode_seeking_failure_source.py \
+  --baseline_selection_log "$ROOT/baseline/nishishinjuku_lane_change/seed_3/npc_8/spawn_0p3/tl_off/static/camp_selection_log.json" \
+  --candidate_selection_log "$ROOT/guided/nishishinjuku_lane_change/seed_3/npc_8/spawn_0p3/tl_off/static/camp_selection_log.json" \
+  --label candidate0_preserving_fullbatch_route_lane_dense_lanechange_seed3_steps1_91de92a_failure_source_bd15e9a \
+  --output_json "$OUT/mode_seeking_failure_source.json" \
+  --output_md "$OUT/mode_seeking_failure_source.md"
+```
+
+Diagnostic artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `failure_source_diagnostic_bd15e9a/mode_seeking_failure_source.json` | `3d94b7e328e8b91403f136f56e2def8cd2429ae53002e0a1b38d379fb5bf1e28` |
+| `failure_source_diagnostic_bd15e9a/mode_seeking_failure_source.md` | `b521224285d6414154bc3e2cc63fdaa8c7b80366d30fdfa896a50c7a4758189d` |
+
+Diagnostic result:
+
+```text
+status=mode_seeking_failure_source_candidate_support_insufficient
+reward_gate_suspect=False
+geometry_or_tracker_support_insufficient=True
+latency_blocked=True
+contract_ok=True
+formal_seeds_absent=True
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+candidate0_preservation_max_abs_xy_m=0.0
+candidate_reward_feasible_total=0
+relative_tracker_support_records=0
+combined_tracker_support_records=0
+baseline_endpoint_pairwise_mean_m=0.24300089653778487
+candidate_endpoint_pairwise_mean_m=0.24269501981071567
+endpoint_pairwise_mean_gain_m=-0.0003058767270691931
+candidate_mode_count_mean=2.0
+latency_p95_ms=382.1119908243418
+gates={
+  "candidate0_preserved": true,
+  "combined_tracker_support_exists": false,
+  "endpoint_gain_pass": false,
+  "endpoint_pairwise_mean_pass": false,
+  "latency_p95_pass": false,
+  "mode_count_pass": true,
+  "relative_tracker_support_exists": false,
+  "reward_feasible_exists": false
+}
+candidate_reward_infeasibility_reason_counts={"dp_lane_crossing": 8}
+```
+
+Interpretation:
+
+The guided branch has no reward-feasible candidates, but the stricter
+failure-source diagnostic does not attribute this to the reward gate alone.
+It also has no current-tick relative or combined PerfectTracker proxy support,
+does not improve endpoint diversity, and fails the `100 ms` p95 latency gate.
+Therefore this is a candidate-generation support and latency failure, not a
+selector-ranking failure and not evidence for CAMP retraining.
+
+Mathematical boundary:
+
+All quantities used by this diagnostic are fixed finite-candidate fields logged
+at the current tick. The diagnostic does not use future closed-loop outcomes,
+does not alter `a_k^T w`, and leaves the simplex/CVaR/L2 robust master convex
+for any fixed candidate set. This is a finite-candidate diagnostic, not
+classical Benders decomposition; no DP-side master/subproblem dual or valid
+cuts are constructed.
+
+Decision:
+
+Do not run closed-loop replay, Full36, formal seeds, online selector promotion,
+or CAMP retraining for this route/lane guidance branch. The next admissible
+direction is a predeclared candidate-generation support design that preserves
+candidate0/first-step PerfectTracker execution behavior while creating
+downstream lane-change comfort diversity with a credible latency plan. If such
+a design cannot explain why it avoids the same support and latency failure, it
+should be rejected before simulation.
