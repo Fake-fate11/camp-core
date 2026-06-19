@@ -23772,7 +23772,7 @@ Synchronization state:
 
 | Item | Value |
 | --- | --- |
-| Local/GitHub/AutoDL CAMP commit | `823d08bbc5b2931c191b4a670033a6a55ae888c1` |
+| CAMP tooling commit used for artifact generation | `823d08bbc5b2931c191b4a670033a6a55ae888c1` |
 | AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
 | DP modification / retraining | none |
 | CAMP retraining | none |
