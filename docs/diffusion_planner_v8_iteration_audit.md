@@ -27596,3 +27596,165 @@ If later atomized, all resulting diagnostics must remain fixed finite-candidate
 constants so CAMP's score remains affine in `w` and the simplex/CVaR/L2 robust
 master remains convex. This screen does not construct a Benders
 master/subproblem, dual, or cuts.
+
+### Prefix Lane Pruning And Stopping-Progress Budget Audit
+
+Commit `76823fee69b5375e2e96b6495b3baf5e58073003` adds a
+read-only analyzer for the fixed `prefix_lane_projected_red_stop` screen. It
+does not generate candidates, rerun DP reward, run replay, or modify online
+selection. It joins:
+
+```text
+route_topology_prefix_lane_projected_screen_98fde10/route_topology_prefix_lane_projected_screen.json
+route_topology_prefix_lane_projected_absolute_lateral_guard_98fde10/absolute_lateral_guard.json
+```
+
+and evaluates predeclared candidate subsets plus stopping-progress budgets
+`2.0`, `3.0`, and `4.0 m`.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_prefix_lane_pruning_budget.py
+camp_core/tests/test_diffusion_planner_prefix_lane_pruning_budget.py
+```
+
+Local checks:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts/integrations/analyze_diffusion_planner_prefix_lane_pruning_budget.py `
+  camp_core/tests/test_diffusion_planner_prefix_lane_pruning_budget.py
+
+py -3.12 -m pytest `
+  camp_core/tests/test_diffusion_planner_prefix_lane_pruning_budget.py `
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py `
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py `
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py -q
+
+git diff --check
+```
+
+Result: `19 passed`.
+
+AutoDL checks:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+/root/miniconda3/envs/camp/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_prefix_lane_pruning_budget.py \
+  camp_core/tests/test_diffusion_planner_prefix_lane_pruning_budget.py
+
+/root/miniconda3/envs/camp/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_prefix_lane_pruning_budget.py \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py -q
+```
+
+Result: `19 passed`.
+
+Audit command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/prefix_lane_pruning_budget_76823fe
+
+/root/miniconda3/bin/python \
+  scripts/integrations/analyze_diffusion_planner_prefix_lane_pruning_budget.py \
+  --screen_json "$ROOT/route_topology_prefix_lane_projected_screen_98fde10/route_topology_prefix_lane_projected_screen.json" \
+  --absolute_guard_json "$ROOT/route_topology_prefix_lane_projected_absolute_lateral_guard_98fde10/absolute_lateral_guard.json" \
+  --label seed2_npc4_tlon_prefix_lane_pruning_budget_76823fe \
+  --output_json "$OUT/prefix_lane_pruning_budget.json" \
+  --output_md "$OUT/prefix_lane_pruning_budget.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `prefix_lane_pruning_budget_76823fe/prefix_lane_pruning_budget.json` | `5f715b2c4316730691af5b8fa0c59fc7b6c308835ad32c7152e3ae89ae475204` |
+| `prefix_lane_pruning_budget_76823fe/prefix_lane_pruning_budget.md` | `524170ff9f8cc70099b4c8d17efb04a5bf9ee9555dcdb827c7f2196ed1eddfb2` |
+
+Result:
+
+```text
+status=prefix_lane_pruning_budget_support_present
+candidate_rows=828
+base_support_rows=116
+base_support_snapshots=8
+absolute_lateral_guard_rows=116
+min_snapshot_support_rate=0.25
+max_candidate_fraction_for_pruning=0.50
+closed_loop_smoke_authorized=false
+online_selector_authorized=false
+full36_authorized=false
+formal_seeds_authorized=false
+camp_retraining_authorized=false
+dp_modification_authorized=false
+```
+
+Pruning result:
+
+| Subset | Candidate rows | Fraction | Support rows | Support snapshots | Keeps all base support |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `all_prefix_lane_projected` | `828` | `1.000000` | `116` | `8` | yes |
+| `prefix3_margin2_offsets1_0p5` | `84` | `0.101449` | `23` | `8` | yes |
+| `prefix3_margin2_offset1` | `42` | `0.050725` | `11` | `7` | no |
+| `prefix3_margin2_offset0p5` | `42` | `0.050725` | `12` | `8` | yes |
+| `prefix3_all_margins_offsets1_0p5` | `184` | `0.222222` | `41` | `8` | yes |
+| `prefix3_or5_margin2_offsets1_0p5` | `168` | `0.202899` | `46` | `8` | yes |
+
+Stopping-progress budget result:
+
+| Subset | Progress budget | Support rows | Support snapshots | Support rate | Candidate fraction |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `prefix3_margin2_offset0p5` | `4.0 m` | `10` | `6` | `0.285714` | `0.050725` |
+| `prefix3_margin2_offset1` | `4.0 m` | `10` | `6` | `0.285714` | `0.050725` |
+| `prefix3_margin2_offsets1_0p5` | `4.0 m` | `20` | `6` | `0.285714` | `0.101449` |
+| `prefix3_or5_margin2_offsets1_0p5` | `4.0 m` | `40` | `6` | `0.285714` | `0.202899` |
+| `prefix3_all_margins_offsets1_0p5` | `4.0 m` | `38` | `6` | `0.285714` | `0.222222` |
+| `all_prefix_lane_projected` | `4.0 m` | `109` | `6` | `0.285714` | `1.000000` |
+| `prefix3_margin2_offset0p5` | `3.0 m` | `8` | `4` | `0.190476` | `0.050725` |
+| `prefix3_margin2_offset1` | `3.0 m` | `8` | `4` | `0.190476` | `0.050725` |
+| `prefix3_margin2_offsets1_0p5` | `3.0 m` | `16` | `4` | `0.190476` | `0.101449` |
+
+Interpretation:
+
+The audit confirms that broad candidate count is not necessary for the current
+absolute-lateral support evidence. The single subset
+`prefix3_margin2_offset0p5` keeps all eight base absolute-support snapshots
+with only `42/828` candidates (`5.07%` of the screen). However progress remains
+the decisive blocker: support reaches the `0.25` snapshot gate only under a
+loose `4.0 m` stopping-progress budget. The `3.0 m` budget reaches only
+`4/21` snapshots, and `2.0 m` remains below the gate.
+
+Decision:
+
+Accept the pruning/budget audit as an offline design input only. It does not
+authorize replay, online selector promotion, Full36, formal seeds, DP
+modification, or CAMP retraining. The next generator should start from the
+smallest support-preserving subset (`prefix=3`, margin `2m`, offset `0.5`) and
+reduce progress loss, rather than expanding the grid.
+
+Next gate:
+
+Design a progress-aware stop target that delays stopping as much as possible
+while still lowering full-horizon red cost. A reasonable fixed-snapshot screen
+should compare the current stop target against one or two predeclared
+"latest-safe" stop profiles, still preserving prefix and lane projection. The
+gate must show support under `<=3.0 m` progress loss or explicitly reject the
+route as progress-limited. It should also keep the candidate grid near the
+`42`-candidate subset scale to avoid the `166 ms` p95 seen in the broad screen.
+
+Mathematical boundary:
+
+The audit reads fixed finite-candidate rows and absolute-lateral diagnostics.
+All predicates are deterministic functions of current-tick artifacts and
+predeclared constants. It does not use closed-loop future outcomes, does not
+change DP or CAMP, and does not construct a Benders master/subproblem, dual, or
+cuts. If pruning or budget indicators later become atoms, they must remain
+fixed finite-candidate constants so `a_k^T w` stays affine and the robust
+master over `w` remains convex.
