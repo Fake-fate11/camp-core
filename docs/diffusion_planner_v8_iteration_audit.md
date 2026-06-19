@@ -22540,3 +22540,139 @@ or run Full36/formal seeds. The next admissible step is to predeclare an
 offline screen for dense lane-change feasible-tick DP-prior/completion
 preservation, with non-leakage and affine-score compatibility stated before any
 implementation or smoke.
+
+### Dense Lane-Change Feasible-Tick Support Audit
+
+Date: 2026-06-19
+
+Status: accept as a read-only finite-candidate support screen. The result shows
+that the failing dense lane-change feasible ticks contain some non-Top-1
+alternatives that improve DP-prior deviation while preserving current-tick
+completion/comfort proxies under a predeclared loose budget. It does not
+authorize an online selector, Full36, formal seeds, DP retraining, or CAMP
+retraining.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `12af3ff9ce0ecd12a52ca91e11cd10bff597aa07` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | none |
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_dense_lane_change_feasible_support.py
+camp_core/tests/test_diffusion_planner_dense_lane_change_feasible_support.py
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SMOKE=$ROOT/top1_fallback_targeted_seed3_smoke_542d489
+OUT=$ROOT/dense_lane_change_feasible_support_12af3ff
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_dense_lane_change_feasible_support.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_dense_lane_change_feasible_support.py -q
+
+$PY scripts/integrations/analyze_diffusion_planner_dense_lane_change_feasible_support.py \
+  --root "$SMOKE" \
+  --label top1_fallback_targeted_seed3_smoke_542d489_dense_lane_change \
+  --min_bad_support_rate 0.25 \
+  --max_any_top1_chosen_rate 0.50 \
+  --output_json "$OUT/dense_lane_change_feasible_support.json" \
+  --output_md "$OUT/dense_lane_change_feasible_support.md"
+```
+
+Verification:
+
+```text
+Local:
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_dense_lane_change_feasible_support.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_dense_lane_change_feasible_support.py -q
+
+AutoDL:
+1 passed
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `dense_lane_change_feasible_support_12af3ff/dense_lane_change_feasible_support.json` | `f7fc4e2723c81eb23e413274687fc47e27c3148986fcb45465a65db0e7381550` |
+| `dense_lane_change_feasible_support_12af3ff/dense_lane_change_feasible_support.md` | `7fe5f63201581ba17d554b33f9dfe63fe6fcae24ac466d579af6c7173af3b8b1` |
+
+Support screen summary:
+
+| Metric | Value |
+| --- | ---: |
+| Static runs | `6` |
+| Dense lane-change runs | `2` |
+| Bad dense lane-change runs | `1` |
+| Bad dense lane-change records | `200` |
+| Bad feasible records | `101` |
+| Bad all-infeasible records | `99` |
+| Bad target records | `76` |
+| Bad target-record rate | `0.380000` |
+| Mean selected DP-prior delta vs Top-1 | `0.324361` |
+| Mean selected progress delta vs Top-1 | `0.932160` |
+| Mean selected target-speed delta vs Top-1 | `-0.005939` |
+
+Rule results:
+
+| Rule | Bad support | Bad Top-1 chosen | Bad score penalty | Bad DP-prior gain | Overall support |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `non_top1_progress010_speed020_comfort005` | `0.355263` | `0.000000` | `0.011883` | `0.443804` | `0.312935` |
+| `any_progress005_speed010_comfort_nonworse` | `0.263158` | `0.150000` | `0.012554` | `0.485298` | `0.173853` |
+| `non_top1_progress005_speed010_comfort_nonworse` | `0.223684` | `0.000000` | `0.013778` | `0.525375` | `0.152990` |
+| `top1_progress005_speed010_comfort_nonworse` | `0.131579` | `1.000000` | `0.008751` | `0.377047` | `0.066759` |
+| `non_top1_strict` | `0.118421` | `0.000000` | `0.013948` | `0.230557` | `0.055633` |
+
+Interpretation:
+
+1. The bad dense lane-change run has `76/200` feasible target records where
+   static CAMP selected a non-Top-1 candidate with worse DP-prior deviation
+   than candidate 0.
+2. Non-Top-1 support is present only under the looser
+   `progress010_speed020_comfort005` budget, with bad-run support `0.355263`.
+   The stricter `progress005_speed010_comfort_nonworse` budget is below the
+   predeclared `0.25` gate at `0.223684`.
+3. This avoids the rejected Top-1-collapse path: the passing non-Top-1 rule has
+   bad Top-1 chosen rate `0.000000`.
+4. The support screen says the route is not merely a candidate-support problem:
+   some legally describable current-tick non-Top-1 alternatives exist. It does
+   not say that they improve closed-loop SafetyCost; outcome labels were not
+   read.
+
+Mathematical boundary:
+
+All support checks use fixed current-tick finite-candidate quantities:
+`feasible_mask`, candidate 0 index, logged static selected index,
+`candidate_dp_prior_deviation_cost`, planned progress or step reach, target
+speed, tracker jerk/lateral proxies, and selection score. Candidate outcomes are
+not read. DP remains a frozen black-box candidate generator. CAMP weights and
+atom schemas are unchanged, and any later atomization must keep the score
+affine in \(w\). This support screen is a finite-candidate diagnostic, not
+classical Benders decomposition.
+
+Decision:
+
+Accept the dense lane-change support screen as evidence for the next offline
+step only. Do not run a new smoke, Full36, formal seeds, online promotion, DP
+modification, or CAMP retraining from this result. The next admissible gate is a
+separate outcome-labeled offline selector screen over the supported loose rule
+family, measuring SafetyCost, hard-component nonworse rate, completion,
+fallback, and Top-1 collapse risk before any closed-loop replay.
