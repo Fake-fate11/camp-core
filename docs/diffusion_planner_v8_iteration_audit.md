@@ -23585,3 +23585,166 @@ SafetyCost. Next work should either define a stronger offline proof target over
 candidate-support quality or investigate whether the candidate generator /
 postprocessing support, not selector calibration, is the limiting factor while
 keeping DP fixed.
+
+### DP Candidate Support Quality Diagnostic
+
+Date: 2026-06-19
+
+Status: accept the diagnostic and reject immediate selector/replay promotion.
+The fixed DP candidate pools do contain posterior safety-improving branches,
+including branches inside the predeclared current-tick no-leak guards. However,
+the no-leak guarded oracle branches introduce posterior jerk/lateral regression.
+Therefore the blocker is not absence of safety support in the candidate pool;
+it is that current-tick guards can expose safety gains only by selecting
+branches that fail the comfort gate. This does not authorize online selection,
+closed-loop smoke, Full36, formal seeds, DP changes, or CAMP retraining.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `ed576f0d9724f92d54a9b7c560ccb9ffbcca2446` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | `0` in the analyzed artifact |
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_candidate_support_quality.py
+camp_core/tests/test_diffusion_planner_candidate_support_quality.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_candidate_support_quality.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_candidate_support_quality.py -q
+
+git diff --check
+
+Result: 3 passed
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin
+git merge --ff-only origin/main
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_support_quality.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_support_quality.py -q
+
+Result: 3 passed
+```
+
+AutoDL analysis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=$ROOT/candidate_support_quality_ed576f0
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_candidate_support_quality.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_candidate_support_quality_ed576f0 \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/candidate_support_quality.json" \
+  --output_md "$OUT/candidate_support_quality.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_support_quality_ed576f0/candidate_support_quality.json` | `e3b769bf772512ea54fe78860fed2346ef48b79d2199ea43f45ed6f215863102` |
+| `candidate_support_quality_ed576f0/candidate_support_quality.md` | `97f474643a729d2883b71a44810dd81660b14fde0ad0b3fe1aad099d4821d9dd` |
+
+Record summary:
+
+| Metric | Value |
+| --- | ---: |
+| Total records | `21600` |
+| Logs | `108` |
+| Formal seed records | `0` |
+| Dense lane-change records | `2400` |
+| Normal records | `19200` |
+| Schema records | `21600` |
+| Candidate count values | `8` |
+
+Dense lane-change strategy comparison:
+
+| Strategy | Changed | Improve | Regress | Safety CI high | Progress CI low | Jerk CI high | Lateral CI high | Hard nonworse |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dp_top1` | `0.825417` | `0.200833` | `0.624583` | `+1.874661` | `-0.405827` | `+0.238541` | `+0.009393` | `0.970417` |
+| `loose_supported` | `0.264583` | `0.030833` | `0.233750` | `+0.034979` | `-0.285502` | `+0.186529` | `+0.002152` | `1.000000` |
+| `atom_aware_preserve0` | `0.046667` | `0.020417` | `0.026250` | `+0.003490` | `-0.081423` | `-0.006835` | `-0.000215` | `1.000000` |
+| `oracle_all_candidates` | `0.530417` | `0.530417` | `0.000000` | `-2.692537` | `+0.666434` | `+0.312964` | `+0.007190` | `1.000000` |
+| `oracle_outcome_nonregressing` | `0.101667` | `0.101667` | `0.000000` | `-0.010110` | `+0.008762` | `-0.017757` | `-0.000809` | `1.000000` |
+| `oracle_guarded_strict_progress005_speed010_comfort_nonworse` | `0.151250` | `0.151250` | `0.000000` | `-0.527974` | `+0.164107` | `+0.153264` | `+0.004882` | `1.000000` |
+| `oracle_guarded_loose_progress010_speed020_comfort005` | `0.237083` | `0.237083` | `0.000000` | `-1.162479` | `+0.208976` | `+0.193575` | `+0.005271` | `1.000000` |
+
+Normal-slice highlights:
+
+| Strategy | Changed | Improve | Safety CI high | Progress CI low | Jerk CI high | Lateral CI high |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `oracle_all_candidates` | `0.472187` | `0.472187` | `-0.401122` | `+0.036577` | `-0.047007` | `-0.001157` |
+| `oracle_outcome_nonregressing` | `0.050573` | `0.050573` | `-0.002717` | `+0.002194` | `-0.008384` | `-0.000402` |
+| `oracle_guarded_strict_progress005_speed010_comfort_nonworse` | `0.050417` | `0.050417` | `-0.073246` | `+0.015730` | `+0.025774` | `+0.000713` |
+| `oracle_guarded_loose_progress010_speed020_comfort005` | `0.077708` | `0.077708` | `-0.173116` | `+0.022389` | `+0.035379` | `+0.000818` |
+
+Interpretation:
+
+1. Candidate generation/postprocess support is not empty. Dense
+   `oracle_all_candidates` improves SafetyCost on `53.04%` of records with a
+   dense SafetyCost CI high of `-2.692537`, but it also has positive jerk and
+   lateral CI high.
+2. Posterior outcome-nonregressing support exists and is clean but sparse:
+   dense changed/improvement rate `10.17%`, SafetyCost CI high `-0.010110`,
+   progress CI low `+0.008762`, jerk CI high `-0.017757`, lateral CI high
+   `-0.000809`.
+3. Current-tick no-leak guards expose stronger SafetyCost gains than the
+   outcome-nonregressing oracle: strict guard dense SafetyCost CI high
+   `-0.527974`, loose guard `-1.162479`. However both fail the comfort gate:
+   strict jerk/lateral CI high `+0.153264`/`+0.004882`, loose
+   `+0.193575`/`+0.005271`.
+4. This explains why previous finite selectors failed. They can reach safety
+   improvements, but the current no-leak descriptors do not isolate the small
+   subset of candidates that are simultaneously posterior safety-improving and
+   comfort-nonregressing.
+
+Mathematical boundary:
+
+Oracle choices use posterior outcomes only to measure support quality; they are
+not runtime selectors. Current-tick guarded oracle masks use only fixed
+finite-candidate descriptors: feasibility, planned progress, target speed,
+tracker jerk/lateral proxies, normalized atoms, logged weights, and logged
+scores. CAMP score remains affine `a_k^T w`, and the simplex/CVaR/L2 robust
+master remains convex. DP remains fixed. This is not classical Benders
+decomposition because no DP-side master/subproblem, dual, or valid cuts are
+constructed.
+
+Decision:
+
+Accept this as candidate-support diagnosis, not as a deployable selector. Do
+not run replay, online promotion, Full36, formal seeds, DP modification, or CAMP
+retraining. The next admissible step is a descriptor audit that explains why
+the `oracle_outcome_nonregressing` candidates are not captured by the current
+no-leak guards: compare their current-tick features/atoms against the stricter
+and looser guarded-oracle candidates that improve safety but regress comfort.
+If no current-tick descriptor separates the clean posterior support from the
+comfort-regressing support, reject fixed-DP selector calibration and move toward
+candidate/postprocess support analysis while keeping DP frozen.
