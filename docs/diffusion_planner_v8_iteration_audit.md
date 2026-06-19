@@ -25052,3 +25052,169 @@ structural in the mode-seeking generator, e.g. by preserving guidance-disabled
 candidate0 and applying guidance/prototype steering only to candidates
 `1..K-1`, then rerun this same availability diagnostic on a dense lane-change
 non-formal candidate-generation artifact.
+
+### DP Candidate0-Preserving Guidance Generation
+
+Date: 2026-06-19
+
+Status: accept the implementation as a candidate-generation mechanics
+milestone. This makes candidate0 preservation structural for future guided
+candidate-generation diagnostics, but it still does not authorize closed-loop
+replay, online selector promotion, Full36, formal seeds, or CAMP retraining.
+
+Commit `bb5196260f4d68395dff3f99ab83dca5b3613235` changes:
+
+```text
+camp_core/camp_core/integrations/diffusion_planner.py
+scripts/integrations/run_diffusion_planner_camp_replay.py
+scripts/integrations/analyze_diffusion_planner_mode_seeking_candidate_availability.py
+camp_core/tests/test_diffusion_planner_integration.py
+camp_core/tests/test_diffusion_planner_replay_summary.py
+camp_core/tests/test_diffusion_planner_mode_seeking_candidate_availability.py
+```
+
+Implementation:
+
+1. `generate_candidate_trajectories(..., guidance_policy="preserve_candidate0")`
+   now runs candidate0 through a separate unguided deterministic forward pass.
+2. If guidance is enabled and `K > 1`, candidates `1..K-1` are generated in a
+   second guided forward pass and concatenated back after candidate0.
+3. `run_diffusion_planner_camp_replay.py` uses `preserve_candidate0` whenever
+   `--candidate_guidance_config` is supplied.
+4. `candidate_generation_contract` records:
+
+```text
+candidate0_guidance_policy=separate_unguided_forward
+guided_candidate_indices=[1, K-1]
+candidate0_preservation_structural=True
+changes_diffusion_planner_weights=False
+changes_camp_score=False
+```
+
+5. The availability diagnostic now requires
+   `candidate0_structural_preservation_contract=True` in addition to measuring
+   actual candidate0 prefix equality.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  camp_core\camp_core\integrations\diffusion_planner.py \
+  scripts\integrations\run_diffusion_planner_camp_replay.py \
+  scripts\integrations\analyze_diffusion_planner_mode_seeking_candidate_availability.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_replay_summary.py \
+  camp_core\tests\test_diffusion_planner_mode_seeking_candidate_availability.py \
+  camp_core\tests\test_diffusion_planner_candidate_generation_controls.py -q
+
+Result: 24 passed
+
+KMP_DUPLICATE_LIB_OK=TRUE PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_generation_can_preserve_candidate0_under_guidance \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_generation_preserves_guidance_when_requested \
+  camp_core\tests\test_diffusion_planner_integration.py::test_candidate_generation_rejects_unknown_guidance_policy -q
+
+Result: 3 passed
+```
+
+The local `KMP_DUPLICATE_LIB_OK` workaround was needed only because this
+Windows Python environment aborts on `import torch` with an OpenMP duplicate
+runtime error. AutoDL ran the same torch-dependent tests without that workaround.
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle
+`/tmp/camp_core_bb51962.bundle`, advancing both `HEAD` and `origin/main` to
+`bb5196260f4d68395dff3f99ab83dca5b3613235`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  camp_core/camp_core/integrations/diffusion_planner.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/analyze_diffusion_planner_mode_seeking_candidate_availability.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate_generation_can_preserve_candidate0_under_guidance \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate_generation_preserves_guidance_when_requested \
+  camp_core/tests/test_diffusion_planner_integration.py::test_candidate_generation_rejects_unknown_guidance_policy \
+  camp_core/tests/test_diffusion_planner_replay_summary.py::test_candidate_generation_contract_records_fixed_dp_sampling_boundary \
+  camp_core/tests/test_diffusion_planner_replay_summary.py::test_candidate_generation_contract_records_enabled_guidance \
+  camp_core/tests/test_diffusion_planner_mode_seeking_candidate_availability.py \
+  camp_core/tests/test_diffusion_planner_candidate_generation_controls.py -q
+
+Result: 11 passed
+```
+
+Existing-smoke diagnostic rerun:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/mode_seeking_candidate_availability_smoke_bb51962
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_mode_seeking_candidate_availability.py \
+  --baseline_selection_log /root/autodl-tmp/camp_dp_guidance_route_lane_smoke_baseline_seed101_219e9f6/camp_selection_log.json \
+  --candidate_selection_log /root/autodl-tmp/camp_dp_guidance_route_lane_smoke_seed101_219e9f6/camp_selection_log.json \
+  --label route_lane_guidance_seed101_existing_smoke_bb51962 \
+  --output_json "$OUT/mode_seeking_candidate_availability.json" \
+  --output_md "$OUT/mode_seeking_candidate_availability.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `mode_seeking_candidate_availability_smoke_bb51962/mode_seeking_candidate_availability.json` | `5bd284aced5703548884e13c9cf20a4327721597061cfa9d01d4e0adc660eb7e` |
+| `mode_seeking_candidate_availability_smoke_bb51962/mode_seeking_candidate_availability.md` | `69c64613f6a9abc56851dd2f43ee4feb20803fdfa166825be966c7f32d3861a7` |
+
+Existing-smoke result under the hardened diagnostic:
+
+```text
+status=mode_seeking_candidate_availability_rejected
+candidate0_preserved=False
+candidate0_structural_preservation_contract=False
+endpoint_gain_pass=False
+endpoint_pairwise_mean_pass=False
+mode_count_pass=True
+non_top1_dense_lane_change_support_pass=False
+latency_p95_pass=False
+fixed_dp_weights=True
+camp_score_unchanged=True
+candidate0_preservation_max_abs_xy_m=0.27292728424072266
+endpoint_pairwise_mean_gain_m=0.02678161925823469
+dense_lane_change_support_rate=0.0
+latency_p95_ms=349.2978793568909
+```
+
+Interpretation:
+
+The old route-lane guidance smoke remains rejected and should not be used as
+evidence for advancement. The new code changes future guided candidate
+generation so candidate0 preservation is structural rather than empirical:
+candidate0 is produced by an unguided deterministic forward pass, while
+guidance affects only the non-Top1 stochastic candidates.
+
+Mathematical boundary:
+
+This is still only a finite candidate-set generation variant under fixed DP
+weights. It does not alter CAMP atoms, CAMP weights, the affine `a_k^T w`
+score, or the simplex/CVaR/L2 robust master. It is not classical Benders
+decomposition and makes no convexity claim over trajectory coordinates.
+
+Decision:
+
+Accept the candidate0-preserving guidance mechanics. The next admissible step
+is a small non-formal candidate-generation-only smoke on a dense lane-change
+route using `--candidate_guidance_config`, then run the existing
+mode-seeking availability diagnostic. Reject if candidate0 is not preserved,
+endpoint/mode diversity remains insufficient, support is Top-1-only or absent,
+latency lacks p95 margin, or any formal seed is present.
