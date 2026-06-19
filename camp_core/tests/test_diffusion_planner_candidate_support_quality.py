@@ -3,6 +3,9 @@ from __future__ import annotations
 import pytest
 
 from scripts.integrations.analyze_diffusion_planner_candidate_support_quality import (
+    GUARDS,
+    _current_tick_guard_mask,
+    _outcome_nonregressing_mask,
     analyze_records,
     render_markdown,
 )
@@ -141,3 +144,18 @@ def test_candidate_support_quality_rejects_formal_seed_records() -> None:
 
     with pytest.raises(ValueError, match="Formal seed records are forbidden"):
         analyze_records([record], fail_on_formal_seeds=True)
+
+
+def test_candidate_support_masks_do_not_mutate_feasibility() -> None:
+    record = _record(
+        planned_loose_progress=9.99,
+        selected_outcome=_outcome(near_miss=True, jerk=0.5, lateral=0.2),
+        loose_outcome=_outcome(progress=9.99, jerk=1.0, lateral=0.4),
+    )
+
+    outcome_mask = _outcome_nonregressing_mask(record)
+    guard_mask = _current_tick_guard_mask(record, GUARDS[0])
+
+    assert outcome_mask.tolist() == [False, True, False]
+    assert record["feasible"].tolist() == [True, True, True]
+    assert guard_mask.tolist() == [True, True, True]

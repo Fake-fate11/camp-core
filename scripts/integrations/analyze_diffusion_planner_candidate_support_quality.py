@@ -237,7 +237,7 @@ def _atom_aware_choice(
 def _branch_mask(record: dict[str, Any]) -> np.ndarray:
     feasible = np.asarray(record["feasible"], dtype=bool).reshape(-1)
     if feasible.any():
-        return feasible
+        return feasible.copy()
     return np.ones(int(record["candidate_count"]), dtype=bool)
 
 
