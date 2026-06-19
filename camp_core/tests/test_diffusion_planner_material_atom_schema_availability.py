@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from scripts.integrations.analyze_diffusion_planner_material_atom_schema_availability import (
     DEFAULT_REQUIRED_BUCKETS,
+    _log_context,
     _route_name_for_buckets,
     analyze_records,
     render_markdown,
@@ -125,6 +128,59 @@ def test_material_atom_schema_availability_prefers_declared_route_family() -> No
     assert _route_name_for_buckets(route, "unknown") == (
         "nishishinjuku_lane_change_route_7_via_8_to_1"
     )
+
+
+def test_material_atom_schema_availability_log_context_includes_spawn_probability(
+    tmp_path,
+) -> None:
+    log_dir = (
+        tmp_path
+        / "run"
+        / "sample_normal"
+        / "seed_1"
+        / "npc_8"
+        / "spawn_0p6"
+        / "tl_off"
+        / "static"
+    )
+    log_dir.mkdir(parents=True)
+    log_path = log_dir / "camp_selection_log.json"
+    log_path.write_text("[]", encoding="utf-8")
+    (log_dir / "camp_validation_summary.json").write_text(
+        json.dumps(
+            {
+                "benchmark": {
+                    "route": "/assets/sample_normal.pkl",
+                    "seed": 1,
+                    "max_npcs": 8,
+                    "spawn_probability": 0.6,
+                    "traffic_lights": False,
+                    "advance_mode": "perfect",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    manifest = {
+        "run_keys": {},
+        "routes": {},
+        "filters": [
+            {
+                "name": "dense_sample_normal",
+                "match": {
+                    "route_name": "sample_normal",
+                    "max_npcs": 8,
+                    "spawn_probability": 0.6,
+                },
+                "buckets": ["dense_scene"],
+            }
+        ],
+        "default_buckets": [],
+    }
+
+    context = _log_context(log_path, manifest)
+
+    assert "dense_scene" in context["scenario_buckets"]
 
 
 def test_material_atom_schema_availability_rejects_formal_seed_when_forbidden() -> None:

@@ -731,6 +731,7 @@ def _log_context(log_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
         "route_name": route_name,
         "seed": seed,
         "max_npcs": max_npcs,
+        "spawn_probability": benchmark.get("spawn_probability"),
         "traffic_lights": bool(traffic_lights),
         "advance_mode": benchmark.get(
             "advance_mode",
