@@ -26115,3 +26115,167 @@ why the lower-red donor suffixes remain DP-red or lane infeasible after
 world-frame preservation, then decide between a lane-constrained donor search,
 a route/topology-aware candidate-generation support design, or rejecting
 transform-based support entirely.
+
+### DP World-Frame Bridge Failure Attribution
+
+Date: 2026-06-19
+
+Status: reject minor transform tuning. The fixed-snapshot attribution shows the
+world-frame bridge failure is dominated by the source lower-red donors already
+being DP-red or lane infeasible, not by SG smoothing, postprocess side effects,
+or a bridge-length parameter choice.
+
+Implementation:
+
+Commit `73b35afd81b3dcb192f7af454fa6074cec23a3cc` adds:
+
+```text
+scripts/integrations/analyze_diffusion_planner_world_frame_bridge_failure_attribution.py
+camp_core/tests/test_diffusion_planner_world_frame_bridge_failure_attribution.py
+```
+
+The analyzer consumes the existing world-frame bridge screen artifact and the
+same fixed non-formal microbenchmark snapshots. It recomputes, per transformed
+candidate:
+
+- original donor DP hard reasons;
+- transformed bridge DP hard reasons;
+- SG-disabled transformed hard reasons;
+- progress/smoothness losses;
+- PerfectTracker command and H3 open-loop comfort blockers.
+
+It remains read-only and has no selection effect.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_world_frame_bridge_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_world_frame_bridge_failure_attribution.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_world_frame_bridge_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_world_frame_bridge_screen.py \
+  camp_core\tests\test_diffusion_planner_red_lane_preserving_transform_gate.py -q
+
+git diff --check
+
+Result: 12 passed
+```
+
+Synchronization:
+
+Local/GitHub/AutoDL CAMP were advanced to
+`73b35afd81b3dcb192f7af454fa6074cec23a3cc`. AutoDL was synchronized with:
+
+```text
+/tmp/camp_core_main_73b35af.bundle
+```
+
+The fixed AutoDL DP checkout remained:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_world_frame_bridge_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_world_frame_bridge_failure_attribution.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_world_frame_bridge_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_world_frame_bridge_screen.py \
+  camp_core/tests/test_diffusion_planner_red_lane_preserving_transform_gate.py -q
+
+Result: 12 passed
+```
+
+Attribution command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/bin/python
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/world_frame_bridge_failure_attribution_73b35af
+
+$PY scripts/integrations/analyze_diffusion_planner_world_frame_bridge_failure_attribution.py \
+  --bridge_screen_json "$ROOT/world_frame_bridge_screen_3e4de83/world_frame_bridge_screen.json" \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --device cuda \
+  --label seed2_npc4_tlon_world_frame_bridge_failure_attribution_73b35af \
+  --output_json "$OUT/world_frame_bridge_failure_attribution.json" \
+  --output_md "$OUT/world_frame_bridge_failure_attribution.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `world_frame_bridge_failure_attribution_73b35af/world_frame_bridge_failure_attribution.json` | `77607bf24d658e896dfbdd24deb479330ea687a6cdf9211b71a85c4e93ae8627` |
+| `world_frame_bridge_failure_attribution_73b35af/world_frame_bridge_failure_attribution.md` | `b5d23c7bfe96ec45faca3c1cf5be5a90416416941b8961e7cfa77cc80aea75f6` |
+
+Result:
+
+```text
+status=world_frame_bridge_failure_attribution_reject_transform_route
+candidate_rows=238
+lower_union_red_rows=237
+lower_union_red_hard_failed_rows=236
+lower_union_red_hard_supported_rows=1
+lower_union_red_comfort_admissible_rows=0
+failure_class_counts={
+  "comfort_blocked_rollout_lateral": 1,
+  "source_donor_lane_invalid": 100,
+  "source_donor_red_timing_invalid": 236
+}
+transformed_hard_reason_counts={
+  "dp_lane_crossing": 100,
+  "dp_red_light": 236
+}
+source_donor_hard_reason_counts={
+  "dp_lane_crossing": 100,
+  "dp_red_light": 236
+}
+sg_effect_counts={}
+comfort_blocker_counts={
+  "comfort_blocked_rollout_lateral": 1
+}
+next_step=Reject minor transform tuning; inspect lane-constrained donor search or route/topology-aware candidate-generation support.
+```
+
+Interpretation:
+
+The transformed hard reasons exactly match the source donor hard-reason totals
+for the lower-red rows: `236` DP-red and `100` lane-crossing counts. The SG
+effect bucket is empty, so the observed hard infeasibility is not explained by
+SG smoothing flipping otherwise feasible bridge candidates. The only
+hard-feasible lower-red bridge candidate is still blocked by H3 rollout lateral
+comfort, which explains why the prior screen had zero comfort-admissible
+support.
+
+Decision:
+
+Reject minor bridge geometry and bridge-length tuning. The current evidence
+points to source candidate support: lower-red donor candidates are not
+sufficiently DP-hard-feasible before or after transform. The next justified
+offline gate should target lane-constrained donor search or route/topology-aware
+candidate-generation support, with a predeclared acceptance rule that still
+requires fixed current-tick finite candidates and no future outcome leakage.
+
+Mathematical boundary:
+
+This attribution recomputes deterministic diagnostics over fixed current-tick
+snapshot candidates. It does not modify DP, train CAMP, use closed-loop future
+outcomes, or construct a Benders master/subproblem, dual, or cuts. CAMP remains
+valid only if any later diagnostic is atomized as a fixed finite-candidate
+quantity, preserving affine scores `a_k^T w` and the convex simplex/CVaR/L2
+master for that fixed candidate set.
