@@ -92,6 +92,24 @@ STATE_REDROUTE_TOP1_FLOOR_MODES = (
     STATE_REDROUTE_TOP1_FLOOR_MODE,
     STATE_REDROUTE_TOP1_FLOOR_LATERAL_NONWORSE_MODE,
 )
+OBSERVABLE_STATE_LOGGING_SCHEMA_VERSION = "dp_camp_observable_state_logging_v1"
+OBSERVABLE_STATE_LATENCY_KEYS = (
+    "latency_ms_observable_state_route_topology",
+    "latency_ms_observable_state_traffic_light_relation",
+    "latency_ms_observable_state_route_turn",
+    "latency_ms_observable_state_neighbor_clearance",
+)
+OBSERVABLE_STATE_FIELDS = (
+    "candidate_route_segment_index",
+    "candidate_route_projection_s_m",
+    "candidate_route_lateral_error_m",
+    "candidate_red_stopline_distance_m",
+    "candidate_red_heading_alignment",
+    "candidate_route_heading_change_rad",
+    "route_curvature_context_abs",
+    "candidate_min_obstacle_clearance_lower_bound_m",
+    "candidate_obstacle_slot_count",
+)
 
 
 def _parse_step_list(value: str) -> tuple[int, ...]:
@@ -457,6 +475,34 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--camp_observable_state_logging",
+        action="store_true",
+        help=(
+            "Default-off no-leak logging of current-tick candidate route, "
+            "traffic-light, turn-context, and neighbor-clearance descriptors. "
+            "This records only fixed pre-outcome diagnostics and does not "
+            "change feasibility, scores, or selection."
+        ),
+    )
+    parser.add_argument(
+        "--camp_observable_state_support_steps",
+        type=int,
+        default=10,
+        help="Candidate prefix steps for observable route-support descriptors.",
+    )
+    parser.add_argument(
+        "--camp_observable_state_traffic_light_steps",
+        type=int,
+        default=30,
+        help="Candidate prefix steps for observable traffic-light descriptors.",
+    )
+    parser.add_argument(
+        "--camp_observable_state_turn_steps",
+        type=int,
+        default=10,
+        help="Candidate prefix steps for observable turn-context descriptors.",
+    )
+    parser.add_argument(
         "--camp_splice_shadow_rule",
         action="store_true",
         help=(
@@ -656,6 +702,13 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--near_miss_threshold_m must be non-negative.")
     if args.camp_log_raw_candidate_prefix_steps < 0:
         raise ValueError("--camp_log_raw_candidate_prefix_steps must be non-negative.")
+    observable_state_steps = (
+        args.camp_observable_state_support_steps,
+        args.camp_observable_state_traffic_light_steps,
+        args.camp_observable_state_turn_steps,
+    )
+    if any(value < 2 for value in observable_state_steps):
+        raise ValueError("CAMP observable-state logging horizons must be >= 2.")
     splice_shadow_budgets = (
         args.camp_splice_shadow_progress_loss_budget_m,
         args.camp_splice_shadow_smoothness_loss_budget,
@@ -1007,6 +1060,345 @@ def _candidate_route_progress(
             cumulative_starts[best] + t[best] * lengths[best]
         )
     return np.max(point_arcs.reshape(candidate_xy.shape[:2]), axis=1)
+
+
+def _shape_or_none(value: Any) -> list[int] | None:
+    if value is None:
+        return None
+    return list(np.asarray(value).shape)
+
+
+def _finite_nested(value: Any) -> bool:
+    if value is None:
+        return False
+    array = np.asarray(value, dtype=np.float64)
+    return bool(array.size > 0 and np.all(np.isfinite(array)))
+
+
+def _wrap_angle(delta: np.ndarray) -> np.ndarray:
+    return (np.asarray(delta, dtype=np.float64) + math.pi) % (2.0 * math.pi) - math.pi
+
+
+def _candidate_headings(candidates: np.ndarray, horizon_steps: int) -> np.ndarray:
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    horizon = min(max(int(horizon_steps), 2), int(trajectories.shape[1]))
+    if trajectories.shape[2] >= 4:
+        vectors = trajectories[:, :horizon, 2:4]
+        norms = np.linalg.norm(vectors, axis=2)
+        fallback = norms <= 1e-8
+        headings = np.arctan2(vectors[:, :, 1], vectors[:, :, 0])
+        if np.any(fallback):
+            diffs = np.diff(trajectories[:, :horizon, :2], axis=1)
+            diff_headings = np.arctan2(diffs[:, :, 1], diffs[:, :, 0])
+            padded = np.concatenate([diff_headings[:, :1], diff_headings], axis=1)
+            headings = np.where(fallback, padded, headings)
+        return headings
+    diffs = np.diff(trajectories[:, :horizon, :2], axis=1)
+    headings = np.arctan2(diffs[:, :, 1], diffs[:, :, 0])
+    return np.concatenate([headings[:, :1], headings], axis=1)
+
+
+def _candidate_route_projection_details(
+    candidates: np.ndarray,
+    route_centerline: np.ndarray,
+    horizon_steps: int,
+) -> dict[str, Any]:
+    centerline = np.asarray(route_centerline, dtype=np.float64)
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.ndim != 3 or trajectories.shape[0] < 1 or trajectories.shape[2] < 2:
+        raise ValueError("candidates must have shape [K,T,>=2].")
+    horizon = min(max(int(horizon_steps), 2), int(trajectories.shape[1]))
+    if centerline.ndim != 2 or centerline.shape[0] < 2 or centerline.shape[1] < 2:
+        return {
+            "candidate_route_segment_index": None,
+            "candidate_route_projection_s_m": None,
+            "candidate_route_lateral_error_m": None,
+            "route_segment_count": 0,
+        }
+
+    starts_all = centerline[:-1, :2]
+    ends_all = centerline[1:, :2]
+    segments_all = ends_all - starts_all
+    lengths_all = np.linalg.norm(segments_all, axis=1)
+    valid = lengths_all > 1e-6
+    if not np.any(valid):
+        return {
+            "candidate_route_segment_index": None,
+            "candidate_route_projection_s_m": None,
+            "candidate_route_lateral_error_m": None,
+            "route_segment_count": 0,
+        }
+    valid_indices = np.flatnonzero(valid)
+    starts = starts_all[valid]
+    segments = segments_all[valid]
+    lengths = lengths_all[valid]
+    cumulative_all = np.concatenate([[0.0], np.cumsum(lengths_all)])
+    cumulative_starts = cumulative_all[valid_indices]
+
+    points = trajectories[:, :horizon, :2]
+    flat = points.reshape(-1, 2)
+    segment_indices = np.zeros(flat.shape[0], dtype=np.int32)
+    projections_s = np.zeros(flat.shape[0], dtype=np.float64)
+    lateral_errors = np.zeros(flat.shape[0], dtype=np.float64)
+    for point_idx, point in enumerate(flat):
+        rel = point.reshape(1, 2) - starts
+        t = np.sum(rel * segments, axis=1) / np.maximum(lengths * lengths, 1e-12)
+        t = np.clip(t, 0.0, 1.0)
+        projected = starts + t.reshape(-1, 1) * segments
+        distances = np.linalg.norm(projected - point.reshape(1, 2), axis=1)
+        best = int(np.argmin(distances))
+        segment = segments[best]
+        point_rel = point - starts[best]
+        cross = segment[0] * point_rel[1] - segment[1] * point_rel[0]
+        segment_indices[point_idx] = int(valid_indices[best])
+        projections_s[point_idx] = cumulative_starts[best] + t[best] * lengths[best]
+        lateral_errors[point_idx] = cross / max(lengths[best], 1e-12)
+    shape = points.shape[:2]
+    return {
+        "candidate_route_segment_index": segment_indices.reshape(shape),
+        "candidate_route_projection_s_m": projections_s.reshape(shape),
+        "candidate_route_lateral_error_m": lateral_errors.reshape(shape),
+        "route_segment_count": int(centerline.shape[0] - 1),
+    }
+
+
+def _candidate_red_light_relation(
+    candidates: np.ndarray,
+    red_route_points: np.ndarray,
+    horizon_steps: int,
+) -> dict[str, Any]:
+    red = np.asarray(red_route_points, dtype=np.float64)
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.ndim != 3 or trajectories.shape[0] < 1 or trajectories.shape[2] < 2:
+        raise ValueError("candidates must have shape [K,T,>=2].")
+    horizon = min(max(int(horizon_steps), 2), int(trajectories.shape[1]))
+    if red.ndim != 2 or red.shape[0] == 0 or red.shape[1] < 4:
+        return {
+            "candidate_red_stopline_distance_m": None,
+            "candidate_red_heading_alignment": None,
+            "red_route_point_count": 0,
+        }
+    red_xy = red[:, :2]
+    red_dirs = red[:, 2:4]
+    red_norms = np.linalg.norm(red_dirs, axis=1)
+    valid = np.isfinite(red_norms) & (red_norms > 1e-8)
+    if not np.any(valid):
+        return {
+            "candidate_red_stopline_distance_m": None,
+            "candidate_red_heading_alignment": None,
+            "red_route_point_count": int(red.shape[0]),
+        }
+    red_xy = red_xy[valid]
+    red_dirs = red_dirs[valid] / red_norms[valid].reshape(-1, 1)
+    points = trajectories[:, :horizon, :2]
+    headings = _candidate_headings(trajectories, horizon)
+    heading_vectors = np.stack((np.cos(headings), np.sin(headings)), axis=2)
+    distances = np.zeros(points.shape[:2], dtype=np.float64)
+    alignments = np.zeros(points.shape[:2], dtype=np.float64)
+    for index in np.ndindex(points.shape[:2]):
+        point = points[index]
+        heading_vec = heading_vectors[index]
+        deltas = red_xy - point.reshape(1, 2)
+        ahead = np.sum(deltas * heading_vec.reshape(1, 2), axis=1) >= -1e-6
+        candidate_red_xy = red_xy[ahead] if np.any(ahead) else red_xy
+        candidate_dirs = red_dirs[ahead] if np.any(ahead) else red_dirs
+        red_distances = np.linalg.norm(candidate_red_xy - point.reshape(1, 2), axis=1)
+        best = int(np.argmin(red_distances))
+        distances[index] = red_distances[best]
+        alignments[index] = float(
+            np.clip(np.dot(heading_vec, candidate_dirs[best]), -1.0, 1.0)
+        )
+    return {
+        "candidate_red_stopline_distance_m": distances,
+        "candidate_red_heading_alignment": alignments,
+        "red_route_point_count": int(red.shape[0]),
+    }
+
+
+def _candidate_route_heading_change(
+    candidates: np.ndarray,
+    horizon_steps: int,
+) -> np.ndarray:
+    headings = _candidate_headings(candidates, horizon_steps)
+    return _wrap_angle(np.diff(headings, axis=1))
+
+
+def _route_curvature_context_abs(
+    route_centerline: np.ndarray,
+    horizon_steps: int,
+) -> np.ndarray | None:
+    centerline = np.asarray(route_centerline, dtype=np.float64)
+    horizon = max(int(horizon_steps), 2)
+    if centerline.ndim != 2 or centerline.shape[0] < 2 or centerline.shape[1] < 2:
+        return None
+    points = centerline[: min(horizon, centerline.shape[0]), :2]
+    segments = np.diff(points, axis=0)
+    valid = np.linalg.norm(segments, axis=1) > 1e-6
+    if not np.any(valid):
+        return None
+    headings = np.arctan2(segments[valid, 1], segments[valid, 0])
+    if headings.size < 2:
+        return np.zeros(0, dtype=np.float64)
+    return np.abs(_wrap_angle(np.diff(headings)))
+
+
+def _observable_state_logging_payload(
+    *,
+    candidates: np.ndarray,
+    route_centerline_ego: np.ndarray,
+    red_route_points: np.ndarray,
+    candidate_obstacle_clearance: dict[str, Any] | None,
+    support_steps: int,
+    traffic_light_steps: int,
+    turn_steps: int,
+    neighbor_clearance_latency_ms: float = 0.0,
+) -> dict[str, Any]:
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.ndim != 3 or trajectories.shape[0] < 1 or trajectories.shape[1] < 2:
+        raise ValueError("candidates must have shape [K,T,>=2].")
+    route_start = time.perf_counter()
+    route = _candidate_route_projection_details(
+        trajectories,
+        route_centerline_ego,
+        support_steps,
+    )
+    route_done = time.perf_counter()
+    traffic = _candidate_red_light_relation(
+        trajectories,
+        red_route_points,
+        traffic_light_steps,
+    )
+    traffic_done = time.perf_counter()
+    heading_change = _candidate_route_heading_change(trajectories, turn_steps)
+    route_curvature = _route_curvature_context_abs(route_centerline_ego, turn_steps)
+    turn_done = time.perf_counter()
+    clearance = candidate_obstacle_clearance or {}
+    min_clearance = clearance.get("min_obstacle_clearance_lower_bound_m")
+    obstacle_slots = clearance.get("obstacle_slots")
+    candidate_count = int(trajectories.shape[0])
+    finite_checks = {
+        "candidate_route_segment_index": (
+            route["candidate_route_segment_index"] is not None
+            and np.asarray(route["candidate_route_segment_index"]).shape[0] == candidate_count
+        ),
+        "candidate_route_projection_s_m": _finite_nested(
+            route["candidate_route_projection_s_m"]
+        ),
+        "candidate_route_lateral_error_m": _finite_nested(
+            route["candidate_route_lateral_error_m"]
+        ),
+        "candidate_red_stopline_distance_m": (
+            traffic["candidate_red_stopline_distance_m"] is None
+            if int(traffic["red_route_point_count"]) == 0
+            else _finite_nested(traffic["candidate_red_stopline_distance_m"])
+        ),
+        "candidate_red_heading_alignment": (
+            traffic["candidate_red_heading_alignment"] is None
+            if int(traffic["red_route_point_count"]) == 0
+            else _finite_nested(traffic["candidate_red_heading_alignment"])
+        ),
+        "candidate_route_heading_change_rad": _finite_nested(heading_change),
+        "route_curvature_context_abs": (
+            route_curvature is not None
+            and bool(np.all(np.isfinite(route_curvature)))
+        ),
+        "candidate_min_obstacle_clearance_lower_bound_m": (
+            isinstance(min_clearance, list)
+            and len(min_clearance) == candidate_count
+            and all(value is None or np.isfinite(float(value)) for value in min_clearance)
+        ),
+        "candidate_obstacle_slot_count": (
+            isinstance(obstacle_slots, list)
+            and len(obstacle_slots) == candidate_count
+            and all(int(value) >= 0 for value in obstacle_slots)
+        ),
+    }
+    payload = {
+        "schema_version": OBSERVABLE_STATE_LOGGING_SCHEMA_VERSION,
+        "enabled": True,
+        "default_off": True,
+        "selection_effect": False,
+        "future_outcome_leakage": False,
+        "definition": (
+            "current-tick route, traffic-light, turn-context, and neighbor "
+            "descriptors computed from fixed DP candidates before closed-loop "
+            "outcome labels"
+        ),
+        "candidate_count": candidate_count,
+        "horizons": {
+            "support_steps": min(max(int(support_steps), 2), int(trajectories.shape[1])),
+            "traffic_light_steps": min(
+                max(int(traffic_light_steps), 2),
+                int(trajectories.shape[1]),
+            ),
+            "turn_steps": min(max(int(turn_steps), 2), int(trajectories.shape[1])),
+        },
+        "route_segment_count": int(route["route_segment_count"]),
+        "red_route_point_count": int(traffic["red_route_point_count"]),
+        "field_shapes": {},
+        "finite_checks": finite_checks,
+        "latency_ms": {
+            "latency_ms_observable_state_route_topology": (
+                route_done - route_start
+            )
+            * 1000.0,
+            "latency_ms_observable_state_traffic_light_relation": (
+                traffic_done - route_done
+            )
+            * 1000.0,
+            "latency_ms_observable_state_route_turn": (
+                turn_done - traffic_done
+            )
+            * 1000.0,
+            "latency_ms_observable_state_neighbor_clearance": float(
+                neighbor_clearance_latency_ms
+            ),
+        },
+        "candidate_route_segment_index": (
+            None
+            if route["candidate_route_segment_index"] is None
+            else route["candidate_route_segment_index"].tolist()
+        ),
+        "candidate_route_projection_s_m": (
+            None
+            if route["candidate_route_projection_s_m"] is None
+            else route["candidate_route_projection_s_m"].tolist()
+        ),
+        "candidate_route_lateral_error_m": (
+            None
+            if route["candidate_route_lateral_error_m"] is None
+            else route["candidate_route_lateral_error_m"].tolist()
+        ),
+        "candidate_red_stopline_distance_m": (
+            None
+            if traffic["candidate_red_stopline_distance_m"] is None
+            else traffic["candidate_red_stopline_distance_m"].tolist()
+        ),
+        "candidate_red_heading_alignment": (
+            None
+            if traffic["candidate_red_heading_alignment"] is None
+            else traffic["candidate_red_heading_alignment"].tolist()
+        ),
+        "candidate_route_heading_change_rad": heading_change.tolist(),
+        "route_curvature_context_abs": (
+            None if route_curvature is None else route_curvature.tolist()
+        ),
+        "candidate_min_obstacle_clearance_lower_bound_m": min_clearance,
+        "candidate_obstacle_slot_count": obstacle_slots,
+    }
+    for field in (
+        "candidate_route_segment_index",
+        "candidate_route_projection_s_m",
+        "candidate_route_lateral_error_m",
+        "candidate_red_stopline_distance_m",
+        "candidate_red_heading_alignment",
+        "candidate_route_heading_change_rad",
+        "route_curvature_context_abs",
+        "candidate_min_obstacle_clearance_lower_bound_m",
+        "candidate_obstacle_slot_count",
+    ):
+        payload["field_shapes"][field] = _shape_or_none(payload[field])
+    return payload
 
 
 def _apply_candidate0_route_progress_guard(
@@ -2995,6 +3387,10 @@ def _install_camp_predictor(
     reward_config: Any,
     spawn_config: Any,
     route_centerline: np.ndarray,
+    observable_state_logging: bool,
+    observable_state_support_steps: int,
+    observable_state_traffic_light_steps: int,
+    observable_state_turn_steps: int,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -3240,6 +3636,51 @@ def _install_camp_predictor(
         reward_latency_breakdown_ms["latency_ms_reward_red_route_points"] = (
             time.perf_counter() - reward_red_route_points_start
         ) * 1000.0
+        observable_state_logging_payload = None
+        observable_state_latency_ms = {
+            key: 0.0 for key in OBSERVABLE_STATE_LATENCY_KEYS
+        }
+        if observable_state_logging:
+            route_centerline_ego = _ego_frame_xy(
+                route_centerline,
+                np.asarray(ego_agent.current_position, dtype=np.float64),
+                float(ego_agent.current_heading),
+            )
+            observable_candidate_obstacle_clearance = candidate_obstacle_clearance
+            observable_neighbor_latency_ms = 0.0
+            if observable_candidate_obstacle_clearance is None:
+                observable_clearance_start = time.perf_counter()
+                observable_candidate_obstacle_clearance = (
+                    compute_candidate_obstacle_clearance_diagnostics(
+                        candidates,
+                        context,
+                        candidate_obstacles=obstacles,
+                        horizon_steps=outcome_horizon_steps,
+                        near_miss_threshold_m=near_miss_threshold_m,
+                        evaluate_exact_obb=False,
+                        ego_length=ego_length,
+                        ego_width=ego_width,
+                        ego_wheelbase=ego_wheelbase,
+                    )
+                )
+                observable_neighbor_latency_ms = (
+                    time.perf_counter() - observable_clearance_start
+                ) * 1000.0
+            observable_state_logging_payload = _observable_state_logging_payload(
+                candidates=candidates,
+                route_centerline_ego=route_centerline_ego,
+                red_route_points=red_route_points,
+                candidate_obstacle_clearance=(
+                    observable_candidate_obstacle_clearance
+                ),
+                support_steps=observable_state_support_steps,
+                traffic_light_steps=observable_state_traffic_light_steps,
+                turn_steps=observable_state_turn_steps,
+                neighbor_clearance_latency_ms=observable_neighbor_latency_ms,
+            )
+            observable_state_latency_ms = observable_state_logging_payload[
+                "latency_ms"
+            ]
         external_feasible_mask = None
         external_infeasibility_reasons = None
         if feasibility_source == "dp_reward":
@@ -3555,6 +3996,7 @@ def _install_camp_predictor(
             "latency_ms_shadow_dp_prior_deviation": (
                 shadow_dp_prior_deviation_latency_ms
             ),
+            **observable_state_latency_ms,
             "latency_ms_context_and_obstacles": (
                 context_and_obstacles_done - lateral_comfort_done
             )
@@ -3856,6 +4298,7 @@ def _install_camp_predictor(
                     if candidate_route_progress is not None
                     else None
                 ),
+                "observable_state_logging": observable_state_logging_payload,
                 "candidate_obstacle_clearance": candidate_obstacle_clearance,
                 "candidate_step_reach": (
                     candidate_step_reach.tolist()
@@ -4087,6 +4530,14 @@ def main() -> None:
             reward_config=reward_config,
             spawn_config=config,
             route_centerline=route_centerline,
+            observable_state_logging=bool(args.camp_observable_state_logging),
+            observable_state_support_steps=(
+                args.camp_observable_state_support_steps
+            ),
+            observable_state_traffic_light_steps=(
+                args.camp_observable_state_traffic_light_steps
+            ),
+            observable_state_turn_steps=args.camp_observable_state_turn_steps,
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
             ),
@@ -4309,6 +4760,67 @@ def main() -> None:
         if records is not None
         else None
     )
+    camp_observable_state_logging = (
+        {
+            "schema_version": OBSERVABLE_STATE_LOGGING_SCHEMA_VERSION,
+            "enabled": bool(args.camp_observable_state_logging),
+            "default_off": True,
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "online_selector_change": False,
+            "authorized_stage": (
+                "unit_tested_default_off_preflight_only"
+            ),
+            "logged_field": "observable_state_logging",
+            "fields": list(OBSERVABLE_STATE_FIELDS),
+            "latency_fields": list(OBSERVABLE_STATE_LATENCY_KEYS),
+            "horizons": {
+                "support_steps": int(args.camp_observable_state_support_steps),
+                "traffic_light_steps": int(
+                    args.camp_observable_state_traffic_light_steps
+                ),
+                "turn_steps": int(args.camp_observable_state_turn_steps),
+            },
+            "records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if record.get("observable_state_logging") is not None
+                    )
+                )
+                if args.camp_observable_state_logging
+                else 0
+            ),
+            "latency_ms": (
+                {
+                    key: _summary(
+                        [
+                            float(record[key])
+                            for record in records
+                            if key in record and record[key] is not None
+                        ]
+                    )
+                    for key in OBSERVABLE_STATE_LATENCY_KEYS
+                }
+                if args.camp_observable_state_logging
+                else None
+            ),
+            "definition": (
+                "current-tick fixed-candidate route topology, traffic-light "
+                "relation, turn-context, and neighbor-clearance descriptors "
+                "computed before closed-loop outcome labels"
+            ),
+            "math_boundary": (
+                "If later atomized, each field is a fixed finite-candidate "
+                "quantity; CAMP score remains affine in weights and the "
+                "simplex/CVaR/L2 master remains convex."
+            ),
+            "classical_benders_claim": False,
+        }
+        if records is not None
+        else None
+    )
     finite_candidate_contract = _dp_camp_finite_candidate_contract(
         selector_mode=args.camp_selector_mode,
         num_candidates=args.num_candidates,
@@ -4360,6 +4872,7 @@ def main() -> None:
             else None
         ),
         "camp_raw_candidate_prefix_logging": camp_raw_candidate_prefix_logging,
+        "camp_observable_state_logging": camp_observable_state_logging,
         "camp_splice_shadow_rule": effective_splice_shadow_rule,
         "camp_traffic_light_hybrid_postselection": (
             effective_traffic_light_hybrid_postselection
@@ -4650,6 +5163,7 @@ def main() -> None:
     validation["camp_raw_candidate_prefix_logging"] = (
         camp_raw_candidate_prefix_logging
     )
+    validation["camp_observable_state_logging"] = camp_observable_state_logging
     validation["camp_splice_shadow_rule"] = effective_splice_shadow_rule
     validation["camp_traffic_light_hybrid_postselection"] = (
         effective_traffic_light_hybrid_postselection

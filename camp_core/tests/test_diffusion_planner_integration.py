@@ -55,6 +55,8 @@ from camp_core.outer_master.robust_margin_master import (
     theta_weights,
 )
 from scripts.integrations.run_diffusion_planner_camp_replay import (
+    OBSERVABLE_STATE_LATENCY_KEYS,
+    OBSERVABLE_STATE_LOGGING_SCHEMA_VERSION,
     _apply_candidate0_route_progress_guard,
     _apply_candidate0_step_reach_guard,
     _apply_lexicographic_admissible_filter,
@@ -63,6 +65,7 @@ from scripts.integrations.run_diffusion_planner_camp_replay import (
     _candidate_route_progress,
     _candidate_step_reach,
     _candidate_feasibility_from_rewards,
+    _observable_state_logging_payload,
     _perfect_tracker_candidate_preprocessing,
     _prepare_perfect_tracker_reference_candidates,
     _prepare_reward_scoring_candidates,
@@ -658,6 +661,108 @@ def test_candidate_obstacle_clearance_diagnostics_can_skip_exact_obb() -> None:
         lower_bound_only["near_miss_violation_cost"],
         exact["near_miss_violation_cost"],
     )
+
+
+def test_observable_state_logging_payload_reports_schema_shapes_and_no_leak() -> None:
+    candidates = np.array(
+        [
+            [
+                [0.0, 0.0, 1.0, 0.0],
+                [1.0, 0.1, 1.0, 0.0],
+                [2.0, 0.2, 1.0, 0.0],
+                [3.0, 0.3, 1.0, 0.0],
+                [4.0, 0.4, 1.0, 0.0],
+            ],
+            [
+                [0.0, 0.0, 1.0, 0.0],
+                [0.8, -0.2, 1.0, 0.0],
+                [1.6, -0.3, 1.0, 0.0],
+                [2.4, -0.5, 1.0, 0.0],
+                [3.2, -0.8, 1.0, 0.0],
+            ],
+        ],
+        dtype=np.float64,
+    )
+    route_centerline = np.array(
+        [[0.0, 0.0], [2.0, 0.0], [4.0, 1.0]],
+        dtype=np.float64,
+    )
+    red_route_points = np.array([[5.0, 1.0, 1.0, 0.0]], dtype=np.float64)
+    clearance = {
+        "min_obstacle_clearance_lower_bound_m": [1.5, None],
+        "obstacle_slots": [2, 0],
+    }
+
+    payload = _observable_state_logging_payload(
+        candidates=candidates,
+        route_centerline_ego=route_centerline,
+        red_route_points=red_route_points,
+        candidate_obstacle_clearance=clearance,
+        support_steps=4,
+        traffic_light_steps=5,
+        turn_steps=4,
+        neighbor_clearance_latency_ms=0.25,
+    )
+
+    assert payload["schema_version"] == OBSERVABLE_STATE_LOGGING_SCHEMA_VERSION
+    assert payload["enabled"] is True
+    assert payload["default_off"] is True
+    assert payload["selection_effect"] is False
+    assert payload["future_outcome_leakage"] is False
+    assert "candidate_closed_loop_outcomes" not in payload
+    assert payload["field_shapes"]["candidate_route_segment_index"] == [2, 4]
+    assert payload["field_shapes"]["candidate_route_projection_s_m"] == [2, 4]
+    assert payload["field_shapes"]["candidate_route_lateral_error_m"] == [2, 4]
+    assert payload["field_shapes"]["candidate_red_stopline_distance_m"] == [2, 5]
+    assert payload["field_shapes"]["candidate_red_heading_alignment"] == [2, 5]
+    assert payload["field_shapes"]["candidate_route_heading_change_rad"] == [2, 3]
+    assert payload["field_shapes"]["route_curvature_context_abs"] == [1]
+    assert payload["field_shapes"]["candidate_min_obstacle_clearance_lower_bound_m"] == [2]
+    assert payload["field_shapes"]["candidate_obstacle_slot_count"] == [2]
+    assert all(payload["finite_checks"].values())
+    assert payload["candidate_obstacle_slot_count"] == [2, 0]
+    assert payload["candidate_min_obstacle_clearance_lower_bound_m"] == [1.5, None]
+    for key in OBSERVABLE_STATE_LATENCY_KEYS:
+        assert payload["latency_ms"][key] >= 0.0
+
+
+def test_observable_state_logging_payload_allows_empty_red_route() -> None:
+    candidates = np.array(
+        [
+            [
+                [0.0, 0.0, 1.0, 0.0],
+                [1.0, 0.0, 1.0, 0.0],
+                [2.0, 0.0, 1.0, 0.0],
+            ],
+        ],
+        dtype=np.float64,
+    )
+    route_centerline = np.array([[0.0, 0.0], [3.0, 0.0]], dtype=np.float64)
+    clearance = {
+        "min_obstacle_clearance_lower_bound_m": [None],
+        "obstacle_slots": [0],
+    }
+
+    payload = _observable_state_logging_payload(
+        candidates=candidates,
+        route_centerline_ego=route_centerline,
+        red_route_points=np.zeros((0, 4), dtype=np.float64),
+        candidate_obstacle_clearance=clearance,
+        support_steps=3,
+        traffic_light_steps=3,
+        turn_steps=3,
+    )
+
+    assert payload["red_route_point_count"] == 0
+    assert payload["candidate_red_stopline_distance_m"] is None
+    assert payload["candidate_red_heading_alignment"] is None
+    assert payload["field_shapes"]["candidate_red_stopline_distance_m"] is None
+    assert payload["field_shapes"]["candidate_red_heading_alignment"] is None
+    assert payload["finite_checks"]["candidate_red_stopline_distance_m"] is True
+    assert payload["finite_checks"]["candidate_red_heading_alignment"] is True
+    assert payload["finite_checks"]["route_curvature_context_abs"] is True
+    assert payload["selection_effect"] is False
+    assert payload["future_outcome_leakage"] is False
 
 
 def test_red_stopping_margin_cost_is_continuous_before_hard_violation() -> None:
