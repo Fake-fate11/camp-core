@@ -30304,3 +30304,135 @@ candidates, or PerfectTracker execution. If these descriptors are later
 atomized, they enter fixed coefficients `a_k`; `score_k(w)=a_k^T w` remains
 affine and the simplex/CVaR/L2 master remains convex. This gate still makes no
 classical Benders claim for the DP-side finite-candidate selector.
+
+## Observable State Logging Paired Smoke (`8c72ead`)
+
+This is the predeclared paired 3-step nonformal smoke authorized by the smoke
+plan gate above. It verifies that enabling the default-off observable-state
+logging payload changes only logging metadata and does not change CAMP
+selection, feasibility, atoms, scores, or weights on the paired run.
+
+Execution state:
+
+```text
+local/GitHub/AutoDL CAMP before smoke = 8c72ead0a969291f4b75ccd1797729cc69ed5d85
+AutoDL DP fixed commit               = 7a1d33da277a1992ec474b5383a0c963c72e04e4
+smoke root                           = /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/observable_state_logging_smoke_2aa74f5
+```
+
+Smoke scope:
+
+- route: `sample_map_tl_route_59_to_86`;
+- seed: `1`;
+- NPC count: `4`;
+- spawn probability: `0.3`;
+- traffic lights: `off`;
+- selector: static redstopfloor05 CAMP;
+- tracker: perfect;
+- steps: `3`;
+- candidates per tick: `8`;
+- baseline command: logging disabled;
+- candidate command: identical command plus `--camp_observable_state_logging`.
+
+Run result:
+
+```text
+baseline_replay_returncode=0
+candidate_replay_returncode=0
+selector_equivalence_returncode=0
+payload_audit_returncode=0
+dataset_audit_returncode=0
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `baseline/camp_selection_log.json` | `92373c02219a2810cb8697fc6690c50b90609b10527b860017bb9983a3872a72` |
+| `baseline/camp_validation_summary.json` | `0f88f33ad8bd8ba8381de896b6ac2814cfca743d833b4e3ffd282815511419df` |
+| `logging_enabled/camp_selection_log.json` | `feefc1e6d3552eac1efd1fa0d556fa694c5e606d21747a59f480c9c0ef65c818` |
+| `logging_enabled/camp_validation_summary.json` | `8672b98fe4193127c5de0891792a8c19462c18deb248fc8f1e686d5c66053206` |
+| `audit/selector_equivalence.json` | `c64c1439b3bca459ffdcbb0b8dc6f6cedc067a999729aaaf84beea39f26a21c7` |
+| `audit/observable_state_logging_smoke.json` | `6cccf5af5fbb807fe36e292738d3ade8399eb885f481d050e128d654e1512883` |
+| `audit/observable_state_logging_smoke.md` | `37c4ff887d7911e55653f6feabd1379ad2bdc4a2152400873ebc86609ef16321` |
+| `audit/dataset_audit.json` | `4c574f538d8fbfc865097a06eef73d15a984769879c0d9f9a0bf5633aa81ad5d` |
+
+Selector equivalence:
+
+```text
+equivalent=True
+paired_logs=1
+records=3
+```
+
+Observable-state payload audit:
+
+```text
+status=observable_state_logging_smoke_passed
+passed=True
+baseline_payload_records=0
+candidate_payload_records=3
+records=3
+errors=[]
+authorized_next_work=observable_state_logging_smoke_result_documentation_only
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Maximum observed observable-state logging latency over the 3 candidate records:
+
+| Field | Max ms |
+| --- | ---: |
+| `latency_ms_observable_state_route_topology` | `2.414930` |
+| `latency_ms_observable_state_traffic_light_relation` | `0.004638` |
+| `latency_ms_observable_state_route_turn` | `0.076539` |
+| `latency_ms_observable_state_neighbor_clearance` | `0.000000` |
+
+Dataset audit:
+
+```text
+passed=True
+logs=1
+records=3
+candidates=24
+closed_loop_outcome_policy=forbidden
+closed_loop_outcome_records=0
+closed_loop_outcomes_forbidden=True
+finite_candidate_contract_verified=True
+forbidden_seed_check=True
+forbidden_seeds=[11,12,13]
+schema=dp_camp_v10_14d
+advance_mode=perfect
+```
+
+Interpretation:
+
+The smoke validates the logging integration on a real DP replay prefix:
+baseline records keep `observable_state_logging=None` and zero observable
+latency fields, while the logging-enabled paired run records the payload on all
+3 ticks. The selector-equivalence audit confirms that selected indices,
+feasibility masks, CAMP atoms, scores, and weights are unchanged by logging.
+The dataset audit confirms finite-candidate contract metadata, absence of
+closed-loop outcome labels, and absence of formal seeds.
+
+Decision:
+
+Accept the paired smoke as a runtime auditability milestone. It proves that the
+observable-state logging path is default-off, no-leak, and selection-neutral on
+this one nonformal 3-step replay prefix. It does not prove that CAMP improves
+DP, does not justify atomizing the new descriptors, and does not authorize
+Full36, formal seeds, online selector promotion, DP changes, or CAMP retraining.
+The next useful gate should be a read-only offline coverage/materiality audit
+over this smoke result or a predeclared slightly broader logging-only evidence
+plan, still default-off and still without selector changes.
+
+Mathematical boundary:
+
+All logged observable-state fields are fixed current-tick finite-candidate
+quantities computed before any closed-loop outcome labels. The smoke did not
+change `score_k(w)=a_k^T w`, the simplex/CVaR/L2 convex master, the CAMP atom
+schema, or DP candidate generation. No DP-side classical Benders decomposition,
+dual, or cut is constructed or claimed.
