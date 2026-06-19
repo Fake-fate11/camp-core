@@ -100,6 +100,21 @@ def test_material_atom_schema_availability_requires_scenario_bucket_coverage() -
     assert "traffic_light" in report["final_decision"]["missing_required_buckets"]
 
 
+def test_material_atom_schema_availability_skips_scalar_progress_field() -> None:
+    record = _record()
+    record["candidate_route_progress"] = [10.0]
+    record["candidate_step_reach"] = [10.0, 9.5, 10.5]
+
+    report = analyze_records([{"raw": record, "context": _context()}])
+
+    coverage = report["field_coverage"]["support_preservation_deficit"]
+    assert coverage["records_available"] == 1
+    assert coverage["source_fields"] == {
+        "candidate_perfect_tracker_target_speed_mps": 1,
+        "candidate_step_reach": 1,
+    }
+
+
 def test_material_atom_schema_availability_rejects_formal_seed_when_forbidden() -> None:
     with pytest.raises(ValueError, match="Formal seed records are forbidden"):
         analyze_records(

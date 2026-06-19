@@ -466,7 +466,15 @@ def _traffic_rule_exposure(
     ):
         if key not in raw:
             continue
-        values = _vector(raw[key], candidate_count, f"{label} {key}", nonnegative=True)
+        try:
+            values = _vector(
+                raw[key],
+                candidate_count,
+                f"{label} {key}",
+                nonnegative=True,
+            )
+        except ValueError:
+            continue
         components.append(values)
         component_names.append(key)
         source_fields.append(key)
@@ -807,15 +815,18 @@ def _first_vector(
     for key in keys:
         if key not in raw:
             continue
-        return (
-            key,
-            _vector(
-                raw[key],
-                candidate_count,
-                f"{label} {key}",
-                nonnegative=nonnegative,
-            ),
-        )
+        try:
+            return (
+                key,
+                _vector(
+                    raw[key],
+                    candidate_count,
+                    f"{label} {key}",
+                    nonnegative=nonnegative,
+                ),
+            )
+        except ValueError:
+            continue
     return None
 
 
