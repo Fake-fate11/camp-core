@@ -28093,3 +28093,139 @@ runtime selection, modify DP, change CAMP weights, or claim classical Benders
 decomposition. If any failure-pattern quantity later becomes a CAMP atom, it
 must remain fixed per candidate so `a_k^T w` stays affine and the
 simplex/CVaR/L2 master remains convex.
+
+## DP-CAMP Next Design Boundary Ledger (`821cfd7`)
+
+Date: 2026-06-19
+
+Status: accept the boundary ledger as a process gate. It does not create a new
+selector or candidate generator; it prevents the next self-iteration from
+repeating already rejected route families.
+
+Commit:
+
+```text
+821cfd7cb57b26e0e7513e8021310b9798243b0f Add DP CAMP next design boundary ledger
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_next_design_boundary.py
+camp_core/tests/test_diffusion_planner_next_design_boundary.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/plan_diffusion_planner_next_design_boundary.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_next_design_boundary.py \
+  camp_core/tests/test_diffusion_planner_candidate_generation_support_gate.py \
+  camp_core/tests/test_diffusion_planner_mode_seeking_candidate_gate.py -q
+
+git diff --check
+
+Result: 9 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle to
+`821cfd7cb57b26e0e7513e8021310b9798243b0f`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_next_design_boundary.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_next_design_boundary.py \
+  camp_core/tests/test_diffusion_planner_candidate_generation_support_gate.py \
+  camp_core/tests/test_diffusion_planner_mode_seeking_candidate_gate.py -q
+```
+
+Result: `9 passed`.
+
+Ledger command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SPLICE=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=/root/autodl-tmp/camp_dp_next_design_boundary_821cfd7
+
+$PY scripts/integrations/plan_diffusion_planner_next_design_boundary.py \
+  --evidence_json "atom_aware=$ROOT/dense_lane_change_atom_aware_screen_dd8471a/dense_lane_change_atom_aware_screen.json" \
+  --evidence_json "mode_seeking_guidance=$ROOT/mode_seeking_candidate0_dense_lanechange_seed3_steps1_91de92a/availability_diagnostic/mode_seeking_candidate_availability.json" \
+  --evidence_json "source_donor=$SPLICE/source_donor_support_gate_48a8421/source_donor_support_gate.json" \
+  --evidence_json "latest_safe_route_topology=$SPLICE/route_topology_latest_safe_failure_patterns_ec19970/route_topology_failure_patterns.json" \
+  --label dp_camp_next_design_boundary_821cfd7 \
+  --output_json "$OUT/next_design_boundary.json" \
+  --output_md "$OUT/next_design_boundary.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_next_design_boundary_821cfd7/next_design_boundary.json` | `c119826db51dbeb1df2c8e666634f3eb93f5093215489c4ebce0c0bcbd289ad3` |
+| `/root/autodl-tmp/camp_dp_next_design_boundary_821cfd7/next_design_boundary.md` | `fb32cdaa4065738e2b1835e61c56a09f22a78fe6fd9e4ea64260516955d2ab19` |
+
+Ledger result:
+
+```text
+status=next_design_boundary_requires_new_offline_design
+missing_or_inconclusive_families=[]
+support_present_families=[]
+source_authorization_conflicts=[]
+closed_loop_smoke_authorized=false
+online_selector_authorized=false
+full36_authorized=false
+formal_seeds_authorized=false
+camp_retraining_authorized=false
+dp_modification_authorized=false
+```
+
+Route-family ledger:
+
+| Family | Evidence | Status |
+| --- | --- | --- |
+| `dp_candidate_native_selector` | `atom_aware_offline_screen_rejected` | rejected/blocking |
+| `mode_seeking_candidate_generation` | `mode_seeking_candidate_availability_rejected` | rejected/blocking |
+| `source_donor_or_graft_transform` | `source_donor_support_insufficient` | rejected/blocking |
+| `lane_projected_stop_target` | `route_topology_failure_patterns_hard_support_insufficient` | rejected/blocking |
+
+Interpretation:
+
+The current evidence rejects four route families that have repeatedly consumed
+development iterations: selector threshold/calibration over the same fixed
+support, mode-seeking route/lane guidance, source-donor graft/bridge variants,
+and lane-projected stop-target transforms. This does not prove no possible
+DP-CAMP integration exists; it proves the next iteration should not be another
+minor variant of those families.
+
+Decision:
+
+Do not run replay, online promotion, Full36, formal seeds, DP modification, or
+CAMP retraining from this ledger. The next allowed work is only a materially new
+predeclared offline no-leak candidate-support design gate. That design must
+state its fixed current-tick quantities, fail-closed behavior, support/safety/
+progress/comfort/latency thresholds, and why it is not one of the rejected
+families before implementation.
+
+Mathematical boundary:
+
+The ledger only reads previous audit decisions. It does not generate
+trajectories, modify DP, change CAMP atoms or weights, or construct a Benders
+master/subproblem, dual, or cuts. Any future runtime atom must remain a fixed
+finite-candidate quantity so the score stays affine in `w` and the
+simplex/CVaR/L2 robust master remains convex.
