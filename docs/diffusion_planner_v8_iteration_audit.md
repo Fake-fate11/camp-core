@@ -29981,3 +29981,156 @@ finite-candidate coefficient `a_k`, so CAMP scoring remains affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 master remains convex in `w`. This
 gate does not claim trajectory-coordinate convexity and does not construct a
 DP-side classical Benders decomposition, dual, or valid cut.
+
+## Observable State Logging Preflight Implementation (`f1ffd74`)
+
+This gate implements the previously accepted default-off observable-state
+logging design inside the CAMP replay wrapper. It does not change DP candidate
+generation, CAMP scoring, feasibility, selected trajectory, PerfectTracker
+execution, online selector behavior, or any CAMP/DP weights.
+
+Implementation commit:
+
+```text
+f1ffd7453296e627340dff197cb747c8e21d63b8 Add DP CAMP observable state logging preflight
+```
+
+Changed files:
+
+| File | SHA256 |
+| --- | --- |
+| `scripts/integrations/run_diffusion_planner_camp_replay.py` | `3438f14ce487095f3c995fc299fd95301dc609d68d6196bdaee1d122551ab578` |
+| `camp_core/tests/test_diffusion_planner_integration.py` | `ce63c6ec211e9bbfc2dd065891eec68dd89bb2c978ea22cfc3f97a4dd088eca9` |
+
+Implemented logging contract:
+
+- CLI flags:
+  - `--camp_observable_state_logging`, default off;
+  - `--camp_observable_state_support_steps`, default `10`;
+  - `--camp_observable_state_traffic_light_steps`, default `30`;
+  - `--camp_observable_state_turn_steps`, default `10`.
+- Per-record field: `observable_state_logging`, `None` when disabled.
+- Per-record latency fields:
+  - `latency_ms_observable_state_route_topology`;
+  - `latency_ms_observable_state_traffic_light_relation`;
+  - `latency_ms_observable_state_route_turn`;
+  - `latency_ms_observable_state_neighbor_clearance`.
+- Summary/validation field: `camp_observable_state_logging`.
+- Schema version: `dp_camp_observable_state_logging_v1`.
+
+The enabled payload records only current-tick fixed-candidate descriptors:
+
+| Field | Shape |
+| --- | --- |
+| `candidate_route_segment_index` | `[K,H_support]` |
+| `candidate_route_projection_s_m` | `[K,H_support]` |
+| `candidate_route_lateral_error_m` | `[K,H_support]` |
+| `candidate_red_stopline_distance_m` | `[K,H_tl]` or `None` when no red route point exists |
+| `candidate_red_heading_alignment` | `[K,H_tl]` or `None` when no red route point exists |
+| `candidate_route_heading_change_rad` | `[K,H_turn-1]` |
+| `route_curvature_context_abs` | `[H_turn-1]`, including an empty finite list for straight one-segment context |
+| `candidate_min_obstacle_clearance_lower_bound_m` | `[K]` |
+| `candidate_obstacle_slot_count` | `[K]` |
+
+The logging block is placed after `red_route_points_from_scene(scene, ego_id)`
+and before `compute_candidate_closed_loop_outcomes(...)`. Therefore its inputs
+are fixed candidates, the current route centerline in ego frame, current red
+route points, current predicted/static obstacle diagnostics, and configured
+horizons. Closed-loop outcome labels are not available to the payload.
+
+Local verification:
+
+```powershell
+cd F:\camp_core-main
+py -3.12 -m py_compile scripts\integrations\run_diffusion_planner_camp_replay.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_integration.py::test_observable_state_logging_payload_reports_schema_shapes_and_no_leak `
+  camp_core\tests\test_diffusion_planner_integration.py::test_observable_state_logging_payload_allows_empty_red_route `
+  camp_core\tests\test_diffusion_planner_observable_state_logging_design.py `
+  camp_core\tests\test_diffusion_planner_observable_state_inventory.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_observable_support.py -q
+
+git diff --check
+```
+
+Result: `15 passed`; `py_compile` and `git diff --check` passed.
+
+An attempted broader local run of the full
+`camp_core/tests/test_diffusion_planner_integration.py` file aborted at the
+pre-existing Windows torch import point
+`test_candidate_generation_disables_guidance_by_default`. That broader failure
+was not used as gate evidence because it occurs outside the observable-state
+payload tests and before any replay.
+
+AutoDL synchronization and verification:
+
+AutoDL GitHub fetch hung on `git remote-https`, so synchronization used a local
+git bundle containing `refs/heads/main -> f1ffd745...` and then fast-forwarded
+the AutoDL CAMP checkout from `c1de1219...` to `f1ffd745...`. The AutoDL
+tracking ref was updated to the same known GitHub head. The fixed DP checkout
+remained unchanged at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/run_diffusion_planner_camp_replay.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py::test_observable_state_logging_payload_reports_schema_shapes_and_no_leak \
+  camp_core/tests/test_diffusion_planner_integration.py::test_observable_state_logging_payload_allows_empty_red_route \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_design.py \
+  camp_core/tests/test_diffusion_planner_observable_state_inventory.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_observable_support.py \
+  -q
+```
+
+Result: `15 passed`.
+
+Final sync check:
+
+```text
+local HEAD  = f1ffd7453296e627340dff197cb747c8e21d63b8
+GitHub main = f1ffd7453296e627340dff197cb747c8e21d63b8
+AutoDL CAMP = f1ffd7453296e627340dff197cb747c8e21d63b8
+AutoDL DP   = 7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Gate result:
+
+```text
+status=observable_state_logging_preflight_implementation_unit_tested
+primary_bottleneck=runtime_payload_needs_nonformal_smoke_validation
+authorized_next_work=default_off_observable_state_logging_nonformal_smoke_design_only
+selection_effect=False
+online_selector_change=False
+future_outcome_leakage=False
+formal_seed_records=0
+closed_loop_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Decision:
+
+Accept the implementation/unit-test gate. This is an infrastructure milestone,
+not evidence that CAMP improves DP. The next admissible step is to predeclare a
+small default-off nonformal smoke that verifies real replay records contain the
+new payload, latency fields, shape/finite checks, summary metadata, and no
+selection changes. Do not run Full36, formal seeds, online selector promotion,
+DP changes, CAMP retraining, or any safety/performance claim from this unit-test
+gate.
+
+Mathematical boundary:
+
+The runtime payload is outcome-free by construction. It contains finite
+candidate-set quantities fixed at the current tick. If these descriptors are
+later atomized, they can enter the CAMP candidate coefficient vector `a_k`
+without making `score_k(w)=a_k^T w` non-affine. The simplex/CVaR/L2 robust
+master remains convex in `w`. This gate still does not construct a classical
+Benders master/subproblem pair, dual variables, or valid cuts for DP-side
+finite-candidate selection.
