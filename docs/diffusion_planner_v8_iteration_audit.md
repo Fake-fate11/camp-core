@@ -22969,3 +22969,139 @@ only when the original CAMP `selection_score` penalty is small, then evaluate
 whether that preserves current CAMP advantage while retaining any SafetyCost
 improvement versus DP Top-1. Do not implement an online selector until that
 offline screen passes.
+
+### Dense Lane-Change Score-Margin Preservation Screen
+
+Date: 2026-06-19
+
+Status: reject the score-margin finite-filter route. The screen confirms that
+score-margin preservation reduces damage compared with the loose rule, but no
+predeclared threshold proves SafetyCost improvement over current CAMP. Higher
+thresholds regain coverage but again regress SafetyCost and outcome progress.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `b1b3867ae4f36a5045955bf2bb7ea7104c1b5a51` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | none |
+
+New read-only score-margin tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_dense_lane_change_score_margin.py
+camp_core/tests/test_diffusion_planner_dense_lane_change_score_margin.py
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=$ROOT/dense_lane_change_score_margin_screen_b1b3867
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_dense_lane_change_score_margin.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_dense_lane_change_score_margin.py -q
+
+$PY scripts/integrations/analyze_diffusion_planner_dense_lane_change_score_margin.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_dense_lane_change_score_margin_b1b3867 \
+  --bootstrap_resamples 5000 \
+  --seed 12345 \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/dense_lane_change_score_margin_screen.json" \
+  --output_md "$OUT/dense_lane_change_score_margin_screen.md"
+```
+
+Verification:
+
+```text
+Local:
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_dense_lane_change_score_margin.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_dense_lane_change_score_margin.py -q
+
+AutoDL:
+2 passed
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `dense_lane_change_score_margin_screen_b1b3867/dense_lane_change_score_margin_screen.json` | `4cff2d609de965821558afef8de0058db5a4d11c85fbfd37b876c0bb22b1a8c0` |
+| `dense_lane_change_score_margin_screen_b1b3867/dense_lane_change_score_margin_screen.md` | `e924657841b7f7009091f1d5f3bb00be034b5cbeea09d7cc5909fa1c3f738295` |
+
+Screen summary:
+
+| Metric | Value |
+| --- | ---: |
+| Total outcome-labeled records | `21600` |
+| Logs | `108` |
+| Formal seed records | `0` |
+| Dense lane-change records | `2400` |
+| Target records | `987` |
+| Supported target records | `635` |
+| Mean supported score penalty | `0.075988` |
+
+Threshold grid:
+
+| Threshold | Pass | Failures | Changed supported | Dense Safety CI high vs current | Supported Safety CI high vs current | Dense Safety CI high vs Top-1 | Progress CI low vs current |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.000` | `false` | `3` | `0.000000` | `0.000000` | `0.000000` | `-0.702262` | `0.000000` |
+| `0.005` | `false` | `3` | `0.033071` | `+0.000084` | `+0.000307` | `-0.702242` | `-0.000315` |
+| `0.010` | `false` | `2` | `0.092913` | `+0.000175` | `+0.000673` | `-0.702129` | `-0.000268` |
+| `0.020` | `false` | `3` | `0.220472` | `+0.003263` | `+0.012083` | `-0.700162` | `-0.059834` |
+| `0.030` | `false` | `3` | `0.305512` | `+0.004866` | `+0.018006` | `-0.698727` | `-0.087869` |
+| `0.050` | `false` | `3` | `0.466142` | `+0.009334` | `+0.035381` | `-0.693710` | `-0.138466` |
+| `0.075` | `false` | `3` | `0.637795` | `+0.014585` | `+0.054669` | `-0.688726` | `-0.176163` |
+| `0.100` | `false` | `3` | `0.741732` | `+0.018654` | `+0.069987` | `-0.685282` | `-0.192877` |
+
+Interpretation:
+
+1. Score-margin filtering helps identify the damage mechanism but does not yield
+   a deployable rule. The best-looking threshold, `0.010`, changes `9.29%` of
+   supported records and still has positive SafetyCost CI high versus current
+   CAMP on both the dense slice and the supported-target slice.
+2. Thresholds `0.020` and above regain more coverage, but they clearly return to
+   the rejected loose-rule pattern: positive SafetyCost CI high versus current
+   CAMP and negative progress CI low.
+3. Every threshold remains strongly better than DP Top-1 on dense
+   candidate-branch SafetyCost, so the blocker is not DP Top-1 dominance. The
+   blocker is preserving current CAMP's beneficial choices while extracting only
+   the rare helpful loose-support records.
+4. A pure finite guard over DP-prior, planned progress, comfort proxy, and score
+   margin is not sufficient on this outcome-root evidence.
+
+Mathematical boundary:
+
+The screen uses posterior candidate outcomes only after deterministic threshold
+selection to evaluate SafetyCost/progress. Runtime predicates are current-tick
+fixed finite-candidate quantities: logged CAMP selection score, DP-prior
+deviation, planned progress, target speed, and jerk/lateral proxies. DP remains
+frozen. CAMP weights and atom schemas are unchanged. This is not classical
+Benders decomposition because no DP-side master/subproblem, dual, or cuts are
+constructed.
+
+Decision:
+
+Reject score-margin preservation as a finite-filter route. Do not implement an
+online selector, run a closed-loop smoke, run Full36, use formal seeds, modify
+DP, or retrain CAMP from this evidence. The next admissible work is not another
+single-threshold guard; it is either:
+
+1. schema/calibration analysis that explains why current CAMP score already
+   captures beneficial dense lane-change choices, or
+2. a new offline proof target that directly preserves current CAMP advantage
+   before considering any runtime selector.
