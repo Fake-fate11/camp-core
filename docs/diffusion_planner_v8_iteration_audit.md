@@ -26792,3 +26792,203 @@ outcomes, or construct a Benders master/subproblem, dual, or cuts. If these
 diagnostics are later atomized, they must be fixed finite-candidate constants
 so CAMP scores remain affine `a_k^T w`, and the simplex/CVaR/L2 robust master
 remains convex for that fixed finite set.
+
+### DP Route/Topology Comfort-Transfer Candidate Screen
+
+Date: 2026-06-19
+
+Status: reject the prefix-preserving comfort-transfer variant for replay or
+online selector promotion. It fixes the largest immediate jerk regression from
+the prior constant-deceleration lane-centerline red-stop screen, but it loses
+too much DP hard feasibility and still has zero comfort-admissible support
+under the predeclared relative PerfectTracker budgets.
+
+Implementation:
+
+Commit `1f9f245e9c7d695dc14983615ce87e757359958d` extends:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+```
+
+The default `lane_centerline_red_stop` policy is unchanged. The new explicit
+policy is:
+
+```text
+--generator_policy prefix_comfort_red_stop
+```
+
+For each red-stop profile, it preserves the selected candidate prefix and uses
+a smoothstep bridge from the selected trajectory to the route/topology red-stop
+target. The fixed non-formal grid was:
+
+```text
+prefix_steps in {3,5,10}
+bridge_steps in {10}
+red_stop_margins_m in {2,4,6}
+backup_stop_offsets_m in {0,1}
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core\tests\test_diffusion_planner_route_topology_support_gate.py \
+  camp_core\tests\test_diffusion_planner_source_donor_support_gate.py -q
+
+git diff --check
+
+Result: 14 passed
+```
+
+Synchronization:
+
+Local/GitHub/AutoDL CAMP were advanced to:
+
+```text
+1f9f245e9c7d695dc14983615ce87e757359958d
+```
+
+The fixed AutoDL DP checkout remained:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py \
+  camp_core/tests/test_diffusion_planner_source_donor_support_gate.py -q
+
+Result: 14 passed
+```
+
+Screen command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/bin/python
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_comfort_transfer_screen_1f9f245
+
+$PY scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --route_topology_gate_json "$ROOT/route_topology_support_gate_d0a5e4b/route_topology_support_gate.json" \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --device cuda \
+  --generator_policy prefix_comfort_red_stop \
+  --prefix_step 3 \
+  --prefix_step 5 \
+  --prefix_step 10 \
+  --bridge_step 10 \
+  --label seed2_npc4_tlon_route_topology_comfort_transfer_screen_1f9f245 \
+  --output_json "$OUT/route_topology_comfort_transfer_screen.json" \
+  --output_md "$OUT/route_topology_comfort_transfer_screen.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_comfort_transfer_screen_1f9f245/route_topology_comfort_transfer_screen.json` | `2add1206c4a88c543fab90f5912da04c408fdd98d8a398b4167663eda548a639` |
+| `route_topology_comfort_transfer_screen_1f9f245/route_topology_comfort_transfer_screen.md` | `2fef11c32371e0f0a0bf370acc59bc9346a42b940d5655767ac2c1d78a26f4e3` |
+
+Result:
+
+```text
+status=route_topology_candidate_support_insufficient
+snapshots=57
+snapshots_with_generated_candidates=21
+generated_candidate_rows=276
+lower_union_red_rows=276
+lower_union_red_hard_feasible_rows=8
+lower_union_red_progress_feasible_rows=8
+lower_union_red_comfort_admissible_rows=0
+hard_feasible_snapshot_support_rate=0.14285714285714285
+comfort_admissible_snapshot_support_rate=0.0
+min_snapshot_support_rate=0.25
+total_p95_ms=70.91987952589989
+candidate_build_p95_ms=2.5357741862535477
+```
+
+Failure classes:
+
+```text
+hard_reason_counts={
+  "dp_kinematic": 190,
+  "dp_lane_crossing": 242,
+  "dp_red_light": 74,
+  "dp_road_border": 138
+}
+failure_class_counts={
+  "route_topology_comfort_blocked_command_lateral": 8,
+  "route_topology_comfort_blocked_progress_loss": 8,
+  "route_topology_comfort_blocked_rollout_jerk": 1,
+  "route_topology_comfort_blocked_rollout_lateral": 8,
+  "route_topology_comfort_blocked_smoothness_loss": 7,
+  "route_topology_dp_kinematic": 190,
+  "route_topology_dp_road_border": 138,
+  "route_topology_lane_invalid": 242,
+  "route_topology_red_timing_invalid": 74
+}
+```
+
+Prefix sensitivity:
+
+| Prefix / bridge | Rows | Lower-red hard-feasible | Hard-feasible snapshots | Comfort-admissible | Dominant hard reasons |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `3 / 10` | 92 | 5 | 3 | 0 | `dp_lane_crossing=72`, `dp_kinematic=62`, `dp_road_border=30`, `dp_red_light=21` |
+| `5 / 10` | 92 | 3 | 2 | 0 | `dp_lane_crossing=80`, `dp_kinematic=62`, `dp_road_border=41`, `dp_red_light=23` |
+| `10 / 10` | 92 | 0 | 0 | 0 | `dp_lane_crossing=90`, `dp_kinematic=66`, `dp_road_border=67`, `dp_red_light=30` |
+
+Interpretation:
+
+The new policy materially changes the failure mode, but not enough to pass.
+The immediate command jerk median becomes `0.0`, which confirms prefix
+preservation did what it was supposed to do locally. However the smooth bridge
+between the selected branch and the lane-centerline red-stop target creates
+lane/road-border/kinematic violations, and the few hard-feasible rows still
+fail progress, smoothness, command lateral, or rollout lateral budgets. Longer
+prefixes worsen hard feasibility instead of rescuing comfort.
+
+Decision:
+
+Reject this prefix-preserving smoothstep bridge family for replay, online
+selector promotion, Full36, formal seeds, DP modification, or CAMP retraining.
+Do not treat prefix length or bridge length as a replay-worthy tuning knob. The
+next justified gate should either:
+
+1. inspect whether the strict relative comfort budgets are rejecting candidates
+   that remain under a documented absolute industrial guard; or
+2. design a materially different route-topology candidate mechanism that
+   projects the selected branch into a lane-valid corridor before red-stop
+   timing, rather than blending directly to the centerline target.
+
+Mathematical boundary:
+
+Generated candidates are deterministic functions of fixed current-tick
+candidate tensors, `lane_centerline`, `red_route_points`, metadata, and
+predeclared prefix/bridge constants. This screen does not modify DP, train
+CAMP, use future closed-loop outcomes, or construct a Benders master/subproblem,
+dual, or cuts. If these diagnostics are later atomized, they must be fixed
+finite-candidate constants so CAMP scores remain affine `a_k^T w`, and the
+simplex/CVaR/L2 robust master remains convex for that fixed finite set.
