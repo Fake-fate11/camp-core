@@ -898,6 +898,61 @@ def test_candidate_generation_preserves_guidance_when_requested() -> None:
     assert model.decoder._guidance_fn is guidance
 
 
+def test_candidate_generation_can_preserve_candidate0_under_guidance() -> None:
+    torch = pytest.importorskip("torch")
+
+    class _Args:
+        predicted_neighbor_num = 0
+        future_len = 3
+
+    guidance = object()
+
+    class _Decoder:
+        _guidance_fn = guidance
+
+    class _Model:
+        decoder = _Decoder()
+
+        def __init__(self) -> None:
+            self.calls = []
+
+        def __call__(self, inputs):
+            sampled = inputs["sampled_trajectories"]
+            prediction = sampled[:, :, 1:, :].clone()
+            if self.decoder._guidance_fn is guidance:
+                prediction = prediction + 5.0
+            self.calls.append(
+                {
+                    "batch": int(sampled.shape[0]),
+                    "guidance": self.decoder._guidance_fn,
+                    "grad_enabled": torch.is_grad_enabled(),
+                }
+            )
+            return None, {"prediction": prediction}
+
+    model = _Model()
+    inputs = {"ego_current_state": torch.zeros(1, 4)}
+
+    candidates, neighbors, turn_logits = generate_candidate_trajectories(
+        model,
+        _Args(),
+        inputs,
+        num_candidates=3,
+        noise_scale=0.0,
+        guidance_policy="preserve_candidate0",
+    )
+
+    assert model.calls == [
+        {"batch": 1, "guidance": None, "grad_enabled": False},
+        {"batch": 2, "guidance": guidance, "grad_enabled": True},
+    ]
+    assert model.decoder._guidance_fn is guidance
+    np.testing.assert_allclose(candidates[0], np.zeros((3, 4)))
+    np.testing.assert_allclose(candidates[1:], np.full((2, 3, 4), 5.0))
+    assert neighbors.shape == (3, 0, 3, 4)
+    assert turn_logits is None
+
+
 def test_candidate_generation_rejects_unknown_guidance_policy() -> None:
     torch = pytest.importorskip("torch")
 

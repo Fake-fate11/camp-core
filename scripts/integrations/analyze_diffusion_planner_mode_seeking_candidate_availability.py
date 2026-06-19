@@ -293,6 +293,10 @@ def _candidate_generation_contract(raw: dict[str, Any], label: str) -> dict[str,
         "changes_camp_score": bool(contract.get("changes_camp_score")),
         "num_candidates": int(contract.get("num_candidates", 0)),
         "noise_strategy": contract.get("noise_strategy"),
+        "candidate0_guidance_policy": contract.get("candidate0_guidance_policy"),
+        "candidate0_preservation_structural": bool(
+            contract.get("candidate0_preservation_structural")
+        ),
         "guidance": contract.get("guidance") or {},
     }
 
@@ -457,6 +461,10 @@ def _decision(
             "changes_camp_score_values"
         ]
         == [False],
+        "candidate0_structural_preservation_contract": contract["candidate"][
+            "candidate0_preservation_structural_values"
+        ]
+        == [True],
     }
     passed = all(gates.values())
     return {
@@ -707,6 +715,15 @@ def _contract_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "changes_camp_score_values": sorted(
             {bool(record["contract"]["changes_camp_score"]) for record in records}
+        ),
+        "candidate0_guidance_policies": sorted(
+            {str(record["contract"]["candidate0_guidance_policy"]) for record in records}
+        ),
+        "candidate0_preservation_structural_values": sorted(
+            {
+                bool(record["contract"]["candidate0_preservation_structural"])
+                for record in records
+            }
         ),
     }
 

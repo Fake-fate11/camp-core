@@ -2466,6 +2466,20 @@ def _candidate_generation_contract(
         "noise_scale": float(noise_scale),
         "deterministic_first": True,
         "candidate0_latent": "zeros",
+        "candidate0_guidance_policy": (
+            "separate_unguided_forward"
+            if bool(guidance_payload.get("enabled", False))
+            else "single_unguided_forward"
+        ),
+        "guided_candidate_indices": (
+            [1, int(num_candidates) - 1]
+            if bool(guidance_payload.get("enabled", False))
+            and int(num_candidates) > 1
+            else []
+        ),
+        "candidate0_preservation_structural": bool(
+            guidance_payload.get("enabled", False)
+        ),
         "random_seed_scope": "process_global_torch_rng",
         "recorded_tick_seed": None,
         "guidance_enabled": bool(guidance_payload.get("enabled", False)),
@@ -3052,7 +3066,7 @@ def _install_camp_predictor(
             deterministic_first=True,
             reference_blend_steps=reference_blend_steps,
             guidance_policy=(
-                "preserve"
+                "preserve_candidate0"
                 if candidate_generation_contract.get("guidance_enabled")
                 else "disabled"
             ),

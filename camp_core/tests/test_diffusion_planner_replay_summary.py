@@ -189,6 +189,9 @@ def test_candidate_generation_contract_records_fixed_dp_sampling_boundary() -> N
     assert contract["noise_scale"] == 0.75
     assert contract["deterministic_first"]
     assert contract["candidate0_latent"] == "zeros"
+    assert contract["candidate0_guidance_policy"] == "single_unguided_forward"
+    assert contract["guided_candidate_indices"] == []
+    assert not contract["candidate0_preservation_structural"]
     assert contract["random_seed_scope"] == "process_global_torch_rng"
     assert contract["recorded_tick_seed"] is None
     assert not contract["guidance_enabled"]
@@ -284,6 +287,9 @@ def test_candidate_generation_contract_records_enabled_guidance() -> None:
     )
     assert contract["guidance"]["config_sha256"] == "abc"
     assert contract["guidance"]["active_function_names"] == ["route_following"]
+    assert contract["candidate0_guidance_policy"] == "separate_unguided_forward"
+    assert contract["guided_candidate_indices"] == [1, 7]
+    assert contract["candidate0_preservation_structural"]
     assert contract["noise_strategy"] == "antithetic"
     assert "+z/-z antithetic pairs" in contract["latent_pairing"]
     assert contract["reference_blend_steps"] == 5

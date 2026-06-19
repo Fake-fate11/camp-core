@@ -3326,8 +3326,11 @@ def generate_candidate_trajectories(
         raise ValueError("num_candidates must be >= 1.")
     if noise_scale < 0:
         raise ValueError("noise_scale must be non-negative.")
-    if guidance_policy not in {"disabled", "preserve"}:
-        raise ValueError("guidance_policy must be 'disabled' or 'preserve'.")
+    if guidance_policy not in {"disabled", "preserve", "preserve_candidate0"}:
+        raise ValueError(
+            "guidance_policy must be 'disabled', 'preserve', or "
+            "'preserve_candidate0'."
+        )
     if noise_strategy not in {"iid", "antithetic"}:
         raise ValueError("noise_strategy must be 'iid' or 'antithetic'.")
 
@@ -3402,15 +3405,41 @@ def generate_candidate_trajectories(
 
     decoder = model.decoder
     original_guidance = getattr(decoder, "_guidance_fn", None)
-    if guidance_policy == "disabled":
-        decoder._guidance_fn = None
-    guidance_enabled = guidance_policy == "preserve" and original_guidance is not None
-    context = torch.enable_grad() if guidance_enabled else torch.no_grad()
-    try:
-        with context:
-            _, outputs = model(expanded)
-    finally:
-        decoder._guidance_fn = original_guidance
+    if guidance_policy == "preserve_candidate0" and original_guidance is not None:
+        if not deterministic_first:
+            raise ValueError(
+                "guidance_policy='preserve_candidate0' requires "
+                "deterministic_first=True."
+            )
+        try:
+            decoder._guidance_fn = None
+            with torch.no_grad():
+                _, candidate0_outputs = model(
+                    _slice_batch_inputs(expanded, start=0, stop=1)
+                )
+            if num_candidates > 1:
+                decoder._guidance_fn = original_guidance
+                with torch.enable_grad():
+                    _, guided_outputs = model(
+                        _slice_batch_inputs(expanded, start=1, stop=None)
+                    )
+                outputs = _concat_model_outputs(candidate0_outputs, guided_outputs)
+            else:
+                outputs = candidate0_outputs
+        finally:
+            decoder._guidance_fn = original_guidance
+    else:
+        if guidance_policy == "disabled":
+            decoder._guidance_fn = None
+        guidance_enabled = (
+            guidance_policy == "preserve" and original_guidance is not None
+        )
+        context = torch.enable_grad() if guidance_enabled else torch.no_grad()
+        try:
+            with context:
+                _, outputs = model(expanded)
+        finally:
+            decoder._guidance_fn = original_guidance
 
     predictions = outputs["prediction"].detach().cpu().numpy()
     turn_logits = outputs.get("turn_indicator_logit")
@@ -3423,6 +3452,50 @@ def generate_candidate_trajectories(
             reference_blend_steps,
         )
     return ego_candidates, predictions[:, 1:], turn_logits
+
+
+def _slice_batch_inputs(
+    inputs: dict[str, Any],
+    *,
+    start: int,
+    stop: int | None,
+) -> dict[str, Any]:
+    """Slice batched tensor inputs while leaving scalar metadata untouched."""
+    try:
+        import torch
+    except ImportError as exc:
+        raise RuntimeError("Diffusion-Planner candidate generation requires torch.") from exc
+
+    sliced: dict[str, Any] = {}
+    batch_size = int(inputs["sampled_trajectories"].shape[0])
+    for key, value in inputs.items():
+        if isinstance(value, torch.Tensor) and value.shape[:1] == (batch_size,):
+            sliced[key] = value[start:stop].contiguous()
+        else:
+            sliced[key] = value
+    return sliced
+
+
+def _concat_model_outputs(
+    first: dict[str, Any],
+    second: dict[str, Any],
+) -> dict[str, Any]:
+    try:
+        import torch
+    except ImportError as exc:
+        raise RuntimeError("Diffusion-Planner candidate generation requires torch.") from exc
+
+    outputs = dict(first)
+    for key, first_value in first.items():
+        second_value = second.get(key)
+        if (
+            isinstance(first_value, torch.Tensor)
+            and isinstance(second_value, torch.Tensor)
+            and first_value.ndim >= 1
+            and second_value.ndim >= 1
+        ):
+            outputs[key] = torch.cat([first_value, second_value], dim=0)
+    return outputs
 
 
 def blend_candidate_prefix_with_reference(

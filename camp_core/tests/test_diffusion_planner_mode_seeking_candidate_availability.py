@@ -30,6 +30,12 @@ def _contract(
             if guidance_enabled
             else "disabled_for_camp_candidate_generation"
         ),
+        "candidate0_guidance_policy": (
+            "separate_unguided_forward"
+            if guidance_enabled
+            else "single_unguided_forward"
+        ),
+        "candidate0_preservation_structural": guidance_enabled,
         "changes_diffusion_planner_weights": changes_diffusion_planner_weights,
         "changes_camp_score": changes_camp_score,
         "noise_strategy": "iid",
@@ -130,6 +136,7 @@ def test_mode_seeking_candidate_availability_passes_predeclared_gate(tmp_path) -
     assert decision["gates"]["candidate0_preserved"] is True
     assert decision["gates"]["fixed_dp_weights"] is True
     assert decision["gates"]["camp_score_unchanged"] is True
+    assert decision["gates"]["candidate0_structural_preservation_contract"] is True
     assert decision["gates"]["non_top1_dense_lane_change_support_pass"] is True
     assert report["dense_lane_change_support"]["support_rate"] == pytest.approx(1.0)
     assert report["spatial_diversity"]["candidate"]["mode_count"]["mean"] >= 2.0
