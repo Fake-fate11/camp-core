@@ -29459,3 +29459,177 @@ to evaluate offline threshold diagnostics. CAMP scoring remains affine
 robust master remains convex in `w`. This audit does not claim
 trajectory-coordinate convexity and does not construct a DP-side classical
 Benders decomposition, dual, or valid cut.
+
+## Candidate-Set Observable Support Audit (`6b18e9f`)
+
+Date: 2026-06-19
+
+Status: reject the current candidate-set observable support screen. The fixed
+DP candidate set does contain some eligible offline oracle alternatives under
+the predeclared strict label, but the currently logged runtime-visible
+descriptors do not identify them reliably enough to justify a new CAMP weight
+screen, replay, online selector promotion, formal seeds, or retraining.
+
+Commit:
+
+```text
+6b18e9f6f9c818d0b2c8c207f1819636ec839064 Add DP CAMP candidate set observable support audit
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_candidate_set_observable_support.py
+camp_core/tests/test_diffusion_planner_candidate_set_observable_support.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_set_observable_support.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_observable_support.py \
+  camp_core/tests/test_diffusion_planner_redesigned_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `29 passed`.
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle from `025fa5ae` to
+`6b18e9f6f9c818d0b2c8c207f1819636ec839064`. CAMP reached the same commit and
+the fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_set_observable_support.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_observable_support.py \
+  camp_core/tests/test_diffusion_planner_redesigned_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `29 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+REDESIGNED=/root/autodl-tmp/camp_dp_redesigned_atom_separability_7e18eee/redesigned_atom_separability.json
+OUT=/root/autodl-tmp/camp_dp_candidate_set_observable_support_6b18e9f
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_candidate_set_observable_support.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --redesigned_atom_separability_json "$REDESIGNED" \
+  --fail_on_formal_seeds \
+  --label 6b18e9f_diverse_nonformal \
+  --output_json "$OUT/candidate_set_observable_support.json" \
+  --output_md "$OUT/candidate_set_observable_support.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_candidate_set_observable_support_6b18e9f/candidate_set_observable_support.json` | `f8f577186deb77873cae092dd605dfef41162c4415de84e83879ff6a64e9b430` |
+| `/root/autodl-tmp/camp_dp_candidate_set_observable_support_6b18e9f/candidate_set_observable_support.md` | `20dd9ea30b5eabdb5c5f8bc5025677ff87d4226d423567d732f07cbcbe7513d2` |
+
+Gate result:
+
+```text
+status=candidate_set_observable_support_rejected
+primary_bottleneck=missing_observable_state_or_descriptor_information
+authorized_next_work=None
+records=21600
+candidate_rows=172800
+formal_seed_records=0
+eligible_oracle_records=2060
+eligible_oracle_record_rate=0.09537037037037037
+safety_improving_records=7304
+safety_improving_record_rate=0.33814814814814814
+tradeoff_only_records=5244
+tradeoff_only_record_rate=0.2427777777777778
+no_safety_improvement_records=14296
+no_safety_improvement_record_rate=0.6618518518518518
+eligible_oracle_candidate_rows=3561
+eligible_oracle_candidate_rate=0.02060763888888889
+```
+
+Best visible-feature rows:
+
+| Feature | Direction | AUC | Top1 oracle capture | Top3 oracle capture |
+| --- | --- | ---: | ---: | ---: |
+| `opportunity_deficit:top1_shape_gain` | `low` | `0.658386` | `0.404369` | `0.649029` |
+| `descriptor:top1_shape_gain` | `low` | `0.597909` | `0.344175` | `0.657767` |
+| `descriptor:absolute_lateral_mps2` | `low` | `0.584481` | `0.328155` | `0.656796` |
+| `redesigned:absolute_lateral_load_v1` | `low` | `0.584481` | `0.328155` | `0.656796` |
+| `descriptor:speed_loss_mps` | `low` | `0.581921` | `0.353398` | `0.644175` |
+| `redesigned:support_loss_composite_v2` | `low` | `0.580825` | `0.352427` | `0.644175` |
+| `redesigned:shape_comfort_conflict_v1` | `low` | `0.577918` | `0.378641` | `0.690291` |
+| `material:top1_shape_deviation` | `low` | `0.568751` | `0.387864` | `0.668447` |
+
+Eligible-oracle summaries:
+
+| Metric | n | mean | p10 | p50 | p90 | max |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| best oracle safety delta | `2060` | `-0.211883` | `-0.147110` | `-0.022211` | `-0.002401` | `-0.000059` |
+| best oracle progress delta | `2060` | `1.441036` | `-0.030173` | `0.057126` | `0.477336` | `99.591635` |
+
+Interpretation:
+
+The candidate set is not completely empty of CAMP opportunity: `2060/21600`
+records contain at least one feasible, nonselected candidate with lower safety
+cost, no hard outcome worsening, and DP progress loss within `0.05 m`. However,
+the best currently logged runtime-visible scalar,
+`opportunity_deficit:top1_shape_gain`, misses the predeclared accept criteria:
+best AUC `0.658386 < 0.70` and Top-1 oracle capture
+`0.404369 < 0.50`. This is different from a pure candidate-set support failure.
+There are eligible alternatives, but the available descriptors do not make them
+observable enough for a safe finite-candidate CAMP selector or robust weight
+screen.
+
+Decision:
+
+Reject this observable-support screen. Do not run another material/redefined
+atom weight threshold screen, replay, Full36, formal seeds, online selector
+promotion, DP modification, or CAMP retraining from these descriptors. The next
+useful gate should inspect what no-leak current-tick state is missing from the
+selection logs or current atom schema: candidate-lane topology, traffic-light
+state relative to candidate path, route curvature/turn context, neighbor
+clearance and interaction context, or bucket-conditioned state that could be
+computed before outcome labels. If those signals are unavailable in existing
+logs, the next admissible step is a default-off logging/preflight design, not a
+selector.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. The audit computes
+runtime-visible candidate descriptors before any closed-loop outcome label is
+consulted. Closed-loop outcomes are used only offline to define eligible oracle
+labels and evaluate support. If any future descriptor is atomized, it is a fixed
+finite-candidate coefficient `a_k`, so CAMP scoring remains affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 master remains convex in `w`. This
+audit does not claim trajectory-coordinate convexity and does not construct a
+DP-side classical Benders decomposition, dual, or valid cut.
