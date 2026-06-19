@@ -26438,3 +26438,152 @@ construct a Benders master/subproblem, dual, or cuts. CAMP remains valid only
 if any future support diagnostic is atomized as fixed finite-candidate
 constants, preserving affine scores `a_k^T w` and the convex simplex/CVaR/L2
 master for that fixed candidate set.
+
+### DP Route/Topology Candidate-Support Readiness Gate
+
+Date: 2026-06-19
+
+Status: accept as a read-only readiness gate for the next offline candidate
+augmentation screen. The gate does not prove a new selector, and it does not
+authorize replay, online promotion, Full36, formal seeds, DP modification, or
+CAMP retraining. It only verifies that the fixed non-formal snapshots contain
+route/topology tensors that are complete, finite, and coordinate-compatible
+enough to justify designing a materially new route/topology-aware external
+candidate augmentation screen.
+
+Implementation:
+
+Commit `d0a5e4b3496505ae5386aca575b3220c339921c6` adds:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_topology_support_gate.py
+camp_core/tests/test_diffusion_planner_route_topology_support_gate.py
+```
+
+The analyzer consumes the existing source-donor support artifact and fixed
+snapshot `.npz` files. It checks:
+
+- source-donor route was already rejected as insufficient;
+- `candidates`, `lane_centerline`, `red_route_points`, and
+  `reward_input__route_lanes` exist for each snapshot;
+- tensors are finite;
+- candidate coordinates are compatible with the lane centerline;
+- red route points are compatible with the lane centerline;
+- lane and route-lane spans are long enough to support an 80-step candidate
+  construction screen.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_route_topology_support_gate.py \
+  camp_core\tests\test_diffusion_planner_route_topology_support_gate.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_route_topology_support_gate.py \
+  camp_core\tests\test_diffusion_planner_source_donor_support_gate.py -q
+
+git diff --check
+
+Result: 8 passed
+```
+
+Synchronization:
+
+Local/GitHub/AutoDL CAMP were advanced to:
+
+```text
+d0a5e4b3496505ae5386aca575b3220c339921c6
+```
+
+The fixed AutoDL DP checkout remained:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_topology_support_gate.py \
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py \
+  camp_core/tests/test_diffusion_planner_source_donor_support_gate.py -q
+
+Result: 8 passed
+```
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_support_gate_d0a5e4b
+
+$PY scripts/integrations/analyze_diffusion_planner_route_topology_support_gate.py \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --source_donor_support_json "$ROOT/source_donor_support_gate_48a8421/source_donor_support_gate.json" \
+  --label seed2_npc4_tlon_route_topology_support_d0a5e4b \
+  --output_json "$OUT/route_topology_support_gate.json" \
+  --output_md "$OUT/route_topology_support_gate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_support_gate_d0a5e4b/route_topology_support_gate.json` | `93aa8fd7e869f6e393c745793e78794d73f5dfce5fe85e65db51562bfe0e2634` |
+| `route_topology_support_gate_d0a5e4b/route_topology_support_gate.md` | `8a570fd821694b9801b2a2ff900778807c52ee3f79ec93389213763ba83d3089` |
+
+Result:
+
+```text
+status=route_topology_candidate_design_ready
+snapshots=57
+ready_snapshots=57
+ready_snapshot_rate=1.0
+candidate_lane_p95_max_m=1.3189884658710742
+red_lane_p95_max_m=0
+lane_span_min_m=202.59717139749466
+route_lane_span_min_m=316.05854018479806
+offline_candidate_augmentation_screen_authorized=True
+```
+
+Interpretation:
+
+The field readiness problem is not the current blocker. All 57 fixed snapshots
+contain route/topology tensors in the same coordinate frame as the candidates,
+with enough lane and route-lane span for an offline 80-step construction
+screen. This is materially different from the rejected routes because the next
+screen would not choose among existing DP candidates or retune bridge geometry;
+it would construct deterministic current-tick candidates from route/lane/red
+topology, then recompute DP reward, hard feasibility, progress, comfort, and
+latency before any replay.
+
+Decision:
+
+Accept this readiness gate only for the next offline analyzer. The next coding
+step is a default-off route/topology-aware candidate augmentation screen over
+the same fixed non-formal snapshots. It must materialize deterministic
+current-tick candidates, prove no future outcome leakage, recompute DP hard
+feasibility and reward metrics, and reject if lower-red hard-feasible
+comfort-admissible support remains below the predeclared threshold.
+
+Mathematical boundary:
+
+This gate only inspects fixed current-tick snapshot tensors. It does not
+modify DP, train CAMP, add atoms, run replay, or construct a DP-side Benders
+master/subproblem, dual, or cuts. A later route/topology candidate
+augmentation, if implemented, must produce deterministic fixed finite
+candidates from current-tick route/map tensors only. CAMP scores remain affine
+`a_k^T w`, and the simplex/CVaR/L2 robust master remains convex for that fixed
+finite candidate set.
