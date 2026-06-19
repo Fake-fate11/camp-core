@@ -31,7 +31,7 @@ def _contract(
             else "disabled_for_camp_candidate_generation"
         ),
         "candidate0_guidance_policy": (
-            "separate_unguided_forward"
+            "full_batch_unguided_forward"
             if guidance_enabled
             else "single_unguided_forward"
         ),

@@ -287,7 +287,7 @@ def test_candidate_generation_contract_records_enabled_guidance() -> None:
     )
     assert contract["guidance"]["config_sha256"] == "abc"
     assert contract["guidance"]["active_function_names"] == ["route_following"]
-    assert contract["candidate0_guidance_policy"] == "separate_unguided_forward"
+    assert contract["candidate0_guidance_policy"] == "full_batch_unguided_forward"
     assert contract["guided_candidate_indices"] == [1, 7]
     assert contract["candidate0_preservation_structural"]
     assert contract["noise_strategy"] == "antithetic"

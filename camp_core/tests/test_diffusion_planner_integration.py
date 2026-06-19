@@ -943,7 +943,7 @@ def test_candidate_generation_can_preserve_candidate0_under_guidance() -> None:
     )
 
     assert model.calls == [
-        {"batch": 1, "guidance": None, "grad_enabled": False},
+        {"batch": 3, "guidance": None, "grad_enabled": False},
         {"batch": 2, "guidance": guidance, "grad_enabled": True},
     ]
     assert model.decoder._guidance_fn is guidance

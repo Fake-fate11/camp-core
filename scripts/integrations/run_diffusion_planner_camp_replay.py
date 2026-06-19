@@ -2467,7 +2467,7 @@ def _candidate_generation_contract(
         "deterministic_first": True,
         "candidate0_latent": "zeros",
         "candidate0_guidance_policy": (
-            "separate_unguided_forward"
+            "full_batch_unguided_forward"
             if bool(guidance_payload.get("enabled", False))
             else "single_unguided_forward"
         ),

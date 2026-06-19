@@ -3414,9 +3414,12 @@ def generate_candidate_trajectories(
         try:
             decoder._guidance_fn = None
             with torch.no_grad():
-                _, candidate0_outputs = model(
-                    _slice_batch_inputs(expanded, start=0, stop=1)
-                )
+                _, unguided_outputs = model(expanded)
+            candidate0_outputs = _slice_model_outputs(
+                unguided_outputs,
+                start=0,
+                stop=1,
+            )
             if num_candidates > 1:
                 decoder._guidance_fn = original_guidance
                 with torch.enable_grad():
@@ -3496,6 +3499,28 @@ def _concat_model_outputs(
         ):
             outputs[key] = torch.cat([first_value, second_value], dim=0)
     return outputs
+
+
+def _slice_model_outputs(
+    outputs: dict[str, Any],
+    *,
+    start: int,
+    stop: int | None,
+) -> dict[str, Any]:
+    try:
+        import torch
+    except ImportError as exc:
+        raise RuntimeError("Diffusion-Planner candidate generation requires torch.") from exc
+
+    sliced = dict(outputs)
+    prediction = outputs.get("prediction")
+    if not isinstance(prediction, torch.Tensor) or prediction.ndim < 1:
+        raise ValueError("Diffusion-Planner outputs must contain batched prediction.")
+    batch_size = int(prediction.shape[0])
+    for key, value in outputs.items():
+        if isinstance(value, torch.Tensor) and value.shape[:1] == (batch_size,):
+            sliced[key] = value[start:stop].contiguous()
+    return sliced
 
 
 def blend_candidate_prefix_with_reference(
