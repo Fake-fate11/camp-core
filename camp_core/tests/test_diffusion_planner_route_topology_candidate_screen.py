@@ -220,6 +220,58 @@ def test_route_topology_generator_preserves_prefix_for_lane_projected_policy() -
     assert generated[0, -1, 0] <= meta[0]["stop_distance_m"] + 1e-9
 
 
+def test_route_topology_generator_latest_safe_delays_stop_boundary() -> None:
+    horizon = 80
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.5, 40.0, horizon)
+    candidates[0, :, 1] = 1.0
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 60.0, 66)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red_x = np.linspace(20.0, 24.0, 5)
+    red = np.column_stack([red_x, np.zeros_like(red_x)])
+
+    common = dict(
+        red_stop_margins_m=(2.0,),
+        backup_stop_offsets_m=(0.0,),
+        lane_projected_offset_scales=(0.5,),
+        prefix_steps=(5,),
+        bridge_steps=(10,),
+    )
+    latest, latest_meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=5.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="prefix_lane_projected_latest_safe_red_stop",
+            **common,
+        ),
+    )
+    decel, _ = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=5.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="prefix_lane_projected_red_stop",
+            **common,
+        ),
+    )
+
+    assert latest.shape == (1, horizon, 4)
+    assert latest_meta[0]["variant"] == "prefix_lane_projected_latest_safe_red_stop"
+    assert latest_meta[0]["prefix_steps"] == 5
+    assert latest_meta[0]["lateral_offset_scale"] == 0.5
+    np.testing.assert_allclose(latest[0, :5, :2], candidates[0, :5, :2])
+    assert latest[0, -1, 0] <= latest_meta[0]["stop_distance_m"] + 1e-9
+    assert latest[0, 20, 0] >= decel[0, 20, 0] + 1.0
+
+
 def test_route_topology_generator_returns_empty_without_red_ahead() -> None:
     candidates = np.zeros((1, 20, 4), dtype=float)
     candidates[:, :, 2] = 1.0
