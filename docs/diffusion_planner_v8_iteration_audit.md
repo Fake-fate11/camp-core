@@ -23962,3 +23962,166 @@ only current-tick descriptors, fail closed to current CAMP when descriptors are
 missing or the admissible set is empty, and prove lower SafetyCost without
 hard-outcome, progress, jerk, lateral, fallback, or latency regressions before
 any default-off online selector or replay is considered.
+
+### DP Descriptor-Only Offline Selector Screen
+
+Date: 2026-06-19
+
+Status: reject the descriptor-only finite-selector route from the current
+descriptor set. The screen is a useful negative gate: it proves that the
+current acceleration/jerk/lateral/DP-prior atom descriptors can select many
+non-baseline candidates, but they do not prove lower SafetyCost without
+progress regression. This does not authorize online selector promotion,
+closed-loop smoke, Full36, formal seeds, DP changes, or CAMP retraining.
+
+Commit `7d1f83f8d77b7d63a5e1181bec304db955c10e9f` adds a read-only
+predeclared selector screen:
+
+```text
+scripts/integrations/analyze_diffusion_planner_descriptor_selector_screen.py
+camp_core/tests/test_diffusion_planner_descriptor_selector_screen.py
+```
+
+The screen uses only current-tick fixed finite-candidate descriptors:
+feasibility, planned progress, target speed, logged affine CAMP score,
+normalized atom deltas, atom contribution margins, and protective margins.
+It fails closed to the logged current CAMP selection whenever the candidate set
+has no feasible branch, required score-schema atoms are missing, or no
+non-selected candidate passes the predeclared descriptor guards. Posterior
+candidate outcomes are used only after deterministic selection for offline
+SafetyCost/progress/comfort evaluation.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_candidate_support_quality.py \
+  scripts\integrations\analyze_diffusion_planner_candidate_descriptor_audit.py \
+  scripts\integrations\analyze_diffusion_planner_descriptor_selector_screen.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_candidate_support_quality.py \
+  camp_core\tests\test_diffusion_planner_candidate_descriptor_audit.py \
+  camp_core\tests\test_diffusion_planner_descriptor_selector_screen.py -q
+
+git diff --cached --check
+
+Result: 10 passed
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin
+git merge --ff-only origin/main
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_support_quality.py \
+  scripts/integrations/analyze_diffusion_planner_candidate_descriptor_audit.py \
+  scripts/integrations/analyze_diffusion_planner_descriptor_selector_screen.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_support_quality.py \
+  camp_core/tests/test_diffusion_planner_candidate_descriptor_audit.py \
+  camp_core/tests/test_diffusion_planner_descriptor_selector_screen.py -q
+
+Result: 10 passed
+```
+
+AutoDL analysis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=$ROOT/descriptor_selector_screen_7d1f83f
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_descriptor_selector_screen.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_descriptor_selector_screen_7d1f83f \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/descriptor_selector_screen.json" \
+  --output_md "$OUT/descriptor_selector_screen.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `descriptor_selector_screen_7d1f83f/descriptor_selector_screen.json` | `c4cbb104fc9ac4ffa672521234f9dbc6907eb2353e3856fbddf44767033de756` |
+| `descriptor_selector_screen_7d1f83f/descriptor_selector_screen.md` | `969212c13a30919547e1de2deee695c5b15e773fca015747e0879027901fde72` |
+
+Record summary:
+
+| Metric | Value |
+| --- | ---: |
+| Total records | `21600` |
+| Logs | `108` |
+| Formal seed records | `0` |
+| Dense lane-change records | `2400` |
+| Normal records | `19200` |
+| Score-schema records | `21600` |
+| Fallback records | `4979` |
+| Candidate count values | `8` |
+
+Screen results:
+
+| Screen | Changed | Dense changed | Dense Safety CI high | Dense progress CI low | Dense jerk CI high | Dense lateral CI high | Dense hard nonworse | Gate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `strict_comfort_atom_guard` | `8198` | `351` | `+0.002679` | `-0.095487` | `-0.041938` | `-0.002007` | `1.000000` | fail |
+| `balanced_comfort_atom_guard` | `8205` | `351` | `+0.002679` | `-0.095487` | `-0.041938` | `-0.002007` | `1.000000` | fail |
+| `score_tight_comfort_atom_guard` | `8217` | `544` | `+0.003561` | `-0.069401` | `+0.000044` | `-0.002500` | `1.000000` | fail |
+
+Aggregate failures:
+
+```text
+all_progress_regression
+all_safety_not_proven
+dense_jerk_regression
+dense_progress_regression
+dense_safety_not_proven
+```
+
+Interpretation:
+
+1. The current descriptor set is deployable in the narrow no-leakage sense:
+   all selected quantities are current-tick finite candidate constants, all
+   score-schema fields are present, and the rule fails closed on fallback or
+   empty-admissible records.
+2. The descriptor filters are not too sparse. They select `8198` to `8217`
+   changed records overall and `351` to `544` dense lane-change records.
+3. The offline proof gate still fails. Dense SafetyCost CI high remains
+   positive (`+0.002679` to `+0.003561`), and dense progress CI low is below
+   the predeclared `-0.05 m` budget (`-0.095487` or `-0.069401`). The
+   `score_tight_comfort_atom_guard` also has a small positive dense jerk CI
+   high (`+0.000044`).
+4. Hard outcomes are nonworse in this screen (`1.000000`), and lateral CI high
+   is negative. The blocker is therefore not hard-safety regression; it is that
+   the current no-leak descriptor set still trades progress and does not prove
+   lower SafetyCost versus current CAMP.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. Selector inputs are fixed
+current-tick finite-candidate quantities: feasibility, planned progress, target
+speed, logged affine CAMP score, normalized atom deltas, atom contribution
+margins, and protective margins. Posterior outcomes are evaluation labels only.
+CAMP scoring remains affine `a_k^T w`, and the simplex/CVaR/L2 robust master
+remains convex. This is not classical Benders decomposition because no DP-side
+master/subproblem, dual, or valid cuts are constructed.
+
+Decision:
+
+Reject this fixed-DP descriptor-only selector route from the current descriptor
+set. Do not run online selector promotion, closed-loop smoke, Full36, formal
+seeds, DP changes, or CAMP retraining from this evidence. The next admissible
+work is candidate/postprocess support analysis under the same frozen-DP
+boundary: inspect whether the failure comes from postprocess/reference
+smoothing, candidate feasibility/fallback transfer, or missing current-tick
+descriptors not yet logged. Any new descriptor must be justified as a
+current-tick finite candidate constant before atomization or selector use.
