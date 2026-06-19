@@ -29806,3 +29806,178 @@ so `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
 convex in `w`. This audit does not claim trajectory-coordinate convexity and
 does not construct a DP-side classical Benders decomposition, dual, or valid
 cut.
+
+## Observable State Logging Preflight Design (`7865649`)
+
+Date: 2026-06-19
+
+Status: accept the design-only preflight for default-off observable-state
+logging. The preceding inventory showed that existing logs do not contain the
+new candidate-level state needed to diagnose the remaining oracle opportunities.
+This gate specifies a no-leak logging schema, checks that current wrapper code
+has the required source hooks, and confirms that the proposed fields have no
+selection effect, use no future outcomes, and require no DP modification. It
+does not implement logging, run replay, promote a selector, train weights, or
+authorize formal seeds.
+
+Commit:
+
+```text
+78656490da49270e42431ed940628b9cc06b9b92 Add DP CAMP observable state logging design gate
+```
+
+Files:
+
+```text
+scripts/integrations/design_diffusion_planner_observable_state_logging.py
+camp_core/tests/test_diffusion_planner_observable_state_logging_design.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/design_diffusion_planner_observable_state_logging.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_design.py \
+  camp_core/tests/test_diffusion_planner_observable_state_inventory.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_observable_support.py \
+  camp_core/tests/test_diffusion_planner_redesigned_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `38 passed`.
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle from `89aaa19d` to
+`78656490da49270e42431ed940628b9cc06b9b92`. CAMP reached the same commit and
+the fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/design_diffusion_planner_observable_state_logging.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_design.py \
+  camp_core/tests/test_diffusion_planner_observable_state_inventory.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_observable_support.py \
+  camp_core/tests/test_diffusion_planner_redesigned_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `38 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+INVENTORY=/root/autodl-tmp/camp_dp_observable_state_inventory_3cca688/observable_state_inventory.json
+OUT=/root/autodl-tmp/camp_dp_observable_state_logging_design_7865649
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/design_diffusion_planner_observable_state_logging.py \
+  --observable_state_inventory_json "$INVENTORY" \
+  --label 7865649_design_only \
+  --output_json "$OUT/observable_state_logging_design.json" \
+  --output_md "$OUT/observable_state_logging_design.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_design_7865649/observable_state_logging_design.json` | `1744c2bdb5e4c3bd2f27673911ad321313d44ffe6cc1ccc77dc64d6b8a35f896` |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_design_7865649/observable_state_logging_design.md` | `345bad1a08958c897393546942c430f9570dd861f3f9a9ae95af5ab42395ced2` |
+
+Gate result:
+
+```text
+status=observable_state_logging_preflight_design_ready
+primary_bottleneck=default_off_logging_design_ready
+authorized_next_work=default_off_logging_preflight_implementation_unit_tests_only
+source_passed=True
+design_passed=True
+missing_required_families=[]
+missing_source_hooks=[]
+invalid_fields=[]
+families=[
+  "candidate_lane_topology",
+  "candidate_traffic_light_path_relation",
+  "neighbor_interaction_clearance",
+  "route_curvature_turn_context"
+]
+```
+
+Proposed default-off fields:
+
+| Field | Family | Shape | Latency bucket |
+| --- | --- | --- | --- |
+| `candidate_route_segment_index` | `candidate_lane_topology` | `[K,H_support]` | `latency_ms_observable_state_route_topology` |
+| `candidate_route_projection_s_m` | `candidate_lane_topology` | `[K,H_support]` | `latency_ms_observable_state_route_topology` |
+| `candidate_route_lateral_error_m` | `candidate_lane_topology` | `[K,H_support]` | `latency_ms_observable_state_route_topology` |
+| `candidate_red_stopline_distance_m` | `candidate_traffic_light_path_relation` | `[K,H_tl]` | `latency_ms_observable_state_traffic_light_relation` |
+| `candidate_red_heading_alignment` | `candidate_traffic_light_path_relation` | `[K,H_tl]` | `latency_ms_observable_state_traffic_light_relation` |
+| `candidate_route_heading_change_rad` | `route_curvature_turn_context` | `[K,H_turn-1]` | `latency_ms_observable_state_route_turn` |
+| `route_curvature_context_abs` | `route_curvature_turn_context` | `[H_turn-1]` | `latency_ms_observable_state_route_turn` |
+| `candidate_min_obstacle_clearance_lower_bound_m` | `neighbor_interaction_clearance` | `[K]` | `latency_ms_observable_state_neighbor_clearance` |
+| `candidate_obstacle_slot_count` | `neighbor_interaction_clearance` | `[K]` | `latency_ms_observable_state_neighbor_clearance` |
+
+Source-hook checks:
+
+| Hook | Source | Found |
+| --- | --- | --- |
+| `candidate_generation_available` | replay wrapper | `True` |
+| `route_projection_available` | replay wrapper | `True` |
+| `red_route_points_available` | replay wrapper | `True` |
+| `neighbor_prediction_available` | replay wrapper | `True` |
+| `selection_log_append_available` | replay wrapper | `True` |
+| `clearance_diagnostic_available` | CAMP integration | `True` |
+| `route_lane_context_available` | CAMP integration | `True` |
+
+Interpretation:
+
+The design is implementable inside the CAMP wrapper without changing DP: the
+candidate trajectories, route centerline, red route points, neighbor predictions
+and selection-log append site are already present. The missing piece is a
+default-off logging block that computes these descriptors before
+`candidate_closed_loop_outcomes` are collected, records finite coverage, and
+accounts latency separately. The design deliberately avoids lanelet ID claims;
+`candidate_route_segment_index` is a route-centerline segment index and a
+topology proxy, not an Autoware/Lanelet ID.
+
+Decision:
+
+Accept the design-only gate. The next authorized work is implementation with
+unit tests only: add a default-off logging/preflight path, schema metadata,
+shape/finite checks, no-outcome-leakage tests, and latency fields. Replay,
+Full36, formal seeds, online selector promotion, DP changes, and CAMP retraining
+remain blocked until a later implementation gate passes and explicitly
+authorizes a nonformal smoke.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. The proposed logging fields
+are computed from fixed current-tick candidates, route state, traffic-light route
+points, and predicted neighbor state before closed-loop outcome labels are
+consulted. They do not affect candidate generation, feasibility, scoring, or
+selection. If a logged descriptor is later atomized, it is a fixed
+finite-candidate coefficient `a_k`, so CAMP scoring remains affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 master remains convex in `w`. This
+gate does not claim trajectory-coordinate convexity and does not construct a
+DP-side classical Benders decomposition, dual, or valid cut.
