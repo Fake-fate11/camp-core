@@ -24895,3 +24895,160 @@ Accept implementation of only a default-off candidate availability/diversity
 diagnostic with metadata and baseline preservation checks. Do not run
 closed-loop replay, online promotion, Full36, formal seeds, or CAMP retraining
 from this gate alone.
+
+### DP Mode-Seeking Candidate Availability Diagnostic
+
+Date: 2026-06-19
+
+Status: accept the diagnostic implementation, but reject the available existing
+route-lane guidance smoke as evidence for advancing. The diagnostic is now
+available for future default-off candidate-generation experiments, but the
+only existing paired guided smoke fails the predeclared availability gate.
+
+Commits:
+
+```text
+f5bdc395d3a1c4976c27feeddeae2002605f44d3 Add DP mode-seeking candidate availability diagnostic
+c3c1b97f3b1c9ac520420cfcf529f402c52056f8 Harden DP mode-seeking availability contract gate
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_mode_seeking_candidate_availability.py
+camp_core/tests/test_diffusion_planner_mode_seeking_candidate_availability.py
+```
+
+The diagnostic compares an unguided baseline `camp_selection_log.json` against
+a guided candidate `camp_selection_log.json`. It requires the candidate log to
+declare `candidate_generation_contract.guidance_enabled=True`, the baseline to
+declare `False`, and both logs to be pairable by route, seed, NPC count, and
+record index. It checks:
+
+1. candidate0 preservation against the unguided Top-1 prefix;
+2. endpoint pairwise diversity and diversity gain over baseline;
+3. mode-count diversity;
+4. non-Top1 dense lane-change support under the predeclared progress, speed,
+   jerk, and lateral budgets;
+5. latency p95;
+6. absence of formal seeds;
+7. fixed-DP-weight and unchanged-CAMP-score contract fields.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_mode_seeking_candidate_availability.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_mode_seeking_candidate_availability.py \
+  camp_core\tests\test_diffusion_planner_mode_seeking_candidate_gate.py \
+  camp_core\tests\test_diffusion_planner_candidate_generation_controls.py -q
+
+git diff --check
+
+Result: 9 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle
+`/tmp/camp_core_c3c1b97.bundle`, advancing both `HEAD` and `origin/main` to
+`c3c1b97f3b1c9ac520420cfcf529f402c52056f8`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_mode_seeking_candidate_availability.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_mode_seeking_candidate_availability.py \
+  camp_core/tests/test_diffusion_planner_mode_seeking_candidate_gate.py \
+  camp_core/tests/test_diffusion_planner_candidate_generation_controls.py -q
+
+Result: 9 passed
+```
+
+Existing-smoke diagnostic command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/mode_seeking_candidate_availability_smoke_c3c1b97
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_mode_seeking_candidate_availability.py \
+  --baseline_selection_log /root/autodl-tmp/camp_dp_guidance_route_lane_smoke_baseline_seed101_219e9f6/camp_selection_log.json \
+  --candidate_selection_log /root/autodl-tmp/camp_dp_guidance_route_lane_smoke_seed101_219e9f6/camp_selection_log.json \
+  --label route_lane_guidance_seed101_existing_smoke_c3c1b97 \
+  --output_json "$OUT/mode_seeking_candidate_availability.json" \
+  --output_md "$OUT/mode_seeking_candidate_availability.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `mode_seeking_candidate_availability_smoke_c3c1b97/mode_seeking_candidate_availability.json` | `6642648e987aaba12eaeb206e1b4c5fa1a6d7a74e3f10824939fa45751d79949` |
+| `mode_seeking_candidate_availability_smoke_c3c1b97/mode_seeking_candidate_availability.md` | `dcc3ea2237f25bd64d5307e15a187f9a031a8280b7d3e4a704bd59f272831db3` |
+
+Existing-smoke result:
+
+```text
+status=mode_seeking_candidate_availability_rejected
+paired_records=3
+candidate_endpoint_pairwise_mean_m=0.42330248101823575
+endpoint_pairwise_mean_gain_m=0.02678161925823469
+candidate_mode_count_mean=2.6666666666666665
+candidate0_preservation_max_abs_xy_m=0.27292728424072266
+dense_lane_change_support_rate=0.0
+latency_p95_ms=349.2978793568909
+```
+
+Gate values:
+
+```text
+candidate0_preserved=False
+endpoint_gain_pass=False
+endpoint_pairwise_mean_pass=False
+mode_count_pass=True
+non_top1_dense_lane_change_support_pass=False
+latency_p95_pass=False
+formal_seeds_absent=True
+fixed_dp_weights=True
+camp_score_unchanged=True
+```
+
+Interpretation:
+
+1. The analyzer is usable and enforces the required mathematical/contract
+   boundary.
+2. The existing route-lane guidance smoke is not a valid candidate-generation
+   advance: it changes candidate0 by about `0.273 m`, has too little endpoint
+   diversity gain, has no dense lane-change support evidence, and is far above
+   the `100 ms` p95 latency limit.
+3. This failure does not reject all future mode-seeking candidate generation;
+   it rejects this already-existing smoke as support for advancement.
+
+Mathematical boundary:
+
+The diagnostic is outcome-free and uses only current-tick finite candidate
+prefixes, feasibility masks, progress/speed/comfort proxies, latency metadata,
+and candidate-generation contracts. Candidate generation remains outside the
+convex master as a finite candidate-set variant under fixed DP weights. CAMP
+scores remain affine `a_k^T w`, and the simplex/CVaR/L2 robust master remains
+convex. This is not classical Benders decomposition.
+
+Decision:
+
+Do not run closed-loop replay, online promotion, Full36, formal seeds, or CAMP
+retraining. The next admissible step is to make candidate0 preservation
+structural in the mode-seeking generator, e.g. by preserving guidance-disabled
+candidate0 and applying guidance/prototype steering only to candidates
+`1..K-1`, then rerun this same availability diagnostic on a dense lane-change
+non-formal candidate-generation artifact.
