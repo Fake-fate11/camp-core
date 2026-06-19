@@ -24467,3 +24467,153 @@ admissible path is not another threshold over the same descriptor family; it is
 to return to candidate-generation/postprocess support or design a materially
 new no-leak atom family with a clearer convex/nonnegative definition before any
 offline selector screen.
+
+### DP Support Bottleneck Synthesis
+
+Date: 2026-06-19
+
+Status: accept the synthesis and reject more threshold tuning over the current
+fixed-DP selector descriptor family. This is not a rejection of the whole
+CAMP-on-DP program; it is a gate saying that the already-tested no-leak guards,
+descriptor-only screens, and postprocess/tracker descriptors are exhausted on
+the current non-formal evidence. The next admissible work must be either a
+materially new no-leak atom/schema definition or a candidate-generation/
+postprocess support design.
+
+Commit `0fe5a24ef10de3913adb26b5aa23944706024d45` adds a read-only synthesis
+tool:
+
+```text
+scripts/integrations/summarize_diffusion_planner_support_bottleneck.py
+camp_core/tests/test_diffusion_planner_support_bottleneck_summary.py
+```
+
+The tool consumes existing JSON artifacts only. It does not run DP, generate
+new candidate trajectories, train CAMP, change online selection, run Full36, or
+use formal seeds. It requires all four source diagnostics to agree before
+claiming the current selector-calibration route is exhausted:
+
+1. candidate support quality:
+   `no_leak_guarded_candidate_support_insufficient`;
+2. descriptor-only screen:
+   `descriptor_only_offline_screen_rejected`;
+3. materiality gap:
+   `postprocess_or_tracker_descriptor_gap_present`;
+4. postprocess/tracker descriptor audit:
+   `postprocess_tracker_descriptor_signal_insufficient`.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\summarize_diffusion_planner_support_bottleneck.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_support_bottleneck_summary.py \
+  camp_core\tests\test_diffusion_planner_postprocess_tracker_descriptor_audit.py -q
+
+git diff --check
+
+Result: 5 passed
+```
+
+AutoDL synchronization note:
+
+AutoDL could not fetch GitHub directly during this gate because HTTPS access to
+`github.com:443` timed out. To preserve exact commit identity, a local Git
+bundle was created for `main ^a136fcb612c4baec3b5ea27a9541026f1d3ebdee`,
+uploaded to `/tmp/camp_core_0fe5a24.bundle`, verified with `git bundle verify`,
+and merged with `git merge --ff-only FETCH_HEAD`. The same bundle was used to
+advance the remote tracking ref `origin/main`. AutoDL HEAD and `origin/main`
+then both resolved to `0fe5a24ef10de3913adb26b5aa23944706024d45`.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/summarize_diffusion_planner_support_bottleneck.py \
+  scripts/integrations/analyze_diffusion_planner_postprocess_tracker_descriptor_audit.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_support_bottleneck_summary.py \
+  camp_core/tests/test_diffusion_planner_postprocess_tracker_descriptor_audit.py -q
+
+Result: 5 passed
+```
+
+AutoDL synthesis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/support_bottleneck_synthesis_0fe5a24
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/summarize_diffusion_planner_support_bottleneck.py \
+  --support_quality_json "$ROOT/candidate_support_quality_maskfix_823d08b/candidate_support_quality.json" \
+  --descriptor_screen_json "$ROOT/descriptor_selector_screen_7d1f83f/descriptor_selector_screen.json" \
+  --materiality_gap_json "$ROOT/materiality_gap_e93ab1f/materiality_gap.json" \
+  --postprocess_tracker_json "$ROOT/postprocess_tracker_descriptor_audit_b2438c7/postprocess_tracker_descriptor_audit.json" \
+  --label diverse_nonformal_support_bottleneck_synthesis_0fe5a24 \
+  --output_json "$OUT/support_bottleneck_synthesis.json" \
+  --output_md "$OUT/support_bottleneck_synthesis.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `support_bottleneck_synthesis_0fe5a24/support_bottleneck_synthesis.json` | `07c449b8639d2f853b30b75ca7dfe655172ceacbcd362bb589b048a4e1fcecff` |
+| `support_bottleneck_synthesis_0fe5a24/support_bottleneck_synthesis.md` | `20aa6b445f0fb4c6ee2e082a1164d0bb00edd80a034ac8f8c38e1e8f42412e3c` |
+
+Gate metrics:
+
+| Metric | Value |
+| --- | ---: |
+| Dense outcome-support improvement rate | `0.101667` |
+| Dense strict-guarded improvement rate | `0.189583` |
+| Materiality oracle donor rate | `0.560857` |
+| Materiality raw jerk improvement rate | `0.717979` |
+| Materiality tracker jerk improvement rate | `0.514053` |
+| Materiality rollout H3 jerk improvement rate | `0.625188` |
+| Postprocess raw-gain donor rows | `9322` |
+| Postprocess preserved rows | `724` |
+| Postprocess flipped rows | `8598` |
+| Postprocess preserved rate | `0.077666` |
+| Top descriptor | `rollout_h3_max_vector_jerk_mps3_delta` |
+| Top descriptor standardized separation | `0.632667` |
+
+Final synthesis decision:
+
+```text
+status=current_fixed_dp_selector_calibration_exhausted
+reasons=
+  posterior_support_exists_but_no_leak_guarded_support_insufficient
+  descriptor_only_screen_rejected
+  raw_signal_not_preserved_by_tracker_or_postprocess
+  postprocess_tracker_descriptor_signal_insufficient
+```
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. The synthesis introduces no
+selector inputs, new atoms, DP trajectory-coordinate optimization, or DP-side
+Benders subproblem. It is not classical Benders decomposition. Any future CAMP
+atom must remain a current-tick fixed finite-candidate quantity, preferably
+nonnegative or split into nonnegative signed parts, so the score stays affine
+`a_k^T w` and the simplex/CVaR/L2 master remains convex.
+
+Decision:
+
+Reject more threshold tuning or selector calibration over the current
+descriptor family. Do not run online selector promotion, closed-loop smoke,
+Full36, formal seeds, DP changes, or CAMP retraining from this evidence. The
+next admissible engineering path is to propose a materially new no-leak
+atom/schema family or a candidate-generation/postprocess support design with a
+clear argument for why it avoids the already observed progress loss and
+tracker/postprocess preservation failure.
