@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import numpy as np
+
+import scripts.integrations.analyze_diffusion_planner_route_topology_absolute_comfort_guard as guard_module
 from scripts.integrations.analyze_diffusion_planner_route_topology_absolute_comfort_guard import (
     READY_STATUS,
     REJECT_STATUS,
@@ -131,3 +136,63 @@ def test_absolute_guard_audit_fails_closed_on_source_conflict() -> None:
     assert decision["source_authorization_conflicts"] == [
         "source_screen:full36_authorized"
     ]
+
+
+def test_recompute_rows_skips_empty_generated_screen_rows(monkeypatch) -> None:
+    arrays = {
+        "candidates": np.zeros((1, 4, 4), dtype=float),
+        "lane_centerline": np.zeros((2, 2), dtype=float),
+        "red_route_points": np.zeros((1, 2), dtype=float),
+    }
+    metadata = {
+        "selected_index": 0,
+        "selection_step": 7,
+        "current_speed_mps": 0.0,
+        "dt": 0.1,
+    }
+
+    monkeypatch.setattr(
+        guard_module,
+        "_resolve_snapshot_path",
+        lambda screen_row, snapshot_dir: Path("/fake/camp_microbenchmark_step_0007.npz"),
+    )
+    monkeypatch.setattr(
+        guard_module,
+        "_load_snapshot",
+        lambda snapshot_path: (arrays, metadata),
+    )
+    monkeypatch.setattr(
+        guard_module,
+        "_validate_snapshot",
+        lambda arrays, metadata, snapshot_path: None,
+    )
+    monkeypatch.setattr(
+        guard_module,
+        "build_route_topology_candidates",
+        lambda *args, **kwargs: (np.zeros((0, 4, 4), dtype=float), []),
+    )
+    monkeypatch.setattr(
+        guard_module,
+        "_tracker_diagnostics",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("tracker should not run for empty generated rows")
+        ),
+    )
+
+    rows = guard_module._recompute_rows(
+        screen={
+            "rows": [
+                {
+                    "selection_step": 7,
+                    "candidate_rows": [],
+                }
+            ]
+        },
+        snapshot_dir=Path("/unused"),
+        config=AbsoluteComfortGuardConfig(
+            max_command_lateral_mps2=2.0,
+            max_rollout_lateral_mps2=2.0,
+        ),
+    )
+
+    assert rows == []

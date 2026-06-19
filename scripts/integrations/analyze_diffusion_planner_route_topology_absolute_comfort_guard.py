@@ -244,6 +244,8 @@ def _recompute_rows(
                 f"{snapshot_path} generated {len(generated_meta)} candidates but "
                 f"screen has {len(screen_candidates)} rows."
             )
+        if not screen_candidates:
+            continue
         baseline_tracker = _tracker_diagnostics(
             candidates,
             arrays=arrays,
