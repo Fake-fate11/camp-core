@@ -26587,3 +26587,208 @@ augmentation, if implemented, must produce deterministic fixed finite
 candidates from current-tick route/map tensors only. CAMP scores remain affine
 `a_k^T w`, and the simplex/CVaR/L2 robust master remains convex for that fixed
 finite candidate set.
+
+### DP Route/Topology Candidate Augmentation Screen
+
+Date: 2026-06-19
+
+Status: reject the tested lane-centerline red-stop candidate family for replay
+or online selector promotion. The screen is useful because it proves that
+route/topology generation can create lower-red and DP-hard-feasible candidates,
+but this concrete construction has zero comfort-admissible support under the
+predeclared PerfectTracker budgets.
+
+Implementation:
+
+Commit `53fd5a5b299f24048f24873ba11bc2ed849d0dc4` adds:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+```
+
+The analyzer consumes the prior route/topology readiness artifact and fixed
+snapshot `.npz` files. It materializes deterministic candidates from
+current-tick `lane_centerline`, `red_route_points`, selected baseline state,
+and metadata only. The tested construction follows the lane centerline and
+uses constant-deceleration red-stop profiles with margins `{2,4,6} m` and
+backup offsets `{0,1} m`.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core\tests\test_diffusion_planner_route_topology_support_gate.py \
+  camp_core\tests\test_diffusion_planner_source_donor_support_gate.py -q
+
+git diff --check
+
+Result: 13 passed
+```
+
+Synchronization:
+
+Local/GitHub CAMP were advanced to:
+
+```text
+53fd5a5b299f24048f24873ba11bc2ed849d0dc4
+```
+
+AutoDL was advanced to the same commit via:
+
+```text
+/tmp/camp_core_main_53fd5a5.bundle
+```
+
+The fixed AutoDL DP checkout remained:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py \
+  camp_core/tests/test_diffusion_planner_source_donor_support_gate.py -q
+
+Result: 13 passed
+```
+
+Runtime note:
+
+As with prior DP reward recompute screens, the actual screen must run with
+Python 3.10+ because the fixed DP repository imports modules that use
+`GuidanceComposer | None` syntax. The successful runtime used:
+
+```text
+/root/miniconda3/bin/python
+```
+
+Screen command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/bin/python
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_candidate_screen_53fd5a5
+
+$PY scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --route_topology_gate_json "$ROOT/route_topology_support_gate_d0a5e4b/route_topology_support_gate.json" \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --device cuda \
+  --label seed2_npc4_tlon_route_topology_candidate_screen_53fd5a5 \
+  --output_json "$OUT/route_topology_candidate_screen.json" \
+  --output_md "$OUT/route_topology_candidate_screen.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_candidate_screen_53fd5a5/route_topology_candidate_screen.json` | `a624473632cc87191994707aed9c4d7cabd2e138e2c4b852b393e22476f91427` |
+| `route_topology_candidate_screen_53fd5a5/route_topology_candidate_screen.md` | `d8785643833ed7ec9e7439fb297a5d59e4d762b21065b83bea23f737bcd1045f` |
+
+Result:
+
+```text
+status=route_topology_candidate_support_insufficient
+snapshots=57
+snapshots_with_generated_candidates=21
+generated_candidate_rows=92
+lower_union_red_rows=92
+lower_union_red_hard_feasible_rows=26
+lower_union_red_progress_feasible_rows=22
+lower_union_red_comfort_admissible_rows=0
+hard_feasible_snapshot_support_rate=0.38095238095238093
+comfort_admissible_snapshot_support_rate=0.0
+min_snapshot_support_rate=0.25
+total_p95_ms=48.891244269907475
+```
+
+Failure classes:
+
+```text
+hard_reason_counts={
+  "dp_kinematic": 62,
+  "dp_red_light": 17
+}
+failure_class_counts={
+  "route_topology_comfort_blocked_command_jerk": 22,
+  "route_topology_comfort_blocked_command_lateral": 22,
+  "route_topology_comfort_blocked_progress_loss": 20,
+  "route_topology_comfort_blocked_rollout_distance": 1,
+  "route_topology_comfort_blocked_rollout_jerk": 22,
+  "route_topology_comfort_blocked_rollout_lateral": 22,
+  "route_topology_dp_kinematic": 62,
+  "route_topology_hard_feasible_but_underprogress": 4,
+  "route_topology_red_timing_invalid": 17
+}
+```
+
+Interpretation:
+
+This result is not the same failure as the source-donor gate. The tested
+route/topology construction creates lower-red candidates for every generated
+row and passes the hard-feasible snapshot-support gate at `0.380952`, above
+the predeclared `0.25` threshold. The blocker has moved to transfer quality:
+none of the lower-red candidates are comfort-admissible, with dominant
+PerfectTracker jerk/lateral regressions and frequent progress loss above the
+loose `1.5 m` budget.
+
+The red-light reduction is large:
+
+```text
+selected_to_candidate_reduction mean=35.90217391304348
+selected_to_candidate_reduction p50=39.5
+selected_to_candidate_reduction p95=40.5
+```
+
+But comfort degradation is also large:
+
+```text
+command_jerk_worse_mps3 p50=266.52463248721546
+command_lateral_worse_mps2 p50=2.8752147045719796
+rollout_jerk_worse_mps3 p50=469.51503657813083
+rollout_lateral_worse_mps2 p50=2.716000059364966
+progress_loss_m p50=5.895976543426514
+```
+
+Decision:
+
+Reject this constant-deceleration lane-centerline red-stop family for replay,
+online selector promotion, Full36, formal seeds, DP modification, or CAMP
+retraining. Do not tune red-stop margins as if the issue were threshold
+choice. The next justified gate should be a materially different
+route/topology generator focused on comfort transfer: preserve the selected
+prefix, enforce heading/curvature continuity, and use jerk-bounded or
+PerfectTracker-aware speed profiles before recomputing the same fixed-snapshot
+support metrics.
+
+Mathematical boundary:
+
+Generated candidates are deterministic functions of fixed current-tick
+`lane_centerline`, `red_route_points`, metadata, and the selected baseline
+state. This screen does not modify DP, train CAMP, use future closed-loop
+outcomes, or construct a Benders master/subproblem, dual, or cuts. If these
+diagnostics are later atomized, they must be fixed finite-candidate constants
+so CAMP scores remain affine `a_k^T w`, and the simplex/CVaR/L2 robust master
+remains convex for that fixed finite set.
