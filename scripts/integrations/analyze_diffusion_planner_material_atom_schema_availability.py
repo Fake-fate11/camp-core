@@ -715,7 +715,7 @@ def _log_context(log_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(benchmark, dict):
         benchmark = {}
     route = benchmark.get("route")
-    route_name = Path(str(route)).stem if route is not None else metadata.route
+    route_name = _route_name_for_buckets(route, metadata.route)
     traffic_lights = benchmark.get("traffic_lights")
     if traffic_lights is None:
         traffic_lights = metadata.traffic_light == "on"
@@ -742,6 +742,14 @@ def _log_context(log_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
         "log_path": str(log_path),
         "scenario_buckets": _scenario_buckets(row, manifest),
     }
+
+
+def _route_name_for_buckets(route: Any, metadata_route: str) -> str:
+    if metadata_route and metadata_route != "unknown":
+        return str(metadata_route)
+    if route is None:
+        return "unknown"
+    return Path(str(route)).stem
 
 
 def _normalized_context(context: dict[str, Any]) -> dict[str, Any]:

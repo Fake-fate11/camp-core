@@ -4,6 +4,7 @@ import pytest
 
 from scripts.integrations.analyze_diffusion_planner_material_atom_schema_availability import (
     DEFAULT_REQUIRED_BUCKETS,
+    _route_name_for_buckets,
     analyze_records,
     render_markdown,
 )
@@ -113,6 +114,17 @@ def test_material_atom_schema_availability_skips_scalar_progress_field() -> None
         "candidate_perfect_tracker_target_speed_mps": 1,
         "candidate_step_reach": 1,
     }
+
+
+def test_material_atom_schema_availability_prefers_declared_route_family() -> None:
+    route = "/assets/nishishinjuku_lane_change_route_7_via_8_to_1.pkl"
+
+    assert _route_name_for_buckets(route, "nishishinjuku_lane_change") == (
+        "nishishinjuku_lane_change"
+    )
+    assert _route_name_for_buckets(route, "unknown") == (
+        "nishishinjuku_lane_change_route_7_via_8_to_1"
+    )
 
 
 def test_material_atom_schema_availability_rejects_formal_seed_when_forbidden() -> None:
