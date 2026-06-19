@@ -15,7 +15,12 @@ def _prefix(end_x: float, end_y: float) -> list[list[float]]:
     return [[end_x * step / 4.0, end_y * step / 4.0, 0.0] for step in range(5)]
 
 
-def _contract(*, guidance_enabled: bool) -> dict[str, object]:
+def _contract(
+    *,
+    guidance_enabled: bool,
+    changes_diffusion_planner_weights: bool = False,
+    changes_camp_score: bool = False,
+) -> dict[str, object]:
     return {
         "schema_version": "dp_candidate_generation_contract_v1",
         "num_candidates": 4,
@@ -25,8 +30,8 @@ def _contract(*, guidance_enabled: bool) -> dict[str, object]:
             if guidance_enabled
             else "disabled_for_camp_candidate_generation"
         ),
-        "changes_diffusion_planner_weights": False,
-        "changes_camp_score": False,
+        "changes_diffusion_planner_weights": changes_diffusion_planner_weights,
+        "changes_camp_score": changes_camp_score,
         "noise_strategy": "iid",
         "guidance": {
             "enabled": guidance_enabled,
@@ -45,12 +50,18 @@ def _record(
     prefixes: list[list[list[float]]],
     selected_index: int = 1,
     latency_ms: float = 80.0,
+    changes_diffusion_planner_weights: bool = False,
+    changes_camp_score: bool = False,
 ) -> dict[str, object]:
     return {
         "num_candidates": 4,
         "selected_index": selected_index,
         "feasible_mask": [True, True, True, True],
-        "candidate_generation_contract": _contract(guidance_enabled=guidance_enabled),
+        "candidate_generation_contract": _contract(
+            guidance_enabled=guidance_enabled,
+            changes_diffusion_planner_weights=changes_diffusion_planner_weights,
+            changes_camp_score=changes_camp_score,
+        ),
         "candidate_perfect_tracker_postprocessed_reference_prefix": prefixes,
         "candidate_route_progress": [10.0, 10.0, 9.95, 9.96],
         "candidate_perfect_tracker_target_speed_mps": [4.0, 4.0, 3.95, 3.96],
@@ -117,6 +128,8 @@ def test_mode_seeking_candidate_availability_passes_predeclared_gate(tmp_path) -
     assert decision["closed_loop_smoke_authorized"] is False
     assert decision["camp_retraining_authorized"] is False
     assert decision["gates"]["candidate0_preserved"] is True
+    assert decision["gates"]["fixed_dp_weights"] is True
+    assert decision["gates"]["camp_score_unchanged"] is True
     assert decision["gates"]["non_top1_dense_lane_change_support_pass"] is True
     assert report["dense_lane_change_support"]["support_rate"] == pytest.approx(1.0)
     assert report["spatial_diversity"]["candidate"]["mode_count"]["mean"] >= 2.0
@@ -179,3 +192,44 @@ def test_mode_seeking_candidate_availability_requires_guided_candidate_log(
 
     with pytest.raises(ValueError, match="guidance_enabled=False; expected True"):
         analyze(baseline_paths=[baseline], candidate_paths=[candidate])
+
+
+def test_mode_seeking_candidate_availability_rejects_contract_mutation(
+    tmp_path,
+) -> None:
+    baseline_prefixes = [
+        _prefix(10.0, 0.0),
+        _prefix(10.02, 0.01),
+        _prefix(9.99, -0.01),
+        _prefix(10.01, 0.02),
+    ]
+    candidate_prefixes = [
+        _prefix(10.0, 0.0),
+        _prefix(10.0, 0.0),
+        _prefix(9.95, 0.80),
+        _prefix(9.96, -0.75),
+    ]
+    baseline = _write_run(
+        tmp_path / "baseline",
+        [_record(guidance_enabled=False, prefixes=baseline_prefixes)],
+    )
+    candidate = _write_run(
+        tmp_path / "candidate",
+        [
+            _record(
+                guidance_enabled=True,
+                prefixes=candidate_prefixes,
+                changes_diffusion_planner_weights=True,
+                changes_camp_score=True,
+            )
+        ],
+    )
+
+    report = analyze(baseline_paths=[baseline], candidate_paths=[candidate])
+
+    assert (
+        report["final_decision"]["status"]
+        == "mode_seeking_candidate_availability_rejected"
+    )
+    assert report["final_decision"]["gates"]["fixed_dp_weights"] is False
+    assert report["final_decision"]["gates"]["camp_score_unchanged"] is False

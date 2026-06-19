@@ -137,6 +137,10 @@ def analyze(
     support = _support_report(candidate_records, thresholds)
     latency = _latency_report(candidate_records, thresholds)
     formal = _formal_seed_report([*baseline_records, *candidate_records])
+    contract = {
+        "baseline": _contract_summary(baseline_records),
+        "candidate": _contract_summary(candidate_records),
+    }
     decision = _decision(
         preservation=preservation,
         baseline_spatial=baseline_spatial,
@@ -144,6 +148,7 @@ def analyze(
         support=support,
         latency=latency,
         formal=formal,
+        contract=contract,
         thresholds=thresholds,
     )
 
@@ -178,8 +183,8 @@ def analyze(
             ),
         },
         "guidance_contract": {
-            "baseline": _contract_summary(baseline_records),
-            "candidate": _contract_summary(candidate_records),
+            "baseline": contract["baseline"],
+            "candidate": contract["candidate"],
         },
         "candidate0_preservation": _summary(
             [row["max_abs_xy_m"] for row in preservation]
@@ -422,6 +427,7 @@ def _decision(
     support: dict[str, Any],
     latency: dict[str, Any],
     formal: dict[str, Any],
+    contract: dict[str, dict[str, Any]],
     thresholds: GateThresholds,
 ) -> dict[str, Any]:
     max_candidate0 = max(row["max_abs_xy_m"] for row in preservation)
@@ -443,6 +449,14 @@ def _decision(
         "non_top1_dense_lane_change_support_pass": bool(support["passes_threshold"]),
         "latency_p95_pass": bool(latency["passes_p95_limit"]),
         "formal_seeds_absent": not bool(formal["formal_seeds_present"]),
+        "fixed_dp_weights": contract["candidate"][
+            "changes_diffusion_planner_weights_values"
+        ]
+        == [False],
+        "camp_score_unchanged": contract["candidate"][
+            "changes_camp_score_values"
+        ]
+        == [False],
     }
     passed = all(gates.values())
     return {
