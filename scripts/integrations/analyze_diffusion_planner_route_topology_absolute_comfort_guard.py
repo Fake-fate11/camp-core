@@ -334,6 +334,10 @@ def _candidate_config_from_screen(screen: dict[str, Any]) -> RouteTopologyCandid
         ),
         prefix_steps=tuple(int(value) for value in raw.get("prefix_steps", (3, 5, 10))),
         bridge_steps=tuple(int(value) for value in raw.get("bridge_steps", (10,))),
+        lane_projected_offset_scales=tuple(
+            float(value)
+            for value in raw.get("lane_projected_offset_scales", (1.0, 0.5, 0.0))
+        ),
         min_stop_distance_m=float(raw.get("min_stop_distance_m", 2.0)),
         max_deceleration_mps2=float(raw.get("max_deceleration_mps2", 3.0)),
         default_speed_mps=float(raw.get("default_speed_mps", 4.0)),
@@ -642,6 +646,7 @@ def _assert_meta_compatible(left: Any, right: dict[str, Any]) -> None:
         "variant",
         "prefix_steps",
         "bridge_steps",
+        "lateral_offset_scale",
         "red_stop_margin_m",
         "backup_stop_offset_m",
     ):

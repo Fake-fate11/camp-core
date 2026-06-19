@@ -145,6 +145,44 @@ def test_route_topology_generator_preserves_prefix_for_comfort_policy() -> None:
     assert generated[0, -1, 0] <= meta[0]["stop_distance_m"] + 1e-9
 
 
+def test_route_topology_generator_builds_lane_projected_red_stop_candidates() -> None:
+    horizon = 80
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.5, 40.0, horizon)
+    candidates[0, :, 1] = 1.0
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 60.0, 66)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red_x = np.linspace(20.0, 24.0, 5)
+    red = np.column_stack([red_x, np.zeros_like(red_x)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=5.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            lane_projected_offset_scales=(1.0, 0.0),
+        ),
+    )
+
+    assert generated.shape == (2, horizon, 4)
+    assert [row["variant"] for row in meta] == [
+        "lane_projected_red_stop",
+        "lane_projected_red_stop",
+    ]
+    assert [row["lateral_offset_scale"] for row in meta] == [1.0, 0.0]
+    assert np.all(generated[:, :, 0] <= candidates[0, :, 0] + 1e-9)
+    assert np.all(generated[:, :, 0] <= meta[0]["stop_distance_m"] + 1e-9)
+    np.testing.assert_allclose(generated[0, :, 1], 1.0, atol=1e-9)
+    np.testing.assert_allclose(generated[1, :, 1], 0.0, atol=1e-9)
+
+
 def test_route_topology_generator_returns_empty_without_red_ahead() -> None:
     candidates = np.zeros((1, 20, 4), dtype=float)
     candidates[:, :, 2] = 1.0
@@ -163,6 +201,21 @@ def test_route_topology_generator_returns_empty_without_red_ahead() -> None:
 
     assert generated.shape == (0, 20, 4)
     assert meta == []
+
+
+def test_route_topology_report_rejects_invalid_lane_projected_offset_scale() -> None:
+    with np.testing.assert_raises_regex(
+        ValueError,
+        "lane_projected_offset_scales must be in \\[0,1\\]",
+    ):
+        build_report_from_rows(
+            [],
+            readiness=_readiness_report(),
+            config=RouteTopologyCandidateConfig(
+                generator_policy="lane_projected_red_stop",
+                lane_projected_offset_scales=(1.2,),
+            ),
+        )
 
 
 def test_route_topology_report_accepts_supported_offline_screen() -> None:

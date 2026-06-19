@@ -56,6 +56,7 @@ class RouteTopologyCandidateConfig:
     backup_stop_offsets_m: tuple[float, ...] = (0.0, 1.0)
     prefix_steps: tuple[int, ...] = (3, 5, 10)
     bridge_steps: tuple[int, ...] = (10,)
+    lane_projected_offset_scales: tuple[float, ...] = (1.0, 0.5, 0.0)
     min_stop_distance_m: float = 2.0
     max_deceleration_mps2: float = 3.0
     default_speed_mps: float = 4.0
@@ -89,13 +90,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--label", default=None)
     parser.add_argument(
         "--generator_policy",
-        choices=("lane_centerline_red_stop", "prefix_comfort_red_stop"),
+        choices=(
+            "lane_centerline_red_stop",
+            "prefix_comfort_red_stop",
+            "lane_projected_red_stop",
+        ),
         default="lane_centerline_red_stop",
     )
     parser.add_argument("--red_stop_margin_m", action="append", type=float)
     parser.add_argument("--backup_stop_offset_m", action="append", type=float)
     parser.add_argument("--prefix_step", action="append", type=int)
     parser.add_argument("--bridge_step", action="append", type=int)
+    parser.add_argument("--lane_projected_offset_scale", action="append", type=float)
     parser.add_argument("--min_stop_distance_m", type=float, default=2.0)
     parser.add_argument("--max_deceleration_mps2", type=float, default=3.0)
     parser.add_argument("--default_speed_mps", type=float, default=4.0)
@@ -132,6 +138,11 @@ def main() -> None:
             args.prefix_step if args.prefix_step is not None else (3, 5, 10)
         ),
         bridge_steps=tuple(args.bridge_step if args.bridge_step is not None else (10,)),
+        lane_projected_offset_scales=tuple(
+            args.lane_projected_offset_scale
+            if args.lane_projected_offset_scale is not None
+            else (1.0, 0.5, 0.0)
+        ),
         min_stop_distance_m=args.min_stop_distance_m,
         max_deceleration_mps2=args.max_deceleration_mps2,
         default_speed_mps=args.default_speed_mps,
@@ -382,25 +393,49 @@ def build_route_topology_candidates(
                     }
                 )
                 continue
-            for candidate, prefix, bridge in _prefix_comfort_candidates(
-                raw[selected_index],
-                target_xy,
-                prefix_steps=config.prefix_steps,
-                bridge_steps=config.bridge_steps,
-            ):
-                generated.append(candidate)
-                metadata.append(
-                    {
-                        "variant": "prefix_comfort_red_stop",
-                        "prefix_steps": int(prefix),
-                        "bridge_steps": int(bridge),
-                        "red_stop_margin_m": float(margin),
-                        "backup_stop_offset_m": float(backup),
-                        "stop_distance_m": float(stop_distance),
-                        "red_distance_m": float(red_s - current_s),
-                        "current_speed_mps": float(speed),
-                    }
-                )
+            if config.generator_policy == "prefix_comfort_red_stop":
+                for candidate, prefix, bridge in _prefix_comfort_candidates(
+                    raw[selected_index],
+                    target_xy,
+                    prefix_steps=config.prefix_steps,
+                    bridge_steps=config.bridge_steps,
+                ):
+                    generated.append(candidate)
+                    metadata.append(
+                        {
+                            "variant": "prefix_comfort_red_stop",
+                            "prefix_steps": int(prefix),
+                            "bridge_steps": int(bridge),
+                            "red_stop_margin_m": float(margin),
+                            "backup_stop_offset_m": float(backup),
+                            "stop_distance_m": float(stop_distance),
+                            "red_distance_m": float(red_s - current_s),
+                            "current_speed_mps": float(speed),
+                        }
+                    )
+                continue
+            if config.generator_policy == "lane_projected_red_stop":
+                for candidate, offset_scale in _lane_projected_red_stop_candidates(
+                    raw[selected_index],
+                    lane=lane,
+                    cumulative=cumulative,
+                    current_s=current_s,
+                    stop_distances=distances,
+                    offset_scales=config.lane_projected_offset_scales,
+                ):
+                    generated.append(candidate)
+                    metadata.append(
+                        {
+                            "variant": "lane_projected_red_stop",
+                            "lateral_offset_scale": float(offset_scale),
+                            "red_stop_margin_m": float(margin),
+                            "backup_stop_offset_m": float(backup),
+                            "stop_distance_m": float(stop_distance),
+                            "red_distance_m": float(red_s - current_s),
+                            "current_speed_mps": float(speed),
+                        }
+                    )
+                continue
     if not generated:
         return np.empty((0, raw.shape[1], raw.shape[2]), dtype=np.float64), []
     return np.stack(generated), metadata
@@ -449,6 +484,48 @@ def _prefix_comfort_candidates(
                     fallback=selected_arr[:, 2:4],
                 )
             result.append((candidate, int(prefix), int(bridge)))
+    return result
+
+
+def _lane_projected_red_stop_candidates(
+    selected: np.ndarray,
+    *,
+    lane: np.ndarray,
+    cumulative: np.ndarray,
+    current_s: float,
+    stop_distances: np.ndarray,
+    offset_scales: tuple[float, ...],
+) -> list[tuple[np.ndarray, float]]:
+    selected_arr = np.asarray(selected, dtype=np.float64)
+    stop = np.asarray(stop_distances, dtype=np.float64)
+    if selected_arr.ndim != 2 or selected_arr.shape[1] < 2:
+        raise ValueError("selected candidate must be [T,D>=2].")
+    if stop.shape != (selected_arr.shape[0],):
+        raise ValueError("stop_distances must match selected horizon.")
+    selected_s, selected_lateral = _project_points_to_lane(
+        selected_arr[:, :2],
+        lane,
+        cumulative,
+    )
+    selected_forward = np.maximum(selected_s - float(current_s), 0.0)
+    selected_forward = np.maximum.accumulate(selected_forward)
+    target_forward = np.minimum(selected_forward, stop)
+    target_forward = np.maximum.accumulate(np.maximum(target_forward, 0.0))
+    target_s = np.clip(float(current_s) + target_forward, cumulative[0], cumulative[-1])
+    center_xy, _, target_normal = _lane_frame_by_s(lane, cumulative, target_s)
+    lateral = np.nan_to_num(selected_lateral, nan=0.0, posinf=0.0, neginf=0.0)
+    result: list[tuple[np.ndarray, float]] = []
+    for scale in offset_scales:
+        offset_scale = float(scale)
+        candidate = selected_arr.copy()
+        xy = center_xy + offset_scale * lateral[:, None] * target_normal
+        candidate[:, :2] = xy
+        if candidate.shape[1] >= 4:
+            candidate[:, 2:4] = heading_features_from_xy(
+                xy,
+                fallback=selected_arr[:, 2:4],
+            )
+        result.append((candidate, offset_scale))
     return result
 
 
@@ -776,6 +853,74 @@ def _interpolate_by_s(
     x = np.interp(target, cumulative, lane[:, 0])
     y = np.interp(target, cumulative, lane[:, 1])
     return np.column_stack([x, y])
+
+
+def _lane_frame_by_s(
+    lane: np.ndarray,
+    cumulative: np.ndarray,
+    targets: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    target = np.clip(np.asarray(targets, dtype=np.float64), cumulative[0], cumulative[-1])
+    xy = np.zeros((target.size, 2), dtype=np.float64)
+    tangent = np.zeros((target.size, 2), dtype=np.float64)
+    normal = np.zeros((target.size, 2), dtype=np.float64)
+    for idx, value in enumerate(target):
+        segment = int(np.searchsorted(cumulative, value, side="right") - 1)
+        segment = max(0, min(segment, len(lane) - 2))
+        start = lane[segment]
+        end = lane[segment + 1]
+        delta = end - start
+        length = float(np.linalg.norm(delta))
+        if length <= TOL:
+            unit = np.array([1.0, 0.0], dtype=np.float64)
+            xy[idx] = start
+        else:
+            unit = delta / length
+            ratio = float((value - cumulative[segment]) / length)
+            ratio = min(1.0, max(0.0, ratio))
+            xy[idx] = start + ratio * delta
+        tangent[idx] = unit
+        normal[idx] = np.array([-unit[1], unit[0]], dtype=np.float64)
+    return xy, tangent, normal
+
+
+def _project_points_to_lane(
+    points: np.ndarray,
+    lane: np.ndarray,
+    cumulative: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    raw = np.asarray(points, dtype=np.float64)
+    if raw.ndim < 2 or raw.shape[-1] < 2:
+        raise ValueError("points must be [N,D>=2].")
+    pts = raw[..., :2].reshape(-1, 2)
+    if not np.isfinite(pts).all():
+        raise ValueError("points must be finite [N,D>=2].")
+    best_dist2 = np.full(pts.shape[0], np.inf, dtype=np.float64)
+    best_s = np.full(pts.shape[0], cumulative[0], dtype=np.float64)
+    best_lateral = np.zeros(pts.shape[0], dtype=np.float64)
+    for index in range(len(lane) - 1):
+        start = lane[index]
+        end = lane[index + 1]
+        delta = end - start
+        length2 = float(np.dot(delta, delta))
+        if length2 <= TOL:
+            continue
+        ratio = np.clip(((pts - start) @ delta) / length2, 0.0, 1.0)
+        projection = start + ratio[:, None] * delta
+        residual = pts - projection
+        dist2 = np.sum(residual * residual, axis=1)
+        update = dist2 < best_dist2
+        if not np.any(update):
+            continue
+        length = float(np.sqrt(length2))
+        unit = delta / length
+        normal = np.array([-unit[1], unit[0]], dtype=np.float64)
+        best_dist2[update] = dist2[update]
+        best_s[update] = cumulative[index] + ratio[update] * length
+        best_lateral[update] = residual[update] @ normal
+    if np.isinf(best_dist2).any():
+        raise ValueError("lane must contain at least one nonzero segment.")
+    return best_s, best_lateral
 
 
 def _nearest_s(lane: np.ndarray, cumulative: np.ndarray, point: np.ndarray) -> float:
@@ -1145,6 +1290,7 @@ def _validate_config(config: RouteTopologyCandidateConfig) -> None:
     if config.generator_policy not in {
         "lane_centerline_red_stop",
         "prefix_comfort_red_stop",
+        "lane_projected_red_stop",
     }:
         raise ValueError("invalid generator_policy.")
     for value in config.red_stop_margins_m:
@@ -1159,6 +1305,9 @@ def _validate_config(config: RouteTopologyCandidateConfig) -> None:
     for value in config.bridge_steps:
         if int(value) < 0:
             raise ValueError("bridge_steps must be nonnegative.")
+    for value in config.lane_projected_offset_scales:
+        if not np.isfinite(float(value)) or not 0.0 <= float(value) <= 1.0:
+            raise ValueError("lane_projected_offset_scales must be in [0,1].")
     for name in (
         "min_stop_distance_m",
         "max_deceleration_mps2",
