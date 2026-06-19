@@ -25922,3 +25922,196 @@ step is only the offline `world_frame_donor_tail_bridge` recompute screen over
 fixed non-formal snapshots. Do not run paired replay, Full36, formal seeds,
 online selector promotion, DP modification, or CAMP retraining before that
 screen passes.
+
+### DP World-Frame Donor-Tail Bridge Offline Screen
+
+Date: 2026-06-19
+
+Status: reject the tested world-frame donor-tail bridge family as insufficient
+for replay or online selector promotion. The implementation is useful as a
+fixed-snapshot offline screen, but the non-formal evidence does not provide
+enough lower-red hard-feasible or comfort-admissible support.
+
+Implementation:
+
+Commit `3e4de83d27a88a76a288bd8d37cbfc9f3c9c0b26` adds:
+
+```text
+scripts/integrations/analyze_diffusion_planner_world_frame_bridge_screen.py
+camp_core/tests/test_diffusion_planner_world_frame_bridge_screen.py
+```
+
+The screen materializes deterministic transformed candidates from fixed
+microbenchmark snapshots. It preserves the selected prefix, bridges in the
+current world/ego coordinate frame, and then keeps the donor suffix in its
+original coordinate frame. This is materially different from the rejected
+H-anchor donor-offset splice, whose donor suffix was translated into the
+selected anchor frame.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_world_frame_bridge_screen.py \
+  camp_core\tests\test_diffusion_planner_world_frame_bridge_screen.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_world_frame_bridge_screen.py \
+  camp_core\tests\test_diffusion_planner_red_lane_preserving_transform_gate.py \
+  camp_core\tests\test_diffusion_planner_splice_recompute_gate.py -q
+
+git diff --check
+
+Result: 22 passed
+```
+
+Synchronization:
+
+Local/GitHub/AutoDL CAMP were advanced to
+`3e4de83d27a88a76a288bd8d37cbfc9f3c9c0b26`. AutoDL was synchronized with:
+
+```text
+/tmp/camp_core_main_3e4de83.bundle
+```
+
+The fixed AutoDL DP checkout remained:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_world_frame_bridge_screen.py \
+  camp_core/tests/test_diffusion_planner_world_frame_bridge_screen.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_world_frame_bridge_screen.py \
+  camp_core/tests/test_diffusion_planner_red_lane_preserving_transform_gate.py \
+  camp_core/tests/test_diffusion_planner_splice_recompute_gate.py -q
+
+Result: 22 passed
+```
+
+Runtime note:
+
+The screen itself must run with Python 3.10+ because the fixed DP repository
+imports modules that use `GuidanceComposer | None` syntax. On this AutoDL image,
+`/root/miniconda3/envs/camp/bin/python` is Python 3.9 and fails during DP import.
+The successful offline recompute used:
+
+```text
+/root/miniconda3/bin/python
+```
+
+Primary screen command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/bin/python
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/world_frame_bridge_screen_3e4de83
+
+$PY scripts/integrations/analyze_diffusion_planner_world_frame_bridge_screen.py \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --device cuda \
+  --label seed2_npc4_tlon_no_budget_world_frame_bridge_3e4de83 \
+  --preserve_steps 1 \
+  --bridge_steps 10 \
+  --heading_mode world_donor_tail \
+  --output_json "$OUT/world_frame_bridge_screen.json" \
+  --output_md "$OUT/world_frame_bridge_screen.md"
+```
+
+Primary artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `world_frame_bridge_screen_3e4de83/world_frame_bridge_screen.json` | `a72f10efa107ff5dbdc85432b21fa30bf00f777951b3e4b0c74c229fb9d0a321` |
+| `world_frame_bridge_screen_3e4de83/world_frame_bridge_screen.md` | `c5a3a4712206c2674e78300fa1f2955e40314e5f25925be8d6b76f116f8e2a04` |
+
+Primary result:
+
+```text
+status=world_frame_bridge_offline_support_insufficient
+snapshots=57
+snapshots_with_donors=57
+snapshots_with_transforms=57
+transform_count=238
+lower_union_red_count=237
+lower_union_red_hard_feasible_count=1
+lower_union_red_progress_feasible_count=1
+comfort_admissible_count=0
+hard_feasible_snapshot_support_rate=0.017543859649122806
+comfort_admissible_snapshot_support_rate=0.0
+required_min_snapshot_support_rate=0.25
+lower_union_red_hard_infeasibility_reason_counts={
+  "dp_lane_crossing": 100,
+  "dp_red_light": 236
+}
+total_p95_ms=51.29841659218072
+```
+
+Predeclared sensitivity screen:
+
+To avoid rejecting based on a single bridge length, a small offline sensitivity
+grid was run without changing the acceptance rule or treating the result as
+tuning:
+
+```text
+preserve_steps,bridge_steps in:
+(1,0), (1,5), (1,10), (1,20), (3,10)
+```
+
+Grid artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `world_frame_bridge_screen_grid_3e4de83/grid_summary.json` | `9f97c194050954cdf1077252d87a7e7845a1c29a272214441949231703e46af4` |
+| `world_frame_bridge_screen_grid_3e4de83/grid_summary.csv` | `3ca374ffc298d2f10633e7db1a93d32f31bf48bb9717be0f1bbcd1dce7dd6117` |
+
+Grid result:
+
+| Config | Status | Lower-red | Lower-red hard-feasible | Lower-red progress-feasible | Comfort-admissible | Hard support rate | Comfort support rate | Total p95 ms |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `preserve1_bridge0` | `world_frame_bridge_offline_support_insufficient` | 238 | 1 | 1 | 0 | 0.017544 | 0.000000 | 54.784783 |
+| `preserve1_bridge5` | `world_frame_bridge_offline_support_insufficient` | 238 | 1 | 1 | 0 | 0.017544 | 0.000000 | 52.488762 |
+| `preserve1_bridge10` | `world_frame_bridge_offline_support_insufficient` | 237 | 1 | 1 | 0 | 0.017544 | 0.000000 | 51.146886 |
+| `preserve1_bridge20` | `world_frame_bridge_offline_support_insufficient` | 230 | 1 | 1 | 0 | 0.017544 | 0.000000 | 49.765511 |
+| `preserve3_bridge10` | `world_frame_bridge_offline_support_insufficient` | 235 | 1 | 1 | 1 | 0.017544 | 0.017544 | 49.385803 |
+
+Decision:
+
+Reject this tested world-frame bridge family for replay, online selector
+promotion, Full36, formal seeds, DP modification, or CAMP retraining. The
+screen improves over the rejected H-anchor grid only in the narrow sense that
+one lower-red hard-feasible candidate appears, but support remains far below
+the predeclared `0.25` snapshot-support gate and red/lane hard infeasibility
+remains dominant.
+
+Mathematical boundary:
+
+The implementation is an offline finite-candidate transform over fixed
+current-tick snapshot tensors. It does not modify DP, does not train CAMP, does
+not use future closed-loop outcomes, and does not construct a DP-side Benders
+master/subproblem, dual, or cuts. If these recomputed diagnostics are later
+atomized, CAMP scores remain affine `a_k^T w` and the simplex/CVaR/L2 master
+remains convex only for that fixed finite candidate set.
+
+Next direction:
+
+Do not continue with minor bridge-length tuning. The blocker is still red/lane
+hard feasibility and candidate support. The next justified gate should inspect
+why the lower-red donor suffixes remain DP-red or lane infeasible after
+world-frame preservation, then decide between a lane-constrained donor search,
+a route/topology-aware candidate-generation support design, or rejecting
+transform-based support entirely.
