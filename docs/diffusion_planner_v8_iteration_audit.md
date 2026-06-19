@@ -28646,3 +28646,176 @@ Each tested weight vector was a nonnegative simplex point, so
 `score_k(w)=a_k^T w` remained affine in `w`; the simplex/CVaR/L2 CAMP master
 convexity boundary was preserved. No DP-side classical Benders decomposition,
 dual, or valid cut is claimed.
+
+## Material Weight Failure Attribution Audit (`ee271d7`)
+
+Date: 2026-06-19
+
+Status: reject a simple progress/support preservation certificate for the
+rejected material-weight variants. The attribution audit explains the previous
+weight-sensitivity failure: harmful switches are overwhelmingly driven by
+negative `top1_shape_deviation` score contributions, not by an isolated
+traffic-rule atom. The current support-preservation atom is too weak to filter
+most harmful switches without still allowing safety and progress regressions.
+
+Commit:
+
+```text
+ee271d7f5e7501f1d6162c94a3863f0cf2882eab Add DP CAMP material weight failure attribution
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_material_weight_failure_attribution.py
+camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_material_weight_failure_attribution.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+
+Result: 9 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL GitHub HTTPS fetch failed with a TLS termination error, so the commit was
+synchronized by a Git bundle from `9622fea9` to
+`ee271d7f5e7501f1d6162c94a3863f0cf2882eab`. The fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_material_weight_failure_attribution.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `9 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+WEIGHT=/root/autodl-tmp/camp_dp_material_atom_weight_sensitivity_248d4eb/material_atom_weight_sensitivity.json
+OUT=/root/autodl-tmp/camp_dp_material_weight_failure_attribution_ee271d7
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_material_weight_failure_attribution.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --weight_sensitivity_json "$WEIGHT" \
+  --fail_on_formal_seeds \
+  --label ee271d7_diverse_nonformal \
+  --output_json "$OUT/material_weight_failure_attribution.json" \
+  --output_md "$OUT/material_weight_failure_attribution.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_material_weight_failure_attribution_ee271d7/material_weight_failure_attribution.json` | `f45679a28a4fcf1d57356d94776f7d80470871762f2ad33e415ce02520c1eaa1` |
+| `/root/autodl-tmp/camp_dp_material_weight_failure_attribution_ee271d7/material_weight_failure_attribution.md` | `858d1cbf01773f53a52509019a38da7b40d8b393e26bf270f4110659e2dbfcd0` |
+
+Gate result:
+
+```text
+status=material_weight_failure_attribution_progress_certificate_rejected
+authorized_next_work=None
+promising_certificates=0
+records=21600
+logs=108
+candidate_rows=172800
+formal_seed_records=0
+source_weight_gate=material_atom_weight_sensitivity_rejected
+source_gate_passed=true
+```
+
+Failure classes and dominant drivers:
+
+| Variant | Harmful | Beneficial | Non-switch | Dominant harmful driver counts |
+| --- | ---: | ---: | ---: | --- |
+| `uniform_material` | `9567` | `315` | `11718` | `top1_shape_deviation=9563`, `traffic_rule_exposure=4` |
+| `traffic_rule_focus` | `10092` | `338` | `11170` | `top1_shape_deviation=10069`, `traffic_rule_exposure=23` |
+| `traffic_top1_guard` | `11265` | `412` | `9923` | `top1_shape_deviation=11261`, `traffic_rule_exposure=4` |
+| `support_comfort_guard` | `9243` | `299` | `12058` | `top1_shape_deviation=9242`, `traffic_rule_exposure=1` |
+| `hard_traffic_support` | `9331` | `308` | `11961` | `top1_shape_deviation=9310`, `traffic_rule_exposure=21` |
+
+Harmful-switch mean raw deltas:
+
+| Variant | Support delta | Traffic delta | Top-1 shape delta | Comfort delta | Hard feasibility delta |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `uniform_material` | `0.000376` | `0.007980` | `-0.818381` | `0.120654` | `0.0` |
+| `traffic_rule_focus` | `0.000473` | `-0.012994` | `-0.798063` | `0.157678` | `0.0` |
+| `traffic_top1_guard` | `0.000718` | `0.008498` | `-0.793304` | `0.235178` | `0.0` |
+| `support_comfort_guard` | `0.000339` | `0.013764` | `-0.824891` | `0.094669` | `0.0` |
+| `hard_traffic_support` | `0.000238` | `-0.012373` | `-0.827155` | `0.125658` | `0.0` |
+
+Progress/support certificate sensitivity:
+
+The best row for every variant used `support_delta_budget=0.0`, but still did
+not pass. It retained many beneficial switches but blocked only a small fraction
+of harmful ones and the allowed switch set remained safety/progress negative.
+
+| Variant | Harmful block | Beneficial retain | Allowed safety mean | Allowed progress mean |
+| --- | ---: | ---: | ---: | ---: |
+| `traffic_top1_guard` | `0.140257` | `0.861650` | `0.047495` | `-0.414100` |
+| `traffic_rule_focus` | `0.130400` | `0.869822` | `0.042111` | `-0.397844` |
+| `uniform_material` | `0.119996` | `0.869841` | `0.052251` | `-0.402879` |
+| `support_comfort_guard` | `0.113816` | `0.882943` | `0.055603` | `-0.396463` |
+| `hard_traffic_support` | `0.086807` | `0.889610` | `0.041644` | `-0.402560` |
+
+Scenario bucket notes:
+
+The harmful-switch rate is highest in the traffic-light/red-turn and dense
+scenes. For example, `traffic_top1_guard` has harmful-switch rates of
+`0.5597` in `traffic_light`/`red_light_turn` and `0.6167` in `dense_scene`;
+`traffic_rule_focus` has `0.5114` in `traffic_light`/`red_light_turn` and
+`0.5567` in `dense_scene`.
+
+Interpretation:
+
+The rejected weight directions are not failing because the traffic atom blindly
+optimizes red-light exposure. They mostly fail because many harmful switches
+look better under the current Top-1 shape deviation atom: selected candidates
+move substantially closer to DP Top-1 shape while accumulating comfort and
+progress regressions. The current support atom barely changes on those harmful
+switches, so a direct support-delta guard cannot remove most failures. This
+points to a missing progress/support certificate, not merely a bad simplex
+weight value.
+
+Decision:
+
+Reject the simple progress/support preservation certificate over the current
+material atoms. Do not run closed-loop replay, Full36, formal seeds, online
+selector promotion, DP changes, or CAMP retraining. The next useful gate should
+redesign the support/progress certificate itself, likely with stronger
+current-tick descriptors than the current `support_preservation_deficit`, before
+another selector or weight screen is attempted.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. Selection, score-contribution
+attribution, and support-certificate screening used only fixed current-tick
+finite-candidate material atoms. Closed-loop outcomes were used only after those
+fixed choices were made to label harmful or beneficial switches. CAMP scores
+remain affine `score_k(w)=a_k^T w` over fixed nonnegative simplex weights. No
+DP-side classical Benders decomposition, master/subproblem, dual, or valid cut
+is claimed.
