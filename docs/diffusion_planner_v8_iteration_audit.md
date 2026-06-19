@@ -29149,3 +29149,152 @@ convexity boundary is unchanged. Thresholds in this report are offline oracle
 diagnostics for separability only; they are not online selector parameters,
 not training labels, and not a DP-side classical Benders decomposition, dual,
 or valid cut.
+
+## Atom Schema Redesign Preflight (`60adf53`)
+
+Date: 2026-06-19
+
+Status: ready for an offline redesigned-atom separability audit. This preflight
+does not claim the new atoms improve safety or beat DP Top-1; it only verifies
+that the proposed atom schema is computable from current-tick fixed
+finite-candidate descriptors, has full nonformal artifact coverage, is finite
+and nonnegative, and preserves the CAMP affine-score / simplex-CVaR-L2 convex
+master boundary. Replay, Full36, formal seeds, online selector promotion, DP
+changes, and CAMP retraining remain blocked.
+
+Commit:
+
+```text
+60adf534354cc34663b4975d0a805f942057f9c1 Add DP CAMP atom schema redesign preflight
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_atom_schema_redesign_preflight.py
+camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_atom_schema_redesign_preflight.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `21 passed`.
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle from `bda691b4` to
+`60adf534354cc34663b4975d0a805f942057f9c1`. CAMP reached the same commit and
+the fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_atom_schema_redesign_preflight.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `21 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+SEP=/root/autodl-tmp/camp_dp_descriptor_separability_11789c7/descriptor_separability.json
+OUT=/root/autodl-tmp/camp_dp_atom_schema_redesign_preflight_60adf53
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_atom_schema_redesign_preflight.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --descriptor_separability_json "$SEP" \
+  --fail_on_formal_seeds \
+  --label 60adf53_diverse_nonformal \
+  --output_json "$OUT/atom_schema_redesign_preflight.json" \
+  --output_md "$OUT/atom_schema_redesign_preflight.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_atom_schema_redesign_preflight_60adf53/atom_schema_redesign_preflight.json` | `563aecd15558fa6d5a58682daf6f0312b68f4c85c54d30dab14f9cd1cfbbab11` |
+| `/root/autodl-tmp/camp_dp_atom_schema_redesign_preflight_60adf53/atom_schema_redesign_preflight.md` | `13c9b471fc140e3db3aa4969b1d37e3cfbfcaf766c1b4331f84d0e1cc251ce9b` |
+
+Gate result:
+
+```text
+status=atom_schema_redesign_preflight_ready_for_offline_separability_audit
+authorized_next_work=offline_redesigned_atom_separability_audit_design_only
+records=21600
+candidate_rows=172800
+formal_seed_records=0
+failed_atoms=[]
+failed_math_checks=[]
+```
+
+Proposed atom coverage:
+
+| Atom | Records | Candidate rows | p95 | max |
+| --- | ---: | ---: | ---: | ---: |
+| `support_loss_composite_v2` | `21600/21600` | `172800/172800` | `0.400618` | `5.782542` |
+| `comfort_worse_composite_v2` | `21600/21600` | `172800/172800` | `4.348104` | `82.541319` |
+| `shape_support_conflict_v1` | `21600/21600` | `172800/172800` | `0.300768` | `1447.883757` |
+| `shape_comfort_conflict_v1` | `21600/21600` | `172800/172800` | `1.319031` | `7633.397380` |
+| `traffic_support_tradeoff_v1` | `21600/21600` | `172800/172800` | `0.000000` | `124.639978` |
+| `traffic_comfort_tradeoff_v1` | `21600/21600` | `172800/172800` | `0.000000` | `208.612090` |
+| `residual_traffic_shape_risk_v1` | `21600/21600` | `172800/172800` | `0.000000` | `1374.125834` |
+| `absolute_lateral_load_v1` | `21600/21600` | `172800/172800` | `0.945573` | `2.319360` |
+
+Interpretation:
+
+The rejected descriptor-separability gate showed that threshold tuning over
+existing descriptors cannot separate harmful and beneficial switches. This
+preflight therefore introduces only fixed coefficient atoms that expose the
+missing interactions to CAMP's affine score: shape gain combined with support
+or comfort loss, traffic gain combined with support or comfort loss, residual
+traffic under shape gain, and absolute lateral load. Products and max operators
+are used only before optimization to produce fixed candidate coefficients; they
+do not make the master nonlinear in `w`.
+
+Decision:
+
+Accept this atom schema only for the next offline redesigned-atom separability
+audit. Do not run replay, Full36, formal seeds, online selector promotion, DP
+changes, or CAMP retraining. The next gate should evaluate whether these atoms,
+as fixed current-tick coefficients, improve harmful/beneficial separability
+over the rejected descriptor set before any new weight screen is attempted.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. Proposed atoms are fixed
+current-tick finite-candidate scalars computed before any closed-loop outcome
+label is consulted. Some atoms use max or products of fixed descriptors, but
+after computation they are just candidate coefficients `a_k`. CAMP scoring
+remains affine `score_k(w)=a_k^T w` over fixed atoms, and the simplex/CVaR/L2
+robust master remains convex in `w`. This preflight makes no
+trajectory-coordinate convexity claim and does not construct a DP-side
+classical Benders decomposition, dual, or valid cut.
