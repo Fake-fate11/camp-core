@@ -29298,3 +29298,164 @@ remains affine `score_k(w)=a_k^T w` over fixed atoms, and the simplex/CVaR/L2
 robust master remains convex in `w`. This preflight makes no
 trajectory-coordinate convexity claim and does not construct a DP-side
 classical Benders decomposition, dual, or valid cut.
+
+## Redesigned Atom Separability Audit (`7e18eee`)
+
+Date: 2026-06-19
+
+Status: reject the redesigned atom threshold screens. The previous atom-schema
+preflight showed the atoms are computable and mathematically compatible, but
+this gate tests whether they actually improve harmful/beneficial separability
+on the same nonformal fixed-candidate artifacts. They do not. The best
+redesigned atom AUC is below the predeclared `0.70` target and below the prior
+descriptor `top1_shape_gain` AUC. No atom or predeclared atom pair satisfies the
+combined harmful-block, beneficial-retain, safety, progress, and hard-nonworse
+criteria.
+
+Commit:
+
+```text
+7e18eee44f86512f8d344a04d1a2cac0bbbd3d83 Add DP CAMP redesigned atom separability audit
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_redesigned_atom_separability.py
+camp_core/tests/test_diffusion_planner_redesigned_atom_separability.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_redesigned_atom_separability.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_redesigned_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `25 passed`.
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle from `467231bc` to
+`7e18eee44f86512f8d344a04d1a2cac0bbbd3d83`. CAMP reached the same commit and
+the fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_redesigned_atom_separability.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_redesigned_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `25 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+PREF=/root/autodl-tmp/camp_dp_atom_schema_redesign_preflight_60adf53/atom_schema_redesign_preflight.json
+OUT=/root/autodl-tmp/camp_dp_redesigned_atom_separability_7e18eee
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_redesigned_atom_separability.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --atom_schema_preflight_json "$PREF" \
+  --fail_on_formal_seeds \
+  --label 7e18eee_diverse_nonformal \
+  --output_json "$OUT/redesigned_atom_separability.json" \
+  --output_md "$OUT/redesigned_atom_separability.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_redesigned_atom_separability_7e18eee/redesigned_atom_separability.json` | `ad5e3d6b1e7f35b419ccfdc222edcdc514754fe997e225fb3f8a115d37dc08e2` |
+| `/root/autodl-tmp/camp_dp_redesigned_atom_separability_7e18eee/redesigned_atom_separability.md` | `8119e5b298a3cfa70bfe9cd8c5b75e2c109f89086a22f28d01711343e86e8727` |
+
+Gate result:
+
+```text
+status=redesigned_atom_separability_rejected
+authorized_next_work=None
+primary_gap=redesigned_atoms_block_beneficial_opportunities
+records=21600
+candidate_rows=172800
+formal_seed_records=0
+```
+
+Best AUC rows:
+
+| Variant | Atom | AUC | Harmful mean | Beneficial mean |
+| --- | --- | ---: | ---: | ---: |
+| `traffic_top1_guard` | `absolute_lateral_load_v1` | `0.643609` | `0.175995` | `0.082227` |
+| `hard_traffic_support` | `absolute_lateral_load_v1` | `0.640491` | `0.184896` | `0.087428` |
+| `traffic_rule_focus` | `absolute_lateral_load_v1` | `0.639869` | `0.181428` | `0.086215` |
+| `uniform_material` | `absolute_lateral_load_v1` | `0.637035` | `0.183172` | `0.088626` |
+| `support_comfort_guard` | `absolute_lateral_load_v1` | `0.634897` | `0.184170` | `0.091227` |
+
+Best threshold-screen tradeoffs:
+
+| Condition | Variant | Atom screen | Harmful block | Beneficial retain | Allowed safety mean | Allowed progress mean |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| highest harmful block | `support_comfort_guard` | `absolute_lateral_load_v1` | `0.999892` | `0.000000` | `0.232420` | `-0.083250` |
+| best with beneficial retain >= 0.75 | `support_comfort_guard` | `shape_support_conflict_v1+shape_comfort_conflict_v1` | `0.498864` | `0.755853` | `0.058554` | `-0.260897` |
+| best with harmful block >= 0.75 | `support_comfort_guard` | `shape_support_conflict_v1+shape_comfort_conflict_v1` | `0.753543` | `0.347826` | `0.066064` | `-0.213119` |
+
+Interpretation:
+
+The redesigned interaction atoms are mathematically valid but not useful enough
+as separability evidence. The best atom, `absolute_lateral_load_v1`, is only a
+moderate signal and performs worse than the previously audited
+`top1_shape_gain` descriptor. The interaction atoms can trade off harmful block
+and beneficial retain, but they do not break the overlap: when beneficial
+retain is acceptable, harmful block stays around `0.50`; when harmful block is
+acceptable, beneficial retain falls to about `0.35`; and the allowed sets remain
+safety-positive and progress-negative. This points away from simple atom
+engineering over the currently logged descriptors.
+
+Decision:
+
+Reject the redesigned atom threshold screens. Do not run a redesigned-atom
+weight screen, closed-loop replay, Full36, formal seeds, online selector
+promotion, DP changes, or CAMP retraining. The next useful gate should audit
+whether the fixed DP candidate set and logged current-tick descriptors contain
+enough observable support for CAMP to improve on DP Top-1 at all. Concretely,
+it should compare offline oracle beneficial candidates against runtime-visible
+descriptors and classify the bottleneck as missing state/descriptor information,
+candidate-set support limitation, or an evaluation objective mismatch.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. Redesigned atoms are fixed
+current-tick finite-candidate coefficients computed before any closed-loop
+outcome label is consulted. The audit uses outcome labels only after fixed
+material-weight switch proposals to classify harmful or beneficial switches and
+to evaluate offline threshold diagnostics. CAMP scoring remains affine
+`score_k(w)=a_k^T w` over fixed atom coefficients, and the simplex/CVaR/L2
+robust master remains convex in `w`. This audit does not claim
+trajectory-coordinate convexity and does not construct a DP-side classical
+Benders decomposition, dual, or valid cut.
