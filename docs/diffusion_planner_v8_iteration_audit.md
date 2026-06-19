@@ -23418,3 +23418,170 @@ consider supported alternatives when the current CAMP protective contribution
 from `dp_prior_jerk_excess_cost` and `jerk_early` is not positive, then evaluate
 against current CAMP before any replay. If that does not beat current CAMP with
 confidence and acceptable progress/comfort/fallback behavior, reject the route.
+
+### Dense Lane-Change Atom-Aware No-Leak Screen
+
+Date: 2026-06-19
+
+Status: reject the atom-aware finite-filter route. The screen used the
+predeclared protective atoms from the calibration diagnostic
+(`dp_prior_jerk_excess_cost` and `jerk_early`) and preserved current CAMP when
+their loose-minus-current contribution margin was positive. All tested
+thresholds failed to prove SafetyCost improvement versus current CAMP; every
+threshold also violated the predeclared progress gate, and wider thresholds
+introduced jerk regression.
+
+Synchronization state:
+
+| Item | Value |
+| --- | --- |
+| Local/GitHub/AutoDL CAMP commit for tooling | `dd8471ae8febeb78b545b9dbfc6dc7cc0d888531` |
+| AutoDL DP commit | `7a1d33da277a1992ec474b5383a0c963c72e04e4` |
+| DP modification / retraining | none |
+| CAMP retraining | none |
+| Formal seeds | `0` in the analyzed artifact |
+
+New read-only tooling:
+
+```text
+scripts/integrations/analyze_diffusion_planner_dense_lane_change_atom_aware_screen.py
+camp_core/tests/test_diffusion_planner_dense_lane_change_atom_aware_screen.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_dense_lane_change_atom_aware_screen.py
+
+PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_dense_lane_change_atom_aware_screen.py -q
+
+git diff --check
+
+Result: 3 passed
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin
+git merge --ff-only origin/main
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_dense_lane_change_atom_aware_screen.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_dense_lane_change_atom_aware_screen.py -q
+
+Result: 3 passed
+```
+
+AutoDL analysis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUTCOME=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+OUT=$ROOT/dense_lane_change_atom_aware_screen_dd8471a
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY scripts/integrations/analyze_diffusion_planner_dense_lane_change_atom_aware_screen.py \
+  --root "$OUTCOME" \
+  --label diverse_nonformal_dense_lane_change_atom_aware_dd8471a \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/dense_lane_change_atom_aware_screen.json" \
+  --output_md "$OUT/dense_lane_change_atom_aware_screen.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `dense_lane_change_atom_aware_screen_dd8471a/dense_lane_change_atom_aware_screen.json` | `6ffe174488417b484fd671b1894096978ec952704366b388a918ba926836810a` |
+| `dense_lane_change_atom_aware_screen_dd8471a/dense_lane_change_atom_aware_screen.md` | `f02b44b46275995079393dac7d557e9851d1aac9d415b37b4d47a05a5e22d725` |
+
+Record summary:
+
+| Metric | Value |
+| --- | ---: |
+| Total records | `21600` |
+| Logs | `108` |
+| Formal seed records | `0` |
+| Dense lane-change records | `2400` |
+| Target records | `987` |
+| Supported target records | `635` |
+| Schema records | `21600` |
+| Missing schema records | `0` |
+| Protective margin available records | `21600` |
+| Supported positive protective margin records | `523` |
+
+Predeclared rule:
+
+For each dense lane-change loose-supported target record, compute the
+loose-minus-current contribution margin over
+`dp_prior_jerk_excess_cost + jerk_early`. Preserve current CAMP when this margin
+is greater than the threshold; otherwise take the loose supported non-Top1
+candidate. All other records preserve current CAMP.
+
+Threshold grid:
+
+| Threshold | Pass | Failures | Changed supported | Dense safety CI high | Supported safety CI high | Dense progress CI low | Dense jerk CI high | Dense lateral CI high |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.000` | `false` | `4` | `0.176378` | `+0.003490` | `+0.013366` | `-0.081423` | `-0.006835` | `-0.000215` |
+| `0.005` | `false` | `4` | `0.261417` | `+0.005732` | `+0.021858` | `-0.117998` | `-0.004379` | `-0.000244` |
+| `0.010` | `false` | `4` | `0.343307` | `+0.007085` | `+0.026998` | `-0.135856` | `-0.000054` | `-0.000281` |
+| `0.020` | `false` | `6` | `0.431496` | `+0.009421` | `+0.035478` | `-0.163003` | `+0.007651` | `-0.000278` |
+| `0.030` | `false` | `6` | `0.507087` | `+0.010533` | `+0.039654` | `-0.165589` | `+0.017395` | `-0.000311` |
+| `0.050` | `false` | `6` | `0.637795` | `+0.014824` | `+0.055472` | `-0.199586` | `+0.039697` | `-0.000137` |
+
+Failure reasons:
+
+| Threshold range | Reasons |
+| --- | --- |
+| `0.000` to `0.010` | `dense_safety_vs_current_not_proven`, `supported_safety_vs_current_not_proven`, `dense_progress_regression`, `supported_progress_regression` |
+| `0.020` to `0.050` | all above, plus `dense_jerk_regression` and `supported_jerk_regression` |
+
+Interpretation:
+
+1. The atom-aware protective rule correctly preserves many records identified by
+   the calibration diagnostic: `523/635` supported target records have positive
+   protective margin.
+2. Even the most conservative threshold (`0.000`) still has positive dense and
+   supported SafetyCost CI high versus current CAMP. This fails the proof target
+   before any replay can be justified.
+3. The rule trades away outcome progress in every threshold. The conservative
+   threshold already has dense progress CI low `-0.081423`, below the
+   predeclared `-0.05` gate.
+4. Wider thresholds recover more changed supported records but recreate the
+   known loose-rule failure pattern: larger positive SafetyCost CI high,
+   stronger progress loss, and eventually jerk regression.
+
+Mathematical boundary:
+
+The screen uses posterior outcomes only after deterministic atom-aware
+selection to evaluate SafetyCost, progress, hard components, and comfort. The
+runtime predicates are fixed current-tick finite-candidate quantities:
+feasibility, logged selection, DP-prior support rule features, normalized
+atoms, logged weights, and atom contribution margins. The score remains affine
+`a_k^T w`, and the simplex/CVaR/L2 robust master remains convex. DP remains
+frozen. This is not classical Benders decomposition because no DP-side
+master/subproblem, dual, or valid cuts are constructed.
+
+Decision:
+
+Reject this atom-aware finite-filter route. Do not implement an online selector,
+run a closed-loop smoke, run Full36, use formal seeds, modify DP, or retrain
+CAMP from this evidence. The next admissible work is not another threshold over
+the same loose-supported alternatives. The evidence suggests the remaining
+blocker is candidate/outcome support: the DP candidate set contains some safer
+branches than DP Top-1, but the currently available no-leak finite filters cannot
+extract them without damaging current CAMP's progress and dense lane-change
+SafetyCost. Next work should either define a stronger offline proof target over
+candidate-support quality or investigate whether the candidate generator /
+postprocessing support, not selector calibration, is the limiting factor while
+keeping DP fixed.
