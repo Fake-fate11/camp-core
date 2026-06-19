@@ -28362,3 +28362,147 @@ generation and replay-equivalent postprocessing. For each candidate \(k\),
 CVaR, and L2 regularization remains convex because losses are pointwise maxima
 or weighted sums of affine functions over fixed atoms. No trajectory-coordinate
 convexity or classical Benders decomposition is claimed.
+
+## Material Atom Schema Availability Audit (`9f8cead`)
+
+Date: 2026-06-19
+
+Status: accept the offline availability gate. The existing non-formal diverse
+candidate logs contain all five predeclared material atom families with full
+record coverage, all required scenario buckets, no formal seeds, and no failed
+convexity/leakage checks. This still does not authorize replay, Full36, formal
+seeds, online selector promotion, DP changes, or CAMP retraining.
+
+Commits:
+
+```text
+abce281f1b8a7dba7c60e8cc9e5ebf335f875fcc Add DP CAMP material atom availability audit
+259a641fec1bcbd46dfc4081cf93a6f2a877c659 Handle scalar DP progress in atom availability audit
+926329d9a77f3370ef662813c0e05e2015378a12 Use declared route labels in atom availability audit
+9f8cead77a9ac60442b7cbc94554633bc23cbe52 Include spawn probability in atom availability buckets
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_material_atom_schema_availability.py
+camp_core/tests/test_diffusion_planner_material_atom_schema_availability.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_material_atom_schema_availability.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_material_atom_schema_availability.py \
+  camp_core/tests/test_diffusion_planner_material_atom_schema_gate.py -q
+
+git diff --check
+
+Result: 11 passed
+```
+
+AutoDL synchronization and verification:
+
+AutoDL restarted and was synchronized from `926329d9` to
+`9f8cead77a9ac60442b7cbc94554633bc23cbe52` with `git pull --ff-only`. The fixed
+DP checkout remained at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_material_atom_schema_availability.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_material_atom_schema_availability.py \
+  camp_core/tests/test_diffusion_planner_material_atom_schema_gate.py -q
+
+git diff --check
+```
+
+Result: `11 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+OUT=/root/autodl-tmp/camp_dp_material_atom_schema_availability_9f8cead
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_material_atom_schema_availability.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --fail_on_formal_seeds \
+  --label 9f8cead_diverse_nonformal \
+  --output_json "$OUT/material_atom_schema_availability.json" \
+  --output_md "$OUT/material_atom_schema_availability.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_material_atom_schema_availability_9f8cead/material_atom_schema_availability.json` | `ceec2fe5d5270f898e7a736ecf564483dc851456775ce1ab9eb7acdad1f02468` |
+| `/root/autodl-tmp/camp_dp_material_atom_schema_availability_9f8cead/material_atom_schema_availability.md` | `ef9e1c59f3a2db1cb4f1407486929c998945ea99ca5bcb60aea92502e954f210` |
+
+Gate result:
+
+```text
+status=material_atom_schema_availability_ready_for_offline_weight_audit
+authorized_next_work=offline_material_atom_weight_audit_design_only
+records=21600
+logs=108
+candidate_rows=172800
+formal_seed_records=0
+outcome_labels_present_records=21600
+missing_atom_families=[]
+missing_required_buckets=[]
+failed_convexity_checks=[]
+scenario_buckets=[
+  dense_scene,
+  lane_change_or_merge,
+  normal,
+  npc_interaction,
+  overall,
+  red_light_turn,
+  sharp_turn,
+  traffic_light
+]
+```
+
+Atom coverage:
+
+| Atom family | Coverage | Source fields |
+| --- | ---: | --- |
+| `hard_feasibility_deficit` | `21600/21600` | `feasible_mask` |
+| `support_preservation_deficit` | `21600/21600` | `candidate_perfect_tracker_target_speed_mps`, `candidate_step_reach` |
+| `comfort_envelope_excess` | `21600/21600` | `candidate_perfect_tracker_jerk_magnitude_mps3`, `candidate_perfect_tracker_lateral_acceleration_magnitude_mps2` |
+| `top1_shape_deviation` | `21600/21600` | `candidate_dp_prior_deviation_cost` |
+| `traffic_rule_exposure` | `21600/21600` | `candidate_full_horizon_planned_red_light_cost`, `candidate_horizon_union_planned_red_light_cost`, `candidate_red_stopping_margin_cost` |
+
+Interpretation:
+
+The previous `926329d` run was incomplete only because the availability audit
+did not pass `spawn_probability` into scenario bucket matching, so dense-scene
+filters could not fire. The `9f8cead` run repairs that metadata path and
+confirms that all required material atom families and scenario buckets are
+available on the existing non-formal diverse logs.
+
+Decision:
+
+The next authorized step is an offline no-leak material-atom weight/sensitivity
+audit design. Do not run closed-loop replay, Full36, formal seeds, online
+selector promotion, DP changes, or CAMP retraining from this result alone.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. The audited atom values are
+fixed current-tick finite-candidate quantities. Candidate closed-loop outcomes
+were present in the logs but were not used to build atoms. For each candidate
+\(k\), `score_k(w)=a_k^T w` remains affine in `w`; simplex constraints, CVaR
+terms, and L2 regularization remain convex over the fixed atom matrix. No
+DP-side classical Benders decomposition, dual, or valid cut is claimed.
