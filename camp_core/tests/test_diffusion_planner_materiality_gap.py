@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
-from scripts.integrations.analyze_diffusion_planner_materiality_gap import analyze
+from scripts.integrations.analyze_diffusion_planner_materiality_gap import (
+    _decision,
+    _is_formal_seed_log,
+    analyze,
+)
 
 
 def _outcome(
@@ -109,3 +114,39 @@ def test_materiality_gap_ignores_safety_regressing_donor(tmp_path) -> None:
 
     assert report["records"]["with_oracle_donor"] == 0
     assert report["records"]["without_oracle_donor"] == 1
+
+
+def test_materiality_gap_identifies_formal_seed_log_path_without_io() -> None:
+    formal = (
+        "root/run_root/nishishinjuku_lane_change/seed_11/npc_8/"
+        "spawn/tl_off/static/camp_selection_log.json"
+    )
+    nonformal = (
+        "root/run_root/nishishinjuku_lane_change/seed_1/npc_8/"
+        "spawn/tl_off/static/camp_selection_log.json"
+    )
+
+    assert _is_formal_seed_log(Path(formal))
+    assert not _is_formal_seed_log(Path(nonformal))
+
+
+def test_materiality_gap_decision_flags_raw_signal_layer_gap() -> None:
+    report = _decision(
+        [
+            {
+                "raw_dp_prior_jerk_excess_delta": -1.0,
+                "raw_horizon_lateral_delta": -1.0,
+                "tracker_command_jerk_delta_mps3": 1.0,
+                "tracker_command_lateral_delta_mps2": 1.0,
+                "prefix_jerk_proxy_delta": 1.0,
+                "rollout_h3_mean_vector_jerk_mps3_delta": 1.0,
+                "rollout_h3_mean_lateral_acceleration_mps2_delta": 1.0,
+                "tracker_target_speed_delta_mps": 0.0,
+                "prefix_max_xy_distance_m": 0.0,
+            }
+        ]
+    )
+
+    assert report["status"] == "postprocess_or_tracker_descriptor_gap_present"
+    assert report["online_selector_authorized"] is False
+    assert report["camp_retraining_authorized"] is False

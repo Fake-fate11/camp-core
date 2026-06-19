@@ -19,6 +19,7 @@ for path in (ROOT, PACKAGE_ROOT):
 
 from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
     iter_selection_log_paths,
+    parse_selection_log_metadata,
 )
 from scripts.integrations.analyze_diffusion_planner_first_step_graft_potential import (  # noqa: E402
     HORIZONS,
@@ -39,6 +40,7 @@ BOOL_OUTCOMES = (
     "lane_violation",
     "red_light_violation",
 )
+FORMAL_SEEDS = {11, 12, 13}
 VECTOR_FIELDS = {
     "raw_route_progress_delta_m": "candidate_route_progress",
     "raw_step_reach_delta_m": "candidate_step_reach",
@@ -88,6 +90,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--root", type=Path, action="append", default=[])
     parser.add_argument("--selection_log", type=Path, action="append", default=[])
     parser.add_argument("--label", default=None)
+    parser.add_argument("--fail_on_formal_seeds", action="store_true")
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     return parser.parse_args()
@@ -95,7 +98,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    report = analyze([*args.root, *args.selection_log], label=args.label)
+    report = analyze(
+        [*args.root, *args.selection_log],
+        label=args.label,
+        fail_on_formal_seeds=args.fail_on_formal_seeds,
+    )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(
@@ -107,13 +114,23 @@ def main() -> None:
     print(f"Markdown: {args.output_md}")
 
 
-def analyze(paths: list[Path], *, label: str | None = None) -> dict[str, Any]:
+def analyze(
+    paths: list[Path],
+    *,
+    label: str | None = None,
+    fail_on_formal_seeds: bool = False,
+) -> dict[str, Any]:
     log_paths = iter_selection_log_paths(paths)
     if not log_paths:
         raise ValueError("No selection logs were found.")
 
     records: list[dict[str, Any]] = []
+    formal_seed_logs = 0
     for log_path in log_paths:
+        formal_seed = _is_formal_seed_log(log_path)
+        formal_seed_logs += int(formal_seed)
+        if fail_on_formal_seeds and formal_seed:
+            raise ValueError(f"Formal seed log is forbidden: {log_path}")
         payload = json.loads(log_path.read_text(encoding="utf-8-sig"))
         if not isinstance(payload, list) or not payload:
             raise ValueError(f"{log_path} must contain a nonempty JSON list.")
@@ -141,11 +158,13 @@ def analyze(paths: list[Path], *, label: str | None = None) -> dict[str, Any]:
             "label": label,
             "training": False,
             "online_selector_change": False,
+            "closed_loop_replay": False,
             "future_outcome_leakage": (
                 "candidate outcomes choose oracle donors for diagnosis only; "
                 "all reported current-tick layers are measured from stored log "
                 "fields"
             ),
+            "formal_seed_policy": "forbidden" if fail_on_formal_seeds else "reported_only",
             "closed_loop_outcome_source": (
                 "candidate_closed_loop_outcomes are computed from raw DP "
                 "candidate trajectories, while recent projection screens "
@@ -158,6 +177,7 @@ def analyze(paths: list[Path], *, label: str | None = None) -> dict[str, Any]:
         },
         "records": {
             "logs": len(log_paths),
+            "formal_seed_logs": formal_seed_logs,
             "total": len(records),
             "nonfallback": len(nonfallback),
             "fallback": len(records) - len(nonfallback),
@@ -166,7 +186,12 @@ def analyze(paths: list[Path], *, label: str | None = None) -> dict[str, Any]:
         },
         "summary": {key: _finite_summary([row[key] for row in rows]) for key in _row_keys()},
         "rates": _rates(rows),
+        "final_decision": _decision(rows),
     }
+
+
+def _is_formal_seed_log(log_path: Path) -> bool:
+    return parse_selection_log_metadata(log_path).seed in FORMAL_SEEDS
 
 
 def _load_record(record: dict[str, Any], label: str) -> dict[str, Any]:
@@ -371,6 +396,55 @@ def _rates(rows: list[dict[str, float]]) -> dict[str, float | int]:
     return rates
 
 
+def _decision(rows: list[dict[str, float]]) -> dict[str, Any]:
+    if not rows:
+        status = "postprocess_support_gap_no_oracle_donors"
+        reasons = ["no_safety_preserving_joint_comfort_oracle_donor"]
+        next_step = (
+            "Reject postprocess descriptor tuning for this artifact and inspect "
+            "candidate generation support, because the posterior oracle donor "
+            "set is empty."
+        )
+    else:
+        rates = _rates(rows)
+        raw_support = max(
+            float(rates["raw_jerk_proxy_improvement_rate"]),
+            float(rates["raw_lateral_proxy_improvement_rate"]),
+        )
+        tracker_or_post_support = max(
+            float(rates["tracker_jerk_proxy_improvement_rate"]),
+            float(rates["tracker_lateral_proxy_improvement_rate"]),
+            float(rates["prefix_jerk_proxy_improvement_rate"]),
+            float(rates["rollout_h3_jerk_improvement_rate"]),
+            float(rates["rollout_h3_lateral_improvement_rate"]),
+        )
+        if raw_support > tracker_or_post_support + 0.10:
+            status = "postprocess_or_tracker_descriptor_gap_present"
+            reasons = ["raw_proxy_signal_not_preserved_by_tracker_or_postprocess_layers"]
+            next_step = (
+                "Inspect postprocess/reference and PerfectTracker layers before "
+                "adding selector rules; any deployable descriptor must be a "
+                "current-tick finite candidate value that survives this layer gap."
+            )
+        else:
+            status = "postprocess_support_gap_inconclusive"
+            reasons = ["raw_and_tracker_layer_signal_gap_not_decisive"]
+            next_step = (
+                "Use this diagnostic as evidence only; do not promote a selector "
+                "without a separate no-leak offline proof."
+            )
+    return {
+        "status": status,
+        "reasons": reasons,
+        "online_selector_authorized": False,
+        "closed_loop_smoke_authorized": False,
+        "full36_authorized": False,
+        "formal_seeds_authorized": False,
+        "camp_retraining_authorized": False,
+        "next_step": next_step,
+    }
+
+
 def _rate(
     rows: list[dict[str, float]],
     key: str,
@@ -421,11 +495,31 @@ def render_markdown(report: dict[str, Any]) -> str:
     records = report["records"]
     rates = report["rates"]
     summary = report["summary"]
+    decision = report["final_decision"]
     lines = [
         "# DP CAMP Materiality Gap",
         "",
+        "This is a read-only postprocess-support diagnostic. It does not run DP, train CAMP, change online selection, run Full36, or use formal seeds.",
+        "",
+        "## Verdict",
+        "",
+        f"- Status: `{decision['status']}`",
+        f"- Online selector authorized: `{decision['online_selector_authorized']}`",
+        f"- Closed-loop smoke authorized: `{decision['closed_loop_smoke_authorized']}`",
+        f"- CAMP retraining authorized: `{decision['camp_retraining_authorized']}`",
+        "",
+        "Reasons:",
+    ]
+    for reason in decision["reasons"]:
+        lines.append(f"- `{reason}`")
+    lines.extend(
+        [
+            "",
+            "## Records",
+            "",
         f"- Label: `{label}`",
         f"- Logs: {records['logs']}",
+        f"- Formal seed logs: {records['formal_seed_logs']}",
         f"- Records: {records['total']}",
         f"- Nonfallback records: {records['nonfallback']}",
         f"- With oracle donors: {records['with_oracle_donor']}",
@@ -435,6 +529,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         "outcome progress deficit. Outcome labels choose donors for this "
         "diagnostic only.",
         "",
+        ]
+    )
+    lines.extend(
+        [
         "## Layer Agreement",
         "",
         "| Layer proxy | Improvement rate | Mean delta | P50 | P90 |",
@@ -480,6 +578,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         "| Quantity | Mean | P50 | P90 | P95 |",
         "| --- | ---: | ---: | ---: | ---: |",
     ]
+    )
     for label_text, key in (
         ("Outcome progress delta m", "outcome_progress_delta_m"),
         ("Outcome jerk delta m/s^3", "outcome_jerk_delta_mps3"),
@@ -509,6 +608,16 @@ def render_markdown(report: dict[str, Any]) -> str:
     for threshold in PREFIX_DISTANCE_THRESHOLDS_M:
         rate_key = f"prefix_max_distance_ge_{str(threshold).replace('.', 'p')}_m_rate"
         lines.append(f"| >= {threshold:.3f} m | {rates[rate_key]:.6f} |")
+    lines.extend(
+        [
+            "",
+            "## Mathematical Boundary",
+            "",
+            report["analysis"]["convexity_boundary"],
+            "",
+            f"Next step: {decision['next_step']}",
+        ]
+    )
     lines.append("")
     return "\n".join(lines)
 
