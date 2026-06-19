@@ -27369,3 +27369,230 @@ coordinates. If the generated diagnostics later become CAMP atoms, they must be
 fixed finite-candidate constants so `a_k^T w` remains affine and the robust
 master over `w` remains convex. No Benders master/subproblem, dual, or cuts are
 constructed here.
+
+### Prefix Lane-Projected Route/Topology Candidate Screen
+
+Commit `98fde10735a9e1fe730ffbd3690f3d5a736c69a3` adds
+`prefix_lane_projected_red_stop`, a prefix-preserving version of the
+lane-projected candidate family. For each fixed current-tick snapshot it:
+
+1. constructs the same lane-projected red-stop target as
+   `lane_projected_red_stop`;
+2. preserves the selected DP branch for predeclared prefix steps `(3, 5, 10)`;
+3. blends into the lane-projected target over a predeclared bridge of `10`
+   steps.
+
+This is still an offline finite-candidate diagnostic. It does not run replay,
+modify DP, train CAMP, use future outcome labels, or change online selection.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+```
+
+Local checks:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py `
+  scripts/integrations/analyze_diffusion_planner_route_topology_absolute_comfort_guard.py `
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+
+py -3.12 -m pytest `
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py `
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py `
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py -q
+
+git diff --check
+```
+
+Result: `17 passed`.
+
+AutoDL checks:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
+
+/root/miniconda3/envs/camp/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+
+/root/miniconda3/envs/camp/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py \
+  camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  camp_core/tests/test_diffusion_planner_route_topology_support_gate.py -q
+```
+
+Result: `17 passed`.
+
+Screen command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_prefix_lane_projected_screen_98fde10
+
+/root/miniconda3/bin/python \
+  scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --route_topology_gate_json "$ROOT/route_topology_support_gate_d0a5e4b/route_topology_support_gate.json" \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --device cuda \
+  --generator_policy prefix_lane_projected_red_stop \
+  --label seed2_npc4_tlon_prefix_lane_projected_screen_98fde10 \
+  --output_json "$OUT/route_topology_prefix_lane_projected_screen.json" \
+  --output_md "$OUT/route_topology_prefix_lane_projected_screen.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_prefix_lane_projected_screen_98fde10/route_topology_prefix_lane_projected_screen.json` | `49e9eec3eeefec5d8dfccb2fa8db0f8b63410976ce0a5417b09d31a4d660c0cb` |
+| `route_topology_prefix_lane_projected_screen_98fde10/route_topology_prefix_lane_projected_screen.md` | `cb38999fe9402e6014801cc7fe565075c894ceed7ff11cadf1ee4ae8bbd26ab4` |
+
+Result:
+
+```text
+status=route_topology_candidate_support_insufficient
+snapshots=57
+snapshots_with_generated_candidates=21
+generated_candidate_rows=828
+lower_union_red_rows=828
+lower_union_red_hard_feasible_rows=118
+lower_union_red_progress_feasible_rows=116
+lower_union_red_comfort_admissible_rows=0
+hard_feasible_snapshot_support_rate=0.38095238095238093
+comfort_admissible_snapshot_support_rate=0.0
+min_snapshot_support_rate=0.25
+total_p95_ms=166.02624356746674
+candidate_build_p95_ms=37.52392362803221
+generated_reward_p95_ms=91.2316458299756
+```
+
+Failure classes:
+
+```text
+hard_reason_counts={
+  "dp_kinematic": 591,
+  "dp_lane_crossing": 610,
+  "dp_red_light": 229,
+  "dp_road_border": 463
+}
+failure_class_counts={
+  "route_topology_comfort_blocked_command_lateral": 116,
+  "route_topology_comfort_blocked_progress_loss": 116,
+  "route_topology_comfort_blocked_rollout_jerk": 7,
+  "route_topology_comfort_blocked_rollout_lateral": 116,
+  "route_topology_comfort_blocked_smoothness_loss": 100,
+  "route_topology_dp_kinematic": 591,
+  "route_topology_dp_road_border": 463,
+  "route_topology_hard_feasible_but_underprogress": 2,
+  "route_topology_lane_invalid": 610,
+  "route_topology_red_timing_invalid": 229
+}
+```
+
+Comfort deltas:
+
+```text
+command_jerk_worse_mps3: p50=0.0, p95=0.0
+rollout_jerk_worse_mps3: p50=-0.02033852566226102, p95=3.023633746103741
+command_lateral_worse_mps2: p50=0.2945321531345041, p95=0.37607548839385035
+rollout_lateral_worse_mps2: p50=0.1919954035195081, p95=0.6711325091032913
+progress_loss_m: p50=5.084366321563721, p95=7.796436989307403
+smoothness_loss: p50=4.45578233897686, p95=16.49110575467348
+```
+
+Absolute lateral guard follow-up:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+OUT=$ROOT/route_topology_prefix_lane_projected_absolute_lateral_guard_98fde10
+
+/root/miniconda3/bin/python \
+  scripts/integrations/analyze_diffusion_planner_route_topology_absolute_comfort_guard.py \
+  --screen_json "$ROOT/route_topology_prefix_lane_projected_screen_98fde10/route_topology_prefix_lane_projected_screen.json" \
+  --snapshot_dir "$ROOT/snapshots_no_budget" \
+  --reward_config /root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json \
+  --label seed2_npc4_tlon_prefix_lane_projected_absolute_lateral_guard_98fde10 \
+  --output_json "$OUT/absolute_lateral_guard.json" \
+  --output_md "$OUT/absolute_lateral_guard.md"
+```
+
+Absolute lateral artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_prefix_lane_projected_absolute_lateral_guard_98fde10/absolute_lateral_guard.json` | `94fc533c5596bf2153c62d7cba5f71af12d1f7e4cf3a8081b8c0cde1f2d492d7` |
+| `route_topology_prefix_lane_projected_absolute_lateral_guard_98fde10/absolute_lateral_guard.md` | `928b9e6c29c91efa64eb29655a1f18dd65299af30fc22fc1978d731f2c22f4a2` |
+
+Absolute lateral result:
+
+```text
+status=route_topology_absolute_lateral_guard_support_present
+candidate_rows=828
+lower_union_red_hard_progress_rows=116
+absolute_lateral_guard_rows=116
+snapshots=21
+snapshots_with_absolute_lateral_guard_support=8
+absolute_lateral_guard_snapshot_support_rate=0.38095238095238093
+min_snapshot_support_rate=0.25
+```
+
+Absolute metrics:
+
+```text
+candidate_command_jerk_mps3: p50=5.618561955945052, p95=22.873924764304785
+candidate_command_lateral_mps2: p50=0.36066655546118254, p95=0.5660361825377972
+candidate_rollout_jerk_mps3: p50=15.765571396796325, p95=26.646514893543735
+candidate_rollout_lateral_mps2: p50=0.4862722678161722, p95=0.9493988830395036
+progress_loss_m: p50=5.084366321563721, p95=7.796436989307403
+smoothness_loss: p50=4.45578233897686, p95=16.49110575467348
+```
+
+Interpretation:
+
+Prefix preservation solves the immediate command-jerk regression seen in plain
+lane projection: relative command jerk worse is exactly `0.0`, and absolute
+command jerk is much smaller than the plain lane-projected screen. It also
+expands absolute-lateral-supported rows from `28` to `116`. However this is not
+a replay-ready route: the relative comfort gate is still zero because every
+hard/progress row loses too much progress and lateral/smoothness budget, and
+the larger candidate set pushes screen p95 to `166 ms`.
+
+Decision:
+
+Reject `prefix_lane_projected_red_stop` for replay, online selector promotion,
+Full36, formal seeds, DP modification, or CAMP retraining. Keep it as the
+current best diagnostic construction family: it demonstrates that
+prefix-preserving lane projection can satisfy hard feasibility, documented
+absolute lateral bounds, and immediate jerk preservation, but it needs a
+progress-aware stop target and a latency-reduced candidate grid before any
+non-formal replay gate.
+
+Next gate:
+
+Do not tune prefix/bridge/offset grids broadly. First run a narrow offline
+budget and pruning audit over this fixed screen:
+
+1. identify whether a small subset of prefix/margin/offset candidates preserves
+   the same hard/absolute-lateral support with much lower p95 cost;
+2. evaluate predeclared stopping-specific progress budgets such as `2.0`,
+   `3.0`, and `4.0 m` only as diagnostic sensitivity, not as replay
+   authorization;
+3. if support remains progress-limited, design a stop target that delays red
+   stopping as much as possible while keeping full-horizon red cost lower.
+
+Mathematical boundary:
+
+The new policy is still a deterministic finite-candidate transformation of
+current-tick arrays and predeclared constants. The prefix blend and lane
+projection are not claimed to be globally convex in trajectory coordinates.
+If later atomized, all resulting diagnostics must remain fixed finite-candidate
+constants so CAMP's score remains affine in `w` and the simplex/CVaR/L2 robust
+master remains convex. This screen does not construct a Benders
+master/subproblem, dual, or cuts.
