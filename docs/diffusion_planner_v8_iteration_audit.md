@@ -28979,3 +28979,173 @@ harmful or beneficial switches. CAMP scores remain affine `score_k(w)=a_k^T w`
 over fixed nonnegative simplex weights, and the simplex/CVaR/L2 master
 convexity boundary is unchanged. No DP-side classical Benders decomposition,
 dual, or valid cut is claimed.
+
+## Descriptor Separability Audit (`11789c7`)
+
+Date: 2026-06-19
+
+Status: reject threshold tuning over the audited current-tick descriptors. The
+audit was run because the strong progress/support certificate rejected with
+`primary_gap=certificate_blocks_beneficial_opportunities`. It tests whether the
+same fixed current-tick descriptors can separate harmful and beneficial
+material-weight switches using offline oracle threshold screens. The result is
+negative: the best descriptor AUC is below the predeclared target, no 1D or
+predeclared 2D threshold screen satisfies the harmful-block/beneficial-retain
+criteria, and screens that preserve many beneficial switches still leave the
+allowed set safety/progress negative.
+
+Commit:
+
+```text
+11789c7d6ccc7ba2d8693c138d2e971f7c354500 Add DP CAMP descriptor separability audit
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_descriptor_separability.py
+camp_core/tests/test_diffusion_planner_descriptor_separability.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_descriptor_separability.py
+
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `17 passed`.
+
+AutoDL synchronization and verification:
+
+AutoDL was synchronized by Git bundle from `b20cb758` to
+`11789c7d6ccc7ba2d8693c138d2e971f7c354500`. CAMP reached the same commit and
+the fixed DP checkout remained at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_descriptor_separability.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_strong_progress_support_certificate.py \
+  camp_core/tests/test_diffusion_planner_material_weight_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_material_atom_weight_sensitivity.py -q
+
+git diff --check
+```
+
+Result: `17 passed`.
+
+Gate command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+STRONG=/root/autodl-tmp/camp_dp_strong_progress_support_certificate_9892035/strong_progress_support_certificate.json
+OUT=/root/autodl-tmp/camp_dp_descriptor_separability_11789c7
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_descriptor_separability.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --strong_certificate_json "$STRONG" \
+  --fail_on_formal_seeds \
+  --label 11789c7_diverse_nonformal \
+  --output_json "$OUT/descriptor_separability.json" \
+  --output_md "$OUT/descriptor_separability.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_descriptor_separability_11789c7/descriptor_separability.json` | `508b32486d86f8a09c1d4af64b353e8f2c4403c36d3f904970987284df45da4c` |
+| `/root/autodl-tmp/camp_dp_descriptor_separability_11789c7/descriptor_separability.md` | `f3cc3396cebad585859bd65be13485ada51c73f6381b42c50588859e483efc63` |
+
+Gate result:
+
+```text
+status=descriptor_separability_rejected
+authorized_next_work=None
+primary_gap=beneficial_and_harmful_descriptor_overlap
+records=21600
+candidate_rows=172800
+formal_seed_records=0
+```
+
+Descriptor coverage:
+
+Every audited descriptor was available on all `21600` records:
+`absolute_lateral_mps2`, `comfort_gain`, `first_step_loss_m`,
+`jerk_worse_mps3`, `lateral_worse_mps2`, `progress_loss_m`,
+`speed_loss_mps`, `top1_shape_gain`, `traffic_gain`,
+`traffic_remaining`, and `yaw_worse_rps`.
+
+Best AUC rows:
+
+| Variant | Feature | Direction | AUC | Harmful mean | Beneficial mean |
+| --- | --- | --- | ---: | ---: | ---: |
+| `hard_traffic_support` | `top1_shape_gain` | `block_high` | `0.672612` | `0.827365` | `0.348284` |
+| `support_comfort_guard` | `top1_shape_gain` | `block_high` | `0.672518` | `0.824891` | `0.354491` |
+| `uniform_material` | `top1_shape_gain` | `block_high` | `0.672320` | `0.818387` | `0.376958` |
+| `traffic_rule_focus` | `top1_shape_gain` | `block_high` | `0.669616` | `0.798301` | `0.363514` |
+| `traffic_top1_guard` | `top1_shape_gain` | `block_high` | `0.653899` | `0.793310` | `0.331231` |
+
+Best threshold-screen tradeoffs:
+
+| Condition | Variant | Feature | Harmful block | Beneficial retain | Allowed safety mean | Allowed progress mean |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| highest harmful block | `support_comfort_guard` | `top1_shape_gain` | `1.000000` | `0.006689` | `-0.023417` | `0.197795` |
+| best with beneficial retain >= 0.75 | `traffic_rule_focus` | `top1_shape_gain` | `0.509711` | `0.789941` | `0.031213` | `-0.254531` |
+| best with harmful block >= 0.75 | `support_comfort_guard` | `top1_shape_gain` | `0.806340` | `0.397993` | `0.027229` | `-0.166963` |
+
+Predeclared 2D screens such as `progress_loss_m+top1_shape_gain` and
+`traffic_gain+top1_shape_gain` did not improve the conclusion. Their top-ranked
+rows mirrored the same `top1_shape_gain` tradeoff: either they block nearly all
+harmful switches while retaining almost no beneficial switches, or they retain
+beneficial switches while allowing too many harmful switches and keeping
+allowed safety/progress deltas negative.
+
+Interpretation:
+
+The current descriptor set is not separable enough to support further threshold
+tuning. `top1_shape_gain` is the strongest individual signal, but even it only
+reaches AUC about `0.673`, below the predeclared `0.70` descriptor-level target.
+Beneficial switches often share the same qualitative current-tick signature as
+harmful switches: they improve DP Top-1 shape and reduce traffic exposure, while
+also carrying some support or comfort loss. Current progress/support/comfort
+descriptors do not reliably identify which of those losses will remain
+acceptable under closed-loop evaluation. This points to an atom/schema gap,
+not just a bad threshold or a bad simplex weight.
+
+Decision:
+
+Reject threshold tuning over the audited descriptors. Do not run closed-loop
+replay, Full36, formal seeds, online selector promotion, DP changes, or CAMP
+retraining. The next useful gate is a predeclared atom/schema design audit: list
+candidate current-tick descriptors that could improve separability, prove their
+no-leak and convex/master compatibility properties, verify field availability,
+and only then run another offline separability or weight screen.
+
+Mathematical boundary:
+
+DP remains a frozen black-box candidate generator. Descriptors are fixed
+current-tick finite-candidate quantities computed before any closed-loop
+outcome label is consulted. Fixed CAMP material weights still define affine
+scores `score_k(w)=a_k^T w` over fixed atoms. The simplex/CVaR/L2 robust master
+convexity boundary is unchanged. Thresholds in this report are offline oracle
+diagnostics for separability only; they are not online selector parameters,
+not training labels, and not a DP-side classical Benders decomposition, dual,
+or valid cut.
