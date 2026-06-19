@@ -43,13 +43,18 @@ def _run_record(
     safety_delta: float,
     lane_delta: float,
     records: list[dict[str, object]],
+    seed: int = 1,
+    formal_seed: bool | None = None,
 ) -> dict[str, object]:
+    is_formal_seed = seed in (11, 12, 13) if formal_seed is None else formal_seed
     return {
         "run": {
             "route_name": route_name,
             "run_key": route_name,
             "max_npcs": max_npcs,
+            "seed": seed,
         },
+        "context": {"seed": seed, "formal_seed": is_formal_seed},
         "baseline": {"variant": "top1"},
         "delta": {
             "safety_cost_v1": safety_delta,
@@ -168,3 +173,96 @@ def test_dense_lane_change_support_finds_non_top1_alternative() -> None:
     assert "Dense Lane-Change Feasible-Tick Support Audit" in markdown
     assert "read-only" in markdown
     assert "not classical Benders decomposition" in markdown
+
+
+def test_dense_lane_change_support_rejects_formal_seed_runs() -> None:
+    record = _record(
+        selected=1,
+        feasible=[True, True],
+        progress=[10.0, 10.0],
+        speed=[4.0, 4.0],
+        dp_prior=[0.0, 1.0],
+        jerk=[0.5, 0.5],
+        lateral=[0.2, 0.2],
+        scores=[0.0, 0.1],
+    )
+
+    with pytest.raises(ValueError, match="Formal seed runs are forbidden"):
+        analyze_run_records(
+            [
+                _run_record(
+                    route_name="nishishinjuku_lane_change",
+                    max_npcs=8,
+                    safety_delta=0.1,
+                    lane_delta=0.0,
+                    records=[record],
+                    seed=11,
+                    formal_seed=True,
+                )
+            ],
+            fail_on_formal_seeds=True,
+        )
+
+
+def test_dense_lane_change_support_reports_formal_seeds_without_flag() -> None:
+    record = _record(
+        selected=1,
+        feasible=[True, True],
+        progress=[10.0, 10.0],
+        speed=[4.0, 4.0],
+        dp_prior=[0.0, 1.0],
+        jerk=[0.5, 0.5],
+        lateral=[0.2, 0.2],
+        scores=[0.0, 0.1],
+    )
+
+    report = analyze_run_records(
+        [
+            _run_record(
+                route_name="nishishinjuku_lane_change",
+                max_npcs=8,
+                safety_delta=0.1,
+                lane_delta=0.0,
+                records=[record],
+                seed=11,
+            )
+        ],
+    )
+
+    assert report["analysis"]["formal_seed_policy"] == "reported_only"
+    assert report["records"]["formal_seed_runs"] == 1
+    assert report["records"]["formal_seed_selection_records"] == 1
+
+
+def test_dense_lane_change_record_parser_uses_step_reach_and_default_comfort() -> None:
+    record = _load_record(
+        {
+            "num_candidates": 2,
+            "selected_index": 1,
+            "feasible_mask": [True, True],
+            "candidate_step_reach": [9.0, 10.0],
+            "candidate_dp_prior_deviation_cost": [0.1, 0.7],
+            "selection_scores": [0.0, float("inf")],
+        },
+        "unit fallback record",
+    )
+
+    assert record["features"]["planned_progress"].tolist() == [9.0, 10.0]
+    assert record["features"]["target_speed"].tolist() == [0.0, 0.0]
+    assert record["features"]["tracker_jerk"].tolist() == [0.0, 0.0]
+    assert record["features"]["tracker_lateral"].tolist() == [0.0, 0.0]
+    assert record["features"]["selection_score"][1] == float("inf")
+
+
+def test_dense_lane_change_record_parser_rejects_bad_vector_shape() -> None:
+    with pytest.raises(ValueError, match="candidate_route_progress must have shape"):
+        _load_record(
+            {
+                "num_candidates": 2,
+                "selected_index": 0,
+                "feasible_mask": [True, True],
+                "candidate_route_progress": [1.0],
+                "candidate_dp_prior_deviation_cost": [0.1, 0.2],
+            },
+            "bad unit record",
+        )

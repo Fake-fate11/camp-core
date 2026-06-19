@@ -20,12 +20,14 @@ for path in (ROOT, PACKAGE_ROOT):
 
 from camp_core.integrations.diffusion_planner_coverage import (  # noqa: E402
     iter_selection_log_paths,
+    parse_selection_log_metadata,
 )
 
 
 BASELINE_VARIANT = "top1"
 STATIC_VARIANT = "static"
 EPS = 1e-12
+FORMAL_SEEDS = {11, 12, 13}
 
 
 @dataclass(frozen=True)
@@ -124,6 +126,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--label", default=None)
     parser.add_argument("--min_bad_support_rate", type=float, default=0.25)
     parser.add_argument("--max_any_top1_chosen_rate", type=float, default=0.50)
+    parser.add_argument("--fail_on_formal_seeds", action="store_true")
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     return parser.parse_args()
@@ -138,6 +141,7 @@ def main() -> None:
         label=args.label,
         min_bad_support_rate=args.min_bad_support_rate,
         max_any_top1_chosen_rate=args.max_any_top1_chosen_rate,
+        fail_on_formal_seeds=args.fail_on_formal_seeds,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
@@ -157,6 +161,7 @@ def analyze(
     label: str | None = None,
     min_bad_support_rate: float = 0.25,
     max_any_top1_chosen_rate: float = 0.50,
+    fail_on_formal_seeds: bool = False,
 ) -> dict[str, Any]:
     comparison_data = json.loads(Path(comparison).read_text(encoding="utf-8"))
     return analyze_run_records(
@@ -166,6 +171,7 @@ def analyze(
         comparison=str(comparison),
         min_bad_support_rate=min_bad_support_rate,
         max_any_top1_chosen_rate=max_any_top1_chosen_rate,
+        fail_on_formal_seeds=fail_on_formal_seeds,
     )
 
 
@@ -177,11 +183,17 @@ def analyze_run_records(
     comparison: str | None = None,
     min_bad_support_rate: float = 0.25,
     max_any_top1_chosen_rate: float = 0.50,
+    fail_on_formal_seeds: bool = False,
 ) -> dict[str, Any]:
     if not 0.0 <= min_bad_support_rate <= 1.0:
         raise ValueError("min_bad_support_rate must be in [0, 1].")
     if not 0.0 <= max_any_top1_chosen_rate <= 1.0:
         raise ValueError("max_any_top1_chosen_rate must be in [0, 1].")
+    formal_seed_runs = [
+        item for item in run_records if _is_formal_seed_run(item)
+    ]
+    if fail_on_formal_seeds and formal_seed_runs:
+        raise ValueError("Formal seed runs are forbidden.")
     lane_change_runs = [item for item in run_records if _is_dense_lane_change(item)]
     bad_lane_change_runs = [
         item for item in lane_change_runs if _is_bad_deployable_run(item["delta"])
@@ -209,6 +221,7 @@ def analyze_run_records(
                 "min_bad_support_rate": float(min_bad_support_rate),
                 "max_any_top1_chosen_rate": float(max_any_top1_chosen_rate),
             },
+            "formal_seed_policy": "forbidden" if fail_on_formal_seeds else "reported_only",
             "math_boundary": (
                 "All support checks use fixed current-tick finite-candidate "
                 "quantities: feasible_mask, candidate0 index, logged static "
@@ -229,6 +242,10 @@ def analyze_run_records(
             ),
             "bad_dense_lane_change_selection_records": int(
                 sum(len(item["records"]) for item in bad_lane_change_runs)
+            ),
+            "formal_seed_runs": len(formal_seed_runs),
+            "formal_seed_selection_records": int(
+                sum(len(item["records"]) for item in formal_seed_runs)
             ),
         },
         "dense_lane_change_baseline": _baseline_summary(bad_lane_change_runs),
@@ -257,11 +274,17 @@ def _load_run_records(
         log_path = log_by_output_dir.get(output_dir)
         if log_path is None:
             raise ValueError(f"Missing static selection log for {output_dir}.")
+        metadata = parse_selection_log_metadata(log_path)
         baseline = _baseline_for_run(runs, static_run)
         result.append(
             {
                 "run": static_run,
                 "baseline": baseline,
+                "context": {
+                    "seed": metadata.seed,
+                    "formal_seed": metadata.seed in FORMAL_SEEDS,
+                    "log_path": str(log_path),
+                },
                 "delta": _benchmark_deltas(static_run, baseline),
                 "log_path": str(log_path),
                 "records": _load_records(log_path),
@@ -387,6 +410,22 @@ def _is_dense_lane_change(item: dict[str, Any]) -> bool:
     route = str(run.get("route_name") or run.get("run_key") or run.get("output_dir") or "")
     npcs = _finite(run.get("max_npcs"))
     return "lane_change" in route and npcs is not None and float(npcs) >= 8.0
+
+
+def _is_formal_seed_run(item: dict[str, Any]) -> bool:
+    context = item.get("context")
+    if isinstance(context, dict) and context.get("formal_seed") is not None:
+        return bool(context.get("formal_seed"))
+    run = item.get("run", {})
+    if isinstance(run, dict):
+        for key in ("seed", "random_seed", "scenario_seed"):
+            if run.get(key) is None:
+                continue
+            try:
+                return int(run[key]) in FORMAL_SEEDS
+            except (TypeError, ValueError):
+                return False
+    return False
 
 
 def _is_bad_deployable_run(delta: dict[str, float | None]) -> bool:
