@@ -46,6 +46,7 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 from camp_core.integrations.diffusion_planner_progress_support import (  # noqa: E402
     PROGRESS_SUPPORT_ATOM_NAMES,
     PROGRESS_SUPPORT_FIELD_NAMES,
+    PROGRESS_SUPPORT_LATENCY_KEYS,
     PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
     build_progress_support_logging_payload,
 )
@@ -116,11 +117,6 @@ OBSERVABLE_STATE_FIELDS = (
     "candidate_min_obstacle_clearance_lower_bound_m",
     "candidate_obstacle_slot_count",
 )
-PROGRESS_SUPPORT_LATENCY_KEYS = (
-    "latency_ms_progress_support_logging",
-)
-
-
 def _parse_step_list(value: str) -> tuple[int, ...]:
     steps = tuple(int(part.strip()) for part in value.split(",") if part.strip())
     if not steps:

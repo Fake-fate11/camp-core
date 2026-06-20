@@ -21,13 +21,14 @@ for path in (ROOT, PACKAGE_ROOT):
 from camp_core.integrations.diffusion_planner_progress_support import (  # noqa: E402
     PROGRESS_SUPPORT_ATOM_NAMES,
     PROGRESS_SUPPORT_FIELD_NAMES,
+    PROGRESS_SUPPORT_LATENCY_KEYS,
     PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
 )
 
 
 LOG_NAME = "camp_selection_log.json"
 SUMMARY_NAME = "camp_validation_summary.json"
-LATENCY_FIELDS = ("latency_ms_progress_support_logging",)
+LATENCY_FIELDS = PROGRESS_SUPPORT_LATENCY_KEYS
 FORBIDDEN_SEEDS = frozenset({11, 12, 13})
 
 

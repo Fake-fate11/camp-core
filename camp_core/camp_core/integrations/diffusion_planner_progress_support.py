@@ -26,6 +26,17 @@ PROGRESS_SUPPORT_ATOM_NAMES = (
     "low_speed_progress_conflict_v1",
 )
 
+PROGRESS_SUPPORT_LATENCY_KEYS = (
+    "latency_ms_progress_support_logging",
+    "latency_ms_progress_support_route_projection",
+    "latency_ms_progress_support_plan_arc",
+    "latency_ms_progress_support_speed_profile",
+    "latency_ms_progress_support_route_remaining",
+    "latency_ms_progress_support_goal_alignment",
+    "latency_ms_progress_support_atom_compute",
+    "latency_ms_progress_support_payload_serialization",
+)
+
 
 def build_progress_support_logging_payload(
     *,
@@ -56,14 +67,25 @@ def build_progress_support_logging_payload(
     xy = trajectories[:, :horizon, :2]
     route_xy = route[:, :2]
 
+    route_projection_start = time.perf_counter()
     route_progress = _route_progress_profiles(xy, route_xy)
+    route_projection_done = time.perf_counter()
+    plan_arc_start = time.perf_counter()
     plan_arc = _plan_arc_length_profiles(xy)
+    plan_arc_done = time.perf_counter()
+    speed_start = time.perf_counter()
     speed = _speed_profiles(xy, float(dt_s))
+    speed_done = time.perf_counter()
+    route_remaining_start = time.perf_counter()
     route_lengths = _route_cumulative_lengths(route_xy)
     route_total = float(route_lengths[-1])
     final_progress = route_progress[:, -1]
     route_remaining = np.maximum(route_total - final_progress, 0.0)
+    route_remaining_done = time.perf_counter()
+    goal_alignment_start = time.perf_counter()
     goal_alignment = _goal_alignment_progress(xy, route_xy)
+    goal_alignment_done = time.perf_counter()
+    atom_start = time.perf_counter()
     atoms = _progress_support_atoms(
         route_progress=route_progress,
         plan_arc=plan_arc,
@@ -71,7 +93,7 @@ def build_progress_support_logging_payload(
         route_remaining=route_remaining,
         goal_alignment=goal_alignment,
     )
-    latency_ms = (time.perf_counter() - start) * 1000.0
+    atom_done = time.perf_counter()
     fields = {
         "candidate_route_progress_s_profile_m": route_progress,
         "candidate_plan_arc_length_profile_m": plan_arc,
@@ -85,6 +107,45 @@ def build_progress_support_logging_payload(
     }
     finite_checks["progress_support_atoms"] = bool(np.all(np.isfinite(atoms)))
     finite_checks["progress_support_atoms_nonnegative"] = bool(np.all(atoms >= -1e-12))
+    serialization_start = time.perf_counter()
+    field_lists = {
+        name: np.asarray(value, dtype=np.float64).tolist()
+        for name, value in fields.items()
+    }
+    atom_list = atoms.tolist()
+    serialization_done = time.perf_counter()
+    latency_ms = (serialization_done - start) * 1000.0
+    latency_breakdown_ms = {
+        "latency_ms_progress_support_logging": float(latency_ms),
+        "latency_ms_progress_support_route_projection": (
+            route_projection_done - route_projection_start
+        )
+        * 1000.0,
+        "latency_ms_progress_support_plan_arc": (
+            plan_arc_done - plan_arc_start
+        )
+        * 1000.0,
+        "latency_ms_progress_support_speed_profile": (
+            speed_done - speed_start
+        )
+        * 1000.0,
+        "latency_ms_progress_support_route_remaining": (
+            route_remaining_done - route_remaining_start
+        )
+        * 1000.0,
+        "latency_ms_progress_support_goal_alignment": (
+            goal_alignment_done - goal_alignment_start
+        )
+        * 1000.0,
+        "latency_ms_progress_support_atom_compute": (
+            atom_done - atom_start
+        )
+        * 1000.0,
+        "latency_ms_progress_support_payload_serialization": (
+            serialization_done - serialization_start
+        )
+        * 1000.0,
+    }
     payload: dict[str, Any] = {
         "schema_version": PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
         "enabled": True,
@@ -106,15 +167,10 @@ def build_progress_support_logging_payload(
             for name, value in fields.items()
         },
         "finite_checks": finite_checks,
-        "latency_ms": {
-            "latency_ms_progress_support_logging": float(latency_ms),
-        },
-        **{
-            name: np.asarray(value, dtype=np.float64).tolist()
-            for name, value in fields.items()
-        },
+        "latency_ms": latency_breakdown_ms,
+        **field_lists,
         "progress_support_atom_names": list(PROGRESS_SUPPORT_ATOM_NAMES),
-        "progress_support_atoms": atoms.tolist(),
+        "progress_support_atoms": atom_list,
         "math_boundary": (
             "Progress-support atoms are fixed finite-candidate nonnegative "
             "coefficients. CAMP score remains affine in weights: score_k(w)=a_k^T w."

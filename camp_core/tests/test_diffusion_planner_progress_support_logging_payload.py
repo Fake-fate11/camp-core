@@ -9,6 +9,7 @@ import pytest
 from camp_core.integrations.diffusion_planner_progress_support import (
     PROGRESS_SUPPORT_ATOM_NAMES,
     PROGRESS_SUPPORT_FIELD_NAMES,
+    PROGRESS_SUPPORT_LATENCY_KEYS,
     PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
     build_progress_support_logging_payload,
 )
@@ -65,6 +66,8 @@ def test_progress_support_payload_schema_shapes_and_metadata() -> None:
     assert payload["field_shapes"]["candidate_route_remaining_m"] == [3]
     assert payload["field_shapes"]["candidate_goal_alignment_progress_m"] == [3]
     assert all(payload["finite_checks"].values())
+    assert set(payload["latency_ms"]) == set(PROGRESS_SUPPORT_LATENCY_KEYS)
+    assert all(float(value) >= 0.0 for value in payload["latency_ms"].values())
     assert payload["progress_support_atom_names"] == list(PROGRESS_SUPPORT_ATOM_NAMES)
     assert np.asarray(payload["progress_support_atoms"]).shape == (
         3,
@@ -105,6 +108,29 @@ def test_progress_support_payload_does_not_accept_outcome_inputs() -> None:
         "dt_s",
     ]
     assert "outcome" not in str(signature).lower()
+
+
+def test_progress_support_component_timing_does_not_change_logged_values() -> None:
+    first = build_progress_support_logging_payload(
+        candidates=_candidates(),
+        route_centerline_ego=_route(),
+        support_steps=5,
+        dt_s=0.1,
+    )
+    second = build_progress_support_logging_payload(
+        candidates=_candidates(),
+        route_centerline_ego=_route(),
+        support_steps=5,
+        dt_s=0.1,
+    )
+
+    assert set(first["latency_ms"]) == set(PROGRESS_SUPPORT_LATENCY_KEYS)
+    assert set(second["latency_ms"]) == set(PROGRESS_SUPPORT_LATENCY_KEYS)
+    first_without_latency = dict(first)
+    second_without_latency = dict(second)
+    first_without_latency.pop("latency_ms")
+    second_without_latency.pop("latency_ms")
+    assert first_without_latency == second_without_latency
 
 
 def test_progress_support_payload_validates_inputs() -> None:

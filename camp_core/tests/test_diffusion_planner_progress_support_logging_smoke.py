@@ -9,6 +9,7 @@ import numpy as np
 from camp_core.integrations.diffusion_planner_progress_support import (
     PROGRESS_SUPPORT_ATOM_NAMES,
     PROGRESS_SUPPORT_FIELD_NAMES,
+    PROGRESS_SUPPORT_LATENCY_KEYS,
     PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
     build_progress_support_logging_payload,
 )
@@ -67,21 +68,22 @@ def _metadata(*, enabled: bool, records: int) -> dict:
             "records": records,
             "fields": list(PROGRESS_SUPPORT_FIELD_NAMES),
             "atom_names": list(PROGRESS_SUPPORT_ATOM_NAMES),
-            "latency_fields": ["latency_ms_progress_support_logging"],
+            "latency_fields": list(PROGRESS_SUPPORT_LATENCY_KEYS),
         },
         "benchmark": {"seed": 1, "advance_mode": "perfect"},
     }
 
 
 def _record(*, payload: dict | None) -> dict:
-    latency = 0.0
-    if payload is not None:
-        latency = payload["latency_ms"]["latency_ms_progress_support_logging"]
-    return {
+    record = {
         "candidate_closed_loop_outcomes": None,
         "progress_support_logging": payload,
-        "latency_ms_progress_support_logging": latency,
     }
+    if payload is not None:
+        record.update(payload["latency_ms"])
+    else:
+        record.update({key: 0.0 for key in PROGRESS_SUPPORT_LATENCY_KEYS})
+    return record
 
 
 def _write_run(root: Path, *, enabled: bool, payload: dict | None) -> None:
