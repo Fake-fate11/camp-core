@@ -30861,3 +30861,134 @@ and weights under logging. If a descriptor later becomes a CAMP atom, it must
 enter as fixed coefficient `a_k`; `score_k(w)=a_k^T w` remains affine and the
 simplex/CVaR/L2 robust master remains convex. No DP-side classical Benders
 decomposition, dual, or cut is constructed or claimed.
+
+## Observable Label Alignment Audit (`dc11742`)
+
+This gate tests whether the new no-leak observable-state payload logs from the
+broader logging run can be safely joined to an already existing nonformal
+candidate-outcome label source. It does not run DP, train CAMP, change
+selection, or use outcome labels as runtime features. It only checks
+candidate-set identity before any separability screen is allowed.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_observable_label_alignment.py`
+- `camp_core/tests/test_diffusion_planner_observable_label_alignment.py`
+
+Source artifacts:
+
+```text
+observable_root = /root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/logging_enabled
+label_root      = /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2
+records_per_pair = 12
+pairs = 4
+```
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_observable_label_alignment.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_label_alignment.py -q
+
+git diff --check
+```
+
+Result: `4 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_label_alignment.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_label_alignment.py -q
+```
+
+Result: `4 passed`. CAMP and `origin/main` were synchronized to
+`dc11742d6412d2c6a4f66fda679c4b36b5427274`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_label_alignment_dc11742
+mkdir -p "$OUT"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_observable_label_alignment.py \
+  --observable_root /root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/logging_enabled \
+  --label_root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_outcome_labels_static_d97b7c2 \
+  --records 12 \
+  --label dc11742_candidate_outcome_labels_static_alignment \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/observable_label_alignment.json" \
+  --output_md "$OUT/observable_label_alignment.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_observable_label_alignment_dc11742/observable_label_alignment.json` | `390aeb92ce245c58663a0acdf2b032d280ee02fd6203081b9c52bfb21412f0b9` |
+| `/root/autodl-tmp/camp_dp_observable_label_alignment_dc11742/observable_label_alignment.md` | `1e8e9cbc0de12c057d591c6cde6b498f12b6cf5018f8deec7dbc73f70624f49f` |
+
+Audit result:
+
+```text
+status=observable_label_alignment_rejected
+primary_gap=observable_and_label_candidate_sets_not_aligned
+authorized_next_work=predeclare_matched_observable_outcome_label_collection_plan_only
+records_compared=48
+records_with_mismatch=48
+missing_label_outcome_records=0
+missing_observable_payload_records=0
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Per-run mismatch summary:
+
+| Run | Records | Mismatch records | First mismatch fields |
+| --- | ---: | ---: | --- |
+| `sample_tl_seed1_npc0_tlon` | `12` | `12` | `atoms, candidate_dp_prior_deviation_cost, candidate_perfect_tracker_first_step_reach_m, candidate_perfect_tracker_jerk_magnitude_mps3, candidate_perfect_tracker_lateral_acceleration_magnitude_mps2, candidate_perfect_tracker_target_speed_mps, candidate_step_reach, feasible_mask, infeasibility_reasons, normalized_atoms, scores, selection_scores` |
+| `sample_tl_seed1_npc4_tlon` | `12` | `12` | `atoms, candidate_dp_prior_deviation_cost, candidate_perfect_tracker_first_step_reach_m, candidate_perfect_tracker_jerk_magnitude_mps3, candidate_perfect_tracker_lateral_acceleration_magnitude_mps2, candidate_perfect_tracker_target_speed_mps, candidate_step_reach, feasible_mask, infeasibility_reasons, normalized_atoms, scores, selection_scores` |
+| `sample_tl_seed1_npc4_tloff` | `12` | `12` | `atoms, candidate_dp_prior_deviation_cost, candidate_perfect_tracker_first_step_reach_m, candidate_perfect_tracker_jerk_magnitude_mps3, candidate_perfect_tracker_lateral_acceleration_magnitude_mps2, candidate_perfect_tracker_target_speed_mps, candidate_step_reach, feasible_mask, infeasibility_reasons, normalized_atoms, scores, selected_index, selection_scores` |
+| `sample_normal_seed1_npc0_tloff` | `12` | `12` | `atoms, candidate_dp_prior_deviation_cost, candidate_perfect_tracker_first_step_reach_m, candidate_perfect_tracker_jerk_magnitude_mps3, candidate_perfect_tracker_lateral_acceleration_magnitude_mps2, candidate_perfect_tracker_target_speed_mps, candidate_step_reach, normalized_atoms, scores, selected_index, selection_scores` |
+
+Decision:
+
+Reject joining the new observable descriptors to
+`candidate_outcome_labels_static_d97b7c2`. The existing labels are present and
+nonformal, but the candidate sets are not identical to the new observable logs;
+therefore using those labels for descriptor separability would create a
+mislabeling risk. This rejects only this label source, not the observable
+descriptor route.
+
+Next admissible work:
+
+Predeclare a matched nonformal outcome-label collection plan that records
+observable-state payloads and candidate outcome labels in the same replay
+records. The plan must remain nonformal, exclude formal seeds, keep DP fixed,
+keep selection neutral unless explicitly collecting offline labels after
+selection, and require selector/atom/score identity plus
+`candidate_closed_loop_outcomes` presence before any separability screen.
+
+Mathematical boundary:
+
+Observable descriptors remain current-tick finite-candidate quantities with
+`selection_effect=false`. Outcome labels are offline evaluation labels only and
+cannot become runtime features or threshold inputs. CAMP scoring remains
+`score_k(w)=a_k^T w` over fixed atom coefficients, preserving the
+simplex/CVaR/L2 convex master. No DP-side classical Benders decomposition,
+dual, or cut is constructed or claimed.
