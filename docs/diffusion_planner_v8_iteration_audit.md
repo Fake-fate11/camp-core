@@ -34669,6 +34669,168 @@ atomized, they enter as fixed coefficients \(a_k\), preserving affine
 candidate selector is still not a classical Benders decomposition; no
 master/subproblem dual or valid cuts are introduced here.
 
+## Lane/Hard-Violation Support Matched Outcome Label Plan (`8fb7889`)
+
+This gate adds and verifies a fail-closed matched lane/hard support/outcome
+contract audit plus a design-only plan for collecting offline candidate outcome
+labels alongside the validated lane/hard support descriptors. It does not
+execute DP, does not run replay, does not train CAMP, does not modify DP, and
+does not promote an online selector.
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before AutoDL plan generation:
+  `8fb7889797671b5a3eed0339a9811a01c0ac28c2`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Broader lane/hard support smoke audit:
+  `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke/audit/lane_hard_violation_support_logging_smoke.json`.
+- Broader selector equivalence audit:
+  `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke/audit/selector_equivalence.json`.
+- Broader dataset audit:
+  `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke/audit/dataset_audit.json`.
+
+New files:
+
+- `scripts/integrations/analyze_diffusion_planner_matched_lane_hard_violation_support_outcomes.py`
+- `scripts/integrations/plan_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass.py`
+- `camp_core/tests/test_diffusion_planner_matched_lane_hard_violation_support_outcomes.py`
+- `camp_core/tests/test_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass_plan.py`
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_matched_lane_hard_violation_support_outcomes.py `
+  scripts\integrations\plan_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass.py `
+  camp_core\tests\test_diffusion_planner_matched_lane_hard_violation_support_outcomes.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass_plan.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_matched_lane_hard_violation_support_outcomes.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass_plan.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_broader_nonformal_smoke_plan.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_logging_smoke.py -q
+git diff --check
+```
+
+Local result: `16 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL checks and plan generation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_matched_lane_hard_violation_support_outcomes.py \
+  scripts/integrations/plan_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass.py \
+  camp_core/tests/test_diffusion_planner_matched_lane_hard_violation_support_outcomes.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass_plan.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_matched_lane_hard_violation_support_outcomes.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass_plan.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_broader_nonformal_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_logging_smoke.py -q
+
+SRC=/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke/audit
+OUT=/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_plan_8fb7889
+mkdir -p "$OUT"
+$PY scripts/integrations/plan_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass.py \
+  --broader_smoke_audit_json "$SRC/lane_hard_violation_support_logging_smoke.json" \
+  --broader_selector_equivalence_json "$SRC/selector_equivalence.json" \
+  --broader_dataset_audit_json "$SRC/dataset_audit.json" \
+  --label autodl_8fb7889_lane_hard_violation_support_matched_outcome_plan \
+  --output_json "$OUT/lane_hard_violation_support_matched_outcome_plan.json" \
+  --output_md "$OUT/lane_hard_violation_support_matched_outcome_plan.md"
+```
+
+AutoDL result: `16 passed`; generated plan reported:
+
+```text
+PLAN_STATUS=lane_hard_violation_support_matched_outcome_label_pass_plan_ready
+PLAN_PASSED=True
+PLAN_AUTHORIZED_NEXT=lane_hard_violation_support_matched_outcome_label_nonformal_smoke_only
+MATCHED_RECORDS=48
+MATCHED_CANDIDATES=384
+FAILED_SOURCE=
+FAILED_PLAN=
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_plan_8fb7889/lane_hard_violation_support_matched_outcome_plan.json` | `2a94e096ff5a1966f2ea9401a08a7b5b1c75e8dab85a547ed2360f1afb6fb017` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_plan_8fb7889/lane_hard_violation_support_matched_outcome_plan.md` | `4f74a1663b2831d62f857dc498b29a587430ca339587dfb2c47b4ccd7f6f4ef0` |
+
+Planned matched scope:
+
+```text
+paired_runs=4 baseline + 4 matched_lane_hard_outcomes
+steps=12
+num_candidates=8
+matched_records=48
+matched_candidate_rows=384
+formal_seeds=forbidden
+```
+
+Plan checks:
+
+```text
+source broader lane/hard smoke passed
+source records material
+source lane/hard logging latency within 25 ms
+source selector exact equivalence
+source dataset audit passed with closed_loop_outcomes_forbidden=True
+replay supports lane/hard logging and outcome labels
+lane/hard payload is computed before collect_closed_loop_outcomes branch
+dataset required-outcome audit is available
+matched lane/hard contract audit is available
+```
+
+Audit result:
+
+```text
+status=lane_hard_violation_support_matched_outcome_label_pass_plan_ready
+passed=True
+authorized_next_work=lane_hard_violation_support_matched_outcome_label_nonformal_smoke_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Decision:
+
+Accept this as the design gate for matched lane/hard support outcome labels.
+The next authorized action is only the exact nonformal matched pass encoded in
+the artifact: paired baseline and matched branches over the same 4-run x
+12-step matrix; the matched branch enables
+`--camp_lane_hard_violation_support_logging` and
+`--camp_collect_closed_loop_outcomes`; audits must require selector
+equivalence, required closed-loop outcomes, finite-candidate contract, no
+formal seeds, and the matched lane/hard contract.
+
+Do not run Full36, use formal seeds, promote an online selector, modify DP, or
+train CAMP. Outcome labels may be used only offline after the fixed
+current-tick lane/hard support payload is recorded.
+
+Mathematical boundary:
+
+The planned matched run records current-tick lane/hard finite-candidate
+descriptors and offline candidate outcomes in the same replay record. Outcome
+labels are posterior labels only and are forbidden as runtime selector
+features. If later atomized, lane/hard support values enter as fixed
+coefficients \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master. No DP-side classical Benders decomposition,
+dual, or cut is claimed.
+
 ```text
 status=progress_support_broader_nonformal_smoke_passed
 passed=True
