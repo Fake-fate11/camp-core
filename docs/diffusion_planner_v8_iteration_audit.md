@@ -31453,3 +31453,138 @@ score offline threshold diagnostics. Any later atomization would introduce fixed
 candidate coefficients \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
 simplex/CVaR/L2 convex master. This audit constructs no DP-side classical
 Benders master/subproblem, dual, or valid cut.
+
+## Observable Descriptor Bottleneck Diagnostic (`e257294`)
+
+This gate follows the `84cc0c3` separability rejection and uses the same
+existing matched artifact only. It does not run new replay, change DP, promote
+an online selector, run Full36, use formal seeds, or retrain CAMP. It reads the
+best balanced rejected screen from
+`/root/autodl-tmp/camp_dp_matched_observable_descriptor_separability_84cc0c3`
+and explains its residual errors:
+
+- harmful alternatives allowed by the fixed screen;
+- beneficial alternatives blocked by the fixed screen.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_observable_descriptor_bottleneck.py`
+- `camp_core/tests/test_diffusion_planner_observable_descriptor_bottleneck.py`
+- `scripts/integrations/analyze_diffusion_planner_matched_observable_descriptor_separability.py`
+  now carries extra offline outcome-delta fields for residual attribution.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_matched_observable_descriptor_separability.py `
+  scripts\integrations\analyze_diffusion_planner_observable_descriptor_bottleneck.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_matched_observable_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_observable_descriptor_bottleneck.py -q
+
+git diff --check
+```
+
+Result: `7 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL verification and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_matched_observable_descriptor_separability.py \
+  scripts/integrations/analyze_diffusion_planner_observable_descriptor_bottleneck.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_matched_observable_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_observable_descriptor_bottleneck.py -q
+
+OUT=/root/autodl-tmp/camp_dp_observable_descriptor_bottleneck_e257294
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_observable_descriptor_bottleneck.py \
+  --root /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/matched_observable_outcomes \
+  --separability_json /root/autodl-tmp/camp_dp_matched_observable_descriptor_separability_84cc0c3/matched_observable_descriptor_separability.json \
+  --label autodl_e257294_observable_descriptor_bottleneck \
+  --output_json "$OUT/observable_descriptor_bottleneck.json" \
+  --output_md "$OUT/observable_descriptor_bottleneck.md"
+```
+
+Result: `7 passed`. CAMP and `origin/main` were synchronized to
+`e257294b0a3677efd1ec5cce7eb4b807c94eb56c`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_observable_descriptor_bottleneck_e257294/observable_descriptor_bottleneck.json` | `93ecac1208b221f258cbba8aabdd72e940f329c66df77bfc462f3611a4c26e13` |
+| `/root/autodl-tmp/camp_dp_observable_descriptor_bottleneck_e257294/observable_descriptor_bottleneck.md` | `0678cafacee02583768156420ceedf00949acdbba35faf2a086880976d06801d` |
+
+Audit result:
+
+```text
+status=observable_descriptor_bottleneck_diagnosed
+passed=True
+authorized_next_work=predeclare_next_descriptor_family_or_reject_observable_route
+best_screen_available=True
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Residual counts:
+
+```text
+alternative_rows=336
+allowed_harmful=54
+blocked_beneficial=17
+
+allowed_harmful_reasons:
+  progress_proxy_weakness=46
+  comfort_envelope_insufficiency=4
+  traffic_support_interaction=4
+
+blocked_beneficial_reasons:
+  top1_shape_calibration_overconservative=17
+
+dominant_allowed_harmful_reason=progress_proxy_weakness
+dominant_blocked_beneficial_reason=top1_shape_calibration_overconservative
+```
+
+Decision:
+
+Accept this as a residual diagnostic, not as a selector or certificate. The
+current observable payload is not enough to prove a deployable safety selector.
+The dominant failure is a progress/support proxy weakness: most harmful
+alternatives that pass the best screen lose too much posterior progress relative
+to DP Top-1. At the same time, all beneficial alternatives blocked by the best
+screen are blocked by an overconservative Top-1 shape-calibration rule.
+
+Next admissible work:
+
+Predeclare one stronger current-tick descriptor family, or explicitly reject the
+observable route. The strongest justified hypothesis is a current-tick
+progress/support proxy that remains no-leak and finite-candidate, for example a
+route-progress envelope over the candidate prefix plus a Top-1 shape deviation
+calibration term. It must be tested first as an offline analyzer over the same
+existing matched artifact. Do not run new replay, Full36, formal seeds, online
+selector promotion, or CAMP retraining from this diagnostic alone.
+
+Mathematical boundary:
+
+This diagnostic uses outcome labels only after a fixed rejected screen to
+explain residual errors. It creates no runtime threshold and no new atom by
+itself. Any future descriptor must be a fixed current-tick finite-candidate
+quantity available before outcome evaluation. If later atomized, it must enter
+as fixed coefficient \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master. No DP-side classical Benders master/subproblem,
+dual, or cut is constructed.
