@@ -35748,3 +35748,157 @@ selector equivalence, summary/validation metadata, non-null payload records in
 the enabled branch, no formal seeds, bounded latency, and no selection effect.
 Do not execute the smoke or train CAMP until that plan is reviewed and
 documented.
+
+## Lane/Hard-Violation Support Nonformal Smoke Plan (`972b437`)
+
+This gate implements the design-only paired smoke plan authorized by the
+`d14c7bc` replay-wiring audit. It adds a future smoke payload audit and a
+plan generator. It does not run replay, use formal seeds, promote an online
+selector, modify DP, or train CAMP.
+
+Implemented files:
+
+- `scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_logging_smoke.py`
+- `scripts/integrations/plan_diffusion_planner_lane_hard_violation_support_logging_smoke.py`
+- `camp_core/tests/test_diffusion_planner_lane_hard_violation_support_logging_smoke.py`
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before documentation:
+  `972b437de23d361cfc4a5172c0f1bde2e1fb9505`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Local checks:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_lane_hard_violation_support_logging_smoke.py `
+  scripts\integrations\plan_diffusion_planner_lane_hard_violation_support_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_logging_smoke.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_payload.py -q
+
+py -3.12 scripts\integrations\plan_diffusion_planner_lane_hard_violation_support_logging_smoke.py `
+  --label local_lane_hard_violation_support_smoke_plan `
+  --output_json "$env:TEMP\camp_lane_hard_smoke_plan_local\lane_hard_violation_support_smoke_plan.json" `
+  --output_md "$env:TEMP\camp_lane_hard_smoke_plan_local\lane_hard_violation_support_smoke_plan.md"
+
+git diff --check
+```
+
+Local result: `12 passed`; local plan status
+`lane_hard_violation_support_logging_nonformal_smoke_plan_ready`.
+
+AutoDL synchronization:
+
+AutoDL CAMP was synchronized by local git bundle and fast-forwarded to
+`972b437de23d361cfc4a5172c0f1bde2e1fb9505`. AutoDL DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_logging_smoke.py \
+  scripts/integrations/plan_diffusion_planner_lane_hard_violation_support_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_logging_smoke.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_payload.py -q
+
+OUT=/root/autodl-tmp/camp_dp_lane_hard_violation_support_smoke_plan_972b437
+mkdir -p "$OUT"
+$PY scripts/integrations/plan_diffusion_planner_lane_hard_violation_support_logging_smoke.py \
+  --label autodl_972b437_lane_hard_violation_support_smoke_plan \
+  --output_json "$OUT/lane_hard_violation_support_smoke_plan.json" \
+  --output_md "$OUT/lane_hard_violation_support_smoke_plan.md"
+```
+
+AutoDL result: `12 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_smoke_plan_972b437/lane_hard_violation_support_smoke_plan.json` | `1f1e7e6680498aae5eda7cce397ef39e59cc6e2d43e882c9a414cbc4794e9925` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_smoke_plan_972b437/lane_hard_violation_support_smoke_plan.md` | `1cdae15eb40fb17beb82b1a9a43fb85fc9c053977db4745e8b792b4a1a8f772a` |
+
+Planned paired smoke scope:
+
+```text
+root=/root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke
+paired_runs=baseline + --camp_lane_hard_violation_support_logging
+route=sample_map_tl_route_59_to_86
+seed=1
+steps=3
+max_npcs=4
+traffic_lights=off
+num_candidates=8
+support_steps=10
+dt_s=0.1
+corridor_half_width_m=1.75
+lateral_rate_budget_mps=1.0
+```
+
+Required post-run audits:
+
+```text
+selector_equivalence=require_equivalent
+payload_audit=analyze_diffusion_planner_lane_hard_violation_support_logging_smoke.py --require_pass
+dataset_audit=audit_diffusion_planner_camp_dataset.py --closed_loop_outcome_policy forbidden --require_finite_candidate_contract --forbid_seed 11/12/13
+```
+
+Accept criteria include:
+
+```text
+baseline summary reports camp_lane_hard_violation_support_logging.enabled=false
+candidate summary reports camp_lane_hard_violation_support_logging.enabled=true
+candidate records contain non-null lane_hard_violation_support_logging payloads
+payload schema, shapes, finite checks, latency fields, and atom names pass audit
+lane_hard_violation_support_atoms are finite and nonnegative
+candidate_closed_loop_outcomes remain absent
+selector log equivalence passes
+dataset audit passes finite-candidate contract checks
+```
+
+Decision:
+
+Accept this smoke plan. It authorizes exactly one paired nonformal three-step
+smoke for default-off lane/hard-violation support logging. It does not
+authorize Full36, formal seeds, online selector promotion, DP modification, or
+CAMP retraining.
+
+Mathematical boundary:
+
+The planned smoke only enables default-off logging of fixed current-tick
+finite-candidate lane/hard-violation support descriptors and nonnegative atom
+coefficients. It must not change CAMP scores, feasibility, selected indices, DP
+candidates, postprocess reference, or PerfectTracker execution. If these atoms
+later enter CAMP, they are fixed coefficients `a_k`, preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master in weights. This is
+not a DP-side classical Benders decomposition.
+
+```text
+status=lane_hard_violation_support_logging_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=default_off_lane_hard_violation_support_paired_three_step_smoke_only
+closed_loop_replay_authorized=True
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Next work may execute only the planned paired three-step nonformal smoke and
+the listed audits. Do not expand scope, use formal seeds, run Full36, promote
+an online selector, or train CAMP from this plan.
