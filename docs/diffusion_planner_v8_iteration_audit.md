@@ -38451,3 +38451,134 @@ the candidate coefficient \(a_k\) is fixed before scoring, so
 `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
 convex. This smoke still constructs no DP-side classical Benders
 master/subproblem, dual, or valid cut.
+
+## Progress + Lane/Hard Context Payload Coverage Audit (`c189441`)
+
+This gate adds and runs a read-only coverage/materiality audit for the already
+logged `progress_lane_hard_context_logging` payloads. It does not run replay,
+does not use closed-loop outcome labels, does not change selection, does not use
+Full36 or formal seeds, does not modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_payload_coverage.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload_coverage.py`
+
+The audit validates schema/no-leak invariants and then checks whether the
+logged payload has enough records, context coverage, and cross-candidate atom
+variation to justify a later offline separability design. It intentionally does
+not treat the three-step smoke as sufficient materiality evidence.
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_progress_lane_hard_context_payload_coverage.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload_coverage.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload_coverage.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py -q
+git diff --check
+```
+
+Local result: `25 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization:
+
+```text
+camp_head=c1894414e2b8e13dcbfa3910c3febb3793d1cdab
+dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+sync_method=git bundle fast-forward
+bundle_sha256=70cc81b4340a9860405ea361c8467ebf8a437e3783b4a41c1b255a7d482c7531
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_payload_coverage.py \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload_coverage.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload_coverage.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py -q
+```
+
+AutoDL result: `25 passed`.
+
+Coverage audit command:
+
+```bash
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_payload_coverage_c189441
+$PY scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_payload_coverage.py \
+  --root /root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/logging_enabled \
+  --label autodl_c189441_progress_lane_hard_context_payload_coverage \
+  --output_json "$OUT/progress_lane_hard_context_payload_coverage.json" \
+  --output_md "$OUT/progress_lane_hard_context_payload_coverage.md" \
+  --require_valid
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_payload_coverage_c189441/progress_lane_hard_context_payload_coverage.json` | `e2fd7c2d7c4a70e0ec0b790fe45c0284e9b61869164b773ec7c9aecd57a6ad67` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_payload_coverage_c189441/progress_lane_hard_context_payload_coverage.md` | `dccc477aca3508870a6bce8d96e5b3f31d7da245e705f612d9fba61520ef1455` |
+
+Result:
+
+```text
+status=progress_lane_hard_context_payload_coverage_insufficient_for_materiality
+primary_gap=too_few_logged_records_for_materiality
+authorized_next_work=progress_lane_hard_context_broader_nonformal_plan_only
+materiality_gate_passed=False
+records=3
+payload_records=3
+candidate_rows=24
+context_records=3
+curvature_context_records=3
+corridor_pressure_records=0
+positive_atom_records=3
+material_atom_fields=[
+  curvature_conditioned_lateral_rate_excess_v1,
+  heading_curvature_residual_v1,
+  lane_progress_coherence_excess_v1
+]
+validation_errors=[]
+validation_warnings=[]
+latency_ms_progress_lane_hard_context_logging_max=3.8415296003222466
+```
+
+Decision:
+
+Accept this audit implementation and artifact. The payload is schema-valid,
+outcome-free, finite, nonnegative, and nontrivial on the three logged records.
+However, the materiality gate is not satisfied because `3` records are below
+the declared `12` record minimum. This is the desired fail-closed behavior: the
+smoke is enough to prove logging mechanics, but not enough to justify a
+separability claim, online selector work, CAMP retraining, Full36, or formal
+seeds.
+
+The next admissible work is design-only: predeclare a small broader nonformal
+paired logging plan for this same descriptor family, with enough records to
+test coverage/materiality while preserving fixed DP weights, fixed CAMP
+weights, default-off selection neutrality, and formal-seed exclusion. Do not
+execute the broader replay until that plan gate is written and accepted.
+
+Mathematical boundary:
+
+The coverage audit only reads fixed current-tick finite-candidate descriptors
+and nonnegative atom coefficients. If these atoms later enter CAMP, each
+candidate coefficient \(a_k\) remains fixed before scoring, preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This audit still
+constructs no DP-side classical Benders master/subproblem, dual, or valid cut.
