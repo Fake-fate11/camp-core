@@ -34829,3 +34829,147 @@ modification, or online optimization promotion. If the matched outcome
 collection passes, the next step is an offline progress-support descriptor
 separability screen; if it fails, reject the route and diagnose the exact
 contract failure before any larger experiment.
+
+## Progress-Support Matched Outcome Label Result (`1b46d19`)
+
+The predeclared matched progress-support outcome-label nonformal smoke was
+executed on AutoDL after the design gate was committed and synchronized. The
+execution followed the plan exactly: 4 paired nonformal runs x 12 steps, with a
+baseline branch and a matched branch collecting both `progress_support_logging`
+and `candidate_closed_loop_outcomes`, followed by selector equivalence,
+required-outcome dataset audit, and matched progress-support outcome contract
+audit.
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before execution:
+  `1b46d19dd690c21e38cc0c2b88400e816c09e50b`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Source plan:
+  `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_plan_15844ec/progress_support_matched_outcome_label_plan.json`.
+- Output root:
+  `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1`.
+
+AutoDL execution summary:
+
+```text
+execution_all_passed=True
+execution_command_count=11
+paired_replay_commands=8
+audit_commands=3
+```
+
+Core artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/audit/selector_equivalence.json` | `ea7af21687ab09c52e693fd2855f48a9fcd1e88c9bae5b708ae0de6804014477` |
+| `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/audit/dataset_required_outcome_audit.json` | `580f77a223e768d7c5246623a11bf33b5740ddeb768c3206cd5feb3875a18535` |
+| `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/audit/matched_progress_support_outcome_contract.json` | `f474e7281ea3a8d922f07789df722094b51fd5c3b87ed2dcad62ea794f8be504` |
+| `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/audit/matched_progress_support_outcome_contract.md` | `2240a2c3797049ba5d67c5a4c4e72225a9e4b664cde3b3aca2d780384c921358` |
+| `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/audit/matched_progress_support_outcome_execution_log.json` | `3a21a64c224b0a8edc0340e296cfe5de60921591503be281aaa763106f115174` |
+
+Selector equivalence:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=48
+selector_equivalence.paired_logs=4
+selector_equivalence.exact_field_mismatch_sum=0
+selector_equivalence.numeric_field_mismatch_sum=0
+selector_equivalence.numeric_shape_mismatch_sum=0
+selector_equivalence.numeric_nonexact_sum=0
+```
+
+Required-outcome dataset audit:
+
+```text
+dataset_audit.passed=True
+dataset_audit.counts={
+  logs: 4,
+  records: 48,
+  candidates: 384,
+  all_infeasible_records: 1
+}
+dataset_audit.checks={
+  forbidden_seed_check: True,
+  finite_candidate_contract_verified: True,
+  closed_loop_outcomes_required: True,
+  complete_closed_loop_outcomes: True,
+  exact_candidate_and_atom_shapes: True,
+  summary_seed_provenance_verified: True,
+  advance_mode_verified: True,
+  red_light_atom_matches_online_dp_reward: True
+}
+```
+
+Matched progress-support outcome contract:
+
+```text
+matched_progress_support_outcome_contract.status=matched_progress_support_outcome_contract_passed
+matched_progress_support_outcome_contract.passed=True
+matched_progress_support_outcome_contract.error_count=0
+matched_progress_support_outcome_contract.counts={
+  logs: 4,
+  records: 48,
+  progress_support_records: 48,
+  outcome_records: 48,
+  candidate_rows: 384,
+  expected_candidates: 8,
+  formal_seed_records: 0
+}
+
+matched_progress_support_outcome_contract.latency_ms={
+  latency_ms_progress_support_logging: 5.258739925920963,
+  latency_ms_progress_support_route_projection: 4.916100762784481,
+  latency_ms_progress_support_plan_arc: 0.12909062206745148,
+  latency_ms_progress_support_speed_profile: 0.03369525074958801,
+  latency_ms_progress_support_route_remaining: 0.06199721246957779,
+  latency_ms_progress_support_goal_alignment: 0.03987457603216171,
+  latency_ms_progress_support_atom_compute: 0.08727423846721649,
+  latency_ms_progress_support_payload_serialization: 0.022462569177150726
+}
+```
+
+Decision:
+
+Accept this as the matched progress-support outcome-label collection milestone.
+The nonformal records now contain the validated current-tick progress-support
+payloads and offline candidate outcome labels in the same fixed candidate
+ordering. Selector equivalence remained exact, the dataset audit required and
+verified complete candidate outcomes, and no formal seeds were present.
+
+Reject any claim that this result by itself proves CAMP is better than DP
+Top-1 or authorizes retraining. It only establishes the missing data contract
+needed for an offline progress-support descriptor separability screen.
+
+Math boundary:
+
+Progress-support descriptors remain runtime-eligible fixed current-tick
+finite-candidate quantities. Candidate closed-loop outcomes are posterior
+offline labels and are forbidden as selector features. If progress-support
+descriptors are later atomized, they remain fixed coefficients \(a_k\) in
+affine `score_k(w)=a_k^T w`, preserving the simplex/CVaR/L2 convex master. No
+DP-side classical Benders master/subproblem dual or valid cut is constructed.
+
+```text
+status=progress_support_matched_outcome_label_contract_passed
+passed=True
+primary_gap=progress_support_descriptor_separability_not_yet_screened
+authorized_next_work=offline_progress_support_descriptor_separability_screen_design_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Next work is design-only: predeclare an offline progress-support descriptor
+separability screen over the matched nonformal logs. The screen may use
+candidate outcome labels only for offline labels/evaluation, never for runtime
+descriptors. Do not train CAMP until the separability, no-leak, convexity, and
+audit gates show a descriptor/atom schema with a clear reason learned weights
+could improve over fixed diagnostic scalarization.
