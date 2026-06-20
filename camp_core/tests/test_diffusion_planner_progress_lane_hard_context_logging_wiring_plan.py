@@ -115,6 +115,18 @@ def test_context_logging_wiring_plan_blocks_wrong_source_next_work() -> None:
     assert source["context_preflight_ready"] is False
 
 
+def test_context_logging_wiring_plan_accepts_existing_audit_alias_flags() -> None:
+    source = _context_preflight_report()
+    final = source["final_decision"]
+    del final["full36_authorized"]
+    del final["camp_retraining_authorized"]
+    del final["dp_modification_authorized"]
+
+    report = build_report(context_preflight_report=source)
+
+    assert report["final_decision"]["status"] == READY_STATUS
+
+
 def test_context_logging_wiring_plan_rejects_formal_seed_when_forbidden() -> None:
     with pytest.raises(ValueError, match="Formal seed records are forbidden"):
         build_report(

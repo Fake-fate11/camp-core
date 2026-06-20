@@ -178,7 +178,7 @@ def _source_artifact_checks(report: dict[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "name": "context_preflight_blocks_forbidden_actions",
-            "passed": all(_false_flag(final, name) for name in BLOCKED_ACTIONS),
+            "passed": _source_blocks_forbidden_actions(final),
         },
         {
             "name": "context_preflight_math_boundary_present",
@@ -398,6 +398,18 @@ def _reject_criteria() -> list[str]:
         "the planned wiring would affect selection, feasibility, scores, candidates, or tracker execution",
         "any formal seed records appear in the source evidence when fail_on_formal_seeds is set",
     ]
+
+
+def _source_blocks_forbidden_actions(final: dict[str, Any]) -> bool:
+    return (
+        _false_flag(final, "new_replay_authorized")
+        and _false_flag(final, "closed_loop_smoke_authorized")
+        and _false_flag(final, "full36_authorized", "Full36_authorized")
+        and _false_flag(final, "formal_seeds_authorized")
+        and _false_flag(final, "online_selector_authorized")
+        and _false_flag(final, "camp_retraining_authorized", "CAMP_retraining_authorized")
+        and _false_flag(final, "dp_modification_authorized", "DP_modification_authorized")
+    )
 
 
 def render_markdown(report: dict[str, Any]) -> str:
