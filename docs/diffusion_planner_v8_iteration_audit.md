@@ -32503,3 +32503,165 @@ atom is a fixed finite-candidate coefficient \(a_k\), preserving affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This implementation
 makes no global convexity claim over trajectory coordinates and constructs no
 DP-side classical Benders master/subproblem, dual, or cut.
+
+## Progress-Support Logging Smoke Plan (`0a88f90`)
+
+This gate predeclares the first real replay smoke for the progress-support
+logging payload implemented in `f602bb5`. It is design-only plus audit-tooling.
+It does not run DP, does not run replay, does not promote an online selector,
+does not use Full36/formal seeds, does not modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/plan_diffusion_planner_progress_support_logging_smoke.py`
+- `scripts/integrations/analyze_diffusion_planner_progress_support_logging_smoke.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_logging_smoke.py`
+
+Predeclared smoke scope:
+
+```text
+route=sample_map_tl_route_59_to_86
+seed=1
+steps=3
+max_npcs=4
+traffic_lights=off
+advance_mode=perfect
+num_candidates=8
+paired_runs=baseline + --camp_progress_support_logging
+formal_seeds=forbidden
+```
+
+The plan requires the logging-enabled run to preserve selector behavior:
+`selected_index`, feasibility, atom fields, scores, weights, and normalized
+atoms must match the baseline selector log under
+`compare_diffusion_planner_selector_logs.py --require_equivalent`.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_progress_support_logging_smoke.py `
+  scripts\integrations\plan_diffusion_planner_progress_support_logging_smoke.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_preflight.py -q
+
+py -3.12 scripts\integrations\plan_diffusion_planner_progress_support_logging_smoke.py `
+  --label local_precommit_progress_support_smoke_plan `
+  --output_json "$env:TEMP\camp_progress_support_smoke_plan_local\progress_support_logging_smoke_plan.json" `
+  --output_md "$env:TEMP\camp_progress_support_smoke_plan_local\progress_support_logging_smoke_plan.md"
+
+git diff --check
+```
+
+Result: `py_compile` passed; progress-support smoke, payload, and preflight
+tests `15 passed`; local plan generation reported
+`status=progress_support_logging_nonformal_smoke_plan_ready`. CAMP local and
+GitHub were advanced to `0a88f900c1a294f4db78bec93f5d3be6edee3265`.
+
+AutoDL synchronization and fixed-DP check:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only FETCH_HEAD
+git rev-parse HEAD
+git rev-parse refs/remotes/origin/main
+git status --short --branch
+
+cd /root/autodl-tmp/Diffusion-Planner
+git rev-parse HEAD
+```
+
+Result: AutoDL CAMP fast-forwarded to
+`0a88f900c1a294f4db78bec93f5d3be6edee3265`; AutoDL `origin/main` is the same
+commit. AutoDL DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The known unrelated AutoDL
+untracked files remain `diffusion_planner_integration.md`,
+`dp_camp_device_handoff.md`, and `test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_support_logging_smoke.py \
+  scripts/integrations/plan_diffusion_planner_progress_support_logging_smoke.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_preflight.py -q
+
+OUT=/root/autodl-tmp/camp_dp_progress_support_logging_smoke_plan_0a88f90
+mkdir -p "$OUT"
+$PY scripts/integrations/plan_diffusion_planner_progress_support_logging_smoke.py \
+  --label autodl_0a88f90_progress_support_logging_smoke_plan \
+  --output_json "$OUT/progress_support_logging_smoke_plan.json" \
+  --output_md "$OUT/progress_support_logging_smoke_plan.md"
+```
+
+Result: AutoDL progress-support smoke, payload, and preflight tests `15 passed`.
+The generated plan reported:
+
+```text
+PLAN_STATUS=progress_support_logging_nonformal_smoke_plan_ready
+PLAN_AUTHORIZED_NEXT=default_off_progress_support_logging_paired_three_step_smoke_only
+PLAN_PASSED=True
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_plan_0a88f90/progress_support_logging_smoke_plan.json` | `13d86aed3a154a41c1eb4d492670a6df07f4f848c9795c8712feb60f5b0a8a68` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_plan_0a88f90/progress_support_logging_smoke_plan.md` | `efbf81c4b591ba23616a5e775ccc9ad2eace054af701448a65dd862b18ad91b7` |
+
+Audit result:
+
+```text
+status=progress_support_logging_nonformal_smoke_plan_ready
+passed=True
+primary_gap=progress_support_logging_smoke_predeclared
+authorized_next_work=default_off_progress_support_logging_paired_three_step_smoke_only
+closed_loop_replay_authorized=True
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Decision:
+
+Accept this as a smoke-plan gate. It freezes one tiny paired non-formal replay
+scope and the exact audits required after the run: payload audit, selector-log
+equivalence, and finite-candidate dataset audit. It does not itself provide
+runtime evidence that the logging path works inside DP, and it does not support
+any safety/performance claim.
+
+Next admissible work:
+
+Run only the predeclared paired three-step non-formal smoke on AutoDL and then
+run the three planned audits. If any audit fails, reject the smoke and do not
+expand. If all audits pass, document the result before considering any broader
+progress-support evidence pass. Do not run Full36, formal seeds, online selector
+promotion, DP changes, or CAMP retraining from this plan gate.
+
+Mathematical boundary:
+
+The plan only enables default-off logging of current-tick fixed finite-candidate
+progress-support descriptors and nonnegative candidate atom coefficients. It
+requires selector-equivalence against a baseline run, so the payload must not
+change CAMP score, feasibility, selected index, DP candidate generation,
+postprocess reference, or PerfectTracker execution. If later atomized, these
+values enter as fixed coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This is not a
+DP-side classical Benders decomposition.
