@@ -38344,3 +38344,110 @@ candidate coefficient \(a_k\) remains fixed at the tick, so
 `score_k(w)=a_k^T w` stays affine and the simplex/CVaR/L2 master stays convex.
 This gate still constructs no DP-side classical Benders master/subproblem,
 dual, or valid cut.
+
+## Progress + Lane/Hard Context Logging Paired Smoke (`1a28d42`)
+
+This gate executes the only replay authorized by the previous plan: a paired
+three-step nonformal smoke on
+`sample_map_tl_route_59_to_86 / seed=1 / npc=4 / traffic_lights=off /
+static`, once with `progress_lane_hard_context_logging` disabled and once with
+the flag enabled. It does not use Full36 or formal seeds, does not promote
+online selection, does not modify DP, and does not retrain CAMP.
+
+Execution state:
+
+```text
+camp_head=1a28d425091becd7c7114b2309176386d76c78f2
+dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+root=/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke
+plan=/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke_plan_b1fb6e0/progress_lane_hard_context_logging_smoke_plan.json
+```
+
+The planned command sequence was executed from the plan artifact:
+
+```text
+baseline_replay
+candidate_replay
+selector_equivalence
+payload_audit
+dataset_audit
+```
+
+Replay artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/baseline/camp_replay_summary.json` | `5215103ec2ae8ec0f55c2486996762dd71ed747ad9fe110a591f8c937cc8832f` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/baseline/camp_validation_summary.json` | `2fd39901fbe58bdad866474e554414f818074650761380d32cbd397955cdc6ec` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/baseline/camp_selection_log.json` | `843a3986f421bd3b9f2e65ab4ad09f33c877ea5788303f19600dc4796f34c6ad` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/logging_enabled/camp_replay_summary.json` | `8cf29235e37ce1881b036974504ac28e0161d4c575ea0f65d538e3f27afcd13e` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/logging_enabled/camp_validation_summary.json` | `514aa0be84eaec1d2ec1b1e45d1bfbd43128966eff5ee39305fae1bbdccfbe27` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/logging_enabled/camp_selection_log.json` | `d7785e1625bc9e45fe12e29c3811545c01f0afac44bc96f322d0684284678f7f` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/logging_enabled/trajectory_log.json` | `49baa20bacc2de13edc0f54da1b037c442c041713f8843088b4bd9cf75fbbf81` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/baseline/trajectory_log.json` | `49baa20bacc2de13edc0f54da1b037c442c041713f8843088b4bd9cf75fbbf81` |
+
+Audit artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/audit/selector_equivalence.json` | `6e2cce60e0e02f51274dea5efe46ab260e3be420c62ee4121e568dbbf17dc8e9` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/audit/progress_lane_hard_context_logging_smoke.json` | `51deb86c0ac50844c2bebaf4439d116475ff50621916e1e3931bf6938b572e7d` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/audit/progress_lane_hard_context_logging_smoke.md` | `b8ce02e5340e663208ef8ba68cf7274b915a65186675754ec4fe533829f06e1b` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/audit/dataset_audit.json` | `b7825407e4aca52729cea41edbf69c54cf83dab3292f6975640d2fafbcadddec` |
+
+Verifier result:
+
+```text
+passed=True
+baseline_logging_disabled=True
+candidate_logging_enabled=True
+baseline_final_step=2
+candidate_final_step=2
+selector_equivalent=True
+selector_records=3
+payload_passed=True
+payload_counts={baseline_payload_records: 0, candidate_payload_records: 3, paired_logs: 1, records: 3}
+dataset_passed=True
+dataset_counts={logs: 1, records: 3, candidates: 24, all_infeasible_records: 0}
+dataset_seed=1
+max_latency_ms_progress_lane_hard_context_logging=3.8415296003222466
+```
+
+Selector equivalence:
+
+```text
+selected_index_mismatches=0
+feasible_mask_mismatches=0
+infeasibility_reason_mismatches=0
+fallback_mismatches=0
+score_mismatches=0
+weight_mismatches=0
+atom_mismatches=0
+normalized_atom_mismatches=0
+```
+
+Decision:
+
+Accept this mechanical smoke. The logging flag is default-off, the enabled run
+records three current-tick payloads, and selector equivalence holds exactly for
+selected indices, feasibility, scores, weights, atoms, and normalized atoms.
+The identical trajectory-log SHA confirms that the paired closed-loop replay
+state did not diverge in this three-step smoke.
+
+This is not a safety-improvement result. It only proves that the
+progress+lane/hard context logging path can be enabled in a tiny nonformal
+replay without changing CAMP selection or tracker behavior. The next admissible
+work is documentation-gated design of a small offline evidence step that uses
+the logged current-tick descriptors to decide whether the new context atoms are
+material enough to justify a broader nonformal capture or a finite-candidate
+schema/calibration proposal. Do not run Full36, formal seeds, online selector
+promotion, CAMP retraining, or DP modification from this smoke alone.
+
+Mathematical boundary:
+
+The logged context payload remains a fixed finite-candidate, current-tick
+descriptor with nonnegative atom coefficients. If these atoms later enter CAMP,
+the candidate coefficient \(a_k\) is fixed before scoring, so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
+convex. This smoke still constructs no DP-side classical Benders
+master/subproblem, dual, or valid cut.
