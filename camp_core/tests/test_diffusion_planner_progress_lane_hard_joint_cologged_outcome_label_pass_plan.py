@@ -34,9 +34,9 @@ def _joint_preflight(*, status: str = "progress_lane_hard_joint_screen_preflight
             "status": status,
             "passed": status == "progress_lane_hard_joint_screen_preflight_ready",
             "authorized_next_work": "progress_lane_hard_joint_cologged_outcome_plan_only",
-            "CAMP_retraining_authorized": False,
+            "camp_retraining_authorized": False,
             "online_selector_authorized": False,
-            "DP_modification_authorized": False,
+            "dp_modification_authorized": False,
             "formal_seeds_authorized": False,
         },
     }

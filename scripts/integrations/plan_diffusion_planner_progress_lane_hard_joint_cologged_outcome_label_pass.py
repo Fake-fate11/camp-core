@@ -248,10 +248,14 @@ def _source_artifact_checks(report: dict[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "name": "joint_preflight_blocks_training_and_online_selector",
-            "passed": final.get("CAMP_retraining_authorized") is False
-            and final.get("online_selector_authorized") is False
-            and final.get("DP_modification_authorized") is False
-            and final.get("formal_seeds_authorized") is False,
+            "passed": _false_flag(
+                final,
+                "CAMP_retraining_authorized",
+                "camp_retraining_authorized",
+            )
+            and _false_flag(final, "online_selector_authorized")
+            and _false_flag(final, "DP_modification_authorized", "dp_modification_authorized")
+            and _false_flag(final, "formal_seeds_authorized"),
         },
         {
             "name": "complementary_blind_spots_established",
@@ -732,6 +736,10 @@ def _bucket_counts(spec: JointCologgedSpec) -> dict[str, int]:
         for bucket in run.scenario_buckets:
             counts[bucket] = counts.get(bucket, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def _false_flag(row: dict[str, Any], *names: str) -> bool:
+    return any(row.get(name) is False for name in names)
 
 
 def _read_text(path: Path) -> str | None:
