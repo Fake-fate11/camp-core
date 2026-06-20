@@ -33058,3 +33058,179 @@ cuts. The existing progress-support atoms remain fixed finite-candidate
 coefficients \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
 simplex/CVaR/L2 convex master. This gate makes no global convexity claim over
 trajectory coordinates and no DP-side classical Benders claim.
+
+## Progress-Support Component Latency Instrumentation (`f94bda0`)
+
+This gate implements the component timing instrumentation authorized by the
+latency diagnosis plan. It is an implementation/unit-test milestone only. It
+does not run DP, does not run a new replay, does not optimize the helper, does
+not promote an online selector, does not use Full36/formal seeds, does not
+modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `camp_core/camp_core/integrations/diffusion_planner_progress_support.py`
+- `scripts/integrations/run_diffusion_planner_camp_replay.py`
+- `scripts/integrations/analyze_diffusion_planner_progress_support_logging_smoke.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_logging_smoke.py`
+
+Added latency fields:
+
+```text
+latency_ms_progress_support_logging
+latency_ms_progress_support_route_projection
+latency_ms_progress_support_plan_arc
+latency_ms_progress_support_speed_profile
+latency_ms_progress_support_route_remaining
+latency_ms_progress_support_goal_alignment
+latency_ms_progress_support_atom_compute
+latency_ms_progress_support_payload_serialization
+```
+
+The public `build_progress_support_logging_payload` signature is unchanged.
+The additional fields are additive diagnostics under `payload["latency_ms"]`;
+they are also propagated into replay records and validation summaries through
+`PROGRESS_SUPPORT_LATENCY_KEYS`. They do not enter CAMP scoring, feasibility,
+selection, atom values, or candidate generation.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  camp_core\camp_core\integrations\diffusion_planner_progress_support.py `
+  scripts\integrations\run_diffusion_planner_camp_replay.py `
+  scripts\integrations\analyze_diffusion_planner_progress_support_logging_smoke.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_support_latency_diagnosis_plan.py -q
+
+git diff --check
+```
+
+Result: `py_compile` passed; progress-support payload, smoke, and latency
+diagnosis tests `16 passed`; `git diff --check` passed. CAMP local and GitHub
+were advanced to `f94bda03bda2f3e85e2bc24ba9ac2f9a94362493`.
+
+AutoDL synchronization:
+
+AutoDL direct GitHub fetch again timed out. CAMP was synchronized from the
+already-pushed local commit by a git bundle:
+
+```powershell
+git bundle create F:\camp_core-main\camp_core_f94bda0.bundle HEAD
+```
+
+Then on AutoDL:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch /tmp/camp_core_f94bda0.bundle HEAD
+git merge --ff-only FETCH_HEAD
+git update-ref refs/remotes/origin/main HEAD
+git rev-parse HEAD
+git rev-parse refs/remotes/origin/main
+git status --short --branch
+```
+
+Result: AutoDL CAMP reached
+`f94bda03bda2f3e85e2bc24ba9ac2f9a94362493`; AutoDL `origin/main` was updated to
+the same commit. The temporary local and remote bundle files were removed. The
+known unrelated AutoDL untracked files remain
+`diffusion_planner_integration.md`, `dp_camp_device_handoff.md`, and
+`test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  camp_core/camp_core/integrations/diffusion_planner_progress_support.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/analyze_diffusion_planner_progress_support_logging_smoke.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_support_latency_diagnosis_plan.py -q
+```
+
+Result: AutoDL target tests `16 passed`.
+
+An extra inline payload smoke was first run without `PYTHONPATH` and failed
+with `ModuleNotFoundError: No module named 'camp_core.integrations'` after the
+tests had already passed. It was rerun with the same `PYTHONPATH` used by the
+tests:
+
+```bash
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY - <<'PY'
+import numpy as np
+from camp_core.integrations.diffusion_planner_progress_support import (
+    PROGRESS_SUPPORT_LATENCY_KEYS,
+    build_progress_support_logging_payload,
+)
+c=np.asarray([[[0.,0.],[1.,0.],[2.,0.],[3.,0.]], [[0.,0.],[0.5,0.],[1.,0.],[1.5,0.]]])
+r=np.asarray([[0.,0.],[5.,0.],[10.,0.]])
+p=build_progress_support_logging_payload(candidates=c, route_centerline_ego=r, support_steps=4)
+print('LATENCY_KEYS=' + ','.join(p['latency_ms'].keys()))
+print('EXPECTED_KEYS=' + ','.join(PROGRESS_SUPPORT_LATENCY_KEYS))
+print('ATOM_SHAPE=' + str(np.asarray(p['progress_support_atoms']).shape))
+PY
+```
+
+Result:
+
+```text
+LATENCY_KEYS=latency_ms_progress_support_logging,latency_ms_progress_support_route_projection,latency_ms_progress_support_plan_arc,latency_ms_progress_support_speed_profile,latency_ms_progress_support_route_remaining,latency_ms_progress_support_goal_alignment,latency_ms_progress_support_atom_compute,latency_ms_progress_support_payload_serialization
+EXPECTED_KEYS=latency_ms_progress_support_logging,latency_ms_progress_support_route_projection,latency_ms_progress_support_plan_arc,latency_ms_progress_support_speed_profile,latency_ms_progress_support_route_remaining,latency_ms_progress_support_goal_alignment,latency_ms_progress_support_atom_compute,latency_ms_progress_support_payload_serialization
+ATOM_SHAPE=(2, 7)
+```
+
+AutoDL DP remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Audit result:
+
+```text
+status=progress_support_latency_component_instrumentation_unit_tested
+passed=True
+primary_gap=progress_support_route_projection_latency_needs_measurement
+authorized_next_work=progress_support_latency_component_microbenchmark_design_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Decision:
+
+Accept this as the unit-tested additive component instrumentation gate. The
+tests prove the public signature is unchanged, all progress-support values are
+stable after removing latency metadata, latency keys are complete and
+nonnegative, and the smoke audit now expects the full latency field list.
+
+Do not optimize the route projection yet and do not rerun replay from this gate.
+The next admissible work is a design-only component microbenchmark or
+component-instrumented smoke plan that defines how to measure the newly added
+fields and what evidence would justify an exact-equivalent optimization.
+
+Mathematical boundary:
+
+The new fields are latency metadata only. They are not CAMP atoms, constraints,
+labels, Benders subproblems, duals, or cuts. The progress-support atoms remain
+fixed finite-candidate coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global convexity
+claim over trajectory coordinates and no DP-side classical Benders claim is
+made.
