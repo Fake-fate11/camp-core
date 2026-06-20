@@ -33723,3 +33723,141 @@ optimization_implementation_authorized=False
 Next work is design-only. Do not implement optimization yet. First predeclare
 the exact-equivalent route projection optimization assumptions, fail-closed
 conditions, equivalence tests, and math boundary.
+
+## Progress-Support Route Projection Optimization Plan (`787af79`)
+
+This gate predeclares the exact-equivalent route projection optimization plan
+authorized by the synthetic benchmark result review. It is design-only. It does
+not implement the optimization, does not run DP, does not run replay, does not
+use Full36/formal seeds, does not promote an online selector, does not modify
+DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/plan_diffusion_planner_progress_support_route_projection_optimization.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_route_projection_optimization_plan.py`
+
+The plan targets only `_route_progress_profiles(candidates_xy, route_xy)` inside
+`camp_core/camp_core/integrations/diffusion_planner_progress_support.py`. It
+predeclares a chunked vectorized point-to-segment projection that must preserve
+the reference loop's strict less-than tie behavior and must fail closed to the
+reference implementation when assumptions are not met.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_progress_support_route_projection_optimization.py `
+  camp_core\tests\test_diffusion_planner_progress_support_route_projection_optimization_plan.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_route_projection_optimization_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_component_microbenchmark.py `
+  camp_core\tests\test_diffusion_planner_progress_support_component_microbenchmark_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py -q
+
+git diff --check
+```
+
+Result: local `py_compile` passed; target tests `24 passed`;
+`git diff --check` passed. CAMP local and GitHub advanced to
+`787af7956d674606742c1e69a39f2592ea6b1673`.
+
+AutoDL synchronization and verification:
+
+AutoDL direct GitHub fetch timed out, so CAMP was synchronized from the pushed
+local commit by git bundle. AutoDL reached
+`787af7956d674606742c1e69a39f2592ea6b1673`; AutoDL DP remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL target tests:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_route_projection_optimization_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_support_component_microbenchmark.py \
+  camp_core/tests/test_diffusion_planner_progress_support_component_microbenchmark_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py -q
+```
+
+Result: AutoDL target tests `24 passed`.
+
+Design artifact:
+
+```bash
+BENCH=/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_9148bc2/progress_support_component_microbenchmark.json
+OUT=/root/autodl-tmp/camp_dp_progress_support_route_projection_optimization_plan_787af79
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY scripts/integrations/plan_diffusion_planner_progress_support_route_projection_optimization.py \
+  --benchmark_json "$BENCH" \
+  --label autodl_787af79_route_projection_optimization_plan \
+  --output_json "$OUT/route_projection_optimization_plan.json" \
+  --output_md "$OUT/route_projection_optimization_plan.md"
+```
+
+Artifact hashes:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_route_projection_optimization_plan_787af79/route_projection_optimization_plan.json` | `c2e78363cd6b591672e22656a2f4e2e9f00f623c2c14e074d4f7991afb9ef1ae` |
+| `/root/autodl-tmp/camp_dp_progress_support_route_projection_optimization_plan_787af79/route_projection_optimization_plan.md` | `ebeb208142cea2192e47b0192b1d652d3933a2d16e7c4c165ca6bdee244ce116` |
+
+Source checks:
+
+- `synthetic_benchmark_completed=True`
+- `benchmark_blocks_replay_training_dp_and_optimization=True`
+- `aggregate_dominant_component_is_route_projection=True`
+- `all_cases_route_projection_dominant=True`
+- `route_projection_dominance_margin_present=True`
+- `helper_has_reference_route_projection_loop=True`
+
+Plan checks:
+
+- `chunk_size_positive=True`
+- `intermediate_limit_positive=True`
+- `exact_equivalence_tolerances_nonnegative=True`
+- `stress_and_fail_closed_cases_present=True`
+
+Audit result:
+
+```text
+status=progress_support_route_projection_optimization_plan_ready
+passed=True
+primary_gap=route_projection_nested_loop_exact_equivalent_optimization_ready_for_unit_tests
+authorized_next_work=progress_support_route_projection_exact_equivalent_optimization_implementation_unit_tests_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+optimization_implementation_authorized=False
+```
+
+Decision:
+
+Accept this as the design-only gate for route projection optimization. The next
+admissible work is implementation/unit tests only. The implementation must keep
+`build_progress_support_logging_payload` unchanged, preserve
+`_route_progress_profiles` output versus the reference loop within
+`atol=1e-12`, `rtol=1e-12`, preserve payload values after removing
+`latency_ms`, preserve atom names and nonnegative atom values, and fail closed
+to the reference loop when validation or memory guards fail.
+
+Mathematical boundary:
+
+This plan concerns only an exact-equivalent engineering implementation of a
+current-tick geometric projection helper. It does not introduce CAMP atoms,
+labels, constraints, Benders subproblems, duals, or cuts. Progress-support atoms
+remain fixed finite-candidate coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global convexity
+claim over trajectory coordinates and no DP-side classical Benders claim is
+made.
