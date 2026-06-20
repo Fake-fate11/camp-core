@@ -32665,3 +32665,191 @@ postprocess reference, or PerfectTracker execution. If later atomized, these
 values enter as fixed coefficients \(a_k\), preserving affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This is not a
 DP-side classical Benders decomposition.
+
+## Progress-Support Logging Paired Smoke (`afb990c`)
+
+This gate executes exactly the paired three-step non-formal smoke predeclared in
+`0a88f90`. It verifies that enabling default-off progress-support logging
+produces real replay payloads without changing CAMP selection. It does not run
+Full36, does not use formal seeds, does not promote an online selector, does
+not modify DP, and does not retrain CAMP.
+
+Executed smoke scope:
+
+```text
+root=/root/autodl-tmp/camp_dp_progress_support_logging_smoke
+route=sample_map_tl_route_59_to_86
+seed=1
+steps=3
+max_npcs=4
+traffic_lights=off
+advance_mode=perfect
+num_candidates=8
+paired_runs=baseline + --camp_progress_support_logging
+```
+
+AutoDL replay commands:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+PLAN=/root/autodl-tmp/camp_dp_progress_support_logging_smoke_plan_0a88f90/progress_support_logging_smoke_plan.json
+
+$PY - <<'PY' > /tmp/camp_progress_support_smoke_commands.sh
+import json, shlex
+from pathlib import Path
+r=json.loads(Path('/root/autodl-tmp/camp_dp_progress_support_logging_smoke_plan_0a88f90/progress_support_logging_smoke_plan.json').read_text())
+print('set -e')
+print('cd /root/autodl-tmp/camp_core')
+for name in ('baseline_replay','candidate_replay'):
+    print('echo RUNNING_' + name.upper())
+    print(' '.join(shlex.quote(x) for x in r['commands'][name]))
+PY
+
+bash /tmp/camp_progress_support_smoke_commands.sh
+```
+
+Initial attempt note:
+
+The first shell attempt used `python` and failed before any replay started:
+
+```text
+bash: line 5: python: command not found
+```
+
+It was rerun with `/root/autodl-tmp/dp312_venv/bin/python`, the same Python
+used by prior AutoDL checks.
+
+AutoDL audit commands:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY - <<'PY' > /tmp/camp_progress_support_smoke_audit_commands.sh
+import json, shlex
+from pathlib import Path
+r=json.loads(Path('/root/autodl-tmp/camp_dp_progress_support_logging_smoke_plan_0a88f90/progress_support_logging_smoke_plan.json').read_text())
+print('set -e')
+print('cd /root/autodl-tmp/camp_core')
+for name in ('selector_equivalence','payload_audit','dataset_audit'):
+    print('echo RUNNING_' + name.upper())
+    print(' '.join(shlex.quote(x) for x in r['commands'][name]))
+PY
+
+bash /tmp/camp_progress_support_smoke_audit_commands.sh
+```
+
+Replay outputs:
+
+| Run | Path |
+| --- | --- |
+| baseline | `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/baseline` |
+| logging enabled | `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/logging_enabled` |
+| audits | `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/audit` |
+
+Key replay checks:
+
+```text
+baseline selected_index=[2, 2, 2]
+logging_enabled selected_index=[2, 2, 2]
+
+baseline progress_support_latency_ms=[0.0, 0.0, 0.0]
+logging_enabled progress_support_latency_ms=[
+  142.63926167041063,
+  141.58271439373493,
+  142.1582456678152
+]
+
+baseline total_latency_ms=[
+  287.40392811596394,
+  80.5195439606905,
+  86.10436134040356
+]
+logging_enabled total_latency_ms=[
+  432.5947221368551,
+  224.99841637909412,
+  228.49455662071705
+]
+```
+
+Audit results:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=3
+
+progress_support_logging_smoke.status=progress_support_logging_smoke_passed
+progress_support_logging_smoke.passed=True
+progress_support_logging_smoke.counts={
+  baseline_payload_records: 0,
+  candidate_payload_records: 3,
+  paired_logs: 1,
+  records: 3
+}
+progress_support_logging_smoke.max_latency_ms=142.63926167041063
+
+dataset_audit.passed=True
+dataset_audit.records=3
+dataset_audit.seed=1
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/audit/selector_equivalence.json` | `81aaa5d3900e1510f5980f3bd72c89f5f33a8d56a5fae7fabcb74abe95571950` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/audit/progress_support_logging_smoke.json` | `93f69e88475ed032aa289f03b67e2574ea9d0a85351a7080f3248d9b92c5656a` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/audit/progress_support_logging_smoke.md` | `07792f160216e075a38328c3dd217e25fc33fa31db5c40a3a6a89c6c50b4d6ef` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/audit/dataset_audit.json` | `e467d118b620eb0b9de1745e63a0762269268c1d87c990f59797973186188476` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/baseline/camp_selection_log.json` | `5f96279c3af8c4d681a5949da06e278860e76c0e04f3a44e48109797df502f64` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/baseline/camp_validation_summary.json` | `cfdcdd14492349884f130c982168f25cae06efa6dcd5f3f804c313967a139360` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/logging_enabled/camp_selection_log.json` | `a512e8f366dce27634875ff053bbfdbb585c2eddeda16ea3a60f501bd07d4cc4` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/logging_enabled/camp_validation_summary.json` | `4407ee21ae0847a45570c7ad0753b72171064e291907dcb284e7ceb951a4f0e6` |
+
+Audit result:
+
+```text
+status=progress_support_logging_smoke_passed_latency_blocked
+passed=True
+selection_equivalent=True
+payload_records=3
+formal_seeds_authorized=False
+Full36_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+authorized_next_work=progress_support_logging_latency_diagnosis_design_only
+```
+
+Decision:
+
+Accept this as a functional smoke for the default-off progress-support logging
+path. The real replay payloads are present, finite, nonnegative, no-leak by
+the audit contract, and selector-neutral. This supports the logging path as a
+valid evidence collection hook.
+
+Reject expansion from this result alone. The measured progress-support logging
+latency is far too high for industrial online use: about `142 ms` per tick in
+this tiny smoke. The likely issue is implementation cost in the current route
+projection/support computation, not CAMP weight staleness. A broader evidence
+pass, Full36, online selector work, or CAMP retraining would be premature.
+
+Next admissible work:
+
+Design only an exact-equivalent progress-support logging latency diagnosis or
+microbenchmark gate. The next gate should attribute the `142 ms` overhead and
+predeclare what counts as exact equivalence before any optimization is accepted.
+Do not run broader replay, Full36, formal seeds, online selector promotion, DP
+changes, or CAMP retraining from this smoke.
+
+Mathematical boundary:
+
+The smoke confirms that progress-support logging reads current-tick DP
+candidates and current route geometry and writes fixed finite-candidate
+nonnegative atom coefficients. Selector-equivalence confirms that logging does
+not alter CAMP score, feasibility, selected index, DP candidate generation,
+postprocess reference, or PerfectTracker execution in this paired run. If later
+atomized, the logged values remain fixed coefficients \(a_k\), preserving
+affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This is not
+a DP-side classical Benders decomposition.
