@@ -38230,3 +38230,117 @@ context atom coefficients before closed-loop outcome labels. If later atomized,
 each candidate coefficient \(a_k\) is fixed for the tick, preserving affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This implementation
 constructs no DP-side classical Benders master/subproblem, dual, or valid cut.
+
+## Progress + Lane/Hard Context Logging Smoke Plan (`b1fb6e0`)
+
+This gate predeclares the smallest replay evidence for the default-off
+`progress_lane_hard_context_logging` wiring. It is a plan-and-artifact gate: it
+does not run the paired replay yet, does not use Full36 or formal seeds, does
+not promote online selection, does not modify DP, and does not retrain CAMP.
+
+Local/GitHub audit:
+
+```text
+local_head=b1fb6e0e81c016eea7216b490cfc879d28a949ff
+branch=main
+upstream=origin/main
+origin_main=b1fb6e0e81c016eea7216b490cfc879d28a949ff
+```
+
+The local worktree still has unrelated untracked files from previous work. They
+were not modified by this gate.
+
+AutoDL synchronization:
+
+```text
+before_autodl_camp=f949cf485d3b8235411c3e0a4a81fb23bb828104
+after_autodl_camp=b1fb6e0e81c016eea7216b490cfc879d28a949ff
+autodl_dp=7a1d33da277a1992ec474b5383a0c963c72e04e4
+sync_method=git bundle fast-forward
+bundle_sha256=9e75496380ea391db899a62dae528edf5f6b94e671b4e7e8b76883fd969c1e39
+```
+
+The known unrelated AutoDL untracked files remain
+`diffusion_planner_integration.md`, `dp_camp_device_handoff.md`, and
+`test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_smoke.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py -q
+```
+
+AutoDL result: `21 passed`.
+
+Plan artifact:
+
+```bash
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke_plan_b1fb6e0
+$PY scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  --label autodl_b1fb6e0_progress_lane_hard_context_logging_smoke_plan \
+  --output_json "$OUT/progress_lane_hard_context_logging_smoke_plan.json" \
+  --output_md "$OUT/progress_lane_hard_context_logging_smoke_plan.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke_plan_b1fb6e0/progress_lane_hard_context_logging_smoke_plan.json` | `7a2e142941eb9df31f1e09f3291184d02dba9687a8d837d131c137bb0b706065` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke_plan_b1fb6e0/progress_lane_hard_context_logging_smoke_plan.md` | `f16155d886b412520ed2742b82b2bb1d5d61aecea29ce609d59c22bc97cc0130` |
+
+Artifact decision:
+
+```text
+status=progress_lane_hard_context_logging_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=default_off_progress_lane_hard_context_logging_paired_three_step_smoke_only
+closed_loop_replay_authorized=True
+scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+```
+
+Decision:
+
+Accept this smoke-plan gate. The next admissible work is only the paired
+three-step nonformal smoke specified by the artifact: run the baseline replay
+with context logging disabled and the matched candidate replay with
+`--camp_progress_lane_hard_context_logging` enabled, then run selector
+equivalence, payload audit, and dataset audit. The smoke must remain
+nonformal, `seed=1`, `steps=3`, `num_candidates=8`, and may not expand into a
+12/36-run matrix.
+
+Reject criteria for the next gate:
+
+- any replay or audit command fails;
+- any formal seed appears in a path, summary, or record;
+- selected index, feasibility, CAMP atoms, scores, weights, candidates, or
+  tracker inputs differ between baseline and logging-enabled runs;
+- any logged context atom is negative, nonfinite, malformed, or produced from
+  closed-loop outcome labels;
+- the scope expands beyond the paired three-step nonformal smoke.
+
+Mathematical boundary:
+
+The planned smoke only checks that default-off logging is selection-equivalent
+and that the enabled payload contains fixed current-tick finite-candidate
+descriptors. It does not establish safety improvement. If later atomized, each
+candidate coefficient \(a_k\) remains fixed at the tick, so
+`score_k(w)=a_k^T w` stays affine and the simplex/CVaR/L2 master stays convex.
+This gate still constructs no DP-side classical Benders master/subproblem,
+dual, or valid cut.
