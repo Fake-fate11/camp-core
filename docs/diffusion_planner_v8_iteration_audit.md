@@ -37150,3 +37150,149 @@ nonnegative atom vectors preserves affine `score_k(w)=a_k^T w` for CAMP
 weights and keeps the simplex/CVaR/L2 master convex. A finite-candidate
 intersection or lexicographic screen is not classical Benders; no DP-side
 master/subproblem, dual, or valid cut is constructed.
+
+## Progress + Lane/Hard Joint Co-Logged Outcome Plan (`b8764c4`)
+
+This design-only gate converts the accepted joint preflight into an exact
+nonformal paired smoke plan. It does not run DP, does not run replay, does not
+use Full36/formal seeds, does not promote an online selector, does not modify
+DP, and does not retrain CAMP.
+
+Source artifact:
+
+- `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_screen_preflight_886b100/progress_lane_hard_joint_screen_preflight.json`
+
+Implementation:
+
+- `scripts/integrations/plan_diffusion_planner_progress_lane_hard_joint_cologged_outcome_label_pass.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_cologged_outcome_label_pass_plan.py`
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_progress_lane_hard_joint_cologged_outcome_label_pass.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_cologged_outcome_label_pass_plan.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_cologged_outcome_label_pass_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_screen_preflight.py `
+  camp_core\tests\test_diffusion_planner_progress_support_matched_outcome_label_pass_plan.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass_plan.py -q
+git diff --check
+```
+
+Local result: `20 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization:
+
+- GitHub push advanced `main` to
+  `b8764c40fb286293a9a598b84e78fbbbaa3924ba`.
+- AutoDL was fast-forwarded to the same commit via git bundle.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_progress_lane_hard_joint_cologged_outcome_label_pass.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_cologged_outcome_label_pass_plan.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_cologged_outcome_label_pass_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_screen_preflight.py \
+  camp_core/tests/test_diffusion_planner_progress_support_matched_outcome_label_pass_plan.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_matched_outcome_label_pass_plan.py -q
+
+SRC=/root/autodl-tmp/camp_dp_progress_lane_hard_joint_screen_preflight_886b100/progress_lane_hard_joint_screen_preflight.json
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcome_plan_b8764c4
+mkdir -p "$OUT"
+$PY scripts/integrations/plan_diffusion_planner_progress_lane_hard_joint_cologged_outcome_label_pass.py \
+  --joint_preflight_json "$SRC" \
+  --label autodl_b8764c4_progress_lane_hard_joint_cologged_outcome_plan \
+  --output_json "$OUT/progress_lane_hard_joint_cologged_outcome_plan.json" \
+  --output_md "$OUT/progress_lane_hard_joint_cologged_outcome_plan.md"
+```
+
+AutoDL result: `20 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcome_plan_b8764c4/progress_lane_hard_joint_cologged_outcome_plan.json` | `6a7104b0e55dc3cf12208db244e0261cfa491264a96abf8ae6ca7bf617927f9c` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcome_plan_b8764c4/progress_lane_hard_joint_cologged_outcome_plan.md` | `9c48250ee6f6825092cdcd69c722656580cdfb86493998b7a059872daf15c752` |
+
+Plan result:
+
+```text
+status=progress_lane_hard_joint_cologged_outcome_label_pass_plan_ready
+passed=True
+authorized_next_work=progress_lane_hard_joint_cologged_outcome_nonformal_smoke_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Planned scope:
+
+```text
+paired_runs=4 baseline + 4 matched
+matched_variant=matched_progress_lane_hard_joint_outcomes
+steps=12
+num_candidates=8
+matched_records=48
+matched_candidate_rows=384
+formal_seeds=forbidden
+traffic_light=2
+red_light_turn=2
+sharp_turn=3
+npc_interaction=2
+normal=1
+```
+
+Matched branch command requirements:
+
+```text
+--camp_progress_support_logging
+--camp_lane_hard_violation_support_logging
+--camp_collect_closed_loop_outcomes
+```
+
+Required audits for the next gate:
+
+```text
+selector_equivalence=require_equivalent
+dataset_required_outcome_audit=closed_loop_outcome_policy required
+matched_progress_contract_audit=require_pass
+matched_lane_hard_contract_audit=require_pass
+```
+
+Decision:
+
+Accept this as a plan-only gate. The next admissible action is exactly the
+predeclared `progress_lane_hard_joint_cologged_outcome_nonformal_smoke_only`:
+4 paired nonformal runs x 12 steps, where the matched branch records
+`progress_support_logging`, `lane_hard_violation_support_logging`, and
+`candidate_closed_loop_outcomes` in the same selection records. The plan still
+does not authorize Full36, formal seeds, online selector promotion, DP
+modification, or CAMP retraining.
+
+Mathematical boundary:
+
+The planned matched branch records current-tick progress-support atoms,
+lane/hard support atoms, and posterior candidate outcomes in the same replay
+record. Outcome labels are offline labels only and are forbidden as runtime
+selector features. Concatenating both nonnegative atom vectors preserves affine
+`score_k(w)=a_k^T w` for fixed candidate coefficients and keeps the
+simplex/CVaR/L2 robust master convex. No DP-side classical Benders
+decomposition, dual, or cut is claimed.
