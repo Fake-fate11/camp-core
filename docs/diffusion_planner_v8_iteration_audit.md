@@ -34996,6 +34996,154 @@ the lane/hard values are later atomized, they enter as fixed coefficients
 \(a_k\), preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex
 master. No DP-side classical Benders decomposition, dual, or cut is claimed.
 
+## Lane/Hard-Violation Support Descriptor Separability (`809e86f`)
+
+This gate runs the offline-only separability screen authorized by the matched
+lane/hard support outcome-label smoke. It reads only existing nonformal matched
+logs and the matched contract artifact. It does not run DP, does not run
+replay, does not use Full36/formal seeds, does not promote an online selector,
+does not modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_descriptor_separability.py`
+- `camp_core/tests/test_diffusion_planner_lane_hard_violation_support_descriptor_separability.py`
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_lane_hard_violation_support_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_descriptor_separability.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_matched_lane_hard_violation_support_outcomes.py `
+  camp_core\tests\test_diffusion_planner_progress_support_descriptor_separability.py -q
+git diff --check
+```
+
+Local result: `13 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL checks and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_descriptor_separability.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_matched_lane_hard_violation_support_outcomes.py \
+  camp_core/tests/test_diffusion_planner_progress_support_descriptor_separability.py -q
+
+ROOT=/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_labels_nonformal_v1
+OUT=/root/autodl-tmp/camp_dp_lane_hard_violation_support_descriptor_separability_809e86f
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_descriptor_separability.py \
+  --root "$ROOT/matched_lane_hard_outcomes" \
+  --matched_contract_json "$ROOT/audit/matched_lane_hard_violation_support_outcome_contract.json" \
+  --label autodl_809e86f_lane_hard_violation_support_descriptor_separability \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/lane_hard_violation_support_descriptor_separability.json" \
+  --output_md "$OUT/lane_hard_violation_support_descriptor_separability.md"
+```
+
+AutoDL result: `13 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_descriptor_separability_809e86f/lane_hard_violation_support_descriptor_separability.json` | `dbef80e896fd9706726c73c8c49ca645404420b38bc412ad68e80da9820042d3` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_descriptor_separability_809e86f/lane_hard_violation_support_descriptor_separability.md` | `b8789eae83ec80f47d55cc6971d11ed412d820f1f83c05d6e641976a1fde1681` |
+
+Audit result:
+
+```text
+status=lane_hard_violation_support_descriptor_separability_rejected
+passed=False
+primary_gap=lane_hard_violation_support_descriptors_do_not_separate_candidates
+promising_screen_count=0
+authorized_next_work=diagnose_lane_hard_support_descriptor_bottleneck_before_retraining
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Class counts:
+
+```text
+beneficial_alternative=56
+harmful_alternative=180
+neutral_alternative=100
+formal_seed_records=0
+alternative_rows=336
+```
+
+Best ranked screen:
+
+```text
+screen=atom_lateral_divergence_growth_v1:allow_low
+promising=False
+harmful_block_rate=1.0
+beneficial_retain_rate=0.017857142857142856
+allowed_harmful_rate=0.0
+allowed_candidates=1
+threshold=2.0499222734584745e-05
+failure_gap=beneficial_retain_rate_insufficient
+```
+
+High-retain tradeoff check:
+
+```text
+screens_with_beneficial_retain_rate>=0.75: 5
+
+best_high_retain_screen=atom_lateral_error_rate_excess_v1:allow_low
+harmful_block_rate=0.13333333333333333
+beneficial_retain_rate=0.9642857142857143
+allowed_harmful_rate=0.5032258064516129
+allowed_candidates=310
+
+envelope/conflict zero-threshold screens retain all beneficial candidates but
+block no harmful candidates:
+harmful_block_rate=0.0
+beneficial_retain_rate=1.0
+allowed_harmful_rate=0.5357142857142857
+```
+
+Decision:
+
+Reject the current lane/hard support descriptor family as a standalone
+certificate/selector route. The descriptors can form very strict screens that
+exclude all harmful alternatives, but those screens retain only 1 of 56
+beneficial alternatives. Screens that retain useful beneficial support allow
+roughly half of their allowed set to be harmful. This is overlap, not a stale
+CAMP-weight problem.
+
+Do not retrain CAMP from this evidence. Learned weights over this descriptor
+family would still be trying to separate overlapping beneficial and harmful
+candidates. The next admissible work is diagnosis-only: explain which harmful
+and beneficial cases overlap in lane/hard descriptor space, and decide whether
+lane/hard support should be rejected, combined with progress-support evidence
+in a predeclared joint screen, or require a new no-leak descriptor family.
+
+Math boundary:
+
+All lane/hard support descriptors are fixed current-tick finite-candidate
+quantities computed before outcome evaluation. Outcome labels are used only
+for offline beneficial/harmful classes and threshold diagnostics. Nonnegative
+simplex scalarizations preserve affine `score_k(w)=a_k^T w` after atomization
+and remain compatible with the simplex/CVaR/L2 convex master. No DP-side
+classical Benders master/subproblem, dual, or cut is constructed.
+
 ```text
 status=progress_support_broader_nonformal_smoke_passed
 passed=True
