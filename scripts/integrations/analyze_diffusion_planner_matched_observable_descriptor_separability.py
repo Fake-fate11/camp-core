@@ -442,6 +442,33 @@ def _candidate_rows(
                 "hard_violation_delta_vs_top1": (
                     outcome["hard_violation_count"] - top1["hard_violation_count"]
                 ),
+                "mean_jerk_delta_vs_top1_mps3": (
+                    None
+                    if outcome["mean_jerk_mps3"] is None
+                    or top1["mean_jerk_mps3"] is None
+                    else outcome["mean_jerk_mps3"] - top1["mean_jerk_mps3"]
+                ),
+                "mean_lateral_acceleration_delta_vs_top1_mps2": (
+                    None
+                    if outcome["mean_lateral_acceleration_mps2"] is None
+                    or top1["mean_lateral_acceleration_mps2"] is None
+                    else (
+                        outcome["mean_lateral_acceleration_mps2"]
+                        - top1["mean_lateral_acceleration_mps2"]
+                    )
+                ),
+                "red_light_worse_than_top1": (
+                    outcome["red_light_violation"] and not top1["red_light_violation"]
+                ),
+                "lane_worse_than_top1": (
+                    outcome["lane_violation"] and not top1["lane_violation"]
+                ),
+                "collision_worse_than_top1": (
+                    outcome["collision"] and not top1["collision"]
+                ),
+                "near_miss_worse_than_top1": (
+                    outcome["near_miss"] and not top1["near_miss"]
+                ),
                 "features": {
                     name: float(values[candidate_index])
                     for name, values in feature_values.items()
@@ -839,6 +866,14 @@ def _outcome(raw: Any, label: str) -> dict[str, Any]:
         "feasible": bool(raw["feasible"]),
         "progress_m": progress,
         "hard_violation_count": hard_count,
+        "collision": bool(raw.get("collision")),
+        "near_miss": bool(raw.get("near_miss")),
+        "lane_violation": bool(raw.get("lane_violation")),
+        "red_light_violation": bool(raw.get("red_light_violation")),
+        "mean_jerk_mps3": _optional_finite_float(raw.get("mean_jerk_mps3")),
+        "mean_lateral_acceleration_mps2": _optional_finite_float(
+            raw.get("mean_lateral_acceleration_mps2")
+        ),
     }
 
 
@@ -1067,6 +1102,13 @@ def _finite_float(value: Any, label: str) -> float:
     if not math.isfinite(result):
         raise ValueError(f"{label} must be finite.")
     return result
+
+
+def _optional_finite_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    result = float(value)
+    return result if math.isfinite(result) else None
 
 
 def _feature_payload(spec: FeatureSpec) -> dict[str, str]:
