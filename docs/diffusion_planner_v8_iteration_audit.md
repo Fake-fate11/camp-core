@@ -33235,6 +33235,171 @@ fixed finite-candidate coefficients \(a_k\), preserving affine
 claim over trajectory coordinates and no DP-side classical Benders claim is
 made.
 
+## Optimized Progress-Support Nonformal Smoke Plan (`4960e43`)
+
+This gate predeclares the paired nonformal smoke for the optimized
+progress-support route projection implementation. It is design-only. It does
+not run replay in this gate, does not use Full36/formal seeds, does not promote
+an online selector, does not modify DP, does not retrain CAMP, and does not
+promote the optimization online.
+
+Implementation:
+
+- `scripts/integrations/plan_diffusion_planner_progress_support_optimized_nonformal_smoke.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_optimized_nonformal_smoke_plan.py`
+
+Source evidence:
+
+- Previous replay smoke audit:
+  `/root/autodl-tmp/camp_dp_progress_support_logging_smoke/audit/progress_support_logging_smoke.json`
+- Optimized synthetic benchmark:
+  `/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_409af5c_optimized/progress_support_component_microbenchmark.json`
+- Previous replay-smoke max `latency_ms_progress_support_logging`:
+  `142.63926167041063 ms`
+- Optimized synthetic max total logging p95:
+  `12.401450565084815 ms`
+- Cross-context ratio:
+  `11.501820768612248`
+
+The comparison is intentionally cross-context: the old value is actual
+three-step replay-smoke record latency, while the optimized value is synthetic
+component benchmark p95. This is sufficient to justify a paired smoke design,
+not to claim online replay improvement.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_progress_support_optimized_nonformal_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_support_optimized_nonformal_smoke_plan.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_optimized_nonformal_smoke_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_support_component_microbenchmark.py `
+  camp_core\tests\test_diffusion_planner_progress_support_route_projection_optimization.py -q
+
+git diff --check
+```
+
+Result: local `py_compile` passed; target tests `27 passed`;
+`git diff --check` passed. CAMP local and GitHub advanced to
+`4960e43c3058dc830682f5ccc8d3d126154f3f9c`.
+
+AutoDL synchronization and verification:
+
+AutoDL direct GitHub fetch timed out, so CAMP was synchronized from the pushed
+local commit by git bundle. AutoDL reached
+`4960e43c3058dc830682f5ccc8d3d126154f3f9c`; AutoDL DP remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL target tests:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_optimized_nonformal_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_support_component_microbenchmark.py \
+  camp_core/tests/test_diffusion_planner_progress_support_route_projection_optimization.py -q
+```
+
+Result: AutoDL target tests `27 passed`.
+
+Design artifact:
+
+```bash
+OPT=/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_409af5c_optimized/progress_support_component_microbenchmark.json
+PREV=/root/autodl-tmp/camp_dp_progress_support_logging_smoke/audit/progress_support_logging_smoke.json
+OUT=/root/autodl-tmp/camp_dp_progress_support_optimized_nonformal_smoke_plan_4960e43
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY scripts/integrations/plan_diffusion_planner_progress_support_optimized_nonformal_smoke.py \
+  --optimized_benchmark_json "$OPT" \
+  --previous_smoke_audit_json "$PREV" \
+  --label autodl_4960e43_optimized_progress_support_nonformal_smoke_plan \
+  --output_json "$OUT/optimized_nonformal_smoke_plan.json" \
+  --output_md "$OUT/optimized_nonformal_smoke_plan.md"
+```
+
+Artifact hashes:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_optimized_nonformal_smoke_plan_4960e43/optimized_nonformal_smoke_plan.json` | `5480f9fc8240f2c533ba041805b9608cd22dfb9158447cb36bf160db859b91cf` |
+| `/root/autodl-tmp/camp_dp_progress_support_optimized_nonformal_smoke_plan_4960e43/optimized_nonformal_smoke_plan.md` | `a318677707eaaab788cb0f661fc89e5a21f96d57027bd134ec1237cb91526927` |
+
+Source checks:
+
+- `optimized_synthetic_benchmark_completed=True`
+- `optimized_benchmark_blocks_replay_training_dp_and_promotion=True`
+- `optimized_total_logging_p95_below_design_threshold=True`
+- `optimized_route_projection_p95_below_design_threshold=True`
+- `previous_smoke_passed_but_latency_blocked=True`
+- `synthetic_improvement_large_enough_to_plan_smoke=True`
+- `optimized_cases_have_no_failed_checks=True`
+- replay, payload-audit, selector-equivalence, and dataset-audit source checks
+  all passed.
+
+Plan checks:
+
+- `nonformal_seed=True`
+- `tiny_three_step_scope=True`
+- `fixed_candidate_pool_size=True`
+- `optimized_root_is_distinct=True`
+- `progress_support_horizon_unchanged=True`
+- `progress_support_dt_unchanged=True`
+
+Predeclared next-gate output root:
+
+```text
+/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85
+```
+
+Audit result:
+
+```text
+status=progress_support_route_projection_optimized_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=progress_support_route_projection_optimized_paired_three_step_smoke_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Decision:
+
+Accept this as the design-only gate for the optimized progress-support paired
+nonformal smoke. The next admissible work is exactly one paired 3-step
+nonformal smoke on `sample_map_tl_route_59_to_86`, `seed=1`, `npc=4`,
+`traffic_lights=off`, static mode. The next gate must run the baseline with
+progress-support logging disabled and the candidate with
+`--camp_progress_support_logging`, then run selector equivalence, payload
+audit, and dataset audit. It must reject on any selection change, future-outcome
+leakage, formal seed, negative/nonfinite atoms, or candidate max
+`latency_ms_progress_support_logging >= 25 ms`.
+
+Mathematical boundary:
+
+This plan concerns only default-off runtime diagnostics for fixed current-tick
+finite-candidate progress-support quantities. It does not introduce CAMP atoms,
+labels, constraints, Benders subproblems, duals, or cuts. Progress-support atoms
+remain fixed finite-candidate coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global convexity
+claim over trajectory coordinates and no DP-side classical Benders claim is
+made.
+
 ## Progress-Support Route Projection Optimization Implementation (`5e80a85`)
 
 This gate implements the exact-equivalent route projection optimization
@@ -34119,3 +34284,32 @@ finite-candidate coefficients \(a_k\), preserving affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global convexity
 claim over trajectory coordinates and no DP-side classical Benders claim is
 made.
+
+## Current Latest Gate: Optimized Progress-Support Paired Smoke (`4960e43`)
+
+The optimized progress-support nonformal smoke plan at
+`4960e43c3058dc830682f5ccc8d3d126154f3f9c` passed local and AutoDL design
+tests and generated:
+
+```text
+/root/autodl-tmp/camp_dp_progress_support_optimized_nonformal_smoke_plan_4960e43/optimized_nonformal_smoke_plan.json
+sha256=5480f9fc8240f2c533ba041805b9608cd22dfb9158447cb36bf160db859b91cf
+```
+
+```text
+status=progress_support_route_projection_optimized_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=progress_support_route_projection_optimized_paired_three_step_smoke_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Next work is exactly one paired three-step nonformal smoke in the predeclared
+scope. Do not run Full36, formal seeds, online selector promotion, CAMP
+retraining, DP modification, or online optimization promotion.
