@@ -30573,3 +30573,147 @@ closed-loop outcomes. This audit does not use future labels as features and
 does not change `score_k(w)=a_k^T w`, the simplex/CVaR/L2 robust master, CAMP
 weights, DP candidate generation, or PerfectTracker. No DP-side classical
 Benders decomposition, dual, or cut is constructed or claimed.
+
+## Observable State Logging Broader Evidence Plan (`207931c`)
+
+This is the design-only gate authorized by the payload coverage audit above. It
+does not run DP, does not change selection, does not collect closed-loop outcome
+labels, and does not alter DP or CAMP weights. It only predeclares a broader
+default-off observable-state logging evidence pass and its audits.
+
+Implementation:
+
+- `scripts/integrations/plan_diffusion_planner_observable_state_logging_coverage.py`
+- `camp_core/tests/test_diffusion_planner_observable_state_logging_coverage_plan.py`
+
+Planned nonformal paired scope:
+
+| Run | Route | Seed | NPCs | TL | Buckets |
+| --- | --- | ---: | ---: | --- | --- |
+| `sample_tl_seed1_npc0_tlon` | `sample_map_tl_route_59_to_86` | `1` | `0` | `on` | `traffic_light, red_light_turn, sharp_turn` |
+| `sample_tl_seed1_npc4_tlon` | `sample_map_tl_route_59_to_86` | `1` | `4` | `on` | `traffic_light, red_light_turn, sharp_turn, npc_interaction` |
+| `sample_tl_seed1_npc4_tloff` | `sample_map_tl_route_59_to_86` | `1` | `4` | `off` | `sharp_turn, npc_interaction` |
+| `sample_normal_seed1_npc0_tloff` | `sample_map_route_2_to_104` | `1` | `0` | `off` | `normal` |
+
+The plan keeps every run at `12` steps and `8` candidates. This yields
+`4` paired logs, `48` logging-enabled records, and `384` candidate rows. It is
+not Full36 and uses no formal seed.
+
+Predeclared accept criteria for the future execution gate:
+
+1. all paired baseline and logging-enabled replay commands exit `0`;
+2. baseline summaries report `camp_observable_state_logging.enabled=false`;
+3. logging-enabled summaries report `camp_observable_state_logging.enabled=true`;
+4. selector equivalence passes across all paired logs;
+5. payload smoke audit passes schema, finite checks, latency fields, and no-leak
+   flags;
+6. coverage audit passes validation and reaches materiality readiness with at
+   least `12` records, `1` red-context record, and `4` material candidate
+   fields;
+7. dataset audit passes the finite-candidate contract with
+   `closed_loop_outcome_policy=forbidden`;
+8. no formal seed `11/12/13` appears in any path or summary.
+
+Reject criteria:
+
+1. any source or plan check fails;
+2. any replay or audit command fails;
+3. any selected index, feasibility mask, atom, score, or weight changes under
+   logging;
+4. any payload contains closed-loop outcome labels or reports
+   `future_outcome_leakage=true`;
+5. coverage remains too small, lacks red context, or lacks material
+   candidate-field variation;
+6. the run expands beyond the predeclared nonformal `4`-run x `12`-step scope.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_observable_state_logging_coverage.py `
+  scripts\integrations\analyze_diffusion_planner_observable_state_payload_coverage.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_state_logging_coverage_plan.py `
+  camp_core\tests\test_diffusion_planner_observable_state_payload_coverage.py -q
+
+git diff --check
+```
+
+Result: `8 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization and verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/plan_diffusion_planner_observable_state_logging_coverage.py \
+  scripts/integrations/analyze_diffusion_planner_observable_state_payload_coverage.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_coverage_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py \
+  -q
+```
+
+Result: `8 passed`. CAMP and `origin/main` were synchronized to
+`207931c73399debe1ca362a46fbc686ce5b4045a`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Plan artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_state_logging_coverage_plan_207931c
+mkdir -p "$OUT"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_observable_state_logging_coverage.py \
+  --label 207931c_broader_plan \
+  --output_json "$OUT/observable_state_logging_coverage_plan.json" \
+  --output_md "$OUT/observable_state_logging_coverage_plan.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_coverage_plan_207931c/observable_state_logging_coverage_plan.json` | `6fd4042a26452974f819b35b84a5028c1d48311301a8e84cb100ce3b87ffd44a` |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_coverage_plan_207931c/observable_state_logging_coverage_plan.md` | `2062472a888ea1c48a183e51fc8029dd4d32c9d301caee2df411b56a273d15b9` |
+
+Plan result:
+
+```text
+status=observable_state_logging_broader_nonformal_plan_ready
+authorized_next_work=default_off_observable_state_logging_broader_nonformal_paired_smoke_only
+closed_loop_replay_authorized=True
+planned_logs=4
+planned_records=48
+planned_candidate_rows=384
+bucket_counts={"normal":1,"npc_interaction":2,"red_light_turn":2,"sharp_turn":3,"traffic_light":2}
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Decision:
+
+Accept this plan gate. The next admissible work is exactly the predeclared
+broader paired nonformal logging-only evidence run plus its selector
+equivalence, payload smoke, payload coverage, and dataset audits. This does not
+authorize Full36, formal seeds, online selector promotion, CAMP retraining, DP
+modification, atomization, or a claim that CAMP improves DP.
+
+Mathematical boundary:
+
+The future run may only log current-tick finite-candidate descriptors before
+closed-loop outcomes. The logging path must keep `selection_effect=false` and
+must preserve selected indices, feasibility, atoms, scores, and weights. If any
+descriptor is later atomized, it must enter as fixed coefficient `a_k` so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
+convex. No DP-side classical Benders decomposition, dual, or cut is constructed
+or claimed.
