@@ -33235,6 +33235,120 @@ fixed finite-candidate coefficients \(a_k\), preserving affine
 claim over trajectory coordinates and no DP-side classical Benders claim is
 made.
 
+## Progress-Support Route Projection Optimization Implementation (`5e80a85`)
+
+This gate implements the exact-equivalent route projection optimization
+authorized by the previous design plan. It is an implementation/unit-test
+milestone only. It does not run DP, does not run replay, does not use
+Full36/formal seeds, does not promote an online selector, does not modify DP,
+and does not retrain CAMP.
+
+Implementation:
+
+- `camp_core/camp_core/integrations/diffusion_planner_progress_support.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_route_projection_optimization.py`
+
+Implemented behavior:
+
+- Preserves the public `build_progress_support_logging_payload` signature.
+- Keeps `_route_progress_profiles(candidates_xy, route_xy)` as the production
+  boundary.
+- Retains the original triple-loop implementation as
+  `_route_progress_profiles_reference`.
+- Adds a chunked vectorized point-to-segment projection implementation with
+  deterministic segment order.
+- Preserves the reference strict less-than update rule, so equal-distance ties
+  retain the earliest segment selected by the reference loop.
+- Fails closed to the reference implementation on invalid/non-finite inputs,
+  all-degenerate route segments, intermediate memory guard violation, output
+  shape mismatch, or non-finite optimized output.
+- Preserves payload values after removing `latency_ms`, progress-support atom
+  names, finite nonnegative atom values, and all component latency keys.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  camp_core\camp_core\integrations\diffusion_planner_progress_support.py `
+  camp_core\tests\test_diffusion_planner_progress_support_route_projection_optimization.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_route_projection_optimization.py `
+  camp_core\tests\test_diffusion_planner_progress_support_route_projection_optimization_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_component_microbenchmark.py `
+  camp_core\tests\test_diffusion_planner_progress_support_component_microbenchmark_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py -q
+
+git diff --check
+```
+
+Result: local `py_compile` passed; target tests `34 passed`;
+`git diff --check` passed. CAMP local and GitHub advanced to
+`5e80a851980659e749c36025ae8033b50e7d9a72`.
+
+AutoDL synchronization and verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+
+PY=/root/autodl-tmp/dp312_venv/bin/python
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_route_projection_optimization.py \
+  camp_core/tests/test_diffusion_planner_progress_support_route_projection_optimization_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_support_component_microbenchmark.py \
+  camp_core/tests/test_diffusion_planner_progress_support_component_microbenchmark_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py -q
+```
+
+Result: AutoDL CAMP reached
+`5e80a851980659e749c36025ae8033b50e7d9a72`; AutoDL target tests `34 passed`.
+AutoDL DP remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Audit result:
+
+```text
+status=progress_support_route_projection_optimization_implementation_unit_tested
+passed=True
+primary_gap=route_projection_optimized_path_needs_synthetic_microbenchmark_evidence
+authorized_next_work=progress_support_route_projection_optimization_synthetic_microbenchmark_execution_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Decision:
+
+Accept this as the implementation/unit-test gate for the exact-equivalent route
+projection optimization. The next admissible work is synthetic microbenchmark
+execution only, using the same predeclared synthetic component benchmark to
+compare the optimized implementation against the previous artifact. That future
+benchmark still cannot authorize replay expansion, selector promotion, CAMP
+retraining, DP modification, or online optimization promotion by itself.
+
+Mathematical boundary:
+
+This gate changes only an engineering implementation of a current-tick route
+projection helper and preserves exact payload values apart from latency
+metadata. It does not introduce CAMP atoms, labels, constraints, Benders
+subproblems, duals, or cuts. Progress-support atoms remain fixed
+finite-candidate coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global convexity
+claim over trajectory coordinates and no DP-side classical Benders claim is
+made.
+
 ## Progress-Support Component Microbenchmark Result Review (`9148bc2`)
 
 This is the chronological review gate for the synthetic artifact recorded in
@@ -33861,3 +33975,29 @@ remain fixed finite-candidate coefficients \(a_k\), preserving affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global convexity
 claim over trajectory coordinates and no DP-side classical Benders claim is
 made.
+
+## Current Latest Gate: Optimized Route Projection Synthetic Benchmark (`5e80a85`)
+
+The exact-equivalent route projection implementation at
+`5e80a851980659e749c36025ae8033b50e7d9a72` passed local and AutoDL
+implementation/unit tests. The detailed implementation gate is recorded above
+in `Progress-Support Route Projection Optimization Implementation (`5e80a85`)`;
+this final marker is the authoritative latest gate for continuing work.
+
+```text
+status=progress_support_route_projection_optimization_implementation_unit_tested
+passed=True
+primary_gap=route_projection_optimized_path_needs_synthetic_microbenchmark_evidence
+authorized_next_work=progress_support_route_projection_optimization_synthetic_microbenchmark_execution_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Next work is synthetic microbenchmark execution only. Do not run replay,
+Full36, formal seeds, online selector promotion, CAMP retraining, DP
+modification, or online optimization promotion.
