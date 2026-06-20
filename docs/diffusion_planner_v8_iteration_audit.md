@@ -31770,3 +31770,194 @@ quantities computed before closed-loop outcomes. If later atomized, each is a
 fixed coefficient \(a_k\), so CAMP scoring remains affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 master remains convex. This gate
 constructs no DP-side classical Benders master/subproblem, dual, or cut.
+
+## Constrained Affine Upper-Bound Diagnostic (`3a8fed6`)
+
+This gate tests the next predeclared hypothesis after the route-progress/support
+envelope rejection: whether any CAMP-compatible monotone affine scalarization of
+already logged no-leak descriptors can separate beneficial and harmful DP
+candidates. This is an offline oracle diagnostic only. It is not CAMP training,
+does not modify DP, does not run replay, does not promote an online selector,
+does not use Full36 or formal seeds, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_constrained_affine_upper_bound.py`
+- `camp_core/tests/test_diffusion_planner_constrained_affine_upper_bound.py`
+
+Predeclared descriptor/scalarization rule:
+
+- input descriptors are the union of already logged current-tick observable
+  descriptors and route-progress/support envelope descriptors;
+- each descriptor is converted into a low-is-safer affine risk coordinate;
+- coefficients are nonnegative and normalized to a simplex;
+- the oracle enumerates sparse affine combinations over the top univariate
+  descriptors, with no outcome labels used to compute runtime descriptors;
+- outcome labels are used only offline for beneficial/harmful classification and
+  diagnostic threshold scoring.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_constrained_affine_upper_bound.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_constrained_affine_upper_bound.py -q
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_route_progress_support_envelope.py -q
+
+git diff --check
+```
+
+Result: constrained-affine tests `5 passed`; adjacent route-progress/support
+tests `5 passed`; `py_compile` and `git diff --check` passed. CAMP local and
+GitHub were advanced to `3a8fed6354aa37313335b898c1450079109496c2`.
+
+AutoDL synchronization and fixed-DP check:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only FETCH_HEAD
+git rev-parse HEAD
+git status --short --branch
+
+cd /root/autodl-tmp/Diffusion-Planner
+git rev-parse HEAD
+```
+
+Result: AutoDL CAMP fast-forwarded to
+`3a8fed6354aa37313335b898c1450079109496c2`. AutoDL DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The known unrelated AutoDL
+untracked files remain `diffusion_planner_integration.md`,
+`dp_camp_device_handoff.md`, and `test_diffusion_planner_benchmark_matrix.py`.
+The first AutoDL `git fetch` attempt saw transient GitHub TLS/time-out errors;
+retry succeeded and no artifact was run before the fast-forward completed.
+
+AutoDL verification and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_constrained_affine_upper_bound.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_constrained_affine_upper_bound.py -q
+
+OUT=/root/autodl-tmp/camp_dp_constrained_affine_upper_bound_3a8fed6
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_constrained_affine_upper_bound.py \
+  --root /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/matched_observable_outcomes \
+  --route_envelope_json /root/autodl-tmp/camp_dp_route_progress_support_envelope_19748ac/route_progress_support_envelope.json \
+  --label autodl_3a8fed6_constrained_affine_upper_bound \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/constrained_affine_upper_bound.json" \
+  --output_md "$OUT/constrained_affine_upper_bound.md"
+```
+
+Result: AutoDL constrained-affine tests `5 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_constrained_affine_upper_bound_3a8fed6/constrained_affine_upper_bound.json` | `6cc52cec668a0323a86325c898e9da2f9f1392187b7940a1bdf317828e28a1f6` |
+| `/root/autodl-tmp/camp_dp_constrained_affine_upper_bound_3a8fed6/constrained_affine_upper_bound.md` | `ca86cbddc60b24b2c71650c42e6ba804518eb5758c464b6915eb13d90f41011f` |
+
+Audit result:
+
+```text
+status=constrained_affine_upper_bound_rejected
+passed=False
+primary_gap=constrained_affine_upper_bound_does_not_separate_candidates
+failure_gap=allowed_harmful_rate_too_high
+promising_screen_count=0
+authorized_next_work=reject_observable_route_or_design_new_logging_preflight
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Records and oracle scope:
+
+```text
+total_records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+beneficial_alternative=58
+harmful_alternative=178
+neutral_alternative=100
+
+kept_descriptors=31
+candidate_scalarizations=858
+max_top_features=12
+max_terms=3
+simplex_denominator=4
+```
+
+Best constrained affine screen:
+
+```text
+affine_upper_bound(
+  0.750 * observable.route_heading_change_worse_vs_top1_rad.low_risk
+  + 0.250 * observable.route_projection_delta_m.high_risk
+):allow_low
+
+harmful_block=0.820225
+beneficial_retain=0.810345
+allowed_harmful=0.235294
+allowed_candidates=136
+promising=False
+```
+
+Decision:
+
+Reject this oracle as a deployable selector/certificate path. The constrained
+affine scalarization improves over the previous single/pair descriptor screens:
+both harmful-block and beneficial-retain pass the nominal 0.75 targets. However,
+the allowed set remains too contaminated by harmful alternatives:
+`allowed_harmful=0.235294`, far above the predeclared `0.10` limit. This is
+strong evidence that the current logged no-leak descriptor space is not merely
+missing trained CAMP weights. A learned CAMP weight vector over the same
+descriptor/atom support would still be trying to separate overlapping harmful
+and beneficial candidates, and current evidence does not justify retraining.
+
+New bottleneck:
+
+The remaining failure is an allowed-set purity problem. Current descriptors can
+produce a coarse risk gate that blocks many harmful candidates while retaining
+many beneficial ones, but they cannot make the allowed candidate set safe enough
+under the current labels. The next useful evidence must either identify what
+extra no-leak state would split those allowed harmful candidates, or formally
+reject the current observable route and move to a new default-off logging or
+candidate-support design.
+
+Next admissible work:
+
+Do not train CAMP and do not rerun replay from this evidence. The next gate
+should be a read-only residual analysis of the allowed harmful candidates from
+the best constrained affine screen, using existing matched logs only. It should
+explain whether the residual harmful candidates are dominated by red-light,
+lane/collision, progress, or comfort labels, and whether any currently unlogged
+but no-leak state family is a mathematically valid candidate atom. If no such
+state family is defensible, reject the current observable route and require a
+new default-off logging preflight before any selector, replay, or retraining.
+
+Mathematical boundary:
+
+All scalarized descriptors are fixed current-tick finite-candidate affine
+functions of logged no-leak descriptors. Nonnegative simplex coefficients
+preserve affine `score_k(w)=a_k^T w` after atomization and remain compatible
+with the simplex/CVaR/L2 convex master. The oracle constructs no DP-side
+classical Benders master/subproblem, dual, or cut.
