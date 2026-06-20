@@ -34313,3 +34313,108 @@ online_optimization_promotion_authorized=False
 Next work is exactly one paired three-step nonformal smoke in the predeclared
 scope. Do not run Full36, formal seeds, online selector promotion, CAMP
 retraining, DP modification, or online optimization promotion.
+
+## Optimized Progress-Support Paired Smoke Result (`a5f3412`)
+
+The predeclared optimized paired three-step nonformal smoke was executed on
+AutoDL after local/GitHub/AutoDL CAMP sync at
+`a5f341275ed4fa788af73c1484ad050fd3a3f0d5`. AutoDL DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Scope:
+
+- Existing plan artifact:
+  `/root/autodl-tmp/camp_dp_progress_support_optimized_nonformal_smoke_plan_4960e43/optimized_nonformal_smoke_plan.json`.
+- Output root:
+  `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85`.
+- Commands executed from the plan in order:
+  `baseline_replay`, `candidate_replay`, `selector_equivalence`,
+  `payload_audit`, and `dataset_audit`.
+- This was still non-formal: no Full36, no formal seeds, no online selector
+  promotion, no CAMP retraining, no DP modification, and no online optimization
+  promotion.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/audit/progress_support_logging_smoke.json` | `5af35a975eb06d275c41d3c9d617f33543807d9e96455aff113879e77f084d14` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/audit/selector_equivalence.json` | `e09dba991853f567ec239d047826e7bbafb6e68742f4fd45be0d337120a8ebdf` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/audit/dataset_audit.json` | `8484887353a12cd70b49bff986398617ec6a62684d0401ab3ad0c2b9525d5d22` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/audit/progress_support_logging_smoke.md` | `a608005588eea186731317559391fc31425119cec4ecfa11e50ba2bf2a4fa6cc` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/baseline/camp_selection_log.json` | `8941081f7fe50b3c1d70fe7e117d94f6f19c43467ff2697b02e06ca1d9169fee` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/baseline/camp_validation_summary.json` | `4d32cc50ad8883433215e5eb768d85f82ecd110f91d3ad3cf6e7203710fc6893` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/logging_enabled/camp_selection_log.json` | `5ad48a87b909d2cc8fb67697dc737e610838c279a4636fbb653968e0ef8c1c06` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/logging_enabled/camp_validation_summary.json` | `c5d28dd8a00bb37a1cd994bba0a5a1cb1279df241d40b4a1d8469848aabe4430` |
+
+Audit results:
+
+```text
+progress_support_logging_smoke.status=progress_support_logging_smoke_passed
+progress_support_logging_smoke.passed=True
+progress_support_logging_smoke.counts={
+  baseline_payload_records: 0,
+  candidate_payload_records: 3,
+  paired_logs: 1,
+  records: 3
+}
+
+progress_support_logging_smoke.latency_ms={
+  latency_ms_progress_support_logging: 2.405748702585697,
+  latency_ms_progress_support_route_projection: 2.202414907515049,
+  latency_ms_progress_support_plan_arc: 0.042387284338474274,
+  latency_ms_progress_support_speed_profile: 0.020897015929222107,
+  latency_ms_progress_support_route_remaining: 0.02710055559873581,
+  latency_ms_progress_support_goal_alignment: 0.017877668142318726,
+  latency_ms_progress_support_atom_compute: 0.04725717008113861,
+  latency_ms_progress_support_payload_serialization: 0.011993572115898132
+}
+
+selector_equivalence.equivalent=True
+selector_equivalence.records=3
+selector_equivalence.paired_logs=1
+selector_equivalence.exact_field_mismatches=0
+selector_equivalence.numeric_field_mismatches=0
+selector_equivalence.numeric_shape_mismatches=0
+selector_equivalence.numeric_nonexact_entries=0
+selector_equivalence.numeric_max_abs_diff=0.0
+selector_equivalence.numeric_max_rel_diff=0.0
+
+dataset_audit.passed=True
+```
+
+Decision:
+
+Accept this as the optimized progress-support logging runtime milestone. The
+previous nonformal paired smoke showed functional selector-neutral logging but
+was latency-blocked at about `142 ms`; this optimized paired smoke preserves
+exact selector equivalence and reduces the logged progress-support latency to
+about `2.41 ms` in the same three-record nonformal scope.
+
+Reject any claim that this proves CAMP is better than DP Top-1 or authorizes
+online promotion. This gate proves only that the progress-support observable
+logging hook is now cheap enough to justify a broader nonformal design gate.
+The candidate features remain fixed current-tick finite-candidate diagnostics;
+if later atomized, they remain fixed coefficients in affine
+`score_k(w)=a_k^T w`, preserving the simplex/CVaR/L2 convex master boundary.
+No DP-side classical Benders claim is made.
+
+```text
+status=progress_support_route_projection_optimized_paired_smoke_passed
+passed=True
+primary_gap=broader_nonformal_progress_support_evidence_not_yet_designed
+authorized_next_work=progress_support_broader_nonformal_paired_smoke_design_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Next work is design-only: predeclare a broader nonformal paired smoke that uses
+the now-cheap progress-support logging across diverse nonformal scenes,
+including red-light exposure, turns, normal driving, fallback/nonfallback ticks,
+selector equivalence, dataset audit, and latency budget. Do not execute that
+broader smoke until the design gate is separately committed and synchronized.
