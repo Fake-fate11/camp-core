@@ -33235,6 +33235,199 @@ fixed finite-candidate coefficients \(a_k\), preserving affine
 claim over trajectory coordinates and no DP-side classical Benders claim is
 made.
 
+## Progress-Support Component Microbenchmark Result Review (`9148bc2`)
+
+This is the chronological review gate for the synthetic artifact recorded in
+`Progress-Support Component Microbenchmark Synthetic Result (`9148bc2`)`. The
+artifact is engineering evidence only: it does not run DP or replay, does not
+use Full36/formal seeds, does not promote an online selector, does not modify
+DP, does not retrain CAMP, and does not authorize optimization implementation.
+
+Reviewed artifact:
+
+```text
+/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_9148bc2/progress_support_component_microbenchmark.json
+sha256=97d467cdaae4ab6730a0186c65a9a1cf72e63399e82218818b7d7a3ef332efa6
+```
+
+Review finding:
+
+- All source checks passed.
+- All four synthetic cases reported `failed_checks=0`.
+- Every synthetic case identified
+  `latency_ms_progress_support_route_projection` as the dominant component.
+- The max case p95 was `998.431942332536 ms` for route projection, while the
+  next largest non-route-projection component max case p95 was
+  `0.05915616638958454 ms` for route remaining.
+- The result confirms the diagnosis target: the nested route projection loop
+  dominates progress-support logging latency under the predeclared synthetic
+  stress cases.
+
+Audit result:
+
+```text
+status=progress_support_component_microbenchmark_result_review_passed
+passed=True
+primary_gap=route_projection_nested_loop_dominates_synthetic_progress_support_latency
+authorized_next_work=progress_support_route_projection_exact_equivalent_optimization_design_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+optimization_implementation_authorized=False
+```
+
+Decision:
+
+Accept route projection as the next engineering bottleneck to address, but only
+through a design gate. The next admissible task is to predeclare an
+exact-equivalent optimization plan for `_route_progress_profiles`. That plan
+must specify source assumptions, fail-closed conditions, payload equivalence
+criteria, tests, and the math boundary before any implementation changes are
+made.
+
+Mathematical boundary:
+
+This review does not add CAMP atoms, labels, constraints, Benders subproblems,
+duals, or cuts. The measured quantities remain fixed current-tick engineering
+metadata and fixed finite-candidate atom coefficients \(a_k\), preserving
+affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global
+convexity claim over trajectory coordinates and no DP-side classical Benders
+claim is made.
+
+## Progress-Support Component Microbenchmark Synthetic Result (`9148bc2`)
+
+This gate executes the synthetic current-tick progress-support component
+microbenchmark authorized by the implementation/unit-test gate. It does not run
+DP, does not run replay, does not load a model or map, does not use
+Full36/formal seeds, does not promote an online selector, does not modify DP,
+does not retrain CAMP, and does not implement an optimization.
+
+Source gate:
+
+- CAMP local/GitHub/AutoDL HEAD before execution:
+  `9148bc29e8ef32261f8600ca85a0e3002c825286`
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Source plan:
+  `/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_plan_1444493/progress_support_component_microbenchmark_plan.json`
+- Source plan status:
+  `progress_support_component_microbenchmark_plan_ready`
+- Source plan authorized next work:
+  `progress_support_component_microbenchmark_implementation_unit_tests_only`
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+PLAN=/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_plan_1444493/progress_support_component_microbenchmark_plan.json
+OUT=/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_9148bc2
+mkdir -p "$OUT"
+
+$PY scripts/integrations/benchmark_diffusion_planner_progress_support_component_microbenchmark.py \
+  --plan_json "$PLAN" \
+  --label autodl_9148bc2_progress_support_component_microbenchmark \
+  --output_json "$OUT/progress_support_component_microbenchmark.json" \
+  --output_md "$OUT/progress_support_component_microbenchmark.md"
+
+sha256sum \
+  "$OUT/progress_support_component_microbenchmark.json" \
+  "$OUT/progress_support_component_microbenchmark.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_9148bc2/progress_support_component_microbenchmark.json` | `97d467cdaae4ab6730a0186c65a9a1cf72e63399e82218818b7d7a3ef332efa6` |
+| `/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_9148bc2/progress_support_component_microbenchmark.md` | `769708e3a42c09119b6c680cc51fb625c105794697f30e9344b97e2b1c0fb4a6` |
+
+Source checks and exact-equivalence checks:
+
+- `plan_ready=True`
+- `plan_authorizes_implementation_unit_tests_only=True`
+- `plan_blocks_replay_training_and_dp_modification=True`
+- `plan_declares_no_dp_execution_or_training=True`
+- `plan_contains_benchmark_cases=True`
+- All four synthetic cases reported `failed_checks=0`.
+
+Case p95 summary:
+
+| Case | Total p95 ms | Route projection p95 ms | Dominant component |
+| --- | ---: | ---: | --- |
+| `smoke_like_straight` | 125.204788 | 125.069709 | `latency_ms_progress_support_route_projection` |
+| `curved_route` | 249.745741 | 249.602643 | `latency_ms_progress_support_route_projection` |
+| `long_route_projection_stress` | 998.622217 | 998.431942 | `latency_ms_progress_support_route_projection` |
+| `candidate_scale_stress` | 996.355943 | 996.174740 | `latency_ms_progress_support_route_projection` |
+
+Aggregate p95 summary:
+
+| Field | Median case p95 ms | Max case p95 ms |
+| --- | ---: | ---: |
+| `latency_ms_progress_support_logging` | 623.050842 | 998.622217 |
+| `latency_ms_progress_support_route_projection` | 622.888691 | 998.431942 |
+| `latency_ms_progress_support_plan_arc` | 0.033186 | 0.047726 |
+| `latency_ms_progress_support_speed_profile` | 0.014391 | 0.018063 |
+| `latency_ms_progress_support_route_remaining` | 0.029494 | 0.059156 |
+| `latency_ms_progress_support_goal_alignment` | 0.011738 | 0.013318 |
+| `latency_ms_progress_support_atom_compute` | 0.051630 | 0.056067 |
+| `latency_ms_progress_support_payload_serialization` | 0.009807 | 0.019625 |
+
+The dominant component by maximum case p95 is:
+
+```text
+latency_ms_progress_support_route_projection
+max_case_p95_ms=998.431942332536
+```
+
+Audit result:
+
+```text
+status=progress_support_component_microbenchmark_synthetic_completed
+passed=True
+primary_gap=route_projection_nested_loop_dominates_synthetic_progress_support_latency
+artifact_authorized_next_work=progress_support_component_microbenchmark_result_review_only
+review_decision=route_projection_dominance_confirmed
+authorized_next_work=progress_support_route_projection_exact_equivalent_optimization_design_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+optimization_implementation_authorized=False
+```
+
+Decision:
+
+Accept the synthetic microbenchmark as engineering evidence that the exact
+route projection loop dominates progress-support logging latency. The result is
+not an online performance result and does not authorize replay expansion,
+selector promotion, CAMP retraining, DP modification, or immediate optimization
+implementation.
+
+The next admissible work is design-only: predeclare an exact-equivalent route
+projection optimization plan. A candidate plan must prove how it preserves
+payload values after removing latency metadata, preserves progress-support atom
+names and nonnegative atom values, keeps the public
+`build_progress_support_logging_payload` signature unchanged, and fails closed
+to the existing implementation when assumptions are not met. Only after that
+design gate passes may implementation/unit tests be considered.
+
+Mathematical boundary:
+
+This gate measures engineering runtime for fixed current-tick synthetic arrays.
+It does not introduce CAMP atoms, labels, constraints, Benders subproblems,
+duals, or cuts. Progress-support atoms remain fixed finite-candidate
+coefficients \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master. No global convexity claim over trajectory
+coordinates and no DP-side classical Benders claim is made.
+
 ## Progress-Support Component Microbenchmark Plan (`1444493`)
 
 This gate predeclares the component microbenchmark for the newly instrumented
@@ -33502,3 +33695,31 @@ finite-candidate coefficients \(a_k\), preserving affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global convexity
 claim over trajectory coordinates and no DP-side classical Benders claim is
 made.
+
+## Current Latest Gate: Progress-Support Route Projection Design (`9148bc2`)
+
+The synthetic component microbenchmark artifact at
+`/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_9148bc2/progress_support_component_microbenchmark.json`
+passed and confirmed route projection as the dominant progress-support latency
+component in every predeclared synthetic case. The detailed artifact metrics are
+recorded above in `Progress-Support Component Microbenchmark Synthetic Result
+(`9148bc2`)`; this final marker is the authoritative latest gate for continuing
+work.
+
+```text
+status=progress_support_component_microbenchmark_result_review_passed
+passed=True
+primary_gap=route_projection_nested_loop_dominates_synthetic_progress_support_latency
+authorized_next_work=progress_support_route_projection_exact_equivalent_optimization_design_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+optimization_implementation_authorized=False
+```
+
+Next work is design-only. Do not implement optimization yet. First predeclare
+the exact-equivalent route projection optimization assumptions, fail-closed
+conditions, equivalence tests, and math boundary.
