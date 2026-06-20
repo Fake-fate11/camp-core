@@ -33383,3 +33383,122 @@ later atomized, they remain fixed finite-candidate coefficients \(a_k\),
 preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
 No global convexity claim over trajectory coordinates and no DP-side classical
 Benders claim is made.
+
+## Progress-Support Component Microbenchmark Implementation (`6ba86ee`)
+
+This gate implements the synthetic progress-support component microbenchmark
+script authorized by the previous design plan. It is an implementation/unit-test
+milestone only. It does not execute a benchmark artifact, does not run DP, does
+not run replay, does not use Full36/formal seeds, does not promote an online
+selector, does not modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/benchmark_diffusion_planner_progress_support_component_microbenchmark.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_component_microbenchmark.py`
+
+Implemented behavior:
+
+- Requires a source plan with
+  `status=progress_support_component_microbenchmark_plan_ready`.
+- Requires the source plan to authorize only
+  `progress_support_component_microbenchmark_implementation_unit_tests_only`.
+- Fails closed before executing the payload builder if the plan allows replay,
+  Full36/formal seeds, online selector promotion, CAMP retraining, DP
+  modification, DP execution, training, or future outcome labels.
+- Generates deterministic synthetic current-tick candidate and route arrays.
+- Calls `build_progress_support_logging_payload` unchanged.
+- Records raw latency samples and mean/median/p95/min/max for
+  `latency_ms_progress_support_logging` and each component latency key.
+- Verifies payload exact-equivalence after removing latency metadata with
+  `atol=1e-9`, `rtol=1e-9`.
+- Verifies progress-support atom names are exact and atoms remain finite and
+  nonnegative.
+- Records Python/platform/NumPy environment metadata.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\benchmark_diffusion_planner_progress_support_component_microbenchmark.py `
+  scripts\integrations\plan_diffusion_planner_progress_support_component_microbenchmark.py `
+  camp_core\tests\test_diffusion_planner_progress_support_component_microbenchmark.py `
+  camp_core\tests\test_diffusion_planner_progress_support_component_microbenchmark_plan.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_component_microbenchmark.py `
+  camp_core\tests\test_diffusion_planner_progress_support_component_microbenchmark_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_latency_diagnosis_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py -q
+
+git diff --check
+```
+
+Result: local `py_compile` passed; target tests `22 passed`;
+`git diff --check` passed. CAMP local and GitHub advanced to
+`6ba86ee11a9a4a6f14ab761b4342bfc67ff8dc05`.
+
+AutoDL synchronization and verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only origin/main
+git rev-parse HEAD
+
+PY=/root/autodl-tmp/dp312_venv/bin/python
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_component_microbenchmark.py \
+  camp_core/tests/test_diffusion_planner_progress_support_component_microbenchmark_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_support_latency_diagnosis_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py -q
+```
+
+Result: AutoDL CAMP reached
+`6ba86ee11a9a4a6f14ab761b4342bfc67ff8dc05`; AutoDL target tests `22 passed`.
+AutoDL DP remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+No benchmark artifact was generated in this gate. The tests execute only small
+unit cases and are not treated as latency evidence.
+
+Audit result:
+
+```text
+status=progress_support_component_microbenchmark_implementation_unit_tested
+passed=True
+primary_gap=progress_support_route_projection_latency_needs_synthetic_benchmark_evidence
+authorized_next_work=progress_support_component_microbenchmark_synthetic_execution_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+optimization_authorized=False
+```
+
+Decision:
+
+Accept this as the implementation/unit-test gate for the progress-support
+component microbenchmark. The next admissible step is a synthetic execution-only
+gate that runs the new script against the already accepted plan artifact and
+records JSON/Markdown outputs plus SHA256 hashes. That future artifact may
+identify the dominant component, but still cannot authorize replay expansion,
+online promotion, CAMP retraining, DP modification, or optimization
+implementation by itself.
+
+Mathematical boundary:
+
+This gate only implements measurement tooling over fixed current-tick synthetic
+arrays. It does not introduce CAMP atoms, labels, constraints, Benders
+subproblems, duals, or cuts. Progress-support atoms remain fixed
+finite-candidate coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global convexity
+claim over trajectory coordinates and no DP-side classical Benders claim is
+made.
