@@ -35311,3 +35311,160 @@ a new current-tick descriptor family that explicitly targets the discovered
 blind spot, especially lane/hard-violation regressions that have zero
 progress-support risk. Do not replay, train CAMP, modify DP, or promote an
 online selector until that new descriptor-family design is predeclared.
+
+## Lane/Hard-Violation Support Preflight (`d7fffe8`)
+
+This gate executes the next admissible design step after the progress-support
+separability bottleneck diagnosis. It does not run DP, replay, Full36, formal
+seeds, online selection, or CAMP training. It consumes the existing
+progress-support bottleneck artifact and predeclares a default-off
+lane/hard-violation support logging family that targets the diagnosed blind
+spot: allowed harmful candidates with zero progress-support risk and
+lane/hard-violation regressions.
+
+Implemented files:
+
+- `scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_preflight.py`
+- `camp_core/tests/test_diffusion_planner_lane_hard_violation_support_preflight.py`
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before AutoDL artifact execution:
+  `d7fffe8df25a5af9f54171cbcfef25a832473330`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Source bottleneck artifact:
+  `/root/autodl-tmp/camp_dp_progress_support_separability_bottleneck_2b9d529/progress_support_separability_bottleneck.json`.
+
+Local checks:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_lane_hard_violation_support_preflight.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_preflight.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_preflight.py `
+  camp_core\tests\test_diffusion_planner_progress_support_separability_bottleneck.py -q
+
+git diff --check
+```
+
+Local result: `8 passed`.
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_preflight.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_preflight.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_preflight.py \
+  camp_core/tests/test_diffusion_planner_progress_support_separability_bottleneck.py -q
+
+SRC=/root/autodl-tmp/camp_dp_progress_support_separability_bottleneck_2b9d529/progress_support_separability_bottleneck.json
+OUT=/root/autodl-tmp/camp_dp_lane_hard_violation_support_preflight_d7fffe8
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_preflight.py \
+  --bottleneck_json "$SRC" \
+  --label autodl_d7fffe8_lane_hard_violation_support_preflight \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/lane_hard_violation_support_preflight.json" \
+  --output_md "$OUT/lane_hard_violation_support_preflight.md"
+```
+
+AutoDL result: `8 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_preflight_d7fffe8/lane_hard_violation_support_preflight.json` | `f06df9eede42b53ec9928d425f349c719485d4ae87f2c9921d3c69f23a810444` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_preflight_d7fffe8/lane_hard_violation_support_preflight.md` | `c8dad99193b818dc452594f9f3d597c78dbf4a0c9352369de71aa5424b23dd42` |
+
+Source blind spot:
+
+```text
+allowed_harmful_count=41
+allowed_harmful_lane_worse_count=9
+allowed_harmful_hard_violation_delta_mean=0.21951219512195122
+allowed_harmful_progress_support_contribution_zero=True
+blocked_beneficial_count=30
+blocked_beneficial_lane_worse_count=0
+blocked_beneficial_hard_violation_delta_mean=-0.06666666666666667
+target_failure_mode=allowed harmful candidates include lane/hard-violation regressions with zero progress-support risk
+formal_seed_records=0
+```
+
+Predeclared default-off logging fields:
+
+```text
+candidate_route_lateral_error_profile_m
+candidate_route_corridor_half_width_profile_m
+candidate_route_heading_error_profile_rad
+candidate_lateral_error_rate_profile_mps
+```
+
+Predeclared nonnegative atom candidates:
+
+```text
+route_lateral_envelope_excess_v1
+route_lateral_margin_deficit_vs_top1_v1
+route_heading_divergence_excess_vs_top1_v1
+lateral_error_rate_excess_v1
+lateral_divergence_growth_v1
+lane_hard_violation_support_conflict_v1
+```
+
+Math checks:
+
+```text
+all_fields_default_off_no_leak=True
+all_atoms_have_required_fields=True
+all_atoms_fixed_finite_candidate_coefficients=True
+no_global_trajectory_convexity_claim=True
+no_classical_benders_claim=True
+```
+
+Decision:
+
+Accept this preflight as a design gate only. The diagnosed blind spot is
+specific enough to justify implementing default-off lane/hard-violation support
+logging and unit tests. This does not authorize replay, selector promotion,
+Full36, formal seeds, DP modification, or CAMP retraining.
+
+Mathematical boundary:
+
+The proposed fields are fixed current-tick finite-candidate quantities computed
+from generated DP candidates, current route/lane map geometry, and planner `dt`
+before selector execution. The proposed atoms are nonnegative scalar functions
+of those fields. Once logged, each atom is a fixed coefficient `a_k`, so CAMP
+scoring remains affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 master
+remains convex in weights. This preflight makes no global convexity claim over
+trajectory coordinates and constructs no DP-side classical Benders
+master/subproblem, dual, or cut.
+
+```text
+status=lane_hard_violation_support_preflight_ready
+passed=True
+primary_gap=lane_hard_violation_support_logging_preflight_ready
+authorized_next_work=default_off_lane_hard_violation_support_logging_implementation_unit_tests_only
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Next work is implementation/unit-tests only: add default-off lane/hard-violation
+support logging payload construction, validate no-leak/default-off behavior,
+and keep `selection_effect=False`. Do not run replay or train CAMP until that
+implementation is unit tested and a separate nonformal smoke plan is
+predeclared.
