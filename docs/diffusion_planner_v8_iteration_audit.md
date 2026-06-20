@@ -31961,3 +31961,196 @@ functions of logged no-leak descriptors. Nonnegative simplex coefficients
 preserve affine `score_k(w)=a_k^T w` after atomization and remain compatible
 with the simplex/CVaR/L2 convex master. The oracle constructs no DP-side
 classical Benders master/subproblem, dual, or cut.
+
+## Affine Allowed-Harmful Residual Diagnostic (`ae6819c`)
+
+This gate follows the constrained affine oracle rejection. It does not search
+for a new selector and does not tune weights. It freezes the best constrained
+affine screen from
+`/root/autodl-tmp/camp_dp_constrained_affine_upper_bound_3a8fed6/constrained_affine_upper_bound.json`
+and explains the harmful candidates that the fixed screen still allows.
+Outcome labels are used only for residual attribution after the fixed screen.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_affine_allowed_harmful_residual.py`
+- `camp_core/tests/test_diffusion_planner_affine_allowed_harmful_residual.py`
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_affine_allowed_harmful_residual.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_affine_allowed_harmful_residual.py -q
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_constrained_affine_upper_bound.py -q
+
+git diff --check
+```
+
+Result: residual tests `5 passed`; adjacent constrained-affine tests
+`5 passed`; `py_compile` and `git diff --check` passed. CAMP local and GitHub
+were advanced to `ae6819ca979131bd2728e7127f70aa56634a8fc7`.
+
+AutoDL synchronization:
+
+AutoDL could not fetch GitHub directly on the first attempt:
+
+```text
+Failed to connect to github.com port 443 after 131005 ms: Connection timed out
+```
+
+The same commit was therefore synchronized with a local git bundle:
+
+```powershell
+git bundle create F:\camp_core-main\camp_core_ae6819c.bundle HEAD
+```
+
+Then on AutoDL:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch /tmp/camp_core_ae6819c.bundle HEAD
+git merge --ff-only FETCH_HEAD
+git update-ref refs/remotes/origin/main HEAD
+git rev-parse HEAD
+git status --short --branch
+
+cd /root/autodl-tmp/Diffusion-Planner
+git rev-parse HEAD
+```
+
+Result: AutoDL CAMP reached
+`ae6819ca979131bd2728e7127f70aa56634a8fc7`; AutoDL `origin/main` was updated to
+the same commit because GitHub fetch was unavailable from AutoDL. AutoDL DP
+remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The temporary
+local and AutoDL bundle files were removed. The known unrelated AutoDL untracked
+files remain `diffusion_planner_integration.md`, `dp_camp_device_handoff.md`,
+and `test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_affine_allowed_harmful_residual.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_affine_allowed_harmful_residual.py -q
+
+OUT=/root/autodl-tmp/camp_dp_affine_allowed_harmful_residual_ae6819c
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_affine_allowed_harmful_residual.py \
+  --root /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/matched_observable_outcomes \
+  --constrained_affine_json /root/autodl-tmp/camp_dp_constrained_affine_upper_bound_3a8fed6/constrained_affine_upper_bound.json \
+  --label autodl_ae6819c_affine_allowed_harmful_residual \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/affine_allowed_harmful_residual.json" \
+  --output_md "$OUT/affine_allowed_harmful_residual.md"
+```
+
+Result: AutoDL residual tests `5 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_affine_allowed_harmful_residual_ae6819c/affine_allowed_harmful_residual.json` | `9c902a9463666d75dc40c9c0816545d29a5fa313079e4951d04bc52c19ad315b` |
+| `/root/autodl-tmp/camp_dp_affine_allowed_harmful_residual_ae6819c/affine_allowed_harmful_residual.md` | `ca811db1a529cb4393a96a3bdac92e6ad991dc34b3eacd0b9a054d6bb9749073` |
+
+Audit result:
+
+```text
+status=affine_allowed_harmful_residual_diagnosed
+passed=True
+primary_gap=allowed_harmful_residual_classified
+authorized_next_work=reject_observable_route_or_design_new_logging_preflight
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Fixed-screen application:
+
+```text
+allowed_candidates=136
+allowed_beneficial=47
+allowed_harmful=32
+allowed_neutral=57
+blocked_candidates=200
+blocked_beneficial=11
+blocked_harmful=146
+blocked_neutral=43
+```
+
+Allowed harmful residual:
+
+```text
+count=32
+dominant_primary_reason=progress_loss
+
+primary_reason_counts:
+  progress_loss=24
+  lane_violation=6
+  comfort_regression=2
+
+multi_label_counts:
+  progress_loss=24
+  value_loss=9
+  comfort_regression=9
+  hard_violation=6
+  lane_violation=6
+  collision_or_near_miss=0
+  red_light_violation=0
+```
+
+Decision:
+
+Accept this as a residual diagnostic, not as a selector or training signal. The
+allowed-harmful contamination is dominated by posterior progress loss rather
+than red-light exposure. Red-light residuals are zero in this artifact; lane
+violations explain a smaller hard-safety subset, and comfort regressions often
+co-occur but are not the dominant primary reason.
+
+This strengthens the previous conclusion: current evidence does not support
+retraining CAMP over the existing descriptor/atom support. The best
+constrained affine oracle already passes harmful-block and beneficial-retain
+targets, but its allowed set still contains 32 harmful alternatives, mostly
+progress-loss candidates. A learned weight vector over the same current
+descriptors is not a justified fix without new state support.
+
+Next admissible work:
+
+Do not run replay, Full36, formal seeds, online selector promotion, DP changes,
+or CAMP retraining from this result. The next gate must choose one of two
+routes:
+
+1. formally reject the current observable route as insufficient for a
+   deployable selector/certificate; or
+2. predeclare a new default-off no-leak progress-support logging preflight,
+   with explicit mathematical atom candidates and convexity/affine-score
+   boundary, before any replay or selector work.
+
+The only technical direction still supported by evidence is a progress-support
+state family. It must be current-tick and no-leak. It cannot be a posterior
+closed-loop progress label, and it cannot be justified as CAMP retraining until
+the new state/atom family passes separability and math-boundary gates.
+
+Mathematical boundary:
+
+The selected affine screen is reconstructed from fixed current-tick no-leak
+descriptors and nonnegative simplex coefficients produced by the prior oracle.
+Outcome labels are used only after the fixed screen to explain harmful
+residuals. This diagnostic creates no runtime threshold, no trained CAMP
+weights, and no DP-side classical Benders master/subproblem, dual, or cut.
