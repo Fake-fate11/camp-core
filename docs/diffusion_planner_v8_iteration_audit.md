@@ -35136,3 +35136,178 @@ Next work is diagnostic only: explain why the best progress-support screen
 drops beneficial alternatives and still allows too many harmful alternatives.
 Do not rerun replay, train CAMP, modify DP, use formal seeds, or promote an
 online selector before that bottleneck diagnosis is completed and documented.
+
+## Progress-Support Separability Bottleneck Diagnosis (`2b9d529`)
+
+This gate diagnoses the rejected progress-support descriptor separability
+screen without replay, training, DP modification, formal seeds, or online
+selector promotion. It reuses the existing matched progress-support outcome
+logs and the rejected separability artifact, then applies the best rejected
+screen to explain blocked beneficial alternatives and allowed harmful
+alternatives.
+
+Implemented files:
+
+- `scripts/integrations/analyze_diffusion_planner_progress_support_separability_bottleneck.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_separability_bottleneck.py`
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before AutoDL artifact execution:
+  `2b9d52938d95408584f6ba7f506cd595f65db842`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Matched log root:
+  `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/matched_progress_support_outcomes`.
+- Rejected separability artifact:
+  `/root/autodl-tmp/camp_dp_progress_support_descriptor_separability_80385e3/progress_support_descriptor_separability.json`.
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_progress_support_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_progress_support_separability_bottleneck.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_progress_support_descriptor_separability.py -q
+git diff --check
+```
+
+Local result: `7 passed`.
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_support_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_progress_support_separability_bottleneck.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_progress_support_descriptor_separability.py -q
+
+ROOT=/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/matched_progress_support_outcomes
+SEP=/root/autodl-tmp/camp_dp_progress_support_descriptor_separability_80385e3/progress_support_descriptor_separability.json
+OUT=/root/autodl-tmp/camp_dp_progress_support_separability_bottleneck_2b9d529
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_progress_support_separability_bottleneck.py \
+  --root "$ROOT" \
+  --separability_json "$SEP" \
+  --label autodl_2b9d529_progress_support_separability_bottleneck \
+  --output_json "$OUT/progress_support_separability_bottleneck.json" \
+  --output_md "$OUT/progress_support_separability_bottleneck.md"
+```
+
+AutoDL result: `7 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_separability_bottleneck_2b9d529/progress_support_separability_bottleneck.json` | `98115fb43f883442d30acd4e4ae0f414aacd9009a9ef2fe21f5f5ed0cb964748` |
+| `/root/autodl-tmp/camp_dp_progress_support_separability_bottleneck_2b9d529/progress_support_separability_bottleneck.md` | `49cc86179e6f60fa1dd1f5fc6283d81167a275541d78eb7e3274dea8dabe84a2` |
+
+Best rejected screen:
+
+```text
+screen_name=affine_simplex:0.250*atom_route_progress_deficit_envelope_v1+0.750*atom_tail_speed_support_deficit_v1
+threshold=0.0
+```
+
+Bottleneck counts:
+
+```text
+beneficial_total=56
+beneficial_retained=26
+beneficial_blocked=30
+harmful_total=180
+harmful_blocked=139
+harmful_allowed=41
+neutral_total=100
+beneficial_retain_rate=0.4642857142857143
+allowed_harmful_rate_among_allowed_nonneutral=0.6119402985074627
+```
+
+Blocked beneficial summary:
+
+```text
+count=30
+value_delta_mean=1.849761791216086
+progress_delta_mean_m=0.46058263980572495
+hard_violation_delta_mean=-0.06666666666666667
+red_light_worse_count=0
+lane_worse_count=0
+collision_worse_count=0
+near_miss_worse_count=0
+mean contribution atom_route_progress_deficit_envelope_v1=0.010429349859376384
+mean contribution atom_tail_speed_support_deficit_v1=0.02179055920393136
+screen_score_median=0.010855023347822845
+screen_score_max=0.1249488835559237
+```
+
+Allowed harmful summary:
+
+```text
+count=41
+value_delta_mean=16.61784775414311
+progress_delta_mean_m=21.45604483252352
+hard_violation_delta_mean=0.21951219512195122
+red_light_worse_count=0
+lane_worse_count=9
+collision_worse_count=0
+near_miss_worse_count=0
+mean contribution atom_route_progress_deficit_envelope_v1=0.0
+mean contribution atom_tail_speed_support_deficit_v1=0.0
+screen_score_median=0.0
+screen_score_max=0.0
+```
+
+Decision:
+
+Accept the bottleneck diagnosis. The separability failure has two simultaneous
+causes:
+
+1. Beneficial-retain failure: 30 beneficial alternatives have small but nonzero
+   progress/tail-speed support risk, so a strict low-risk threshold blocks
+   candidates that actually improve offline outcome value and preserve progress.
+2. Harmful-allowed failure: 41 harmful alternatives have zero contribution from
+   the best progress/tail-speed risk atoms. These allowed harmful alternatives
+   include lane/hard-violation regressions, meaning the current progress-support
+   atoms have a blind spot for some safety-relevant harms.
+
+This confirms that retraining CAMP on the current progress-support atom family
+is not justified. The issue is not simply stale weights: the descriptor family
+cannot retain enough beneficial alternatives while screening out harmful ones
+under the predeclared nonnegative affine diagnostic.
+
+Math boundary:
+
+The diagnosis reuses fixed current-tick progress-support descriptors and the
+rejected offline threshold screen. Candidate outcomes explain offline error
+modes only and are not runtime selector features. No CAMP training, online
+selector, DP modification, or classical Benders cut is introduced.
+
+```text
+status=progress_support_separability_bottleneck_diagnosed
+passed=True
+primary_gap=beneficial_retain_low_and_allowed_harmful_high
+authorized_next_work=reject_or_design_new_progress_support_descriptor_family
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Next work should either reject this progress-support descriptor route or design
+a new current-tick descriptor family that explicitly targets the discovered
+blind spot, especially lane/hard-violation regressions that have zero
+progress-support risk. Do not replay, train CAMP, modify DP, or promote an
+online selector until that new descriptor-family design is predeclared.
