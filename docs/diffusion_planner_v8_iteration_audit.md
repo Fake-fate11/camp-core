@@ -31134,3 +31134,130 @@ and cannot be used as runtime features, thresholds, or selector inputs. CAMP
 scoring remains `score_k(w)=a_k^T w` over fixed atoms, preserving the
 simplex/CVaR/L2 convex master. This gate constructs no DP-side classical
 Benders master/subproblem, dual, or valid cut, and makes no such claim.
+
+## Matched Observable Outcome Label Smoke (`0d74698`)
+
+This is the first execution of the matched-label plan above. It remains a small
+nonformal smoke only: 4 paired runs x 12 steps, seed 1, formal seeds excluded,
+DP fixed, no online selector promotion, no CAMP retraining, and no Full36. The
+matched branch records both `observable_state_logging` and
+`candidate_closed_loop_outcomes` in the same replay records.
+
+Plan command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698
+PLAN_DIR=/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698_plan
+
+$PY scripts/integrations/plan_diffusion_planner_matched_observable_outcome_label_pass.py \
+  --label autodl_0d74698_smoke \
+  --output_root "$ROOT" \
+  --output_json "$PLAN_DIR/matched_observable_outcome_plan.json" \
+  --output_md "$PLAN_DIR/matched_observable_outcome_plan.md"
+```
+
+Execution summary:
+
+```text
+replay_baseline_sample_tl_seed1_npc0_tlon                         rc=0 elapsed_s=7.438
+replay_matched_observable_outcomes_sample_tl_seed1_npc0_tlon      rc=0 elapsed_s=15.613
+replay_baseline_sample_tl_seed1_npc4_tlon                         rc=0 elapsed_s=7.575
+replay_matched_observable_outcomes_sample_tl_seed1_npc4_tlon      rc=0 elapsed_s=15.816
+replay_baseline_sample_tl_seed1_npc4_tloff                        rc=0 elapsed_s=7.542
+replay_matched_observable_outcomes_sample_tl_seed1_npc4_tloff     rc=0 elapsed_s=15.824
+replay_baseline_sample_normal_seed1_npc0_tloff                    rc=0 elapsed_s=7.421
+replay_matched_observable_outcomes_sample_normal_seed1_npc0_tloff rc=0 elapsed_s=8.228
+selector_equivalence                                              rc=0 elapsed_s=0.321
+dataset_required_outcome_audit                                    rc=0 elapsed_s=0.415
+matched_contract_audit                                            rc=0 elapsed_s=0.221
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698_plan/matched_observable_outcome_plan.json` | `3e9d9e377f0f4dd27f2b691cc2a51a456b49883a02a6ad6dba77f9228e42dd95` |
+| `/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698_plan/matched_observable_outcome_plan.md` | `e7613604b631a17b4a2da828f8effeef499fee7eb3d4df43efdbbfb9cdc20135` |
+| `/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/execution_logs/execution_summary.json` | `5b483615267d9ab9f5e07e3c4bf1e5cb96d0a36d16e8380a30f877d8accc70dc` |
+| `/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/audit/selector_equivalence.json` | `6cd1a5b654903cdf6f0debadd583fc21c4265853d036691c5111b1fb00ff23de` |
+| `/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/audit/dataset_required_outcome_audit.json` | `3db220f46c71d02e114f74fa7bbf7708851536bc94388006f856dd69d1c724f5` |
+| `/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/audit/matched_observable_outcome_contract.json` | `c7679cf8b2d23a8fb4933e0e1f36308a66ff2acf5b8cd28e627edc632401f83b` |
+| `/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/audit/matched_observable_outcome_contract.md` | `0b4e2bf11073d2ef2553550b6be79969c880bbda57beb40e043bcf6c08638afc` |
+
+Selector equivalence:
+
+```text
+equivalent=True
+records=48
+```
+
+Dataset audit:
+
+```text
+passed=True
+counts.logs=4
+counts.records=48
+counts.candidates=384
+checks.closed_loop_outcome_policy=required
+checks.closed_loop_outcome_records=48
+checks.complete_closed_loop_outcomes=True
+checks.outcome_candidate_coverage=1.0
+checks.finite_candidate_contract_verified=True
+checks.advance_mode_verified=True
+checks.expected_advance_mode=perfect
+checks.expected_candidate_reference_blend_steps=5
+checks.forbidden_seed_check=True
+checks.forbidden_seeds=11,12,13
+```
+
+Matched contract audit:
+
+```text
+status=matched_observable_outcome_contract_passed
+passed=True
+logs=4
+records=48
+candidate_rows=384
+observable_records=48
+outcome_records=48
+formal_seed_records=0
+validation.errors=[]
+validation.warnings=[]
+authorized_next_work=offline_observable_descriptor_separability_screen_only
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Decision:
+
+Accept the matched observable/outcome smoke as a development-gate input contract.
+It proves that the next offline separability screen can use matched current-tick
+observable descriptors and posterior outcome labels from the same candidate
+records without mislabeling. It still does not prove CAMP beats DP Top-1, does
+not authorize Full36, does not authorize formal seeds, does not authorize online
+selector promotion, and does not authorize CAMP retraining.
+
+Next admissible work:
+
+Run an offline observable descriptor separability screen over only
+`/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/matched_observable_outcomes`.
+The screen may use `candidate_closed_loop_outcomes` only as offline labels and
+may use `observable_state_logging` only as current-tick runtime-eligible
+descriptors. It must predeclare harmful/beneficial labels, accept/reject
+criteria, and bottleneck categories before implementation. If no descriptor or
+descriptor family separates harmful from beneficial switches, reject this
+matched observable route rather than tuning thresholds post hoc.
+
+Mathematical boundary:
+
+This gate keeps the CAMP-side math intact. Runtime-eligible descriptors are
+fixed finite-candidate quantities available before outcome evaluation. Offline
+outcome labels are evaluation targets only. If any descriptor is later atomized,
+it must enter as a fixed coefficient \(a_k\), so the selector score remains
+affine in the CAMP weights and the simplex/CVaR/L2 robust master remains convex.
+No DP-side classical Benders decomposition, dual, or cut is constructed.
