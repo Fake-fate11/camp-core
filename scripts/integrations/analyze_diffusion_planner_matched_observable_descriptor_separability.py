@@ -1002,11 +1002,18 @@ def _best_screen(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
 def _screen_sort_key(row: dict[str, Any] | None) -> tuple[float, float, float, float, float]:
     if not isinstance(row, dict):
         return (-1.0, -1.0, -1.0, -1.0, -1.0)
+    harmful_block = float(row.get("harmful_block_rate", 0.0))
+    beneficial_retain = float(row.get("beneficial_retain_rate", 0.0))
+    allowed_harmful = float(row.get("allowed_harmful_rate", 1.0))
+    clean_allowed = max(0.0, 1.0 - allowed_harmful)
+    balanced = min(harmful_block, beneficial_retain, clean_allowed)
+    mean_quality = (harmful_block + beneficial_retain + clean_allowed) / 3.0
     return (
         float(bool(row.get("promising_screen"))),
-        float(row.get("harmful_block_rate", 0.0)),
-        float(row.get("beneficial_retain_rate", 0.0)),
-        -float(row.get("allowed_harmful_rate", 1.0)),
+        balanced,
+        mean_quality,
+        beneficial_retain,
+        harmful_block,
         float(row.get("allowed_value_delta_mean") or -1e9),
     )
 
