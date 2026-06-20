@@ -31261,3 +31261,195 @@ outcome labels are evaluation targets only. If any descriptor is later atomized,
 it must enter as a fixed coefficient \(a_k\), so the selector score remains
 affine in the CAMP weights and the simplex/CVaR/L2 robust master remains convex.
 No DP-side classical Benders decomposition, dual, or cut is constructed.
+
+## Matched Observable Descriptor Separability (`84cc0c3`)
+
+This gate executes the next action authorized by the matched observable/outcome
+smoke: a read-only offline separability screen over only
+`/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/matched_observable_outcomes`.
+It uses `observable_state_logging` fields as current-tick runtime-eligible
+descriptors and uses `candidate_closed_loop_outcomes` only as posterior offline
+labels.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_matched_observable_descriptor_separability.py`
+- `camp_core/tests/test_diffusion_planner_matched_observable_descriptor_separability.py`
+
+Predeclared label definition relative to DP Top-1 candidate 0:
+
+```text
+beneficial_alternative:
+  candidate k>0 is feasible, improves outcome value over candidate0 by at
+  least 0.25, preserves progress within 0.05 m, and is hard-safety-nonworse
+harmful_alternative:
+  candidate k>0 is infeasible, hard-safety-worse, loses at least 0.25 in
+  outcome value, or exceeds the 0.05 m progress loss budget
+neutral_alternative:
+  all other k>0 candidates
+outcome value direction:
+  higher is better
+```
+
+Predeclared accept criteria:
+
+```text
+beneficial alternatives >= 5
+harmful alternatives >= 5
+harmful_block_rate >= 0.75
+beneficial_retain_rate >= 0.75
+allowed_harmful_rate <= 0.10
+```
+
+Descriptor scalarization is fixed before labels are consulted. Matrix-valued
+observable payload fields are reduced as follows:
+
+| Payload field | Scalarization |
+| --- | --- |
+| `candidate_route_projection_s_m` | last finite prefix value |
+| `candidate_route_segment_index` | last finite prefix value |
+| `candidate_route_lateral_error_m` | max absolute prefix value |
+| `candidate_route_heading_change_rad` | max absolute prefix value |
+| `candidate_red_stopline_distance_m` | minimum finite prefix distance |
+| `candidate_red_heading_alignment` | mean finite prefix value |
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_matched_observable_descriptor_separability.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_matched_observable_descriptor_separability.py -q
+
+git diff --check
+```
+
+Result: `5 passed`; `py_compile` and `git diff --check` passed. An initial
+AutoDL artifact attempt at `8da8a55` exposed the real payload shape
+`(K,H)` for route/traffic descriptors. Commit `8cb56eb` added the fixed
+matrix-scalarization contract, and commit `84cc0c3` changed screen ranking to
+prefer balanced harmful-block and beneficial-retain diagnostics instead of
+block-all screens.
+
+AutoDL verification and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_matched_observable_descriptor_separability.py -q
+
+OUT=/root/autodl-tmp/camp_dp_matched_observable_descriptor_separability_84cc0c3
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_matched_observable_descriptor_separability.py \
+  --root /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/matched_observable_outcomes \
+  --matched_contract_json /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/audit/matched_observable_outcome_contract.json \
+  --label autodl_84cc0c3_matched_observable_descriptor_separability \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/matched_observable_descriptor_separability.json" \
+  --output_md "$OUT/matched_observable_descriptor_separability.md"
+```
+
+Result: `5 passed`. CAMP and `origin/main` were synchronized to
+`84cc0c393f9cbefc5b1a9788f615676d8aa2e048`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_matched_observable_descriptor_separability_84cc0c3/matched_observable_descriptor_separability.json` | `fcba541369e9fd59f83b7bac793e2508c67c589d1c95efbd6edd3aa100fc0cd9` |
+| `/root/autodl-tmp/camp_dp_matched_observable_descriptor_separability_84cc0c3/matched_observable_descriptor_separability.md` | `0244aec25739d20737b4abe8877ddb0e5d6c40212f48b858e98dc8e44eef254c` |
+
+Audit result:
+
+```text
+status=matched_observable_descriptor_separability_rejected
+passed=False
+primary_gap=observable_descriptors_do_not_separate_beneficial_and_harmful_candidates
+authorized_next_work=diagnose_observable_descriptor_bottleneck_before_new_replay
+promising_screen_count=0
+total_records=48
+candidate_rows=384
+alternative_rows=336
+beneficial_alternative=58
+harmful_alternative=178
+neutral_alternative=100
+formal_seed_records=0
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Best balanced screen:
+
+```text
+screen=route_heading_change_worse_vs_top1_rad:allow_low
+threshold=0.0
+allowed_candidates=145
+blocked_candidates=191
+harmful_block_rate=0.696629
+beneficial_retain_rate=0.706897
+allowed_harmful_rate=0.372414
+allowed_value_delta_mean=3.072509
+allowed_progress_delta_mean_m=3.104157
+```
+
+Next ranked diagnostics were route-projection oriented but still failed:
+
+```text
+route_projection_delta_m:allow_high
+  harmful_block_rate=0.696629
+  beneficial_retain_rate=0.603448
+  allowed_harmful_rate=0.400000
+
+route_projection_loss_vs_top1_m:allow_low
+  harmful_block_rate=0.606742
+  beneficial_retain_rate=0.672414
+  allowed_harmful_rate=0.409357
+
+abs_route_lateral_error_m:allow_low
+  harmful_block_rate=0.528090
+  beneficial_retain_rate=0.706897
+  allowed_harmful_rate=0.497041
+```
+
+Decision:
+
+Reject the current observable descriptor separability route before any
+certificate design, online selector, Full36, formal seeds, or retraining. The
+matched dataset has enough alternatives for this small gate, but the current
+observable descriptors do not separate beneficial alternatives from harmful
+alternatives under the predeclared thresholds. The best balanced descriptor
+almost reaches the 75/75 block/retain target but still allows too many harmful
+alternatives (`37.24%` of allowed candidates are harmful), so it is not an
+industrial safety certificate.
+
+Remaining bottleneck:
+
+The evidence points to a current-observable descriptor bottleneck rather than a
+label-alignment bottleneck. Route-heading and route-projection features carry
+some signal, but not enough to isolate harmful alternatives while preserving
+beneficial alternatives. The next admissible gate is a diagnostic over the same
+existing artifact that explains the 54 harmful alternatives allowed by the best
+balanced screen and the 17 beneficial alternatives it blocks. It should classify
+whether the residual errors come from progress proxy weakness, Top-1 shape
+calibration, comfort envelope insufficiency, traffic/support interaction, or
+candidate-set support limitation. Do not run new replay for that diagnostic
+unless a later gate explicitly authorizes it.
+
+Mathematical boundary:
+
+This screen keeps the CAMP-side math intact. Runtime-eligible descriptors are
+fixed current-tick finite-candidate quantities computed before outcome labels.
+Outcome labels are used only to define offline beneficial/harmful classes and to
+score offline threshold diagnostics. Any later atomization would introduce fixed
+candidate coefficients \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master. This audit constructs no DP-side classical
+Benders master/subproblem, dual, or valid cut.
