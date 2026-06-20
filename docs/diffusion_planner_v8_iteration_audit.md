@@ -37725,3 +37725,154 @@ features. If a future descriptor family is atomized, atom values must remain
 fixed coefficients `a_k`, preserving affine `score_k(w)=a_k^T w` and
 compatibility with the simplex/CVaR/L2 convex master. No DP-side classical
 Benders master/subproblem, dual, or valid cut is constructed.
+
+## Progress + Lane/Hard Context Logging Preflight (`40f7e16`)
+
+This gate responds to the joint bottleneck diagnosis by preflighting a new
+default-off, no-leak context logging direction. It is design-only: it does not
+run new replay, does not use Full36 or formal seeds, does not promote an online
+selector, does not modify DP, and does not retrain CAMP.
+
+Predeclared hypothesis:
+
+Route-curvature-conditioned lane/progress context can expose why high lane/hard
+support is acceptable for some beneficial candidates but harmful for others,
+while preserving current-tick finite-candidate CAMP atomization.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_logging_preflight.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_preflight.py`
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_progress_lane_hard_context_logging_preflight.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_preflight.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_preflight.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_preflight.py -q
+git diff --check
+```
+
+Local result: `15 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization:
+
+- GitHub push advanced `main` to
+  `40f7e167a16ded6f96b75714d5eced57403bea2f`.
+- AutoDL was fast-forwarded to the same commit via git bundle.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks and artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_logging_preflight.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_preflight.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_preflight.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_preflight.py -q
+
+SRC=/root/autodl-tmp/camp_dp_progress_lane_hard_joint_bottleneck_899dfb3/progress_lane_hard_joint_bottleneck.json
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_preflight_40f7e16
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_logging_preflight.py \
+  --joint_bottleneck_json "$SRC" \
+  --label autodl_40f7e16_progress_lane_hard_context_logging_preflight \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/progress_lane_hard_context_logging_preflight.json" \
+  --output_md "$OUT/progress_lane_hard_context_logging_preflight.md"
+```
+
+AutoDL result: `15 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_preflight_40f7e16/progress_lane_hard_context_logging_preflight.json` | `85e8473baa80e8c77cc8cbb574c8e3df4cbe110142697eb252de26bab8f4f9fd` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_preflight_40f7e16/progress_lane_hard_context_logging_preflight.md` | `b87b6140699aa29a32c5ac98b44658254666e32cace0a4e2ccbdf125b0161ca9` |
+
+Preflight result:
+
+```text
+status=progress_lane_hard_context_logging_preflight_ready
+passed=True
+primary_gap=progress_lane_hard_context_logging_preflight_ready
+authorized_next_work=default_off_progress_lane_hard_context_logging_implementation_unit_tests_only
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Source gate:
+
+```text
+status=progress_lane_hard_joint_separability_bottleneck_diagnosed
+primary_gap=strict_screens_overblock_beneficial_and_high_retain_screens_allow_harmful
+authorized_next_work=reject_current_joint_support_descriptor_family_or_preflight_new_default_off_state_logging
+lane_hard_support_dominated_blocked_beneficial=True
+camp_retraining_recommended=False
+```
+
+Proposed default-off fields:
+
+```text
+route_curvature_context_abs_radpm
+candidate_lateral_error_rate_profile_mps
+candidate_speed_profile_mps
+candidate_route_progress_delta_profile_m
+candidate_route_corridor_margin_profile_m
+candidate_route_heading_error_profile_rad
+```
+
+Proposed nonnegative atoms:
+
+```text
+curvature_conditioned_lateral_rate_excess_v1
+corridor_margin_exhaustion_v1
+heading_curvature_residual_v1
+lane_progress_coherence_excess_v1
+```
+
+Math checks:
+
+```text
+all_fields_default_off_no_leak=True
+all_atoms_have_required_fields=True
+all_atoms_nonnegative_fixed_affine_coefficients=True
+no_classical_benders_claim=True
+```
+
+Decision:
+
+Accept this as a preflight only. It rejects further threshold tuning on the
+current joint support descriptor family and authorizes only implementation unit
+tests for default-off context logging. It still does not authorize replay,
+online selector promotion, Full36, formal seeds, DP modification, or CAMP
+retraining.
+
+Mathematical boundary:
+
+The proposed fields are current-tick finite-candidate quantities computed from
+generated DP candidates, current route/map, and current ego state before
+selector execution. Proposed atoms are nonnegative scalar residuals over those
+logged fields with nonnegative risk weights. Once logged, each atom is a fixed
+coefficient `a_k`, so CAMP scoring remains affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 master remains convex. No global convexity claim is made over
+DP trajectory generation, and no DP-side classical Benders master/subproblem,
+dual, or valid cut is constructed.
