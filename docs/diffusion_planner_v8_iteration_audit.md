@@ -36209,3 +36209,166 @@ evaluation. If later atomized, they enter CAMP as fixed coefficients \(a_k\),
 preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
 No DP-side classical Benders master/subproblem, dual, or valid cut is
 constructed.
+
+## Lane/Hard-Violation Support Broader Nonformal Paired Smoke Result (`232df61`)
+
+This gate executes exactly the broader nonformal paired smoke predeclared by
+the `20088cb` plan. It verifies the default-off lane/hard-violation support
+logging hook across a broader nonformal matrix. It does not run Full36, does
+not use formal seeds, does not promote an online selector, does not modify DP,
+and does not retrain CAMP.
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before smoke execution:
+  `232df6176807db9e5225984509a9d9eacab995f2`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Source plan:
+  `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_plan_20088cb/lane_hard_violation_support_broader_plan.json`.
+- Output root:
+  `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke`.
+
+Executed scope:
+
+```text
+paired_runs=4 baseline + 4 logging-enabled
+steps=12
+num_candidates=8
+planned_records=48
+planned_candidate_rows=384
+formal_seeds=forbidden
+traffic_light=2
+red_light_turn=2
+sharp_turn=3
+npc_interaction=2
+normal=1
+```
+
+Execution result:
+
+```text
+execution_command_count=11
+paired_replay_commands=8
+audit_commands=3
+all_return_codes_zero=True
+
+replay_tl_route59_seed1_npc0_tlon_baseline=7.674s
+replay_tl_route59_seed1_npc0_tlon_logging_enabled=7.934s
+replay_tl_route59_seed1_npc4_tlon_baseline=8.237s
+replay_tl_route59_seed1_npc4_tlon_logging_enabled=7.959s
+replay_tl_route59_seed2_npc4_tloff_baseline=7.702s
+replay_tl_route59_seed2_npc4_tloff_logging_enabled=7.810s
+replay_normal_route2_seed1_npc0_tloff_baseline=7.701s
+replay_normal_route2_seed1_npc0_tloff_logging_enabled=7.577s
+selector_equivalence=0.242s
+payload_audit=0.384s
+dataset_audit=0.379s
+```
+
+Core artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke/audit/selector_equivalence.json` | `1cd17d8015afc64bd1f393d486615f4a6555f19044e750a940f5828be83111ce` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke/audit/lane_hard_violation_support_logging_smoke.json` | `79c112271a2ad7e5287413a864d6d8049f07ada552da2b5e6554dfe5375f5994` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke/audit/lane_hard_violation_support_logging_smoke.md` | `321dd4828f3ab3ab96fbf209c510e2144cfe62d1fa6c9136dc5e03018d19d802` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke/audit/dataset_audit.json` | `8e05a00b700d308d3da939b49619247a7e555ed215c482fa4d29ddc57dc5f145` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke/audit/lane_hard_broader_execution_log.json` | `8f2dee58d0ad82b0daef92d1ed4a8dd34ffcb32cc4fcd14eaab5a99e9d45844f` |
+
+Payload audit:
+
+```text
+status=lane_hard_violation_support_logging_smoke_passed
+passed=True
+paired_logs=4
+records=48
+baseline_payload_records=0
+candidate_payload_records=48
+```
+
+Payload latency maxima:
+
+```text
+latency_ms_lane_hard_violation_support_logging=2.2065816447138786
+latency_ms_lane_hard_violation_projection=2.0458782091736794
+latency_ms_lane_hard_violation_heading=0.043793581426143646
+latency_ms_lane_hard_violation_rate=0.008205883204936981
+latency_ms_lane_hard_violation_atom_compute=0.06620306521654129
+latency_ms_lane_hard_violation_payload_serialization=0.01654587686061859
+```
+
+Selector equivalence:
+
+```text
+equivalent=True
+paired_logs=4
+records=48
+exact_field_mismatches=0 for selected_index, feasible_mask,
+  infeasibility_reasons, used_fallback, camp_fallback_mode,
+  atom_schema_version, atom_names
+numeric_field_mismatches=0 for scores, selection_scores, weights,
+  selection_weights, atoms, normalized_atoms, selection_normalized_atoms
+numeric_shape_mismatches=0
+numeric_nonexact_entries=0
+```
+
+Dataset audit:
+
+```text
+passed=True
+logs=4
+records=48
+candidates=384
+all_infeasible_records=1
+closed_loop_outcome_policy=forbidden
+closed_loop_outcome_records=0
+forbidden_seed_check=True
+finite_candidate_contract_verified=True
+finite_nonnegative_atoms=True
+summary_seed_provenance_verified=True
+advance_mode_verified=True
+red_light_atom_matches_online_dp_reward=True
+```
+
+Decision:
+
+Accept this as the broader lane/hard-violation support logging evidence
+milestone. It proves that the default-off lane/hard support payload is
+selector-neutral, no-leak under the dataset contract, finite, nonnegative, and
+cheap enough in the broader nonformal scope.
+
+Reject any claim that this proves CAMP is better than DP Top-1 or authorizes
+CAMP retraining. This smoke intentionally forbids candidate closed-loop outcome
+labels; it validates the descriptor logging hook and runtime budget, not
+candidate separability or learned weight usefulness.
+
+```text
+status=lane_hard_violation_support_broader_nonformal_smoke_passed
+passed=True
+primary_gap=lane_hard_violation_support_descriptors_need_matched_outcome_separability_evidence
+authorized_next_work=lane_hard_violation_support_matched_outcome_label_plan_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Next work is design-only: predeclare a matched lane/hard support observable
+plus offline outcome-label collection plan. Runtime descriptors must remain
+current-tick/no-leak, and outcome labels may be used only offline for
+separability evaluation. Do not execute the outcome collection, run Full36,
+use formal seeds, promote an online selector, modify DP, or train CAMP until
+the design gate is separately committed and synchronized.
+
+Mathematical boundary:
+
+The validated lane/hard-violation support descriptors are fixed current-tick
+finite-candidate quantities computed before outcome evaluation. If later
+atomized, they enter as fixed coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. The finite DP
+candidate selector is still not a classical Benders decomposition; no
+master/subproblem dual or valid cuts are introduced here.
