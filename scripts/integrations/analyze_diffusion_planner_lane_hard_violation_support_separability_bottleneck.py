@@ -151,9 +151,10 @@ def analyze_records(
         raise ValueError("Formal seed records are forbidden.")
 
     alternative_rows = [row for row in rows if row["class"] != CLASS_TOP1]
+    tradeoff = _screen_tradeoff(separability_report)
     screen_rows = _apply_screen(alternative_rows, best)
     grouped = _group_rows(screen_rows)
-    diagnosis = _diagnosis(separability_report, grouped, best)
+    diagnosis = _diagnosis(tradeoff, grouped, best)
     final = {
         "status": READY_STATUS if source["passed"] and best else SOURCE_BLOCKED_STATUS,
         "passed": bool(source["passed"] and best),
@@ -191,7 +192,8 @@ def analyze_records(
         "source_separability_gate": source,
         "source_records": _source_records(separability_report),
         "best_screen": best,
-        "screen_tradeoff": _screen_tradeoff(separability_report),
+        "screen_tradeoff": tradeoff,
+        "screen_applications": _screen_applications(alternative_rows, tradeoff),
         "counts": _counts(grouped),
         "descriptor_overlap": _descriptor_overlap(alternative_rows),
         "diagnosis": diagnosis,
@@ -415,8 +417,33 @@ def _counts(grouped: dict[str, list[dict[str, Any]]]) -> dict[str, int]:
     }
 
 
+def _screen_applications(
+    rows: list[dict[str, Any]],
+    tradeoff: dict[str, Any],
+) -> dict[str, Any]:
+    applications = {}
+    for key in ("best_strict_safe_screen", "best_high_retain_screen"):
+        screen = tradeoff.get(key)
+        if not isinstance(screen, dict):
+            applications[key] = None
+            continue
+        grouped = _group_rows(_apply_screen(rows, screen))
+        applications[key] = {
+            "counts": _counts(grouped),
+            "blocked_beneficial": _summary_for_rows(
+                grouped["blocked_beneficial"],
+                screen,
+            ),
+            "allowed_harmful": _summary_for_rows(
+                grouped["allowed_harmful"],
+                screen,
+            ),
+        }
+    return applications
+
+
 def _diagnosis(
-    report: dict[str, Any],
+    tradeoff: dict[str, Any],
     grouped: dict[str, list[dict[str, Any]]],
     best: dict[str, Any] | None,
 ) -> dict[str, Any]:
@@ -426,7 +453,6 @@ def _diagnosis(
         counts["harmful_allowed"],
         counts["harmful_allowed"] + counts["beneficial_retained"],
     )
-    tradeoff = _screen_tradeoff(report)
     strict_best = tradeoff["best_strict_safe_screen"] or {}
     high_retain_best = tradeoff["best_high_retain_screen"] or {}
     strict_overblocks = (
@@ -662,6 +688,12 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "```json",
         json.dumps(report["screen_tradeoff"], indent=2, sort_keys=True),
+        "```",
+        "",
+        "## Screen Applications",
+        "",
+        "```json",
+        json.dumps(report["screen_applications"], indent=2, sort_keys=True),
         "```",
         "",
         "## Counts",

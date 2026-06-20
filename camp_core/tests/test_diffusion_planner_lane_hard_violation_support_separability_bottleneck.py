@@ -185,6 +185,18 @@ def test_lane_hard_bottleneck_diagnoses_overlap_tradeoff() -> None:
     assert report["screen_tradeoff"]["strict_safe_screen_count"] == 1
     assert report["screen_tradeoff"]["high_retain_screen_count"] == 1
     assert report["allowed_harmful"]["reason_counts"]["lane_worse"] == 1
+    assert (
+        report["screen_applications"]["best_high_retain_screen"]["counts"][
+            "harmful_allowed"
+        ]
+        == 2
+    )
+    assert (
+        report["screen_applications"]["best_strict_safe_screen"]["counts"][
+            "beneficial_blocked"
+        ]
+        == 1
+    )
 
 
 def test_lane_hard_bottleneck_blocks_when_source_not_rejected() -> None:
