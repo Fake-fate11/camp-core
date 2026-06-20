@@ -43,6 +43,12 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     select_perfect_tracker_command_dominating_candidate,
     summarize_replay_artifacts,
 )
+from camp_core.integrations.diffusion_planner_progress_support import (  # noqa: E402
+    PROGRESS_SUPPORT_ATOM_NAMES,
+    PROGRESS_SUPPORT_FIELD_NAMES,
+    PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
+    build_progress_support_logging_payload,
+)
 from camp_core.atoms.driver_atoms import (  # noqa: E402
     exact_centerline_slice_for_candidates,
 )
@@ -109,6 +115,9 @@ OBSERVABLE_STATE_FIELDS = (
     "route_curvature_context_abs",
     "candidate_min_obstacle_clearance_lower_bound_m",
     "candidate_obstacle_slot_count",
+)
+PROGRESS_SUPPORT_LATENCY_KEYS = (
+    "latency_ms_progress_support_logging",
 )
 
 
@@ -503,6 +512,28 @@ def parse_args() -> argparse.Namespace:
         help="Candidate prefix steps for observable turn-context descriptors.",
     )
     parser.add_argument(
+        "--camp_progress_support_logging",
+        action="store_true",
+        help=(
+            "Default-off no-leak logging of current-tick candidate "
+            "progress-support fields and fixed nonnegative atom coefficients. "
+            "This records diagnostics only and does not change feasibility, "
+            "scores, or selection."
+        ),
+    )
+    parser.add_argument(
+        "--camp_progress_support_steps",
+        type=int,
+        default=10,
+        help="Candidate prefix steps for progress-support logging.",
+    )
+    parser.add_argument(
+        "--camp_progress_support_dt_s",
+        type=float,
+        default=0.1,
+        help="Time step used for progress-support speed-profile logging.",
+    )
+    parser.add_argument(
         "--camp_splice_shadow_rule",
         action="store_true",
         help=(
@@ -709,6 +740,13 @@ def _validate_args(args: argparse.Namespace) -> None:
     )
     if any(value < 2 for value in observable_state_steps):
         raise ValueError("CAMP observable-state logging horizons must be >= 2.")
+    if args.camp_progress_support_steps < 2:
+        raise ValueError("--camp_progress_support_steps must be >= 2.")
+    if (
+        not np.isfinite(args.camp_progress_support_dt_s)
+        or args.camp_progress_support_dt_s <= 0.0
+    ):
+        raise ValueError("--camp_progress_support_dt_s must be finite and positive.")
     splice_shadow_budgets = (
         args.camp_splice_shadow_progress_loss_budget_m,
         args.camp_splice_shadow_smoothness_loss_budget,
@@ -3391,6 +3429,9 @@ def _install_camp_predictor(
     observable_state_support_steps: int,
     observable_state_traffic_light_steps: int,
     observable_state_turn_steps: int,
+    progress_support_logging: bool,
+    progress_support_steps: int,
+    progress_support_dt_s: float,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -3640,12 +3681,18 @@ def _install_camp_predictor(
         observable_state_latency_ms = {
             key: 0.0 for key in OBSERVABLE_STATE_LATENCY_KEYS
         }
-        if observable_state_logging:
+        progress_support_logging_payload = None
+        progress_support_latency_ms = {
+            key: 0.0 for key in PROGRESS_SUPPORT_LATENCY_KEYS
+        }
+        route_centerline_ego = None
+        if observable_state_logging or progress_support_logging:
             route_centerline_ego = _ego_frame_xy(
                 route_centerline,
                 np.asarray(ego_agent.current_position, dtype=np.float64),
                 float(ego_agent.current_heading),
             )
+        if observable_state_logging:
             observable_candidate_obstacle_clearance = candidate_obstacle_clearance
             observable_neighbor_latency_ms = 0.0
             if observable_candidate_obstacle_clearance is None:
@@ -3679,6 +3726,18 @@ def _install_camp_predictor(
                 neighbor_clearance_latency_ms=observable_neighbor_latency_ms,
             )
             observable_state_latency_ms = observable_state_logging_payload[
+                "latency_ms"
+            ]
+        if progress_support_logging:
+            progress_support_logging_payload = (
+                build_progress_support_logging_payload(
+                    candidates=candidates,
+                    route_centerline_ego=route_centerline_ego,
+                    support_steps=progress_support_steps,
+                    dt_s=progress_support_dt_s,
+                )
+            )
+            progress_support_latency_ms = progress_support_logging_payload[
                 "latency_ms"
             ]
         external_feasible_mask = None
@@ -3997,6 +4056,7 @@ def _install_camp_predictor(
                 shadow_dp_prior_deviation_latency_ms
             ),
             **observable_state_latency_ms,
+            **progress_support_latency_ms,
             "latency_ms_context_and_obstacles": (
                 context_and_obstacles_done - lateral_comfort_done
             )
@@ -4299,6 +4359,7 @@ def _install_camp_predictor(
                     else None
                 ),
                 "observable_state_logging": observable_state_logging_payload,
+                "progress_support_logging": progress_support_logging_payload,
                 "candidate_obstacle_clearance": candidate_obstacle_clearance,
                 "candidate_step_reach": (
                     candidate_step_reach.tolist()
@@ -4538,6 +4599,9 @@ def main() -> None:
                 args.camp_observable_state_traffic_light_steps
             ),
             observable_state_turn_steps=args.camp_observable_state_turn_steps,
+            progress_support_logging=bool(args.camp_progress_support_logging),
+            progress_support_steps=args.camp_progress_support_steps,
+            progress_support_dt_s=args.camp_progress_support_dt_s,
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
             ),
@@ -4821,6 +4885,65 @@ def main() -> None:
         if records is not None
         else None
     )
+    camp_progress_support_logging = (
+        {
+            "schema_version": PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
+            "enabled": bool(args.camp_progress_support_logging),
+            "default_off": True,
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "closed_loop_outcome_fields_read": False,
+            "online_selector_change": False,
+            "authorized_stage": "unit_tests_only_default_off_preflight",
+            "logged_field": "progress_support_logging",
+            "fields": list(PROGRESS_SUPPORT_FIELD_NAMES),
+            "atom_names": list(PROGRESS_SUPPORT_ATOM_NAMES),
+            "latency_fields": list(PROGRESS_SUPPORT_LATENCY_KEYS),
+            "horizons": {
+                "support_steps": int(args.camp_progress_support_steps),
+                "dt_s": float(args.camp_progress_support_dt_s),
+            },
+            "records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if record.get("progress_support_logging") is not None
+                    )
+                )
+                if args.camp_progress_support_logging
+                else 0
+            ),
+            "latency_ms": (
+                {
+                    key: _summary(
+                        [
+                            float(record[key])
+                            for record in records
+                            if key in record and record[key] is not None
+                        ]
+                    )
+                    for key in PROGRESS_SUPPORT_LATENCY_KEYS
+                }
+                if args.camp_progress_support_logging
+                else None
+            ),
+            "definition": (
+                "current-tick candidate progress-support fields and "
+                "nonnegative atom coefficients computed from fixed DP "
+                "candidates and current route geometry before closed-loop "
+                "outcome labels"
+            ),
+            "math_boundary": (
+                "If later atomized, each progress-support atom is a fixed "
+                "finite-candidate coefficient; CAMP score remains affine in "
+                "weights and the simplex/CVaR/L2 master remains convex."
+            ),
+            "classical_benders_claim": False,
+        }
+        if records is not None
+        else None
+    )
     finite_candidate_contract = _dp_camp_finite_candidate_contract(
         selector_mode=args.camp_selector_mode,
         num_candidates=args.num_candidates,
@@ -4873,6 +4996,7 @@ def main() -> None:
         ),
         "camp_raw_candidate_prefix_logging": camp_raw_candidate_prefix_logging,
         "camp_observable_state_logging": camp_observable_state_logging,
+        "camp_progress_support_logging": camp_progress_support_logging,
         "camp_splice_shadow_rule": effective_splice_shadow_rule,
         "camp_traffic_light_hybrid_postselection": (
             effective_traffic_light_hybrid_postselection
@@ -5164,6 +5288,7 @@ def main() -> None:
         camp_raw_candidate_prefix_logging
     )
     validation["camp_observable_state_logging"] = camp_observable_state_logging
+    validation["camp_progress_support_logging"] = camp_progress_support_logging
     validation["camp_splice_shadow_rule"] = effective_splice_shadow_rule
     validation["camp_traffic_light_hybrid_postselection"] = (
         effective_traffic_light_hybrid_postselection
