@@ -34549,3 +34549,142 @@ Do not run Full36, formal seeds, online selector promotion, CAMP retraining, DP
 modification, or online optimization promotion. If the broader smoke fails any
 source, selector-equivalence, payload, dataset, formal-seed, or latency check,
 reject the route and diagnose before any larger experiment.
+
+## Progress-Support Broader Nonformal Paired Smoke Result (`bde953b`)
+
+The predeclared broader nonformal paired smoke was executed on AutoDL from the
+plan artifact generated at `f7dc360`. The execution followed the plan exactly:
+4 nonformal runs x 12 steps x 8 candidates, paired baseline and
+progress-support logging-enabled replay, followed by selector equivalence,
+progress-support payload audit, and finite-candidate dataset audit.
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before execution:
+  `bde953bffbdd76ae881c60c46098e1857b2f2cdc`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Source plan:
+  `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_plan_f7dc360/broader_nonformal_smoke_plan.json`.
+- Output root:
+  `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke`.
+
+AutoDL execution summary:
+
+```text
+execution_all_passed=True
+execution_command_count=11
+paired_replay_commands=8
+audit_commands=3
+```
+
+All 8 replay commands and all 3 audit commands exited with `rc=0`.
+
+Core artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke/audit/selector_equivalence.json` | `a7398d167b7f7b106a8f6c18f0087c6944e85fea56430712badeebf164954d0e` |
+| `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke/audit/progress_support_logging_smoke.json` | `5e87d01c5189f085e9e0e289565bd461581ba27d0902f0b4e229a211cf24a6df` |
+| `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke/audit/progress_support_logging_smoke.md` | `89fa101a1e71a36d82707481b55313177966cc5dcd4e2261e56f5f4d801b2249` |
+| `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke/audit/dataset_audit.json` | `f9f924ef703f70216e197be88529608021a0afa10f7a2ecf22a6eda606bdd641` |
+| `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke/audit/broader_nonformal_execution_log.json` | `3cbbeaf05ce2f8309d6eb68ef99f1a6fdd58e36d5cdf14df78bde64e3a645b6e` |
+
+Payload audit:
+
+```text
+progress_support_logging_smoke.status=progress_support_logging_smoke_passed
+progress_support_logging_smoke.passed=True
+progress_support_logging_smoke.counts={
+  baseline_payload_records: 0,
+  candidate_payload_records: 48,
+  paired_logs: 4,
+  records: 48
+}
+
+progress_support_logging_smoke.latency_ms={
+  latency_ms_progress_support_logging: 2.3779114708304405,
+  latency_ms_progress_support_route_projection: 2.1696090698242188,
+  latency_ms_progress_support_plan_arc: 0.04341825842857361,
+  latency_ms_progress_support_speed_profile: 0.020425766706466675,
+  latency_ms_progress_support_route_remaining: 0.03341212868690491,
+  latency_ms_progress_support_goal_alignment: 0.021799467504024506,
+  latency_ms_progress_support_atom_compute: 0.05905795842409134,
+  latency_ms_progress_support_payload_serialization: 0.013086013495922089
+}
+```
+
+Selector equivalence:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=48
+selector_equivalence.paired_logs=4
+selector_equivalence.exact_field_mismatch_sum=0
+selector_equivalence.numeric_field_mismatch_sum=0
+selector_equivalence.numeric_shape_mismatch_sum=0
+selector_equivalence.numeric_nonexact_sum=0
+```
+
+Dataset audit:
+
+```text
+dataset_audit.passed=True
+dataset_audit.counts={
+  logs: 4,
+  records: 48,
+  candidates: 384,
+  all_infeasible_records: 1
+}
+dataset_audit.checks={
+  forbidden_seed_check: True,
+  finite_candidate_contract_verified: True,
+  closed_loop_outcomes_forbidden: True,
+  exact_candidate_and_atom_shapes: True,
+  summary_seed_provenance_verified: True,
+  advance_mode_verified: True,
+  red_light_atom_matches_online_dp_reward: True
+}
+```
+
+Decision:
+
+Accept this as the broader progress-support logging evidence milestone. It
+proves that the default-off progress-support payload is selector-neutral,
+no-leak under the dataset contract, finite, nonnegative, and cheap enough in a
+broader nonformal scope that includes traffic-light, red-light-turn,
+sharp-turn, NPC-interaction, and normal-driving buckets.
+
+Reject any claim that this proves CAMP is better than DP Top-1 or authorizes
+CAMP retraining. This smoke intentionally forbids candidate closed-loop outcome
+labels; it validates the descriptor logging hook and runtime budget, not
+candidate separability or learned weight usefulness.
+
+Math boundary:
+
+The validated progress-support descriptors are fixed current-tick
+finite-candidate quantities computed before outcome evaluation. If later
+atomized, they enter as fixed coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. The finite DP
+candidate selector is still not a classical Benders decomposition; no
+master/subproblem dual or valid cuts are introduced here.
+
+```text
+status=progress_support_broader_nonformal_smoke_passed
+passed=True
+primary_gap=progress_support_descriptors_need_matched_outcome_separability_evidence
+authorized_next_work=progress_support_matched_observable_outcome_label_plan_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Next work is design-only: predeclare a matched observable+outcome label
+collection plan for the now-validated progress-support descriptor family. That
+plan must keep runtime descriptors current-tick/no-leak and use outcome labels
+only offline for separability evaluation. Do not execute the outcome collection
+or train CAMP until the design gate is separately committed and synchronized.
