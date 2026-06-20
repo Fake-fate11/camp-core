@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -12,6 +13,10 @@ from camp_core.integrations.diffusion_planner_lane_hard_violation_support import
     LANE_HARD_VIOLATION_SUPPORT_LOGGING_SCHEMA_VERSION,
     build_lane_hard_violation_support_logging_payload,
 )
+
+
+ROOT = Path(__file__).resolve().parents[2]
+REPLAY_SCRIPT = ROOT / "scripts" / "integrations" / "run_diffusion_planner_camp_replay.py"
 
 
 def _route() -> np.ndarray:
@@ -191,3 +196,20 @@ def test_lane_hard_violation_payload_validates_inputs() -> None:
             support_steps=4,
             lateral_error_rate_budget_mps=-1.0,
         )
+
+
+def test_replay_wiring_is_default_off_and_selection_neutral() -> None:
+    source = REPLAY_SCRIPT.read_text(encoding="utf-8")
+
+    assert "--camp_lane_hard_violation_support_logging" in source
+    assert "action=\"store_true\"" in source
+    assert (
+        "\"lane_hard_violation_support_logging\": ("
+        in source
+    )
+    assert "\"selection_effect\": False" in source
+    assert "\"future_outcome_leakage\": False" in source
+    assert "\"closed_loop_outcome_fields_read\": False" in source
+    assert "\"camp_lane_hard_violation_support_logging\"" in source
+    assert "build_lane_hard_violation_support_logging_payload(" in source
+    assert "lane_hard_violation_support_logging=bool(" in source
