@@ -34973,3 +34973,166 @@ candidate outcome labels only for offline labels/evaluation, never for runtime
 descriptors. Do not train CAMP until the separability, no-leak, convexity, and
 audit gates show a descriptor/atom schema with a clear reason learned weights
 could improve over fixed diagnostic scalarization.
+
+## Progress-Support Descriptor Separability Screen (`80385e3`)
+
+This gate implements and executes an offline progress-support descriptor
+separability screen over the existing matched nonformal logs. It uses only the
+validated `progress_support_logging` payloads as runtime-eligible descriptors
+and uses `candidate_closed_loop_outcomes` only as offline labels/evaluation. It
+does not run DP, does not run replay, does not train CAMP, does not modify DP,
+does not use formal seeds, and does not promote an online selector.
+
+Implemented files:
+
+- `scripts/integrations/analyze_diffusion_planner_progress_support_descriptor_separability.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_descriptor_separability.py`
+
+Predeclared hypothesis:
+
+Test whether the validated progress-support descriptor family contains a
+CAMP-compatible separability signal. Candidate risk descriptors are fixed
+current-tick finite-candidate quantities: the nonnegative
+`progress_support_atoms` plus derived support deficits/excesses from the same
+payload. The diagnostic searches threshold screens over individual descriptors
+and nonnegative simplex affine scalarizations over normalized descriptors. It
+accepts only if a screen simultaneously blocks harmful alternatives, retains
+beneficial alternatives, and keeps the allowed harmful rate below the
+predeclared budget.
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before AutoDL artifact execution:
+  `80385e338def77d27af9d4b1b6c5136c412a6823`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Matched log root:
+  `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/matched_progress_support_outcomes`.
+- Matched contract:
+  `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/audit/matched_progress_support_outcome_contract.json`.
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_progress_support_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_progress_support_descriptor_separability.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_matched_progress_support_outcomes.py -q
+git diff --check
+```
+
+Local result: `8 passed`.
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_support_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_progress_support_descriptor_separability.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_matched_progress_support_outcomes.py -q
+
+ROOT=/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/matched_progress_support_outcomes
+CONTRACT=/root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1/audit/matched_progress_support_outcome_contract.json
+OUT=/root/autodl-tmp/camp_dp_progress_support_descriptor_separability_80385e3
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_progress_support_descriptor_separability.py \
+  --root "$ROOT" \
+  --matched_contract_json "$CONTRACT" \
+  --label autodl_80385e3_progress_support_descriptor_separability \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/progress_support_descriptor_separability.json" \
+  --output_md "$OUT/progress_support_descriptor_separability.md"
+```
+
+AutoDL result: `8 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_descriptor_separability_80385e3/progress_support_descriptor_separability.json` | `648ccc728401f87882a98e1635ff097ae33056cccebaf70e35746431e4526947` |
+| `/root/autodl-tmp/camp_dp_progress_support_descriptor_separability_80385e3/progress_support_descriptor_separability.md` | `c65c828d530230ae68c8d8d43ae0d3b622d87f4c4c2036ffb1857df81ec642a2` |
+
+Screen labels and support:
+
+```text
+total_records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+beneficial_alternative=56
+harmful_alternative=180
+neutral_alternative=100
+```
+
+Best screen:
+
+```text
+screen_name=affine_simplex:0.250*atom_route_progress_deficit_envelope_v1+0.750*atom_tail_speed_support_deficit_v1
+threshold=0.0
+promising_screen=False
+harmful_count=180
+beneficial_count=56
+neutral_count=100
+considered_candidates=336
+allowed_candidates=112
+blocked_candidates=224
+harmful_block_rate=0.7722222222222223
+beneficial_retain_rate=0.4642857142857143
+allowed_harmful_rate=0.36607142857142855
+allowed_value_delta_mean=6.210947472444124
+allowed_progress_delta_mean_m=8.12294123566428
+```
+
+Decision:
+
+Reject the progress-support descriptor separability screen. No individual
+descriptor or nonnegative simplex affine scalarization reached the predeclared
+joint targets. The best screen blocks harmful alternatives above the target
+(`0.772 >= 0.75`), but it retains only `0.464` of beneficial alternatives and
+allows harmful alternatives at rate `0.366`, far above the `0.10` budget.
+
+This rejects CAMP retraining from the current progress-support descriptor
+family. The evidence now says that even with fresh no-leak progress-support
+atoms and matched outcome labels, the descriptor family does not yet separate
+beneficial from harmful DP alternatives strongly enough to justify training new
+CAMP weights or promoting an online selector.
+
+Math boundary:
+
+All descriptors in the screen are fixed current-tick finite-candidate
+quantities computed before outcome labels. Outcome labels are used only to
+classify alternatives and score threshold diagnostics offline. Nonnegative
+simplex scalarizations preserve affine `score_k(w)=a_k^T w` after atomization
+and remain compatible with the simplex/CVaR/L2 convex master. No DP-side
+classical Benders master/subproblem, dual, or valid cut is constructed.
+
+```text
+status=progress_support_descriptor_separability_rejected
+passed=False
+primary_gap=progress_support_descriptors_do_not_separate_candidates
+failure_gap=beneficial_retain_rate_insufficient
+promising_screen_count=0
+authorized_next_work=diagnose_progress_support_descriptor_bottleneck_before_retraining
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Next work is diagnostic only: explain why the best progress-support screen
+drops beneficial alternatives and still allows too many harmful alternatives.
+Do not rerun replay, train CAMP, modify DP, use formal seeds, or promote an
+online selector before that bottleneck diagnosis is completed and documented.
