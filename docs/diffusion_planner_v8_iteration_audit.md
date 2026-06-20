@@ -34418,3 +34418,134 @@ the now-cheap progress-support logging across diverse nonformal scenes,
 including red-light exposure, turns, normal driving, fallback/nonfallback ticks,
 selector equivalence, dataset audit, and latency budget. Do not execute that
 broader smoke until the design gate is separately committed and synchronized.
+
+## Progress-Support Broader Nonformal Smoke Plan (`f7dc360`)
+
+This gate predeclares the next broader nonformal paired smoke after the
+optimized progress-support logging path passed the paired three-record smoke.
+It is design-only: it does not execute DP, does not run replay, does not use
+formal seeds, does not promote an online selector, does not retrain CAMP, and
+does not modify DP.
+
+Source gate:
+
+- CAMP local/GitHub/AutoDL HEAD before AutoDL plan generation:
+  `f7dc360fadfe8906b3b4fefd5bd98de7b85ead0d`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Optimized paired smoke audit:
+  `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/audit/progress_support_logging_smoke.json`.
+- Optimized selector equivalence audit:
+  `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/audit/selector_equivalence.json`.
+- Optimized dataset audit:
+  `/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/audit/dataset_audit.json`.
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_progress_support_broader_nonformal_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_support_broader_nonformal_smoke_plan.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_broader_nonformal_smoke_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_optimized_nonformal_smoke_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_smoke.py -q
+git diff --check
+```
+
+Local result: `17 passed`.
+
+AutoDL checks and plan generation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_progress_support_broader_nonformal_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_support_broader_nonformal_smoke_plan.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_broader_nonformal_smoke_plan.py -q
+
+SRC=/root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85/audit
+OUT=/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_plan_f7dc360
+mkdir -p "$OUT"
+$PY scripts/integrations/plan_diffusion_planner_progress_support_broader_nonformal_smoke.py \
+  --optimized_smoke_audit_json "$SRC/progress_support_logging_smoke.json" \
+  --optimized_selector_equivalence_json "$SRC/selector_equivalence.json" \
+  --optimized_dataset_audit_json "$SRC/dataset_audit.json" \
+  --label autodl_f7dc360_progress_support_broader_nonformal_plan \
+  --output_json "$OUT/broader_nonformal_smoke_plan.json" \
+  --output_md "$OUT/broader_nonformal_smoke_plan.md"
+```
+
+AutoDL result: `6 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_plan_f7dc360/broader_nonformal_smoke_plan.json` | `da6efa8afbe60b5f92795003870b67d402f0e797906e820d90173c583981da43` |
+| `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_plan_f7dc360/broader_nonformal_smoke_plan.md` | `0ab6230db41253fac8a60ecd9e82c52817d1a1ac3328fdb8a6f77e6139a7dfaa` |
+
+Planned coverage:
+
+| Target | Value |
+| --- | ---: |
+| planned logs | 4 |
+| planned records | 48 |
+| planned candidate rows | 384 |
+| max broader `latency_ms_progress_support_logging` | 25.0 ms |
+
+Scenario bucket counts:
+
+```text
+normal=1
+npc_interaction=2
+red_light_turn=2
+sharp_turn=3
+traffic_light=2
+```
+
+Audit result:
+
+```text
+status=progress_support_broader_nonformal_smoke_plan_ready
+passed=True
+failed_source_checks=[]
+failed_plan_checks=[]
+authorized_next_work=progress_support_broader_nonformal_paired_smoke_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Math boundary:
+
+The planned broader smoke still treats DP as a fixed black-box candidate
+generator. Progress-support payloads are fixed current-tick finite-candidate
+diagnostics computed before closed-loop outcome evaluation. If later atomized,
+they enter CAMP as fixed candidate coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This is not a
+DP-side classical Benders decomposition and does not prove CAMP is better than
+DP Top-1.
+
+Decision:
+
+Accept the design gate. The next authorized action is only the exact broader
+nonformal paired smoke encoded in the plan artifact: 4 planned runs x 12 steps
+x 8 candidates, paired baseline and progress-support logging-enabled replay,
+selector equivalence, progress-support payload audit, and finite-candidate
+dataset audit.
+
+Do not run Full36, formal seeds, online selector promotion, CAMP retraining, DP
+modification, or online optimization promotion. If the broader smoke fails any
+source, selector-equivalence, payload, dataset, formal-seed, or latency check,
+reject the route and diagnose before any larger experiment.
