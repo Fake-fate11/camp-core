@@ -37,6 +37,9 @@ PROGRESS_SUPPORT_LATENCY_KEYS = (
     "latency_ms_progress_support_payload_serialization",
 )
 
+_ROUTE_PROJECTION_SEGMENT_CHUNK_SIZE = 256
+_ROUTE_PROJECTION_MAX_INTERMEDIATE_ELEMENTS = 4_000_000
+
 
 def build_progress_support_logging_payload(
     *,
@@ -187,6 +190,26 @@ def _route_cumulative_lengths(route_xy: np.ndarray) -> np.ndarray:
 
 
 def _route_progress_profiles(candidates_xy: np.ndarray, route_xy: np.ndarray) -> np.ndarray:
+    try:
+        profiles = _route_progress_profiles_chunked(
+            candidates_xy,
+            route_xy,
+            segment_chunk_size=_ROUTE_PROJECTION_SEGMENT_CHUNK_SIZE,
+            max_intermediate_elements=_ROUTE_PROJECTION_MAX_INTERMEDIATE_ELEMENTS,
+        )
+    except (MemoryError, ValueError, FloatingPointError):
+        return _route_progress_profiles_reference(candidates_xy, route_xy)
+    if profiles.shape != np.asarray(candidates_xy).shape[:2]:
+        return _route_progress_profiles_reference(candidates_xy, route_xy)
+    if not np.all(np.isfinite(profiles)):
+        return _route_progress_profiles_reference(candidates_xy, route_xy)
+    return profiles
+
+
+def _route_progress_profiles_reference(
+    candidates_xy: np.ndarray,
+    route_xy: np.ndarray,
+) -> np.ndarray:
     route_lengths = _route_cumulative_lengths(route_xy)
     segments = route_xy[1:] - route_xy[:-1]
     segment_lengths_sq = np.sum(segments * segments, axis=1)
@@ -209,6 +232,77 @@ def _route_progress_profiles(candidates_xy: np.ndarray, route_xy: np.ndarray) ->
                     best_s = float(route_lengths[seg_idx] + t * np.sqrt(denom))
             profiles[cand_idx, step_idx] = best_s
     return profiles
+
+
+def _route_progress_profiles_chunked(
+    candidates_xy: np.ndarray,
+    route_xy: np.ndarray,
+    *,
+    segment_chunk_size: int = _ROUTE_PROJECTION_SEGMENT_CHUNK_SIZE,
+    max_intermediate_elements: int = _ROUTE_PROJECTION_MAX_INTERMEDIATE_ELEMENTS,
+) -> np.ndarray:
+    points_by_candidate = np.asarray(candidates_xy, dtype=np.float64)
+    route = np.asarray(route_xy, dtype=np.float64)
+    if (
+        points_by_candidate.ndim != 3
+        or points_by_candidate.shape[0] < 1
+        or points_by_candidate.shape[1] < 1
+        or points_by_candidate.shape[2] < 2
+    ):
+        raise ValueError("candidates_xy must have shape [K,H,>=2].")
+    if route.ndim != 2 or route.shape[0] < 2 or route.shape[1] < 2:
+        raise ValueError("route_xy must have shape [N,>=2] with N>=2.")
+    if segment_chunk_size < 1:
+        raise ValueError("segment_chunk_size must be positive.")
+    if max_intermediate_elements < 1:
+        raise ValueError("max_intermediate_elements must be positive.")
+    points = points_by_candidate[:, :, :2].reshape(-1, 2)
+    route_xy_only = route[:, :2]
+    if not np.all(np.isfinite(points)) or not np.all(np.isfinite(route_xy_only)):
+        raise ValueError("route projection inputs must be finite.")
+
+    route_lengths = _route_cumulative_lengths(route_xy_only)
+    starts_all = route_xy_only[:-1]
+    segments_all = route_xy_only[1:] - route_xy_only[:-1]
+    segment_lengths_sq_all = np.sum(segments_all * segments_all, axis=1)
+    valid_segments = segment_lengths_sq_all > 1e-12
+    if not np.any(valid_segments):
+        raise ValueError("route contains no non-degenerate segments.")
+
+    point_count = int(points.shape[0])
+    best_distance = np.full(point_count, np.inf, dtype=np.float64)
+    best_s = np.zeros(point_count, dtype=np.float64)
+    segment_count = int(segments_all.shape[0])
+    for chunk_start in range(0, segment_count, int(segment_chunk_size)):
+        chunk_end = min(chunk_start + int(segment_chunk_size), segment_count)
+        valid = valid_segments[chunk_start:chunk_end]
+        if not np.any(valid):
+            continue
+        if point_count * int(np.count_nonzero(valid)) > max_intermediate_elements:
+            raise MemoryError("route projection chunk exceeds intermediate guard.")
+        chunk_indices = np.arange(chunk_start, chunk_end, dtype=np.int64)[valid]
+        starts = starts_all[chunk_indices]
+        segments = segments_all[chunk_indices]
+        denom = segment_lengths_sq_all[chunk_indices]
+        relative = points[:, np.newaxis, :] - starts[np.newaxis, :, :]
+        t = np.sum(relative * segments[np.newaxis, :, :], axis=2)
+        t = np.clip(t / denom[np.newaxis, :], 0.0, 1.0)
+        projections = starts[np.newaxis, :, :] + t[:, :, np.newaxis] * segments[
+            np.newaxis, :, :
+        ]
+        distances = np.linalg.norm(points[:, np.newaxis, :] - projections, axis=2)
+        chunk_best = np.argmin(distances, axis=1)
+        row_indices = np.arange(point_count, dtype=np.int64)
+        chunk_best_distance = distances[row_indices, chunk_best]
+        better = chunk_best_distance < best_distance
+        if not np.any(better):
+            continue
+        chunk_s = route_lengths[chunk_indices][np.newaxis, :] + t * np.sqrt(
+            denom[np.newaxis, :]
+        )
+        best_distance[better] = chunk_best_distance[better]
+        best_s[better] = chunk_s[row_indices[better], chunk_best[better]]
+    return best_s.reshape(points_by_candidate.shape[:2])
 
 
 def _plan_arc_length_profiles(candidates_xy: np.ndarray) -> np.ndarray:
