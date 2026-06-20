@@ -30992,3 +30992,145 @@ cannot become runtime features or threshold inputs. CAMP scoring remains
 `score_k(w)=a_k^T w` over fixed atom coefficients, preserving the
 simplex/CVaR/L2 convex master. No DP-side classical Benders decomposition,
 dual, or cut is constructed or claimed.
+
+## Matched Observable Outcome Label Pass Plan (`665dd81`)
+
+This gate responds to the `dc11742` alignment rejection. The previous attempt
+to join new observable-state logs to the older
+`candidate_outcome_labels_static_d97b7c2` labels was rejected because the
+candidate sets differed in all 48 checked records. The next valid route is
+therefore not a separability screen over mismatched artifacts. It is a
+predeclared nonformal collection plan that records observable-state payloads and
+candidate closed-loop outcome labels in the same replay records.
+
+Implementation:
+
+- `scripts/integrations/plan_diffusion_planner_matched_observable_outcome_label_pass.py`
+- `scripts/integrations/analyze_diffusion_planner_matched_observable_outcomes.py`
+- `camp_core/tests/test_diffusion_planner_matched_observable_outcome_label_pass_plan.py`
+- `camp_core/tests/test_diffusion_planner_matched_observable_outcomes.py`
+
+The plan is design-only. It does not run Diffusion Planner, train CAMP, change
+online selection, promote an online selector, use formal seeds, modify DP, or
+authorize Full36. It only emits a fail-closed command plan and a same-record
+contract audit for a later small nonformal smoke.
+
+Predeclared replay scope:
+
+```text
+baseline branch:
+  4 nonformal runs x 12 steps, no observable payload, no candidate outcomes
+matched branch:
+  same 4 runs x 12 steps, with both:
+    --camp_observable_state_logging
+    --camp_collect_closed_loop_outcomes
+routes:
+  sample_map_tl_route_59_to_86, traffic lights on/off, NPC 0/4
+  sample_map_route_2_to_104, traffic lights off, NPC 0
+seed:
+  1 only
+formal seeds:
+  11/12/13 forbidden
+```
+
+The matched branch must then pass:
+
+1. selector equivalence against the baseline branch;
+2. `audit_diffusion_planner_camp_dataset.py` with
+   `closed_loop_outcome_policy=required`;
+3. `analyze_diffusion_planner_matched_observable_outcomes.py` requiring every
+   matched record to contain both `observable_state_logging` and
+   `candidate_closed_loop_outcomes` in the same candidate ordering.
+
+The new contract audit is deliberately different from the earlier observable
+payload coverage audits: those audits reject any record that contains
+`candidate_closed_loop_outcomes`, because their purpose was no-outcome
+deployability evidence. This new audit is for offline labels only and therefore
+requires candidate outcomes while still requiring the observable payload itself
+to report `selection_effect=false`, `future_outcome_leakage=false`, and to avoid
+embedding outcome labels inside the payload.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_matched_observable_outcomes.py `
+  scripts\integrations\plan_diffusion_planner_matched_observable_outcome_label_pass.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_matched_observable_outcomes.py `
+  camp_core\tests\test_diffusion_planner_matched_observable_outcome_label_pass_plan.py -q
+
+git diff --check
+```
+
+Result: `9 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_matched_observable_outcomes.py \
+  scripts/integrations/plan_diffusion_planner_matched_observable_outcome_label_pass.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_matched_observable_outcomes.py \
+  camp_core/tests/test_diffusion_planner_matched_observable_outcome_label_pass_plan.py -q
+
+OUT=/root/autodl-tmp/camp_dp_matched_observable_outcome_plan_665dd81
+mkdir -p "$OUT"
+$PY scripts/integrations/plan_diffusion_planner_matched_observable_outcome_label_pass.py \
+  --label autodl_665dd81_predeclare \
+  --output_json "$OUT/matched_observable_outcome_plan.json" \
+  --output_md "$OUT/matched_observable_outcome_plan.md"
+```
+
+Result: `9 passed`. CAMP and `origin/main` were synchronized to
+`665dd81936d21048389878648defe4a3ec52c51d`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_matched_observable_outcome_plan_665dd81/matched_observable_outcome_plan.json` | `d8c7648ea44e99fa3fd97801a498382bff3de7abe6195b9f87ecddaadd91a621` |
+| `/root/autodl-tmp/camp_dp_matched_observable_outcome_plan_665dd81/matched_observable_outcome_plan.md` | `85a21a803a6b7a86025a657f89078572b9fa7c63aba265e541f5acfa9085ef10` |
+
+Plan result:
+
+```text
+status=matched_observable_outcome_label_pass_plan_ready
+passed=True
+authorized_next_work=matched_observable_outcome_label_pass_nonformal_smoke_only
+replay_authorized_scope=4 paired nonformal runs x 12 steps; matched branch only
+  collects observable_state_logging and candidate_closed_loop_outcomes
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Decision:
+
+Accept this as a predeclared matched-label collection plan only. The next
+admissible action is the specified small nonformal smoke, not Full36, not formal
+seeds, not online selector promotion, and not CAMP retraining. If the smoke
+fails selector equivalence, required outcome coverage, or same-record observable
+and outcome contract checks, reject the matched-label route and do not run
+separability. If it passes, the next gate may be an offline observable
+descriptor separability screen over the matched records only.
+
+Mathematical boundary:
+
+The planned runtime descriptors remain current-tick fixed finite-candidate
+quantities. Candidate closed-loop outcomes are posterior offline labels only
+and cannot be used as runtime features, thresholds, or selector inputs. CAMP
+scoring remains `score_k(w)=a_k^T w` over fixed atoms, preserving the
+simplex/CVaR/L2 convex master. This gate constructs no DP-side classical
+Benders master/subproblem, dual, or valid cut, and makes no such claim.
