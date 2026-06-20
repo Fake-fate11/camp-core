@@ -38582,3 +38582,136 @@ and nonnegative atom coefficients. If these atoms later enter CAMP, each
 candidate coefficient \(a_k\) remains fixed before scoring, preserving affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This audit still
 constructs no DP-side classical Benders master/subproblem, dual, or valid cut.
+
+## Progress + Lane/Hard Context Broader Nonformal Plan (`2785f8a`)
+
+This gate implements a design-only plan for the next broader
+progress+lane/hard context logging evidence pass. It reads the previous
+coverage, smoke, selector-equivalence, and dataset artifacts, then emits a
+predeclared paired nonformal command matrix. It does not execute replay, does
+not use Full36 or formal seeds, does not promote online selection, does not
+modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_broader_nonformal_smoke.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_context_broader_nonformal_smoke_plan.py`
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_progress_lane_hard_context_broader_nonformal_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_broader_nonformal_smoke_plan.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_broader_nonformal_smoke_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload_coverage.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py -q
+git diff --check
+```
+
+Local result: `32 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization:
+
+```text
+camp_head=2785f8ae51791fb368cebbb30c582fff27186764
+dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+sync_method=git bundle fast-forward
+bundle_sha256=8aced1db52a5e47a8e67f4874ff30b0b806121126000814b7e83cb90a137adea
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_broader_nonformal_smoke.py \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_payload_coverage.py \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_broader_nonformal_smoke_plan.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_broader_nonformal_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload_coverage.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py -q
+```
+
+AutoDL result: `32 passed`.
+
+Plan command:
+
+```bash
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_plan_2785f8a
+$PY scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_broader_nonformal_smoke.py \
+  --source_coverage_audit_json /root/autodl-tmp/camp_dp_progress_lane_hard_context_payload_coverage_c189441/progress_lane_hard_context_payload_coverage.json \
+  --source_smoke_audit_json /root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/audit/progress_lane_hard_context_logging_smoke.json \
+  --source_selector_equivalence_json /root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/audit/selector_equivalence.json \
+  --source_dataset_audit_json /root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke/audit/dataset_audit.json \
+  --label autodl_2785f8a_progress_lane_hard_context_broader_plan \
+  --output_json "$OUT/progress_lane_hard_context_broader_plan.json" \
+  --output_md "$OUT/progress_lane_hard_context_broader_plan.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_plan_2785f8a/progress_lane_hard_context_broader_plan.json` | `1e5bbce39daf8632ead493e4670c73ac45c7cd349054a2441daa5ffd7d29949c` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_plan_2785f8a/progress_lane_hard_context_broader_plan.md` | `fe8341355dd3deeea01f080497334dec6f8ac67585c9b2309dcee94fad3d2cf6` |
+
+Plan result:
+
+```text
+status=progress_lane_hard_context_broader_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=progress_lane_hard_context_broader_nonformal_paired_smoke_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+planned_logs=4
+planned_records=48
+planned_candidate_rows=384
+min_records_for_materiality=12
+min_context_records=1
+min_material_atom_fields=2
+max_logging_latency_ms=25.0
+scenario_bucket_counts={normal: 1, npc_interaction: 2, red_light_turn: 2, sharp_turn: 3, traffic_light: 2}
+failed_source_checks=[]
+failed_plan_checks=[]
+paired_replay_commands=8
+```
+
+Decision:
+
+Accept this design gate. It predeclares the next broader nonformal paired
+logging smoke as a 4-run x 12-step selector-neutral matrix over red-light,
+sharp-turn, NPC-interaction, and normal buckets. The baseline commands leave
+`--camp_progress_lane_hard_context_logging` disabled; the candidate commands
+enable only that default-off logging flag and its fixed 10-step context
+horizon. The plan intentionally does not execute replay in this gate.
+
+The next admissible work is only the predeclared broader nonformal paired smoke
+and its audits: selector equivalence, payload smoke audit, payload coverage
+audit, and dataset audit. Do not expand to Full36, formal seeds, online
+selector promotion, CAMP retraining, or DP modification.
+
+Mathematical boundary:
+
+The plan preserves the finite-candidate contract: runtime payloads must be
+current-tick fixed descriptors computed before closed-loop outcome labels. If
+later atomized, the descriptors enter CAMP only as fixed candidate coefficients
+\(a_k\), preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex
+master. This still constructs no DP-side classical Benders master/subproblem,
+dual, or valid cut.
