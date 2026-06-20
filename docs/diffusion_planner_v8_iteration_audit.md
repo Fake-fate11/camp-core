@@ -37571,3 +37571,157 @@ the atom values remain fixed coefficients `a_k`, preserving affine
 `score_k(w)=a_k^T w` and compatibility with the simplex/CVaR/L2 convex master.
 This gate constructs no DP-side classical Benders master/subproblem, dual, or
 valid cut.
+
+## Progress + Lane/Hard Joint Separability Bottleneck (`899dfb3`)
+
+This gate diagnoses the rejected progress-support + lane/hard support joint
+descriptor separability screen. It reuses only the existing matched nonformal
+logs and the rejected joint separability JSON. It does not run new replay, does
+not use Full36 or formal seeds, does not promote an online selector, does not
+modify DP, and does not retrain CAMP.
+
+Predeclared hypothesis:
+
+The rejected joint descriptor family is bottlenecked by descriptor/atom
+overlap: strict safe thresholds overblock beneficial candidates, while
+high-retain thresholds would allow harmful candidates.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py`
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_progress_support_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py -q
+git diff --check
+```
+
+Local result: `17 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization:
+
+- GitHub push advanced `main` to
+  `899dfb352e6d33ae72cefffc37eefab3fab72efb`.
+- AutoDL was fast-forwarded to the same commit via git bundle.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks and artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_progress_support_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py -q
+
+ROOT=/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1
+SEP=/root/autodl-tmp/camp_dp_progress_lane_hard_joint_descriptor_separability_c74adc6/progress_lane_hard_joint_descriptor_separability.json
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_joint_bottleneck_899dfb3
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_progress_lane_hard_joint_separability_bottleneck.py \
+  --root "$ROOT/matched_joint_outcomes" \
+  --joint_separability_json "$SEP" \
+  --label autodl_899dfb3_progress_lane_hard_joint_bottleneck \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/progress_lane_hard_joint_bottleneck.json" \
+  --output_md "$OUT/progress_lane_hard_joint_bottleneck.md"
+```
+
+AutoDL result: `17 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_bottleneck_899dfb3/progress_lane_hard_joint_bottleneck.json` | `4f00276630fe228b0581c5a7382ea46c7777a8bf551f031c33e6261dd34af21f` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_bottleneck_899dfb3/progress_lane_hard_joint_bottleneck.md` | `b2b94c4db155fee406dac67fbe9335b09e23a122badf73546057b6813ede442b` |
+
+Diagnosis result:
+
+```text
+status=progress_lane_hard_joint_separability_bottleneck_diagnosed
+passed=True
+primary_gap=strict_screens_overblock_beneficial_and_high_retain_screens_allow_harmful
+authorized_next_work=reject_current_joint_support_descriptor_family_or_preflight_new_default_off_state_logging
+formal_seed_records=0
+beneficial_total=56
+beneficial_retained=1
+beneficial_blocked=55
+harmful_total=180
+harmful_allowed=0
+harmful_blocked=180
+neutral_total=100
+strict_safe_screen_count=51
+high_retain_screen_count=11
+camp_retraining_recommended=False
+```
+
+Best strict-safe screen:
+
+```text
+screen_name=atom_lateral_divergence_growth_v1:allow_low
+threshold=2.0499222734584745e-05
+harmful_block_rate=1.0
+beneficial_retain_rate=0.017857142857142856
+allowed_harmful_rate=0.0
+allowed_candidates=1
+blocked_beneficial=55
+blocked_beneficial_dominant_contribution_family=lane_hard_support:55
+blocked_beneficial_reason=beneficial_or_neutral_support_overlap:55
+```
+
+Best high-retain screen:
+
+```text
+screen_name=atom_tail_speed_support_deficit_v1:allow_low
+threshold=0.0
+harmful_block_rate=0.6722222222222223
+beneficial_retain_rate=0.75
+allowed_harmful_rate=0.3597560975609756
+allowed_candidates=164
+```
+
+Decision:
+
+Accept this as a bottleneck diagnosis, not as a selector/certificate gate. The
+current joint progress-support + lane/hard support descriptor family is not
+certificate-ready: strict thresholds can remove harmful candidates only by
+collapsing beneficial retention, and the best high-retain alternative admits
+too many harmful candidates. The blocked beneficial examples are dominated by
+lane/hard support contribution, not by posterior labels entering the runtime
+descriptor.
+
+This result strengthens the conclusion that the bottleneck is not stale CAMP
+weights. Retraining on this descriptor family is still not authorized. The next
+admissible action is to reject the current joint support descriptor family for
+certificate design or preflight new default-off no-leak state/support logging
+that can expose a feature separating beneficial high-support-shape candidates
+from genuinely harmful candidates.
+
+Mathematical boundary:
+
+The diagnosis reuses fixed current-tick progress-support and lane/hard support
+descriptors plus the rejected offline screen. Posterior closed-loop outcomes
+are used only to classify offline error modes and never as runtime selector
+features. If a future descriptor family is atomized, atom values must remain
+fixed coefficients `a_k`, preserving affine `score_k(w)=a_k^T w` and
+compatibility with the simplex/CVaR/L2 convex master. No DP-side classical
+Benders master/subproblem, dual, or valid cut is constructed.
