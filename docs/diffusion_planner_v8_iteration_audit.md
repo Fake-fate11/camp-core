@@ -35468,3 +35468,154 @@ support logging payload construction, validate no-leak/default-off behavior,
 and keep `selection_effect=False`. Do not run replay or train CAMP until that
 implementation is unit tested and a separate nonformal smoke plan is
 predeclared.
+
+## Lane/Hard-Violation Support Payload Implementation (`0daa824`)
+
+This gate implements the default-off lane/hard-violation support payload
+construction authorized by the `d7fffe8` preflight. It adds a standalone
+current-tick payload helper and unit tests only. It does not wire a replay CLI,
+run DP, run replay, use formal seeds, promote an online selector, modify DP, or
+train CAMP.
+
+Implemented files:
+
+- `camp_core/camp_core/integrations/diffusion_planner_lane_hard_violation_support.py`
+- `camp_core/tests/test_diffusion_planner_lane_hard_violation_support_payload.py`
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before documentation:
+  `0daa824b56357c09b36a6fad289cd750746fab8e`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Implemented payload:
+
+```text
+schema_version=dp_camp_lane_hard_violation_support_logging_v1
+enabled=True
+default_off=True
+selection_effect=False
+future_outcome_leakage=False
+closed_loop_outcome_fields_read=False
+classical_benders_claim=False
+```
+
+Logged fields:
+
+```text
+candidate_route_lateral_error_profile_m
+candidate_route_corridor_half_width_profile_m
+candidate_route_heading_error_profile_rad
+candidate_lateral_error_rate_profile_mps
+```
+
+Atom coefficients:
+
+```text
+route_lateral_envelope_excess_v1
+route_lateral_margin_deficit_vs_top1_v1
+route_heading_divergence_excess_vs_top1_v1
+lateral_error_rate_excess_v1
+lateral_divergence_growth_v1
+lane_hard_violation_support_conflict_v1
+```
+
+The helper accepts only:
+
+```text
+candidates
+route_centerline_ego
+support_steps
+dt_s
+corridor_half_width_m
+lateral_error_rate_budget_mps
+```
+
+It accepts no outcome, closed-loop, tracker-result, or simulator-future
+argument. `corridor_half_width_m` can be a scalar fallback, a per-candidate
+profile, a per-route-segment vector, or a per-route-point vector. This keeps the
+implementation usable before lanelet-boundary extraction is wired, while making
+the fallback width explicit instead of hidden.
+
+Local checks:
+
+```powershell
+py -3.12 -m py_compile `
+  camp_core\camp_core\integrations\diffusion_planner_lane_hard_violation_support.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_payload.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_payload.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_preflight.py -q
+
+git diff --check
+```
+
+Local result: `12 passed`.
+
+AutoDL synchronization:
+
+AutoDL direct GitHub fetch has been intermittently failing with TLS errors, so
+the verified synchronization path used a local git bundle and fast-forwarded
+AutoDL CAMP to `0daa824b56357c09b36a6fad289cd750746fab8e`. AutoDL DP remained
+fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  camp_core/camp_core/integrations/diffusion_planner_lane_hard_violation_support.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_payload.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_payload.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_preflight.py -q
+```
+
+AutoDL result: `12 passed`.
+
+Decision:
+
+Accept the payload implementation as unit-tested. The implementation preserves
+the preflight boundary: default-off, no outcome input, no closed-loop state
+input, no online selector effect, nonnegative fixed finite-candidate atom
+coefficients, affine-in-weight CAMP compatibility, and no classical Benders
+claim.
+
+No matched-log artifact is produced in this gate because replay wiring and
+logging collection are intentionally not authorized yet.
+
+Mathematical boundary:
+
+The payload fields are fixed current-tick finite-candidate quantities computed
+from generated DP candidates, current route geometry, explicit corridor width
+input, and planner `dt`. The atom values are nonnegative scalar functions of
+those fields. Once logged, each atom is a fixed coefficient `a_k`, so CAMP
+scoring remains affine `score_k(w)=a_k^T w`; the simplex/CVaR/L2 master remains
+convex in weights. No global convexity over trajectory coordinates is claimed.
+No DP-side classical Benders master/subproblem, dual, or cut is constructed.
+
+```text
+status=lane_hard_violation_support_payload_implementation_unit_tested
+passed=True
+primary_gap=lane_hard_violation_support_payload_ready_for_default_off_replay_wiring
+authorized_next_work=default_off_lane_hard_violation_support_replay_wiring_unit_tests_only
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Next work is replay-wiring/unit-tests only: add a default-off CLI switch and
+record/summary metadata for lane/hard-violation support logging, prove
+baseline behavior is unchanged when the switch is absent, and keep
+`selection_effect=False`. Do not run replay or train CAMP until that wiring is
+unit tested and a separate nonformal smoke plan is predeclared.
