@@ -37296,3 +37296,146 @@ selector features. Concatenating both nonnegative atom vectors preserves affine
 `score_k(w)=a_k^T w` for fixed candidate coefficients and keeps the
 simplex/CVaR/L2 robust master convex. No DP-side classical Benders
 decomposition, dual, or cut is claimed.
+
+## Progress + Lane/Hard Joint Co-Logged Outcome Smoke Result (`b8764c4`)
+
+This gate executes exactly the joint co-logged nonformal paired smoke
+predeclared by the `b8764c4` plan. It verifies that progress-support payloads,
+lane/hard support payloads, and posterior candidate outcome labels can be
+collected in the same matched selection records without changing selector
+behavior. It does not run Full36, does not use formal seeds, does not promote
+an online selector, does not modify DP, and does not retrain CAMP.
+
+Source state:
+
+- CAMP AutoDL HEAD during smoke:
+  `b8764c40fb286293a9a598b84e78fbbbaa3924ba`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Source plan:
+  `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcome_plan_b8764c4/progress_lane_hard_joint_cologged_outcome_plan.json`.
+- Output root:
+  `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1`.
+
+Executed scope:
+
+```text
+paired_runs=4 baseline + 4 matched
+matched_variant=matched_progress_lane_hard_joint_outcomes
+steps=12
+num_candidates=8
+matched_records=48
+matched_candidate_rows=384
+formal_seeds=forbidden
+traffic_light=2
+red_light_turn=2
+sharp_turn=3
+npc_interaction=2
+normal=1
+```
+
+Execution result:
+
+```text
+command_count=12
+executed_count=12
+all_return_codes_zero=True
+
+replay_tl_route59_seed1_npc0_tlon_baseline=8.046s
+replay_tl_route59_seed1_npc0_tlon_matched_progress_lane_hard_joint_outcomes=15.508s
+replay_tl_route59_seed1_npc4_tlon_baseline=7.829s
+replay_tl_route59_seed1_npc4_tlon_matched_progress_lane_hard_joint_outcomes=15.516s
+replay_tl_route59_seed2_npc4_tloff_baseline=7.680s
+replay_tl_route59_seed2_npc4_tloff_matched_progress_lane_hard_joint_outcomes=15.950s
+replay_normal_route2_seed1_npc0_tloff_baseline=7.543s
+replay_normal_route2_seed1_npc0_tloff_matched_progress_lane_hard_joint_outcomes=8.404s
+selector_equivalence=0.256s
+dataset_required_outcome_audit=0.385s
+matched_progress_contract_audit=0.383s
+matched_lane_hard_contract_audit=0.395s
+```
+
+Core artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1/audit/selector_equivalence.json` | `037ce429bbe46222b706fade4a146bd61102a38c9c3f8fe106e4658f535c3ff9` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1/audit/dataset_required_outcome_audit.json` | `d69416b276e3f862ee6db576ee0b9654ca6d380c11e3651f22d33776840bf368` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1/audit/matched_progress_support_outcome_contract.json` | `c080d4dac70671107fa86daf1645a916cc5b08cf07a959433465037995c78943` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1/audit/matched_progress_support_outcome_contract.md` | `de7ccbed9faf9942e9f0be675efa12d6b5ed3c2edf700ba59716559469ca4553` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1/audit/matched_lane_hard_violation_support_outcome_contract.json` | `715a2f6f09434391ac7c51f6c9c690f88761d830a6129cc072c4b062d1f2fa67` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1/audit/matched_lane_hard_violation_support_outcome_contract.md` | `897f3a9e565dbe60cb7d0229cb07848c5b3690f55edf0ec800c67a2e8e18ee5d` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1/audit/joint_cologged_execution_log.json` | `f799365f7bd6a459970c0d375d0bbde837b2e9f1f17ebc6a6b1e06b12c535bd2` |
+
+Selector equivalence:
+
+```text
+equivalent=True
+```
+
+Dataset audit:
+
+```text
+passed=True
+closed_loop_outcome_policy=required
+```
+
+Progress contract:
+
+```text
+status=matched_progress_support_outcome_contract_passed
+passed=True
+logs=4
+records=48
+progress_support_records=48
+outcome_records=48
+candidate_rows=384
+formal_seed_records=0
+authorized_next_work=offline_progress_support_descriptor_separability_screen_only
+```
+
+Lane/hard contract:
+
+```text
+status=matched_lane_hard_violation_support_outcome_contract_passed
+passed=True
+logs=4
+records=48
+lane_hard_support_records=48
+outcome_records=48
+candidate_rows=384
+formal_seed_records=0
+authorized_next_work=offline_lane_hard_violation_support_descriptor_separability_screen_only
+```
+
+Decision:
+
+Accept the co-logged matched outcome smoke. It proves that the current replay
+runner can produce same-record progress-support descriptors, lane/hard support
+descriptors, and posterior outcome labels without changing the selector and
+without formal seeds. This is still not evidence that CAMP beats DP Top-1; it
+only authorizes the next offline joint separability screen over this co-logged
+nonformal dataset.
+
+```text
+status=progress_lane_hard_joint_cologged_outcome_smoke_passed
+passed=True
+primary_gap=joint_progress_lane_hard_descriptors_need_offline_separability_screen
+authorized_next_work=offline_progress_lane_hard_joint_descriptor_separability_screen_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Mathematical boundary:
+
+The co-logged descriptors are current-tick finite-candidate quantities computed
+before outcome evaluation. Candidate closed-loop outcomes are posterior labels
+used only for offline separability evaluation. Concatenating progress-support
+and lane/hard support atoms preserves affine `score_k(w)=a_k^T w` over fixed
+candidate coefficients and keeps the simplex/CVaR/L2 robust master convex. No
+DP-side classical Benders master/subproblem, dual, or valid cut is constructed.
