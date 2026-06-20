@@ -30717,3 +30717,147 @@ descriptor is later atomized, it must enter as fixed coefficient `a_k` so
 `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
 convex. No DP-side classical Benders decomposition, dual, or cut is constructed
 or claimed.
+
+## Observable State Logging Broader Evidence Run (`78a0405`)
+
+This is the exact broader paired nonformal logging-only evidence pass
+authorized by the `207931c` plan gate above. It executes the predeclared
+`4`-run x `12`-step paired matrix with logging disabled for the baseline and
+enabled only for the candidate variant. It does not collect closed-loop outcome
+labels, does not modify DP, does not change CAMP weights, and does not promote
+any selector.
+
+Execution state:
+
+```text
+local/GitHub/AutoDL CAMP before run = 78a0405837e68995377114cac070e75146ad46c4
+AutoDL DP fixed commit              = 7a1d33da277a1992ec474b5383a0c963c72e04e4
+plan artifact                       = /root/autodl-tmp/camp_dp_observable_state_logging_coverage_plan_207931c/observable_state_logging_coverage_plan.json
+run root                            = /root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb
+```
+
+Paired replay result:
+
+```text
+replay_baseline_sample_tl_seed1_npc0_tlon          rc=0 elapsed_s=7.714
+replay_logging_enabled_sample_tl_seed1_npc0_tlon   rc=0 elapsed_s=7.573
+replay_baseline_sample_tl_seed1_npc4_tlon          rc=0 elapsed_s=7.534
+replay_logging_enabled_sample_tl_seed1_npc4_tlon   rc=0 elapsed_s=7.607
+replay_baseline_sample_tl_seed1_npc4_tloff         rc=0 elapsed_s=7.427
+replay_logging_enabled_sample_tl_seed1_npc4_tloff  rc=0 elapsed_s=7.428
+replay_baseline_sample_normal_seed1_npc0_tloff     rc=0 elapsed_s=7.252
+replay_logging_enabled_sample_normal_seed1_npc0_tloff rc=0 elapsed_s=7.426
+selector_equivalence                               rc=0
+payload_smoke_audit                                rc=0
+payload_coverage_audit                             rc=0
+dataset_audit                                      rc=0
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/execution_logs/execution_summary.json` | `882755b1e562b5c7e6f9c5aa2910fb12f980a3575d7ed10ab19a43da40595ccc` |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/audit/selector_equivalence.json` | `8544bf21af7473c58809738728ab2d461e140d5d9d537bcff42355e6ae0e9195` |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/audit/observable_state_logging_smoke.json` | `0920eab722234173984cd80531e9f6b3ba6b333538bb7ef6830541c49919a9a6` |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/audit/observable_state_logging_smoke.md` | `8450df9871afc8698a8a63594ee7ab6b13b34cbbb3785b3d97573037e95f3ed5` |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/audit/observable_state_payload_coverage.json` | `18ad6f0a9c544669d3306aedec324583d25f8ab76a20fb64040fd08230d7af90` |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/audit/observable_state_payload_coverage.md` | `11675d937a6d2d7f27dd80b660530a663d678d43597f7d3b48155e1fedba5704` |
+| `/root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/audit/dataset_audit.json` | `237c98298f9c640c21552558955fe76f90cfbb6555f0485ad868d0a753866480` |
+
+Selector equivalence:
+
+```text
+equivalent=True
+records=48
+```
+
+Payload smoke audit:
+
+```text
+status=observable_state_logging_smoke_passed
+passed=True
+records=48
+baseline_payload_records=0
+candidate_payload_records=48
+errors=[]
+```
+
+Maximum observed observable-state logging latency over the 48 candidate records:
+
+| Field | Max ms | Mean ms |
+| --- | ---: | ---: |
+| `latency_ms_observable_state_route_topology` | `2.501295` | `2.285377` |
+| `latency_ms_observable_state_traffic_light_relation` | `10.815782` | `2.803207` |
+| `latency_ms_observable_state_route_turn` | `0.204162` | `0.067675` |
+| `latency_ms_observable_state_neighbor_clearance` | `0.000000` | `0.000000` |
+
+Payload coverage audit:
+
+```text
+status=observable_state_payload_coverage_ready_for_offline_separability_design
+validation_passed=True
+materiality_gate_passed=True
+primary_gap=observable_payload_has_minimum_coverage_and_materiality
+records=48
+payload_records=48
+candidate_rows=384
+red_context_records=24
+obstacle_context_records=4
+route_curvature_nonempty_records=48
+```
+
+Candidate-level observable fields with cross-candidate variation:
+
+- `candidate_route_segment_index`
+- `candidate_route_projection_s_m`
+- `candidate_route_lateral_error_m`
+- `candidate_red_stopline_distance_m`
+- `candidate_red_heading_alignment`
+- `candidate_route_heading_change_rad`
+- `candidate_min_obstacle_clearance_lower_bound_m`
+
+Dataset audit:
+
+```text
+passed=True
+counts.logs=4
+counts.records=48
+counts.candidates=384
+closed_loop_outcome_policy=forbidden
+closed_loop_outcome_records=0
+closed_loop_outcomes_forbidden=True
+finite_candidate_contract_verified=True
+finite_candidate_contract_logs=4
+advance_mode_verified=True
+expected_advance_mode=perfect
+log_seeds=1,1,1,1
+```
+
+Decision:
+
+Accept this broader logging evidence run as a coverage/materiality milestone.
+It proves the observable-state payload is no-leak, selection-neutral, and
+material across red-light, red-light-turn, sharp-turn, NPC, and normal
+nonformal contexts. It still does not prove CAMP improves DP, does not justify
+online selector promotion, does not authorize Full36 or formal seeds, and does
+not authorize CAMP retraining or DP modification.
+
+Next admissible work:
+
+Design only an offline no-leak observable descriptor separability screen over
+these logged current-tick descriptors. The screen may use closed-loop or
+safety labels only as offline evaluation labels if such labels are already
+available from prior nonformal artifacts; runtime features must remain the
+fixed observable payload fields above. If no descriptor separates harmful and
+beneficial switches, reject the descriptor route rather than tuning thresholds
+or changing online selection.
+
+Mathematical boundary:
+
+All accepted payload fields are current-tick finite-candidate descriptors. The
+execution gate preserved selected indices, feasibility masks, atoms, scores,
+and weights under logging. If a descriptor later becomes a CAMP atom, it must
+enter as fixed coefficient `a_k`; `score_k(w)=a_k^T w` remains affine and the
+simplex/CVaR/L2 robust master remains convex. No DP-side classical Benders
+decomposition, dual, or cut is constructed or claimed.
