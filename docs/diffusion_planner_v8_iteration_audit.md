@@ -35902,3 +35902,146 @@ DP_modification_authorized=False
 Next work may execute only the planned paired three-step nonformal smoke and
 the listed audits. Do not expand scope, use formal seeds, run Full36, promote
 an online selector, or train CAMP from this plan.
+
+## Lane/Hard-Violation Support Paired Smoke Result (`d119418`)
+
+This gate executes exactly the paired three-step nonformal smoke authorized by
+the `972b437` plan. It compares a baseline replay against a replay with only
+`--camp_lane_hard_violation_support_logging` enabled. It does not use formal
+seeds, run Full36, promote an online selector, modify DP, or train CAMP.
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before smoke execution:
+  `d1194188dff3e1d9e202d09af673f864ae7d8ea0`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Source plan artifact:
+  `/root/autodl-tmp/camp_dp_lane_hard_violation_support_smoke_plan_972b437/lane_hard_violation_support_smoke_plan.json`.
+
+Executed scope:
+
+```text
+root=/root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke
+baseline=/root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke/baseline
+logging_enabled=/root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke/logging_enabled
+route=sample_map_tl_route_59_to_86
+seed=1
+steps=3
+max_npcs=4
+traffic_lights=off
+num_candidates=8
+```
+
+Execution result:
+
+```text
+baseline_replay: returncode=0 elapsed_s=5.917
+candidate_replay: returncode=0 elapsed_s=5.860
+selector_equivalence: returncode=0 elapsed_s=0.142
+payload_audit: returncode=0 elapsed_s=0.186
+dataset_audit: returncode=0 elapsed_s=0.259
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke/audit/selector_equivalence.json` | `54b6341880bf2f59f4a740a7f5a56557a9f1b7190df9112dacd25ac34fb12863` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke/audit/lane_hard_violation_support_logging_smoke.json` | `17a36d240786fce3ba006f78e4e842aa6e1cecc816df73b9e1e0f2b41d4aa1f1` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke/audit/lane_hard_violation_support_logging_smoke.md` | `6aa5eb52094061057fb5f5989da5f09c68c5477539ed9eccfae2f13668473fbd` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke/audit/dataset_audit.json` | `af5c97ad13633555ccfc71fd7928883dd3fe1292afc93d94c625bb53e763bf2b` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke/audit/lane_hard_violation_support_smoke_execution_log.json` | `72a7e84011e464664f33cf84dae73f871a3f9a0b3916c263d61db1a27fb67a2f` |
+
+Payload audit:
+
+```text
+status=lane_hard_violation_support_logging_smoke_passed
+passed=True
+paired_logs=1
+records=3
+baseline_payload_records=0
+candidate_payload_records=3
+```
+
+Payload latency maxima:
+
+```text
+latency_ms_lane_hard_violation_support_logging=2.1557575091719627
+latency_ms_lane_hard_violation_projection=2.0022792741656303
+latency_ms_lane_hard_violation_heading=0.03504939377307892
+latency_ms_lane_hard_violation_rate=0.007281079888343811
+latency_ms_lane_hard_violation_atom_compute=0.05681812763214111
+latency_ms_lane_hard_violation_payload_serialization=0.011984258890151978
+```
+
+Selector equivalence:
+
+```text
+equivalent=True
+paired_logs=1
+records=3
+selected_index_mismatches=0
+feasible_mask_mismatches=0
+atom_mismatches=0
+score_mismatches=0
+selection_score_mismatches=0
+weights_mismatches=0
+numeric_max_abs_diff=0.0 for atoms, normalized_atoms, scores, selection_scores, selection_weights, weights
+```
+
+Dataset audit:
+
+```text
+passed=True
+logs=1
+records=3
+candidates=24
+closed_loop_outcome_policy=forbidden
+closed_loop_outcome_records=0
+forbidden_seed_check=True
+finite_candidate_contract_verified=True
+finite_nonnegative_atoms=True
+summary_seed_provenance_verified=True
+```
+
+Decision:
+
+Accept the paired smoke result. Default-off lane/hard-violation support logging
+is selection-neutral on this paired three-step nonformal run, produces non-null
+payloads in the enabled branch, keeps baseline payloads disabled, has no closed
+loop outcomes, and passes selector-equivalence and dataset audits. The observed
+latency is small in this narrow smoke, but this is not yet broad enough evidence
+for matched outcome labels, separability, online selector promotion, Full36, or
+CAMP retraining.
+
+Mathematical boundary:
+
+The smoke only logs fixed current-tick finite-candidate lane/hard-violation
+support descriptors and nonnegative atom coefficients. The paired selector
+equivalence result confirms that enabling this logging did not change CAMP
+scores, feasibility, selected indices, DP candidates, or PerfectTracker
+execution in the audited scope. If later atomized, each value is a fixed
+coefficient `a_k`, preserving affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master in weights. No DP-side classical Benders
+master/subproblem, dual, or cut is constructed.
+
+```text
+status=lane_hard_violation_support_logging_smoke_passed
+passed=True
+primary_gap=lane_hard_violation_support_broader_nonformal_evidence_not_yet_designed
+authorized_next_work=lane_hard_violation_support_broader_nonformal_smoke_design_only
+closed_loop_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Next work is design-only: predeclare a broader nonformal paired smoke plan for
+lane/hard-violation support logging across a small scenario matrix that includes
+traffic-light, sharp-turn, NPC-interaction, and normal cases. The plan must
+remain default-off and selection-neutral, forbid formal seeds, and require
+selector equivalence, payload audit, dataset audit, and latency bounds. Do not
+execute the broader smoke or train CAMP until that plan is documented.
