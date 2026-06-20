@@ -32344,3 +32344,162 @@ scoring remains affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 master
 remains convex. This preflight makes no global convexity claim over trajectory
 coordinates and constructs no DP-side classical Benders master/subproblem,
 dual, or cut.
+
+## Progress-Support Logging Implementation Unit Tests (`f602bb5`)
+
+This gate implements the previously predeclared progress-support logging family
+behind an explicit default-off replay flag. It is an implementation/unit-test
+milestone only. It does not run DP, does not run closed-loop replay, does not
+promote an online selector, does not use Full36/formal seeds, does not modify
+DP, and does not retrain CAMP.
+
+Implementation:
+
+- `camp_core/camp_core/integrations/diffusion_planner_progress_support.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py`
+- `scripts/integrations/run_diffusion_planner_camp_replay.py`
+
+Replay wiring added:
+
+```text
+--camp_progress_support_logging
+--camp_progress_support_steps
+--camp_progress_support_dt_s
+```
+
+The flag is default-off via `store_true`. When enabled, each selection record
+gets `progress_support_logging`; the run summary and validation JSON get
+`camp_progress_support_logging`. The payload records `selection_effect=False`,
+`future_outcome_leakage=False`, `closed_loop_outcome_fields_read=False`, and
+`classical_benders_claim=False`.
+
+Logged fields:
+
+```text
+candidate_route_progress_s_profile_m
+candidate_plan_arc_length_profile_m
+candidate_speed_profile_mps
+candidate_route_remaining_m
+candidate_goal_alignment_progress_m
+```
+
+Logged candidate atom coefficients:
+
+```text
+route_progress_deficit_envelope_v1
+route_progress_regression_envelope_v1
+plan_arc_support_deficit_v1
+tail_speed_support_deficit_v1
+route_remaining_excess_vs_top1_v1
+goal_alignment_progress_deficit_v1
+low_speed_progress_conflict_v1
+```
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  camp_core\camp_core\integrations\diffusion_planner_progress_support.py `
+  scripts\integrations\run_diffusion_planner_camp_replay.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_preflight.py -q
+
+git diff --check
+```
+
+Result: `py_compile` passed; progress-support payload plus preflight tests
+`10 passed`; `git diff --check` passed. CAMP local and GitHub were advanced to
+`f602bb5ec5833b1d73a71324909ec957debe2f36`.
+
+AutoDL synchronization and fixed-DP check:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only FETCH_HEAD
+git rev-parse HEAD
+git rev-parse refs/remotes/origin/main
+git status --short --branch
+
+cd /root/autodl-tmp/Diffusion-Planner
+git rev-parse HEAD
+```
+
+Result: AutoDL CAMP fast-forwarded to
+`f602bb5ec5833b1d73a71324909ec957debe2f36`; AutoDL `origin/main` is the same
+commit. AutoDL DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The known unrelated AutoDL
+untracked files remain `diffusion_planner_integration.md`,
+`dp_camp_device_handoff.md`, and `test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  camp_core/camp_core/integrations/diffusion_planner_progress_support.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_preflight.py -q
+```
+
+Result: AutoDL progress-support payload plus preflight tests `10 passed`.
+
+Artifacts:
+
+No replay or analyzer artifact was generated in this gate. This is intentional:
+the gate is limited to default-off implementation and unit tests. The previous
+preflight artifact remains the source authorization for this implementation:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_preflight_3692b1f/progress_support_logging_preflight.json` | `d1b4a0be7e6da0044d672e81ed05bdcda5a5bd1cae94f0fbf4f47047081cdc4e` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_preflight_3692b1f/progress_support_logging_preflight.md` | `b48c0c5f500e2ce35d5463f28a2d8082d9f1576ba10a374879f8fca168a813c7` |
+
+Audit result:
+
+```text
+status=progress_support_logging_implementation_unit_tested
+passed=True
+primary_gap=progress_support_logging_default_off_implementation_ready
+authorized_next_work=default_off_progress_support_logging_nonformal_smoke_design_only
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Decision:
+
+Accept this as the implementation/unit-test gate for progress-support logging.
+The code path is isolated, disabled by default, and records only current-tick
+candidate/route geometry. It does not alter candidate generation, CAMP scores,
+feasibility, selector tie-breaks, postprocess reference, or PerfectTracker.
+
+Next admissible work:
+
+Design only a tiny default-off progress-support logging non-formal smoke that
+verifies real replay records contain the payload, metadata, finite field shapes,
+nonnegative atom coefficients, and no selection change. The smoke must be
+predeclared before running it. Do not run Full36, formal seeds, online selector
+promotion, DP changes, or CAMP retraining from this unit-test gate.
+
+Mathematical boundary:
+
+The implemented atoms are nonnegative scalar functions of generated DP
+candidates and current route geometry at the current tick. Once logged, each
+atom is a fixed finite-candidate coefficient \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This implementation
+makes no global convexity claim over trajectory coordinates and constructs no
+DP-side classical Benders master/subproblem, dual, or cut.
