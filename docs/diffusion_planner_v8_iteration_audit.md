@@ -30436,3 +30436,140 @@ quantities computed before any closed-loop outcome labels. The smoke did not
 change `score_k(w)=a_k^T w`, the simplex/CVaR/L2 convex master, the CAMP atom
 schema, or DP candidate generation. No DP-side classical Benders decomposition,
 dual, or cut is constructed or claimed.
+
+## Observable State Payload Coverage Audit (`8d222b6`)
+
+This gate implements the read-only offline coverage/materiality audit requested
+after the paired observable-state logging smoke. It does not run replay, alter
+DP candidates, change CAMP weights, change selection, or use closed-loop
+outcome labels. It only inspects the already logged current-tick
+`observable_state_logging` payload.
+
+Predeclared gate:
+
+- reject schema/no-leak failures immediately;
+- require at least `12` logged records before treating materiality as
+  meaningful;
+- require at least `1` red-light-context record;
+- require at least `4` candidate-level observable fields with cross-candidate
+  variation;
+- never authorize Full36, formal seeds, online selector promotion, CAMP
+  retraining, or DP modification from this audit.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_observable_state_payload_coverage.py`
+- `camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py`
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_observable_state_payload_coverage.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_state_payload_coverage.py -q
+
+git diff --check
+```
+
+Result: `4 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization and verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_state_payload_coverage.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py -q
+```
+
+Result: `4 passed`. CAMP and `origin/main` were synchronized to
+`8d222b63bce16d2b2629b66c7caa7bfd99f66910`; DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/observable_state_logging_smoke_2aa74f5
+OUT=/root/autodl-tmp/camp_dp_observable_state_payload_coverage_8d222b6
+mkdir -p "$OUT"
+
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_observable_state_payload_coverage.py \
+  --selection_log "$ROOT/logging_enabled/camp_selection_log.json" \
+  --label 8d222b6_smoke_payload_coverage \
+  --output_json "$OUT/observable_state_payload_coverage.json" \
+  --output_md "$OUT/observable_state_payload_coverage.md" \
+  --require_valid
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_observable_state_payload_coverage_8d222b6/observable_state_payload_coverage.json` | `9b6b484fbe9162762612bbec6e6eb4e557259aef43339c1b847c5e2ef5367781` |
+| `/root/autodl-tmp/camp_dp_observable_state_payload_coverage_8d222b6/observable_state_payload_coverage.md` | `58b0d818ebe43888c0e43ba1022ba9bf62d12b04dbb09c2aa908213232291da0` |
+
+Audit result:
+
+```text
+status=observable_state_payload_coverage_insufficient_for_materiality
+validation_passed=True
+materiality_gate_passed=False
+primary_gap=too_few_logged_records_for_materiality
+authorized_next_work=default_off_observable_state_logging_broader_nonformal_plan_only
+records=3
+payload_records=3
+candidate_rows=24
+red_context_records=0
+route_curvature_nonempty_records=3
+obstacle_context_records=0
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Candidate-level observable fields with cross-candidate variation:
+
+| Field | Varied records | Max range | Mean range |
+| --- | ---: | ---: | ---: |
+| `candidate_route_segment_index` | `3` | `0.300000` | `0.200000` |
+| `candidate_route_projection_s_m` | `3` | `0.244250` | `0.167399` |
+| `candidate_route_lateral_error_m` | `3` | `0.090728` | `0.073453` |
+| `candidate_route_heading_change_rad` | `3` | `0.031864` | `0.020575` |
+
+Red-light observable fields were absent because the smoke used traffic lights
+`off` and reported `red_route_point_count=0` for all 3 records. Neighbor
+clearance also had no material coverage: obstacle slot count was finite but
+constant, and minimum obstacle clearance contained no finite values.
+
+Decision:
+
+Accept the analyzer implementation and no-leak validation, but reject the
+existing 3-step smoke as sufficient coverage/materiality evidence. The smoke is
+useful only as a wiring/auditability milestone. It is too small and lacks red
+and obstacle context, so it cannot justify atomization, selector design,
+replay expansion, Full36, formal seeds, online deployment, or retraining.
+
+Next admissible work:
+
+Design only a broader default-off observable-state logging evidence plan. That
+plan must remain nonformal, logging-only, and selector-neutral; it should cover
+traffic-light and turn/obstacle contexts before any offline separability or
+atom-design screen is attempted.
+
+Mathematical boundary:
+
+All inspected fields are current-tick finite-candidate descriptors logged before
+closed-loop outcomes. This audit does not use future labels as features and
+does not change `score_k(w)=a_k^T w`, the simplex/CVaR/L2 robust master, CAMP
+weights, DP candidate generation, or PerfectTracker. No DP-side classical
+Benders decomposition, dual, or cut is constructed or claimed.
