@@ -34001,3 +34001,121 @@ online_optimization_promotion_authorized=False
 Next work is synthetic microbenchmark execution only. Do not run replay,
 Full36, formal seeds, online selector promotion, CAMP retraining, DP
 modification, or online optimization promotion.
+
+## Progress-Support Route Projection Optimized Synthetic Result (`409af5c`)
+
+This gate executes the same synthetic current-tick progress-support component
+microbenchmark after the exact-equivalent route projection implementation. It
+does not run DP, does not run replay, does not load a model or map, does not use
+Full36/formal seeds, does not promote an online selector, does not modify DP,
+and does not retrain CAMP.
+
+Source gate:
+
+- CAMP local/GitHub/AutoDL HEAD before execution:
+  `409af5c55714f2c146e5e6af4173c8c4b17dc6aa`
+- Optimized implementation commit:
+  `5e80a851980659e749c36025ae8033b50e7d9a72`
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Source plan:
+  `/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_plan_1444493/progress_support_component_microbenchmark_plan.json`
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+PLAN=/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_plan_1444493/progress_support_component_microbenchmark_plan.json
+OUT=/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_409af5c_optimized
+mkdir -p "$OUT"
+
+$PY scripts/integrations/benchmark_diffusion_planner_progress_support_component_microbenchmark.py \
+  --plan_json "$PLAN" \
+  --label autodl_409af5c_optimized_progress_support_component_microbenchmark \
+  --output_json "$OUT/progress_support_component_microbenchmark.json" \
+  --output_md "$OUT/progress_support_component_microbenchmark.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_409af5c_optimized/progress_support_component_microbenchmark.json` | `1de8eb2ffb47ae48d72e35766e976d0d9ce9980efd37a8993439464cd74b1cd9` |
+| `/root/autodl-tmp/camp_dp_progress_support_component_microbenchmark_409af5c_optimized/progress_support_component_microbenchmark.md` | `aedd8d8630bb668eeaf8d4e541a6d2ac52de5d7745dfcbc7548ab60328cd1d7a` |
+
+Source and equivalence checks:
+
+- All source checks passed.
+- All four synthetic cases reported `failed_checks=0`.
+- Every synthetic case still identified
+  `latency_ms_progress_support_route_projection` as the dominant component.
+
+Route projection p95 comparison:
+
+| Case | Before p95 ms | After p95 ms | Speedup |
+| --- | ---: | ---: | ---: |
+| `smoke_like_straight` | 125.069709 | 1.647765 | 75.90x |
+| `curved_route` | 249.602643 | 3.062335 | 81.51x |
+| `long_route_projection_stress` | 998.431942 | 11.337010 | 88.07x |
+| `candidate_scale_stress` | 996.174740 | 12.220633 | 81.52x |
+
+Aggregate p95 comparison:
+
+| Metric | Before p95 ms | After p95 ms | Speedup |
+| --- | ---: | ---: | ---: |
+| route projection max case p95 | 998.431942 | 12.220633 | 81.70x |
+| total logging max case p95 | 998.622217 | 12.401451 | 80.53x |
+
+Optimized aggregate p95 summary:
+
+| Field | Median case p95 ms | Max case p95 ms |
+| --- | ---: | ---: |
+| `latency_ms_progress_support_logging` | 7.428615 | 12.401451 |
+| `latency_ms_progress_support_route_projection` | 7.199673 | 12.220633 |
+| `latency_ms_progress_support_plan_arc` | 0.029001 | 0.040956 |
+| `latency_ms_progress_support_speed_profile` | 0.012974 | 0.019159 |
+| `latency_ms_progress_support_route_remaining` | 0.028435 | 0.063899 |
+| `latency_ms_progress_support_goal_alignment` | 0.013957 | 0.015420 |
+| `latency_ms_progress_support_atom_compute` | 0.036989 | 0.043109 |
+| `latency_ms_progress_support_payload_serialization` | 0.011269 | 0.028603 |
+
+Audit result:
+
+```text
+status=progress_support_route_projection_optimized_synthetic_benchmark_passed
+passed=True
+primary_gap=optimized_progress_support_logging_needs_paired_nonformal_smoke_design
+authorized_next_work=progress_support_route_projection_optimized_nonformal_smoke_design_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Decision:
+
+Accept the optimized synthetic benchmark as evidence that the exact-equivalent
+route projection implementation removes the synthetic progress-support logging
+latency bottleneck. This is not closed-loop evidence and does not authorize
+online promotion, replay expansion, CAMP retraining, or DP modification.
+
+The next admissible work is design-only: predeclare a paired nonformal smoke
+that reuses the existing sample route/seed scope to confirm the optimized
+default-off progress-support logging overhead in the actual replay harness
+without changing selection behavior.
+
+Mathematical boundary:
+
+This gate measures an engineering optimization over fixed current-tick
+synthetic arrays. It does not introduce CAMP atoms, labels, constraints,
+Benders subproblems, duals, or cuts. Progress-support atoms remain fixed
+finite-candidate coefficients \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No global convexity
+claim over trajectory coordinates and no DP-side classical Benders claim is
+made.
