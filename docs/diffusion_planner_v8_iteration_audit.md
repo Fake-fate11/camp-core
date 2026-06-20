@@ -32154,3 +32154,193 @@ descriptors and nonnegative simplex coefficients produced by the prior oracle.
 Outcome labels are used only after the fixed screen to explain harmful
 residuals. This diagnostic creates no runtime threshold, no trained CAMP
 weights, and no DP-side classical Benders master/subproblem, dual, or cut.
+
+## Progress-Support Logging Preflight (`3692b1f`)
+
+This gate chooses the second route authorized by the residual diagnostic:
+predeclare a new default-off no-leak progress-support logging family before any
+selector, replay, or retraining work. It is a design preflight only. It does not
+modify DP, run DP, run closed-loop replay, promote an online selector, use
+Full36/formal seeds, or train CAMP.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_progress_support_logging_preflight.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_logging_preflight.py`
+
+Source gate:
+
+The preflight consumes the fixed residual artifact:
+
+`/root/autodl-tmp/camp_dp_affine_allowed_harmful_residual_ae6819c/affine_allowed_harmful_residual.json`
+
+The source residual is progress-loss dominated:
+
+```text
+dominant_primary_reason=progress_loss
+primary_reason_counts:
+  progress_loss=24
+  lane_violation=6
+  comfort_regression=2
+```
+
+Predeclared default-off logging fields:
+
+```text
+candidate_route_progress_s_profile_m
+candidate_plan_arc_length_profile_m
+candidate_speed_profile_mps
+candidate_route_remaining_m
+candidate_goal_alignment_progress_m
+```
+
+Predeclared candidate atoms:
+
+```text
+route_progress_deficit_envelope_v1
+route_progress_regression_envelope_v1
+plan_arc_support_deficit_v1
+tail_speed_support_deficit_v1
+route_remaining_excess_vs_top1_v1
+goal_alignment_progress_deficit_v1
+low_speed_progress_conflict_v1
+```
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_progress_support_logging_preflight.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_preflight.py -q
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_affine_allowed_harmful_residual.py -q
+
+git diff --check
+```
+
+Result: progress-support preflight tests `5 passed`; adjacent residual tests
+`5 passed`; `py_compile` and `git diff --check` passed. CAMP local and GitHub
+were advanced to `3692b1f9026e9795f718d7ca6fbbb4835c6531a1`.
+
+AutoDL synchronization and fixed-DP check:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only FETCH_HEAD
+git rev-parse HEAD
+git status --short --branch
+
+cd /root/autodl-tmp/Diffusion-Planner
+git rev-parse HEAD
+```
+
+Result: AutoDL CAMP fast-forwarded to
+`3692b1f9026e9795f718d7ca6fbbb4835c6531a1`. AutoDL DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The known unrelated AutoDL
+untracked files remain `diffusion_planner_integration.md`,
+`dp_camp_device_handoff.md`, and `test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_support_logging_preflight.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_preflight.py -q
+
+OUT=/root/autodl-tmp/camp_dp_progress_support_logging_preflight_3692b1f
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_progress_support_logging_preflight.py \
+  --affine_residual_json /root/autodl-tmp/camp_dp_affine_allowed_harmful_residual_ae6819c/affine_allowed_harmful_residual.json \
+  --label autodl_3692b1f_progress_support_logging_preflight \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/progress_support_logging_preflight.json" \
+  --output_md "$OUT/progress_support_logging_preflight.md"
+```
+
+Result: AutoDL progress-support preflight tests `5 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_preflight_3692b1f/progress_support_logging_preflight.json` | `d1b4a0be7e6da0044d672e81ed05bdcda5a5bd1cae94f0fbf4f47047081cdc4e` |
+| `/root/autodl-tmp/camp_dp_progress_support_logging_preflight_3692b1f/progress_support_logging_preflight.md` | `b48c0c5f500e2ce35d5463f28a2d8082d9f1576ba10a374879f8fca168a813c7` |
+
+Audit result:
+
+```text
+status=progress_support_logging_preflight_ready
+passed=True
+primary_gap=progress_support_logging_preflight_ready
+authorized_next_work=default_off_progress_support_logging_implementation_unit_tests_only
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Preflight scope:
+
+```text
+field_count=5
+atom_count=7
+
+math_checks:
+  all_fields_default_off_no_leak=True
+  all_atoms_have_required_fields=True
+  all_atoms_fixed_finite_candidate_coefficients=True
+  no_classical_benders_claim=True
+```
+
+Decision:
+
+Accept this as a narrow design preflight. The progress-loss residual justifies a
+new default-off progress-support logging family. It does not justify CAMP
+retraining over existing atoms, does not authorize replay, and does not permit
+online selector changes. The only next implementation work authorized is unit
+testing and wiring of default-off logging fields/atom computation behind an
+explicit off-by-default flag.
+
+Next admissible work:
+
+Implement the default-off progress-support logging fields and atom computation
+with unit tests only. Keep the implementation isolated and disabled by default.
+The unit tests must prove:
+
+1. no closed-loop outcome fields are read;
+2. records carry `selection_effect=False` and explicit future-leakage metadata;
+3. all logged fields are finite with the declared shapes;
+4. atom values are nonnegative fixed finite-candidate coefficients;
+5. CAMP scoring remains affine in weights;
+6. DP code, replay scope, formal seeds, online selector promotion, and CAMP
+   retraining remain unauthorized.
+
+After unit tests pass, the next gate may document and authorize a tiny
+default-off logging-only non-formal smoke. No replay is authorized yet by this
+preflight alone.
+
+Mathematical boundary:
+
+Proposed fields are current-tick finite-candidate quantities computed from
+generated DP candidates, current route/map, and current ego state before
+selector execution. Proposed atoms are nonnegative scalar functions of those
+logged fields. Once logged, each atom is a fixed coefficient \(a_k\), so CAMP
+scoring remains affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 master
+remains convex. This preflight makes no global convexity claim over trajectory
+coordinates and constructs no DP-side classical Benders master/subproblem,
+dual, or cut.
