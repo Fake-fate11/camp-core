@@ -37007,3 +37007,146 @@ they are not runtime selector inputs. If these descriptors are later atomized,
 they remain fixed coefficients in an affine `score_k(w)=a_k^T w` for the
 simplex/CVaR/L2 convex master. No DP-side classical Benders master/subproblem,
 dual, or cut is introduced.
+
+## Progress + Lane/Hard Joint Screen Preflight (`886b100`)
+
+This design-only gate follows the lane/hard standalone bottleneck diagnosis.
+It reads two existing artifacts:
+
+- `/root/autodl-tmp/camp_dp_progress_support_separability_bottleneck_2b9d529/progress_support_separability_bottleneck.json`
+- `/root/autodl-tmp/camp_dp_lane_hard_violation_support_separability_bottleneck_31c3a7a/lane_hard_violation_support_separability_bottleneck.json`
+
+It does not run DP, does not run replay, does not use Full36/formal seeds,
+does not promote an online selector, does not modify DP, and does not retrain
+CAMP.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_progress_lane_hard_joint_screen_preflight.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_screen_preflight.py`
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_progress_lane_hard_joint_screen_preflight.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_screen_preflight.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_screen_preflight.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_progress_support_separability_bottleneck.py -q
+git diff --check
+```
+
+Local result: `12 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization:
+
+- GitHub push advanced `main` to
+  `886b100302e2b0aad1b183b553b4a797bc0d31b6`.
+- AutoDL was fast-forwarded to the same commit via git bundle because direct
+  AutoDL GitHub fetch remained unreliable.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_joint_screen_preflight.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_screen_preflight.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_screen_preflight.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_progress_support_separability_bottleneck.py -q
+
+PROG=/root/autodl-tmp/camp_dp_progress_support_separability_bottleneck_2b9d529/progress_support_separability_bottleneck.json
+LANE=/root/autodl-tmp/camp_dp_lane_hard_violation_support_separability_bottleneck_31c3a7a/lane_hard_violation_support_separability_bottleneck.json
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_joint_screen_preflight_886b100
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_progress_lane_hard_joint_screen_preflight.py \
+  --progress_bottleneck_json "$PROG" \
+  --lane_hard_bottleneck_json "$LANE" \
+  --label autodl_886b100_progress_lane_hard_joint_screen_preflight \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/progress_lane_hard_joint_screen_preflight.json" \
+  --output_md "$OUT/progress_lane_hard_joint_screen_preflight.md"
+```
+
+AutoDL result: `12 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_screen_preflight_886b100/progress_lane_hard_joint_screen_preflight.json` | `f572a36fe3a89f5e7c3edb7116386136600255c521c21cf44417f3fd9a69ed95` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_screen_preflight_886b100/progress_lane_hard_joint_screen_preflight.md` | `a7b753910f3644a9109d6f755cb81276d9c4d91d04dc1d48e8e236412ab3c58f` |
+
+Audit result:
+
+```text
+status=progress_lane_hard_joint_screen_preflight_ready
+passed=True
+primary_gap=joint_progress_lane_hard_screen_design_preflight_passed
+authorized_next_work=progress_lane_hard_joint_cologged_outcome_plan_only
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Complementarity evidence:
+
+```text
+progress_support_allowed_harmful_count=41
+progress_support_blocked_beneficial_count=30
+progress_support_allowed_lane_worse_count=9
+progress_support_allowed_hard_violation_delta_mean=0.21951219512195122
+lane_hard_high_retain_harmful_allowed=156
+lane_hard_high_retain_progress_loss_harmful=138
+lane_hard_high_retain_value_loss_harmful=108
+lane_hard_strict_beneficial_blocked=55
+lane_hard_strict_beneficial_retained=1
+```
+
+Next-gate accept criteria:
+
+```text
+requires_same_record_cologged_progress_and_lane_hard_payloads=True
+harmful_block_rate >= 0.75
+beneficial_retain_rate >= 0.75
+allowed_harmful_rate <= 0.10
+formal_seed_records=0
+selector_effect=False
+```
+
+Decision:
+
+Accept this as a preflight for joint progress-support + lane/hard design only.
+The evidence is complementary: progress-support misses some lane/hard harmful
+cases, while high-retain lane/hard screens admit many progress-loss or value-loss
+harmful cases. This does not prove a joint screen will work; it only justifies
+the next design gate requiring same-record co-logged progress and lane/hard
+payloads before any offline joint separability screen.
+
+The next admissible action is only `progress_lane_hard_joint_cologged_outcome_plan_only`.
+Do not run new replay, Full36, formal seeds, online selector promotion, DP
+modification, or CAMP retraining from this result.
+
+Mathematical boundary:
+
+Progress-support and lane/hard support descriptors must be fixed current-tick
+finite-candidate quantities available before outcome evaluation. Concatenating
+nonnegative atom vectors preserves affine `score_k(w)=a_k^T w` for CAMP
+weights and keeps the simplex/CVaR/L2 master convex. A finite-candidate
+intersection or lexicographic screen is not classical Benders; no DP-side
+master/subproblem, dual, or valid cut is constructed.
