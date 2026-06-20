@@ -34831,6 +34831,171 @@ coefficients \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
 simplex/CVaR/L2 convex master. No DP-side classical Benders decomposition,
 dual, or cut is claimed.
 
+## Lane/Hard-Violation Support Matched Outcome Label Smoke Result (`64bf721`)
+
+This gate executes exactly the nonformal matched lane/hard support outcome
+label pass predeclared by the `8fb7889` plan. It collects offline candidate
+outcome labels alongside fixed current-tick lane/hard support descriptors in
+the matched branch. It does not run Full36, does not use formal seeds, does
+not promote an online selector, does not modify DP, and does not retrain CAMP.
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before smoke execution:
+  `64bf7218389cb48b9684d85e68be518daad3a548`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Source plan:
+  `/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_plan_8fb7889/lane_hard_violation_support_matched_outcome_plan.json`.
+- Output root:
+  `/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_labels_nonformal_v1`.
+
+Executed scope:
+
+```text
+paired_runs=4 baseline + 4 matched_lane_hard_outcomes
+steps=12
+num_candidates=8
+matched_records=48
+matched_candidate_rows=384
+formal_seeds=forbidden
+```
+
+Execution result:
+
+```text
+execution_command_count=11
+paired_replay_commands=8
+audit_commands=3
+all_return_codes_zero=True
+
+replay_tl_route59_seed1_npc0_tlon_baseline=7.836s
+replay_tl_route59_seed1_npc0_tlon_matched_lane_hard_outcomes=15.292s
+replay_tl_route59_seed1_npc4_tlon_baseline=7.376s
+replay_tl_route59_seed1_npc4_tlon_matched_lane_hard_outcomes=15.376s
+replay_tl_route59_seed2_npc4_tloff_baseline=7.725s
+replay_tl_route59_seed2_npc4_tloff_matched_lane_hard_outcomes=15.854s
+replay_normal_route2_seed1_npc0_tloff_baseline=7.556s
+replay_normal_route2_seed1_npc0_tloff_matched_lane_hard_outcomes=8.576s
+selector_equivalence=0.262s
+dataset_required_outcome_audit=0.407s
+matched_lane_hard_contract_audit=0.404s
+```
+
+Core artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_labels_nonformal_v1/audit/selector_equivalence.json` | `ba030f34e3928c6cef083d153c7bf084b666cfafd759bc9ea3325290b317085b` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_labels_nonformal_v1/audit/dataset_required_outcome_audit.json` | `e69ae5e40507ec5f777c06be43b11583f93cdca33b77af03442fc3782d2aa4b6` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_labels_nonformal_v1/audit/matched_lane_hard_violation_support_outcome_contract.json` | `b37fc90c038baf72cce72ad51ff85acfd6fff6000f3519513b7b7db47e363d86` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_labels_nonformal_v1/audit/matched_lane_hard_violation_support_outcome_contract.md` | `b052afa2f7251461031679c671a14a90cdeaec275c608586680d597f9e0dfd78` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_labels_nonformal_v1/audit/lane_hard_matched_outcome_execution_log.json` | `d7a02a05e37c2844878a949fdfd6b0e10bed6dc794ce6a053a896a83f261f0d3` |
+
+Selector equivalence:
+
+```text
+equivalent=True
+paired_logs=4
+records=48
+exact_field_mismatches=0 for selected_index, feasible_mask,
+  infeasibility_reasons, used_fallback, camp_fallback_mode,
+  atom_schema_version, atom_names
+numeric_field_mismatches=0 for scores, selection_scores, weights,
+  selection_weights, atoms, normalized_atoms, selection_normalized_atoms
+numeric_shape_mismatches=0
+numeric_nonexact_entries=0
+```
+
+Required-outcome dataset audit:
+
+```text
+passed=True
+logs=4
+records=48
+candidates=384
+all_infeasible_records=1
+closed_loop_outcome_policy=required
+closed_loop_outcome_records=48
+complete_closed_loop_outcomes=True
+outcome_candidate_coverage=1.0
+forbidden_seed_check=True
+finite_candidate_contract_verified=True
+finite_nonnegative_atoms=True
+candidate_reference_blend_verified=True
+summary_seed_provenance_verified=True
+advance_mode_verified=True
+red_light_atom_matches_online_dp_reward=True
+```
+
+Matched contract audit:
+
+```text
+status=matched_lane_hard_violation_support_outcome_contract_passed
+passed=True
+logs=4
+records=48
+lane_hard_support_records=48
+outcome_records=48
+candidate_rows=384
+formal_seed_records=0
+errors=[]
+```
+
+Matched lane/hard payload latency maxima:
+
+```text
+latency_ms_lane_hard_violation_support_logging=2.1190522238612175
+latency_ms_lane_hard_violation_projection=1.9617453217506409
+latency_ms_lane_hard_violation_heading=0.04598498344421387
+latency_ms_lane_hard_violation_rate=0.015798956155776978
+latency_ms_lane_hard_violation_atom_compute=0.0708848237991333
+latency_ms_lane_hard_violation_payload_serialization=0.01594051718711853
+```
+
+Decision:
+
+Accept this as the matched lane/hard support outcome-label collection
+milestone. The artifact now contains fixed current-tick lane/hard descriptors
+and offline candidate outcome labels in the same candidate ordering across 48
+nonformal records and 384 candidates. Selector equivalence proves that enabling
+lane/hard logging plus outcome collection did not alter selected indices,
+feasibility, CAMP atoms, scores, or weights in this scope.
+
+Reject any claim that this proves CAMP is better than DP Top-1 or authorizes
+CAMP retraining. This result only creates the labeled offline evidence needed
+to test descriptor separability. Training remains forbidden until a separability
+screen and math-boundary gate pass.
+
+```text
+status=lane_hard_violation_support_matched_outcome_label_smoke_passed
+passed=True
+primary_gap=lane_hard_violation_support_descriptors_need_offline_separability_screen
+authorized_next_work=offline_lane_hard_violation_support_descriptor_separability_screen_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Next work is offline analysis only: run a predeclared separability screen over
+the matched lane/hard support descriptors and offline outcome labels. Outcome
+labels may be used only for offline class definitions and evaluation. Do not
+run replay, Full36, formal seeds, online selector promotion, DP modification,
+or CAMP retraining from this result.
+
+Mathematical boundary:
+
+Lane/hard support descriptors are fixed current-tick finite-candidate
+quantities computed before outcome evaluation. Candidate closed-loop outcomes
+are posterior labels only and are forbidden as runtime selector features. If
+the lane/hard values are later atomized, they enter as fixed coefficients
+\(a_k\), preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex
+master. No DP-side classical Benders decomposition, dual, or cut is claimed.
+
 ```text
 status=progress_support_broader_nonformal_smoke_passed
 passed=True
