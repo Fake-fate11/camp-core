@@ -36847,3 +36847,163 @@ atomized, they enter as fixed coefficients \(a_k\), preserving affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. The finite DP
 candidate selector is still not a classical Benders decomposition; no
 master/subproblem dual or valid cuts are introduced here.
+
+## Lane/Hard-Violation Support Separability Bottleneck Diagnosis (`31c3a7a`)
+
+This gate diagnoses the rejected lane/hard support descriptor separability
+screen from `809e86f`. It reads only the existing matched nonformal
+lane/hard outcome logs and the rejected separability artifact. It does not run
+DP, does not run replay, does not use Full36/formal seeds, does not promote an
+online selector, does not modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py`
+- `camp_core/tests/test_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py`
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_descriptor_separability.py -q
+git diff --check
+```
+
+Local result: `10 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization:
+
+- GitHub push advanced `main` to
+  `31c3a7a2e895892671e3481fe4f68cd248618e88`.
+- AutoDL GitHub fetch timed out, so the same commit was synchronized via a
+  local git bundle and fast-forwarded on AutoDL.
+- AutoDL CAMP HEAD after bundle sync:
+  `31c3a7a2e895892671e3481fe4f68cd248618e88`.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_descriptor_separability.py -q
+
+ROOT=/root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_labels_nonformal_v1
+SEP=/root/autodl-tmp/camp_dp_lane_hard_violation_support_descriptor_separability_809e86f/lane_hard_violation_support_descriptor_separability.json
+OUT=/root/autodl-tmp/camp_dp_lane_hard_violation_support_separability_bottleneck_31c3a7a
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_lane_hard_violation_support_separability_bottleneck.py \
+  --root "$ROOT/matched_lane_hard_outcomes" \
+  --separability_json "$SEP" \
+  --label autodl_31c3a7a_lane_hard_violation_support_bottleneck \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/lane_hard_violation_support_separability_bottleneck.json" \
+  --output_md "$OUT/lane_hard_violation_support_separability_bottleneck.md"
+```
+
+AutoDL result: `10 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_separability_bottleneck_31c3a7a/lane_hard_violation_support_separability_bottleneck.json` | `7684c4792fd4bddfc699daeb1c2720c2e1ff3b0672ed1ae2ba007a436720f659` |
+| `/root/autodl-tmp/camp_dp_lane_hard_violation_support_separability_bottleneck_31c3a7a/lane_hard_violation_support_separability_bottleneck.md` | `a098905a4788eed7924395bcac6d88002351f90a2563e7e7fe0c2b4ffffda3c0` |
+
+Audit result:
+
+```text
+status=lane_hard_violation_support_separability_bottleneck_diagnosed
+passed=True
+primary_gap=strict_screens_overblock_beneficial_and_high_retain_screens_allow_harmful
+authorized_next_work=reject_lane_hard_standalone_or_design_joint_progress_lane_hard_screen
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Best strict-safe screen:
+
+```text
+screen=atom_lateral_divergence_growth_v1:allow_low
+threshold=2.0499222734584745e-05
+harmful_block_rate=1.0
+allowed_harmful_rate=0.0
+beneficial_retain_rate=0.017857142857142856
+strict_application_beneficial_retained=1/56
+strict_application_beneficial_blocked=55/56
+strict_application_harmful_blocked=180/180
+```
+
+Best high-retain screen:
+
+```text
+screen=atom_lateral_error_rate_excess_v1:allow_low
+threshold=0.0
+beneficial_retain_rate=0.9642857142857143
+harmful_block_rate=0.13333333333333333
+allowed_harmful_rate=0.5032258064516129
+high_retain_application_beneficial_retained=54/56
+high_retain_application_harmful_allowed=156/180
+```
+
+High-retain allowed harmful reason counts:
+
+```text
+progress_loss=138
+outcome_value_loss=108
+hard_violation_worse=1
+lane_worse=1
+```
+
+Top overlap descriptors:
+
+```text
+atom_lane_hard_violation_support_conflict_v1: beneficial and harmful are both
+  exactly zero in the matched sample.
+atom_route_lateral_envelope_excess_v1: beneficial and harmful are both exactly
+  zero in the matched sample.
+final_lateral_envelope_excess_m: beneficial and harmful are both exactly zero
+  in the matched sample.
+```
+
+Decision:
+
+Accept the bottleneck diagnosis and reject lane/hard support as a standalone
+selector/certificate route from current evidence. The same descriptor family
+has a strict-safe mode that blocks nearly all beneficial alternatives and a
+high-retain mode that admits most harmful alternatives. This is still an
+observable descriptor overlap problem, not evidence that stale CAMP weights are
+the main bottleneck.
+
+The next admissible work is design-only: either reject the lane/hard standalone
+route, or predeclare a joint progress-support + lane/hard descriptor screen
+that explains why progress-loss harmful cases and lane/hard shape cases can be
+separated without outcome leakage. Do not run new replay, Full36, formal seeds,
+online selector promotion, DP modification, or CAMP retraining from this gate.
+
+Mathematical boundary:
+
+The diagnosis reuses fixed current-tick lane/hard support descriptors and the
+rejected offline screen. Candidate outcomes explain offline error modes only;
+they are not runtime selector inputs. If these descriptors are later atomized,
+they remain fixed coefficients in an affine `score_k(w)=a_k^T w` for the
+simplex/CVaR/L2 convex master. No DP-side classical Benders master/subproblem,
+dual, or cut is introduced.
