@@ -37439,3 +37439,135 @@ used only for offline separability evaluation. Concatenating progress-support
 and lane/hard support atoms preserves affine `score_k(w)=a_k^T w` over fixed
 candidate coefficients and keeps the simplex/CVaR/L2 robust master convex. No
 DP-side classical Benders master/subproblem, dual, or valid cut is constructed.
+
+## Progress + Lane/Hard Joint Descriptor Separability (`c74adc6`)
+
+This gate implements and runs the offline joint separability screen authorized
+by the joint co-logged outcome smoke. It uses only the existing nonformal
+matched logs from
+`/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1`.
+It does not run new replay, does not use Full36 or formal seeds, does not
+promote an online selector, does not modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py`
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_progress_support_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_descriptor_separability.py -q
+git diff --check
+```
+
+Local result: `15 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization:
+
+- GitHub push advanced `main` to
+  `c74adc68f16ee304b0d686ce2b6270afcc15130e`.
+- AutoDL was fast-forwarded to the same commit via git bundle because direct
+  GitHub fetch failed with a TLS termination error.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks and artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_progress_support_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_descriptor_separability.py -q
+
+ROOT=/root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_joint_descriptor_separability_c74adc6
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_progress_lane_hard_joint_descriptor_separability.py \
+  --root "$ROOT/matched_joint_outcomes" \
+  --progress_contract_json "$ROOT/audit/matched_progress_support_outcome_contract.json" \
+  --lane_hard_contract_json "$ROOT/audit/matched_lane_hard_violation_support_outcome_contract.json" \
+  --label autodl_c74adc6_progress_lane_hard_joint_descriptor_separability \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/progress_lane_hard_joint_descriptor_separability.json" \
+  --output_md "$OUT/progress_lane_hard_joint_descriptor_separability.md"
+```
+
+AutoDL result: `15 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_descriptor_separability_c74adc6/progress_lane_hard_joint_descriptor_separability.json` | `fd1608b0b67e8926ddb38505923dd2becacd44f109c3961d068902b514a580ea` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_joint_descriptor_separability_c74adc6/progress_lane_hard_joint_descriptor_separability.md` | `2f89220fd592bf6ceeb810ada6bf596848217636660ed0921537f9a02f712d41` |
+
+Screen result:
+
+```text
+status=progress_lane_hard_joint_descriptor_separability_rejected
+passed=False
+primary_gap=progress_lane_hard_joint_descriptors_do_not_separate_candidates
+promising_screen_count=0
+authorized_next_work=diagnose_progress_lane_hard_joint_descriptor_bottleneck_before_retraining
+total_records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+beneficial_alternative=56
+harmful_alternative=180
+neutral_alternative=100
+```
+
+Best ranked screen:
+
+```text
+screen_name=atom_lateral_divergence_growth_v1:allow_low
+source=lane_hard_violation_support_atoms
+harmful_block_rate=1.0
+beneficial_retain_rate=0.017857142857142856
+allowed_harmful_rate=0.0
+auc_beneficial_vs_harmful=0.6995039682539682
+allowed_candidates=1
+blocked_candidates=335
+```
+
+Decision:
+
+Reject the current progress-support + lane/hard support joint descriptor
+separability route. The best screen is too conservative: it blocks all harmful
+alternatives but retains only `1/56` beneficial alternatives. This is not a
+usable certificate-design basis and does not justify online selector promotion,
+Full36, formal seeds, DP modification, or CAMP retraining.
+
+The next admissible action is only
+`diagnose_progress_lane_hard_joint_descriptor_bottleneck_before_retraining`.
+That diagnostic should explain whether the failure is caused by beneficial
+candidates having lane/hard support atoms that look risky, harmful candidates
+hiding behind low progress/lane-hard atoms, threshold overconservatism, or
+missing observable state. It should not repeat the rejected separability screen.
+
+Mathematical boundary:
+
+This screen concatenates fixed current-tick finite-candidate progress-support
+and lane/hard support descriptors. Posterior closed-loop outcomes are used only
+to label alternatives for offline evaluation and threshold diagnostics; they
+are not runtime features. If a future atom schema is derived from this family,
+the atom values remain fixed coefficients `a_k`, preserving affine
+`score_k(w)=a_k^T w` and compatibility with the simplex/CVaR/L2 convex master.
+This gate constructs no DP-side classical Benders master/subproblem, dual, or
+valid cut.
