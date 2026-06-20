@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 
 import numpy as np
 import pytest
+
+REPLAY_SCRIPT = Path(__file__).resolve().parents[2] / (
+    "scripts/integrations/run_diffusion_planner_camp_replay.py"
+)
 
 from camp_core.integrations.diffusion_planner_progress_lane_hard_context import (
     PROGRESS_LANE_HARD_CONTEXT_ATOM_NAMES,
@@ -201,3 +206,33 @@ def test_progress_lane_hard_context_payload_validates_inputs() -> None:
             support_steps=5,
             heading_margin_rad=-1.0,
         )
+
+
+def test_progress_lane_hard_context_replay_wiring_is_default_off_and_neutral() -> None:
+    source = REPLAY_SCRIPT.read_text(encoding="utf-8")
+
+    assert "--camp_progress_lane_hard_context_logging" in source
+    assert "action=\"store_true\"" in source
+    assert (
+        "build_progress_lane_hard_context_logging_payload("
+        in source
+    )
+    assert (
+        "\"progress_lane_hard_context_logging\": ("
+        in source
+    )
+    assert "\"camp_progress_lane_hard_context_logging\"" in source
+    assert "**progress_lane_hard_context_latency_ms" in source
+    assert "\"selection_effect\": False" in source
+    assert "\"future_outcome_leakage\": False" in source
+    assert "\"closed_loop_outcome_fields_read\": False" in source
+    assert "\"online_selector_change\": False" in source
+    assert "\"classical_benders_claim\": False" in source
+    assert (
+        "progress_lane_hard_context_logging=bool("
+        in source
+    )
+    assert (
+        "or progress_lane_hard_context_logging"
+        in source
+    )
