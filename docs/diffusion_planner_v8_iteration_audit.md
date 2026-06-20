@@ -31588,3 +31588,185 @@ quantity available before outcome evaluation. If later atomized, it must enter
 as fixed coefficient \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
 simplex/CVaR/L2 convex master. No DP-side classical Benders master/subproblem,
 dual, or cut is constructed.
+
+## Route Progress Support Envelope Screen (`19748ac`)
+
+This gate tests the predeclared next hypothesis from the bottleneck diagnostic:
+a stronger current-tick route-progress/support envelope over the same matched
+observable/outcome artifact. It remains read-only and offline. It does not run
+new replay, modify DP, promote an online selector, run Full36, use formal seeds,
+or retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/analyze_diffusion_planner_route_progress_support_envelope.py`
+- `camp_core/tests/test_diffusion_planner_route_progress_support_envelope.py`
+
+The descriptor family uses only current-tick finite candidate prefixes already
+present in `observable_state_logging`: route projection, route lateral error,
+route segment index, and heading-change support. Outcome labels are used only
+offline to classify alternatives and score diagnostic thresholds.
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_route_progress_support_envelope.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_route_progress_support_envelope.py -q
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_matched_observable_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_observable_descriptor_bottleneck.py -q
+
+git diff --check
+```
+
+Result: route-progress/support tests `5 passed`; adjacent matched/bottleneck
+tests `7 passed`; `py_compile` and `git diff --check` passed. CAMP local and
+GitHub were advanced to `19748aca741b56833ff183a69f7a819870636e1f`.
+
+AutoDL synchronization and fixed-DP check:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch origin main
+git merge --ff-only FETCH_HEAD
+git rev-parse HEAD
+git status --short --branch
+
+cd /root/autodl-tmp/Diffusion-Planner
+git rev-parse HEAD
+```
+
+Result: AutoDL CAMP fast-forwarded to
+`19748aca741b56833ff183a69f7a819870636e1f`. AutoDL DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The known unrelated AutoDL
+untracked files remain `diffusion_planner_integration.md`,
+`dp_camp_device_handoff.md`, and `test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_route_progress_support_envelope.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_route_progress_support_envelope.py -q
+
+OUT=/root/autodl-tmp/camp_dp_route_progress_support_envelope_19748ac
+mkdir -p "$OUT"
+$PY scripts/integrations/analyze_diffusion_planner_route_progress_support_envelope.py \
+  --root /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/matched_observable_outcomes \
+  --bottleneck_json /root/autodl-tmp/camp_dp_observable_descriptor_bottleneck_e257294/observable_descriptor_bottleneck.json \
+  --label autodl_19748ac_route_progress_support_envelope \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/route_progress_support_envelope.json" \
+  --output_md "$OUT/route_progress_support_envelope.md"
+```
+
+Result: AutoDL route-progress/support tests `5 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_route_progress_support_envelope_19748ac/route_progress_support_envelope.json` | `386c3090299dcc7281ea0a3680bf6f477deacd3c55d38ad2f1fe3d547aa30fc4` |
+| `/root/autodl-tmp/camp_dp_route_progress_support_envelope_19748ac/route_progress_support_envelope.md` | `36d4d785f6dc5de2c9fb682627acfc60b48a31bfb41a0ba3d708b311ed988d23` |
+
+Audit result:
+
+```text
+status=route_progress_support_envelope_rejected
+passed=False
+primary_gap=route_progress_support_envelope_does_not_separate_candidates
+promising_screen_count=0
+authorized_next_work=None
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Records:
+
+```text
+total_records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+beneficial_alternative=58
+harmful_alternative=178
+neutral_alternative=100
+```
+
+Best screens:
+
+```text
+1. prefix_heading_excess_vs_top1_rad:allow_low
+   harmful_block=0.696629
+   beneficial_retain=0.706897
+   allowed_harmful=0.372414
+   promising=False
+
+2. prefix_route_max_progress_loss_vs_top1_m:allow_low
+   AND prefix_route_final_progress_loss_vs_top1_m:allow_low
+   harmful_block=0.657303
+   beneficial_retain=0.655172
+   allowed_harmful=0.381250
+   promising=False
+
+12. route_progress_support_envelope_cost:allow_low
+    harmful_block=0.657303
+    beneficial_retain=0.568966
+    allowed_harmful=0.363095
+    promising=False
+```
+
+Decision:
+
+Reject this descriptor family. The stronger route-progress/support envelope
+does not materially improve the rejected observable descriptor screen; the best
+screen is still the Top-1 heading-excess rule from the prior failure shape, and
+all progress-envelope screens miss the predeclared harmful-block,
+beneficial-retain, and allowed-harmful targets. This result does not authorize
+online selection, replay, Full36, formal seeds, CAMP retraining, DP changes, or
+new CAMP weights.
+
+New bottleneck:
+
+The existing current-tick route-prefix observable payload does not provide a
+linearly useful safety/progress separation for the matched artifact. The
+remaining issue is no longer just a missing scalar progress proxy; it is an
+observable-support overlap problem: harmful and beneficial alternatives occupy
+overlapping current-tick route/topology envelopes, while the strongest Top-1
+shape rule remains overconservative.
+
+Next admissible work:
+
+Do not repeat the route-progress/support envelope family. The next offline gate
+should test a CAMP-compatible affine upper bound over the union of already
+logged no-leak descriptors, with fixed descriptor coefficients and monotone
+sign constraints, only as an oracle diagnostic. If even the best constrained
+affine scalarization cannot meet the same thresholds, reject the current
+observable route and require either new default-off state logging or a
+candidate-generation/support change before any replay or selector work. This
+next gate must still use only existing non-formal matched logs and must not
+train CAMP, run DP, or touch formal seeds.
+
+Mathematical boundary:
+
+All route-progress/support descriptors are fixed current-tick finite-candidate
+quantities computed before closed-loop outcomes. If later atomized, each is a
+fixed coefficient \(a_k\), so CAMP scoring remains affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 master remains convex. This gate
+constructs no DP-side classical Benders master/subproblem, dual, or cut.
