@@ -37987,3 +37987,131 @@ route-corridor parameters. CAMP scores remain affine
 master remains convex in weights. The implementation makes no global convexity
 claim over trajectory coordinates and constructs no DP-side classical Benders
 master/subproblem, dual, or valid cut.
+
+## Progress + Lane/Hard Context Replay-Wiring Plan (`e518773`)
+
+This gate follows the default-off context payload implementation. It is a
+read-only implementation plan for replay wiring only: it does not edit the
+replay runner, does not run replay, does not use Full36 or formal seeds, does
+not promote an online selector, does not modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_logging_wiring.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py`
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_progress_lane_hard_context_logging_wiring.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_preflight.py -q
+git diff --check
+```
+
+Local result: `19 passed`; `py_compile` and `git diff --check` passed. CAMP
+local and GitHub were advanced through:
+
+- `a1af0bf7e51ab33d1586c18dd6a1386c5249cffc`
+  `Plan joint context replay wiring`
+- `e5187736ae8d86acb5cbd326cbc5920edefcc7a1`
+  `Accept audit alias flags in context wiring plan`
+
+AutoDL synchronization:
+
+- AutoDL CAMP was fast-forwarded by git bundle to
+  `e5187736ae8d86acb5cbd326cbc5920edefcc7a1`.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- The known unrelated AutoDL untracked files remain
+  `diffusion_planner_integration.md`, `dp_camp_device_handoff.md`, and
+  `test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_logging_wiring.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_preflight.py -q
+
+SRC=/root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_preflight_40f7e16/progress_lane_hard_context_logging_preflight.json
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_wiring_plan_e518773
+mkdir -p "$OUT"
+$PY scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_logging_wiring.py \
+  --context_preflight_json "$SRC" \
+  --replay_script scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --payload_module camp_core/camp_core/integrations/diffusion_planner_progress_lane_hard_context.py \
+  --label autodl_e518773_progress_lane_hard_context_wiring_plan \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/progress_lane_hard_context_wiring_plan.json" \
+  --output_md "$OUT/progress_lane_hard_context_wiring_plan.md"
+```
+
+AutoDL result: `19 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_wiring_plan_e518773/progress_lane_hard_context_wiring_plan.json` | `6e5eebe2254cab549dbf98258dec26a47a2d5d0553026f6c09ed724bb362443b` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_wiring_plan_e518773/progress_lane_hard_context_wiring_plan.md` | `ceda6514ea665e665bb4b9f4f6bc0411bade696b9fcbb0a0467b3aa4e72c3fba` |
+
+Artifact result:
+
+```text
+status=progress_lane_hard_context_logging_wiring_plan_ready
+passed=True
+authorized_next_work=default_off_progress_lane_hard_context_logging_wiring_unit_tests_only
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+full36_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+CAMP_retraining_authorized=False
+dp_modification_authorized=False
+DP_modification_authorized=False
+```
+
+Planned wiring:
+
+```text
+planned_flag=--camp_progress_lane_hard_context_logging
+planned_payload_key=progress_lane_hard_context_logging
+planned_summary_key=camp_progress_lane_hard_context_logging
+planned_builder=build_progress_lane_hard_context_logging_payload
+authorized_stage=unit_tests_only_default_off_payload_wiring
+```
+
+Decision:
+
+Accept this wiring-plan gate. The next admissible work is only the mechanical
+default-off replay wiring plus unit tests. The next gate must prove that the new
+flag is disabled by default, logs `progress_lane_hard_context_logging` only
+when enabled, preserves selected indices/scores/feasibility/candidates, merges
+latency fields, and emits summary/validation metadata. It must still not run
+replay, use Full36/formal seeds, promote an online selector, modify DP, or
+retrain CAMP.
+
+Mathematical boundary:
+
+The planned wiring only records default-off current-tick finite-candidate
+fields and nonnegative context atom coefficients before closed-loop outcome
+labels. If later atomized, each candidate coefficient \(a_k\) is fixed for the
+tick, preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex
+master. This plan constructs no DP-side classical Benders master/subproblem,
+dual, or valid cut.
