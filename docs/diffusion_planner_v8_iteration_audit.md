@@ -32853,3 +32853,208 @@ postprocess reference, or PerfectTracker execution in this paired run. If later
 atomized, the logged values remain fixed coefficients \(a_k\), preserving
 affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This is not
 a DP-side classical Benders decomposition.
+
+## Progress-Support Latency Diagnosis Plan (`2845dab`)
+
+This gate follows the progress-support logging paired smoke. It is design-only:
+it reads the existing smoke audit, statically checks the helper source, and
+predeclares the component instrumentation and exact-equivalence criteria needed
+to diagnose the `142 ms` logging overhead. It does not run DP, does not run a
+new replay, does not optimize the helper, does not promote an online selector,
+does not use Full36/formal seeds, does not modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/plan_diffusion_planner_progress_support_latency_diagnosis.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_latency_diagnosis_plan.py`
+
+Source gate:
+
+```text
+source_smoke=/root/autodl-tmp/camp_dp_progress_support_logging_smoke/audit/progress_support_logging_smoke.json
+source_status=progress_support_logging_smoke_passed_latency_blocked
+source_max_latency_ms=142.63926167041063
+```
+
+Predeclared dominant hypothesis:
+
+```text
+route_projection_nested_loop_dominates_latency
+```
+
+Reason: the current helper computes route progress through nested loops over
+candidate, support step, and route segment:
+
+```text
+for cand_idx in range(candidates_xy.shape[0])
+for step_idx in range(candidates_xy.shape[1])
+for seg_idx, segment in enumerate(segments)
+```
+
+Predeclared component latency fields:
+
+```text
+latency_ms_progress_support_route_projection
+latency_ms_progress_support_plan_arc
+latency_ms_progress_support_speed_profile
+latency_ms_progress_support_route_remaining
+latency_ms_progress_support_goal_alignment
+latency_ms_progress_support_atom_compute
+latency_ms_progress_support_payload_serialization
+```
+
+Exact-equivalence criteria:
+
+```text
+public build_progress_support_logging_payload signature remains unchanged
+metadata remains unchanged except additive diagnostic latency breakdowns
+all five logged fields match baseline within atol=1e-9, rtol=1e-9
+progress_support_atom_names match exactly
+progress_support_atoms match baseline within atol=1e-9, rtol=1e-9
+finite_checks remain true, including progress_support_atoms_nonnegative
+component latency fields never enter CAMP scoring or feasibility
+any later replay smoke must pass selector log equivalence
+no closed-loop outcomes, formal seeds, DP modification, or CAMP retraining
+```
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_progress_support_latency_diagnosis.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_support_latency_diagnosis_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py -q
+
+git diff --check
+```
+
+Result: `py_compile` passed; latency-diagnosis plan plus adjacent
+progress-support tests `15 passed`; `git diff --check` passed. CAMP local and
+GitHub were advanced to `2845dab8a46f3f64bc0f4c9aa5990c176502804e`.
+
+AutoDL synchronization:
+
+AutoDL GitHub fetch timed out while trying to fetch `origin/main`. The commit
+was already on GitHub, so CAMP was synchronized by a local git bundle:
+
+```powershell
+git bundle create F:\camp_core-main\camp_core_2845dab.bundle HEAD
+```
+
+Then on AutoDL:
+
+```bash
+cd /root/autodl-tmp/camp_core
+git fetch /tmp/camp_core_2845dab.bundle HEAD
+git merge --ff-only FETCH_HEAD
+git update-ref refs/remotes/origin/main HEAD
+git rev-parse HEAD
+git rev-parse refs/remotes/origin/main
+git status --short --branch
+```
+
+Result: AutoDL CAMP reached
+`2845dab8a46f3f64bc0f4c9aa5990c176502804e`; AutoDL `origin/main` was updated to
+the same commit because direct GitHub fetch was unavailable. The temporary
+local and remote bundle files were removed. The known unrelated AutoDL
+untracked files remain `diffusion_planner_integration.md`,
+`dp_camp_device_handoff.md`, and `test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification and artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_progress_support_latency_diagnosis.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  $PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_support_latency_diagnosis_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py -q
+
+OUT=/root/autodl-tmp/camp_dp_progress_support_latency_diagnosis_plan_2845dab
+mkdir -p "$OUT"
+$PY scripts/integrations/plan_diffusion_planner_progress_support_latency_diagnosis.py \
+  --smoke_audit_json /root/autodl-tmp/camp_dp_progress_support_logging_smoke/audit/progress_support_logging_smoke.json \
+  --label autodl_2845dab_progress_support_latency_diagnosis_plan \
+  --output_json "$OUT/progress_support_latency_diagnosis_plan.json" \
+  --output_md "$OUT/progress_support_latency_diagnosis_plan.md"
+```
+
+Result: AutoDL latency-diagnosis plan plus adjacent progress-support tests
+`15 passed`. The generated plan reported:
+
+```text
+PLAN_STATUS=progress_support_latency_diagnosis_plan_ready
+PLAN_AUTHORIZED_NEXT=progress_support_latency_component_instrumentation_unit_tests_only
+PLAN_PASSED=True
+HYPOTHESIS=route_projection_nested_loop_dominates_latency
+```
+
+All source checks passed:
+
+```text
+smoke_audit_passed=True
+payload_records_present=True
+latency_blocking_threshold_met=True
+payload_shape_scope_matches_plan=True
+helper_has_progress_payload_builder=True
+helper_has_nested_route_projection_loop=True
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_latency_diagnosis_plan_2845dab/progress_support_latency_diagnosis_plan.json` | `3016dc9787b9af5005e66e2f1c02b9401a88d6f091ae29bfa9ee03b3cabb35d0` |
+| `/root/autodl-tmp/camp_dp_progress_support_latency_diagnosis_plan_2845dab/progress_support_latency_diagnosis_plan.md` | `7d5c15fad5ac67aaf6cd2344d4e009cf9b11e3912dc03a7a5529509d4d840f51` |
+
+AutoDL DP remained fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Audit result:
+
+```text
+status=progress_support_latency_diagnosis_plan_ready
+passed=True
+primary_gap=progress_support_route_projection_latency_unattributed
+authorized_next_work=progress_support_latency_component_instrumentation_unit_tests_only
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Decision:
+
+Accept this as a design gate for latency diagnosis. It identifies the current
+most plausible bottleneck as the exact route-progress projection loop and
+predeclares the component timings and exact-equivalence criteria required
+before any optimization can be accepted.
+
+Do not run another replay or broaden evidence yet. The next admissible work is
+only implementation/unit tests for additive component timing instrumentation
+inside progress-support logging. That instrumentation must keep the public
+payload contract and numeric field/atom values exactly equivalent, apart from
+additional latency breakdown fields.
+
+Mathematical boundary:
+
+Latency instrumentation is engineering metadata over current-tick logging. It
+does not create CAMP atoms, constraints, labels, Benders subproblems, duals, or
+cuts. The existing progress-support atoms remain fixed finite-candidate
+coefficients \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master. This gate makes no global convexity claim over
+trajectory coordinates and no DP-side classical Benders claim.
