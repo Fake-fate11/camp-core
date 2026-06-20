@@ -37876,3 +37876,114 @@ coefficient `a_k`, so CAMP scoring remains affine `score_k(w)=a_k^T w` and the
 simplex/CVaR/L2 master remains convex. No global convexity claim is made over
 DP trajectory generation, and no DP-side classical Benders master/subproblem,
 dual, or valid cut is constructed.
+
+## Progress + Lane/Hard Context Payload Unit Implementation (`6f229cb`)
+
+This gate implements the default-off progress+lane/hard context payload
+authorized by the context logging preflight. It is unit-test-only: it does not
+wire the payload into replay, does not run new replay, does not use Full36 or
+formal seeds, does not promote an online selector, does not modify DP, and does
+not retrain CAMP.
+
+Implementation:
+
+- `camp_core/camp_core/integrations/diffusion_planner_progress_lane_hard_context.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py`
+
+Implemented payload fields:
+
+```text
+route_curvature_context_abs_radpm
+candidate_lateral_error_rate_profile_mps
+candidate_speed_profile_mps
+candidate_route_progress_delta_profile_m
+candidate_route_corridor_margin_profile_m
+candidate_route_heading_error_profile_rad
+```
+
+Implemented nonnegative atom coefficients:
+
+```text
+curvature_conditioned_lateral_rate_excess_v1
+corridor_margin_exhaustion_v1
+heading_curvature_residual_v1
+lane_progress_coherence_excess_v1
+```
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  camp_core\camp_core\integrations\diffusion_planner_progress_lane_hard_context.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_preflight.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_payload.py -q
+git diff --check
+```
+
+Local result: `24 passed`; `py_compile` and `git diff --check` passed.
+
+AutoDL synchronization:
+
+- GitHub push advanced `main` to
+  `6f229cbb373d5abe38942aee5c922d7e83445b6c`.
+- AutoDL was fast-forwarded to the same commit via git bundle.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  camp_core/camp_core/integrations/diffusion_planner_progress_lane_hard_context.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_preflight.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_payload.py -q
+```
+
+AutoDL result: `24 passed`.
+
+Payload contract:
+
+```text
+schema_version=dp_camp_progress_lane_hard_context_logging_v1
+default_off=True
+selection_effect=False
+future_outcome_leakage=False
+closed_loop_outcome_fields_read=False
+classical_benders_claim=False
+progress_lane_hard_context_atoms_nonnegative=True
+```
+
+Decision:
+
+Accept this unit implementation gate. The context payload can now be computed
+as a standalone no-leak, default-off CAMP-compatible diagnostic payload. This
+does not prove separability, does not prove online benefit, and does not
+authorize replay wiring or CAMP retraining.
+
+The next admissible action is a narrow replay-wiring preflight or implementation
+plan for default-off logging only. That next gate must preserve selector
+neutrality and should authorize at most wiring/unit tests before any matched
+nonformal smoke is considered.
+
+Mathematical boundary:
+
+The implemented atoms are fixed finite-candidate nonnegative coefficients
+computed from current DP candidates, current route geometry, and explicit
+route-corridor parameters. CAMP scores remain affine
+`score_k(w)=a_k^T w` for nonnegative atom weights, and the simplex/CVaR/L2
+master remains convex in weights. The implementation makes no global convexity
+claim over trajectory coordinates and constructs no DP-side classical Benders
+master/subproblem, dual, or valid cut.
