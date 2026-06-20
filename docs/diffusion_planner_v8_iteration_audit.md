@@ -34688,3 +34688,144 @@ collection plan for the now-validated progress-support descriptor family. That
 plan must keep runtime descriptors current-tick/no-leak and use outcome labels
 only offline for separability evaluation. Do not execute the outcome collection
 or train CAMP until the design gate is separately committed and synchronized.
+
+## Progress-Support Matched Outcome Label Plan (`15844ec`)
+
+This gate adds and verifies a fail-closed matched progress-support/outcome
+contract audit plus a design-only plan for collecting offline candidate outcome
+labels alongside the validated progress-support descriptors. It does not
+execute DP, does not run replay, does not train CAMP, does not modify DP, and
+does not promote an online selector.
+
+Source gate:
+
+- CAMP local/GitHub/AutoDL HEAD before AutoDL plan generation:
+  `15844ecde9822fbee2652416dde997ff450b18b0`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Broader progress-support smoke audit:
+  `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke/audit/progress_support_logging_smoke.json`.
+- Broader selector equivalence audit:
+  `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke/audit/selector_equivalence.json`.
+- Broader dataset audit:
+  `/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke/audit/dataset_audit.json`.
+
+New files:
+
+- `scripts/integrations/analyze_diffusion_planner_matched_progress_support_outcomes.py`
+- `scripts/integrations/plan_diffusion_planner_progress_support_matched_outcome_label_pass.py`
+- `camp_core/tests/test_diffusion_planner_matched_progress_support_outcomes.py`
+- `camp_core/tests/test_diffusion_planner_progress_support_matched_outcome_label_pass_plan.py`
+
+Local checks:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_matched_progress_support_outcomes.py `
+  scripts\integrations\plan_diffusion_planner_progress_support_matched_outcome_label_pass.py `
+  camp_core\tests\test_diffusion_planner_matched_progress_support_outcomes.py `
+  camp_core\tests\test_diffusion_planner_progress_support_matched_outcome_label_pass_plan.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_matched_progress_support_outcomes.py `
+  camp_core\tests\test_diffusion_planner_progress_support_matched_outcome_label_pass_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_support_broader_nonformal_smoke_plan.py -q
+git diff --check
+```
+
+Local result: `14 passed`.
+
+AutoDL checks and plan generation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_matched_progress_support_outcomes.py \
+  scripts/integrations/plan_diffusion_planner_progress_support_matched_outcome_label_pass.py \
+  camp_core/tests/test_diffusion_planner_matched_progress_support_outcomes.py \
+  camp_core/tests/test_diffusion_planner_progress_support_matched_outcome_label_pass_plan.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_matched_progress_support_outcomes.py \
+  camp_core/tests/test_diffusion_planner_progress_support_matched_outcome_label_pass_plan.py -q
+
+SRC=/root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke/audit
+OUT=/root/autodl-tmp/camp_dp_progress_support_matched_outcome_plan_15844ec
+mkdir -p "$OUT"
+$PY scripts/integrations/plan_diffusion_planner_progress_support_matched_outcome_label_pass.py \
+  --broader_smoke_audit_json "$SRC/progress_support_logging_smoke.json" \
+  --broader_selector_equivalence_json "$SRC/selector_equivalence.json" \
+  --broader_dataset_audit_json "$SRC/dataset_audit.json" \
+  --label autodl_15844ec_progress_support_matched_outcome_label_plan \
+  --output_json "$OUT/progress_support_matched_outcome_label_plan.json" \
+  --output_md "$OUT/progress_support_matched_outcome_label_plan.md"
+```
+
+AutoDL result: `8 passed`.
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_plan_15844ec/progress_support_matched_outcome_label_plan.json` | `0ef8e681aa93d67ff90de22482d10233806756f3e4747bb94673e8c5ed4a253e` |
+| `/root/autodl-tmp/camp_dp_progress_support_matched_outcome_plan_15844ec/progress_support_matched_outcome_label_plan.md` | `fbb783da4880ac2550598248cc887a6f3f1b382ac9041045b448f98f517baef3` |
+
+Planned coverage:
+
+```text
+paired_runs=4
+baseline_logs=4
+matched_logs=4
+matched_records=48
+matched_candidate_rows=384
+scenario_bucket_counts={
+  normal: 1,
+  npc_interaction: 2,
+  red_light_turn: 2,
+  sharp_turn: 3,
+  traffic_light: 2
+}
+```
+
+Audit result:
+
+```text
+status=progress_support_matched_outcome_label_pass_plan_ready
+passed=True
+failed_source_checks=[]
+failed_plan_checks=[]
+authorized_next_work=progress_support_matched_outcome_label_nonformal_smoke_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+online_optimization_promotion_authorized=False
+```
+
+Math boundary:
+
+The planned matched run records current-tick progress-support
+finite-candidate descriptors and offline candidate outcomes in the same replay
+record. Outcome labels are posterior labels only and are forbidden as runtime
+selector features. CAMP `score_k(w)=a_k^T w` remains affine over fixed atoms and
+the simplex/CVaR/L2 robust master remains convex. No DP-side classical Benders
+decomposition, dual, or cut is claimed.
+
+Decision:
+
+Accept the design gate. The next authorized action is only the exact nonformal
+matched outcome collection encoded in the plan artifact: 4 paired runs x 12
+steps, with baseline replay plus matched progress-support logging and
+candidate outcome-label replay, followed by selector equivalence, required
+outcome dataset audit, and matched progress-support outcome contract audit.
+
+Do not run Full36, formal seeds, online selector promotion, CAMP retraining, DP
+modification, or online optimization promotion. If the matched outcome
+collection passes, the next step is an offline progress-support descriptor
+separability screen; if it fails, reject the route and diagnose the exact
+contract failure before any larger experiment.
