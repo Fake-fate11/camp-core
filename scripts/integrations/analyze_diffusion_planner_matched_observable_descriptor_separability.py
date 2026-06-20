@@ -462,10 +462,11 @@ def _feature_values(
     for spec in feature_specs:
         if spec.source_field in raw_fields:
             continue
-        raw_fields[spec.source_field] = _payload_vector(
+        raw_fields[spec.source_field] = _payload_scalar_vector(
             payload.get(spec.source_field),
             candidate_count,
             f"{label} {spec.source_field}",
+            spec.source_field,
         )
     result: dict[str, np.ndarray] = {}
     for spec in feature_specs:
@@ -770,13 +771,51 @@ def _record_candidate_count(
     return candidates
 
 
-def _payload_vector(value: Any, candidate_count: int, label: str) -> np.ndarray | None:
+def _payload_scalar_vector(
+    value: Any,
+    candidate_count: int,
+    label: str,
+    source_field: str,
+) -> np.ndarray | None:
     if value is None:
         return None
     array = np.asarray(value, dtype=np.float64).reshape(-1)
-    if array.shape != (candidate_count,):
-        raise ValueError(f"{label} must have shape ({candidate_count},).")
-    return array
+    if array.shape == (candidate_count,):
+        return array
+    original = np.asarray(value, dtype=np.float64)
+    if original.ndim != 2 or original.shape[0] != candidate_count:
+        raise ValueError(
+            f"{label} must have shape ({candidate_count},) or "
+            f"({candidate_count}, H)."
+        )
+    rows = [row[np.isfinite(row)] for row in original]
+    if source_field in {
+        "candidate_route_projection_s_m",
+        "candidate_route_segment_index",
+    }:
+        return np.asarray(
+            [float(row[-1]) if row.size else np.nan for row in rows],
+            dtype=np.float64,
+        )
+    if source_field in {
+        "candidate_route_lateral_error_m",
+        "candidate_route_heading_change_rad",
+    }:
+        return np.asarray(
+            [float(np.max(np.abs(row))) if row.size else np.nan for row in rows],
+            dtype=np.float64,
+        )
+    if source_field == "candidate_red_stopline_distance_m":
+        return np.asarray(
+            [float(np.min(row)) if row.size else np.nan for row in rows],
+            dtype=np.float64,
+        )
+    if source_field == "candidate_red_heading_alignment":
+        return np.asarray(
+            [float(np.mean(row)) if row.size else np.nan for row in rows],
+            dtype=np.float64,
+        )
+    raise ValueError(f"{label} has unsupported matrix-valued source field.")
 
 
 def _outcome(raw: Any, label: str) -> dict[str, Any]:
