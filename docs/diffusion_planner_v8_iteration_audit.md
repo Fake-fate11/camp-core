@@ -35619,3 +35619,132 @@ record/summary metadata for lane/hard-violation support logging, prove
 baseline behavior is unchanged when the switch is absent, and keep
 `selection_effect=False`. Do not run replay or train CAMP until that wiring is
 unit tested and a separate nonformal smoke plan is predeclared.
+
+## Lane/Hard-Violation Support Replay Wiring (`d14c7bc`)
+
+This gate implements the default-off replay wiring authorized by the
+`0daa824` payload implementation audit. It adds CLI switches, record payload
+storage, phase-latency fields, and summary/validation metadata for
+lane/hard-violation support logging. It does not run replay, use formal seeds,
+promote an online selector, modify DP, or train CAMP.
+
+Implemented files:
+
+- `scripts/integrations/run_diffusion_planner_camp_replay.py`
+- `camp_core/tests/test_diffusion_planner_lane_hard_violation_support_payload.py`
+
+Source state:
+
+- CAMP local/GitHub/AutoDL HEAD before documentation:
+  `d14c7bc127b0be755c53dd8a2979307785884a8f`.
+- AutoDL DP fixed HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+CLI switches:
+
+```text
+--camp_lane_hard_violation_support_logging
+--camp_lane_hard_violation_support_steps
+--camp_lane_hard_violation_support_dt_s
+--camp_lane_hard_violation_corridor_half_width_m
+--camp_lane_hard_violation_lateral_rate_budget_mps
+```
+
+Default-off behavior:
+
+```text
+--camp_lane_hard_violation_support_logging uses action="store_true"
+logged record field=lane_hard_violation_support_logging
+summary field=camp_lane_hard_violation_support_logging
+validation field=camp_lane_hard_violation_support_logging
+selection_effect=False
+future_outcome_leakage=False
+closed_loop_outcome_fields_read=False
+online_selector_change=False
+classical_benders_claim=False
+```
+
+Local checks:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\run_diffusion_planner_camp_replay.py `
+  camp_core\camp_core\integrations\diffusion_planner_lane_hard_violation_support.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_payload.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_payload.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_preflight.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py -q
+
+git diff --check
+```
+
+Local result: `19 passed`.
+
+AutoDL synchronization:
+
+AutoDL CAMP was synchronized by local git bundle and fast-forwarded to
+`d14c7bc127b0be755c53dd8a2979307785884a8f`. AutoDL DP remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL checks:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  camp_core/camp_core/integrations/diffusion_planner_lane_hard_violation_support.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_payload.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_payload.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_preflight.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py -q
+```
+
+AutoDL result: `19 passed`.
+
+Decision:
+
+Accept the default-off replay wiring as unit-tested. The new switch is disabled
+by default, and the wiring records diagnostics only. It reuses current DP
+candidates and route geometry and does not affect feasibility, CAMP score,
+candidate generation, postprocess reference, PerfectTracker, or selection.
+
+No replay artifact is produced in this gate because actual nonformal replay is
+not authorized until a separate smoke plan is predeclared.
+
+Mathematical boundary:
+
+The replay wiring only exposes fixed current-tick finite-candidate atom
+coefficients in logs. If those atoms are later used by CAMP, each logged value
+is a fixed coefficient `a_k`, preserving affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master in weights. No global convexity over trajectory
+coordinates is claimed. No DP-side classical Benders master/subproblem, dual,
+or cut is constructed.
+
+```text
+status=lane_hard_violation_support_replay_wiring_unit_tested
+passed=True
+primary_gap=lane_hard_violation_support_logging_ready_for_nonformal_smoke_plan
+authorized_next_work=default_off_lane_hard_violation_support_nonformal_smoke_design_only
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Next work is design-only: predeclare a paired nonformal smoke plan that compares
+baseline replay against replay with only
+`--camp_lane_hard_violation_support_logging` enabled. The plan must require
+selector equivalence, summary/validation metadata, non-null payload records in
+the enabled branch, no formal seeds, bounded latency, and no selection effect.
+Do not execute the smoke or train CAMP until that plan is reviewed and
+documented.
