@@ -38115,3 +38115,118 @@ labels. If later atomized, each candidate coefficient \(a_k\) is fixed for the
 tick, preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex
 master. This plan constructs no DP-side classical Benders master/subproblem,
 dual, or valid cut.
+
+## Progress + Lane/Hard Context Replay Wiring Unit Implementation (`8b53ef3`)
+
+This gate implements the previously planned default-off replay wiring for
+`progress_lane_hard_context_logging`. It is unit-test-only evidence: it does not
+run replay, does not use Full36 or formal seeds, does not promote an online
+selector, does not modify DP, and does not retrain CAMP.
+
+Implementation:
+
+- `scripts/integrations/run_diffusion_planner_camp_replay.py`
+- `camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py`
+
+Wired replay fields:
+
+```text
+flag=--camp_progress_lane_hard_context_logging
+payload_key=progress_lane_hard_context_logging
+summary_key=camp_progress_lane_hard_context_logging
+builder=build_progress_lane_hard_context_logging_payload
+authorized_stage=unit_tests_only_default_off_payload_wiring
+```
+
+Wired default parameters:
+
+```text
+--camp_progress_lane_hard_context_steps=10
+--camp_progress_lane_hard_context_dt_s=0.1
+--camp_progress_lane_hard_context_corridor_half_width_m=1.75
+--camp_progress_lane_hard_context_corridor_safety_margin_m=0.25
+```
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\run_diffusion_planner_camp_replay.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_preflight.py `
+  camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py `
+  camp_core\tests\test_diffusion_planner_lane_hard_violation_support_payload.py -q
+git diff --check
+```
+
+Local result: `33 passed`; `py_compile` and `git diff --check` passed. CAMP
+local and GitHub were advanced to
+`8b53ef36bd20e506fea820dc52fff4d2ffcd319d`.
+
+AutoDL synchronization:
+
+- AutoDL CAMP was fast-forwarded by git bundle to
+  `8b53ef36bd20e506fea820dc52fff4d2ffcd319d`.
+- AutoDL DP remained fixed at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- The known unrelated AutoDL untracked files remain
+  `diffusion_planner_integration.md`, `dp_camp_device_handoff.md`, and
+  `test_diffusion_planner_benchmark_matrix.py`.
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_wiring_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_preflight.py \
+  camp_core/tests/test_diffusion_planner_progress_support_logging_payload.py \
+  camp_core/tests/test_diffusion_planner_lane_hard_violation_support_payload.py -q
+```
+
+AutoDL result: `33 passed`.
+
+Implemented contract:
+
+```text
+default_off=True
+selection_effect=False
+future_outcome_leakage=False
+closed_loop_outcome_fields_read=False
+online_selector_change=False
+classical_benders_claim=False
+```
+
+Decision:
+
+Accept this unit implementation gate. The replay runner can now record
+`progress_lane_hard_context_logging` only when the new flag is explicitly
+enabled. The default path keeps the payload `None` and preserves the existing
+selector, feasibility, scores, candidates, and tracker execution. This does not
+prove online benefit, does not prove separability, and does not authorize
+replay execution or CAMP retraining.
+
+The next admissible action is design-only: predeclare a tiny paired nonformal
+smoke plan that would compare default-off baseline replay against logging-enabled
+replay for selector equivalence and payload audit. Do not execute that smoke,
+run Full36/formal seeds, promote online selection, modify DP, or retrain CAMP
+until the design gate is written and accepted.
+
+Mathematical boundary:
+
+The wiring records only current-tick finite-candidate fields and nonnegative
+context atom coefficients before closed-loop outcome labels. If later atomized,
+each candidate coefficient \(a_k\) is fixed for the tick, preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This implementation
+constructs no DP-side classical Benders master/subproblem, dual, or valid cut.
