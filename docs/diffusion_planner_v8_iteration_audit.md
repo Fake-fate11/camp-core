@@ -46183,3 +46183,235 @@ checks, latency budget checks including the added route-progress computation,
 and an explicit rule that smoke results may only authorize a matched outcome
 audit or reject the payload route. It must still not authorize schema promotion,
 CAMP retraining, Full36, formal seeds, or online selector changes.
+
+## Non-Turn-Logit Interaction Payload Smoke Gate (`59f6a72`)
+
+This gate adds a smoke audit and a plan-only preflight for the default-off
+non-turn-logit interaction payload. The plan is intentionally limited to one
+paired nonformal 3-step replay and does not authorize schema promotion, CAMP
+retraining, online selector changes, Full36, formal seeds, or DP modification.
+
+Added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_payload_smoke.py
+scripts/integrations/plan_diffusion_planner_non_turn_logit_interaction_payload_smoke.py
+camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_payload_smoke.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  scripts\integrations\plan_diffusion_planner_non_turn_logit_interaction_payload_smoke.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  camp_core\tests\test_diffusion_planner_turn_logit_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  -q
+
+19 passed in 0.54s
+```
+
+AutoDL state after bundle sync:
+
+```text
+CAMP HEAD:
+59f6a7230937633bc29571ddd8c2c6f01582478d
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  scripts/integrations/plan_diffusion_planner_non_turn_logit_interaction_payload_smoke.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  camp_core/tests/test_diffusion_planner_turn_logit_payload_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  -q
+
+19 passed in 0.52s
+```
+
+Plan artifact:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_smoke_plan_59f6a72/non_turn_logit_interaction_payload_smoke_plan.json
+8240f10ca300f5ad2fc99943c8e04d538cf6c71c08de09e103f303cc89aa7942
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_smoke_plan_59f6a72/non_turn_logit_interaction_payload_smoke_plan.md
+b0ddbacb87c0978403319e9aff8c1c818f8ff36d6cce58dd4baa3fb37332cb25
+```
+
+Plan decision:
+
+```text
+status=non_turn_logit_interaction_payload_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=non_turn_logit_interaction_payload_paired_three_step_smoke_only
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+new_replay_authorized=True
+closed_loop_smoke_authorized=True
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+matched_outcome_audit_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Planned checks:
+
+```text
+baseline replay: payload logging disabled
+candidate replay: --camp_non_turn_logit_interaction_payload_logging enabled
+selector equivalence: selected_index, feasibility, atoms, scores, and weights unchanged
+payload audit: all payload fields available, finite, nonnegative, and interaction=progress_deficit*jerk
+dataset audit: finite-candidate contract with closed-loop outcomes forbidden
+latency audit: payload latency and latency_ms_reward_route_progress finite/nonnegative
+```
+
+Decision:
+
+Accept the plan gate and execute only the authorized paired 3-step nonformal
+smoke. No larger replay, matched-outcome collection, schema promotion, CAMP
+retraining, online selector change, Full36, formal seed, or DP change is
+authorized by this plan.
+
+## Non-Turn-Logit Interaction Payload Paired Smoke (`59f6a72`)
+
+Executed on AutoDL using the smoke plan above:
+
+```text
+root=/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_smoke
+route=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+seed=1
+steps=3
+max_npcs=4
+traffic_lights=off
+num_candidates=8
+```
+
+Replay and audit commands:
+
+```text
+baseline:
+run_diffusion_planner_camp_replay.py ... --output_dir $ROOT/baseline
+
+candidate:
+run_diffusion_planner_camp_replay.py ... --output_dir $ROOT/logging_enabled \
+  --camp_non_turn_logit_interaction_payload_logging
+
+selector equivalence:
+compare_diffusion_planner_selector_logs.py \
+  --baseline_root $ROOT/baseline \
+  --candidate_root $ROOT/logging_enabled \
+  --output_json $ROOT/audit/selector_equivalence.json \
+  --require_equivalent
+
+payload audit:
+analyze_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  --baseline_root $ROOT/baseline \
+  --candidate_root $ROOT/logging_enabled \
+  --expected_logs 1 \
+  --expected_records 3 \
+  --expected_candidates 8 \
+  --output_json $ROOT/audit/non_turn_logit_interaction_payload_smoke.json \
+  --output_md $ROOT/audit/non_turn_logit_interaction_payload_smoke.md \
+  --require_pass
+
+dataset audit:
+audit_diffusion_planner_camp_dataset.py \
+  --selection_log $ROOT/logging_enabled/camp_selection_log.json \
+  --closed_loop_outcome_policy forbidden \
+  --forbid_seed 11 --forbid_seed 12 --forbid_seed 13 \
+  --require_finite_candidate_contract \
+  --output_json $ROOT/audit/dataset_audit.json
+```
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_smoke/baseline/camp_selection_log.json
+8d797c4fb5ccfe25da90ed401317bc8585ec7bf890258a130fc707fa7effa170
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_smoke/logging_enabled/camp_selection_log.json
+64b179948a0a112f8dcf635041881ff77c6be47b2e730c8f82effc01e13b730e
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_smoke/audit/selector_equivalence.json
+e44196675f1dcde6a09869cc6120b1fb25d918f7797d5d0b342c7c04e616ec08
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_smoke/audit/non_turn_logit_interaction_payload_smoke.json
+211297cd5c6218f6c02d5b91a5f21e1ec68b1310481c23b26d09bace95d30bb6
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_smoke/audit/non_turn_logit_interaction_payload_smoke.md
+62fd9bf08bc0c208a7ff3f1bccde465d154fb8a2bf806b213c6c126fb6492f25
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_smoke/audit/dataset_audit.json
+d3691f674a8f458058079227c7d22057e97290eea55112ba75acc54d70f9dd4e
+```
+
+Smoke result:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=3
+selector_equivalence.exact_field_mismatches=0 for selected_index, feasible_mask, infeasibility_reasons, used_fallback, camp_fallback_mode, atom_schema_version, atom_names
+selector_equivalence.numeric_field_mismatches=0 for scores, selection_scores, weights, selection_weights, atoms, normalized_atoms, selection_normalized_atoms
+
+payload_audit.status=non_turn_logit_interaction_payload_smoke_passed
+payload_audit.passed=True
+payload_audit.records=3
+payload_audit.available_payload_records=3
+payload_audit.invalid_payload_records=0
+payload_audit.errors=[]
+payload_audit.latency_ms_non_turn_logit_interaction_payload.max=0.04903972148895264
+payload_audit.latency_ms_reward_route_progress.max=5.40047325193882
+
+dataset_audit.closed_loop_outcome_policy=forbidden
+dataset_audit.closed_loop_outcome_records=0
+dataset_audit.finite_candidate_contract_verified=True
+dataset_audit.forbidden_seed_check=True
+```
+
+Decision:
+
+Accept the paired smoke. The default-off payload is available on every record,
+finite/nonnegative, exact-equivalent with respect to CAMP selection logs, and
+low-latency at the payload level. The added route-progress computation is
+observable in the smoke and remains within a small 3-step diagnostic budget.
+
+This still does not prove that the interaction improves the integrated CAMP
+selector over DP Top-1 on safety score. It also does not authorize schema
+promotion, CAMP retraining, online selector changes, Full36, formal seeds, or
+DP modification.
+
+Mathematical boundary:
+
+The smoke validates current-tick logging only. `comfort_progress_interaction_cost`
+is a nonnegative fixed candidate coefficient computed before outcome labels. If
+later promoted after separate evidence, it can enter CAMP as an `a_k` coordinate
+while preserving `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
+This is not a DP-side classical Benders decomposition.
+
+Next admissible work:
+
+Document this smoke result as accepted, then design a matched-outcome audit plan
+for the same payload family. That next plan must explicitly separate online
+features from offline labels: payload fields remain current-tick only, while
+closed-loop outcomes may be collected only as offline evaluation labels. The
+matched-outcome audit must stay nonformal and paired, and it still must not
+authorize schema promotion, CAMP retraining, online selector changes, Full36, or
+formal seeds without a later evidence gate.
