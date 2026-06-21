@@ -59241,3 +59241,139 @@ The implementation must keep logging disabled by default, record explicit
 availability/finite checks and component latency, have no selection effect, and
 avoid replay, CAMP training, online selector promotion, Full36, formal seeds,
 or DP modification.
+
+## Candidate-Set Consensus Payload Implementation Unit Gate (`5337098`)
+
+This self-iteration implements the default-off candidate-set consensus payload
+and replay logging wiring authorized by the logging preflight. It is still a
+unit-level implementation gate: no DP replay is run, no CAMP training occurs,
+no online selector is promoted, no formal seeds are used, and DP is not
+modified.
+
+Implementation:
+
+```text
+53370989c86850e93c71d529962302121b7422e7 Implement candidate set consensus payload logging
+
+camp_core/camp_core/integrations/diffusion_planner_candidate_set_consensus_payload.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload.py
+scripts/integrations/run_diffusion_planner_camp_replay.py
+```
+
+Implemented payload behavior:
+
+- CLI flag: `--camp_candidate_set_consensus_payload_logging`, default off.
+- Logged field: `candidate_set_consensus_payload_logging`.
+- Latency field: `latency_ms_candidate_set_consensus_payload`.
+- Primary coefficient: `candidate_set_consensus_center_rms_cost_v1`.
+- Definition: per-candidate RMS distance from the candidate xy prefix to the
+  coordinate-wise median xy center of the fixed current-tick DP candidate set.
+- Fail-closed behavior: `K < 2` yields `available=false` with
+  `availability_reason=candidate_count_less_than_two`; invalid shape or
+  nonfinite candidate coordinates raise before payload emission.
+- Replay behavior: when disabled, existing commands are unchanged; when enabled,
+  payload logging writes diagnostics only and has `selection_effect=False`.
+
+Verification:
+
+```text
+Local:
+  CAMP HEAD=53370989c86850e93c71d529962302121b7422e7
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload.py \
+         camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_logging_preflight.py \
+         camp_core/tests/test_diffusion_planner_candidate_set_consensus_materiality.py \
+         camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_design.py \
+         camp_core/tests/test_diffusion_planner_post_reconciliation_source_proposal_screen.py -q
+  result=30 passed
+
+AutoDL:
+  CAMP HEAD=53370989c86850e93c71d529962302121b7422e7
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  same pytest command result=30 passed
+  helper unit smoke payload_available=True
+  helper unit smoke payload_valid=True
+  costs=[0.20000000000000004, 0.0, 3.8]
+  ranks=[1, 0, 2]
+```
+
+AutoDL unit-smoke artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$DEV/candidate_set_consensus_payload_implementation_5337098
+
+$PY - <<'PY'
+import json
+from pathlib import Path
+import numpy as np
+from camp_core.integrations.diffusion_planner_candidate_set_consensus_payload import (
+    build_candidate_set_consensus_payload,
+)
+c = np.asarray([
+    [[0.0,0.0,1.0,0.0],[1.0,0.0,1.0,0.0],[2.0,0.0,1.0,0.0]],
+    [[0.2,0.0,1.0,0.0],[1.2,0.0,1.0,0.0],[2.2,0.0,1.0,0.0]],
+    [[4.0,0.0,1.0,0.0],[5.0,0.0,1.0,0.0],[6.0,0.0,1.0,0.0]],
+], dtype=np.float64)
+payload = build_candidate_set_consensus_payload(candidates=c, support_steps=3)
+Path("/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_implementation_5337098/candidate_set_consensus_payload_implementation.json").write_text(
+    json.dumps({"payload": payload}, indent=2, sort_keys=True) + "\n",
+    encoding="utf-8",
+)
+PY
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_implementation_5337098/candidate_set_consensus_payload_implementation.json` | `e9359a7a4a0d2b6089227da9a77fb43ce145a7bce903f4e2ce32b8b790901a5f` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_implementation_5337098/candidate_set_consensus_payload_implementation.md` | `b80e0e658a3a831acd3bdc671d74dff6eb787b91ae5584c8a43af5efd773d357` |
+
+Result:
+
+```text
+status=candidate_set_consensus_payload_implementation_unit_tests_ready
+passed=True
+authorized_next_work=candidate_set_consensus_default_off_tiny_smoke_plan_only
+payload_available_in_unit_smoke=True
+payload_valid_in_unit_smoke=True
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept the unit-level implementation gate. The payload is now present behind a
+default-off flag and can be logged by the replay wrapper without changing DP
+candidate generation, CAMP scoring, feasibility, PerfectTracker execution,
+closed-loop state transitions, or online selection. Existing logs still do not
+prove materiality; this implementation only makes future default-off logging
+possible.
+
+Mathematical boundary:
+
+The implemented value is nonnegative by Euclidean norm construction and fixed
+before CAMP selection. It is a diagnostic payload, not a deployed atom. If a
+later atom-schema gate accepts it, it may enter CAMP as a fixed finite-candidate
+coefficient `a_k`, preserving `score_k(w)=a_k^T w` and the convex
+simplex/CVaR/L2 master in `w`. No trajectory-coordinate convexity and no DP-side
+classical Benders master/subproblem, dual, or valid cut is claimed.
+
+Next admissible work:
+
+Design a default-off tiny nonformal smoke plan for logging this payload, still
+without enabling selector effects or training. The smoke plan must be paired,
+tiny, nonformal, avoid formal seeds, record latency and fallback behavior, and
+state explicit accept/reject thresholds before any replay is executed.
