@@ -46415,3 +46415,117 @@ closed-loop outcomes may be collected only as offline evaluation labels. The
 matched-outcome audit must stay nonformal and paired, and it still must not
 authorize schema promotion, CAMP retraining, online selector changes, Full36, or
 formal seeds without a later evidence gate.
+
+## 2026-06-21 - Non-Turn-Logit Interaction Matched-Outcome Contract Plan
+
+Commit: `db034a172ef75c03fdaafb8bfb35051a0acaf567`
+
+Purpose:
+
+Design the next fail-closed gate for the non-turn-logit interaction payload
+family. The plan allows a later tiny paired nonformal replay to collect both:
+
+- the runtime `non_turn_logit_interaction_payload_logging` payload, and
+- offline `candidate_closed_loop_outcomes` labels
+
+in the same fixed candidate ordering. The plan itself does not run Diffusion
+Planner and does not change CAMP selection behavior.
+
+Added files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_matched_outcomes.py
+scripts/integrations/plan_diffusion_planner_non_turn_logit_interaction_matched_outcome.py
+camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_matched_outcome_plan.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_matched_outcomes.py \
+  scripts/integrations/plan_diffusion_planner_non_turn_logit_interaction_matched_outcome.py
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_matched_outcome_plan.py \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  -q
+
+14 passed in 0.47s
+```
+
+AutoDL synchronization and verification:
+
+```text
+CAMP HEAD=/root/autodl-tmp/camp_core
+db034a172ef75c03fdaafb8bfb35051a0acaf567
+
+DP HEAD=/root/autodl-tmp/Diffusion-Planner
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_matched_outcome_plan.py \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  -q
+
+14 passed in 0.43s
+```
+
+Plan artifact:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_plan_db034a1/non_turn_logit_interaction_matched_outcome_plan.json
+f638817af22cb93cda4e108fa97c446ebca89d6d21ee0c721ae9bb87d6ba2ddc
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_plan_db034a1/non_turn_logit_interaction_matched_outcome_plan.md
+dff8154e12000e478e85eef63398d91c41926a260228faa2491632aa4d91c70c
+```
+
+Plan result:
+
+```text
+status=non_turn_logit_interaction_matched_outcome_contract_plan_ready
+passed=True
+authorized_next_work=non_turn_logit_interaction_matched_outcome_contract_three_step_smoke_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+schema_promotion_authorized=False
+outcome_separability_authorized=False
+```
+
+Mathematical boundary:
+
+The planned matched branch keeps the runtime payload and posterior outcome
+labels separated. The payload remains a current-tick finite-candidate quantity:
+`route_progress_deficit_vs_top1_m`, `dp_prior_jerk_excess_cost`, and
+`comfort_progress_interaction_cost = route_progress_deficit_vs_top1_m *
+dp_prior_jerk_excess_cost`. Closed-loop outcomes are offline labels only and are
+forbidden as runtime selector features. If later promoted after evidence, the
+interaction term remains a fixed nonnegative candidate coefficient, so CAMP
+still has affine candidate scores `score_k(w)=a_k^T w`, preserving the
+simplex/CVaR/L2 convex master. No DP-side classical Benders decomposition,
+dual, or cut is claimed.
+
+Decision:
+
+Accept the design-only plan. It authorizes only the next gate's predeclared
+1-run x 3-step nonformal matched-outcome contract smoke. It does not authorize
+executing larger replay suites, schema promotion, CAMP retraining, online
+selector changes, formal seeds, Full36, or DP modification.
+
+Next admissible work:
+
+Run the planned 1-run x 3-step paired nonformal matched-outcome contract smoke
+on AutoDL, then run selector equivalence, dataset audit with
+`closed_loop_outcome_policy=required`, and the new matched contract audit. Accept
+only if all records contain both payload and offline outcomes, the payload does
+not embed outcomes, selection logs are exactly equivalent, no formal seed appears,
+and the run stays within the predeclared tiny scope.
