@@ -172,6 +172,45 @@ def test_tensor_visibility_fails_closed_when_post_closure_is_stale(tmp_path) -> 
     ]
 
 
+def test_tensor_visibility_source_root_excludes_tests_and_analysis_scripts(tmp_path) -> None:
+    tests_dir = tmp_path / "camp_core" / "tests"
+    scripts_dir = tmp_path / "scripts" / "integrations"
+    runtime_dir = tmp_path / "camp_core" / "integrations"
+    tests_dir.mkdir(parents=True)
+    scripts_dir.mkdir(parents=True)
+    runtime_dir.mkdir(parents=True)
+    (tests_dir / "test_fake.py").write_text(
+        "candidate_score = outputs.get('log_prob')",
+        encoding="utf-8",
+    )
+    (scripts_dir / "analysis_fake.py").write_text(
+        "denois = state.residual",
+        encoding="utf-8",
+    )
+    runtime = runtime_dir / "wrapper.py"
+    runtime.write_text(
+        "turn_logits = outputs.get('turn_indicator_logit')",
+        encoding="utf-8",
+    )
+
+    report = analyze(
+        post_closure_remainder=_post_closure(),
+        source_files=[runtime],
+        source_roots=[tmp_path],
+    )
+
+    decision = report["final_decision"]
+    assert decision["status"] == "current_tick_tensor_visibility_no_new_candidate_source"
+    assert decision["candidate_source_names"] == []
+    assert decision["closed_visible_candidate_source_names"] == [
+        "turn_indicator_logits"
+    ]
+    discovered = report["inputs"]["discovered_python_files"]
+    assert str(runtime) in discovered
+    assert not any("test_fake.py" in path for path in discovered)
+    assert not any("analysis_fake.py" in path for path in discovered)
+
+
 def test_tensor_visibility_cli_writes_json_and_markdown(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

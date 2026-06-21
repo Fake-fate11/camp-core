@@ -271,10 +271,22 @@ def _discover_source_files(source_files: list[Path], source_roots: list[Path]) -
             files.append(path)
     for root in source_roots:
         if root.is_file():
-            files.append(root)
+            if not _is_default_excluded_source(root):
+                files.append(root)
         elif root.is_dir():
-            files.extend(sorted(root.rglob("*.py")))
+            files.extend(
+                path
+                for path in sorted(root.rglob("*.py"))
+                if not _is_default_excluded_source(path)
+            )
     return sorted(dict.fromkeys(files))
+
+
+def _is_default_excluded_source(path: Path) -> bool:
+    parts = set(path.parts)
+    if {"__pycache__", ".ipynb_checkpoints", "tests"} & parts:
+        return True
+    return "scripts" in parts and "integrations" in parts
 
 
 def _read_sources(files: list[Path]) -> dict[str, str]:
