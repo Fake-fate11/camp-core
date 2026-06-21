@@ -36848,7 +36848,7 @@ preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
 No DP-side classical Benders master/subproblem, dual, or valid cut is
 constructed.
 
-## Observable Interaction Coverage Smoke (`8307cc6` source)
+## Observable Interaction Coverage Smoke (`8307cc6` source, `9effc96` implementation)
 
 This gate executes the tiny paired nonformal smoke authorized by the observable
 interaction coverage plan. It keeps DP fixed, uses only the predeclared
@@ -36938,6 +36938,15 @@ Replay result:
 per-run elapsed_s range: 9.1-10.4
 CAMP_HEAD=8307cc6ea22d2ed6d9fdb6acf2dcd89d364a00c3
 DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Post-commit AutoDL sync validation:
+
+```text
+CAMP_HEAD=9effc964b1b3d25f194e4606befb7a68b2532d74
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+9 passed in 0.09s
+artifact SHA values unchanged
 ```
 
 Smoke audit result:
