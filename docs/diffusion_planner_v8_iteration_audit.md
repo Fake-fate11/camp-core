@@ -38971,3 +38971,104 @@ and are not runtime selector features. The context atoms remain fixed
 nonnegative coefficients \(a_k\), so CAMP `score_k(w)=a_k^T w` remains affine
 and the simplex/CVaR/L2 robust master remains convex. This gate still
 constructs no DP-side classical Benders master/subproblem, dual, or valid cut.
+
+## Progress + Lane/Hard Context Matched Outcome Smoke (`59a1c3d`)
+
+This gate executes only the predeclared tiny matched outcome nonformal smoke
+authorized by the previous design gate. It runs four paired baseline/matched
+replays for 12 steps each, then checks selector equivalence, dataset integrity
+with required closed-loop outcomes, and the matched context contract. It still
+does not train CAMP, promote an online selector, modify DP, run Full36, or use
+formal seeds.
+
+Execution state:
+
+```text
+camp_head=59a1c3d8b96c94a197dfe034e260842cb5f599d8
+dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+plan_root=/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_plan_59a1c3d
+run_root=/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d
+```
+
+Plan artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_plan_59a1c3d/progress_lane_hard_context_matched_outcome_plan.json` | `38f5aa37fd1b017a2da971c33e76a37725ecc4330e5e07f0ab77c781cfa6ace3` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_plan_59a1c3d/progress_lane_hard_context_matched_outcome_plan.md` | `7e2b5997a3e6f3c6b0efa8e9510b10c7bd623e046967f1ea8b081c6de2795f97` |
+
+Executed commands:
+
+```text
+replay_tl_route59_seed1_npc0_tlon_baseline=7.503s
+replay_tl_route59_seed1_npc0_tlon_matched_progress_lane_hard_context_outcomes=15.267s
+replay_tl_route59_seed1_npc4_tlon_baseline=7.901s
+replay_tl_route59_seed1_npc4_tlon_matched_progress_lane_hard_context_outcomes=16.151s
+replay_tl_route59_seed2_npc4_tloff_baseline=7.654s
+replay_tl_route59_seed2_npc4_tloff_matched_progress_lane_hard_context_outcomes=15.794s
+replay_normal_route2_seed1_npc0_tloff_baseline=7.480s
+replay_normal_route2_seed1_npc0_tloff_matched_progress_lane_hard_context_outcomes=8.580s
+selector_equivalence=0.264s
+dataset_required_outcome_audit=0.514s
+matched_context_contract_audit=0.459s
+```
+
+Audit artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/selector_equivalence.json` | `4e2b780ba06066fa30c08c0da3321ce3d48b00fdb171aa4aa0849725dff4bdb1` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/dataset_required_outcome_audit.json` | `d42acaf54fb5b495ce85067eb52bcc2fd6a39edb8ca4e9dd68d14dceba58ae6c` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/matched_progress_lane_hard_context_outcome_contract.json` | `0d4246b9da51ca0784ea2e8cde985f5015ed3cc7c88b04ae15a4db971d16a35f` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/matched_progress_lane_hard_context_outcome_contract.md` | `0fcbd8ec55ac5468043e3a880855ce2e9e9ce70464564d884bf829ecdc7d4438` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/matched_context_outcome_execution_log.json` | `02d32b742166d5adae6e61f3a11b5c9b05d4e61c491306090e277f9aa057c3d7` |
+
+Verifier result:
+
+```text
+selector_equivalent=True
+selector_exact_mismatch_sum=0
+dataset_passed=True
+closed_loop_outcome_policy=required
+closed_loop_outcome_records=48
+complete_closed_loop_outcomes=True
+outcome_candidate_coverage=1.0
+forbidden_seed_check=True
+contract_status=matched_progress_lane_hard_context_outcome_contract_passed
+contract_passed=True
+contract_counts={logs: 4, records: 48, progress_lane_hard_context_records: 48, outcome_records: 48, candidate_rows: 384, formal_seed_records: 0}
+max_latency_ms_progress_lane_hard_context_logging=4.189088940620422
+execution_failures=[]
+```
+
+Decision:
+
+Accept this matched outcome smoke gate. The matched branch successfully records
+`progress_lane_hard_context_logging` and `candidate_closed_loop_outcomes` in
+the same fixed candidate ordering for all 48 records and 384 candidate rows.
+The baseline and matched logs remain selector-equivalent, so outcome collection
+and context logging did not change selected indices, scores, weights, atoms, or
+feasibility. The dataset audit confirms required closed-loop outcomes and no
+formal seeds.
+
+This is still not a CAMP improvement result. It only creates the valid
+same-record dataset needed for the next offline separability gate.
+
+Next admissible work:
+
+Design and run only an offline no-leak progress+lane/hard context descriptor
+separability screen on this matched dataset. The screen may use
+`candidate_closed_loop_outcomes` only as posterior labels, must keep the
+runtime feature set to current-tick descriptors, and must report whether the
+context atoms separate safer candidates from DP Top-1 or selected candidates
+under a predeclared comprehensive safety score. Do not train CAMP, run Full36,
+use formal seeds, or promote online selection from this smoke alone.
+
+Mathematical boundary:
+
+The execution preserves the CAMP finite-candidate setup. Context descriptors
+are logged before closed-loop outcomes are computed, and the contract audit
+rejects payloads that embed outcome labels. The logged context atoms are fixed
+nonnegative coefficients; if used by CAMP, they preserve affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No DP-side
+classical Benders decomposition is claimed.
