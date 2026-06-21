@@ -56274,3 +56274,135 @@ metadata, and closed-loop outputs relative to the same run with the payload off,
 while recording payload availability and latency. This does not yet authorize
 executing broader replay, CAMP retraining, online selector promotion, Full36,
 formal seeds, DP modification, or any DP-side classical Benders claim.
+
+## Temporal Consistency Tiny Paired Smoke Plan (`509267a`)
+
+Following the runtime preflight, this iteration adds a smoke-output analyzer and
+a design-only plan for the first real temporal consistency payload smoke. The
+plan still does not execute DP replay. It only predeclares the exact paired
+commands, source checks, accept criteria, reject criteria, and forbidden
+expansions for a single nonformal 3-step run.
+
+Implementation:
+
+```text
+509267afaf6b17359f302e56d50dbb00bdd677fa Plan temporal consistency payload smoke
+scripts/integrations/analyze_diffusion_planner_temporal_consistency_payload_smoke.py
+scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_smoke.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_payload_smoke_plan.py
+```
+
+Scope authorized by the plan:
+
+```text
+route=sample_map_tl_route_59_to_86
+seed=1
+steps=3
+max_npcs=4
+traffic_lights=off
+advance_mode=perfect
+num_candidates=8
+baseline=payload logging off
+candidate=--camp_temporal_consistency_payload_logging on
+expected_first_tick_fail_closed_records=1
+min_available_records=2
+forbidden=formal seeds, Full36, CAMP retraining, online selector promotion, DP modification
+```
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_temporal_consistency_payload_smoke.py \
+  scripts\integrations\plan_diffusion_planner_temporal_consistency_payload_smoke.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_runtime_preflight.py -q
+result=14 passed
+```
+
+AutoDL verification:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_temporal_consistency_payload_smoke.py \
+  scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_smoke.py \
+  scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_runtime_preflight.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_runtime_preflight.py -q
+result=14 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_runtime.py \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_design.py -q
+result=12 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/temporal_consistency_smoke_plan_509267a
+
+$PY scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_smoke.py \
+  --runtime_preflight_json "$ROOT/temporal_consistency_runtime_preflight_eaa3e12/temporal_consistency_runtime_preflight.json" \
+  --label autodl_509267a_temporal_consistency_smoke_plan \
+  --output_json "$OUT/temporal_consistency_smoke_plan.json" \
+  --output_md "$OUT/temporal_consistency_smoke_plan.md" \
+  --output_bash "$OUT/run_temporal_consistency_smoke.sh"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_smoke_plan_509267a/temporal_consistency_smoke_plan.json` | `fff5494a57f13e27d89c28cfec922f411db4e4b6b181a0cd1f6ac03226fa4329` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_smoke_plan_509267a/temporal_consistency_smoke_plan.md` | `40e7d2eefe214ce9c7f1d06f90bde16e476a516b83773f43ee6e83da1669ac90` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_smoke_plan_509267a/run_temporal_consistency_smoke.sh` | `4a4ea2a90250853c70dae66db65ceedf9f78a7503b90a64c7ffd7b6f1259c715` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_smoke_plan_509267a
+```
+
+Final decision:
+
+```text
+plan.status=temporal_consistency_payload_nonformal_smoke_plan_ready
+plan.passed=True
+plan.authorized_next_work=default_off_temporal_consistency_paired_three_step_smoke_only
+plan.new_replay_authorized=True
+plan.closed_loop_smoke_authorized=True
+plan.closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+plan.full36_authorized=False
+plan.formal_seeds_authorized=False
+plan.online_selector_authorized=False
+plan.camp_retraining_authorized=False
+plan.dp_modification_authorized=False
+plan.classic_benders_claim_authorized=False
+```
+
+Mathematical boundary:
+
+The planned smoke only toggles default-off logging. It must show that temporal
+payload logging has no selection effect and that the coefficient remains a fixed
+finite nonnegative current-tick candidate value when available. If the smoke
+changes selected indices, atoms, scores, feasibility, candidate generation, or
+closed-loop outputs, the route is rejected. The plan still makes no DP-side
+classical Benders claim.
+
+Decision:
+
+Accept the temporal consistency tiny paired smoke plan. The next self-iteration
+may execute only the generated 3-step nonformal paired smoke and its audits. It
+does not authorize broader replay, formal seeds, CAMP retraining, online
+selector promotion, DP modification, or Full36.
