@@ -37190,6 +37190,101 @@ coefficients preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2
 convex master. No DP-side classical Benders master/subproblem, dual, or valid
 cut is constructed.
 
+## Observable Interaction Route Geometry Inspection (`f16bfef` source)
+
+This gate is read-only map/route geometry inspection after the scenario-support
+bottleneck. It reuses the existing route inspector and the no-ROS lanelet2
+projection fallback used by replay. It does not run replay, use closed-loop
+outcome labels, train CAMP, promote a selector, modify DP, or create a new
+atom.
+
+AutoDL artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/Diffusion-Planner
+OUT=/root/autodl-tmp/camp_dp_route_geometry_inspection_f16bfef
+
+$PY scripts/integrations/inspect_diffusion_planner_routes.py \
+  --diffusion_repo /root/autodl-tmp/Diffusion-Planner \
+  --route sample_map_tl_route_59_to_86=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --route sample_map_tl_route_58_to_55=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_58_to_55.pkl \
+  --route sample_map_route_2_to_104=/root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl \
+  --route sample_map_smoke_route=/root/autodl-tmp/camp_dp_assets/sample_map_smoke_route.pkl \
+  --output_json "$OUT/route_geometry_inspection.json" \
+  --output_markdown "$OUT/route_geometry_inspection.md"
+```
+
+Result:
+
+```text
+sample_map_tl_route_59_to_86:
+  traffic_light_lanelet_ids=[59, 33, 57, 16]
+  traffic_light_group_ids=[1009, 1018, 1021, 1026]
+  max_10m_net_heading_change_deg=84.8
+  max_25m_net_heading_change_deg=90.17
+  route_length_m=501.94
+
+sample_map_tl_route_58_to_55:
+  traffic_light_lanelet_ids=[58, 36, 49, 18, 55]
+  traffic_light_group_ids=[1007, 1012, 1018, 1021, 1026]
+  max_10m_net_heading_change_deg=86.87
+  max_25m_net_heading_change_deg=90.27
+  route_length_m=441.29
+
+sample_map_route_2_to_104:
+  traffic_light_lanelet_ids=[]
+  max_10m_net_heading_change_deg=6.24
+  max_25m_net_heading_change_deg=14.73
+  route_length_m=339.0
+
+sample_map_smoke_route:
+  traffic_light_lanelet_ids=[]
+  max_10m_net_heading_change_deg=0.15
+  max_25m_net_heading_change_deg=0.09
+  route_length_m=172.12
+```
+
+Artifact hashes:
+
+```text
+route_geometry_inspection.json
+0482ac4f20f8a9794d791395f3b4a8cee83573435bf88340487df60b023344c6
+
+route_geometry_inspection.md
+ac46aca4c55970f158239950df58e09432649a017772e69cab09df07f6cd435b
+```
+
+Decision:
+
+Accept this only as diagnostic geometry evidence. The two traffic-light routes
+do pass through multiple traffic-light lanelets and contain strong turn
+geometry, while the normal/smoke routes do not. Therefore the absent red
+support in the previous scenario-support audit is not explained by a total
+lack of traffic-light route geometry. The remaining likely bottleneck is more
+specific: red-route-point direction/alignment sign, candidate position relative
+to red route points, or the traffic-light state selection used in the current
+tick. The clearance bottleneck also remains unresolved by route geometry; the
+previous scan still shows minimum logged obstacle clearance about `37.67 m`.
+
+Next admissible work:
+
+Stay read-only. Diagnose existing payloads and replay records to attribute
+red-context failure into red-route-point absence, nonpositive direction
+alignment, or candidate-distance/horizon effects, and attribute clearance
+failure into missing obstacle slots versus obstacles that are present but far
+away. Do not run another replay, separability screen, online selector,
+Full36/formal seeds, or CAMP retraining from this gate.
+
+Mathematical boundary:
+
+Route geometry inspection is not a CAMP atom and not a Benders subproblem. It
+only identifies whether fixed current-tick finite-candidate diagnostics can
+exist under the current simulator evidence. Any later atomization must keep the
+candidate coefficient fixed before closed-loop outcomes and preserve affine
+`score_k(w)=a_k^T w` with a convex simplex/CVaR/L2 master.
+
 ## Lane/Hard-Violation Support Broader Nonformal Paired Smoke Result (`232df61`)
 
 This gate executes exactly the broader nonformal paired smoke predeclared by
