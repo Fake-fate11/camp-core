@@ -47383,3 +47383,142 @@ retraining. The next work must predeclare the proof protocol and scenario
 coverage first, preserve the SafetyCost claim rule, compare against DP Top-1
 and current CAMP, and reject any design that reopens the closed score/tensor
 families.
+
+## ProofProtocol v2 Predeclaration (`3605f51`)
+
+Purpose:
+
+The redesign gate authorized only a design-only protocol predeclaration. This
+step freezes the proof contract that later evidence must satisfy before any
+new replay, online selector promotion, CAMP retraining, Full36 run, or formal
+seed use. It carries forward SafetyCost v1 as the primary comprehensive safety
+score and makes the required scenario diversity explicit.
+
+Implementation:
+
+```text
+3605f51 Predeclare DP CAMP proof protocol v2
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_proof_protocol_v2.py
+camp_core/tests/test_diffusion_planner_proof_protocol_v2.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m py_compile scripts\integrations\plan_diffusion_planner_proof_protocol_v2.py
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_proof_protocol_v2.py -q
+4 passed in 0.05s
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_proof_protocol_redesign.py camp_core\tests\test_diffusion_planner_proof_protocol_v2.py camp_core\tests\test_diffusion_planner_safety_cost_proof_summary.py camp_core\tests\test_diffusion_planner_proof_to_deployable_gap.py camp_core\tests\test_diffusion_planner_support_bottleneck_summary.py camp_core\tests\test_diffusion_planner_next_design_gate.py -q
+14 passed in 0.04s
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=3605f516bf1098610a1019813b7a8416040209c0
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_proof_protocol_v2.py
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_proof_protocol_v2.py -q
+4 passed in 0.04s
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_proof_protocol_redesign.py camp_core/tests/test_diffusion_planner_proof_protocol_v2.py camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py camp_core/tests/test_diffusion_planner_proof_to_deployable_gap.py camp_core/tests/test_diffusion_planner_support_bottleneck_summary.py camp_core/tests/test_diffusion_planner_next_design_gate.py -q
+14 passed in 0.17s
+```
+
+Input artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/proof_protocol_redesign_1671ab6/proof_protocol_redesign.json
+sha256=c863ba58b4258d868236a2ceb79dc51d170354d4850b4f258af6e95090643131
+```
+
+Output artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/proof_protocol_v2_3605f51/proof_protocol_v2.json
+sha256=5fd1633c1d4cb75ccc7d45d363db862602d333ca7ae8b26e4811d5cca946d4f8
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/proof_protocol_v2_3605f51/proof_protocol_v2.md
+sha256=fc6fd653efd2ff09a8ab066bcb8ec570e11d314c47e60e9a0cbe1dc712a3b2ae
+```
+
+Final gate results:
+
+```text
+status=proof_protocol_v2_predeclared
+passed=True
+authorized_next_work=scenario_manifest_and_evidence_matrix_design_only
+claim_rule=hard_gate_passed and ci95_high(SafetyCost_CAMP_minus_DP_Top1) < 0
+required_buckets=normal,traffic_light,red_light_turn,sharp_turn,npc_interaction,dense_scene,lane_change_or_merge
+```
+
+Primary proof contract:
+
+```text
+SafetyCost_v1 =
+  100*collision
++  10*near_miss
++  20*lane
++  30*realized_red
++  15*planned_red
++   1*clip(jerk/10,0,10)
++   2*clip(lateral/2,0,10)
++   2*clip(1-completion,0,1)
+
+Comparators:
+- DP Top-1
+- current logged CAMP
+- hard-guarded candidate-branch oracle
+- candidate-branch SafetyCost-trained CAMP selector
+- future deployable CAMP selector only if separately authorized
+```
+
+Development ladder:
+
+```text
+1. scenario_manifest_design: write manifest/route matrix only.
+2. candidate_branch_oracle_audit: offline labels from nonformal outcome logs only.
+3. selector_training_or_weight_design: only after oracle support and no-leak pass.
+4. tiny_paired_nonformal_smoke: only after latency projection and unit gates pass.
+5. larger_nonformal_matrix: 12/36-run only after tiny smoke has margin.
+6. formal_seeds: separate authorization only.
+```
+
+Blocked actions:
+
+```text
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Mathematical boundary:
+
+DP remains a frozen black-box finite-candidate generator. CAMP may score fixed
+current-tick candidate coefficients with `score_k(w)=a_k^T w`, and the
+simplex/CVaR/L2 robust master must remain convex. Offline outcomes are labels
+for proof only. This predeclaration does not construct a DP-side classical
+Benders master/subproblem, dual, or valid cuts; finite candidate ranking remains
+a finite-candidate selector unless such a construction is later explicitly
+provided.
+
+Decision:
+
+Accept ProofProtocol v2 as the current claim contract. The next self-iteration
+must remain design-only: build a scenario manifest and evidence matrix plan
+that covers every required bucket without outcome-field filters. No DP replay,
+training, Full36, formal seeds, or online selector promotion is authorized by
+this step.
