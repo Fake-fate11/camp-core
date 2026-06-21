@@ -52567,3 +52567,90 @@ confirm DP remains at `7a1d33da277a1992ec474b5383a0c963c72e04e4`, run the
 artifact's exact paired smoke commands, then run selector equivalence, payload
 audit, and dataset audit. Do not enter Full36, formal seeds, online selector
 promotion, or CAMP retraining from this plan alone.
+
+## External Context Payload Smoke Remote Preflight (`e16116e` artifacts)
+
+Purpose:
+
+This step strengthens the already accepted external-context payload smoke plan
+with explicit AutoDL preflight commands. It still does not run Diffusion
+Planner, train CAMP, promote a selector, modify DP, enter Full36, or use formal
+seeds.
+
+Status audit:
+
+```text
+local_head_before_gate=7769aa9ab3fa825ffc09d83b24c0926fb797c9d4
+github_origin_main_before_gate=7769aa9ab3fa825ffc09d83b24c0926fb797c9d4
+autodl_tcp_connectivity=connect.bjb2.seetacloud.com:29069 reachable
+autodl_batchmode_auth=Permission denied (publickey,password)
+autodl_sync_executed=False
+autodl_blocker=authentication_not_available_noninteractive
+```
+
+Implementation:
+
+```text
+e16116e Add external context smoke remote preflight
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_payload_smoke.py
+camp_core/tests/test_diffusion_planner_external_context_payload_smoke_plan.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_external_context_payload_smoke.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+18 passed
+git diff --check passed
+```
+
+Local artifacts:
+
+```text
+F:\camp_core-main\analysis_bundles\external_context_payload_smoke_runbook_e16116e\external_context_payload_smoke_runbook.json
+sha256=5209FCF972685C6F58428A8D2B5724B3DAC16CE2CB3D0E6A67AC983805BE51F7
+
+F:\camp_core-main\analysis_bundles\external_context_payload_smoke_runbook_e16116e\external_context_payload_smoke_runbook.md
+sha256=9FFA21C80FBE1EF88FDD4DDF6817F1E475D11776A41646D6D52F3B1EC39912F1
+```
+
+Preflight commands now included in the plan:
+
+```text
+camp_sync=git -C /root/autodl-tmp/camp_core pull --ff-only origin main
+head_audit=confirm /root/autodl-tmp/camp_core HEAD equals origin/main and /root/autodl-tmp/Diffusion-Planner HEAD equals 7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Decision:
+
+```text
+status=external_context_payload_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=external_context_payload_paired_three_step_smoke_only
+closed_loop_replay_authorized=True
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Reject the next execution immediately if CAMP cannot fast-forward to GitHub
+`main`, DP HEAD differs from `7a1d33da277a1992ec474b5383a0c963c72e04e4`, any
+formal seed is detected, or any paired replay/audit/equivalence check fails.
