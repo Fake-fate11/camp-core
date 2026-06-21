@@ -55882,3 +55882,86 @@ Do not rerun closed atom/source/training routes. Continue only with a
 scenario/objective redesign or external source-discovery contract, or keep the
 current selector route paused. This does not authorize replay, training, online
 promotion, Full36, formal seeds, DP modification, or DP-side classical Benders.
+
+## Post-Ledger Pause Boundary Refresh (`15adcd7`)
+
+Using the strict post-ledger development state, this step refreshes the
+scenario/objective boundary and pause gate. It verifies that objective redesign
+still cannot create a deployable no-leak selector by itself, and that the
+current CAMP-DP selector route remains paused.
+
+AutoDL verification:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  camp_core/tests/test_diffusion_planner_post_external_context_pause_gate.py \
+  camp_core/tests/test_diffusion_planner_current_development_gate_state.py -q
+result=17 passed
+```
+
+Artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+
+$PY scripts/integrations/plan_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  --development_gate_state_json "$ROOT/current_development_gate_state_post_ledger_strict_1a57df1/current_development_gate_state.json" \
+  --label autodl_15adcd7_post_ledger_strict_scenario_objective_external_source_contract \
+  --output_json "$ROOT/scenario_objective_external_source_contract_post_ledger_strict_15adcd7/scenario_objective_external_source_contract.json" \
+  --output_md "$ROOT/scenario_objective_external_source_contract_post_ledger_strict_15adcd7/scenario_objective_external_source_contract.md"
+
+$PY scripts/integrations/plan_diffusion_planner_post_external_context_pause_gate.py \
+  --development_gate_state_json "$ROOT/current_development_gate_state_post_ledger_strict_1a57df1/current_development_gate_state.json" \
+  --scenario_objective_contract_json "$ROOT/scenario_objective_external_source_contract_post_ledger_strict_15adcd7/scenario_objective_external_source_contract.json" \
+  --post_external_context_closure_json "$ROOT/post_external_context_source_closure_588fe6f/post_external_context_source_closure.json" \
+  --label autodl_15adcd7_post_ledger_strict_pause_gate \
+  --output_json "$ROOT/post_external_context_pause_gate_post_ledger_strict_15adcd7/post_external_context_pause_gate.json" \
+  --output_md "$ROOT/post_external_context_pause_gate_post_ledger_strict_15adcd7/post_external_context_pause_gate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_objective_external_source_contract_post_ledger_strict_15adcd7/scenario_objective_external_source_contract.json` | `db337759f25537a59db16d63459bcb991614bc573c48228e7dbf8511dd5163bb` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_objective_external_source_contract_post_ledger_strict_15adcd7/scenario_objective_external_source_contract.md` | `2378c0d215c181c718c649606b30ece338f02b5055bf83fd5d42d4c3a237c4a4` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_external_context_pause_gate_post_ledger_strict_15adcd7/post_external_context_pause_gate.json` | `3eaa8b5a0b6019a1e07107fbe8d077e97b2bc8ebeb9be4d3a9ed994e598bdd65` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_external_context_pause_gate_post_ledger_strict_15adcd7/post_external_context_pause_gate.md` | `51cc14a8a2383b3bd200f4c81f68ae2b27fcbd04c5ed1921633077a829be9e98` |
+
+Local artifact copies:
+
+```text
+F:\camp_core-main\analysis_bundles\scenario_objective_external_source_contract_post_ledger_strict_15adcd7
+F:\camp_core-main\analysis_bundles\post_external_context_pause_gate_post_ledger_strict_15adcd7
+```
+
+Final decisions:
+
+```text
+scenario_contract.status=scenario_objective_redesign_boundary_and_external_source_contract_ready
+scenario_contract.passed=True
+scenario_contract.scenario_objective_redesign_only_sufficient=False
+scenario_contract.authorized_next_work=external_source_visibility_inventory_or_pause_only
+
+pause_gate.status=post_external_context_selector_route_paused
+pause_gate.passed=True
+pause_gate.selector_route_paused=True
+pause_gate.deployable_camp_dp_selector_route_exists=False
+pause_gate.authorized_next_work=new_proof_objective_or_new_current_tick_source_predeclaration_only
+pause_gate.failed_checks=[]
+```
+
+Decision:
+
+Accept the refreshed pause boundary. The current evidence chain has a
+candidate-pool opportunity and a ProofProtocol v2 claim contract, but no
+deployable no-leak selector source remains open. The next self-iteration may
+only predeclare a new proof objective or a genuinely new current-tick
+candidate-level source family; objective-only redesign still does not authorize
+replay, training, online selector promotion, Full36, formal seeds, DP
+modification, or a DP-side classical Benders claim.
