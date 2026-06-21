@@ -57501,3 +57501,105 @@ prove a safety improvement on the current evidence. The next admissible gate is
 nonformal, default-off targeted safety support design or a new current-tick
 source that can create observable safety intervention opportunity without using
 future outcomes as online features.
+
+## Targeted Safety Support Design (`8d3b2d8`)
+
+This design-only gate consumes the alternative safety-source materiality result.
+It does not run DP, train CAMP, deploy a selector, read future outcomes, or
+authorize replay. Its purpose is to avoid the dead route of reusing existing
+red/clearance fields from a smoke where the current selection is already best,
+and instead predeclare a tiny targeted support discovery plus legal no-leak
+source families to test later.
+
+Implementation:
+
+```text
+8d3b2d8e6c1101da1777c03d44a8d11aa7e6e920
+scripts/integrations/plan_diffusion_planner_targeted_safety_support_design.py
+camp_core/tests/test_diffusion_planner_targeted_safety_support_design.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_targeted_safety_support_design.py \
+         camp_core\tests\test_diffusion_planner_alternative_safety_source_materiality.py -q
+  result=10 passed
+
+AutoDL:
+  CAMP HEAD=8d3b2d8e6c1101da1777c03d44a8d11aa7e6e920
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest result=10 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SRC=$DEV/alternative_safety_source_materiality_ee8c310/alternative_safety_source_materiality.json
+OUT=$DEV/targeted_safety_support_design_8d3b2d8
+
+$PY scripts/integrations/plan_diffusion_planner_targeted_safety_support_design.py \
+  --materiality_json "$SRC" \
+  --label autodl_8d3b2d8_targeted_safety_support_design \
+  --output_json "$OUT/targeted_safety_support_design.json" \
+  --output_md "$OUT/targeted_safety_support_design.md" \
+  --require_pass
+```
+
+Design result:
+
+```text
+status=targeted_safety_support_scenario_or_source_design_ready
+passed=True
+tiny_support_row_count=5
+candidate_source_family_count=3
+existing_source_atomization_authorized=False
+new_replay_authorized=False
+authorized_next_work=targeted_safety_support_tiny_runbook_preflight_only
+```
+
+Tiny support rows:
+
+| Row | Route | Seed | NPCs | TL | Buckets |
+| --- | --- | ---: | ---: | --- | --- |
+| `sample_tl_turn_seed1_npc4_tlon` | `sample_map_tl_route_59_to_86` | `1` | `4` | `True` | `traffic_light, red_light_turn, sharp_turn, npc_interaction` |
+| `sample_tl_turn_seed1_npc4_tloff` | `sample_map_tl_route_59_to_86` | `1` | `4` | `False` | `sharp_turn, npc_interaction` |
+| `nishi_lanechange_seed3_npc8_tloff` | `nishishinjuku_lane_change` | `3` | `8` | `False` | `lane_change_or_merge, npc_interaction, dense_scene` |
+| `nishi_lanechange_seed3_npc8_tlon` | `nishishinjuku_lane_change` | `3` | `8` | `True` | `traffic_light, lane_change_or_merge, npc_interaction, dense_scene` |
+| `sample_normal_seed1_npc0_tloff` | `sample_map_route_2_to_104` | `1` | `0` | `False` | `normal` |
+
+Candidate source families:
+
+| Source | Definition |
+| --- | --- |
+| `red_light_gap_to_best_current_tick` | `a_k=max(red_cost_k - min_j red_cost_j, 0)` for h30 union red, h80 full red, and red stopping margin |
+| `clearance_violation_gap_to_best_current_tick` | `a_k=max(clearance_violation_k - min_j clearance_violation_j, 0)` for soft-clearance and near-miss violation costs |
+| `joint_safety_gap_current_tick` | `a_k=max(max(red_gap_k, clearance_gap_k) - min_j max(red_gap_j, clearance_gap_j), 0)` |
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_support_design_8d3b2d8/targeted_safety_support_design.json` | `a0d5299756f3cbe98324edd1b85533d08e74745af2e558f8807dae036f39c665` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_support_design_8d3b2d8/targeted_safety_support_design.md` | `e7e47b2b80f05fe16657edab7958ea0d5577dbb44d26ca56dbae21a335ca886f` |
+
+Decision:
+
+Accept the targeted safety support design as a design-only bridge. Existing
+smoke evidence does not justify atomizing current red/clearance fields directly,
+but it does justify a tiny targeted support discovery plan that looks for
+current-tick candidate sets where the current selection is not already best
+under legal safety proxies. The proposed gap-to-best source families are
+finite, fixed before scoring, and nonnegative by construction; if a later gate
+finds support and atomizes them, `score_k(w)=a_k^T w` remains affine and the
+simplex/CVaR/L2 master remains convex. This still does not authorize DP
+modification, new replay execution, online selector promotion, CAMP retraining,
+Full36, formal seeds, or a classical Benders claim. The next admissible gate is
+`targeted_safety_support_tiny_runbook_preflight_only`.
