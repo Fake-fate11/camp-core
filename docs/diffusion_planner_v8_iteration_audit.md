@@ -37262,6 +37262,96 @@ atoms remain fixed finite-candidate coefficients \(a_k\), so any later CAMP
 score use preserves `score_k(w)=a_k^T w`. No DP-side classical Benders
 construction is introduced.
 
+## Revised Context Logging Tiny Smoke (`77d396e` source)
+
+This gate executes only the paired three-step nonformal smoke authorized by the
+contract plan above. It runs the same route, seed, NPC setting, and selector
+configuration twice: baseline with context logging disabled and candidate with
+`--camp_progress_lane_hard_context_logging` enabled. It then runs selector
+equivalence, revised payload audit, and dataset audit.
+
+Run root:
+
+```text
+/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e
+```
+
+Command results:
+
+```text
+baseline_replay rc=0
+candidate_replay rc=0
+selector_equivalence rc=0
+payload_audit rc=0
+dataset_audit rc=0
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/baseline/camp_replay_summary.json` | `bdc93181c05a75d14f995f7191d3f554321a642cea47ddf5b1ea1b0108980535` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/baseline/camp_validation_summary.json` | `d9c7a6327fb4aa55a0bb7770ababfb825051eff01b19c93534476bbffe9770e5` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/baseline/camp_selection_log.json` | `816f9dee6539fac70530bfcbe4fda3095f9c51861fdcd74bb07e08a27811db14` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/logging_enabled/camp_replay_summary.json` | `c7b18eae5880246cfc1622a0d7f1ed0b98a29a8eda99a007a6febfed08f55254` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/logging_enabled/camp_validation_summary.json` | `2ae3264caa5ccb6b8b5b8c5fed1adecfcfbee670e52cb8b5fedaf8af88f12278` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/logging_enabled/camp_selection_log.json` | `52065da1901c70b1cc08a3fc9743ca287e8ee1b69040641b6dcc8e3fb99e9840` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/audit/selector_equivalence.json` | `7e99803ae015266c1995c3a5e9f8e17971be1dceb5f14f2882d425aa10ce3d0c` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/audit/progress_lane_hard_context_logging_smoke.json` | `dd44a6a355cc71de067fd48c0b5358416bbc514f00d5d6fa3726330bda9f89b4` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/audit/progress_lane_hard_context_logging_smoke.md` | `580fd918bb1aba1468f3755f99e2f86f42feaefeee0d2e4d89b263cfc06d2fa1` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/audit/dataset_audit.json` | `c4433ebf92b1fb0960ab40ba149bb1fc121bbd9a3b4ce73b6c4ef2b1c381bdbb` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/audit/revised_context_logging_smoke_execution_log.json` | `fde652378906723f0d8c5b2b504d28b266522b8b6888181dfbf00032da513c22` |
+
+Verifier result:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=3
+payload_status=progress_lane_hard_context_logging_smoke_passed
+payload_authorized_next_work=progress_lane_hard_context_logging_smoke_result_documentation_only
+dataset_audit.passed=True
+records=3
+candidate_payload_records=3
+baseline_payload_records=0
+revised_atom_shape=[8, 5]
+revised_atom_names=[
+  route_progress_shortfall_vs_candidate_best_v1,
+  route_progress_efficiency_shortfall_v1,
+  heading_progress_conflict_v1,
+  lateral_rate_progress_conflict_v1,
+  corridor_progress_conflict_v1
+]
+revised_progress_lane_hard_context_atoms_nonnegative=True
+```
+
+Latency maxima from the payload audit:
+
+```text
+latency_ms_progress_lane_hard_context_logging=3.888320177793503
+latency_ms_progress_lane_hard_context_projection=3.5923775285482407
+latency_ms_progress_lane_hard_context_route_curvature=0.057688914239406586
+latency_ms_progress_lane_hard_context_kinematics=0.04601478576660156
+latency_ms_progress_lane_hard_context_atom_compute=0.11412892490625381
+latency_ms_progress_lane_hard_context_payload_serialization=0.0168774276971817
+```
+
+Decision:
+
+Accept the tiny revised logging smoke as observability evidence only. Default-off
+logging records the revised atom fields, selector logs remain equivalent between
+disabled and enabled logging, formal seeds are absent, and the dataset audit
+passes. This still does not prove CAMP is better than DP Top-1, and it does not
+authorize Full36, formal seeds, online selector promotion, DP modification, or
+CAMP retraining.
+
+Next admissible work:
+
+Design an offline revised-atom separability audit over matched logs that include
+the revised atom fields. The audit must use outcome labels only as offline
+beneficial/harmful evaluation labels, not as runtime features. It should first
+run on the tiny smoke only as a contract check; broader matched nonformal replay
+requires a separate plan and latency justification.
+
 ## Progress + Lane/Hard Joint Screen Preflight (`886b100`)
 
 This design-only gate follows the lane/hard standalone bottleneck diagnosis.
