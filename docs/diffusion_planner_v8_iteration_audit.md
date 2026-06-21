@@ -37178,6 +37178,90 @@ weight optimization; they are fixed coefficients in \(a_k\), preserving
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. The payload makes
 no global trajectory-coordinate convexity claim and no classical Benders claim.
 
+## Revised Context Logging Smoke Contract Plan (`5a9a872` source)
+
+This gate updates the progress+lane/hard context logging smoke contract so the
+next tiny paired smoke must validate the revised atom fields, not only the
+legacy atom fields. It also adds revised atom metadata to the replay summary.
+It is still plan/contract evidence only: no replay is run in this gate.
+
+Code changed:
+
+```text
+scripts/integrations/run_diffusion_planner_camp_replay.py
+scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_logging_smoke.py
+scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_logging_smoke.py
+camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_smoke.py
+```
+
+Validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_atom_schema_redesign_preflight.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  -q
+```
+
+Result:
+
+```text
+20 passed in 0.32s
+```
+
+Plan command:
+
+```bash
+OUT=/root/autodl-tmp/camp_dp_revised_context_logging_smoke_plan_5a9a872
+
+$PY scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_logging_smoke.py \
+  --label autodl_5a9a872_revised_context_logging_smoke_contract_plan \
+  --output_json "$OUT/revised_context_logging_smoke_plan.json" \
+  --output_md "$OUT/revised_context_logging_smoke_plan.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_plan_5a9a872/revised_context_logging_smoke_plan.json` | `d025ba986ad12c4594052c071ced532ddd0448c33d77c790031b8f34daa89005` |
+| `/root/autodl-tmp/camp_dp_revised_context_logging_smoke_plan_5a9a872/revised_context_logging_smoke_plan.md` | `f16155d886b412520ed2742b82b2bb1d5d61aecea29ce609d59c22bc97cc0130` |
+
+Verifier result:
+
+```text
+status=progress_lane_hard_context_logging_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=default_off_progress_lane_hard_context_logging_paired_three_step_smoke_only
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Decision:
+
+Accept the revised logging smoke contract plan. The next admissible work is
+only the paired three-step nonformal smoke named above, followed by selector
+equivalence, payload audit, dataset audit, and documentation. This does not
+authorize broader nonformal runs, Full36, formal seeds, online selector
+promotion, DP modification, or CAMP retraining.
+
+Mathematical boundary:
+
+The smoke contract checks observability only. It verifies that default-off
+logging records finite nonnegative revised atom coefficients and that selector
+outputs remain equivalent with logging disabled versus enabled. The revised
+atoms remain fixed finite-candidate coefficients \(a_k\), so any later CAMP
+score use preserves `score_k(w)=a_k^T w`. No DP-side classical Benders
+construction is introduced.
+
 ## Progress + Lane/Hard Joint Screen Preflight (`886b100`)
 
 This design-only gate follows the lane/hard standalone bottleneck diagnosis.

@@ -224,6 +224,7 @@ def _source_checks(
                 "selection_effect",
                 "future_outcome_leakage",
                 "closed_loop_outcome_fields_read",
+                "revised_atom_names",
             ),
         ),
         _check_order(
@@ -241,6 +242,8 @@ def _source_checks(
                 "candidate_closed_loop_outcomes",
                 "formal_seed_detected",
                 "progress_lane_hard_context_atoms_nonnegative",
+                "revised_progress_lane_hard_context_atom_names",
+                "revised_progress_lane_hard_context_atoms_nonnegative",
             ),
         ),
         _check_tokens(

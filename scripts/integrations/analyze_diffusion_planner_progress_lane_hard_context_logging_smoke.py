@@ -23,6 +23,8 @@ from camp_core.integrations.diffusion_planner_progress_lane_hard_context import 
     PROGRESS_LANE_HARD_CONTEXT_FIELD_NAMES,
     PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS,
     PROGRESS_LANE_HARD_CONTEXT_LOGGING_SCHEMA_VERSION,
+    PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES,
+    PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION,
 )
 
 
@@ -32,6 +34,11 @@ PAYLOAD_KEY = "progress_lane_hard_context_logging"
 SUMMARY_KEY = "camp_progress_lane_hard_context_logging"
 ATOM_NAMES_KEY = "progress_lane_hard_context_atom_names"
 ATOMS_KEY = "progress_lane_hard_context_atoms"
+REVISED_ATOM_SCHEMA_VERSION_KEY = (
+    "revised_progress_lane_hard_context_atom_schema_version"
+)
+REVISED_ATOM_NAMES_KEY = "revised_progress_lane_hard_context_atom_names"
+REVISED_ATOMS_KEY = "revised_progress_lane_hard_context_atoms"
 LATENCY_FIELDS = PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS
 FORBIDDEN_SEEDS = frozenset({11, 12, 13})
 
@@ -203,6 +210,9 @@ def analyze(
                         "support_steps"
                     ),
                     "atom_count": len(candidate_payload.get(ATOM_NAMES_KEY, [])),
+                    "revised_atom_count": len(
+                        candidate_payload.get(REVISED_ATOM_NAMES_KEY, [])
+                    ),
                 }
             )
 
@@ -317,6 +327,14 @@ def _validate_summary(
         PROGRESS_LANE_HARD_CONTEXT_ATOM_NAMES
     ):
         errors.append(f"{key}: summary atom list mismatch")
+    if expected_enabled and metadata.get("revised_atom_schema_version") != (
+        PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION
+    ):
+        errors.append(f"{key}: summary revised atom schema version mismatch")
+    if expected_enabled and metadata.get("revised_atom_names") != list(
+        PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES
+    ):
+        errors.append(f"{key}: summary revised atom list mismatch")
     if expected_enabled and metadata.get("latency_fields") != list(LATENCY_FIELDS):
         errors.append(f"{key}: summary latency field list mismatch")
 
@@ -373,6 +391,8 @@ def _validate_payload(
             *PROGRESS_LANE_HARD_CONTEXT_FIELD_NAMES,
             ATOMS_KEY,
             "progress_lane_hard_context_atoms_nonnegative",
+            REVISED_ATOMS_KEY,
+            "revised_progress_lane_hard_context_atoms_nonnegative",
         ):
             if finite_checks.get(field) is not True:
                 errors.append(f"{prefix}: finite_checks failed {field}")
@@ -429,6 +449,25 @@ def _validate_payload(
         errors.append(f"{prefix}: {ATOMS_KEY} not finite")
     elif not np.all(atoms >= -1e-12):
         errors.append(f"{prefix}: {ATOMS_KEY} has negative values")
+
+    if payload.get(REVISED_ATOM_SCHEMA_VERSION_KEY) != (
+        PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION
+    ):
+        errors.append(f"{prefix}: {REVISED_ATOM_SCHEMA_VERSION_KEY} mismatch")
+    if payload.get(REVISED_ATOM_NAMES_KEY) != list(
+        PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES
+    ):
+        errors.append(f"{prefix}: {REVISED_ATOM_NAMES_KEY} mismatch")
+    revised_atoms = np.asarray(payload.get(REVISED_ATOMS_KEY), dtype=np.float64)
+    if revised_atoms.shape != (
+        int(expected_candidates),
+        len(PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES),
+    ):
+        errors.append(f"{prefix}: {REVISED_ATOMS_KEY} shape={list(revised_atoms.shape)}")
+    elif not np.all(np.isfinite(revised_atoms)):
+        errors.append(f"{prefix}: {REVISED_ATOMS_KEY} not finite")
+    elif not np.all(revised_atoms >= -1e-12):
+        errors.append(f"{prefix}: {REVISED_ATOMS_KEY} has negative values")
 
     latency = payload.get("latency_ms")
     if not isinstance(latency, dict):

@@ -11,6 +11,8 @@ from camp_core.integrations.diffusion_planner_progress_lane_hard_context import 
     PROGRESS_LANE_HARD_CONTEXT_FIELD_NAMES,
     PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS,
     PROGRESS_LANE_HARD_CONTEXT_LOGGING_SCHEMA_VERSION,
+    PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES,
+    PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION,
     build_progress_lane_hard_context_logging_payload,
 )
 from scripts.integrations.analyze_diffusion_planner_progress_lane_hard_context_logging_smoke import (
@@ -73,6 +75,10 @@ def _metadata(*, enabled: bool, records: int) -> dict:
             "records": records,
             "fields": list(PROGRESS_LANE_HARD_CONTEXT_FIELD_NAMES),
             "atom_names": list(PROGRESS_LANE_HARD_CONTEXT_ATOM_NAMES),
+            "revised_atom_schema_version": (
+                PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION
+            ),
+            "revised_atom_names": list(PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES),
             "latency_fields": list(PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS),
         },
         "benchmark": {"seed": 1, "advance_mode": "perfect"},
@@ -159,6 +165,32 @@ def test_context_logging_smoke_audit_rejects_negative_atom(tmp_path: Path) -> No
     assert report["final_decision"]["passed"] is False
     assert any(
         "progress_lane_hard_context_atoms_nonnegative" in error
+        for error in report["errors"]
+    )
+
+
+def test_context_logging_smoke_audit_rejects_negative_revised_atom(
+    tmp_path: Path,
+) -> None:
+    payload = deepcopy(_payload())
+    payload["revised_progress_lane_hard_context_atoms"][1][0] = -0.5
+    payload["finite_checks"][
+        "revised_progress_lane_hard_context_atoms_nonnegative"
+    ] = False
+    _write_run(tmp_path / "baseline", enabled=False, payload=None)
+    _write_run(tmp_path / "candidate", enabled=True, payload=payload)
+
+    report = analyze(
+        baseline_root=tmp_path / "baseline",
+        candidate_root=tmp_path / "candidate",
+        expected_logs=1,
+        expected_records=1,
+        expected_candidates=3,
+    )
+
+    assert report["final_decision"]["passed"] is False
+    assert any(
+        "revised_progress_lane_hard_context_atoms_nonnegative" in error
         for error in report["errors"]
     )
 
