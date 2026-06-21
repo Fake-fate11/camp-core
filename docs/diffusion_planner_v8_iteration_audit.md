@@ -43950,3 +43950,159 @@ closed-loop label, and no Benders cut. If a future gate atomizes these
 quantities, they must enter CAMP as fixed finite-candidate coefficients so
 `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
 remains convex.
+
+## Observable Interaction Support Preflight (`26f0fcd` source)
+
+This gate follows the geometry audit with a design-only preflight. It decides
+whether the current geometry evidence is enough to predeclare a narrow
+observable-interaction support smoke. It does not run Diffusion Planner, does
+not use outcome labels, does not change DP, does not create a selector, and
+does not train CAMP.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_observable_interaction_support_preflight.py
+camp_core/tests/test_diffusion_planner_observable_interaction_support_preflight.py
+```
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_observable_interaction_support_preflight.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_support_preflight.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_geometry.py `
+  -q
+```
+
+Result:
+
+```text
+5 passed in 0.59s
+```
+
+Implementation note:
+
+The first AutoDL preflight run at `5aec82a` correctly exposed an interface
+compatibility issue: the geometry artifact records `camp_retraining_authorized`
+with lower-case `camp`, while the new source gate only accepted the legacy
+`CAMP_retraining_authorized` spelling. Commit `26f0fcd` accepts both spellings
+and adds test coverage for the geometry-artifact casing.
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:$PYTHONPATH
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_observable_interaction_support_preflight.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_support_preflight.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_geometry.py \
+  -q
+
+GEOM=/root/autodl-tmp/camp_dp_observable_interaction_geometry_c261abc/observable_interaction_geometry.json
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_support_preflight_26f0fcd
+mkdir -p "$OUT"
+
+$PY scripts/integrations/plan_diffusion_planner_observable_interaction_support_preflight.py \
+  --geometry_json "$GEOM" \
+  --label autodl_26f0fcd_observable_interaction_support_preflight \
+  --output_json "$OUT/observable_interaction_support_preflight.json" \
+  --output_md "$OUT/observable_interaction_support_preflight.md"
+```
+
+Result:
+
+```text
+5 passed in 0.36s
+status=observable_interaction_support_preflight_current_route_rejected
+passed=True
+current_observable_interaction_route_rejected=True
+support_smoke_predeclared=False
+authorized_next_work=predeclare_observable_interaction_route_support_discovery_only
+new_replay_authorized=False
+offline_separability_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_Benders_claim_authorized=False
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_support_preflight.json
+ba80ded7acddabe502468beac7115656401b000385aa94d6fa1bdb4e34ca9b98
+
+observable_interaction_support_preflight.md
+f330490cb8d26be74675d4ba5713a54d8021086a728c0ff0bd822d1208d4d511
+```
+
+Route rejection:
+
+```text
+reject_current_route=True
+red_reason=reduced_red_alignment_nonpositive
+red_reduced_near_budget_candidates=2
+red_reduced_positive_alignment_candidates=0
+clearance_reason=clearance_budget_never_active
+clearance_positive_obstacle_slot_candidates=16
+clearance_inside_budget_candidates=0
+```
+
+Discovery contract:
+
+```text
+next_artifact=observable_interaction_route_support_discovery_plan
+permitted_inputs=[
+  existing route pickles,
+  lanelet2 map metadata,
+  existing observable payload logs,
+  documented simulator/NPC spawn configuration
+]
+forbidden_inputs=[
+  closed-loop outcome labels,
+  new Diffusion Planner replay,
+  formal seeds 11/12/13,
+  DP code changes or retraining,
+  online selector changes
+]
+```
+
+Decision:
+
+Accept the support preflight gate. The current observable-interaction route is
+rejected for further selector/separability promotion, and no support smoke is
+predeclared. The evidence is too weak to justify replay: red proximity exists
+without positive reduced alignment, and obstacle slots exist without near
+clearance. The only authorized next work is a smaller read-only
+route/support-discovery plan that may inspect existing route pickles, map
+metadata, existing logs, and documented simulator/NPC spawn configuration.
+
+Next admissible work:
+
+Do not run replay, separability, Full36, formal seeds, online selector
+promotion, or CAMP retraining. The next gate should produce an
+`observable_interaction_route_support_discovery_plan` artifact. It must either:
+
+1. identify route/support candidates with a geometry reason for positive
+   reduced red alignment near a red stopline and clearance entering the fixed
+   2m budget, then predeclare a bounded nonformal support smoke without
+   executing it; or
+2. reject the observable-interaction route family and return to a different
+   no-leak candidate-support or score-family direction.
+
+Mathematical boundary:
+
+This preflight creates no atom, selector, learned weight, outcome label, replay
+result, or Benders cut. It only constrains the next design artifact. Any future
+atomization must still use current-tick finite-candidate coefficients and keep
+`score_k(w)=a_k^T w` affine with a convex simplex/CVaR/L2 robust master.
