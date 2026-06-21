@@ -57697,3 +57697,97 @@ and safety-source materiality audits. The execution authorization is narrow:
 `new_replay_authorized=True` only for this runbook. Closed-loop replay, online
 selector promotion, CAMP retraining, Full36, formal seeds, DP modification, and
 classical Benders claims remain unauthorized.
+
+## Targeted Safety Support Tiny Execution (`e63f385`)
+
+The first `8fa05e0` runbook execution completed the five replay commands and
+dataset audit, but exposed a materiality analyzer contract bug: the analyzer
+used `temporal_consistency_payload_logging.available` as the only availability
+source, while this targeted support runbook does not enable temporal-consistency
+payloads. Commit `3a04f33` added an explicit
+`--availability_mode candidate_safety_fields` option while preserving the old
+default; commit `e63f385` aligned the runbook summary with the targeted support
+contract. The final `e63f385` runbook was regenerated and executed.
+
+Implementation and fix:
+
+```text
+3a04f33d8393c84ff986feae550361b9937917e1
+e63f385bf7e115d9046f89a7bf67df88a120b87a
+scripts/integrations/analyze_diffusion_planner_alternative_safety_source_materiality.py
+scripts/integrations/plan_diffusion_planner_targeted_safety_support_tiny_runbook.py
+camp_core/tests/test_diffusion_planner_alternative_safety_source_materiality.py
+camp_core/tests/test_diffusion_planner_targeted_safety_support_tiny_runbook.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_alternative_safety_source_materiality.py \
+         camp_core\tests\test_diffusion_planner_targeted_safety_support_tiny_runbook.py \
+         camp_core\tests\test_diffusion_planner_targeted_safety_support_design.py -q
+  result=15 passed
+
+AutoDL:
+  CAMP HEAD=e63f385bf7e115d9046f89a7bf67df88a120b87a
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  pytest result=15 passed
+  final runbook exit=0
+```
+
+Final runbook artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_support_tiny_runbook_e63f385/targeted_safety_support_tiny_runbook.json` | `0ed6e75a7a83ee1b1ffae1cb22af94bbb5aca7d1afcc81f492c3ba6a26eae2f0` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_support_tiny_runbook_e63f385/targeted_safety_support_tiny_runbook.md` | `e1124b38d32b9e3ea5dfb85619981ac42e0cc1a93f8c4854afdbe5d6c287310d` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_support_tiny_runbook_e63f385/targeted_safety_support_tiny_runbook.sh` | `be5965923296bb61f1cdece625c66c9167f8673b73015fa4a65255d855b2a35f` |
+| `/root/autodl-tmp/camp_dp_targeted_safety_support_tiny_e63f385/audit/dataset_audit.json` | `5b38f78b44eb2b22a3f58252de2c0756c04b9d69594ec081fccf5329fdca65b0` |
+| `/root/autodl-tmp/camp_dp_targeted_safety_support_tiny_e63f385/audit/alternative_safety_source_materiality.json` | `06e2de1304f71ef8f43aab1fdb26457b999b48c3c70582b9341f23f736f5960e` |
+| `/root/autodl-tmp/camp_dp_targeted_safety_support_tiny_e63f385/audit/alternative_safety_source_materiality.md` | `ea769efd99cc8626472bae4ad380cdded0f9d16544538a31975ba31e0697e657` |
+
+Execution result:
+
+```text
+run_count=5
+records=50
+available_records=50
+valid_available_records=50
+dataset_audit=passed
+materiality_status=alternative_safety_source_materiality_ready
+has_material_safety_source=True
+has_actionable_existing_safety_source=False
+actionable_existing_safety_sources=[]
+material_but_current_selection_already_best=[
+  h30_union_planned_red_light_cost,
+  h80_full_planned_red_light_cost,
+  red_stopping_margin_cost
+]
+```
+
+Materiality summary:
+
+| Source | Nonzero range records | Selected not best | Selected gap sum | Top1 not best | Top1 gap sum | Mean range |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `h30_union_planned_red_light_cost` | `2` | `0` | `0` | `0` | `0` | `0.72` |
+| `h80_full_planned_red_light_cost` | `2` | `0` | `0` | `0` | `0` | `0.72` |
+| `red_stopping_margin_cost` | `2` | `0` | `0` | `0` | `0` | `0.0533547696631606` |
+| `soft_clearance_violation_cost` | `0` | `0` | `0` | `0` | `0` | `0.0` |
+| `near_miss_violation_cost` | `0` | `0` | `0` | `0` | `0` | `0.0` |
+
+Decision:
+
+Accept the runbook execution as valid evidence, but reject this tiny support
+scope as a source of deployable safety improvement. Even on the targeted
+traffic-light and dense lane-change rows, the only material safety proxies are
+red-light fields, and the current selected candidate and DP Top-1 are already
+best under those fields. Obstacle-clearance proxies still have no range. This
+again does not authorize atomization, CAMP retraining, online selector
+promotion, Full36, formal seeds, DP modification, or a classical Benders claim.
+The next admissible gate should not repeat the same red/clearance-only
+materiality test. It should predeclare either richer current-tick support
+logging/source visibility for safety-critical interactions, or reject the
+current fixed-DP candidate-pool route for safety proof until a new support source
+is available.
