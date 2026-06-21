@@ -41941,7 +41941,7 @@ git diff --check
 Result:
 
 ```text
-9 passed in 0.46s
+9 passed in 0.44s
 ```
 
 AutoDL validation and artifact run:
@@ -41950,7 +41950,7 @@ AutoDL validation and artifact run:
 cd /root/autodl-tmp/camp_core
 PY=/root/miniconda3/envs/camp/bin/python
 export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
-OUT=/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_660de35
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_43a128e
 mkdir -p "$OUT"
 
 $PY -m py_compile \
@@ -41963,7 +41963,7 @@ $PY -m pytest \
 
 $PY scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.py \
   --bottleneck_json /root/autodl-tmp/camp_dp_observable_interaction_descriptor_bottleneck_e4e70d7/observable_interaction_descriptor_bottleneck.json \
-  --label autodl_660de35_observable_interaction_coverage_plan \
+  --label autodl_43a128e_observable_interaction_coverage_plan \
   --output_root "$OUT" \
   --output_json "$OUT/observable_interaction_coverage_plan.json" \
   --output_md "$OUT/observable_interaction_coverage_plan.md"
@@ -41972,14 +41972,14 @@ $PY scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.
 Result:
 
 ```text
-9 passed in 0.28s
+9 passed in 0.29s
 status=observable_interaction_coverage_broader_nonformal_plan_ready
 passed=True
 authorized_next_work=observable_interaction_coverage_broader_nonformal_paired_smoke_only
 paired_smoke_execution_authorized=False
 FOLLOWUP_KEYS=observable_interaction_coverage_contract,selector_equivalence_contract
 HAS_FAKE_SELECTOR_SCRIPT=False
-CAMP_HEAD=660de3566a93c7749ac6f8dbd68c59121a2eb160
+CAMP_HEAD=43a128e0bb1374805afe15317e837eb3e4dcf634
 DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
 ```
 
@@ -41987,7 +41987,7 @@ Artifact hashes:
 
 ```text
 observable_interaction_coverage_plan.json
-747c1b23d1f58dc905ce6821e1aa7ab9ef4d2e80bb9e418e2d5c18f6b8c07c35
+e5013c5976d56febaf2fb8f6e1219cb205596a1880bbcb166ff142f6406af747
 
 observable_interaction_coverage_plan.md
 3d282db49c55487ff591d64edd5cf5ed999fc46b99ef21990eb53771f3e9ae51
