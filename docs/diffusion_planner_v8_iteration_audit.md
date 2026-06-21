@@ -57299,3 +57299,102 @@ admissible gate is an existing-smoke safety-proxy association: compare
 shadow-selected candidates against deployed selections using already logged
 current candidate safety/comfort/progress proxy fields before any selector
 design.
+
+## Temporal Consistency Shadow Safety Proxy (`db49745`)
+
+This gate consumes the accepted shadow weight-sensitivity artifact and the same
+existing broader nonformal smoke logs. It compares the deployed selected
+candidate against the temporal-consistency shadow-selected candidate for each
+positive shadow weight that changed at least one record. It reads already logged
+current-candidate proxy fields only and does not execute DP, train CAMP, deploy a
+selector, read future closed-loop outcomes, or touch formal seeds.
+
+Implementation:
+
+```text
+db497452d88d1ffef7767921f202e34a9b2489f6
+scripts/integrations/analyze_diffusion_planner_temporal_consistency_shadow_safety_proxy.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_shadow_safety_proxy.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_temporal_consistency_shadow_safety_proxy.py \
+         camp_core\tests\test_diffusion_planner_temporal_consistency_shadow_weight_sensitivity.py -q
+  result=8 passed
+
+AutoDL:
+  CAMP HEAD=db497452d88d1ffef7767921f202e34a9b2489f6
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest result=8 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SRC=$DEV/temporal_consistency_shadow_weight_sensitivity_17bb897/temporal_consistency_shadow_weight_sensitivity.json
+ROOT=/root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_667eb7d/logging_enabled
+OUT=$DEV/temporal_consistency_shadow_safety_proxy_db49745
+
+$PY scripts/integrations/analyze_diffusion_planner_temporal_consistency_shadow_safety_proxy.py \
+  --weight_sensitivity_json "$SRC" \
+  --candidate_root "$ROOT" \
+  --expected_logs 5 \
+  --expected_records 50 \
+  --expected_candidates 8 \
+  --expected_available_records 45 \
+  --label autodl_db49745_temporal_consistency_shadow_safety_proxy \
+  --output_json "$OUT/temporal_consistency_shadow_safety_proxy.json" \
+  --output_md "$OUT/temporal_consistency_shadow_safety_proxy.md" \
+  --require_pass
+```
+
+Safety-proxy result:
+
+```text
+status=temporal_consistency_shadow_safety_proxy_ready
+passed=True
+safety_proxy_evidence=False
+safety_benefit_evidence=False
+max_changed_records=14
+authorized_next_work=reject_temporal_consistency_as_safety_source_or_predeclare_alternative_no_leak_atom_only
+```
+
+Weight summary:
+
+| Shadow weight | Changed records | Safety improved | Safety worsened | Safety nondegrading | Comfort improved | Comfort worsened | Progress improved | Progress worsened |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `0.05` | `2` | `0` | `0` | `2` | `2` | `0` | `0` | `2` |
+| `0.1` | `5` | `0` | `0` | `5` | `5` | `3` | `1` | `4` |
+| `0.2` | `5` | `0` | `0` | `5` | `5` | `3` | `1` | `4` |
+| `0.5` | `11` | `0` | `0` | `11` | `11` | `9` | `7` | `4` |
+| `1.0` | `14` | `0` | `0` | `14` | `13` | `11` | `9` | `5` |
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_shadow_safety_proxy_db49745/temporal_consistency_shadow_safety_proxy.json` | `06ca995cb520263a6eeedcd50f2b09866b9e1dfdbd0b57543ee48250a2ee9ba8` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_shadow_safety_proxy_db49745/temporal_consistency_shadow_safety_proxy.md` | `d0c4175097bee67a5795d36b026e851fd127a6f1351828a2e5d1c577770cc0bd` |
+
+Decision:
+
+Accept the safety-proxy diagnostic as valid evidence, but reject temporal
+consistency as a safety-benefit source for this smoke. Positive shadow weights
+changed the selected candidate in up to 14/45 available records, but safety
+proxy values were merely nondegrading and never improved. Comfort and progress
+effects were mixed, with progress often degrading at low weights and comfort
+often worsening at higher weights. This does not authorize online selector
+promotion, CAMP retraining, Full36, formal seeds, DP modification, or a
+classical Benders claim. The next admissible action is to reject this atom as the
+current safety route and predeclare a different current-tick, no-leak
+atom/source whose proxy can plausibly improve the safety objective before any
+new replay or training.
