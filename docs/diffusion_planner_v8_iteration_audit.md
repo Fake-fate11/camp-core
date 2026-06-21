@@ -37119,6 +37119,172 @@ descriptor is atomized, it must be a fixed pre-outcome nonnegative coefficient
 No DP-side classical Benders master/subproblem, dual, or valid cut is
 constructed.
 
+## Red Route Vector Equivalence Smoke Plan (`a9a39b5` source)
+
+This gate follows the default-off red route vector logging implementation. It
+is plan-only: it predeclares a tiny paired nonformal smoke and the exact
+selector-equivalence audit required before the new payload can be used as
+evidence. It does not run replay, use closed-loop outcome labels, change
+selection, run separability, train CAMP, modify DP, or claim Benders.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_red_route_vector_equivalence_smoke.py
+camp_core/tests/test_diffusion_planner_red_route_vector_equivalence_smoke_plan.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_red_route_vector_equivalence_smoke.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_red_route_vector_equivalence_smoke_plan.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+7 passed in 0.20s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_red_route_vector_equivalence_smoke_plan_a9a39b5
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_red_route_vector_equivalence_smoke.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_red_route_vector_equivalence_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_red_route_vector_logging_plan.py \
+  -q
+
+$PY scripts/integrations/plan_diffusion_planner_red_route_vector_equivalence_smoke.py \
+  --red_vector_plan_json /root/autodl-tmp/camp_dp_red_route_vector_logging_plan_bf68657/red_route_vector_logging_plan.json \
+  --replay_script scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --output_root /root/autodl-tmp/camp_dp_red_route_vector_equivalence_smoke \
+  --label autodl_a9a39b5_red_route_vector_equivalence_smoke_plan \
+  --output_json "$OUT/red_route_vector_equivalence_smoke_plan.json" \
+  --output_md "$OUT/red_route_vector_equivalence_smoke_plan.md"
+```
+
+AutoDL status:
+
+```text
+CAMP_HEAD=a9a39b58b0672280b7d1a6c51bae1fecfd5c5148
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+14 passed in 0.08s
+```
+
+Artifact hashes:
+
+```text
+red_route_vector_equivalence_smoke_plan.json
+21d53743e44b5eddd22f302cd2fe0150412c84c18ab280a9afa3a7bba5bd382a
+
+red_route_vector_equivalence_smoke_plan.md
+afd2e3f112e26dcc55f4b8290ded64f959f16fe8aca050ca78abad7bba58bc3c
+```
+
+Result:
+
+```text
+status=red_route_vector_equivalence_smoke_plan_ready
+passed=True
+authorized_next_work=red_route_vector_equivalence_smoke_execution_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+offline_separability_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_Benders_claim_authorized=False
+commands=2
+```
+
+Planned scope:
+
+```text
+paired_runs=2
+route=sample_map_tl_route_59_to_86
+seed=1
+steps=3
+num_candidates=8
+max_npcs=0
+traffic_lights=on
+variants={baseline, red_route_vector_logging_enabled}
+baseline_flag=without --camp_red_route_vector_logging
+logging_flag=with --camp_red_route_vector_logging only
+```
+
+Required equivalence audit:
+
+```text
+selected_index
+camp_selected_index_before_* fields
+feasible_mask
+infeasibility_reasons
+atoms
+normalized_atoms
+scores
+weights
+selection_scores
+selection_weights
+PerfectTracker inputs
+candidate_perfect_tracker_postprocessed_reference_prefix
+candidate_perfect_tracker_open_loop_rollout
+selected trajectory
+```
+
+Required payload audit:
+
+```text
+schema_version=dp_camp_red_route_vector_logging_v1
+default_off=True
+selection_effect=False
+future_outcome_leakage=False
+baseline red_route_vector_logging is null in every record
+logging-enabled red_route_vector_logging exists in every record
+records_with_red_route_points >= 1
+p95 latency_ms_red_route_vector_logging <= 2.0 ms
+```
+
+Decision:
+
+Accept the plan gate. It converts the implemented default-off logging path into
+a bounded next experiment while still blocking immediate replay in this gate.
+The only allowed next execution is the declared 1-run paired nonformal smoke
+plus the exact selector-equivalence and payload audits above. No separability
+screen, selector promotion, Full36/formal seeds, CAMP retraining, DP
+modification, or Benders claim is authorized.
+
+Next admissible work:
+
+Implement the audit for this paired smoke, then execute only the predeclared
+baseline/logging pair if the audit can be run fail-closed. The audit must reject
+on any selector, feasibility, atom, score, weight, PerfectTracker, or selected
+trajectory difference, and must verify the red-vector payload materiality and
+latency before any later use of these logs.
+
+Mathematical boundary:
+
+This plan creates no atom and no selector. It only predeclares a
+selector-neutral current-tick logging smoke. If a later red descriptor is
+atomized, it must be a fixed pre-outcome nonnegative coefficient \(a_k\),
+preserving `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. No
+DP-side classical Benders master/subproblem, dual, or valid cut is constructed.
+
 ## Red Alignment Semantics Microaudit (`8b534d5` source)
 
 This gate follows the observable-interaction payload attribution diagnosis. It
