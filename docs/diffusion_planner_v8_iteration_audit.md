@@ -40092,3 +40092,145 @@ each new atom must be nonnegative or otherwise explicitly justified and must
 enter CAMP as a fixed candidate coefficient \(a_k\), preserving affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This remains a
 finite-candidate diagnostic, not a DP-side classical Benders decomposition.
+
+## Revised Context Label/Objective Audit (`7268cb8` source)
+
+This gate splits the previous revised atom bottleneck into three possible
+causes before any new replay or training:
+
+1. the offline beneficial label is too permissive relative to the intended
+   comprehensive safety-score objective;
+2. the revised atoms over-penalize genuinely strict-good candidates; or
+3. the fixed DP candidate set does not contain enough strict-good alternatives.
+
+It consumes only the existing matched revised-context logs and the accepted
+revised atom bottleneck artifact. Closed-loop outcomes are used only as offline
+diagnostic labels; they are not runtime inputs.
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_revised_context_label_objective_audit.py
+camp_core/tests/test_diffusion_planner_revised_context_label_objective_audit.py
+```
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_revised_context_atom_separability_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_revised_context_label_objective_audit.py `
+  -q
+```
+
+Result:
+
+```text
+10 passed in 0.32s
+```
+
+AutoDL validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_revised_context_label_objective_audit.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_revised_context_atom_separability_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_revised_context_label_objective_audit.py \
+  -q
+```
+
+Result:
+
+```text
+10 passed in 0.32s
+```
+
+Diagnostic command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY scripts/integrations/analyze_diffusion_planner_revised_context_label_objective_audit.py \
+  --root "$ROOT/matched_revised_context_outcomes" \
+  --bottleneck_json "$ROOT/audit/revised_context_atom_separability_bottleneck.json" \
+  --label autodl_7268cb8_revised_context_label_objective_audit \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/revised_context_label_objective_audit.json" \
+  --output_md "$ROOT/audit/revised_context_label_objective_audit.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_label_objective_audit.json` | `270718931f712fc505d0abe9b8e4739dc02ff0b8c457b4dc0dbcef05690f6088` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_label_objective_audit.md` | `a00986b4b59850475f74aae0cf44cda151aad3926d3493e4dacb56541697b6e1` |
+
+Verifier result:
+
+```text
+status=revised_context_label_objective_audit_diagnosed
+passed=True
+primary_gap=beneficial_label_too_permissive_for_safety_score_intent
+authorized_next_work=predeclare_revised_label_or_atom_change_before_new_replay
+records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+class_counts={beneficial_alternative: 56, harmful_alternative: 180, neutral_alternative: 100}
+beneficial_total=56
+beneficial_blocked=54
+beneficial_retained=2
+harmful_total=180
+harmful_allowed=0
+harmful_blocked=180
+original_beneficial_count=56
+strict_safety_progress_comfort_good_count=3
+original_beneficial_but_not_strict_good_count=53
+strict_good_rate_among_original_beneficial=0.05357142857142857
+records_with_strict_good_candidate=3
+strict_good_record_rate=0.0625
+strict_good_blocked_count=3
+strict_good_retained_count=0
+strict_good_block_rate=1.0
+permissive_reason_counts={diagnostic_safety_penalty_not_improved: 51, jerk_worse: 26, lateral_worse: 38, no_hard_safety_improvement: 51}
+camp_retraining_recommended=False
+online_selector_recommended=False
+```
+
+Interpretation:
+
+Accept the label/objective diagnosis. The earlier revised atom failure is
+mostly explained by the offline beneficial label being too permissive for the
+intended safety-score claim: only 3 of 56 originally beneficial alternatives
+remain strict-good after requiring diagnostic safety improvement,
+progress-compatibility, and comfort non-regression. The audit also observes
+that all 3 strict-good alternatives are blocked by the current best atom screen,
+but the support is too small to justify immediate atom redesign or retraining.
+
+Decision:
+
+Reject direct CAMP retraining, online selector promotion, Full36, formal seeds,
+or DP modification from this evidence. The next admissible gate is a
+predeclared label/objective revision before new replay. It should define the
+offline comprehensive safety-score label more tightly and then rerun only the
+same existing matched logs to check whether the revised label has enough class
+support and separability. New atoms should be considered only after that label
+audit passes or shows a clear atom-specific over-penalty on enough strict-good
+examples.
+
+Mathematical boundary:
+
+The diagnostic safety penalty is an offline label audit only, not a runtime
+selector score. Runtime-eligible atoms remain current-tick finite coefficients.
+Any future label or atom change must keep CAMP scoring affine in `w` for fixed
+DP candidates and preserve the simplex/CVaR/L2 convex master. This remains a
+finite-candidate CAMP diagnostic, not a DP-side classical Benders
+decomposition.
