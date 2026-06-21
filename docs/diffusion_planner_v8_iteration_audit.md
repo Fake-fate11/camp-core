@@ -54639,3 +54639,109 @@ Benders cut. A future guarded rule may still be compatible with CAMP if its
 online decision uses only fixed finite-candidate coefficients and preserves
 `score_k(w)=a_k^T w`; any non-affine lexicographic/budget filter must be named
 as a finite-candidate selector guard, not a classical Benders subproblem.
+
+## External Context Progress-Guarded Atom Counterfactual
+
+This step extends the posterior-label counterfactual analyzer to report a
+current-tick progress-guarded atom-best selection. The guard uses only the
+existing fixed `candidate_route_progress` vector from the selection log: a
+candidate is eligible only if its route-progress proxy is within the declared
+0.10 m loss budget relative to the logged selected candidate. Within that
+eligible finite set, the rule picks the minimum external-context atom score
+with deterministic lowest-index tie break.
+
+Code commit:
+
+```text
+fc8e375e1ab936b6e670c4409c55b68406b480f3 Add progress guarded atom counterfactual
+```
+
+Local tests:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests\test_diffusion_planner_external_context_atom_outcome_counterfactual.py -q
+result=5 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests -k diffusion_planner_external_context -q
+result=72 passed, 1137 deselected
+```
+
+AutoDL sync and verification:
+
+```text
+autodl_camp_head=fc8e375e1ab936b6e670c4409c55b68406b480f3
+autodl_camp_origin=fc8e375e1ab936b6e670c4409c55b68406b480f3
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_guarded_counterfactual_tests=5 passed
+new_replay=False
+```
+
+Guarded counterfactual artifact:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_signal_arrival_outcome_counterfactual/audit
+local_copy=F:\camp_core-main\analysis_bundles\external_context_signal_arrival_guarded_counterfactual_fc8e375
+
+external_context_guarded_atom_outcome_counterfactual.json
+sha256=1CCE36D1DB6700F4C2D3581F7F92DAF8C9E83D9B4552F60926AEE082C8D88F47
+
+external_context_guarded_atom_outcome_counterfactual.md
+sha256=41682226B67F33CCB7948C31DCB928BA4F24E709D874B4E0AE698D795D023920
+```
+
+Guarded result:
+
+```text
+status=external_context_atom_outcome_counterfactual_ready
+promotion_authorized=False
+tiny_counterfactual_noninferior=False
+guarded_tiny_counterfactual_noninferior=False
+valid_records=3
+ranking_signal_records=3
+unguarded_changed_records=3
+guarded_changed_records=1
+guarded_atom_best_better_records=0
+guarded_atom_best_noninferior_records=2
+guarded_atom_best_hard_nonworse_records=3
+guarded_atom_best_progress_within_budget_records=2
+mean_guarded_atom_best_minus_selected_safety_cost=+5.178486233578101
+
+record0 selected=2 atom_best=0 guarded_atom_best=2 guarded_delta_cost=0.0
+record1 selected=2 atom_best=0 guarded_atom_best=2 guarded_delta_cost=0.0
+record2 selected=6 atom_best=0 guarded_atom_best=2 guarded_delta_cost=+15.535458700734303
+```
+
+Decision:
+
+Reject the progress-guarded signal-atom rule as well. The fixed route-progress
+guard prevents the two large progress-regression jumps, but it still admits a
+record-2 switch from selected candidate 6 to candidate 2. That guarded switch
+is hard-outcome nonworse, but it worsens posterior candidate-branch SafetyCost
+by +15.535 and fails the outcome progress budget. This means the current
+traffic-signal atom route is not yet an industrially acceptable selector rule,
+even with a simple progress guard.
+
+Next admissible work:
+
+Do not run broader experiments from this evidence. The next smallest action is
+an existing-log diagnostic over record 2 to explain why
+`candidate_route_progress` allows candidate 2 while candidate-branch SafetyCost
+prefers selected candidate 6. Candidate diagnostics to compare include current
+CAMP score, DP reward components, planned red, PerfectTracker rollout
+distance/jerk/lateral, route progress, and the external-context atom
+coefficients. If no fixed current-tick guard explains the record-2 failure
+without overfitting, reject the signal-arrival atom path and return to finding a
+different material atom family.
+
+Mathematical boundary:
+
+The guarded selector remains a finite-candidate diagnostic, not a Benders
+subproblem. The guard uses fixed current-tick coefficients and deterministic
+tie-breaking; outcomes remain posterior labels only. Any future deployable
+version must either express the added guard as fixed finite-candidate
+coefficients inside an affine CAMP score or explicitly name it as a
+finite-candidate lexicographic guard outside the CAMP master. No classical
+Benders claim is authorized.
