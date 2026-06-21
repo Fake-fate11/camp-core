@@ -45408,3 +45408,143 @@ The broader smoke only logs fixed current-tick DP logits before selection. A
 future atom screen may use these logs as candidate coefficients, but the robust
 master remains convex only in `w`; no trajectory-coordinate convexity and no
 DP-side classical Benders decomposition is claimed.
+
+## Turn-Logit Matched Outcome Atom Separability Plan (`a36ee8a` source)
+
+This gate implements the next admissible design-only step after the broader
+turn-logit payload smoke. It does not run Diffusion Planner replay, train CAMP,
+promote an online selector, use formal seeds, or modify DP. It adds:
+
+```text
+scripts/integrations/plan_diffusion_planner_turn_logit_matched_outcome_atom_separability.py
+scripts/integrations/analyze_diffusion_planner_turn_logit_matched_outcome_atom_separability.py
+camp_core/tests/test_diffusion_planner_turn_logit_matched_outcome_atom_separability_plan.py
+camp_core/tests/test_diffusion_planner_turn_logit_matched_outcome_atom_separability.py
+```
+
+Local verification:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_turn_logit_matched_outcome_atom_separability.py `
+  scripts\integrations\analyze_diffusion_planner_turn_logit_matched_outcome_atom_separability.py
+
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_turn_logit_payload_broader_nonformal_smoke_plan.py `
+  camp_core\tests\test_diffusion_planner_turn_logit_matched_outcome_atom_separability_plan.py `
+  camp_core\tests\test_diffusion_planner_turn_logit_matched_outcome_atom_separability.py `
+  -q
+```
+
+Result:
+
+```text
+13 passed in 0.47s
+```
+
+AutoDL synchronization and verification:
+
+```text
+CAMP HEAD after bundle fast-forward:
+a36ee8ab87ef658b4d619ffdd7513a528ac858fe
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+AutoDL targeted tests:
+13 passed in 0.50s
+```
+
+The AutoDL GitHub fetch path hit a transient TLS termination error, so the
+sync used a local git bundle followed by `git merge --ff-only FETCH_HEAD`.
+The AutoDL worktree retained only the known unrelated untracked files.
+
+Plan command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_plan_a36ee8a
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+scripts/integrations/plan_diffusion_planner_turn_logit_matched_outcome_atom_separability.py \
+  --broader_smoke_audit_json /root/autodl-tmp/camp_dp_turn_logit_payload_broader_nonformal_smoke/audit/turn_logit_payload_broader_smoke.json \
+  --broader_selector_equivalence_json /root/autodl-tmp/camp_dp_turn_logit_payload_broader_nonformal_smoke/audit/selector_equivalence.json \
+  --broader_dataset_audit_json /root/autodl-tmp/camp_dp_turn_logit_payload_broader_nonformal_smoke/audit/dataset_audit.json \
+  --label a36ee8a_turn_logit_matched_outcome_atom_plan \
+  --output_root /root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a \
+  --output_json "$ROOT/turn_logit_matched_outcome_atom_plan.json" \
+  --output_md "$ROOT/turn_logit_matched_outcome_atom_plan.md"
+```
+
+Plan result:
+
+```text
+status=turn_logit_matched_outcome_atom_separability_plan_ready
+passed=True
+authorized_next_work=turn_logit_matched_outcome_label_and_atom_separability_nonformal_only
+paired_smoke_execution_scope=next gate only: 4 paired nonformal runs x 12 steps; matched branch collects turn_logit_payload_logging and candidate_closed_loop_outcomes
+failed_source_checks=[]
+failed_plan_checks=[]
+matched_records=48
+matched_candidate_rows=384
+scenario_buckets={normal:1,npc_interaction:2,red_light_turn:2,sharp_turn:3,traffic_light:2}
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_plan_a36ee8a/turn_logit_matched_outcome_atom_plan.json
+0f8ed98f15be4d2a3994e1610905c171b29335c90f63f518eb48a4d3e61e943a
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_plan_a36ee8a/turn_logit_matched_outcome_atom_plan.md
+41bf0cd1c891fb0fb859322a11ce95c392478473ae0601d637939eaa23d97ddc
+```
+
+Mathematical boundary:
+
+The planned matched branch records current-tick turn-logit payloads and
+posterior candidate closed-loop outcomes in the same replay record. Outcomes
+are offline labels only and are forbidden as runtime selector features. The
+predeclared atom candidates are:
+
+```text
+turn_logit_entropy_cost_v1:
+  -sum_c p_c log(max(p_c, eps)) / log(C), C>=2
+
+turn_logit_margin_shortfall_v1:
+  max(0, 0.25 - (p_top1 - p_top2))
+
+turn_logit_non_top1_disagreement_v1:
+  1[top_class_k != top_class_0]
+```
+
+All three are finite nonnegative current-tick candidate coefficients when the
+payload is available and valid. If later atomized, CAMP scoring remains
+`score_k(w)=a_k^T w`, so the simplex/CVaR/L2 robust master remains convex in
+`w`. The separability analyzer may use closed-loop outcomes only to define
+offline beneficial/harmful/neutral labels and thresholds. It is not an online
+selector, not training, and not a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept the plan gate as an auditability milestone. It authorizes only the next
+bounded, nonformal matched label pass and offline atom separability screen
+described by the generated plan. It does not authorize CAMP retraining, schema
+promotion, online selector promotion, Full36, formal seeds, or DP modification.
+
+Next admissible work:
+
+Run only the generated `turn_logit_matched_outcome_label_and_atom_separability_nonformal_only`
+commands on AutoDL. The matched branch may enable both
+`--camp_turn_logit_payload_logging` and `--camp_collect_closed_loop_outcomes`;
+the baseline branch must keep both disabled. Required audits are selector
+equivalence, turn-logit payload audit, dataset audit with
+`closed_loop_outcome_policy=required`, and the new offline atom separability
+screen. If source equivalence, no-leak checks, formal-seed exclusion, or
+separability support fails, reject the route and do not train CAMP.
