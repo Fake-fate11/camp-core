@@ -48905,3 +48905,192 @@ weights over fixed logged candidate atoms and offline labels. Candidate scores
 remain affine in `w`; the simplex/CVaR/L2 master remains convex; closed-loop
 outcomes remain offline labels/evaluation targets. This is not a DP-side
 classical Benders construction.
+
+## Offline Convex Objective/Label Sensitivity Dry Run (`275374a`)
+
+Purpose:
+
+Run the previously authorized offline sensitivity wrapper on AutoDL over the
+fixed non-formal manifest. This step executes only offline CAMP weight
+training, selector evaluation, and candidate-branch proof summaries. It does
+not run or modify Diffusion Planner, does not replay closed loop, does not
+promote an online selector, and does not use formal seeds.
+
+Implementation note:
+
+The first wrapper execution under `2d09db6` completed, but exposed an evidence
+recording bug: artifact keys used `Path.stem`, so `selector_eval.json` and
+`selector_eval.md` collided. Commit `275374a` fixes this by recording
+suffix-aware keys such as `selector_eval_json`, `selector_eval_md`,
+`camp_vs_top1_safety_cost_proof_json`, and
+`camp_vs_top1_safety_cost_proof_md`. The corrected run below supersedes the
+earlier wrapper output for audit purposes.
+
+Implementation:
+
+```text
+275374a Fix sensitivity wrapper artifact keys
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+31 passed in 1.73s
+
+git diff --check
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=275374aa26f7cd1c07295cdddd203a6efd8b3428
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+31 passed in 0.60s
+```
+
+Run command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PLAN=$ROOT/offline_convex_objective_label_sensitivity_plan_18415f3/offline_convex_objective_label_sensitivity_plan.json
+MANIFEST=$ROOT/offline_convex_selector_training_input_manifest_069057e_diverse/offline_convex_selector_training_input_manifest.json
+ORACLE=$ROOT/safety_cost_oracle_d2899e6/safety_cost_oracle.json
+BUCKETS=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+OUT=$ROOT/offline_convex_objective_label_sensitivity_dry_run_275374a
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/run_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py \
+  --plan_json "$PLAN" \
+  --manifest_json "$MANIFEST" \
+  --oracle_report "$ORACLE" \
+  --scenario_bucket_manifest "$BUCKETS" \
+  --output_dir "$OUT" \
+  --selector_prefix objective_label_sensitivity_275374a \
+  --timeout_seconds 7200 \
+  --output_json "$OUT/offline_convex_objective_label_sensitivity_dry_run.json" \
+  --output_md "$OUT/offline_convex_objective_label_sensitivity_dry_run.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_objective_label_sensitivity_dry_run_275374a/offline_convex_objective_label_sensitivity_dry_run.json
+sha256=4b69d92670a6b83a81cff12a9ffe0c3ad8892b9563f03f3bc42584be97c98adf
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_objective_label_sensitivity_dry_run_275374a/offline_convex_objective_label_sensitivity_dry_run.md
+sha256=31afb68dcfa1ba8b573e0be30878adb6bbfb5749dd757efc4872c4a7190bb974
+```
+
+Final decision:
+
+```text
+status=offline_convex_objective_label_sensitivity_dry_run_complete
+passed=True
+accepted_variants=[]
+authorized_next_work=diagnose_objective_label_sensitivity_results
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Variant results:
+
+```text
+control_reproduce_failed_35fedb8:
+  accepted=False
+  changed_record_rate=0.21518518518518517
+  evaluated_minus_logged_ci95_high=0.1696159122690624
+  collision_delta=0.0787037037037037
+  near_miss_delta=0.005555555555555556
+  top1_failures=traffic_light,red_light_turn,sharp_turn
+
+tail_alpha_0p95:
+  accepted=False
+  changed_record_rate=0.22625
+  evaluated_minus_logged_ci95_high=0.17240113366731372
+  collision_delta=0.0787037037037037
+  near_miss_delta=0.006481481481481481
+  top1_failures=traffic_light,red_light_turn,sharp_turn
+
+tail_alpha_0p95_l2_1e3:
+  accepted=False
+  changed_record_rate=0.22898148148148148
+  evaluated_minus_logged_ci95_high=0.1726531482186013
+  collision_delta=0.0787037037037037
+  near_miss_delta=0.006481481481481481
+  top1_failures=traffic_light,red_light_turn,sharp_turn
+
+safety_guard_floor:
+  accepted=False
+  changed_record_rate=0.19939814814814816
+  evaluated_minus_logged_ci95_high=0.17207710056260256
+  collision_delta=0.0787037037037037
+  near_miss_delta=0.006481481481481481
+  top1_failures=traffic_light,red_light_turn,sharp_turn
+
+balanced_comfort_progress_floor:
+  accepted=False
+  changed_record_rate=0.19939814814814816
+  evaluated_minus_logged_ci95_high=0.17207710056260256
+  collision_delta=0.0787037037037037
+  near_miss_delta=0.006481481481481481
+  top1_failures=traffic_light,red_light_turn,sharp_turn
+```
+
+All candidate variants also failed the oracle-gap gate. Representative
+oracle-gap bucket failures remained broad: `normal`, `traffic_light`,
+`red_light_turn`, `sharp_turn`, `npc_interaction`, `dense_scene`, and
+`lane_change_or_merge`.
+
+Decision:
+
+Reject this objective/label sensitivity route for any replay or deployment
+promotion. The tested convex objective knobs changed weights and selection
+rates slightly, but did not fix the actual failure modes: critical Top-1 bucket
+failures remain, oracle-gap failures remain broad, evaluated-minus-logged
+SafetyCost CI highs stay positive, and collision/near-miss deltas remain
+positive. This is not evidence that the gate is too strict; it is evidence that
+the current fixed atom family plus hard-guarded label/objective variants are not
+enough.
+
+Next gate:
+
+Run a read-only diagnosis of the objective/label sensitivity result before any
+new atom schema, new scenario objective, closed-loop replay, or online selector
+work. The diagnosis should compare variants by failed gate, bucket failures,
+hard component deltas, learned weight concentration, and whether any knob moved
+the failure in the right direction. If no variant creates a credible direction,
+the next design must leave this sensitivity route rejected and move to a new
+no-leak atom/schema or proof-objective redesign gate.
+
+Mathematical boundary:
+
+This run remained finite-candidate convex CAMP training. DP was not changed or
+executed. Candidate features were fixed logged atoms; CAMP scores remained
+affine in `w`; simplex/CVaR/L2 training stayed convex. Closed-loop outcomes
+were used only as offline labels/evaluation evidence. No classical DP-side
+Benders construction is claimed.
