@@ -51186,3 +51186,193 @@ offline oracle evidence only. They are not runtime CAMP inputs. A future runtime
 selector may only use fixed current-tick finite-candidate coefficients `a_k`
 with affine `score_k(w)=a_k^T w`; the simplex/CVaR/L2 robust master must remain
 convex. No DP-side classical Benders decomposition is claimed.
+
+## Targeted SafetyCost Oracle Audit (`a8336e8` artifacts)
+
+Purpose:
+
+The targeted candidate-oracle readiness gate authorized only a targeted
+SafetyCost oracle audit over the same predeclared 108-run manifest. This step
+reruns the existing read-only candidate-branch SafetyCost v1 oracle against the
+diverse nonformal logs and then refreshes the selector-vs-oracle gap summary.
+It does not run Diffusion Planner, collect new labels, train CAMP, promote an
+online selector, or touch formal seeds.
+
+Current sync:
+
+```text
+local_head=a8336e86249efeefea9c15e9a2b893864cd40fea
+origin_main=a8336e86249efeefea9c15e9a2b893864cd40fea
+autodl_camp=a8336e86249efeefea9c15e9a2b893864cd40fea
+autodl_dp=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Oracle command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PLAN_ROOT=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f
+OUT=$ROOT/targeted_safety_cost_oracle_audit_a8336e8
+
+/root/miniconda3/bin/python \
+  scripts/integrations/analyze_diffusion_planner_safety_cost_oracle.py \
+  --root "$PLAN_ROOT/candidate_outcome_labels_static" \
+  --scenario_bucket_manifest "$PLAN_ROOT/diverse_nonformal_scenario_buckets_py312_9e2158f.json" \
+  --output_json "$OUT/targeted_safety_cost_oracle.json" \
+  --output_md "$OUT/targeted_safety_cost_oracle.md" \
+  --fail_on_formal_seeds \
+  --fail_on_missing_required
+```
+
+Oracle artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+sha256=b28698e87b0217cb7f88b50d8646f8d029a3800e2ed6afecf44ec267eda1d202
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_cost_oracle_audit_a8336e8/targeted_safety_cost_oracle.json
+sha256=540a525ce2b22973572793efb6ae11f92c1a01e6993f11e21296a4019d0c296b
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_cost_oracle_audit_a8336e8/targeted_safety_cost_oracle.md
+sha256=434d17567d556b0f40e11c549b61e9226f956e035e7970f3df9f12e39278449f
+```
+
+Oracle result:
+
+```text
+logs=108
+records=21600
+formal_seed_logs=0
+missing_required_buckets=[]
+opportunity_gate_passed=True
+
+gate_checks:
+  no_formal_seed_logs=True
+  required_bucket_coverage=True
+  overall_hard_guarded_oracle_ci_high_below_zero=True
+  required_bucket_hard_guarded_oracle_ci_high_below_zero=True
+```
+
+Hard-guarded oracle vs DP Top-1 by bucket:
+
+```text
+overall: records=21600, logs=108, mean=-1.5374024485199482, ci95_high=-0.9975558499756184
+normal: records=1200, logs=6, mean=-0.03348694146943427, ci95_high=-0.0325641326082991
+traffic_light: records=3600, logs=18, mean=-1.0536061992669206, ci95_high=-0.3987928894323747
+red_light_turn: records=3600, logs=18, mean=-1.0536061992669206, ci95_high=-0.40351534568305525
+sharp_turn: records=7200, logs=36, mean=-0.8764567096243803, ci95_high=-0.49181274966907734
+npc_interaction: records=1200, logs=6, mean=-3.8928045290135933, ci95_high=-0.7727011259726725
+dense_scene: records=1200, logs=6, mean=-3.8928045290135933, ci95_high=-0.7722944315209478
+lane_change_or_merge: records=7200, logs=36, mean=-2.4122577080586938, ci95_high=-1.0438644638589512
+```
+
+Selector-gap command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/targeted_selector_oracle_gap_a8336e8
+
+/root/miniconda3/bin/python \
+  scripts/integrations/summarize_diffusion_planner_selector_oracle_gap.py \
+  --oracle_report "$ROOT/targeted_safety_cost_oracle_audit_a8336e8/targeted_safety_cost_oracle.json" \
+  --selector_eval_report "$ROOT/safety_cost_v1_selector_eval_c7bb0d9/selector_eval.json" \
+  --label autodl_a8336e8_targeted_selector_oracle_gap \
+  --output_json "$OUT/targeted_selector_oracle_gap.json" \
+  --output_md "$OUT/targeted_selector_oracle_gap.md"
+```
+
+Selector-gap artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_selector_oracle_gap_a8336e8/targeted_selector_oracle_gap.json
+sha256=19ab8a9426792aac965e601a7dce4718a0ded65c8c42f65fc3ec3b04f7bab436
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_selector_oracle_gap_a8336e8/targeted_selector_oracle_gap.md
+sha256=bef206ead21d61e591497783a99470b77fcc3eeb1bbbeb02e4baaf5e7e6fc463
+```
+
+Selector-gap result:
+
+```text
+status=current_selector_gap_open
+passed=False
+authorized_next_work=selector_label_weight_design_preflight
+oracle_passed=True
+evaluated_passed_proof_protocol_v2=False
+evaluated_gap_closed=False
+evaluated_same_as_logged=True
+
+top1_bucket_failures={
+  red_light_turn: 0.08013826176760376,
+  traffic_light: 0.08218273836801962
+}
+
+gap_bucket_failures={
+  normal: 0.01394146905254399,
+  traffic_light: 0.9352687839558874,
+  red_light_turn: 0.938615129210424,
+  sharp_turn: 0.804532627552228,
+  npc_interaction: 0.5668089280113743,
+  dense_scene: 0.5605416558664467,
+  lane_change_or_merge: 3.0377703286705118
+}
+```
+
+Decision:
+
+Accept this as targeted candidate-pool opportunity evidence, not as CAMP
+improvement proof. The fixed DP candidate pools contain hard-guarded
+SafetyCost-improving alternatives in every targeted and guard bucket, including
+traffic-light and red-light-turn cases. However, the current logged CAMP
+selector still fails ProofProtocol v2 in `traffic_light` and `red_light_turn`,
+and it leaves the hard-guarded oracle gap open in every required bucket.
+
+The generic selector-gap tool reports `selector_label_weight_design_preflight`
+as the next work, but that route has already been executed later in the audit:
+the offline convex selector training dry run (`35fedb8`) and the subsequent
+objective/label sensitivity route were rejected. Therefore, do not repeat the
+old selector-label/training path from this artifact alone.
+
+Accepted route:
+
+```text
+targeted_safety_cost_oracle_audit_only
+targeted_selector_oracle_gap_refresh
+```
+
+Rejected routes:
+
+```text
+claim_current_CAMP_beats_DP_Top1
+repeat_selector_label_weight_preflight_as_if_new
+rerun_rejected_offline_convex_training_or_sensitivity_routes
+online_selector_promotion
+closed_loop_smoke_or_Full36
+formal seeds 11/12/13
+DP modification or retraining
+DP-side classical Benders claim
+```
+
+Next gate:
+
+Run a read-only targeted failure-attribution gate before any new training or
+replay. It should consume the targeted oracle, selector-gap artifact, and the
+already rejected training/sensitivity diagnoses, then explain why
+traffic-light/red-light-turn buckets fail despite oracle opportunity. The gate
+must decide whether there is a genuinely new no-leak current-tick evidence path
+or whether the correct route is to reject the current CAMP-DP selector route
+until new candidate-state support is available. It must not train CAMP, run DP,
+run closed-loop replay, promote an online selector, reopen closed descriptor
+families, or claim formal readiness.
+
+Mathematical boundary:
+
+This audit uses closed-loop candidate outcomes only as offline oracle labels
+and proof evidence. Runtime CAMP inputs remain fixed current-tick
+finite-candidate coefficients. The CAMP score remains affine
+`score_k(w)=a_k^T w`, and the simplex/CVaR/L2 robust master remains convex.
+The finite-candidate selector and oracle summaries are not a DP-side classical
+Benders decomposition because no DP master/subproblem, dual, or valid cuts are
+constructed.
