@@ -49533,3 +49533,139 @@ it must be a fixed current-tick finite-candidate coefficient `a_k`, preferably
 nonnegative or represented with a nonnegative signed split, so
 `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
 convex. This is not a DP-side classical Benders decomposition.
+
+## Post-Inventory Next Design Plan (`3eb17fb`)
+
+Purpose:
+
+The `8aa1e4d` support inventory found no admissible unclosed current-tick
+candidate fields in the existing diverse nonformal logs. This step adds and
+runs a plan-only next-design gate. It rejects training or atom-schema design
+from the current logs and authorizes only a default-off missing candidate-state
+logging preflight. It does not run Diffusion Planner, run replay, train CAMP,
+promote an online selector, use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+3eb17fb Add post-inventory next design gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_post_inventory_next_design.py
+camp_core/tests/test_diffusion_planner_post_inventory_next_design.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_post_inventory_next_design.py \
+  camp_core\tests\test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core\tests\test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_design.py \
+  camp_core\tests\test_diffusion_planner_observable_state_payload_coverage.py -q
+22 passed in 1.57s
+
+git diff --check
+```
+
+AutoDL sync and validation:
+
+```text
+CAMP_HEAD=3eb17fbf93aaf2c42040aabef9de3d27144e07b5
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_post_inventory_next_design.py \
+  camp_core/tests/test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core/tests/test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_design.py \
+  camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py -q
+22 passed in 0.49s
+```
+
+Plan command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+INV=$ROOT/current_tick_no_leak_atom_support_inventory_8aa1e4d/current_tick_no_leak_atom_support_inventory.json
+OUT=$ROOT/post_inventory_next_design_plan_3eb17fb
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_post_inventory_next_design.py \
+  --support_inventory_json "$INV" \
+  --label autodl_3eb17fb_post_inventory_next_design_plan \
+  --output_json "$OUT/post_inventory_next_design_plan.json" \
+  --output_md "$OUT/post_inventory_next_design_plan.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_inventory_next_design_plan_3eb17fb/post_inventory_next_design_plan.json
+sha256=f4b228e05b79b37dcc312fdb3558f4787a01f389055a51524103a69b28487683
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_inventory_next_design_plan_3eb17fb/post_inventory_next_design_plan.md
+sha256=5cb79106415bb25c6ccfe10907c1bd8d7d9d284e536f0a130f73d6e2508d78f4
+```
+
+Final decision:
+
+```text
+status=post_inventory_next_design_plan_ready
+passed=True
+authorized_next_work=predeclare_default_off_missing_candidate_state_logging_preflight_only
+recommended_first_action=default_off_missing_candidate_state_logging_preflight
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Rejected routes:
+
+```text
+train_new_camp_weights_from_current_logs
+new_atom_schema_from_existing_log_fields
+proof_objective_only_as_performance_claim
+direct_replay_or_full36
+```
+
+Authorized next design-only target:
+
+```text
+default_off_missing_candidate_state_logging_preflight
+candidate_state_families=[
+  candidate_lane_topology,
+  candidate_traffic_light_path_relation,
+  route_curvature_turn_context,
+  neighbor_interaction_clearance
+]
+```
+
+Next gate:
+
+Write a design-only default-off logging preflight for the missing
+candidate-state families. The preflight must specify payload schema, finite
+checks, baseline equivalence, latency accounting, fail-closed metadata, and a
+strict no-future-outcome policy. It must keep training, replay, online selector
+promotion, Full36, formal seeds, and DP modification disabled.
+
+Mathematical boundary:
+
+This plan does not add atoms or prove improvement. It only authorizes a
+default-off logging design preflight so that any future atom proposal can be
+based on current-tick candidate state rather than posterior outcomes. Any later
+atom must remain a fixed finite-candidate coefficient `a_k`, nonnegative or
+represented by nonnegative signed parts, preserving affine
+`score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. This is not
+classical Benders.
