@@ -41457,3 +41457,128 @@ is made available to online scoring. The rejected atom values would still be
 finite nonnegative coefficients \(a_k\) in `score_k(w)=a_k^T w`, so CAMP's
 simplex/CVaR/L2 master remains convex. The result does not construct a DP-side
 classical Benders master, subproblem, dual, or valid cut.
+
+## Observable Interaction Descriptor Preflight (`b9c4aa2` source)
+
+This design-only gate connects the relaxed-strict observability limit back to
+the earlier matched observable-state evidence without repeating the rejected
+single-field observable descriptor screen. It predeclares an interaction
+descriptor family using already logged current-tick observable fields. It does
+not run DP, does not collect new replay data, does not train CAMP, and does not
+change online selection.
+
+Source artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/relaxed_strict_atom_observability_limit.json
+/root/autodl-tmp/camp_dp_matched_observable_descriptor_separability_84cc0c3/matched_observable_descriptor_separability.json
+/root/autodl-tmp/camp_dp_observable_descriptor_bottleneck_e257294/observable_descriptor_bottleneck.json
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_observable_interaction_descriptor_preflight.py
+camp_core/tests/test_diffusion_planner_observable_interaction_descriptor_preflight.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_observable_interaction_descriptor_preflight.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_descriptor_preflight.py `
+  camp_core\tests\test_diffusion_planner_relaxed_strict_atom_observability_limit.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+8 passed in 0.50s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_descriptor_preflight_b9c4aa2
+mkdir -p "$OUT"
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_observable_interaction_descriptor_preflight.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_descriptor_preflight.py \
+  camp_core/tests/test_diffusion_planner_relaxed_strict_atom_observability_limit.py \
+  -q
+
+$PY scripts/integrations/plan_diffusion_planner_observable_interaction_descriptor_preflight.py \
+  --observability_limit_json /root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/relaxed_strict_atom_observability_limit.json \
+  --observable_separability_json /root/autodl-tmp/camp_dp_matched_observable_descriptor_separability_84cc0c3/matched_observable_descriptor_separability.json \
+  --observable_bottleneck_json /root/autodl-tmp/camp_dp_observable_descriptor_bottleneck_e257294/observable_descriptor_bottleneck.json \
+  --label autodl_b9c4aa2_observable_interaction_descriptor_preflight \
+  --output_json "$OUT/observable_interaction_descriptor_preflight.json" \
+  --output_md "$OUT/observable_interaction_descriptor_preflight.md"
+```
+
+Result:
+
+```text
+8 passed in 0.32s
+status=observable_interaction_descriptor_preflight_ready
+passed=True
+primary_gap=interaction_descriptor_family_preflight_passed
+authorized_next_work=offline_observable_interaction_descriptor_separability_screen_only
+CAMP_HEAD=b9c4aa2784137a01fce92f1b56ecd9ed3afdad95
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_descriptor_preflight.json
+a3e40bf52db08d06ab53fca4b1872b7ab8f7cb21e4a8425a234876ffe24295c1
+
+observable_interaction_descriptor_preflight.md
+75d7df539c96eca1532c1d34940c3bf17dae170bfbd2fe90b04dbf96b3be5206
+```
+
+Predeclared descriptor family:
+
+```text
+red_aligned_stopline_proximity_hinge_v1
+clearance_progress_tradeoff_hinge_v1
+turn_lateral_clearance_context_hinge_v1
+top1_deviation_without_current_safety_gain_v1
+```
+
+Decision:
+
+Accept the design-only preflight. These descriptors are intentionally not the
+same as the rejected single-field observable descriptors or the rejected
+relaxed-strict atom components. They use interactions among already logged
+current-tick observable fields: red-stopline proximity/alignment, obstacle
+clearance lower bound, route projection, lateral route error, and turn context.
+
+The next admissible work is an offline separability screen over existing
+matched observable outcome logs only. No new replay, online selector promotion,
+CAMP retraining, Full36, formal seeds, or DP modification is authorized by this
+gate.
+
+Mathematical boundary:
+
+The proposed descriptors are finite current-tick candidate coefficients
+computed from already logged observable-state fields. Products and hinges are
+allowed only as fixed feature computations before selection; CAMP still scores
+each candidate as `score_k(w)=a_k^T w`, so the simplex/CVaR/L2 master remains
+convex in weights. This gate does not claim trajectory-space convexity and does
+not construct a DP-side classical Benders master/subproblem, dual, or valid
+cut.
