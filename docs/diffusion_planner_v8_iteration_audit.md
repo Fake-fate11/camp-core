@@ -44652,3 +44652,135 @@ turn-logit-derived values must be fixed finite candidate coefficients `a_k`, so
 `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
 remains convex in `w`. No DP-side classical Benders master/subproblem, dual, or
 valid cut is constructed or claimed.
+
+## Turn-Logit Payload Design Gate (`d148f16` source)
+
+This gate predeclares the default-off turn-logit candidate payload authorized by
+the current-tick tensor visibility inventory. It consumes the strict visibility
+artifact and checks the CAMP wrapper/integration source hooks. It does not run
+DP, does not log a new payload, does not change turn-indicator behavior, does
+not train CAMP, and does not promote any selector.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_turn_logit_payload_design.py
+camp_core/tests/test_diffusion_planner_turn_logit_payload_design.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_turn_logit_payload_design.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_turn_logit_payload_design.py `
+  camp_core\tests\test_diffusion_planner_current_tick_tensor_visibility.py `
+  -q
+```
+
+Result:
+
+```text
+9 passed in 0.14s
+```
+
+AutoDL synchronization and validation:
+
+The code commit was pushed to GitHub and synchronized to AutoDL with a git
+bundle from local `9a9a37b674aa74a702f40548e9bfff04462a0b54..main`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:$PYTHONPATH
+OUT=/root/autodl-tmp/camp_dp_turn_logit_payload_design_d148f16
+mkdir -p "$OUT"
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_turn_logit_payload_design.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_turn_logit_payload_design.py \
+  camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py \
+  -q
+
+$PY scripts/integrations/plan_diffusion_planner_turn_logit_payload_design.py \
+  --tensor_visibility_json /root/autodl-tmp/camp_dp_current_tick_tensor_visibility_0cc7a07/current_tick_tensor_visibility.json \
+  --replay_source scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --integration_source camp_core/camp_core/integrations/diffusion_planner.py \
+  --label autodl_d148f16_turn_logit_payload_design \
+  --output_json "$OUT/turn_logit_payload_design.json" \
+  --output_md "$OUT/turn_logit_payload_design.md"
+```
+
+Result:
+
+```text
+9 passed in 0.03s
+status=turn_logit_payload_design_ready
+primary_gap=default_off_turn_logit_payload_design_ready
+authorized_next_work=default_off_turn_logit_payload_implementation_unit_tests_only
+new_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+classic_benders_claim_authorized=False
+CAMP_HEAD=d148f16d97d6beed36cb77f7cd004291a729c771
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+turn_logit_payload_design.json
+664e6fa8d444773f2eab9be41cb1b7d2a138f6209e4a76b72ec40ab3b6c8815a
+
+turn_logit_payload_design.md
+9b084f25a9c152224d59ea31e0fb6e2b8d1056f5663aefad9e11cf858382701e
+```
+
+Payload fields:
+
+```text
+candidate_turn_indicator_logits
+candidate_turn_indicator_probabilities
+candidate_turn_indicator_top_class
+```
+
+Atomization candidates:
+
+```text
+turn_logit_entropy_cost_v1
+turn_logit_margin_shortfall_v1
+turn_logit_non_top1_disagreement_v1
+```
+
+Decision:
+
+Accept the turn-logit payload design gate. The design is null-safe because
+`turn_indicator_logit` is optional; when logits are absent, payload fields must
+be null and no atomization candidate may be treated as available. When logits
+are present, the payload records all candidate logits before selection and does
+not change the existing selected-candidate turn-indicator behavior.
+
+Next admissible work:
+
+Implement only the default-off turn-logit payload with unit tests. The
+implementation must add schema metadata, shape/finite checks, null handling,
+latency accounting, and summary metadata while preserving selected trajectory,
+turn-indicator behavior, feasibility, CAMP atoms, scores, and weights. Replay,
+online selector promotion, Full36, formal seeds, CAMP retraining, DP
+modification, and any Benders claim remain unauthorized until a later gate.
+
+Mathematical boundary:
+
+The proposed atomization candidates are fixed current-tick finite-candidate
+coefficients. Normalized categorical entropy is nonnegative, margin shortfall is
+a nonnegative hinge, and candidate0-relative turn-class disagreement is a
+nonnegative indicator. If later used by CAMP, each enters the candidate vector
+`a_k`, preserving `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 robust
+master in `w`. No trajectory-coordinate convexity claim and no DP-side
+classical Benders master/subproblem, dual, or cut is constructed.
