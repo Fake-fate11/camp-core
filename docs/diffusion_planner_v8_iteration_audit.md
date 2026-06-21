@@ -57192,3 +57192,110 @@ roundoff. This still is not a safety-improvement result and does not authorize
 online selector promotion, CAMP retraining, Full36, formal seeds, DP
 modification, or a DP-side classical Benders claim. The next admissible gate is
 an existing-smoke shadow weight-sensitivity diagnosis that remains shadow-only.
+
+## Temporal Consistency Shadow Weight Sensitivity (`17bb897`)
+
+This gate consumes the accepted shadow atom dry-run and scans fixed shadow
+weights over the existing broader nonformal smoke logs. It computes
+`score'_k = selection_score_k + lambda * a_temporal,k` for each finite candidate
+and records whether the shadow-selected index would differ. It does not deploy a
+selector, train weights, execute DP, or read future outcomes.
+
+Implementation:
+
+```text
+17bb897f963998144aa1556feb221dc7c3ac195b
+scripts/integrations/analyze_diffusion_planner_temporal_consistency_shadow_weight_sensitivity.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_shadow_weight_sensitivity.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_temporal_consistency_shadow_weight_sensitivity.py \
+         camp_core\tests\test_diffusion_planner_temporal_consistency_shadow_atom_dry_run.py -q
+  result=8 passed
+
+AutoDL:
+  py_compile passed
+  pytest result=8 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+DRY=$DEV/temporal_consistency_shadow_atom_dry_run_cad6203/temporal_consistency_shadow_atom_dry_run.json
+ROOT=/root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_667eb7d
+OUT=$DEV/temporal_consistency_shadow_weight_sensitivity_17bb897
+
+$PY scripts/integrations/analyze_diffusion_planner_temporal_consistency_shadow_weight_sensitivity.py \
+  --shadow_dry_run_json "$DRY" \
+  --candidate_root "$ROOT/logging_enabled" \
+  --expected_logs 5 \
+  --expected_records 50 \
+  --expected_candidates 8 \
+  --expected_available_records 45 \
+  --label autodl_17bb897_temporal_consistency_shadow_weight_sensitivity \
+  --output_json "$OUT/temporal_consistency_shadow_weight_sensitivity.json" \
+  --output_md "$OUT/temporal_consistency_shadow_weight_sensitivity.md" \
+  --require_pass
+```
+
+Sensitivity result:
+
+```text
+status=temporal_consistency_shadow_weight_sensitivity_ready
+available_records=45
+zero_weight_changed_records=0
+max_changed_records=14
+min_critical_positive_weight=0.021680103075323913
+median_critical_positive_weight=1.5904517245948016
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+authorized_next_work=temporal_consistency_shadow_safety_proxy_existing_smoke_only
+```
+
+Weight grid:
+
+| Shadow weight | Changed records | Changed fraction | Mean temporal coefficient delta on changed |
+| ---: | ---: | ---: | ---: |
+| `0.0` | `0` | `0.0` | `nan` |
+| `0.01` | `0` | `0.0` | `nan` |
+| `0.05` | `2` | `0.044444444444444446` | `-0.10355950472499631` |
+| `0.1` | `5` | `0.1111111111111111` | `-0.09146138801525681` |
+| `0.2` | `5` | `0.1111111111111111` | `-0.10847866730657722` |
+| `0.5` | `11` | `0.24444444444444444` | `-0.08639106647485187` |
+| `1.0` | `14` | `0.3111111111111111` | `-0.09099722796622653` |
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_shadow_weight_sensitivity_17bb897/temporal_consistency_shadow_weight_sensitivity.json` | `776e8363b7ea649b9b85803bcc5132ae603c106202a28369e5615945439137d5` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_shadow_weight_sensitivity_17bb897/temporal_consistency_shadow_weight_sensitivity.md` | `557729212149a8d6abe12225e492a2c18b44d91f1e24c33308b6d601634ea3cf` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_shadow_weight_sensitivity_17bb897
+```
+
+Decision:
+
+Accept the shadow weight-sensitivity diagnosis as evidence that the atom has
+nontrivial selector influence in the existing candidate pool under positive
+shadow weights while preserving λ=0 exactness. This is still not safety-benefit
+evidence. It does not authorize online selector promotion, CAMP retraining,
+Full36, formal seeds, DP modification, or a classical Benders claim. The next
+admissible gate is an existing-smoke safety-proxy association: compare
+shadow-selected candidates against deployed selections using already logged
+current candidate safety/comfort/progress proxy fields before any selector
+design.
