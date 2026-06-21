@@ -50237,3 +50237,153 @@ must still enter CAMP as fixed coefficients `a_k`, nonnegative or decomposed
 into nonnegative signed parts, preserving affine `score_k(w)=a_k^T w` and the
 convex simplex/CVaR/L2 master. This remains outside a DP-side classical Benders
 claim.
+
+## Missing Candidate-State Broader Coverage Plan (`6fbb53b`)
+
+Purpose:
+
+The tiny smoke execution proved default-off missing candidate-state logging is
+selector-neutral over a minimal three-step nonformal run. This step adds and
+runs a current-chain plan gate for a broader nonformal logging-only coverage
+matrix. The gate consumes the tiny smoke selector-equivalence, payload-audit,
+dataset-audit, and validation-summary artifacts, then reuses the existing
+observable-state coverage plan. It does not run the broader matrix itself.
+
+Implementation:
+
+```text
+6fbb53b Add missing candidate-state broader coverage plan gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_missing_candidate_state_broader_coverage.py
+camp_core/tests/test_diffusion_planner_missing_candidate_state_broader_coverage_plan.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_broader_coverage_plan.py \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_tiny_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_logging_implementation.py \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_logging_preflight.py \
+  camp_core\tests\test_diffusion_planner_post_inventory_next_design.py \
+  camp_core\tests\test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core\tests\test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_design.py \
+  camp_core\tests\test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_smoke.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_coverage_plan.py -q
+49 passed in 1.27s
+
+git diff --check
+```
+
+AutoDL sync and validation:
+
+```text
+CAMP_HEAD=6fbb53b06b179948b65616299f3b3f2b3c2da370
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_broader_coverage_plan.py \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_tiny_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_logging_implementation.py \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_logging_preflight.py \
+  camp_core/tests/test_diffusion_planner_post_inventory_next_design.py \
+  camp_core/tests/test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core/tests/test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_design.py \
+  camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_coverage_plan.py -q
+49 passed in 0.71s
+```
+
+Plan command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+TINY=$ROOT/missing_candidate_state_logging_tiny_smoke_current_chain
+OUT=$ROOT/missing_candidate_state_broader_coverage_plan_6fbb53b
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_missing_candidate_state_broader_coverage.py \
+  --selector_equivalence_json "$TINY/audit/selector_equivalence.json" \
+  --payload_smoke_json "$TINY/audit/observable_state_logging_smoke.json" \
+  --dataset_audit_json "$TINY/audit/dataset_audit.json" \
+  --baseline_summary_json "$TINY/baseline/camp_validation_summary.json" \
+  --candidate_summary_json "$TINY/logging_enabled/camp_validation_summary.json" \
+  --label autodl_6fbb53b_missing_candidate_state_broader_coverage_plan \
+  --output_json "$OUT/missing_candidate_state_broader_coverage_plan.json" \
+  --output_md "$OUT/missing_candidate_state_broader_coverage_plan.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_broader_coverage_plan_6fbb53b/missing_candidate_state_broader_coverage_plan.json
+sha256=6612fad440dcb7bb755e3a7517dd91e00a25960f19c3f352c016ec6fbd51d0df
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_broader_coverage_plan_6fbb53b/missing_candidate_state_broader_coverage_plan.md
+sha256=31ae9a3e1d131a2866e48a13408b341fcef069c8e2ce74f1badbbc6907349fd5
+```
+
+Final decision:
+
+```text
+status=missing_candidate_state_logging_broader_coverage_plan_ready
+passed=True
+authorized_next_work=default_off_missing_candidate_state_logging_broader_nonformal_paired_smoke_only
+closed_loop_replay_authorized=True
+closed_loop_replay_scope=paired nonformal logging-only matrix, 4 runs x 12 steps, baseline plus logging-enabled, no formal seeds, selector-neutral
+source_failed=[]
+base_plan_failed=[]
+training_execution_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Coverage targets:
+
+```text
+planned_logs=4
+planned_records=48
+planned_candidate_rows=384
+min_records_for_materiality=12
+min_red_context_records=1
+min_material_candidate_fields=4
+scenario_bucket_counts={
+  normal: 1,
+  npc_interaction: 2,
+  red_light_turn: 2,
+  sharp_turn: 3,
+  traffic_light: 2
+}
+```
+
+Next gate:
+
+Run only the broader nonformal paired logging commands and audits emitted by
+the `6fbb53b` plan artifact. The matrix must remain logging-only and
+selector-neutral. Reject if selector equivalence fails, payload coverage lacks
+materiality/red context, dataset audit fails, any formal seed appears, or scope
+expands beyond 4 runs x 12 steps.
+
+Mathematical boundary:
+
+This is still only a logging/materiality coverage pass. It does not train CAMP,
+change weights, change online selection, or prove CAMP beats DP Top-1. Logged
+descriptors remain fixed current-tick finite-candidate quantities; any future
+atomization must preserve affine `score_k(w)=a_k^T w` and the convex
+simplex/CVaR/L2 master, with no DP-side classical Benders claim.
