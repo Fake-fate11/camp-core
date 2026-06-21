@@ -50822,3 +50822,136 @@ coefficients `a_k`, nonnegative or represented by nonnegative signed parts, so
 convex. Offline outcomes may define labels or evaluation gates, but they must
 not become online selector inputs. No DP-side classical Benders decomposition
 is claimed.
+
+## Targeted Safety-Intervention Proof Objective (`9fd9d03` artifacts)
+
+Purpose:
+
+The post-bridge gate authorized only a targeted proof-objective predeclaration.
+This step adds that design-only gate. It keeps the frozen SafetyCost v1 score,
+but changes the claim shape from a single global mean to a targeted
+safety-intervention objective: improve safety-critical buckets while proving
+normal/overall nondegradation and preserving all hard gates.
+
+Code change:
+
+```text
+9fd9d03 Add targeted safety intervention proof objective gate
+```
+
+Local verification:
+
+```text
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_targeted_safety_intervention_proof_objective.py \
+  camp_core/tests/test_diffusion_planner_post_bridge_proof_objective_next_design.py \
+  camp_core/tests/test_diffusion_planner_proof_protocol_v2.py \
+  camp_core/tests/test_diffusion_planner_safety_score_compare.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py \
+  -q
+
+24 passed
+git diff --check passed
+```
+
+AutoDL verification:
+
+AutoDL was synchronized to:
+
+```text
+9fd9d03533e0aba4651abc148a5725509cf699ac
+```
+
+The same targeted AutoDL test set passed:
+
+```text
+24 passed
+git diff --check passed
+```
+
+Artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_intervention_proof_objective_9fd9d03/targeted_safety_intervention_proof_objective.json
+sha256=cf81da123ed4ad6d2eebb2987fef3869c7a3a77b4639792ec4a9722289b957aa
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_intervention_proof_objective_9fd9d03/targeted_safety_intervention_proof_objective.md
+sha256=226082e53d385bea4b8a001e060657797ac9047c0a533cfac30fc754146db4b3
+```
+
+Source input:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_bridge_proof_objective_next_design_145e714/post_bridge_proof_objective_next_design.json
+```
+
+Decision:
+
+```text
+status=targeted_safety_intervention_proof_objective_predeclared
+authorized_next_work=targeted_safety_intervention_scenario_manifest_design_only
+recommended_first_action=targeted_safety_intervention_scenario_manifest_design
+training_execution_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Target and guard buckets:
+
+```text
+target_buckets=[
+  traffic_light,
+  red_light_turn,
+  sharp_turn,
+  npc_interaction,
+  dense_scene,
+  lane_change_or_merge
+]
+guard_buckets=[overall, normal]
+```
+
+Claim contract:
+
+```text
+primary comparison=CAMP_minus_DP_Top1
+primary rule=hard_gates_pass_all_required_buckets and
+  ci95_high(TargetSafetyCost_CAMP_minus_DP_Top1) < 0
+tail rule=ci95_high(TargetSafetyCost_CVaR90_CAMP_minus_DP_Top1) <= 0
+normal guard=ci95_high(SafetyCost_normal_CAMP_minus_DP_Top1) <= 0
+overall guard=ci95_high(SafetyCost_overall_CAMP_minus_DP_Top1) <= 0
+latency guard=total planning-path p95 CI high <= 95 ms before expansion
+formal seeds=forbidden until separately authorized
+```
+
+Rejected routes:
+
+```text
+global_safetycost_only_claim
+targeted_objective_as_selector_feature
+training_before_target_manifest_and_oracle
+formal_seed_or_full36_from_design_only_gate
+```
+
+Next gate:
+
+Design the targeted scenario manifest and evidence matrix. It must use only
+route/config metadata, not closed-loop outcomes, to assign target and guard
+buckets. It should prove every required target and guard bucket has planned
+coverage before any candidate-branch oracle, training, replay, Full36, or
+formal seed work.
+
+Mathematical boundary:
+
+This is only a proof/evaluation objective. SafetyCost values, bucket labels,
+candidate-branch oracle choices, and closed-loop outcomes are offline labels or
+evaluation evidence only. They are not runtime selector inputs and not CAMP
+atoms. Any later CAMP atom must remain a fixed current-tick finite-candidate
+coefficient `a_k`, preserving affine `score_k(w)=a_k^T w` and the convex
+simplex/CVaR/L2 robust master. No DP-side classical Benders decomposition is
+claimed.
