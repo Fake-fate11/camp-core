@@ -57898,3 +57898,102 @@ not equivalent to closed families and does not require DP modification. The
 predeclaration must justify why existing logs can or cannot test the source
 before any smoke, atomization, CAMP retraining, online selector change, Full36,
 or formal seeds are considered.
+
+## Source Visibility Predeclaration Screen (`940af46`)
+
+This gate is the immediate self-iteration after the post-targeted-safety
+boundary. It consumes that boundary and screens explicit source-visibility
+proposals. No proposal was supplied in this run, so the correct machine-readable
+result is to keep the fixed-DP CAMP selector route paused rather than invent a
+new atom or run another smoke.
+
+Implementation:
+
+```text
+940af4602c26d1856f219bf29849aa5562925845 Add source visibility predeclaration screen
+scripts/integrations/plan_diffusion_planner_source_visibility_predeclaration_screen.py
+camp_core/tests/test_diffusion_planner_source_visibility_predeclaration_screen.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_source_visibility_predeclaration_screen.py \
+         camp_core\tests\test_diffusion_planner_post_targeted_safety_support_boundary.py -q
+  result=11 passed
+
+AutoDL:
+  CAMP HEAD=940af4602c26d1856f219bf29849aa5562925845
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest result=11 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+BOUNDARY=$DEV/post_targeted_safety_support_boundary_a86035e/post_targeted_safety_support_boundary.json
+OUT=$DEV/source_visibility_predeclaration_screen_940af46
+
+$PY scripts/integrations/plan_diffusion_planner_source_visibility_predeclaration_screen.py \
+  --boundary_json "$BOUNDARY" \
+  --label autodl_940af46_source_visibility_predeclaration_screen_no_proposal \
+  --output_json "$OUT/source_visibility_predeclaration_screen.json" \
+  --output_md "$OUT/source_visibility_predeclaration_screen.md" \
+  --require_pass
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/source_visibility_predeclaration_screen_940af46/source_visibility_predeclaration_screen.json` | `ea7bb091d79bad7fad18c26bae53a850a18d5989ef1ecadb8d13b3525a726780` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/source_visibility_predeclaration_screen_940af46/source_visibility_predeclaration_screen.md` | `9da91ac66306a5323e1262b4b02cd8df77b93f158a8b93afa0c6a5690b6e88a4` |
+
+Decision:
+
+```text
+status=source_visibility_predeclaration_no_admissible_source_paused
+passed=True
+selector_route_paused=True
+support_source_ready=False
+admissible_sources=[]
+rejected_sources=[]
+authorized_next_work=keep_selector_route_paused_or_submit_new_source_visibility_proposal_only
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Accept this negative screen. It is not a proof of CAMP deployability; it is a
+guardrail against false progress. With no materially new current-tick source
+proposal, replay, atomization, training, online selector promotion, Full36,
+formal seeds, DP modification, and DP-side Benders claims remain unauthorized.
+
+Mathematical boundary:
+
+The screen creates no atom and runs no selector. Any later accepted source must
+be a fixed current-tick finite-candidate coefficient `a_k`, nonnegative,
+hinged, or signed-split, so `score_k(w)=a_k^T w` remains affine and the
+simplex/CVaR/L2 master remains convex. No DP-side classical Benders
+decomposition is claimed.
+
+Next admissible work:
+
+Keep the route paused or submit a concrete new source-visibility proposal JSON
+that passes this screen. A valid proposal must be current-tick available before
+selection, candidate-level or deterministically joinable, finite or fail-closed,
+non-equivalent to closed source labels, not a future outcome or SafetyCost
+label, not require DP modification/retraining, and predeclare latency and
+atomization before any replay is considered.
