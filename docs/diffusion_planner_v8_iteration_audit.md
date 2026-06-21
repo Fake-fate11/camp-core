@@ -54266,6 +54266,32 @@ run_signal_arrival_materiality_smoke.sh
 sha256=DF26D2325433A7995253CD668F67A6B6C4897AEC1875DAD65BFEE54DAC39DAB4
 ```
 
+AutoDL sync and verification:
+
+```text
+autodl_camp_head=200116905c19e6833cef1ec5da0aed5bc440d2ad
+autodl_camp_origin=200116905c19e6833cef1ec5da0aed5bc440d2ad
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_python=/root/autodl-tmp/dp312_venv/bin/python
+autodl_py_compile=passed
+autodl_signal_arrival_plan_tests=5 passed
+```
+
+AutoDL artifacts:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_signal_arrival_materiality_smoke_plan_2001169
+
+external_context_signal_arrival_materiality_smoke_plan.json
+sha256=8fe8f8a509ebd0722c48b64503192e59dccda3edd470cc2c448dfc6d05ee76ef
+
+external_context_signal_arrival_materiality_smoke_plan.md
+sha256=6399a7ab34559f45c787b42c36b18ec9894e2f25bf93ba5f017059bdfd169501
+
+run_signal_arrival_materiality_smoke.sh
+sha256=6ce5424c247df8ff2a02c25cc8d4818f3d572cef7090685f69b97c1f7d50c0d4
+```
+
 Decision:
 
 Accept this as a plan-only targeted materiality gate. It authorizes exactly one
