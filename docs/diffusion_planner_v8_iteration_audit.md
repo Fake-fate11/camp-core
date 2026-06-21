@@ -53196,3 +53196,185 @@ promotion, or DP modification. The next actionable remote step is to either use
 the existing environment to run the real tiny external-context paired smoke
 runbook, or first provision/activate a pytest-capable environment if remote
 test execution is required.
+
+## Real External Context Tiny Smoke And Materiality Gap (`8a6902f` artifacts)
+
+Purpose:
+
+This step executes the previously authorized real AutoDL paired tiny smoke for
+external-context payload logging. The run is non-formal, seed 1, 3 steps, 8
+candidates, traffic lights off, default-off baseline paired with logging-enabled
+candidate, and uses the fixed DP checkout. It then runs the result gate and the
+materiality gate. Because materiality is rejected, atomization and atom-schema
+dry-run are not run on this real smoke. A separate read-only materiality-gap
+diagnosis records the reason and authorizes only a plan-only targeted
+materiality smoke design.
+
+Status audit:
+
+```text
+local_head_before_smoke=dfbc83668b2e7d35cc7e9982374dafe0e47fbb67
+local_head_after_gap_tool=8a6902f2f1dadb00195fa9eaef6cd5ff8be369a7
+github_origin_main_after_gap_tool=8a6902f2f1dadb00195fa9eaef6cd5ff8be369a7
+autodl_camp_head_after_gap_tool_sync=8a6902f2f1dadb00195fa9eaef6cd5ff8be369a7
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_dp_status=clean
+remote_pytest=not_run_pytest_module_missing
+```
+
+Implementation:
+
+```text
+8a6902f Add external context materiality gap diagnosis
+```
+
+Files:
+
+```text
+scripts/integrations/diagnose_diffusion_planner_external_context_materiality_gap.py
+camp_core/tests/test_diffusion_planner_external_context_materiality_gap.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\diagnose_diffusion_planner_external_context_materiality_gap.py \
+  camp_core\tests\test_diffusion_planner_external_context_materiality_gap.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_materiality_gap.py \
+  camp_core\tests\test_diffusion_planner_external_context_atom_schema_dry_run.py \
+  camp_core\tests\test_diffusion_planner_external_context_atomization_preflight.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_materiality.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_result.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+43 passed
+git diff --check passed
+```
+
+Remote verification:
+
+```text
+/root/miniconda3/bin/python -m py_compile \
+  scripts/integrations/diagnose_diffusion_planner_external_context_materiality_gap.py \
+  camp_core/tests/test_diffusion_planner_external_context_materiality_gap.py
+
+remote_gap_py_compile=passed
+```
+
+Real smoke command scope:
+
+```text
+root=/root/autodl-tmp/camp_dp_external_context_payload_smoke
+route=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+seed=1
+steps=3
+num_candidates=8
+max_npcs=4
+traffic_lights=off
+baseline_external_context_payload_logging=False
+candidate_external_context_payload_logging=True
+formal_seeds=not_used
+Full36=False
+CAMP_retraining=False
+online_selector_promotion=False
+DP_modification=False
+```
+
+Real smoke result:
+
+```text
+selector_equivalence=True
+selector_records=3
+selector_exact_mismatches=0
+selector_numeric_mismatches=0
+payload_audit_status=external_context_payload_smoke_audit_passed
+payload_records=3
+available_payload_records=3
+route_speed_available_records=3
+traffic_signal_available_records=0
+dataset_audit=passed
+smoke_result_status=external_context_payload_smoke_result_ready
+smoke_result_authorized_next_work=external_context_payload_materiality_diagnosis_existing_smoke_only
+```
+
+Materiality gate result:
+
+```text
+materiality_status=external_context_payload_materiality_rejected
+materiality_authorized_next_work=None
+material_families=[]
+traffic_signal_fields_finite=0
+route_speed_limit_min_mps_min=8.333333015441895
+route_speed_limit_min_mps_max=8.333333015441895
+candidate_speed_limit_excess_integral_mps_min=0.0
+candidate_speed_limit_excess_integral_mps_max=0.0
+candidate_speed_limit_available_fraction_min=1.0
+candidate_speed_limit_available_fraction_max=1.0
+```
+
+Gap diagnosis:
+
+```text
+gap_status=external_context_materiality_gap_diagnosed
+authorized_next_work=external_context_targeted_materiality_smoke_plan_only
+gap_names=traffic_signal_context_absent,
+  route_speed_context_available_but_no_candidate_excess,
+  route_speed_availability_constant,
+  nonmaterial_constant_speed_limit
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+formal_seeds_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Artifact paths and SHA:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_payload_smoke/audit
+local_copy=F:\camp_core-main\analysis_bundles\external_context_real_smoke_8a6902f
+
+run_external_context_payload_smoke_dfbc836.log
+sha256=52B5A0C1B95ED577AED08583D0694A4E2BBE66222AEF9E53D134AD08C88B32D7
+
+selector_equivalence.json
+sha256=75C1D2188B740B6E393162ACE632C97A7D2CEBF058C854CD3A54ADD868151507
+
+external_context_payload_smoke.json
+sha256=0181A06B2D190538F1A371BC4825E9DAE1BBB5267BE94CD2C51835C69FF099A9
+
+dataset_audit.json
+sha256=71E1F09C4CB76F664EEA9FB73865952D060F0DFF034B575C272C3AF162C5E22B
+
+external_context_payload_smoke_result.json
+sha256=E5B199ED0E4FD3035C94F84EC005C7546A1FD0F949AC2399F67972F9C0F8E975
+
+external_context_payload_materiality.json
+sha256=459F9CC375A96FAEC176C4D9E076EF65DC6F3F20EC8E2B31275C18EFF19B2F33
+
+external_context_materiality_gap.json
+sha256=6C54914EF299C688EE520A49183B5FF5614EC00B1E998CCD932D8AC5B4225338
+
+external_context_materiality_gap.md
+sha256=3E85AB7356B7D7DDE761C7B8A1870E7CAB4C117ED606763BC00C9A93790D10EE
+```
+
+Decision:
+
+Accept the real tiny smoke result gate as a valid no-leak/default-off logging
+check. Reject atomization from this real smoke because no external-context
+family has candidate-level materiality: traffic-signal context is absent, route
+speed context is present but every candidate has zero speed-limit excess, and
+speed-limit availability is constant. Do not run the atomization preflight or
+atom-schema dry-run on this real smoke. The only authorized next work is
+plan-only targeted materiality smoke design that can expose candidate-level
+external-context variation without training, online selection, Full36, formal
+seeds, or DP modification.
