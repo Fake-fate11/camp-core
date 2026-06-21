@@ -43577,3 +43577,192 @@ why the current route/map/NPC support fails to produce positive current-tick
 red-risk and clearance-deficit materiality, or an explicit rejection of this
 observable-interaction route. Do not run separability, retraining, Full36,
 formal seeds, or selector promotion from this evidence.
+
+## Observable Interaction Inventory Diagnosis (`eeb42ac` source)
+
+This gate implements and runs a read-only inventory diagnosis over the
+refreshed observable-interaction smoke logs. It does not run Diffusion Planner,
+does not use closed-loop outcome labels, does not create a selector, and does
+not train CAMP. Its purpose is to explain why the rejected smoke failed to
+produce positive current-tick red-risk and clearance-deficit materiality.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_observable_interaction_scenario_support.py
+camp_core/tests/test_diffusion_planner_observable_interaction_scenario_support.py
+```
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_observable_interaction_scenario_support.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_scenario_support.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_coverage_smoke.py `
+  -q
+```
+
+Result:
+
+```text
+9 passed in 0.62s
+```
+
+AutoDL synchronization:
+
+GitHub fetch from AutoDL failed twice with:
+
+```text
+GnuTLS recv error (-110): The TLS connection was non-properly terminated
+```
+
+The synchronized `eeb42ac66ba9923b99cb7147aa0d59829615b961` checkout was
+therefore transferred by a git bundle and fast-forwarded on AutoDL. This keeps
+the AutoDL worktree commit-identical to local/GitHub, while AutoDL's
+`origin/main` tracking ref may remain stale until GitHub TLS fetch recovers.
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_interaction_scenario_support.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_scenario_support.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_coverage_smoke.py \
+  -q
+
+ROOT=/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_3a3992e_cmdrefresh
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_inventory_eeb42ac
+mkdir -p "$OUT"
+
+$PY scripts/integrations/analyze_diffusion_planner_observable_interaction_scenario_support.py \
+  --source_smoke_json "$ROOT/audit/observable_interaction_coverage_smoke.json" \
+  --root "$ROOT" \
+  --label autodl_eeb42ac_observable_interaction_inventory \
+  --output_json "$OUT/observable_interaction_inventory.json" \
+  --output_md "$OUT/observable_interaction_inventory.md"
+```
+
+Result:
+
+```text
+9 passed in 0.36s
+status=observable_interaction_scenario_support_bottleneck_recorded
+passed=False
+primary_gap=red_context_support_absent,clearance_context_support_absent
+authorized_next_work=reject_observable_interaction_coverage_or_inspect_map_geometry_before_replay
+new_replay_authorized=False
+offline_separability_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_inventory.json
+43c882ed120c1448bc949ab1b25ee666c4b7f9d5982ac3d85a157332976bc1c7
+
+observable_interaction_inventory.md
+f069d93f31d128476300536af3757303b2f39dedd6f17becacd7338c01576d84
+```
+
+Inventory evidence:
+
+```text
+records=96
+candidate_payload_records=48
+baseline_disabled_records=48
+payload_candidates=384
+excluded_formal_seed_logs=0
+formal_seed_records=0
+red_context_supported=False
+clearance_context_supported=False
+red_context_candidate_count=0
+clearance_context_candidate_count=0
+records_with_red_distance_payload=24
+records_with_red_distance_inside_budget=2
+records_with_positive_red_alignment=0
+records_with_red_near_and_positive_alignment=0
+records_with_finite_clearance=2
+records_with_clearance_inside_budget=0
+records_with_positive_obstacle_slots=2
+min_red_distance_m=4.83404756877959
+max_red_alignment=0.0
+min_clearance_m=40.09188153863257
+red_bottleneck=nonpositive_red_alignment_collapses_risk
+clearance_bottleneck=clearance_budget_never_active
+next_gate_hint=inspect_route_stopline_heading_geometry_before_red_support_replay
+```
+
+Per-run diagnosis:
+
+```text
+tl_route59_seed1_npc0_tlon/observable_logging:
+  records_with_red_distance_payload=12
+  records_with_red_distance_inside_budget=1
+  records_with_positive_red_alignment=0
+  min_red_distance_m=4.83404756877959
+  max_red_alignment=-0.30157372946551847
+
+tl_route59_seed1_npc4_tlon/observable_logging:
+  records_with_red_distance_payload=12
+  records_with_red_distance_inside_budget=1
+  records_with_positive_red_alignment=0
+  records_with_finite_clearance=2
+  records_with_positive_obstacle_slots=2
+  records_with_clearance_inside_budget=0
+  min_red_distance_m=4.83404756877959
+  max_red_alignment=-0.30157372946551847
+  min_clearance_m=40.09188153863257
+```
+
+Decision:
+
+Accept the inventory diagnosis gate and keep the observable-interaction
+coverage route rejected for selector/separability promotion. The failure is
+now explained at the current-tick feature level:
+
+1. Red-light materiality collapses because the route reaches stopline
+   proximity (`min_red_distance_m` about `4.83m`, within the `5m` budget), but
+   every candidate has nonpositive red heading alignment, so
+   `max(alignment, 0) * max(5 - distance, 0)` is identically zero.
+2. Clearance materiality collapses because obstacle slots are present in only
+   two records and the closest lower-bound clearance remains about `40.09m`,
+   far above the `2m` budget, so clearance deficit is identically zero.
+
+This is not evidence for CAMP retraining. It is evidence that the current
+route/NPC support does not activate the no-leak red and clearance coefficients
+needed for an offline separability screen.
+
+Next admissible work:
+
+Do not run separability, Full36, formal seeds, online selector promotion, or
+CAMP retraining from this evidence. The next gate should inspect route 59
+stopline heading geometry and the NPC clearance-generation/support geometry
+before any replay. If that read-only geometry audit shows the current route is
+structurally unsuitable for positive red alignment or near-clearance support,
+reject this observable-interaction route. If it identifies a no-leak geometry
+or support change, predeclare a new narrow nonformal support experiment before
+running it.
+
+Mathematical boundary:
+
+This inventory diagnosis only reads current-tick finite-candidate observable
+payloads. The red and clearance quantities are diagnostic coefficients, not
+outcome labels, selector thresholds, learned weights, or a trajectory-space
+convexity claim. If later atomized, they must be fixed before scoring so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
+remains convex. No DP-side classical Benders master/subproblem, dual, or cut
+is constructed.
