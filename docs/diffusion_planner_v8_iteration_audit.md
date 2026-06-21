@@ -38715,3 +38715,120 @@ later atomized, the descriptors enter CAMP only as fixed candidate coefficients
 \(a_k\), preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex
 master. This still constructs no DP-side classical Benders master/subproblem,
 dual, or valid cut.
+
+## Progress + Lane/Hard Context Broader Nonformal Smoke (`f4d89f3`)
+
+This gate executes only the predeclared broader nonformal paired smoke from the
+previous plan. It runs the 4-run x 12-step baseline/logging-enabled matrix and
+then executes selector equivalence, payload smoke audit, payload coverage audit,
+and dataset audit. It does not use Full36 or formal seeds, does not promote
+online selection, does not modify DP, and does not retrain CAMP.
+
+Execution state:
+
+```text
+camp_head=f4d89f3dc7adf83996f1498dea24b5d674019c61
+dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+root=/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke
+plan=/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_plan_2785f8a/progress_lane_hard_context_broader_plan.json
+```
+
+Executed paired runs:
+
+```text
+tl_route59_seed1_npc0_tlon: baseline + logging_enabled
+tl_route59_seed1_npc4_tlon: baseline + logging_enabled
+tl_route59_seed2_npc4_tloff: baseline + logging_enabled
+normal_route2_seed1_npc0_tloff: baseline + logging_enabled
+```
+
+All eight replay commands exited `0`. Command logs are under:
+
+```text
+/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke/audit/command_logs
+```
+
+Audit artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke/audit/selector_equivalence.json` | `30b1c02e2274e5c15c8e0e956e40578a0bf12859a9922fe36eea76f898b86db5` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke/audit/progress_lane_hard_context_logging_smoke.json` | `c7155120e394e5be59ffdefa12ddd8f127fe12f46ba3791e1a1d912678c3cd40` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke/audit/progress_lane_hard_context_logging_smoke.md` | `127e2dbc2c725231188806807985d7712e7342989d6a2949b41ce007cd9e8a8e` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke/audit/progress_lane_hard_context_payload_coverage.json` | `b7e41b1174828cb968729a54fc4a426b7a8d8cd5c9b774ff5fb61bd1d4eb3fff` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke/audit/progress_lane_hard_context_payload_coverage.md` | `5756ef8b264a9acc8b20dc008b1465758f4386a36e856947e5a4651079580420` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke/audit/dataset_audit.json` | `60a77991d5595d189ee80a09d3060dbd3a7ee381325996beb276e0b2a86a400b` |
+
+Verifier result:
+
+```text
+passed=True
+selector_equivalent=True
+selector_paired_logs=4
+selector_records=48
+selected_index_mismatches=0
+score_mismatches=0
+weight_mismatches=0
+atom_mismatches=0
+payload_passed=True
+payload_counts={baseline_payload_records: 0, candidate_payload_records: 48, paired_logs: 4, records: 48}
+payload_errors=[]
+payload_warnings=[]
+coverage_status=progress_lane_hard_context_payload_coverage_ready_for_offline_separability_design
+coverage_materiality_gate_passed=True
+coverage_records=48
+coverage_payload_records=48
+coverage_candidate_rows=384
+coverage_context_records=48
+coverage_curvature_context_records=48
+coverage_positive_atom_records=48
+coverage_corridor_pressure_records=0
+material_atom_fields=[
+  curvature_conditioned_lateral_rate_excess_v1,
+  heading_curvature_residual_v1,
+  lane_progress_coherence_excess_v1
+]
+dataset_passed=True
+dataset_counts={logs: 4, records: 48, candidates: 384, all_infeasible_records: 1}
+formal_seeds_present=False
+max_latency_ms_progress_lane_hard_context_logging=5.400410853326321
+```
+
+Decision:
+
+Accept this broader nonformal logging evidence gate. The logging path remains
+selector-neutral over 48 records: selected indices, feasibility, scores,
+weights, atoms, and normalized atoms match exactly between baseline and
+logging-enabled runs. The payload and dataset audits pass, no formal seed is
+present, and the broader context payload reaches the declared materiality
+readiness threshold.
+
+This is still not a safety-improvement result. It proves that the
+progress+lane/hard context descriptor family has enough no-leak current-tick
+coverage and cross-candidate atom variation to justify an offline separability
+design. It does not authorize Full36, formal seeds, online selector promotion,
+CAMP retraining, or DP modification.
+
+Latency note:
+
+The broader max `latency_ms_progress_lane_hard_context_logging` is
+`5.400410853326321 ms`, above the earlier tiny-smoke source value but below the
+predeclared broader gate budget of `25 ms`. Projection remains the dominant
+component at `5.181833170354366 ms`.
+
+Next admissible work:
+
+Design only an offline no-leak descriptor separability screen for the logged
+progress+lane/hard context atoms. The design must consume fixed current-tick
+candidate descriptors and offline labels only for evaluation, must preserve the
+affine CAMP score form, and must not train CAMP or run new replay until the
+screen design is accepted.
+
+Mathematical boundary:
+
+The broader smoke records fixed current-tick finite-candidate descriptors and
+nonnegative atom coefficients before closed-loop outcome labels. If atomized,
+each candidate coefficient \(a_k\) is fixed before scoring, so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
+convex. This gate still constructs no DP-side classical Benders
+master/subproblem, dual, or valid cut.
