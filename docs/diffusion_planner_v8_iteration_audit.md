@@ -49669,3 +49669,130 @@ atom must remain a fixed finite-candidate coefficient `a_k`, nonnegative or
 represented by nonnegative signed parts, preserving affine
 `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. This is not
 classical Benders.
+
+## Missing Candidate-State Logging Preflight (`681957d`)
+
+Purpose:
+
+The `3eb17fb` post-inventory plan authorized only a default-off missing
+candidate-state logging preflight. This step adds that current-chain preflight
+and reuses the existing observable-state field definitions and source-hook
+checks. It verifies that the intended missing families are covered and that the
+current source contains hooks for route projection, red route points, turn
+context, and neighbor clearance. It does not run Diffusion Planner, replay,
+train CAMP, promote an online selector, use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+681957d Add missing candidate-state logging preflight
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_missing_candidate_state_logging_preflight.py
+camp_core/tests/test_diffusion_planner_missing_candidate_state_logging_preflight.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_logging_preflight.py \
+  camp_core\tests\test_diffusion_planner_post_inventory_next_design.py \
+  camp_core\tests\test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core\tests\test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_design.py \
+  camp_core\tests\test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_smoke.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_coverage_plan.py -q
+35 passed in 1.34s
+
+git diff --check
+```
+
+AutoDL sync and validation:
+
+```text
+CAMP_HEAD=681957d31c7c54b264ba839a06ff013370b8eb3e
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_logging_preflight.py \
+  camp_core/tests/test_diffusion_planner_post_inventory_next_design.py \
+  camp_core/tests/test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core/tests/test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_design.py \
+  camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_coverage_plan.py -q
+35 passed in 0.65s
+```
+
+Preflight command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PLAN=$ROOT/post_inventory_next_design_plan_3eb17fb/post_inventory_next_design_plan.json
+OUT=$ROOT/missing_candidate_state_logging_preflight_681957d
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_missing_candidate_state_logging_preflight.py \
+  --post_inventory_plan_json "$PLAN" \
+  --label autodl_681957d_missing_candidate_state_logging_preflight \
+  --output_json "$OUT/missing_candidate_state_logging_preflight.json" \
+  --output_md "$OUT/missing_candidate_state_logging_preflight.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_preflight_681957d/missing_candidate_state_logging_preflight.json
+sha256=629edc478d7619afb512a674c1f89f3e80eb14fcd53665a6e02d0dbeca007ea2
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_preflight_681957d/missing_candidate_state_logging_preflight.md
+sha256=a6a9a8da1201759974812997f5b85af88e864b6fdc8c72aad67ca0c9a2c12714
+```
+
+Final decision:
+
+```text
+status=missing_candidate_state_logging_preflight_ready
+passed=True
+authorized_next_work=default_off_missing_candidate_state_logging_implementation_unit_tests_only
+recommended_first_action=implement_default_off_logging_unit_gate
+families=[
+  candidate_lane_topology,
+  candidate_traffic_light_path_relation,
+  neighbor_interaction_clearance,
+  route_curvature_turn_context
+]
+missing_source_hooks=[]
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Next gate:
+
+Implement or verify the default-off missing candidate-state logging unit gate.
+The next gate is limited to unit/source/order/finite-shape/baseline-equivalence
+checks. Closed-loop replay, tiny smoke, Full36, formal seeds, online selector
+promotion, CAMP retraining, and DP modification remain blocked.
+
+Mathematical boundary:
+
+The preflight only specifies default-off logging of current-tick
+finite-candidate state fields and source hooks. If a logged field later becomes
+a CAMP atom, it must be a fixed coefficient `a_k`, nonnegative or represented
+by nonnegative signed parts, preserving affine `score_k(w)=a_k^T w` and the
+convex simplex/CVaR/L2 master. This is not a classical Benders construction.
