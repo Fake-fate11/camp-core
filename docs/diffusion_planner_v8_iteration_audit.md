@@ -54186,3 +54186,103 @@ change CAMP scores, feasibility, selected indices, DP candidate generation, DP
 weights, postprocessing, or PerfectTracker behavior. The rejected
 traffic-signal fields remain diagnostics only. No atom is created, no CAMP
 weight is retrained, and no DP-side classical Benders claim is made.
+
+## External Context Signal-Arrival Targeted Materiality Smoke Plan
+
+This step implements a plan-only gate for the next smallest admissible probe
+after the real traffic-lights-on signal-context smoke rejected materiality. The
+source gap is the existing AutoDL diagnosis:
+`external_context_materiality_gap_08c433c.json`, where the traffic-signal
+payload was available but no fixed DP candidate reached the signal within the
+previous 10-step payload support.
+
+Code commit:
+
+```text
+5a2deb433e3707b6c5cc55b4ca63b0ac58af6d67 Plan signal arrival materiality smoke
+```
+
+Files added:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_signal_arrival_targeted_materiality_smoke.py
+camp_core/tests/test_diffusion_planner_external_context_signal_arrival_targeted_materiality_smoke_plan.py
+```
+
+Commands:
+
+```powershell
+C:\Users\lenovo\anaconda3\python.exe -m py_compile `
+  scripts\integrations\plan_diffusion_planner_external_context_signal_arrival_targeted_materiality_smoke.py `
+  camp_core\tests\test_diffusion_planner_external_context_signal_arrival_targeted_materiality_smoke_plan.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests\test_diffusion_planner_external_context_signal_arrival_targeted_materiality_smoke_plan.py -q
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests -k diffusion_planner_external_context -q
+
+C:\Users\lenovo\anaconda3\python.exe `
+  scripts\integrations\plan_diffusion_planner_external_context_signal_arrival_targeted_materiality_smoke.py `
+  --gap_json analysis_bundles\external_context_signal_context_smoke_2cb95be\external_context_materiality_gap_08c433c.json `
+  --label local_5a2deb4_signal_arrival_materiality_plan `
+  --output_json analysis_bundles\external_context_signal_arrival_materiality_smoke_plan_5a2deb4\external_context_signal_arrival_materiality_smoke_plan.json `
+  --output_md analysis_bundles\external_context_signal_arrival_materiality_smoke_plan_5a2deb4\external_context_signal_arrival_materiality_smoke_plan.md `
+  --output_bash analysis_bundles\external_context_signal_arrival_materiality_smoke_plan_5a2deb4\run_signal_arrival_materiality_smoke.sh
+```
+
+Results:
+
+```text
+single_gate_tests=5 passed
+external_context_directed_tests=66 passed, 1137 deselected
+plan_status=external_context_signal_arrival_materiality_smoke_plan_ready
+authorized_next_work=external_context_signal_arrival_materiality_probe_smoke_only
+closed_loop_replay_authorized=True
+scope=paired nonformal signal-arrival materiality probe, seed1 npc4 traffic_lights_on static, 3 steps, payload_steps=50
+payload_dt_s=0.1
+payload_support_horizon_s=5.0
+new_replay_authorized=True
+CAMP_retraining_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+DP_modification_authorized=False
+Full36_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Local artifacts:
+
+```text
+local_copy=F:\camp_core-main\analysis_bundles\external_context_signal_arrival_materiality_smoke_plan_5a2deb4
+
+external_context_signal_arrival_materiality_smoke_plan.json
+sha256=86B23A440308F7CEE03D3DEBD0EBCD1DCA96A3F5A7D87C52D092BEB879D4BA50
+
+external_context_signal_arrival_materiality_smoke_plan.md
+sha256=4C7D7D8D5137AF00E4AE2AB21ADAF9CB716C9789F2A9BF1D58C65F646519633E
+
+run_signal_arrival_materiality_smoke.sh
+sha256=DF26D2325433A7995253CD668F67A6B6C4897AEC1875DAD65BFEE54DAC39DAB4
+```
+
+Decision:
+
+Accept this as a plan-only targeted materiality gate. It authorizes exactly one
+tiny paired nonformal signal-arrival probe on AutoDL, with traffic lights on and
+`camp_external_context_payload_steps=50`. It does not authorize atomization,
+online selector promotion, CAMP retraining, Full36, formal seeds, or DP
+modification. The probe must still pass selector equivalence, payload audit,
+dataset audit, smoke-result summary, and materiality diagnosis before any atom
+preflight can be considered.
+
+Mathematical boundary:
+
+The planned probe changes only the default-off diagnostic payload support
+horizon for fixed DP candidate trajectories. It does not change DP candidates,
+CAMP affine scoring, feasibility, selected indices, or closed-loop execution.
+Any future traffic-signal atom must be defined as fixed finite-candidate
+coefficients: arrival-time costs and right-of-way indicators are nonnegative,
+while phase margins require a hinge or signed-split definition before entering
+the affine score. CAMP must remain `score_k(w)=a_k^T w`; the simplex/CVaR/L2
+master remains convex. This is not a DP-side classical Benders decomposition.
