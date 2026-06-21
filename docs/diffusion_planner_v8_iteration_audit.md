@@ -46771,3 +46771,122 @@ the screen rejects due insufficient beneficial/harmful support or weak monotone
 separation, record that as a reject and do not train or promote the atom. If it
 passes, the next gate is certificate design only, still without online selector
 promotion or formal seeds.
+
+## 2026-06-21 - Non-Turn-Logit Interaction Outcome-Separability Screen
+
+Commit: `06ba64ca0874fb405ebc9d55329af12106ee7a45`
+
+Purpose:
+
+Run only the existing-artifact separability screen authorized by the previous
+plan. This consumes the accepted matched-outcome smoke logs and does not execute
+Diffusion Planner, does not collect new replay data, does not train CAMP, and
+does not change the online selector.
+
+Command scope:
+
+```text
+selection_log=/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/matched_interaction_outcomes/camp_selection_log.json
+matched_contract_json=/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/audit/matched_interaction_outcome_contract.json
+matched_dataset_audit_json=/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/audit/dataset_required_outcome_audit.json
+expected_logs=1
+expected_records=3
+expected_candidates=8
+fail_on_formal_seeds=True
+```
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_outcome_separability_screen_f165a68/audit/non_turn_logit_interaction_outcome_separability.json
+3762dd56216dea54c2d761d5769483cc7dbaf7acbe398ae372e10062d69792c1
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_outcome_separability_screen_f165a68/audit/non_turn_logit_interaction_outcome_separability.md
+7592f92f04f30dee4ddea6d87e5c99c8e988923345b37955878aa1a4adf02c9a
+```
+
+Screen result:
+
+```text
+status=non_turn_logit_interaction_outcome_separability_rejected
+passed=False
+primary_gap=comfort_progress_interaction_does_not_separate_candidates
+promising_screen_count=0
+authorized_next_work=diagnose_non_turn_logit_interaction_bottleneck_before_retraining
+new_replay_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+schema_promotion_authorized=False
+
+records.total_records=3
+records.candidate_rows=24
+records.alternative_rows=21
+records.class_counts.beneficial_alternative=5
+records.class_counts.harmful_alternative=15
+records.class_counts.neutral_alternative=1
+records.formal_seed_records=0
+source_gate.passed=True
+```
+
+Best atom-candidate screens:
+
+```text
+comfort_progress_interaction_cost >= 0:
+  harmful_block_rate=1.0
+  beneficial_retain_rate=0.0
+  allowed_harmful_rate=0.0
+  promising=False
+
+comfort_progress_interaction_cost >= 0.563812316743:
+  harmful_block_rate=0.2
+  beneficial_retain_rate=1.0
+  allowed_harmful_rate=0.6666666666666666
+  promising=False
+
+comfort_progress_interaction_cost >= 0.879529751433:
+  harmful_block_rate=0.13333333333333333
+  beneficial_retain_rate=1.0
+  allowed_harmful_rate=0.6842105263157895
+  promising=False
+
+comfort_progress_interaction_cost >= 0.939630344335:
+  harmful_block_rate=0.06666666666666667
+  beneficial_retain_rate=1.0
+  allowed_harmful_rate=0.7
+  promising=False
+```
+
+Decision:
+
+Reject the non-turn-logit interaction atom candidate for promotion on this
+evidence. The only atom-candidate descriptor either blocks all alternatives
+including all beneficial ones at threshold zero, or retains beneficial candidates
+while blocking too few harmful candidates at positive thresholds. This is not a
+stable safety-score improvement signal over DP Top-1.
+
+This reject does not prove that all progress/comfort atoms are useless; it only
+rejects this specific current payload candidate on the accepted tiny matched
+artifact. It explicitly blocks CAMP retraining, schema promotion, online selector
+promotion, Full36, formal seeds, and DP modification on this route.
+
+Mathematical boundary:
+
+The screen used future outcomes only as offline class labels and threshold
+diagnostics. The runtime feature remained a fixed nonnegative candidate
+coefficient. Because the screen rejected, no new atom is promoted into the CAMP
+affine score and the existing simplex/CVaR/L2 master is unchanged. No DP-side
+classical Benders decomposition is claimed.
+
+Next admissible work:
+
+Diagnose the bottleneck before any retraining. A valid next gate should be a
+read-only diagnostic over the same artifact that explains harmful alternatives
+missed by positive `comfort_progress_interaction_cost` thresholds: split by
+harmful reason, zero/nonzero interaction, progress deficit, jerk excess, hard
+safety flags, and whether the issue is support size, label definition, or atom
+definition. If the diagnosis shows this atom family cannot isolate harmful
+candidates without discarding beneficial candidates, reject it and return to the
+broader progress + lane/hard context evidence path rather than tuning thresholds.
