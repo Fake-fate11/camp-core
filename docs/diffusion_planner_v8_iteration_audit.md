@@ -37561,6 +37561,109 @@ runtime features. Any later separability screen remains a finite-candidate
 affine scalarization over fixed coefficients and preserves
 `score_k(w)=a_k^T w`; no DP-side classical Benders construction is introduced.
 
+## Revised Context Matched Outcome Smoke + Separability (`b6e1841` source)
+
+This gate executes the planned 4-paired-run, 12-step nonformal matched-outcome
+smoke. The baseline branch keeps revised context logging and outcome collection
+disabled. The matched branch enables `--camp_progress_lane_hard_context_logging`
+and `--camp_collect_closed_loop_outcomes`. It then runs selector equivalence,
+dataset required-outcome audit, matched context contract audit, and revised atom
+separability audit.
+
+Run root:
+
+```text
+/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+```
+
+Command results:
+
+```text
+8 paired replay commands rc=0
+selector_equivalence rc=0
+dataset_required_outcome_audit rc=0
+matched_context_contract_audit rc=0
+revised_atom_separability_audit rc=0
+```
+
+Core artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/selector_equivalence.json` | `71588556bc4f9f2f4b0462c5b4dfdabd1e2590e5582ce5b0125655510cc9a0b6` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/dataset_required_outcome_audit.json` | `8013ec4a8529d20714de0bb81f1d0b9eef1347f08b1ef5acab8ee5684f54df2a` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/matched_progress_lane_hard_context_outcome_contract.json` | `a3ed50d3d7498cb1af45e49a747c6b43b3d631f1d3dd0625061b9d60147436ff` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/matched_progress_lane_hard_context_outcome_contract.md` | `e7fe2fd7ed3121abb600e9ee8a7264aa7be40a6c6e4ffe5bab7dcf47a468b81d` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_atom_separability.json` | `51d4c9d588d0bbe0e377df0a92f0b22902726ed82e14710d64429ce26d4522f0` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_atom_separability.md` | `e9b8646bc49cf5e2c4f926b95454c3a8a60343be209afb073faf7e1799b9608d` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_matched_outcome_execution_log.json` | `9e6675c2571d476393a278a14d4636697d93ea5cdbe0c10415728de6af866589` |
+
+Smoke verifier result:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=48
+dataset_required_outcome_audit.passed=True
+dataset_counts={logs: 4, records: 48, candidates: 384, all_infeasible_records: 1}
+matched_context_contract.status=matched_progress_lane_hard_context_outcome_contract_passed
+matched_context_contract.records=48
+matched_context_contract.progress_lane_hard_context_records=48
+matched_context_contract.outcome_records=48
+matched_context_contract.candidate_rows=384
+formal_seed_records=0
+```
+
+Revised atom separability result:
+
+```text
+status=revised_progress_lane_hard_context_atom_separability_rejected
+passed=False
+primary_gap=revised_context_atoms_do_not_separate_candidates
+authorized_next_work=diagnose_revised_context_atom_bottleneck_before_retraining
+classified_candidate_rows=384
+alternative_rows=336
+class_counts={beneficial_alternative: 56, harmful_alternative: 180, neutral_alternative: 100}
+missing_outcome_records=0
+formal_seed_records=0
+promising_screen_count=0
+```
+
+Best revised-atom screen:
+
+```text
+screen=affine_simplex:0.250*revised_atom_heading_progress_conflict_v1+0.750*revised_atom_route_progress_efficiency_shortfall_v1
+threshold=0.0
+harmful_block_rate=1.0
+beneficial_retain_rate=0.03571428571428571
+allowed_harmful_rate=0.0
+allowed_candidates=4
+failure_gap=beneficial_retain_rate_insufficient
+```
+
+Decision:
+
+Accept the matched outcome smoke as valid evidence collection, but reject the
+current revised atom family for certificate/selector design. The revised atoms
+are observable, finite, nonnegative, outcome-complete, and selector-neutral, but
+the best no-leak finite-candidate screen retains only 2 of 56 beneficial
+alternatives while blocking all harmful alternatives. This is too conservative
+and does not prove CAMP can beat or match DP Top-1 on the comprehensive safety
+score.
+
+The next admissible work is only a bottleneck diagnosis over the revised atom
+separability failure. It must explain whether the rejection is due to atom
+definition, class-label/objective mismatch, insufficient scenario support, or
+candidate-set structure. It must not train CAMP, promote an online selector, run
+Full36, use formal seeds, or modify DP.
+
+Mathematical boundary:
+
+The rejected screen is still mathematically valid as an offline finite-candidate
+affine diagnostic over fixed nonnegative coefficients. The rejection is
+empirical: these coefficients do not separate beneficial and harmful candidates
+under the current offline label definition. No DP-side classical Benders
+decomposition is introduced.
+
 ## Progress + Lane/Hard Joint Screen Preflight (`886b100`)
 
 This design-only gate follows the lane/hard standalone bottleneck diagnosis.
