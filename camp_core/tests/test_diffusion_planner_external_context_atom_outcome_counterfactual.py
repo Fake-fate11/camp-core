@@ -79,6 +79,7 @@ def _record(*, seed: int = 1) -> dict[str, object]:
         "selected_index": 1,
         "feasible_mask": [True, True],
         "candidate_horizon_union_planned_red_light_cost": [0.0, 1.0],
+        "candidate_route_progress": [10.0, 10.0],
         "external_context_payload_logging": {
             "candidate_count": 2,
             "candidate_first_signal_arrival_time_s": [None, 2.0],
@@ -124,11 +125,38 @@ def test_external_context_atom_outcome_counterfactual_scores_atom_best(
     assert report["analysis"]["future_outcome_labels_used_for_atoms"] is False
     assert report["analysis"]["future_outcome_labels_used_for_evaluation"] is True
     assert report["summary"]["atom_best_better_records"] == 1
+    assert report["summary"]["guarded_atom_best_better_records"] == 1
     assert report["summary"]["atom_best_minus_selected_cost_mean"] < 0.0
+    assert report["summary"]["guarded_atom_best_minus_selected_cost_mean"] < 0.0
     row = report["counterfactual_rows"][0]
     assert row["selected_index"] == 1
     assert row["atom_best_index"] == 0
+    assert row["guarded_atom_best_index"] == 0
     assert row["relations"]["atom_best_hard_nonworse_than_selected"] is True
+
+
+def test_external_context_atom_outcome_counterfactual_progress_guard_retains_selected(
+    tmp_path: Path,
+) -> None:
+    record = _record()
+    record["candidate_route_progress"] = [0.0, 10.0]
+    candidate_root = tmp_path / "candidate"
+    _write_log(candidate_root, record)
+
+    report = analyze(
+        atomization=_atomization(),
+        candidate_root=candidate_root,
+        expected_records=1,
+        expected_candidates=2,
+        progress_loss_budget_m=0.1,
+    )
+
+    row = report["counterfactual_rows"][0]
+    assert row["atom_best_index"] == 0
+    assert row["guarded_atom_best_index"] == 1
+    assert row["guarded_would_change_selected_index"] is False
+    assert report["summary"]["guarded_changed_records"] == 0
+    assert report["final_decision"]["guarded_tiny_counterfactual_noninferior"] is True
 
 
 def test_external_context_atom_outcome_counterfactual_rejects_source_not_ready(

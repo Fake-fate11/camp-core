@@ -292,26 +292,47 @@ def _counterfactual_row(
     top1_cost = float(components[top1]["cost"])
     selected_progress = _outcome_float(outcomes[selected], "progress_m")
     atom_progress = _outcome_float(outcomes[atom_best], "progress_m")
+    route_progress = _candidate_route_progress(record, candidate_count)
+    guarded_atom_best = _guarded_atom_best_index(
+        combined,
+        route_progress,
+        selected,
+        progress_loss_budget_m=progress_loss_budget_m,
+    )
+    guarded_cost = float(components[guarded_atom_best]["cost"])
+    guarded_progress = _outcome_float(outcomes[guarded_atom_best], "progress_m")
     return {
         "record_index": index,
         "passed": True,
         "selected_index": selected,
         "atom_best_index": int(atom_best),
+        "guarded_atom_best_index": int(guarded_atom_best),
         "top1_index": top1,
         "would_change_selected_index": bool(atom_best != selected),
+        "guarded_would_change_selected_index": bool(guarded_atom_best != selected),
         "ranking_signal_present": bool(combined and max(combined) > min(combined)),
         "combined_atom_score": combined,
+        "candidate_route_progress": route_progress,
         "planned_red_source": planned_red_source,
         "costs": {
             "selected": selected_cost,
             "atom_best": atom_cost,
+            "guarded_atom_best": guarded_cost,
             "top1": top1_cost,
         },
         "deltas": {
             "atom_best_minus_selected_cost": atom_cost - selected_cost,
+            "guarded_atom_best_minus_selected_cost": guarded_cost - selected_cost,
             "atom_best_minus_top1_cost": atom_cost - top1_cost,
+            "guarded_atom_best_minus_top1_cost": guarded_cost - top1_cost,
             "selected_minus_top1_cost": selected_cost - top1_cost,
             "atom_best_progress_minus_selected_m": atom_progress - selected_progress,
+            "guarded_atom_best_progress_minus_selected_m": (
+                guarded_progress - selected_progress
+            ),
+            "guarded_route_progress_minus_selected_m": (
+                route_progress[guarded_atom_best] - route_progress[selected]
+            ),
         },
         "relations": {
             "atom_best_better_than_selected": atom_cost < selected_cost - EPS,
@@ -323,10 +344,24 @@ def _counterfactual_row(
                 outcomes[atom_best],
                 outcomes[selected],
             ),
+            "guarded_atom_best_better_than_selected": (
+                guarded_cost < selected_cost - EPS
+            ),
+            "guarded_atom_best_noninferior_to_selected": (
+                guarded_cost <= selected_cost + EPS
+            ),
+            "guarded_atom_best_progress_within_budget": (
+                guarded_progress + progress_loss_budget_m >= selected_progress
+            ),
+            "guarded_atom_best_hard_nonworse_than_selected": _hard_nonworse(
+                outcomes[guarded_atom_best],
+                outcomes[selected],
+            ),
         },
         "component_costs": {
             "selected": components[selected],
             "atom_best": components[atom_best],
+            "guarded_atom_best": components[guarded_atom_best],
             "top1": components[top1],
         },
         "future_outcome_labels_used_for_atoms": False,
@@ -341,25 +376,87 @@ def _hard_nonworse(candidate: dict[str, Any], baseline: dict[str, Any]) -> bool:
     )
 
 
+def _candidate_route_progress(record: dict[str, Any], candidate_count: int) -> list[float]:
+    values = record.get("candidate_route_progress")
+    if not isinstance(values, list) or len(values) != candidate_count:
+        raise ValueError("candidate_route_progress must match candidate count.")
+    parsed = [float(value) for value in values]
+    if not all(np.isfinite(value) for value in parsed):
+        raise ValueError("candidate_route_progress must be finite.")
+    return parsed
+
+
+def _guarded_atom_best_index(
+    scores: list[float],
+    route_progress: list[float],
+    selected_index: int,
+    *,
+    progress_loss_budget_m: float,
+) -> int:
+    selected_progress = route_progress[selected_index]
+    eligible = [
+        index
+        for index, progress in enumerate(route_progress)
+        if progress + progress_loss_budget_m >= selected_progress
+    ]
+    if not eligible:
+        return selected_index
+    best = eligible[0]
+    best_score = float(scores[best])
+    for index in eligible[1:]:
+        score = float(scores[index])
+        if score < best_score:
+            best = index
+            best_score = score
+    return int(best)
+
+
 def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     valid = [row for row in rows if row.get("passed")]
     deltas = [float(row["deltas"]["atom_best_minus_selected_cost"]) for row in valid]
+    guarded_deltas = [
+        float(row["deltas"]["guarded_atom_best_minus_selected_cost"]) for row in valid
+    ]
     changed = [row for row in valid if row["would_change_selected_index"]]
+    guarded_changed = [
+        row for row in valid if row["guarded_would_change_selected_index"]
+    ]
     better = [row for row in valid if row["relations"]["atom_best_better_than_selected"]]
     noninferior = [row for row in valid if row["relations"]["atom_best_noninferior_to_selected"]]
     hard = [row for row in valid if row["relations"]["atom_best_hard_nonworse_than_selected"]]
     progress = [row for row in valid if row["relations"]["atom_best_progress_within_budget"]]
+    guarded_better = [
+        row for row in valid if row["relations"]["guarded_atom_best_better_than_selected"]
+    ]
+    guarded_noninferior = [
+        row for row in valid if row["relations"]["guarded_atom_best_noninferior_to_selected"]
+    ]
+    guarded_hard = [
+        row for row in valid
+        if row["relations"]["guarded_atom_best_hard_nonworse_than_selected"]
+    ]
+    guarded_progress = [
+        row for row in valid
+        if row["relations"]["guarded_atom_best_progress_within_budget"]
+    ]
     return {
         "records": len(rows),
         "valid_records": len(valid),
         "changed_records": len(changed),
+        "guarded_changed_records": len(guarded_changed),
         "ranking_signal_records": sum(int(row["ranking_signal_present"]) for row in valid),
         "atom_best_better_records": len(better),
         "atom_best_noninferior_records": len(noninferior),
         "atom_best_hard_nonworse_records": len(hard),
         "atom_best_progress_within_budget_records": len(progress),
+        "guarded_atom_best_better_records": len(guarded_better),
+        "guarded_atom_best_noninferior_records": len(guarded_noninferior),
+        "guarded_atom_best_hard_nonworse_records": len(guarded_hard),
+        "guarded_atom_best_progress_within_budget_records": len(guarded_progress),
         "atom_best_minus_selected_cost_mean": _mean(deltas),
+        "guarded_atom_best_minus_selected_cost_mean": _mean(guarded_deltas),
         "atom_best_minus_selected_cost_values": deltas,
+        "guarded_atom_best_minus_selected_cost_values": guarded_deltas,
     }
 
 
@@ -368,6 +465,15 @@ def _final_decision(passed: bool, summary: dict[str, Any]) -> dict[str, Any]:
     noninferior_all = valid > 0 and summary["atom_best_noninferior_records"] == valid
     hard_all = valid > 0 and summary["atom_best_hard_nonworse_records"] == valid
     progress_all = valid > 0 and summary["atom_best_progress_within_budget_records"] == valid
+    guarded_noninferior_all = (
+        valid > 0 and summary["guarded_atom_best_noninferior_records"] == valid
+    )
+    guarded_hard_all = (
+        valid > 0 and summary["guarded_atom_best_hard_nonworse_records"] == valid
+    )
+    guarded_progress_all = (
+        valid > 0 and summary["guarded_atom_best_progress_within_budget_records"] == valid
+    )
     return {
         "status": READY_STATUS if passed else REJECT_STATUS,
         "passed": passed,
@@ -385,6 +491,9 @@ def _final_decision(passed: bool, summary: dict[str, Any]) -> dict[str, Any]:
         "classic_benders_claim_authorized": False,
         "promotion_authorized": False,
         "tiny_counterfactual_noninferior": bool(noninferior_all and hard_all and progress_all),
+        "guarded_tiny_counterfactual_noninferior": bool(
+            guarded_noninferior_all and guarded_hard_all and guarded_progress_all
+        ),
         "next_step": (
             "Use this tiny posterior-label result only to decide whether a "
             "predeclared broader nonformal outcome gate is justified; do not "
@@ -407,9 +516,13 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Tiny counterfactual noninferior: `{decision['tiny_counterfactual_noninferior']}`",
         f"- Valid records: `{summary['valid_records']}`",
         f"- Changed records: `{summary['changed_records']}`",
+        f"- Guarded changed records: `{summary['guarded_changed_records']}`",
         f"- Atom-best better records: `{summary['atom_best_better_records']}`",
+        f"- Guarded atom-best better records: `{summary['guarded_atom_best_better_records']}`",
         f"- Atom-best noninferior records: `{summary['atom_best_noninferior_records']}`",
+        f"- Guarded atom-best noninferior records: `{summary['guarded_atom_best_noninferior_records']}`",
         f"- Mean atom-best minus selected SafetyCost: `{summary['atom_best_minus_selected_cost_mean']}`",
+        f"- Mean guarded atom-best minus selected SafetyCost: `{summary['guarded_atom_best_minus_selected_cost_mean']}`",
         "",
         "## Record Effects",
         "",
@@ -421,7 +534,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append(
             f"- record `{row['record_index']}`: selected=`{row['selected_index']}`, "
             f"atom_best=`{row['atom_best_index']}`, "
+            f"guarded_atom_best=`{row['guarded_atom_best_index']}`, "
             f"delta_cost=`{row['deltas']['atom_best_minus_selected_cost']}`, "
+            f"guarded_delta_cost=`{row['deltas']['guarded_atom_best_minus_selected_cost']}`, "
             f"hard_nonworse=`{row['relations']['atom_best_hard_nonworse_than_selected']}`"
         )
     lines.extend(["", "## Math Boundary", "", report["analysis"]["math_boundary"], ""])
