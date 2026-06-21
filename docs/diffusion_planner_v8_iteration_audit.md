@@ -58329,3 +58329,120 @@ matrix. The audit may use closed-loop outcomes only as labels/evaluation
 evidence, must compare against DP Top-1/current CAMP under ProofProtocol v2, and
 must not train CAMP, run replay, promote a selector, use formal seeds, modify
 DP, or claim deployment.
+
+## Candidate-Branch SafetyCost Oracle Refresh (`4ff54e6`)
+
+This self-iteration executes the offline SafetyCost candidate-branch oracle audit
+authorized by the candidate oracle input-readiness gate. It is read-only over the
+existing 108-run diverse nonformal matrix logs. It does not run DP, collect new
+replay data, train CAMP, promote a selector, use formal seeds, or modify DP.
+
+Verification:
+
+```text
+AutoDL:
+  CAMP HEAD=4ff54e60d4e1c695192488731f4c7f7e6680664f
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_safety_cost_oracle.py \
+         camp_core/tests/test_diffusion_planner_safety_score_compare.py -q
+  result=14 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+ROOT=$DEV/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=$DEV/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+OUT=$DEV/safety_cost_oracle_post_source_inventory_4ff54e6
+
+$PY scripts/integrations/analyze_diffusion_planner_safety_cost_oracle.py \
+  --root "$ROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --output_json "$OUT/safety_cost_oracle.json" \
+  --output_md "$OUT/safety_cost_oracle.md" \
+  --fail_on_formal_seeds \
+  --fail_on_missing_required
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_post_source_inventory_4ff54e6/safety_cost_oracle.json` | `f84e941b86cbc0db384a11397c2a47aa8d6aca541005ba627889e177dfdef6e9` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_post_source_inventory_4ff54e6/safety_cost_oracle.md` | `434d17567d556b0f40e11c549b61e9226f956e035e7970f3df9f12e39278449f` |
+
+Summary:
+
+```text
+logs=108
+formal_seed_logs=0
+records=21600
+opportunity_gate.passed=True
+coverage_gaps.missing_required_buckets=[]
+overall.oracle_beats_top1_rate=0.8614351851851851
+overall.hard_guarded_oracle_available_rate=0.9979166666666667
+overall.hard_guarded_oracle_beats_top1_rate=0.8614351851851851
+overall.camp_matches_hard_guarded_oracle_rate=0.519537037037037
+overall.oracle_minus_top1_mean=-1.4988747606788198
+overall.hard_guarded_oracle_minus_top1_mean=-1.5374024485199482
+overall.camp_minus_top1_mean=-0.6943446017349293
+```
+
+Required-bucket gate:
+
+| Bucket | Records | hard-guarded oracle CI95 high | Passed |
+| --- | ---: | ---: | --- |
+| `normal` | 1200 | `-0.0325641326082991` | `true` |
+| `traffic_light` | 3600 | `-0.3987928894323747` | `true` |
+| `red_light_turn` | 3600 | `-0.40351534568305525` | `true` |
+| `sharp_turn` | 7200 | `-0.49181274966907734` | `true` |
+| `npc_interaction` | 1200 | `-0.7727011259726725` | `true` |
+| `dense_scene` | 1200 | `-0.7722944315209478` | `true` |
+| `lane_change_or_merge` | 7200 | `-1.0438644638589512` | `true` |
+
+Failure-mode counts:
+
+```text
+camp_not_hard_guarded_oracle_when_available=10333
+camp_not_oracle_when_oracle_beats_top1=8751
+camp_worse_than_top1=4350
+fallback_all_infeasible=4979
+hard_guarded_oracle_not_better_than_top1=2993
+hard_guarded_oracle_unavailable=45
+oracle_not_better_than_top1=2993
+```
+
+Interpretation:
+
+Accept this as strong nonformal evidence that the fixed DP candidate pool
+contains SafetyCost-improving branches across all required scenario buckets.
+This is not yet a deployable CAMP proof: the oracle uses offline closed-loop
+outcome labels and must never become a runtime selector input. The current
+logged CAMP does improve mean SafetyCost relative to DP Top-1 in this matrix,
+but it matches the hard-guarded oracle on only about `51.95%` of records, and
+`10333` records with an available guarded oracle still select a different
+branch. The next useful problem is therefore not more source mining; it is the
+proof-to-deployable gap between offline oracle opportunity and a legal
+current-tick CAMP scoring rule.
+
+Mathematical boundary:
+
+The oracle audit changes no atom, no weight, no DP output, no feasible mask, no
+fallback policy, and no online selector. Outcome labels are evaluation labels
+only. A later deployable CAMP selector must still use fixed current-tick
+finite-candidate coefficients in `score_k(w)=a_k^T w` with the convex
+simplex/CVaR/L2 master. This audit is not a DP-side Benders decomposition.
+
+Next admissible work:
+
+Run a proof-to-deployable gap diagnosis for this refreshed oracle artifact:
+quantify why current CAMP misses the hard-guarded oracle, separate fallback
+all-infeasible cases from score/schema misses, and identify whether any legal
+current-tick atom/schema/training route remains. Do not train CAMP, run replay,
+promote a selector, use formal seeds, modify DP, or claim deployment until that
+gap diagnosis authorizes a concrete next gate.
