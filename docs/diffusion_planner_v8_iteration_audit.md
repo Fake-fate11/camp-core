@@ -54745,3 +54745,157 @@ version must either express the added guard as fixed finite-candidate
 coefficients inside an affine CAMP score or explicitly name it as a
 finite-candidate lexicographic guard outside the CAMP master. No classical
 Benders claim is authorized.
+
+## External Context Guarded Failure Diagnostic and Tie-Break Audit
+
+This step explains the record-2 failure from the progress-guarded
+signal-arrival atom counterfactual and then tests the smallest safer tie-break
+variant on the same existing logs. No new replay was run for the diagnostic or
+the tie-break audit.
+
+Failure diagnostic code commit:
+
+```text
+73c0681c82c4d385548d4cb75374f5ea5799a8c1 Add guarded signal failure diagnostic
+```
+
+Selected-preserving tie-break commit:
+
+```text
+cbbe4730b9a54bd0bf865222f6ebd3fd4fd40707 Add selected-preserving signal atom tie break
+```
+
+Local tests:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests\test_diffusion_planner_external_context_guarded_failure_diagnostic.py -q
+result=3 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests\test_diffusion_planner_external_context_atom_outcome_counterfactual.py -q
+result=6 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests -k diffusion_planner_external_context -q
+result=76 passed, 1137 deselected
+```
+
+AutoDL sync:
+
+```text
+autodl_camp_head=cbbe4730b9a54bd0bf865222f6ebd3fd4fd40707
+autodl_camp_origin=cbbe4730b9a54bd0bf865222f6ebd3fd4fd40707
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_failure_diagnostic_tests=3 passed
+autodl_selected_preserving_counterfactual_tests=6 passed
+new_replay=False
+```
+
+Record-2 diagnostic artifact:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_signal_arrival_outcome_counterfactual/audit
+local_copy=F:\camp_core-main\analysis_bundles\external_context_record2_guarded_failure_diagnostic_73c0681
+
+external_context_record2_guarded_failure_diagnostic.json
+sha256=23FCACC84DDB0D2B79DC4DBFA0F11C5878EBCB4907C854CCA78356BDE12C7AB7
+
+external_context_record2_guarded_failure_diagnostic.md
+sha256=A578E2AFA0C575D24FB58308D89044D8A25CA140E9C231C279CDC87F98203C14
+```
+
+Record-2 diagnostic result:
+
+```text
+status=external_context_guarded_failure_diagnostic_ready
+guarded_failure_status=guarded_switch_worsens_safety_cost
+selected=6
+guarded_atom_best=2
+guarded_minus_selected_safety_cost=+15.535458700734303
+guarded_minus_selected_route_progress=0.0
+guarded_minus_selected_planned_red=+11.5
+guarded_minus_selected_camp_score=+0.519456449386209
+guarded_minus_selected_selection_score=+0.519456449386209
+guarded_minus_selected_h3_lateral=+0.2071015698704074
+fixed_descriptor_explainers=[
+  camp_score_lower_is_better,
+  camp_selection_score_lower_is_better,
+  planned_red_lower_is_better,
+  h3_mean_lateral_lower_is_better
+]
+```
+
+Interpretation:
+
+The record-2 bad switch is not an outcome-only mystery. Several current-tick
+fixed descriptors already favor the logged selected candidate over the guarded
+atom-best candidate: the original CAMP score, original selection score,
+planned-red certificate, and H3 lateral rollout. The simple progress guard is
+therefore too weak because it treats equal route progress as sufficient and
+then lets an arbitrary lowest-index atom tie-break override the logged CAMP
+choice.
+
+Selected-preserving tie-break artifact:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_signal_arrival_outcome_counterfactual/audit
+local_copy=F:\camp_core-main\analysis_bundles\external_context_selected_preserving_counterfactual_cbbe473
+
+external_context_selected_preserving_atom_outcome_counterfactual.json
+sha256=CB541D122E8E73B341B261660E264AC493E4EC439C4881B4CF958A2800DD5D8F
+
+external_context_selected_preserving_atom_outcome_counterfactual.md
+sha256=1EDB7552A02AB4FEE21973EC7DA5ED0BAEF3CAF67DE88C79C92E0F81B7448E02
+```
+
+Selected-preserving tie-break result:
+
+```text
+status=external_context_atom_outcome_counterfactual_ready
+promotion_authorized=False
+selected_preserving_guarded_tiny_counterfactual_noninferior=True
+selected_preserving_guarded_changed_records=0
+selected_preserving_guarded_atom_best_better_records=0
+selected_preserving_guarded_atom_best_noninferior_records=3
+mean_selected_preserving_guarded_atom_best_minus_selected_safety_cost=0.0
+
+record0 selected=2 selected_preserving_guarded_atom_best=2 delta_cost=0.0
+record1 selected=2 selected_preserving_guarded_atom_best=2 delta_cost=0.0
+record2 selected=6 selected_preserving_guarded_atom_best=6 delta_cost=0.0
+```
+
+Decision:
+
+Accept the selected-preserving tie-break only as a safety diagnostic, not as a
+useful CAMP improvement. It prevents the record-2 regression by preserving the
+logged selected candidate under atom-score ties, but it changes zero records
+and improves zero SafetyCost labels. It is therefore non-inferior only because
+it degenerates to the current selector on this tiny sample.
+
+This is enough evidence to reject broader experiments for the current pure
+signal-arrival atom path. The atom is mathematically admissible and material,
+but every safe guard tested so far either regresses or collapses to no-op. This
+does not prove CAMP is better than DP Top-1 or current CAMP.
+
+Next admissible work:
+
+Do not train, deploy, or run Full36. The next smallest useful gate is a
+read-only search for a different material atom family or a multi-feature
+current-tick selector certificate on existing nonformal logs. Any candidate
+must pass two conditions before new replay: (1) it changes at least one record
+in an existing outcome-labeled log, and (2) changed records are posterior-label
+SafetyCost non-inferior with progress and hard-event guards. If no such
+existing-log certificate is found, keep the signal external-context atom
+diagnostic-only and return to materiality discovery.
+
+Mathematical boundary:
+
+The selected-preserving tie-break is a finite-candidate lexicographic guard,
+not a classical Benders subproblem. It uses fixed current-tick atom scores,
+route-progress guard coefficients, and the logged selected index as a
+deterministic tie reference. Outcomes are posterior labels only. A future CAMP
+integration must either convert any accepted guard into fixed affine atom
+coefficients or explicitly keep it outside the CAMP master as a deterministic
+finite-candidate guard; no Benders claim is authorized.
