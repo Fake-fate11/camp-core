@@ -44509,3 +44509,146 @@ future atomization still must use fixed current-tick finite-candidate
 coefficients and preserve `score_k(w)=a_k^T w` plus the simplex/CVaR/L2 convex
 robust master. No DP-side classical Benders master/subproblem, dual, or valid
 cut is constructed or claimed.
+
+## Current-Tick Tensor Visibility Inventory (`0cc7a07` source)
+
+This gate executes the read-only source/tensor visibility inventory authorized
+by the post-closure remainder gate. It scans source text from the CAMP wrapper,
+the CAMP Diffusion-Planner integration, and the fixed Tier4 DP checkout. It does
+not run DP, does not log a new payload, does not change selection, does not train
+CAMP, and does not use closed-loop outcomes.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_current_tick_tensor_visibility.py
+camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py
+```
+
+Important implementation detail:
+
+The visibility scan requires all required tokens for a proposed tensor source to
+co-occur in at least one source file. This prevents false positives such as
+separate `denois` and `residual` tokens in unrelated files being treated as an
+exposed candidate-level denoising residual tensor.
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_current_tick_tensor_visibility.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_current_tick_tensor_visibility.py `
+  camp_core\tests\test_diffusion_planner_post_closure_state_remainder.py `
+  -q
+```
+
+Result:
+
+```text
+9 passed in 0.10s
+```
+
+AutoDL synchronization and validation:
+
+The implementation was pushed to GitHub, then synchronized to AutoDL with git
+bundles through commits `e4e5f0a` and `0cc7a07`. The final artifact below is the
+strict co-located-token version from `0cc7a07`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:$PYTHONPATH
+OUT=/root/autodl-tmp/camp_dp_current_tick_tensor_visibility_0cc7a07
+mkdir -p "$OUT"
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_current_tick_tensor_visibility.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py \
+  camp_core/tests/test_diffusion_planner_post_closure_state_remainder.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_current_tick_tensor_visibility.py \
+  --post_closure_remainder_json /root/autodl-tmp/camp_dp_post_closure_state_remainder_f33b405/post_closure_state_remainder.json \
+  --source_file scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --source_file camp_core/camp_core/integrations/diffusion_planner.py \
+  --source_root /root/autodl-tmp/Diffusion-Planner \
+  --label autodl_0cc7a07_current_tick_tensor_visibility \
+  --output_json "$OUT/current_tick_tensor_visibility.json" \
+  --output_md "$OUT/current_tick_tensor_visibility.md"
+```
+
+Result:
+
+```text
+9 passed in 0.02s
+status=current_tick_tensor_visibility_has_candidate_source
+primary_gap=visible_runtime_admissible_candidate_tensor_source_found
+authorized_next_work=predeclare_default_off_turn_logit_candidate_payload_design_only
+candidate_sources=turn_indicator_logits
+new_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+classic_benders_claim_authorized=False
+CAMP_HEAD=0cc7a0762775a8fea21da6d0239ec79173b4f85a
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+current_tick_tensor_visibility.json
+d96362d070992899eec62453e0074d0d01b237dfe3b8f9d44485fca7de5a4a1d
+
+current_tick_tensor_visibility.md
+765320dd8d63c4fd2aeefa4b14387e4fc78b443b1aaea1668b7c6ea81ccbe168
+```
+
+Tensor source inventory:
+
+```text
+turn_indicator_logits: visible=True, candidate_tensor_source_visible, admissible=True
+dp_native_log_probability_or_score: visible=False
+denoising_residual_or_intermediate: visible=False
+wrapper_sampled_latent_noise: visible=True, visible_but_not_runtime_admissible
+neighbor_prediction_tensor: visible=True, visible_but_not_runtime_admissible
+guidance_energy_or_scale: visible=True, visible_but_not_runtime_admissible
+```
+
+Decision:
+
+Accept this visibility inventory as a design-only source gate. The only new
+runtime-admissible candidate-level source visible at the current wrapper
+boundary is optional per-candidate `turn_indicator_logits`, extracted from the
+DP model output before selection. DP native log-probability/score tensors and
+denoising residual tensors are not source-visible under the strict co-located
+token rule. Wrapper-sampled latent noise, neighbor prediction tensors, and
+guidance controls are visible but not admissible new CAMP preference atoms here:
+they are either generator controls or already consumed by rejected observable
+interaction families.
+
+Next admissible work:
+
+Predeclare only a default-off turn-logit candidate payload design. That design
+must be null-safe because `turn_indicator_logit` is optional, must log all
+candidate logits before selection without changing turn-indicator behavior, and
+must define finite/nonnegative atomization candidates such as entropy,
+top-class margin, or non-Top-1 turn disagreement as fixed current-tick
+coefficients. Do not run replay, online selector promotion, Full36, formal
+seeds, CAMP retraining, DP modification, or a Benders claim from this visibility
+inventory.
+
+Mathematical boundary:
+
+This inventory scans source text only. It creates no atom, learned weight,
+selector, replay result, or Benders cut. A future turn-logit payload must first
+pass a separate default-off logging design gate. If later atomized, the
+turn-logit-derived values must be fixed finite candidate coefficients `a_k`, so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
+remains convex in `w`. No DP-side classical Benders master/subproblem, dual, or
+valid cut is constructed or claimed.
