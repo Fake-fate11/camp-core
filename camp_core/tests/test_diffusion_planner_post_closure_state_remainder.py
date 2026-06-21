@@ -20,6 +20,7 @@ def _score_inventory(status: str = "no_leak_score_family_inventory_requires_new_
             {"name": "progress_lane_hard_context", "status": "rejected_or_limited"},
             {"name": "revised_context_atom_family", "status": "rejected_or_limited"},
             {"name": "relaxed_strict_atom_family", "status": "rejected_or_limited"},
+            {"name": "turn_logit_atom_family", "status": "rejected_or_limited"},
         ],
         "final_decision": {
             "status": status,

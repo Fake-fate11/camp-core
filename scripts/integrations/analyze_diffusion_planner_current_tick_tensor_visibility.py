@@ -20,6 +20,7 @@ REQUIRED_CLOSED_SCORE_FAMILIES = frozenset(
         "progress_lane_hard_context",
         "relaxed_strict_atom_family",
         "revised_context_atom_family",
+        "turn_logit_atom_family",
     }
 )
 
@@ -38,6 +39,7 @@ BLOCKED_ACTIONS = (
 @dataclass(frozen=True)
 class TensorSourceSpec:
     name: str
+    score_family: str
     required_tokens: tuple[str, ...]
     source_kind: str
     candidate_level: bool
@@ -49,6 +51,7 @@ class TensorSourceSpec:
 TENSOR_SOURCES: tuple[TensorSourceSpec, ...] = (
     TensorSourceSpec(
         name="turn_indicator_logits",
+        score_family="turn_logit_atom_family",
         required_tokens=("turn_indicator_logit", "turn_logits"),
         source_kind="optional_dp_model_output",
         candidate_level=True,
@@ -63,6 +66,7 @@ TENSOR_SOURCES: tuple[TensorSourceSpec, ...] = (
     ),
     TensorSourceSpec(
         name="dp_native_log_probability_or_score",
+        score_family="dp_prior_score_family",
         required_tokens=("log_prob", "candidate_score"),
         source_kind="dp_internal_score",
         candidate_level=True,
@@ -75,6 +79,7 @@ TENSOR_SOURCES: tuple[TensorSourceSpec, ...] = (
     ),
     TensorSourceSpec(
         name="denoising_residual_or_intermediate",
+        score_family="denoising_residual_family",
         required_tokens=("denois", "residual"),
         source_kind="dp_internal_diffusion_state",
         candidate_level=True,
@@ -87,6 +92,7 @@ TENSOR_SOURCES: tuple[TensorSourceSpec, ...] = (
     ),
     TensorSourceSpec(
         name="wrapper_sampled_latent_noise",
+        score_family="generator_noise_family",
         required_tokens=("sampled_trajectories", "torch.randn", "latent"),
         source_kind="wrapper_candidate_generation_control",
         candidate_level=True,
@@ -100,6 +106,7 @@ TENSOR_SOURCES: tuple[TensorSourceSpec, ...] = (
     ),
     TensorSourceSpec(
         name="neighbor_prediction_tensor",
+        score_family="observable_interaction_family",
         required_tokens=("neighbor_predictions", "_candidate_obstacles"),
         source_kind="already_logged_interaction_geometry",
         candidate_level=True,
@@ -113,6 +120,7 @@ TENSOR_SOURCES: tuple[TensorSourceSpec, ...] = (
     ),
     TensorSourceSpec(
         name="guidance_energy_or_scale",
+        score_family="generator_guidance_family",
         required_tokens=("_guidance_fn", "_guidance_scale"),
         source_kind="candidate_generation_control",
         candidate_level=False,
@@ -171,18 +179,35 @@ def analyze(
     label: str | None = None,
 ) -> dict[str, Any]:
     source_gate = _source_gate(post_closure_remainder)
+    closed_score_families = set(source_gate.get("required_closed_score_families") or [])
     files = _discover_source_files(source_files, source_roots)
     texts = _read_sources(files)
-    tensor_sources = [_tensor_source_row(spec, texts) for spec in TENSOR_SOURCES]
+    tensor_sources = [
+        _tensor_source_row(spec, texts, closed_score_families=closed_score_families)
+        for spec in TENSOR_SOURCES
+    ]
     candidate_sources = [
         row
         for row in tensor_sources
         if row["visible"]
         and row["candidate_level"]
         and row["runtime_admissible"]
+        and not row["closed_by_score_inventory"]
         and row["next_gate"]
     ]
-    final = _decision(source_gate=source_gate, candidate_sources=candidate_sources)
+    closed_visible_candidate_sources = [
+        row
+        for row in tensor_sources
+        if row["visible"]
+        and row["candidate_level"]
+        and row["runtime_admissible"]
+        and row["closed_by_score_inventory"]
+    ]
+    final = _decision(
+        source_gate=source_gate,
+        candidate_sources=candidate_sources,
+        closed_visible_candidate_sources=closed_visible_candidate_sources,
+    )
     return {
         "analysis": {
             "name": "dp_camp_current_tick_tensor_visibility_v1",
@@ -214,6 +239,7 @@ def analyze(
         },
         "tensor_sources": tensor_sources,
         "candidate_sources": candidate_sources,
+        "closed_visible_candidate_sources": closed_visible_candidate_sources,
         "blocked_actions": {key: False for key in BLOCKED_ACTIONS},
         "final_decision": final,
     }
@@ -231,6 +257,7 @@ def _source_gate(report: dict[str, Any]) -> dict[str, Any]:
         "passed": status == SOURCE_REQUIRED_STATUS and not stale,
         "required_status": SOURCE_REQUIRED_STATUS,
         "authorized_next_work": decision.get("authorized_next_work"),
+        "required_closed_score_families": sorted(required_closed),
         "missing_closed_score_families": sorted(missing_closed),
         "missing_required_closed_score_families": missing_required,
         "stale": stale,
@@ -263,6 +290,8 @@ def _read_sources(files: list[Path]) -> dict[str, str]:
 def _tensor_source_row(
     spec: TensorSourceSpec,
     texts: dict[str, str],
+    *,
+    closed_score_families: set[str],
 ) -> dict[str, Any]:
     token_hits: dict[str, list[str]] = {}
     for token in spec.required_tokens:
@@ -275,7 +304,10 @@ def _tensor_source_row(
         if all(token in text for token in spec.required_tokens)
     ]
     visible = bool(cooccurrence_files)
-    if visible and spec.runtime_admissible and spec.candidate_level:
+    closed = spec.score_family in closed_score_families
+    if visible and spec.runtime_admissible and spec.candidate_level and closed:
+        visibility_status = "visible_but_score_family_closed"
+    elif visible and spec.runtime_admissible and spec.candidate_level:
         visibility_status = "candidate_tensor_source_visible"
     elif visible:
         visibility_status = "visible_but_not_runtime_admissible"
@@ -285,6 +317,7 @@ def _tensor_source_row(
         **asdict(spec),
         "visible": visible,
         "visibility_status": visibility_status,
+        "closed_by_score_inventory": closed,
         "token_hits": token_hits,
         "cooccurrence_files": cooccurrence_files,
     }
@@ -294,6 +327,7 @@ def _decision(
     *,
     source_gate: dict[str, Any],
     candidate_sources: list[dict[str, Any]],
+    closed_visible_candidate_sources: list[dict[str, Any]],
 ) -> dict[str, Any]:
     if not source_gate["passed"]:
         status = SOURCE_BLOCKED_STATUS
@@ -316,6 +350,14 @@ def _decision(
             "Predeclare a default-off logging design for the visible candidate "
             "tensor source. Do not run replay until that design gate passes."
         )
+    elif closed_visible_candidate_sources:
+        status = REJECT_STATUS
+        primary_gap = "visible_candidate_tensor_sources_already_closed"
+        authorized_next_work = "reject_tensor_visibility_route_or_redefine_scenario_objective"
+        next_step = (
+            "Do not reopen visible candidate tensor sources whose score "
+            "families are already closed by the current inventory."
+        )
     else:
         status = REJECT_STATUS
         primary_gap = "no_new_runtime_admissible_candidate_tensor_source_visible"
@@ -329,6 +371,9 @@ def _decision(
         "passed": status == READY_STATUS,
         "primary_gap": primary_gap,
         "candidate_source_names": [row["name"] for row in candidate_sources],
+        "closed_visible_candidate_source_names": [
+            row["name"] for row in closed_visible_candidate_sources
+        ],
         "authorized_next_work": authorized_next_work,
         **{key: False for key in BLOCKED_ACTIONS},
         "next_step": next_step,
@@ -348,13 +393,14 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Tensor Sources",
         "",
-        "| Source | Visible | Status | Candidate Level | Runtime Admissible | Next Gate |",
-        "| --- | ---: | --- | ---: | ---: | --- |",
+        "| Source | Family | Visible | Status | Closed | Candidate Level | Runtime Admissible | Next Gate |",
+        "| --- | --- | ---: | --- | ---: | ---: | ---: | --- |",
     ]
     for row in report["tensor_sources"]:
         lines.append(
-            f"| `{row['name']}` | `{row['visible']}` | "
-            f"`{row['visibility_status']}` | `{row['candidate_level']}` | "
+            f"| `{row['name']}` | `{row['score_family']}` | "
+            f"`{row['visible']}` | `{row['visibility_status']}` | "
+            f"`{row['closed_by_score_inventory']}` | `{row['candidate_level']}` | "
             f"`{row['runtime_admissible']}` | `{row['next_gate'] or 'none'}` |"
         )
     lines.extend(

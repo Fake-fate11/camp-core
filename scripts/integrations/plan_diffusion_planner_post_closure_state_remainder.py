@@ -19,6 +19,7 @@ REQUIRED_CLOSED_SCORE_FAMILIES = frozenset(
         "progress_lane_hard_context",
         "relaxed_strict_atom_family",
         "revised_context_atom_family",
+        "turn_logit_atom_family",
     }
 )
 
