@@ -59,6 +59,10 @@ def _all_rejected_evidence() -> list[dict[str, object]]:
             "observable_interaction_route",
             "observable_interaction_route_support_discovery_rejected",
         ),
+        _evidence(
+            "non_turn_logit_interaction_bottleneck",
+            "non_turn_logit_interaction_bottleneck_diagnosed",
+        ),
     ]
 
 
@@ -83,6 +87,7 @@ def test_inventory_requires_new_design_when_known_score_families_are_closed() ->
     assert families["revised_context_atom_family"]["status"] == "rejected_or_limited"
     assert families["relaxed_strict_atom_family"]["status"] == "rejected_or_limited"
     assert families["observable_interaction_family"]["status"] == "rejected_or_limited"
+    assert families["non_turn_interaction_family"]["status"] == "rejected_or_limited"
 
     markdown = render_markdown(report)
     assert "No-Leak Score-Family Inventory" in markdown
@@ -99,6 +104,10 @@ def test_inventory_fails_closed_with_missing_family_evidence() -> None:
             _evidence(
                 "observable_interaction_route",
                 "observable_interaction_route_support_discovery_rejected",
+            ),
+            _evidence(
+                "non_turn_logit_interaction_bottleneck",
+                "non_turn_logit_interaction_bottleneck_diagnosed",
             ),
         ]
     )
@@ -128,6 +137,10 @@ def test_inventory_fails_closed_with_unclosed_support_family() -> None:
             _evidence(
                 "observable_interaction_route",
                 "observable_interaction_route_support_discovery_rejected",
+            ),
+            _evidence(
+                "non_turn_logit_interaction_bottleneck",
+                "non_turn_logit_interaction_bottleneck_diagnosed",
             ),
         ]
     )

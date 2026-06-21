@@ -13,6 +13,7 @@ REQUIRED_SCORE_FAMILIES = (
     "revised_context_atom_family",
     "relaxed_strict_atom_family",
     "observable_interaction_family",
+    "non_turn_interaction_family",
 )
 
 BLOCKED_ACTION_KEYS = (
@@ -163,6 +164,8 @@ def _score_family(name: str, status: str, analysis_name: str) -> str:
     text = f"{name} {status} {analysis_name}".lower()
     if "observable_interaction" in text:
         return "observable_interaction_family"
+    if "non_turn_logit" in text or "non_turn_interaction" in text:
+        return "non_turn_interaction_family"
     if "relaxed_strict" in text:
         return "relaxed_strict_atom_family"
     if "revised_context" in text or "revised_progress_lane_hard" in text:
@@ -274,9 +277,10 @@ def _decision(
         status = "no_leak_score_family_inventory_requires_new_design"
         next_step = (
             "Do not tune the rejected progress/lane-hard, revised-context, "
-            "relaxed-strict, or observable-interaction families. Predeclare a "
-            "genuinely new current-tick no-leak descriptor family or return to "
-            "a broader observable-state inventory before any replay."
+            "relaxed-strict, observable-interaction, or non-turn interaction "
+            "families. Predeclare a genuinely new current-tick no-leak "
+            "descriptor family or return to a broader observable-state "
+            "inventory before any replay."
         )
     return {
         "status": status,
