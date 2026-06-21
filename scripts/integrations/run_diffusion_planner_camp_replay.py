@@ -68,6 +68,13 @@ from camp_core.integrations.diffusion_planner_progress_lane_hard_context import 
     PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION,
     build_progress_lane_hard_context_logging_payload,
 )
+from camp_core.integrations.diffusion_planner_turn_logit_payload import (  # noqa: E402
+    TURN_LOGIT_PAYLOAD_ATOM_CANDIDATE_NAMES,
+    TURN_LOGIT_PAYLOAD_FIELD_NAMES,
+    TURN_LOGIT_PAYLOAD_LATENCY_KEYS,
+    TURN_LOGIT_PAYLOAD_SCHEMA_VERSION,
+    build_turn_logit_payload,
+)
 from camp_core.atoms.driver_atoms import (  # noqa: E402
     exact_centerline_slice_for_candidates,
 )
@@ -644,6 +651,17 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Nonnegative corridor safety margin for progress+lane/hard context "
             "atom logging."
+        ),
+    )
+    parser.add_argument(
+        "--camp_turn_logit_payload_logging",
+        action="store_true",
+        help=(
+            "Default-off no-leak logging of optional current-tick per-candidate "
+            "turn-indicator logits returned by DP before CAMP selection. This "
+            "records diagnostics only and does not change feasibility, scores, "
+            "candidates, tracker execution, turn-indicator behavior, or "
+            "selection."
         ),
     )
     parser.add_argument(
@@ -3706,6 +3724,7 @@ def _install_camp_predictor(
     progress_lane_hard_context_dt_s: float,
     progress_lane_hard_context_corridor_half_width_m: float,
     progress_lane_hard_context_corridor_safety_margin_m: float,
+    turn_logit_payload_logging: bool,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -3969,6 +3988,10 @@ def _install_camp_predictor(
         progress_lane_hard_context_latency_ms = {
             key: 0.0 for key in PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS
         }
+        turn_logit_payload_logging_payload = None
+        turn_logit_payload_latency_ms = {
+            key: 0.0 for key in TURN_LOGIT_PAYLOAD_LATENCY_KEYS
+        }
         route_centerline_ego = None
         if (
             observable_state_logging
@@ -4077,6 +4100,14 @@ def _install_camp_predictor(
             )
             progress_lane_hard_context_latency_ms = (
                 progress_lane_hard_context_logging_payload["latency_ms"]
+            )
+        if turn_logit_payload_logging:
+            turn_logit_payload_logging_payload = build_turn_logit_payload(
+                turn_logits=turn_logits,
+                candidate_count=int(candidates.shape[0]),
+            )
+            turn_logit_payload_latency_ms = (
+                turn_logit_payload_logging_payload["latency_ms"]
             )
         external_feasible_mask = None
         external_infeasibility_reasons = None
@@ -4397,6 +4428,7 @@ def _install_camp_predictor(
             **progress_support_latency_ms,
             **lane_hard_violation_support_latency_ms,
             **progress_lane_hard_context_latency_ms,
+            **turn_logit_payload_latency_ms,
             "latency_ms_context_and_obstacles": (
                 context_and_obstacles_done - lateral_comfort_done
             )
@@ -4708,6 +4740,7 @@ def _install_camp_predictor(
                 "progress_lane_hard_context_logging": (
                     progress_lane_hard_context_logging_payload
                 ),
+                "turn_logit_payload_logging": turn_logit_payload_logging_payload,
                 "candidate_obstacle_clearance": candidate_obstacle_clearance,
                 "candidate_step_reach": (
                     candidate_step_reach.tolist()
@@ -4981,6 +5014,7 @@ def main() -> None:
             progress_lane_hard_context_corridor_safety_margin_m=(
                 args.camp_progress_lane_hard_context_corridor_safety_margin_m
             ),
+            turn_logit_payload_logging=bool(args.camp_turn_logit_payload_logging),
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
             ),
@@ -5533,6 +5567,92 @@ def main() -> None:
         if records is not None
         else None
     )
+    camp_turn_logit_payload_logging = (
+        {
+            "schema_version": TURN_LOGIT_PAYLOAD_SCHEMA_VERSION,
+            "enabled": bool(args.camp_turn_logit_payload_logging),
+            "default_off": True,
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "closed_loop_outcome_fields_read": False,
+            "online_selector_change": False,
+            "authorized_stage": "unit_tests_only_default_off_payload_wiring",
+            "logged_field": "turn_logit_payload_logging",
+            "fields": list(TURN_LOGIT_PAYLOAD_FIELD_NAMES),
+            "atomization_candidate_names": list(
+                TURN_LOGIT_PAYLOAD_ATOM_CANDIDATE_NAMES
+            ),
+            "latency_fields": list(TURN_LOGIT_PAYLOAD_LATENCY_KEYS),
+            "records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if record.get("turn_logit_payload_logging") is not None
+                    )
+                )
+                if args.camp_turn_logit_payload_logging
+                else 0
+            ),
+            "available_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get("turn_logit_payload_logging") is not None
+                            and record["turn_logit_payload_logging"].get("available")
+                            is True
+                        )
+                    )
+                )
+                if args.camp_turn_logit_payload_logging
+                else 0
+            ),
+            "invalid_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get("turn_logit_payload_logging") is not None
+                            and not record["turn_logit_payload_logging"]
+                            .get("finite_checks", {})
+                            .get("payload_valid", False)
+                        )
+                    )
+                )
+                if args.camp_turn_logit_payload_logging
+                else 0
+            ),
+            "latency_ms": (
+                {
+                    key: _summary(
+                        [
+                            float(record[key])
+                            for record in records
+                            if key in record and record[key] is not None
+                        ]
+                    )
+                    for key in TURN_LOGIT_PAYLOAD_LATENCY_KEYS
+                }
+                if args.camp_turn_logit_payload_logging
+                else None
+            ),
+            "definition": (
+                "optional current-tick per-candidate turn-indicator logits "
+                "returned by the fixed DP wrapper before CAMP selection"
+            ),
+            "math_boundary": (
+                "If later atomized, each turn-logit candidate is a fixed "
+                "finite-candidate coefficient; CAMP score remains affine in "
+                "weights and the simplex/CVaR/L2 master remains convex."
+            ),
+            "classical_benders_claim": False,
+        }
+        if records is not None
+        else None
+    )
     finite_candidate_contract = _dp_camp_finite_candidate_contract(
         selector_mode=args.camp_selector_mode,
         num_candidates=args.num_candidates,
@@ -5593,6 +5713,7 @@ def main() -> None:
         "camp_progress_lane_hard_context_logging": (
             camp_progress_lane_hard_context_logging
         ),
+        "camp_turn_logit_payload_logging": camp_turn_logit_payload_logging,
         "camp_splice_shadow_rule": effective_splice_shadow_rule,
         "camp_traffic_light_hybrid_postselection": (
             effective_traffic_light_hybrid_postselection
@@ -5892,6 +6013,7 @@ def main() -> None:
     validation["camp_progress_lane_hard_context_logging"] = (
         camp_progress_lane_hard_context_logging
     )
+    validation["camp_turn_logit_payload_logging"] = camp_turn_logit_payload_logging
     validation["camp_splice_shadow_rule"] = effective_splice_shadow_rule
     validation["camp_traffic_light_hybrid_postselection"] = (
         effective_traffic_light_hybrid_postselection
