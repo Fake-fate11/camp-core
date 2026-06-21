@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 from scripts.integrations.audit_diffusion_planner_offline_convex_selector_training_inputs import (
@@ -8,6 +9,7 @@ from scripts.integrations.audit_diffusion_planner_offline_convex_selector_traini
     BLOCKED_STATUS,
     READY_STATUS,
     analyze,
+    main,
     render_markdown,
 )
 
@@ -186,3 +188,42 @@ def test_training_input_manifest_blocks_bad_plan(tmp_path: Path) -> None:
     assert report["final_decision"]["status"] == BLOCKED_STATUS
     failed = [check["name"] for check in report["plan_checks"] if not check["passed"]]
     assert "training_plan_status_ready" in failed
+
+
+def test_training_input_manifest_cli_writes_reports(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    log_path = _write_log(tmp_path / "run")
+    manifest = _manifest(tmp_path / "buckets.json")
+    plan_path = tmp_path / "plan.json"
+    plan_path.write_text(json.dumps(_training_plan()), encoding="utf-8")
+    output_json = tmp_path / "out.json"
+    output_md = tmp_path / "out.md"
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "audit",
+            "--training_plan_json",
+            str(plan_path),
+            "--selection_log",
+            str(log_path),
+            "--scenario_bucket_manifest",
+            str(manifest),
+            "--required_bucket",
+            "normal",
+            "--output_json",
+            str(output_json),
+            "--output_md",
+            str(output_md),
+        ],
+    )
+    main()
+
+    report = json.loads(output_json.read_text(encoding="utf-8"))
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert "Offline Convex Selector Training Input Manifest" in output_md.read_text(
+        encoding="utf-8"
+    )

@@ -82,7 +82,7 @@ def main() -> None:
         scenario_bucket_manifest=args.scenario_bucket_manifest,
         required_buckets=tuple(args.required_bucket or DEFAULT_REQUIRED_BUCKETS),
         label=args.label,
-        paths={"training_plan_json": str(args.training_plan_json)},
+        paths_note={"training_plan_json": str(args.training_plan_json)},
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
