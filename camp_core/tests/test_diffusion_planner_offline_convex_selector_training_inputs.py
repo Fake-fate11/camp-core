@@ -190,6 +190,41 @@ def test_training_input_manifest_blocks_bad_plan(tmp_path: Path) -> None:
     assert "training_plan_status_ready" in failed
 
 
+def test_training_input_manifest_prefers_path_route_alias_for_buckets(
+    tmp_path: Path,
+) -> None:
+    route_root = (
+        tmp_path
+        / "candidate_outcome_labels_static"
+        / "route_alias"
+        / "seed_1"
+        / "npc_0"
+        / "spawn_0p3"
+        / "tl_off"
+        / "static"
+    )
+    log_path = _write_log(route_root)
+    manifest_payload = {
+        "run_keys": {},
+        "routes": {"route_alias": ["lane_change_or_merge"]},
+        "filters": [],
+        "default_buckets": [],
+    }
+    manifest = tmp_path / "alias_buckets.json"
+    manifest.write_text(json.dumps(manifest_payload), encoding="utf-8")
+
+    report = analyze(
+        [log_path],
+        training_plan=_training_plan(),
+        scenario_bucket_manifest=manifest,
+        required_buckets=("lane_change_or_merge",),
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["manifest"]["logs"][0]["scenario_row"]["route_name"] == "route_alias"
+    assert report["summary"]["bucket_record_counts"]["lane_change_or_merge"] == 1
+
+
 def test_training_input_manifest_cli_writes_reports(
     tmp_path: Path,
     monkeypatch,

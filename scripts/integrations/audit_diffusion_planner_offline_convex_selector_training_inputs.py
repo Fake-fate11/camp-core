@@ -196,10 +196,13 @@ def _audit_log(log_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     metadata = parse_selection_log_metadata(log_path)
     seed = _first_int(benchmark.get("seed"), metadata.seed)
     route = benchmark.get("route") or metadata.route
+    route_name = metadata.route
+    if not route_name or route_name == "unknown":
+        route_name = Path(str(route)).stem if route is not None else None
     row = {
         "run_key": _run_key(summary if isinstance(summary, dict) else {}, log_path.parent),
         "route": route,
-        "route_name": Path(str(route)).stem if route is not None else metadata.route,
+        "route_name": route_name,
         "seed": seed,
         "steps": _first_int(benchmark.get("steps"), len(records)),
         "max_npcs": _first_int(benchmark.get("max_npcs"), metadata.npc_count),
