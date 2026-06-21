@@ -36848,6 +36848,146 @@ preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
 No DP-side classical Benders master/subproblem, dual, or valid cut is
 constructed.
 
+## Red Route Vector Logging Plan (`bf68657` source)
+
+This gate follows the red alignment semantics microaudit. It is design-only:
+it predeclares the minimal default-off fields needed to prove whether
+`candidate_red_heading_alignment` has the correct sign convention. It does not
+run replay, use closed-loop outcome labels, change selection, create an atom,
+train CAMP, modify DP, or claim Benders.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_red_route_vector_logging.py
+camp_core/tests/test_diffusion_planner_red_route_vector_logging_plan.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_red_route_vector_logging.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_red_route_vector_logging_plan.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+7 passed in 0.13s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_red_route_vector_logging_plan_bf68657
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_red_route_vector_logging.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_red_route_vector_logging_plan.py \
+  camp_core/tests/test_diffusion_planner_red_alignment_semantics.py \
+  -q
+
+$PY scripts/integrations/plan_diffusion_planner_red_route_vector_logging.py \
+  --red_semantics_json /root/autodl-tmp/camp_dp_red_alignment_semantics_microaudit_8b534d5/red_alignment_semantics_microaudit.json \
+  --replay_script scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --label autodl_bf68657_red_route_vector_logging_plan \
+  --output_json "$OUT/red_route_vector_logging_plan.json" \
+  --output_md "$OUT/red_route_vector_logging_plan.md"
+```
+
+AutoDL status:
+
+```text
+CAMP_HEAD=bf68657ab15be1d70051ec0fcb031dd0cdfb73fa
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+11 passed in 0.35s
+```
+
+Artifact hashes:
+
+```text
+red_route_vector_logging_plan.json
+f66afd64bf711171d977eb1e67cd7434a11755c0b162a0ebad616d38a185ebe6
+
+red_route_vector_logging_plan.md
+2164289b60d8b58eb638ad1cc84b1895193ce155540e4d742ae1b9ba3e9e9b80
+```
+
+Result:
+
+```text
+status=red_route_vector_logging_plan_ready
+passed=True
+authorized_next_work=implement_default_off_red_route_vector_logging_unit_tests_only
+implementation_authorized=True
+new_replay_authorized=False
+offline_separability_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_Benders_claim_authorized=False
+```
+
+Source checks:
+
+```text
+red_semantics_gate_authorizes_vector_plan=True
+source_has_reverse_sign_materiality=True
+source_geometry_missing_so_plan_is_needed=True
+```
+
+Planned default-off fields:
+
+```text
+red_route_points_ego_xy_dir: [R,4]
+candidate_red_selected_route_point_index: [K,H_tl]
+candidate_red_heading_vector_xy: [K,H_tl,2]
+candidate_red_vector_to_selected_point_xy: [K,H_tl,2]
+candidate_red_alignment_recomputed_current: [K,H_tl]
+candidate_red_alignment_recomputed_reverse: [K,H_tl]
+```
+
+Decision:
+
+Accept the plan gate. The prior red-semantics artifact showed reverse-sign
+materiality but no logged red geometry. This plan narrows the next step to a
+default-off implementation that records only current-tick red route vectors,
+candidate heading vectors, selected red-point indices, and exact alignment
+recompute diagnostics. The plan explicitly does not authorize replay,
+separability screening, Full36/formal seeds, online selector promotion, CAMP
+retraining, DP modification, or any classic Benders claim.
+
+Next admissible work:
+
+Implement only the default-off red route vector logging path and unit tests.
+The implementation must report `default_off=true`, `selection_effect=false`,
+and `future_outcome_leakage=false`, add summary metadata and latency accounting,
+and preserve existing observable-state logging behavior when the new flag is
+off. After that implementation gate passes locally and on AutoDL, a separate
+gate may design selector-equivalence smoke; do not run replay in the
+implementation gate itself.
+
+Mathematical boundary:
+
+This design gate creates no atom and no selector. The planned fields are
+current-tick finite-candidate diagnostics computed before closed-loop outcomes.
+If a later red descriptor is atomized, it must be a fixed pre-outcome
+nonnegative coefficient \(a_k\), preserving `score_k(w)=a_k^T w` and the
+convex simplex/CVaR/L2 master. No DP-side classical Benders
+master/subproblem, dual, or valid cut is constructed.
+
 ## Red Alignment Semantics Microaudit (`8b534d5` source)
 
 This gate follows the observable-interaction payload attribution diagnosis. It
