@@ -40516,3 +40516,141 @@ fixed DP candidate set. Revised atom values remain current-tick finite
 coefficients from the default-off payload. Any later CAMP use still requires
 affine `score_k(w)=a_k^T w` and preserves the simplex/CVaR/L2 convex master.
 No DP-side classical Benders decomposition, dual, or cut is introduced.
+
+## Relaxed Strict-Label Revised Atom Bottleneck (`6f8af4b` source)
+
+This gate diagnoses the best relaxed strict-label setting from the threshold
+sensitivity audit. It uses `best_by_support` from the sensitivity artifact and
+replays no simulation; it only rebuilds fixed candidate labels and applies the
+logged revised atom screen to explain blocked beneficial and allowed harmful
+candidates.
+
+Selected relaxed strict-label setting:
+
+```text
+progress_loss_budget_m       = 0.10
+safety_improvement_margin    = 0.00
+comfort_jerk_delta_budget    = 0.5
+comfort_lateral_delta_budget = 0.10
+```
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_revised_context_relaxed_strict_label_atom_bottleneck.py
+camp_core/tests/test_diffusion_planner_revised_context_relaxed_strict_label_atom_bottleneck.py
+```
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_revised_context_strict_label_sensitivity.py `
+  camp_core\tests\test_diffusion_planner_revised_context_relaxed_strict_label_atom_bottleneck.py `
+  -q
+```
+
+Result:
+
+```text
+9 passed in 0.66s
+```
+
+AutoDL validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_revised_context_relaxed_strict_label_atom_bottleneck.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_revised_context_strict_label_sensitivity.py \
+  camp_core/tests/test_diffusion_planner_revised_context_relaxed_strict_label_atom_bottleneck.py \
+  -q
+```
+
+Result:
+
+```text
+9 passed in 0.53s
+```
+
+Diagnostic command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY scripts/integrations/analyze_diffusion_planner_revised_context_relaxed_strict_label_atom_bottleneck.py \
+  --root "$ROOT/matched_revised_context_outcomes" \
+  --sensitivity_json "$ROOT/audit/revised_context_strict_label_sensitivity.json" \
+  --label autodl_6f8af4b_relaxed_strict_label_atom_bottleneck \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/revised_context_relaxed_strict_label_atom_bottleneck.json" \
+  --output_md "$ROOT/audit/revised_context_relaxed_strict_label_atom_bottleneck.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_relaxed_strict_label_atom_bottleneck.json` | `6074eca21b8ba81bd229de1b75826a4c0495772862e096f1b032cf605d1aaa15` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_relaxed_strict_label_atom_bottleneck.md` | `490b2f59fe2c698adfe0df9758453195abfabb8d69f4f95085c5a7759e6699a1` |
+
+Verifier result:
+
+```text
+status=revised_context_relaxed_strict_label_atom_bottleneck_diagnosed
+passed=True
+primary_gap=relaxed_strict_label_atom_overlap_blocks_beneficial_and_allows_harmful
+authorized_next_work=predeclare_relaxed_strict_label_no_leak_atom_schema
+beneficial_total=41
+beneficial_blocked=39
+beneficial_retained=2
+harmful_total=251
+harmful_allowed=2
+harmful_blocked=249
+neutral_total=44
+beneficial_block_rate=0.9512195121951219
+allowed_harmful_rate_among_allowed_nonneutral=0.5
+blocked_beneficial_safety_penalty_delta_mean=-0.8203712650821553
+blocked_beneficial_progress_delta_mean_m=0.19925171679231596
+blocked_beneficial_jerk_delta_mean_mps3=-0.43791031463534763
+blocked_beneficial_lateral_delta_mean_mps2=-0.014698928775701975
+allowed_harmful_safety_penalty_delta_mean=0.1176479987370736
+allowed_harmful_reason_counts={jerk_incompatible: 1, safety_penalty_worse: 2}
+```
+
+Interpretation:
+
+Accept the relaxed strict-label atom bottleneck diagnosis. The best support
+label is no longer starved: it provides 41 beneficial alternatives across the
+matched logs. The current revised atom screen still blocks 39 of them while
+allowing 2 harmful alternatives. Blocked beneficial candidates are genuinely
+good under the relaxed strict label: on average they improve diagnostic safety
+penalty, progress, jerk, and lateral acceleration versus DP Top-1. The allowed
+harmful candidates have zero atom score under the selected screen despite
+positive safety penalty regression.
+
+Decision:
+
+Reject CAMP retraining, online selector promotion, Full36, formal seeds, DP
+modification, and new replay from this result. The next admissible work is a
+design-only preflight for a new no-leak relaxed strict-label atom schema. The
+schema must target the observed error mode: current atoms overblock beneficial
+progress/comfort-improving candidates and miss low-atom-score harmful comfort
+regressions. The preflight must prove fixed-candidate observability,
+nonnegativity or affine compatibility, no future outcome leakage, and no
+DP-side classical Benders claim before any implementation or replay.
+
+Mathematical boundary:
+
+The diagnosis uses closed-loop outcomes only as offline labels after the
+sensitivity artifact selected a fixed label setting. Runtime-eligible data
+remain current-tick finite candidate coefficients. Any new atom must enter
+CAMP as a fixed coefficient \(a_k\), keeping `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master intact. This is a finite-candidate diagnostic,
+not a DP-side classical Benders decomposition.
