@@ -53120,3 +53120,79 @@ modification. The next real evidence step is to refresh the same external-
 context payload smoke/materiality/atomization/dry-run chain on AutoDL when SSH
 access is available, or otherwise keep iterating only on local gates that do not
 depend on new replay.
+
+## AutoDL Sync After External Context Dry Run (`79e0a76` remote check)
+
+Purpose:
+
+This step records the recovery of AutoDL password SSH access and the safe
+fast-forward synchronization of the AutoDL CAMP checkout after the external-
+context atom-schema dry-run gate. No DP code, DP weights, formal seeds, online
+selector, training script, or closed-loop replay was modified.
+
+Status audit:
+
+```text
+local_head_before_sync=79e0a76d734b16afe0855bbe19d0108808676d43
+github_origin_main_before_sync=79e0a76d734b16afe0855bbe19d0108808676d43
+autodl_camp_head_before_sync=7e01ae5ca835acfa24069566fbe56dafd0e5116d
+autodl_camp_head_after_sync=79e0a76d734b16afe0855bbe19d0108808676d43
+autodl_camp_origin_main_after_bundle_ref_update=79e0a76d734b16afe0855bbe19d0108808676d43
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_dp_status=clean
+```
+
+Sync method:
+
+```text
+local bundle=C:\Users\lenovo\AppData\Local\Temp\camp_core_sync_79e0a76.bundle
+bundle_requires=7e01ae5ca835acfa24069566fbe56dafd0e5116d
+bundle_head=79e0a76d734b16afe0855bbe19d0108808676d43
+remote_bundle=/tmp/camp_core_sync_79e0a76.bundle
+remote_update=git fetch bundle HEAD && git merge --ff-only FETCH_HEAD
+```
+
+The bundle path was used because AutoDL `git fetch origin main` did not return
+within the command timeout, while the local checkout had already verified
+GitHub `origin/main` at `79e0a76d734b16afe0855bbe19d0108808676d43`. The bundle
+fast-forward preserved the three existing AutoDL untracked files:
+
+```text
+diffusion_planner_integration.md
+dp_camp_device_handoff.md
+test_diffusion_planner_benchmark_matrix.py
+```
+
+Remote sanity:
+
+```text
+/root/miniconda3/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_external_context_atom_schema_dry_run.py \
+  scripts/integrations/plan_diffusion_planner_external_context_atomization_preflight.py \
+  scripts/integrations/analyze_diffusion_planner_external_context_payload_materiality.py \
+  scripts/integrations/summarize_diffusion_planner_external_context_payload_smoke_result.py \
+  scripts/integrations/plan_diffusion_planner_external_context_payload_smoke.py \
+  camp_core/tests/test_diffusion_planner_external_context_atom_schema_dry_run.py \
+  camp_core/tests/test_diffusion_planner_external_context_atomization_preflight.py \
+  camp_core/tests/test_diffusion_planner_external_context_payload_materiality.py \
+  camp_core/tests/test_diffusion_planner_external_context_payload_smoke_result.py \
+  camp_core/tests/test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core/tests/test_diffusion_planner_external_context_payload_design.py
+
+remote_py_compile=passed
+```
+
+Remote pytest was not run because the non-login AutoDL environment exposes
+`/root/miniconda3/bin/python` but no `pytest` module. This is an environment
+dependency gap, not a code failure. The already-run local directed test set for
+the same external-context chain remains `40 passed`.
+
+Decision:
+
+Accept AutoDL CAMP synchronization to `79e0a76` and DP commit preservation. This
+does not authorize Full36, formal seeds, CAMP retraining, online selector
+promotion, or DP modification. The next actionable remote step is to either use
+the existing environment to run the real tiny external-context paired smoke
+runbook, or first provision/activate a pytest-capable environment if remote
+test execution is required.
