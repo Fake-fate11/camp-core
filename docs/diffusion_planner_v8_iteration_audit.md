@@ -44386,3 +44386,126 @@ learned weight, replay result, or cut. Closed-loop outcomes remain confined to
 the source offline evaluation artifacts and are not converted into runtime
 inputs. Any future atomization must still use fixed current-tick finite-candidate
 coefficients and preserve CAMP's affine score and convex robust master.
+
+## Post-Closure State Remainder Gate (`f33b405` source)
+
+This gate follows the accepted no-leak score-family inventory and checks
+whether the already logged current-tick observable-state payload still contains
+any material candidate fields that were not consumed by the closed score-family
+routes. It is read-only and consumes only prior artifacts. It does not run DP,
+does not change CAMP/DP weights, does not change online selection, and does not
+use closed-loop outcomes as runtime features.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_post_closure_state_remainder.py
+camp_core/tests/test_diffusion_planner_post_closure_state_remainder.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_post_closure_state_remainder.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_post_closure_state_remainder.py `
+  camp_core\tests\test_diffusion_planner_no_leak_score_family_inventory.py `
+  -q
+```
+
+Result:
+
+```text
+10 passed in 0.09s
+```
+
+AutoDL synchronization and validation:
+
+The code commit was pushed to GitHub and synchronized to AutoDL with a git
+bundle from local `d595c00f7e99338d232fd86c0de7fca40be50986..main`.
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:$PYTHONPATH
+OUT=/root/autodl-tmp/camp_dp_post_closure_state_remainder_f33b405
+mkdir -p "$OUT"
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_post_closure_state_remainder.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_post_closure_state_remainder.py \
+  camp_core/tests/test_diffusion_planner_no_leak_score_family_inventory.py \
+  -q
+
+$PY scripts/integrations/plan_diffusion_planner_post_closure_state_remainder.py \
+  --score_family_inventory_json /root/autodl-tmp/camp_dp_no_leak_score_family_inventory_7c5b1ba/no_leak_score_family_inventory.json \
+  --observable_payload_coverage_json /root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb/audit/observable_state_payload_coverage.json \
+  --observable_state_inventory_json /root/autodl-tmp/camp_dp_observable_state_inventory_3cca688/observable_state_inventory.json \
+  --label autodl_f33b405_post_closure_state_remainder \
+  --output_json "$OUT/post_closure_state_remainder.json" \
+  --output_md "$OUT/post_closure_state_remainder.md"
+```
+
+Result:
+
+```text
+10 passed in 0.02s
+status=post_closure_state_remainder_requires_source_visibility_inventory
+primary_gap=all_material_logged_fields_consumed_by_rejected_score_families
+authorized_next_work=read_only_current_tick_tensor_visibility_inventory_only
+new_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+classic_benders_claim_authorized=False
+unconsumed_material_candidate_fields=[]
+consumed_count=8
+CAMP_HEAD=f33b405e273561ee561bb3d993f36e26d31835c7
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+post_closure_state_remainder.json
+11da1f6dbd75f28cd6bb6f6389c421448f4be09d14d2521b7be62c643a2771ba
+
+post_closure_state_remainder.md
+7b10ac9f22f3451fe3a3fd1a0897e6cd85e8c47cced90370458292637aa03f46
+```
+
+Decision:
+
+Accept this post-closure remainder gate. The broader observable-state payload
+does contain material current-tick candidate fields, but all material logged
+fields are already covered by score families that have been rejected or recorded
+as observability-limited. There are no unconsumed material logged fields from
+which to immediately predeclare another no-leak descriptor family.
+
+Next admissible work:
+
+Do not tune the already logged observable-state fields, do not replay from this
+gate, and do not retrain CAMP. The next iteration is only a read-only
+current-tick tensor/source visibility inventory. That inventory should inspect
+the frozen CAMP wrapper and fixed DP simulator interfaces to identify whether
+there are genuinely new finite candidate-level inputs available before outcome
+labels, such as DP native uncertainty/log-probability tensors, per-candidate
+denoising residuals, richer neighbor temporal interaction summaries, or other
+current-tick tensors. If no such source is visible without DP modification or
+future leakage, it must reject the route and return to a higher-level scenario
+or objective redesign.
+
+Mathematical boundary:
+
+This gate reads only prior audit artifacts. It creates no atom, selector,
+learned weight, replay result, or cut. The next source-visibility inventory must
+remain read-only and may not convert future outcomes into runtime features. Any
+future atomization still must use fixed current-tick finite-candidate
+coefficients and preserve `score_k(w)=a_k^T w` plus the simplex/CVaR/L2 convex
+robust master. No DP-side classical Benders master/subproblem, dual, or valid
+cut is constructed or claimed.
