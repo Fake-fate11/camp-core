@@ -48780,3 +48780,128 @@ Candidate atoms are fixed current-tick constants, `score_k(w)=a_k^T w` remains
 affine, and the simplex/CVaR/L2 master remains convex. Closed-loop outcomes
 remain offline labels/evaluation targets only. This is still not a DP-side
 classical Benders claim.
+
+## Offline Convex Objective/Label Sensitivity Wrapper (`1594d6e`)
+
+Purpose:
+
+The `18415f3` plan gate authorized implementation and tests for a wrapper that
+can run the predeclared objective/label sensitivity variants. This step adds
+that wrapper and verifies only its orchestration, source-gate checks, parameter
+threading, artifact SHA recording, and accept/reject gate logic with fake
+training/evaluation/proof commands. It does not execute the real sensitivity
+training, run Diffusion Planner, replay closed loop, promote an online selector,
+or use formal seeds.
+
+Implementation:
+
+```text
+1594d6e Add objective label sensitivity dry-run wrapper
+```
+
+Files:
+
+```text
+scripts/integrations/run_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py
+camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+31 passed in 1.76s
+
+git diff --check
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=1594d6e526573524f9c1088ff1da3c2102e9feed
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+31 passed in 0.63s
+```
+
+Verified wrapper behavior:
+
+```text
+source gates:
+  plan.status must be offline_convex_objective_label_sensitivity_plan_ready
+  plan.authorized_next_work must be implement_objective_label_sensitivity_dry_run_wrapper_only
+  manifest.status must be offline_convex_selector_training_input_manifest_ready
+  manifest.formal_seed_logs must be 0
+
+variant orchestration:
+  control_reproduce_failed_35fedb8
+  tail_alpha_0p95
+  tail_alpha_0p95_l2_1e3
+  safety_guard_floor
+  balanced_comfort_progress_floor
+
+accept/reject:
+  control variants are never accepted for next review
+  candidate variants require proof Top-1 gate, proof oracle-gap gate,
+  evaluated-minus-logged CI high <= 0, formal_seed_logs == 0, and nonpositive
+  hard component deltas when reported
+
+blocked actions remain false:
+  closed_loop_replay_authorized
+  online_selector_authorized
+  formal_seeds_authorized
+  dp_modification_authorized
+  classic_benders_claim_authorized
+```
+
+Decision:
+
+Accept the wrapper implementation gate. The implementation is now ready for the
+next self-iteration to run the real offline sensitivity wrapper over the
+existing non-formal manifest and the `18415f3` plan artifact. This next run is
+still offline training/evaluation/proof only; it must not run DP, closed-loop
+replay, Full36, formal seeds, or online selector promotion.
+
+Next gate:
+
+Run exactly the predeclared offline sensitivity wrapper on AutoDL using:
+
+```text
+PLAN=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_objective_label_sensitivity_plan_18415f3/offline_convex_objective_label_sensitivity_plan.json
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_selector_training_input_manifest_069057e_diverse/offline_convex_selector_training_input_manifest.json
+ORACLE=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_d2899e6/safety_cost_oracle.json
+BUCKETS=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+OUT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_objective_label_sensitivity_dry_run_<commit>
+```
+
+The run must collect wrapper JSON/Markdown SHA values and per-variant artifacts.
+Any candidate accepted by the wrapper only authorizes review of that offline
+candidate; it does not by itself authorize replay or deployment. If no variant
+passes all predeclared gates, reject the sensitivity route and diagnose the
+objective/label failure before trying new atoms or new scenario objectives.
+
+Mathematical boundary:
+
+The wrapper keeps DP as a black-box candidate generator and trains only CAMP
+weights over fixed logged candidate atoms and offline labels. Candidate scores
+remain affine in `w`; the simplex/CVaR/L2 master remains convex; closed-loop
+outcomes remain offline labels/evaluation targets. This is not a DP-side
+classical Benders construction.
