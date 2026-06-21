@@ -56715,3 +56715,251 @@ Sync this commit to AutoDL, rerun the directed tests with the remote Python
 environment, regenerate the same broader smoke plan artifact on AutoDL, and only
 then execute the predeclared paired nonformal smoke if all source/head/asset
 checks pass.
+
+## Temporal Consistency Broader Nonformal Smoke Plan and Result (`667eb7d`/`9dc405f`)
+
+This gate ran the predeclared broader nonformal paired smoke on AutoDL after
+syncing CAMP and confirming DP stayed fixed. It is still a default-off logging
+equivalence and coverage gate, not a CAMP superiority result.
+
+AutoDL sync state before execution:
+
+```text
+CAMP HEAD=origin/main=667eb7d4ea189bdfba031a137180fad32e733090
+DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+remote untracked files left untouched:
+  diffusion_planner_integration.md
+  dp_camp_device_handoff.md
+  test_diffusion_planner_benchmark_matrix.py
+```
+
+AutoDL plan verification:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/plan_diffusion_planner_temporal_consistency_broader_nonformal_smoke.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_broader_nonformal_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_smoke_result.py -q
+result=20 passed
+```
+
+AutoDL plan artifact:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/temporal_consistency_broader_nonformal_smoke_plan_667eb7d
+SMOKE=$ROOT/temporal_consistency_smoke_result_eval_ed4c4ac/temporal_consistency_smoke_result.json
+
+$PY scripts/integrations/plan_diffusion_planner_temporal_consistency_broader_nonformal_smoke.py \
+  --smoke_result_json "$SMOKE" \
+  --label autodl_667eb7d_temporal_consistency_broader_nonformal_plan \
+  --output_root /root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_667eb7d \
+  --output_json "$OUT/temporal_consistency_broader_nonformal_smoke_plan.json" \
+  --output_md "$OUT/temporal_consistency_broader_nonformal_smoke_plan.md" \
+  --output_bash "$OUT/run_temporal_consistency_broader_nonformal_smoke.sh"
+```
+
+The generated runbook was executed as:
+
+```bash
+PLAN=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_broader_nonformal_smoke_plan_667eb7d/run_temporal_consistency_broader_nonformal_smoke.sh
+LOG=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_broader_nonformal_smoke_plan_667eb7d/run_temporal_consistency_broader_nonformal_smoke.log
+bash "$PLAN" > "$LOG" 2>&1
+```
+
+Smoke result:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=50
+selector_exact_mismatches all 0
+selector_numeric_mismatches all 0
+dataset_audit.passed=True
+payload_audits=5/5 passed
+per_run.records=10
+per_run.available_payload_records=9
+per_run.first_tick_fail_closed_records=1
+latency_max_ms:
+  nishi_lanechange_seed4_npc4_tloff=0.18959864974021912
+  sample_normal2_seed1_npc0_tloff=0.0792965292930603
+  sample_tl59_seed1_npc0_tlon=0.0804513692855835
+  sample_tl59_seed1_npc4_tlon=0.15854649245738983
+  sample_tl59_seed2_npc4_tloff=0.07652956992387772
+```
+
+Result summarizer:
+
+```text
+9dc405fb316257fd0edb3267a015b9e7481f35ea
+scripts/integrations/summarize_diffusion_planner_temporal_consistency_broader_nonformal_smoke_result.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_broader_nonformal_smoke_result.py
+
+AutoDL verification:
+  py_compile passed
+  pytest result=15 passed
+```
+
+Result artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PLAN=$DEV/temporal_consistency_broader_nonformal_smoke_plan_667eb7d/temporal_consistency_broader_nonformal_smoke_plan.json
+ROOT=/root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_667eb7d
+OUT=$DEV/temporal_consistency_broader_nonformal_smoke_result_9dc405f
+
+$PY scripts/integrations/summarize_diffusion_planner_temporal_consistency_broader_nonformal_smoke_result.py \
+  --plan_json "$PLAN" \
+  --selector_equivalence_json "$ROOT/audit/selector_equivalence.json" \
+  --dataset_audit_json "$ROOT/audit/dataset_audit.json" \
+  --payload_audit_json "$ROOT/audit/payload/nishi_lanechange_seed4_npc4_tloff/temporal_consistency_payload_smoke.json" \
+  --payload_audit_json "$ROOT/audit/payload/sample_normal2_seed1_npc0_tloff/temporal_consistency_payload_smoke.json" \
+  --payload_audit_json "$ROOT/audit/payload/sample_tl59_seed1_npc0_tlon/temporal_consistency_payload_smoke.json" \
+  --payload_audit_json "$ROOT/audit/payload/sample_tl59_seed1_npc4_tlon/temporal_consistency_payload_smoke.json" \
+  --payload_audit_json "$ROOT/audit/payload/sample_tl59_seed2_npc4_tloff/temporal_consistency_payload_smoke.json" \
+  --label autodl_9dc405f_temporal_consistency_broader_smoke_result \
+  --output_json "$OUT/temporal_consistency_broader_nonformal_smoke_result.json" \
+  --output_md "$OUT/temporal_consistency_broader_nonformal_smoke_result.md"
+```
+
+Result decision:
+
+```text
+status=temporal_consistency_broader_nonformal_smoke_result_ready
+runtime_equivalence_ready=True
+coverage_ready_for_materiality_diagnosis=True
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+authorized_next_work=temporal_consistency_materiality_diagnosis_existing_broader_smoke_only
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_broader_nonformal_smoke_plan_667eb7d/temporal_consistency_broader_nonformal_smoke_plan.json` | `28c1b6d1b36f51a75643e1bc6733d29b3cd12d8de857359944dab7eb2e3dd0a4` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_broader_nonformal_smoke_plan_667eb7d/temporal_consistency_broader_nonformal_smoke_plan.md` | `97e7c7b375ca24c9506ba0f4f557c4f8b2d09313f0921e9c6625dca7f336b3e9` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_broader_nonformal_smoke_plan_667eb7d/run_temporal_consistency_broader_nonformal_smoke.sh` | `48915af5069045581fa723f0d3712da39f066b57cecab53b0df04077bce16f73` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_broader_nonformal_smoke_plan_667eb7d/run_temporal_consistency_broader_nonformal_smoke.log` | `249c8c4d02a7cf1ee81a90bbe1cb21f893c28ae8537feb314e4ab0fe3e4b3ba4` |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_667eb7d/audit/selector_equivalence.json` | `47845b0e4e0990bbe04f0f3bfee9f8823de55ebb357faf047f4fdccd2a23c4ee` |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_667eb7d/audit/dataset_audit.json` | `f7bdd9b175e2d1b3b073d4f0006f5160b4dcfba650c449d6c30dddefb323aa06` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_broader_nonformal_smoke_result_9dc405f/temporal_consistency_broader_nonformal_smoke_result.json` | `c3910568c4ba23539d05e4fbbb3817a7ebe6fbbf08d4ba3217072fecad74a7e0` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_broader_nonformal_smoke_result_9dc405f/temporal_consistency_broader_nonformal_smoke_result.md` | `230bbe6e39ff97f761c2d5506480ef23dd4c6aa7f2524b980bc663ac4def70a6` |
+
+Local artifact copies:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_broader_nonformal_smoke_plan_667eb7d
+F:\camp_core-main\analysis_bundles\temporal_consistency_broader_nonformal_smoke_run_667eb7d
+F:\camp_core-main\analysis_bundles\temporal_consistency_broader_nonformal_smoke_result_9dc405f
+```
+
+Decision:
+
+Accept the broader nonformal paired smoke as runtime-equivalence and coverage
+evidence. It shows the default-off temporal-consistency logging path preserves
+selection exactly over 50 records across traffic-light, sharp-turn,
+NPC-interaction, normal, and lane-change contexts. It still does not prove
+CAMP is safer than DP Top-1 and does not authorize atom promotion, CAMP
+training, online selector promotion, Full36, formal seeds, or DP modification.
+
+## Temporal Consistency Materiality Diagnosis (`24c2601`)
+
+This read-only gate consumes the broader smoke result and asks whether the
+temporal-consistency coefficient is a material current-tick candidate source.
+It uses only `selected_index`, `feasible_mask`, and the logged
+`previous_plan_temporal_consistency_rms_m` candidate vector. It does not read
+closed-loop outcomes.
+
+Implementation:
+
+```text
+24c260154676b81bee09499effc2ecb4e7d81c20
+scripts/integrations/analyze_diffusion_planner_temporal_consistency_materiality.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_materiality.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_temporal_consistency_materiality.py \
+         camp_core\tests\test_diffusion_planner_temporal_consistency_broader_nonformal_smoke_result.py -q
+  result=8 passed
+
+AutoDL:
+  py_compile passed
+  pytest result=8 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+RESULT=$DEV/temporal_consistency_broader_nonformal_smoke_result_9dc405f/temporal_consistency_broader_nonformal_smoke_result.json
+ROOT=/root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_667eb7d
+OUT=$DEV/temporal_consistency_materiality_24c2601
+
+$PY scripts/integrations/analyze_diffusion_planner_temporal_consistency_materiality.py \
+  --smoke_result_json "$RESULT" \
+  --logging_root "$ROOT/logging_enabled" \
+  --label autodl_24c2601_temporal_consistency_materiality \
+  --output_json "$OUT/temporal_consistency_materiality.json" \
+  --output_md "$OUT/temporal_consistency_materiality.md"
+```
+
+Materiality result:
+
+```text
+status=temporal_consistency_materiality_diagnosis_ready
+available_records=45
+valid_records=45
+nonzero_range_records=45
+lower_global_candidate_records=38
+lower_feasible_candidate_records=37
+mean_global_gap_m=0.09236390897294182
+mean_feasible_gap_m=0.09191844556186012
+max_global_gap_m=0.42898677380873806
+max_feasible_gap_m=0.42898677380873806
+source_materiality_evidence=True
+safety_benefit_evidence=False
+atom_schema_preflight_authorized=True
+atom_promotion_authorized=False
+authorized_next_work=temporal_consistency_atom_schema_preflight_only
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_materiality_24c2601/temporal_consistency_materiality.json` | `091ebd0d5572b4b38cf15b99497c75b3c180207d0978e021eb27cdec0425ae03` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_materiality_24c2601/temporal_consistency_materiality.md` | `cfc6822f3ae9f55120faa10490760d5f0809ffbcbbd81738524de209af91c3e8` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_materiality_24c2601
+```
+
+Decision:
+
+Accept the temporal-consistency source as material for schema-only atom
+preflight: there are many current-tick base-feasible lower-cost alternatives
+under this descriptor. This is not safety-benefit evidence and does not justify
+training, online use, Full36, formal seeds, DP changes, or a classical Benders
+claim. The next admissible self-iteration is a schema-only atom preflight that
+proves nonnegativity, fixed-current-tick observability, no future leakage, and
+affine `score_k(w)=a_k^T w` compatibility before any selector or training work.
