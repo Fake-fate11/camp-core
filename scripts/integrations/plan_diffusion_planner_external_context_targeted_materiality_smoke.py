@@ -3,9 +3,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from scripts.integrations.plan_diffusion_planner_external_context_payload_smoke import (
     SmokeSpec,
