@@ -51543,3 +51543,138 @@ current-tick finite-candidate coefficient `a_k`, nonnegative or represented by
 nonnegative signed parts, preserving affine `score_k(w)=a_k^T w` and the
 convex simplex/CVaR/L2 robust master. No DP-side classical Benders
 decomposition, dual, or valid cuts are claimed.
+
+## New No-Leak Targeted Support Source Gate (`5bd558c` artifacts)
+
+Purpose:
+
+The targeted failure-attribution gate authorized only one next step: either
+predeclare a genuinely new targeted no-leak support source, or reject/pause the
+current CAMP-DP selector route. This step adds that plan-only gate. It consumes
+the existing targeted attribution, observable bridge, support inventory, and
+support bottleneck artifacts. It does not run Diffusion Planner, train CAMP,
+run closed-loop replay, promote an online selector, modify DP, or use formal
+seeds.
+
+Implementation:
+
+```text
+5bd558c Add new no-leak support source gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_new_no_leak_targeted_support_or_reject.py
+camp_core/tests/test_diffusion_planner_new_no_leak_targeted_support_or_reject.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  camp_core\tests\test_diffusion_planner_new_no_leak_targeted_support_or_reject.py
+
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  camp_core\tests\test_diffusion_planner_targeted_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core\tests\test_diffusion_planner_current_observable_separability_bridge.py \
+  camp_core\tests\test_diffusion_planner_current_tick_tensor_visibility.py \
+  camp_core\tests\test_diffusion_planner_no_leak_score_family_inventory.py \
+  -q
+
+33 passed
+git diff --check passed
+```
+
+AutoDL sync and verification:
+
+```text
+CAMP_HEAD=5bd558c15e54f8a4d3e8d7b79e37b3f5fb3273e1
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  camp_core/tests/test_diffusion_planner_targeted_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core/tests/test_diffusion_planner_current_observable_separability_bridge.py \
+  camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py \
+  camp_core/tests/test_diffusion_planner_no_leak_score_family_inventory.py \
+  -q
+
+33 passed
+```
+
+Artifact command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/new_no_leak_targeted_support_or_reject_5bd558c
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  --targeted_failure_attribution_json "$ROOT/targeted_failure_attribution_980973c/targeted_failure_attribution.json" \
+  --observable_bridge_json "$ROOT/current_observable_separability_bridge_cf047ca/current_observable_separability_bridge.json" \
+  --support_inventory_json "$ROOT/current_tick_no_leak_atom_support_inventory_8aa1e4d/current_tick_no_leak_atom_support_inventory.json" \
+  --support_bottleneck_json "$ROOT/support_bottleneck_synthesis_0fe5a24/support_bottleneck_synthesis.json" \
+  --label autodl_5bd558c_new_no_leak_targeted_support_or_reject \
+  --output_json "$OUT/new_no_leak_targeted_support_or_reject.json" \
+  --output_md "$OUT/new_no_leak_targeted_support_or_reject.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/new_no_leak_targeted_support_or_reject_5bd558c/new_no_leak_targeted_support_or_reject.json
+sha256=b25908fb7377a117a74320f2df4ca43452dd1ffd4d61f90a460460788d3c1466
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/new_no_leak_targeted_support_or_reject_5bd558c/new_no_leak_targeted_support_or_reject.md
+sha256=df809ccd7eaa81c4f24cf6668af720ae2d495e19cf4d9b08dae426bb723182b0
+```
+
+Final decision:
+
+```text
+status=new_no_leak_targeted_support_source_not_available
+passed=True
+support_source_ready=False
+current_camp_dp_selector_route_rejected=True
+authorized_next_work=source_level_targeted_support_discovery_or_pause_current_selector_route_only
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+source_check_failures=[]
+proposals=0
+```
+
+Decision:
+
+Accept this as the current post-attribution boundary. The gate itself passed:
+all required source artifacts are consistent and no blocked action is
+authorized. However, no new targeted no-leak support source was predeclared, so
+there is no admissible atom/payload route to implement, train, or replay. The
+current CAMP-DP selector/training route remains rejected for online promotion,
+Full36, formal seeds, and deployability claims.
+
+The next admissible work is only source-level discovery for a genuinely new
+current-tick candidate-level support source, or keeping this route paused. A
+future proposal must be finite, deterministic, available before selection, free
+of future outcome leakage, not equivalent to closed score families or proxy
+families, and representable as fixed `a_k` coefficients so
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 robust master remain convex.
+
+Mathematical boundary:
+
+This gate is a finite-candidate planning/rejection gate, not a classical
+Benders decomposition. It constructs no DP master/subproblem, no dual, and no
+valid cuts. Closed-loop outcomes and SafetyCost labels remain offline
+evaluation labels only.
