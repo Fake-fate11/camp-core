@@ -54899,3 +54899,145 @@ deterministic tie reference. Outcomes are posterior labels only. A future CAMP
 integration must either convert any accepted guard into fixed affine atom
 coefficients or explicitly keep it outside the CAMP master as a deterministic
 finite-candidate guard; no Benders claim is authorized.
+
+## External Context Alternative Atom Search (`e38914e`)
+
+This gate closes the current external-context existing-log branch after the
+pure signal-arrival atom regressed and the selected-preserving tie-break
+collapsed to a no-op. It adds a read-only search over all currently logged
+external-context atom candidates and their size-2 combinations. The searched
+coefficients are fixed current-tick finite-candidate quantities:
+
+- `signal_arrival_urgency_hinge_v1`;
+- `right_of_way_blocked_indicator_v1`;
+- `route_speed_limit_excess_integral_v1`;
+- `route_speed_limit_unavailable_fraction_v1`.
+
+The rule is deliberately conservative. It sums the tested atom coefficients,
+uses only feasible candidates satisfying route-progress, planned-red,
+red-stopping, and absolute lateral guards, and preserves the logged selected
+index on score ties. Candidate outcomes are posterior labels used only after
+the deterministic selection for SafetyCost/hard-event/progress evaluation.
+
+Implementation:
+
+```text
+e38914e63f0a6e9d795113ac6117ff0acf010ada Add external context alternative atom search
+
+scripts/integrations/analyze_diffusion_planner_external_context_alternative_atom_search.py
+camp_core/tests/test_diffusion_planner_external_context_alternative_atom_search.py
+```
+
+Local verification:
+
+```text
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_external_context_alternative_atom_search.py \
+  camp_core\tests\test_diffusion_planner_external_context_alternative_atom_search.py
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_alternative_atom_search.py -q
+result=7 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests -k diffusion_planner_external_context -q
+result=83 passed, 1137 deselected
+```
+
+AutoDL synchronization:
+
+```text
+autodl_camp_head=e38914e63f0a6e9d795113ac6117ff0acf010ada
+autodl_camp_origin=e38914e63f0a6e9d795113ac6117ff0acf010ada
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_new_test_result=7 passed
+```
+
+AutoDL analysis command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_external_context_signal_arrival_outcome_counterfactual
+OUT=$ROOT/audit/external_context_alternative_atom_search_e38914e
+
+$PY scripts/integrations/analyze_diffusion_planner_external_context_alternative_atom_search.py \
+  --selection_log "$ROOT/logging_enabled/camp_selection_log.json" \
+  --expected_records 3 \
+  --expected_candidates 8 \
+  --label autodl_e38914e_signal_arrival_existing_log_alternative_atom_search \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/external_context_alternative_atom_search.json" \
+  --output_md "$OUT/external_context_alternative_atom_search.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_external_context_signal_arrival_outcome_counterfactual/audit/external_context_alternative_atom_search_e38914e/external_context_alternative_atom_search.json` | `f175100ad56938c64cc1de711e22fd43d82f46b0d242ed4fb335bb54b17e05ed` |
+| `/root/autodl-tmp/camp_dp_external_context_signal_arrival_outcome_counterfactual/audit/external_context_alternative_atom_search_e38914e/external_context_alternative_atom_search.md` | `1b4ee52b33c7a5dc5025587468b744cc6a8855d13cd90428a70e501861214e69` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\external_context_alternative_atom_search_e38914e
+```
+
+Result:
+
+```text
+status=external_context_alternative_atom_search_rejected
+passed=False
+primary_gap=no_alternative_external_context_atom_certificate_found
+passing_candidates=[]
+authorized_next_work=None
+new_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Top ranked candidates:
+
+| Candidate | Ranking signal records | Changed records | Changed all-gate records |
+| --- | ---: | ---: | ---: |
+| `right_of_way_blocked_indicator_v1` | `3` | `0` | `0` |
+| `right_of_way_blocked_indicator_v1+route_speed_limit_excess_integral_v1` | `3` | `0` | `0` |
+| `right_of_way_blocked_indicator_v1+route_speed_limit_unavailable_fraction_v1` | `3` | `0` | `0` |
+| `signal_arrival_urgency_hinge_v1` | `3` | `0` | `0` |
+| `signal_arrival_urgency_hinge_v1+right_of_way_blocked_indicator_v1` | `3` | `0` | `0` |
+| `route_speed_limit_excess_integral_v1` | `0` | `0` | `0` |
+| `route_speed_limit_unavailable_fraction_v1` | `0` | `0` | `0` |
+
+Decision:
+
+Reject additional external-context atomization from the current existing logs.
+The only fields with ranking signal are signal/right-of-way variants, and the
+strict selected-preserving current-tick guard changes zero records. The route
+speed fields have no ranking signal in this real 3-record outcome-labeled log.
+Therefore this branch still does not prove CAMP improves over DP Top-1 or the
+current logged selector, and it does not authorize training, online selector
+promotion, new replay, Full36, or formal seeds.
+
+Next admissible work:
+
+Return to materiality discovery or write a new predeclared logging-only
+evidence plan for a materially different current-tick atom family. The next
+branch must show candidate-level variation and at least one existing-log
+counterfactual change that is SafetyCost/hard-event/progress noninferior before
+any replay or online selector implementation is considered.
+
+Mathematical boundary:
+
+The alternative search is a finite-candidate audit, not a classical Benders
+subproblem. Every searched coefficient is fixed at the current tick and
+nonnegative by binary, hinge, or payload finite-check construction. If a future
+branch accepts one of these atoms, CAMP would still see fixed coefficients
+`a_k` and score candidates by `score_k(w)=a_k^T w`; the simplex/CVaR/L2 master
+would remain convex. This artifact constructs no DP-side master/subproblem,
+dual, or valid cut.
