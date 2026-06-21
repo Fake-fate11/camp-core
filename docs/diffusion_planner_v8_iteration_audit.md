@@ -58113,3 +58113,106 @@ evaluation objective and scenario matrix that can demonstrate CAMP usefulness
 when a legitimate current-tick atom/source is available, without reopening
 closed source families, modifying DP, using formal seeds, retraining CAMP, or
 claiming deployment from synthetic artifacts.
+
+## Scenario Evidence Matrix Refresh After Source Inventory (`d2df67f`)
+
+This is the next self-iteration after the negative runtime-source inventory. It
+does not reopen source mining and does not run DP. It refreshes the existing
+ProofProtocol v2 scenario evidence matrix gate under the current CAMP HEAD, so
+the next route is proof-oriented matrix/oracle readiness rather than another
+closed source proposal.
+
+Inputs:
+
+```text
+ProofProtocol v2:
+  /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/proof_protocol_v2_3605f51/proof_protocol_v2.json
+  sha256=5fd1633c1d4cb75ccc7d45d363db862602d333ca7ae8b26e4811d5cca946d4f8
+
+Diverse nonformal matrix plan:
+  /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_matrix_plan_py312_9e2158f.json
+  sha256=dce16dda98c794e6514049f18b223b3d057a6de45f156a9af52d9781c8993bd8
+
+Post source-visibility runtime inventory:
+  /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_source_visibility_runtime_inventory_e9d778d/post_source_visibility_runtime_inventory.json
+  sha256=f37b32dcbbedb56be92e111adddbb48107bbd4f86ab2eacef83e1008dc5d0dbe
+```
+
+Verification:
+
+```text
+AutoDL:
+  CAMP HEAD=d2df67f9f917eb5aafcbece2f5be0e80eb833e01
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_scenario_evidence_matrix_gate.py \
+         camp_core/tests/test_diffusion_planner_diverse_scenario_matrix_plan.py \
+         camp_core/tests/test_diffusion_planner_proof_protocol_v2.py -q
+  result=13 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PROOF=$DEV/proof_protocol_v2_3605f51/proof_protocol_v2.json
+MATRIX=$DEV/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_matrix_plan_py312_9e2158f.json
+OUT=$DEV/scenario_evidence_matrix_gate_post_source_inventory_d2df67f
+
+$PY scripts/integrations/plan_diffusion_planner_scenario_evidence_matrix_gate.py \
+  --proof_protocol_v2_json "$PROOF" \
+  --matrix_plan_json "$MATRIX" \
+  --label autodl_d2df67f_post_source_inventory_scenario_evidence_matrix_gate \
+  --output_json "$OUT/scenario_evidence_matrix_gate.json" \
+  --output_md "$OUT/scenario_evidence_matrix_gate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_evidence_matrix_gate_post_source_inventory_d2df67f/scenario_evidence_matrix_gate.json` | `1c3d2a9416227fd67eb96e47b1b7bd156aed97c2824b7e172184cb99208066f5` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_evidence_matrix_gate_post_source_inventory_d2df67f/scenario_evidence_matrix_gate.md` | `150cb7f50d7924b0b54473a49699946796d95e0cedd0f48625762b2cfe2bf10c` |
+
+Decision:
+
+```text
+status=scenario_evidence_matrix_predeclared
+passed=True
+authorized_next_work=candidate_branch_oracle_input_readiness_gate
+missing_required_buckets=[]
+formal_seeds=[]
+reasons=[
+  all_required_buckets_have_predeclared_coverage,
+  scenario_labels_use_route_or_config_metadata_only,
+  static_outcome_label_matrix_command_is_predeclared,
+  formal_seeds_are_excluded
+]
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Accept this refresh as a design-only scenario evidence milestone. After the
+source inventory found no new legal runtime source, the rigorous path is not to
+mine another closed feature family; it is to validate the proof objective and
+scenario matrix before any new evidence collection. This gate confirms all
+required ProofProtocol v2 buckets remain predeclared and that labels are based
+on route/config metadata, not outcome fields. It still does not authorize replay,
+online selection, CAMP retraining, Full36, formal seeds, DP modification, or a
+classical Benders claim.
+
+Next admissible work:
+
+Run or refresh the candidate-branch oracle input-readiness gate against the
+planned nonformal matrix outputs. That gate must prove required outcome/log
+files exist and are sufficient before any selector training, tiny paired smoke,
+or larger nonformal run is considered.
