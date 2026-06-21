@@ -44106,3 +44106,158 @@ This preflight creates no atom, selector, learned weight, outcome label, replay
 result, or Benders cut. It only constrains the next design artifact. Any future
 atomization must still use current-tick finite-candidate coefficients and keep
 `score_k(w)=a_k^T w` affine with a convex simplex/CVaR/L2 robust master.
+
+## Observable Interaction Route/Support Discovery (`71fb3bc` source)
+
+This gate follows the support preflight with the requested
+`observable_interaction_route_support_discovery_plan` artifact. It is
+design-only and read-only: it inspects the support preflight result, existing
+route pickles, route/map metadata, and the documented replay simulator config.
+It does not run Diffusion Planner, does not use outcome labels, does not change
+DP, does not create a selector, and does not train CAMP.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_observable_interaction_route_support_discovery.py
+camp_core/tests/test_diffusion_planner_observable_interaction_route_support_discovery.py
+```
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_observable_interaction_route_support_discovery.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_route_support_discovery.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_support_preflight.py `
+  -q
+```
+
+Result:
+
+```text
+5 passed in 0.11s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/Diffusion-Planner:/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:$PYTHONPATH
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_observable_interaction_route_support_discovery.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_route_support_discovery.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_support_preflight.py \
+  -q
+
+PREF=/root/autodl-tmp/camp_dp_observable_interaction_support_preflight_26f0fcd/observable_interaction_support_preflight.json
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_route_support_discovery_71fb3bc
+mkdir -p "$OUT"
+
+$PY scripts/integrations/plan_diffusion_planner_observable_interaction_route_support_discovery.py \
+  --support_preflight_json "$PREF" \
+  --route /root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --route /root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl \
+  --sim_config /root/autodl-tmp/Diffusion-Planner/scenario_generation/configs/replay_default.json \
+  --label autodl_71fb3bc_observable_interaction_route_support_discovery \
+  --output_json "$OUT/observable_interaction_route_support_discovery.json" \
+  --output_md "$OUT/observable_interaction_route_support_discovery.md"
+```
+
+Result:
+
+```text
+5 passed in 0.06s
+status=observable_interaction_route_support_discovery_rejected
+passed=True
+observable_interaction_route_family_rejected=True
+support_smoke_predeclared=False
+authorized_next_work=return_to_alternative_no_leak_candidate_support_or_score_family
+new_replay_authorized=False
+offline_separability_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_Benders_claim_authorized=False
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_route_support_discovery.json
+1cacb752f576897435019268c8289e35818b136d0674f649600edce5ff8ecf88
+
+observable_interaction_route_support_discovery.md
+2c3ef6e255910943d7f6900dcb04c3b83e497e1b35d9dd48cc061c721320d147
+```
+
+Evidence assessment:
+
+```text
+can_justify_positive_reduced_red_alignment=False
+can_justify_near_clearance_support=False
+routes_with_map_metadata=2
+configs_with_spawn_configuration=1
+preflight_red_reason=reduced_red_alignment_nonpositive
+preflight_clearance_reason=clearance_budget_never_active
+rejection_reason=no_existing_positive_reduced_red_alignment,no_existing_clearance_inside_fixed_budget
+```
+
+Route/config inventory:
+
+```text
+sample_map_tl_route_59_to_86.pkl:
+  map_exists=True
+  map_route_relation_hits=23
+  route_lanelet_count=23
+  start_lanelet_id=59
+  goal_lanelet_id=86
+
+sample_map_route_2_to_104.pkl:
+  map_exists=True
+  map_route_relation_hits=10
+  route_lanelet_count=10
+  start_lanelet_id=2
+  goal_lanelet_id=104
+
+replay_default.json:
+  has_spawn_configuration=True
+  mentions_clearance=False
+  mentions_traffic_light=False
+```
+
+Decision:
+
+Reject the observable-interaction route family under the current evidence.
+The permitted read-only inputs show existing route/map metadata and a documented
+spawn configuration, but they do not prove any route/support candidate will
+activate both positive reduced red alignment and the fixed 2m clearance budget.
+Predeclaring a support smoke from this evidence would be a guess, not a valid
+development gate.
+
+Next admissible work:
+
+Do not run replay, separability, Full36, formal seeds, online selector
+promotion, or CAMP retraining from the observable-interaction route family.
+Return to an alternative no-leak candidate-support or score-family direction.
+The next gate should be design-only and should choose one of:
+
+1. a different current-tick candidate-support family that is already present
+   in existing logs and has material variation without future leakage; or
+2. a broader route/scenario inventory plan that is explicitly read-only and
+   can justify a future nonformal support smoke before any replay is run.
+
+Mathematical boundary:
+
+This discovery artifact creates no atom, selector, learned weight, outcome
+label, replay result, or Benders cut. It only rejects one unsupported design
+route. Any future atomization must still use current-tick finite-candidate
+coefficients and preserve affine `score_k(w)=a_k^T w` with a convex
+simplex/CVaR/L2 robust master.
