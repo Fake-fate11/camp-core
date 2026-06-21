@@ -23094,6 +23094,168 @@ frozen. CAMP weights and atom schemas are unchanged. This is not classical
 Benders decomposition because no DP-side master/subproblem, dual, or cuts are
 constructed.
 
+## Signal-Context Wiring Preflight (`a3ef2e4` artifacts)
+
+Purpose:
+
+This step consumes the next-materiality gate and predeclares the default-off
+wrapper-side signal-context wiring contract. It does not implement the wiring,
+run DP, replay closed loop, train CAMP, promote online selection, use formal
+seeds, modify DP, or create atoms. Its only purpose is to prove the next
+implementation boundary is narrow: CAMP wrapper code may construct
+`signal_context` from fixed current-tick DP simulator state and pass it to the
+already default-off external-context payload.
+
+Status audit:
+
+```text
+source_next_gate_commit=acc1077273eab53a94e69aa9d44dc4d0a87a7f2d
+preflight_commit=a3ef2e481f6930b6972ef8abcafb19da693e1d0e
+github_origin_main=a3ef2e481f6930b6972ef8abcafb19da693e1d0e
+autodl_camp_head=a3ef2e481f6930b6972ef8abcafb19da693e1d0e
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_signal_wiring_preflight.py
+camp_core/tests/test_diffusion_planner_external_context_signal_wiring_preflight.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_external_context_signal_wiring_preflight.py \
+  camp_core\tests\test_diffusion_planner_external_context_signal_wiring_preflight.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_signal_wiring_preflight.py \
+  camp_core\tests\test_diffusion_planner_external_context_next_materiality_gate.py \
+  -q
+
+8 passed
+git diff --check passed
+```
+
+AutoDL verification and artifact command:
+
+```text
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_external_context_signal_wiring_preflight.py \
+  camp_core/tests/test_diffusion_planner_external_context_next_materiality_gate.py \
+  -q
+
+ROOT=/root/autodl-tmp/camp_dp_external_context_signal_wiring_preflight_a3ef2e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+$PY scripts/integrations/plan_diffusion_planner_external_context_signal_wiring_preflight.py \
+  --next_gate_json /root/autodl-tmp/camp_dp_external_context_next_materiality_gate_0b1b4f1/external_context_next_materiality_gate.json \
+  --camp_replay_source /root/autodl-tmp/camp_core/scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --payload_source /root/autodl-tmp/camp_core/camp_core/camp_core/integrations/diffusion_planner_external_context_payload.py \
+  --dp_source_root /root/autodl-tmp/Diffusion-Planner \
+  --label autodl_a3ef2e4_signal_context_wiring_preflight \
+  --output_json "$ROOT/external_context_signal_wiring_preflight.json" \
+  --output_md "$ROOT/external_context_signal_wiring_preflight.md"
+```
+
+Artifacts:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_signal_wiring_preflight_a3ef2e4
+local_copy=F:\camp_core-main\analysis_bundles\external_context_signal_wiring_preflight_a3ef2e4
+
+external_context_signal_wiring_preflight.json
+sha256=3CE2041760572C3561FA568068C317C8596509FD8326CF0919D40E32887CBC66
+
+external_context_signal_wiring_preflight.md
+sha256=A8280B507C295D28FD61E86787205EF0CCAF0B941E99C5C420F40D8060D803AC
+```
+
+Preflight result:
+
+```text
+status=external_context_signal_context_wiring_preflight_ready
+passed=True
+primary_gap=signal_context_wiring_contract_predeclared
+authorized_next_work=default_off_signal_context_wiring_implementation_unit_tests_only
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+CAMP_retraining_authorized=False
+online_selector_promotion_authorized=False
+formal_seeds_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Wiring contract:
+
+```text
+helper_name=build_current_tick_signal_context
+location=scripts/integrations/run_diffusion_planner_camp_replay.py
+default_off=True
+selection_effect=False
+required_inputs=[
+  tl_controller,
+  sim_time_s,
+  route_centerline_ego,
+  ego_route_ids or current route lanelet ids,
+  traffic_lights_enabled flag
+]
+payload_fields=[
+  signal_s_m,
+  current_phase,
+  phase_remaining_s,
+  blocked_phases
+]
+fail_closed_reasons=[
+  traffic_lights_disabled,
+  tl_controller_absent,
+  route_centerline_absent,
+  route_signal_lanelet_absent,
+  signal_position_unavailable,
+  signal_phase_invalid_or_absent
+]
+```
+
+Source evidence:
+
+```text
+CAMP replay payload call visible=True
+CAMP replay signal_context_none_visible=True
+payload required signal tokens visible=True
+DP traffic-light runtime tokens visible=True
+DP matched source files include scenario_generation/replay.py and
+scenario_generation/traffic_light.py
+```
+
+Decision:
+
+Accept the preflight and authorize only wrapper-side implementation with unit
+tests. The next implementation may add a default-off helper that produces a
+`signal_context` dictionary for `build_external_context_payload`, but it must
+fail closed to `None` whenever traffic lights, route geometry, signal position,
+or phase state are unavailable. This does not authorize new replay, smoke,
+training, online selection, Full36, formal seeds, DP modification, or atom
+promotion. A separate implementation test gate and then a separate smoke-plan
+gate are still required before any real traffic-signal materiality smoke.
+
+Mathematical boundary:
+
+This preflight defines a wrapper-side current-tick signal context contract only.
+It does not create atoms, run replay, train CAMP, change online selection, or
+modify DP. Future traffic-signal atoms must be fixed finite-candidate
+coefficients derived before selection; phase margins require hinge or
+signed-split atomization before entering the affine `score_k(w)=a_k^T w`.
+The simplex/CVaR/L2 master remains convex, and no DP-side classical Benders
+decomposition is claimed.
+
 Decision:
 
 Reject score-margin preservation as a finite-filter route. Do not implement an
