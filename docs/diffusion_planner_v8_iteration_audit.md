@@ -56633,3 +56633,85 @@ only for a broader nonformal coverage-smoke plan. The evidence is still
 runtime-equivalence and observability evidence, not a safety-improvement proof.
 Do not promote the atom, train new CAMP weights, run Full36, touch formal seeds,
 or claim classical Benders on the DP side.
+
+## Temporal Consistency Broader Nonformal Smoke Plan (`local`)
+
+This design-only gate consumes the accepted tiny temporal-consistency smoke
+result and predeclares the next broader nonformal paired smoke. It does not run
+Diffusion Planner, does not change online selection, and does not train CAMP.
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_temporal_consistency_broader_nonformal_smoke.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_broader_nonformal_smoke_plan.py
+```
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\plan_diffusion_planner_temporal_consistency_broader_nonformal_smoke.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_broader_nonformal_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_smoke_result.py -q
+result=20 passed
+```
+
+Local artifact command:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+$OUT='analysis_bundles\temporal_consistency_broader_nonformal_smoke_plan_local'
+C:\Users\lenovo\anaconda3\python.exe `
+  scripts\integrations\plan_diffusion_planner_temporal_consistency_broader_nonformal_smoke.py `
+  --smoke_result_json analysis_bundles\temporal_consistency_smoke_result_eval_ed4c4ac\temporal_consistency_smoke_result.json `
+  --label local_temporal_consistency_broader_nonformal_plan `
+  --output_root /root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_local_plan `
+  --output_json $OUT\temporal_consistency_broader_nonformal_smoke_plan.json `
+  --output_md $OUT\temporal_consistency_broader_nonformal_smoke_plan.md `
+  --output_bash $OUT\run_temporal_consistency_broader_nonformal_smoke.sh
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `F:\camp_core-main\analysis_bundles\temporal_consistency_broader_nonformal_smoke_plan_local\temporal_consistency_broader_nonformal_smoke_plan.json` | `acc87d225105b7d35b6cebecb345e9648c8c79aae82be0ded29a04954e02c291` |
+| `F:\camp_core-main\analysis_bundles\temporal_consistency_broader_nonformal_smoke_plan_local\temporal_consistency_broader_nonformal_smoke_plan.md` | `b561ca968fe7e99af6189a109e73054253f9153f3d22c0fb689294775f0a8ca9` |
+| `F:\camp_core-main\analysis_bundles\temporal_consistency_broader_nonformal_smoke_plan_local\run_temporal_consistency_broader_nonformal_smoke.sh` | `15468478c7c1e3aae2e4d57282f34153e82d90a2aba94808a97e1e5ac435e531` |
+
+Decision:
+
+```text
+status=temporal_consistency_broader_nonformal_smoke_plan_ready
+authorized_next_work=default_off_temporal_consistency_broader_nonformal_paired_smoke_only
+scope=5 runs x 10 steps x 8 candidates, baseline plus logging-enabled
+coverage=traffic_light/red_light_turn/sharp_turn/npc_interaction/normal/lane_change
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+online_selector_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Math boundary:
+
+The plan remains a default-off logging gate. The temporal-consistency descriptor
+is computed from current-tick fixed DP candidates and previous selected-plan
+memory before CAMP scoring and before closed-loop outcomes. When available it is
+finite and nonnegative; if later atomized it would enter only as a fixed
+candidate coefficient `a_k`, preserving affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master. This gate does not construct a DP-side classical
+Benders master/subproblem, dual, or valid cuts.
+
+Next admissible work:
+
+Sync this commit to AutoDL, rerun the directed tests with the remote Python
+environment, regenerate the same broader smoke plan artifact on AutoDL, and only
+then execute the predeclared paired nonformal smoke if all source/head/asset
+checks pass.
