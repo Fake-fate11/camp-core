@@ -52448,3 +52448,122 @@ before running any DP replay. CAMP retraining remains premature until a
 separate evidence gate shows that the current atom/payload family can produce a
 lower comprehensive safety score than DP top-1 without unacceptable progress,
 comfort, fallback, or latency regressions.
+
+## External Context Payload Smoke Plan Gate (`16bc78c` artifacts)
+
+Purpose:
+
+This step predeclares the first default-off external-context payload paired
+nonformal smoke. It adds an offline smoke-plan generator and a synthetic payload
+audit. It does not run Diffusion Planner, train CAMP, promote an online
+selector, modify DP, enter Full36, or use formal seeds.
+
+Status audit:
+
+```text
+local_head_before_gate=a830c97cf15bb8242183e2edc605c9a8e5fe8c17
+github_origin_main_before_gate=a830c97cf15bb8242183e2edc605c9a8e5fe8c17
+autodl_tcp_connectivity=connect.bjb2.seetacloud.com:29069 reachable
+autodl_batchmode_auth=Permission denied (publickey,password)
+autodl_sync_executed=False
+autodl_blocker=authentication_not_available_noninteractive
+dp_fixed_commit_expected=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+16bc78c Add external context payload smoke plan gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_payload_smoke.py
+scripts/integrations/analyze_diffusion_planner_external_context_payload_smoke.py
+camp_core/tests/test_diffusion_planner_external_context_payload_smoke_plan.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_external_context_payload_smoke.py \
+  scripts\integrations\plan_diffusion_planner_external_context_payload_smoke.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+18 passed
+git diff --check passed
+```
+
+Local artifacts:
+
+```text
+F:\camp_core-main\analysis_bundles\external_context_payload_smoke_plan_16bc78c\external_context_payload_smoke_plan.json
+sha256=BC50C3CC3A2C0360E5B58108CE5256BC51D6D508A07AF972E0244A8DFBA6C0BF
+
+F:\camp_core-main\analysis_bundles\external_context_payload_smoke_plan_16bc78c\external_context_payload_smoke_plan.md
+sha256=E79BE486A7CBBEE5EB720FB9F886606321E751736F138CB2EDD1AEF981905D82
+```
+
+Plan decision:
+
+```text
+status=external_context_payload_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=external_context_payload_paired_three_step_smoke_only
+closed_loop_replay_authorized=True
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Known runtime boundary:
+
+The runtime currently wires route-speed context from `context.speed_limit` and
+passes `signal_context=None`. Therefore this smoke is only allowed to validate
+default-off payload logging, route-speed context availability, fail-closed
+traffic-signal fields, latency accounting, and selector equivalence. It must not
+be used as evidence that traffic-light phase timing atoms are available.
+
+Accept/reject boundary:
+
+Accept only if the paired 3-step nonformal replay exits successfully, no formal
+seed appears, logging-enabled output contains non-null
+`external_context_payload_logging`, at least one payload record is available,
+available route-speed fields are finite/nonnegative/unit-interval as required,
+`candidate_closed_loop_outcomes` remain absent, and selector equivalence proves
+selected index, feasibility, atoms, scores, and weights unchanged.
+
+Reject if any replay/audit/equivalence check fails, all payload records are
+unavailable, any selected index or CAMP score/atom field changes, any payload
+uses future outcomes or reports `selection_effect=true`, any formal seed is
+detected, or scope expands beyond paired seed1/steps3/candidates8.
+
+Math boundary:
+
+The plan consumes only fixed DP candidates and current tick route/speed context.
+If later atomized, route-speed excess and right-of-way indicators are
+nonnegative finite-candidate coefficients. Signal phase margins require a
+signed-split or hinge atomization before any score use. CAMP score remains
+`score_k(w)=a_k^T w`, and the simplex/CVaR/L2 master remains convex. This is a
+finite-candidate payload/smoke gate, not a DP-side classical Benders
+decomposition.
+
+Next action:
+
+After AutoDL authentication is available, sync CAMP to the latest GitHub HEAD,
+confirm DP remains at `7a1d33da277a1992ec474b5383a0c963c72e04e4`, run the
+artifact's exact paired smoke commands, then run selector equivalence, payload
+audit, and dataset audit. Do not enter Full36, formal seeds, online selector
+promotion, or CAMP retraining from this plan alone.
