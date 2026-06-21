@@ -36848,6 +36848,177 @@ preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
 No DP-side classical Benders master/subproblem, dual, or valid cut is
 constructed.
 
+## Observable Interaction Payload Attribution (`e7dd7ec` source)
+
+This gate follows the scenario-support bottleneck and route-geometry
+inspection. It is read-only attribution over existing `observable_state_logging`
+payloads: it explains why the intended red-stopline and clearance interaction
+support is still absent. It does not run replay, does not use closed-loop
+outcome labels, does not change selection, does not train CAMP, and does not
+modify DP.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_observable_interaction_payload_attribution.py
+camp_core/tests/test_diffusion_planner_observable_interaction_payload_attribution.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_observable_interaction_payload_attribution.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_payload_attribution.py `
+  -q
+```
+
+Result:
+
+```text
+4 passed in 0.95s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_payload_attribution_e7dd7ec
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_interaction_payload_attribution.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_payload_attribution.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_observable_interaction_payload_attribution.py \
+  --scenario_support_json /root/autodl-tmp/camp_dp_observable_interaction_scenario_support_c8f095c/observable_interaction_scenario_support.json \
+  --route_geometry_json /root/autodl-tmp/camp_dp_route_geometry_inspection_f16bfef/route_geometry_inspection.json \
+  --root <same 17 nonformal observable-state artifact roots as scenario-support audit> \
+  --label autodl_e7dd7ec_observable_interaction_payload_attribution \
+  --output_json "$OUT/observable_interaction_payload_attribution.json" \
+  --output_md "$OUT/observable_interaction_payload_attribution.md"
+```
+
+AutoDL status check:
+
+```text
+CAMP_HEAD=e7dd7ec34782826681100aba3bea534f6a9fb3cd
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+4 passed in 0.37s
+```
+
+Result:
+
+```text
+status=observable_interaction_payload_attribution_diagnosed
+passed=True
+primary_gap=red=red_route_points_absent;clearance=obstacle_slots_absent
+authorized_next_work=diagnose_red_alignment_sign_semantics_and_reject_or_redesign_clearance_context
+input_log_paths=502
+scanned_logs=502
+records=80186
+candidate_payload_records=147
+payload_candidates=1176
+baseline_disabled_records=80039
+formal_seed_records=0
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_payload_attribution.json
+b45f1b39fb0aee5fd2fea0cab5fdf1ed87b7cf861b1b8609028ad8554e43d757
+
+observable_interaction_payload_attribution.md
+88b53af7cd87b2ab938ef68d168ed4419a5af7f9432378da1d37885f3f04d51b
+```
+
+Red attribution:
+
+```text
+candidate_reason_counts:
+  red_route_points_absent=600
+  red_distance_outside_budget=574
+  red_alignment_nonpositive=2
+
+record_reason_counts:
+  red_route_points_absent=75
+  red_distance_outside_budget=72
+  red_alignment_nonpositive=2
+
+records_with_red_route_points=72
+records_with_red_relation_fields=72
+records_with_red_distance_within_budget=2
+records_with_red_mean_alignment_positive=0
+records_with_red_step_alignment_positive=6
+records_with_red_support=0
+candidate_red_support_count=0
+min_red_distance_m=4.83404756877959
+max_red_mean_alignment=-0.30157372946551847
+max_red_step_alignment=0.06441071014757037
+```
+
+Clearance attribution:
+
+```text
+candidate_reason_counts:
+  obstacle_slots_absent=1096
+  obstacles_present_but_far=80
+
+record_reason_counts:
+  obstacle_slots_absent=137
+  obstacles_present_but_far=10
+
+records_with_obstacle_slots_positive=10
+records_with_clearance_finite=10
+records_with_clearance_within_budget=0
+candidate_obstacle_slots_positive_count=80
+candidate_clearance_finite_count=80
+candidate_clearance_within_budget_count=0
+min_clearance_m=37.6667987950201
+max_obstacle_slot_count=1
+```
+
+Decision:
+
+Accept this gate only as a read-only attribution diagnosis. It sharpens the
+previous scenario-support bottleneck: red support is mostly absent because
+route points are missing for many candidate payloads, and when route points do
+exist almost all candidates are outside the 5 m red-distance budget or have
+nonpositive mean alignment. Clearance support is absent because obstacle slots
+are usually missing; when a slot exists, the closest logged clearance is still
+about `37.67 m`, far outside the 2 m clearance-deficit budget. This evidence
+does not authorize selector promotion, separability screening, replay, Full36,
+formal seeds, or CAMP retraining.
+
+Next admissible work:
+
+Continue with a self-iterating read-only microaudit. First diagnose the red
+alignment sign semantics on the two within-budget red candidates and the six
+positive-step-alignment records: determine whether the nonpositive mean
+alignment is a sign convention issue, a route-point ordering issue, or true
+candidate geometry. In parallel, reject or redesign the clearance context for
+the current lightweight simulator evidence unless a predeclared existing-log
+source can produce near-obstacle payloads without replay. Only after this
+diagnosis may a new bounded nonformal logging plan be proposed.
+
+Mathematical boundary:
+
+This attribution reads only existing current-tick finite-candidate payloads.
+It creates no selector, threshold, atom weight, outcome label, trajectory-space
+convexity claim, or Benders cut. If a later descriptor is atomized, it must be a
+fixed pre-outcome candidate coefficient \(a_k\), so CAMP
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
+remains convex. No DP-side classical Benders master/subproblem, dual, or valid
+cut is constructed.
+
 ## Observable Interaction Coverage Smoke (`8307cc6` source, `9effc96` implementation)
 
 This gate executes the tiny paired nonformal smoke authorized by the observable
