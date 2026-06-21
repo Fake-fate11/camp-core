@@ -46025,3 +46025,161 @@ to deployed CAMP atoms, must not affect selection, must not read closed-loop
 outcomes, and must include fail-closed finite/nonnegative checks. No replay,
 schema promotion, CAMP retraining, Full36, formal seeds, or online selector
 change is authorized by this plan alone.
+
+## Non-Turn-Logit Interaction Payload Runtime Wiring (`38d0d5f`)
+
+This gate implements the previously authorized default-off payload only. It
+does not run replay, change selection, append a deployed atom, promote a schema,
+train CAMP, modify DP, run Full36, or use formal seeds.
+
+Added:
+
+```text
+camp_core/camp_core/integrations/diffusion_planner_non_turn_logit_interaction_payload.py
+camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_payload_runtime.py
+```
+
+Updated:
+
+```text
+scripts/integrations/run_diffusion_planner_camp_replay.py
+```
+
+Local state:
+
+```text
+CAMP HEAD after implementation commit:
+38d0d5ff3f84475b72e3bc80c612cd65c88e63c1
+```
+
+AutoDL state after bundle sync:
+
+```text
+CAMP HEAD:
+38d0d5ff3f84475b72e3bc80c612cd65c88e63c1
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  camp_core\camp_core\integrations\diffusion_planner_non_turn_logit_interaction_payload.py \
+  scripts\integrations\run_diffusion_planner_camp_replay.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_payload_design_plan.py \
+  camp_core\tests\test_diffusion_planner_turn_logit_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload.py \
+  -q
+
+24 passed in 0.53s
+```
+
+AutoDL verification:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  camp_core/camp_core/integrations/diffusion_planner_non_turn_logit_interaction_payload.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_payload_runtime.py \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_payload_design_plan.py \
+  camp_core/tests/test_diffusion_planner_turn_logit_payload_runtime.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py \
+  -q
+
+24 passed in 0.60s
+```
+
+Implemented payload:
+
+```text
+schema_version=dp_camp_non_turn_logit_interaction_payload_v1
+flag=--camp_non_turn_logit_interaction_payload_logging
+logged_field=non_turn_logit_interaction_payload_logging
+default_off=True
+selection_effect=False
+future_outcome_leakage=False
+closed_loop_outcome_fields_read=False
+online_selector_change=False
+deployed_atom_vector_change=False
+```
+
+Fields:
+
+```text
+route_progress_deficit_vs_top1_m:
+  expression=max(candidate_route_progress[0] - candidate_route_progress[k], 0)
+  role=diagnostic only
+
+dp_prior_jerk_excess_cost:
+  expression=max(candidate_dp_prior_jerk_excess_cost[k], 0)
+  role=diagnostic only
+
+comfort_progress_interaction_cost:
+  expression=route_progress_deficit_vs_top1_m * dp_prior_jerk_excess_cost
+  role=new candidate coefficient only
+```
+
+Fail-closed checks:
+
+```text
+candidate_count_matches
+candidate_route_progress_finite
+candidate_dp_prior_jerk_excess_cost_finite
+candidate_dp_prior_jerk_excess_cost_nonnegative
+route_progress_deficit_vs_top1_m_finite
+route_progress_deficit_vs_top1_m_nonnegative
+dp_prior_jerk_excess_cost_finite
+dp_prior_jerk_excess_cost_nonnegative
+comfort_progress_interaction_cost_finite
+comfort_progress_interaction_cost_nonnegative
+```
+
+Decision:
+
+Accept the implementation gate. The replay script now has default-off logging,
+per-record payload metadata, latency fields, summary metadata, and validation
+metadata for the non-turn-logit interaction payload. The implementation does
+not append `comfort_progress_interaction_cost` to the deployed CAMP atom vector,
+does not alter CAMP weights, and does not change candidate selection.
+
+Mathematical boundary:
+
+The payload consumes only current-tick finite candidate coefficients:
+`candidate_route_progress` and `candidate_dp_prior_jerk_excess_cost`. It then
+computes nonnegative derived coefficients before selection and before any
+closed-loop outcome labels are read. If the interaction is later promoted after
+separate evidence, it can enter CAMP as a fixed `a_k` coordinate, preserving
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This is not a
+DP-side classical Benders decomposition and makes no global convexity claim over
+trajectory coordinates.
+
+Rejected or not yet authorized:
+
+```text
+tiny paired nonformal replay smoke: not authorized by this implementation gate
+schema promotion: not authorized
+CAMP retraining: not authorized
+online selector promotion: not authorized
+Full36: not authorized
+formal seeds: not authorized
+DP modification/retraining/tuning: not authorized
+```
+
+Next admissible work:
+
+Design a separate nonformal smoke plan for this payload only. The plan must
+predeclare routes/seeds/steps, selector equivalence checks, payload availability
+checks, latency budget checks including the added route-progress computation,
+and an explicit rule that smoke results may only authorize a matched outcome
+audit or reject the payload route. It must still not authorize schema promotion,
+CAMP retraining, Full36, formal seeds, or online selector changes.
