@@ -53013,3 +53013,110 @@ Benders master/subproblem, dual, or cut.
 Next allowed work is an existing-smoke-only atom-schema dry run that consumes
 the same logged payloads and reports score/ranking effects without deployment,
 training, new replay, formal seeds, or DP modification.
+
+## External Context Atom Schema Dry Run (`2ee90d8` artifacts)
+
+Purpose:
+
+This step adds an existing-smoke-only dry run for the external-context atom
+schema. It consumes the atomization preflight output and existing
+`camp_selection_log.json` payloads, computes fixed finite-candidate atom
+coefficients, reports offline ranking effects, and verifies the no-leak/no-
+mutation boundary. It does not deploy the atom schema, run Diffusion Planner,
+execute closed-loop replay, train CAMP, promote an online selector, use formal
+seeds, or claim that CAMP now improves over DP Top-1.
+
+Status audit:
+
+```text
+local_head_before_gate=85b2569baf85be8b0a2a4adeadf2f7c919b36fc8
+github_origin_main_before_gate=85b2569baf85be8b0a2a4adeadf2f7c919b36fc8
+historical_b1fb6e0_status=ancestor_of_current_main
+autodl_batchmode_auth=Permission denied (publickey,password)
+autodl_sync_executed=False
+```
+
+Implementation:
+
+```text
+2ee90d8 Add external context atom schema dry run
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_external_context_atom_schema_dry_run.py
+camp_core/tests/test_diffusion_planner_external_context_atom_schema_dry_run.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_external_context_atom_schema_dry_run.py \
+  camp_core\tests\test_diffusion_planner_external_context_atom_schema_dry_run.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_atom_schema_dry_run.py \
+  camp_core\tests\test_diffusion_planner_external_context_atomization_preflight.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_materiality.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_result.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+40 passed
+git diff --check passed
+```
+
+Synthetic schema artifact:
+
+```text
+F:\camp_core-main\analysis_bundles\external_context_atom_schema_dry_run_2ee90d8\external_context_atom_schema_dry_run.json
+sha256=DBAB54C269F405478ED137AEF7BC4DE2150F1D61EB5CCECA6B65DA1D3268575B
+
+F:\camp_core-main\analysis_bundles\external_context_atom_schema_dry_run_2ee90d8\external_context_atom_schema_dry_run.md
+sha256=012C0BC2246544586CDB6F2D484CCF4F168324BD8969C5EBAC15712333152994
+```
+
+The artifact above is synthetic and proves the atom-schema dry-run schema,
+ranking computation, and decision boundary only. It is not evidence that the
+AutoDL paired smoke has executed and is not evidence of deployment readiness.
+
+Observed synthetic dry-run result:
+
+```text
+status=external_context_atom_schema_dry_run_ready
+selected_atom_candidate_names=route_speed_limit_excess_integral_v1
+ranking_signal_records=2
+top1_preservation_rate=1.0
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Math boundary:
+
+The dry run uses only the preflight-selected
+`route_speed_limit_excess_integral_v1` coefficient, read from
+`candidate_speed_limit_excess_integral_mps` in current-tick payload logs. The
+coefficient is fixed before selection and nonnegative per candidate. The dry-run
+ranking is therefore a finite-candidate affine cost `score_k(w)=a_k^T w` for a
+fixed unit atom weight, and the existing simplex/CVaR/L2 CAMP master remains
+convex if this coefficient is later admitted by a separate schema gate. No
+trajectory-coordinate convexity, DP-side optimization, or classical Benders
+master/subproblem/cut is asserted.
+
+Decision:
+
+Accept this dry-run gate as a local schema/logic check only. It still does not
+authorize training, Full36, formal seeds, online selector promotion, or DP
+modification. The next real evidence step is to refresh the same external-
+context payload smoke/materiality/atomization/dry-run chain on AutoDL when SSH
+access is available, or otherwise keep iterating only on local gates that do not
+depend on new replay.
