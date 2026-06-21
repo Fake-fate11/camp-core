@@ -12,6 +12,16 @@ PAYLOAD_COVERAGE_READY_STATUS = (
     "observable_state_payload_coverage_ready_for_offline_separability_design"
 )
 
+REQUIRED_CLOSED_SCORE_FAMILIES = frozenset(
+    {
+        "non_turn_interaction_family",
+        "observable_interaction_family",
+        "progress_lane_hard_context",
+        "relaxed_strict_atom_family",
+        "revised_context_atom_family",
+    }
+)
+
 FIELD_FAMILIES = {
     "candidate_route_segment_index": "candidate_lane_topology",
     "candidate_route_projection_s_m": "candidate_lane_topology",
@@ -114,6 +124,7 @@ def build_report(
     state_source = _source_state_inventory(state_inventory)
     material_fields = _material_candidate_fields(payload_coverage)
     closed_families = _closed_score_families(score_inventory)
+    missing_closed_families = sorted(REQUIRED_CLOSED_SCORE_FAMILIES - set(closed_families))
     consumed_fields = _consumed_fields(closed_families)
     field_rows = _field_rows(material_fields, consumed_fields)
     unconsumed_fields = [
@@ -123,6 +134,7 @@ def build_report(
         score_source=score_source,
         coverage_source=coverage_source,
         state_source=state_source,
+        missing_closed_families=missing_closed_families,
         unconsumed_fields=unconsumed_fields,
     )
     return {
@@ -155,6 +167,8 @@ def build_report(
             "observable_state_inventory": state_source,
         },
         "closed_score_families": closed_families,
+        "required_closed_score_families": sorted(REQUIRED_CLOSED_SCORE_FAMILIES),
+        "missing_closed_score_families": missing_closed_families,
         "material_candidate_fields": material_fields,
         "consumed_fields": sorted(consumed_fields),
         "field_remainder": field_rows,
@@ -260,12 +274,17 @@ def _decision(
     score_source: dict[str, Any],
     coverage_source: dict[str, Any],
     state_source: dict[str, Any],
+    missing_closed_families: list[str],
     unconsumed_fields: list[str],
 ) -> dict[str, Any]:
     if not score_source["passed"]:
         status = "post_closure_state_remainder_score_inventory_not_ready"
         primary_gap = "score_family_inventory_source_not_closed"
         authorized_next_work = "fix_score_family_inventory_before_state_remainder"
+    elif missing_closed_families:
+        status = "post_closure_state_remainder_score_inventory_stale"
+        primary_gap = "score_family_inventory_missing_required_closed_families"
+        authorized_next_work = "refresh_score_family_inventory_before_state_remainder"
     elif not coverage_source["passed"]:
         status = "post_closure_state_remainder_payload_coverage_not_ready"
         primary_gap = "observable_payload_coverage_not_material"
@@ -288,6 +307,7 @@ def _decision(
         == "post_closure_state_remainder_requires_source_visibility_inventory",
         "primary_gap": primary_gap,
         "authorized_next_work": authorized_next_work,
+        "missing_closed_score_families": missing_closed_families,
         "unconsumed_material_candidate_fields": unconsumed_fields,
         **{key: False for key in BLOCKED_ACTIONS},
         "next_step": _next_step(status),
@@ -295,6 +315,11 @@ def _decision(
 
 
 def _next_step(status: str) -> str:
+    if status == "post_closure_state_remainder_score_inventory_stale":
+        return (
+            "Regenerate the score-family inventory from the latest accepted "
+            "rejection evidence before using this post-closure remainder gate."
+        )
     if status == "post_closure_state_remainder_has_untried_logged_fields":
         return (
             "Write a design-only descriptor preflight using only the listed "
@@ -330,6 +355,18 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append(
             f"| `{name}` | `{source.get('status')}` | `{source.get('passed')}` |"
         )
+    lines.extend(
+        [
+            "",
+            "## Required Closed Score Families",
+            "",
+            "| Family | Present As Closed |",
+            "| --- | ---: |",
+        ]
+    )
+    closed = set(report["closed_score_families"])
+    for family in report["required_closed_score_families"]:
+        lines.append(f"| `{family}` | `{family in closed}` |")
     lines.extend(
         [
             "",

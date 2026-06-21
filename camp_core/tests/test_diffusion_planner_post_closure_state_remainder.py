@@ -15,6 +15,7 @@ def _score_inventory(status: str = "no_leak_score_family_inventory_requires_new_
     return {
         "analysis": {"name": "dp_camp_no_leak_score_family_inventory_v1"},
         "score_families": [
+            {"name": "non_turn_interaction_family", "status": "rejected_or_limited"},
             {"name": "observable_interaction_family", "status": "rejected_or_limited"},
             {"name": "progress_lane_hard_context", "status": "rejected_or_limited"},
             {"name": "revised_context_atom_family", "status": "rejected_or_limited"},
@@ -100,6 +101,32 @@ def test_post_closure_remainder_requires_source_visibility_when_logged_fields_cl
     closures = {row["closure_status"] for row in report["field_remainder"]}
     assert closures == {"consumed_by_closed_family"}
     assert "not a classical Benders decomposition" in render_markdown(report)
+
+
+def test_post_closure_remainder_fails_closed_when_inventory_is_stale() -> None:
+    inventory = _score_inventory()
+    inventory["score_families"] = [
+        row
+        for row in inventory["score_families"]
+        if row["name"] != "non_turn_interaction_family"
+    ]
+    report = build_report(
+        score_inventory=inventory,
+        payload_coverage=_coverage(),
+        state_inventory=_state_inventory(),
+        label="stale_inventory",
+    )
+
+    decision = report["final_decision"]
+    assert decision["status"] == "post_closure_state_remainder_score_inventory_stale"
+    assert decision["authorized_next_work"] == (
+        "refresh_score_family_inventory_before_state_remainder"
+    )
+    assert decision["missing_closed_score_families"] == [
+        "non_turn_interaction_family"
+    ]
+    assert decision["new_replay_authorized"] is False
+    assert "non_turn_interaction_family" in render_markdown(report)
 
 
 def test_post_closure_remainder_detects_untried_logged_field() -> None:
