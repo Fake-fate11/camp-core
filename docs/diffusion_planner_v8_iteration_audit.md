@@ -39072,3 +39072,104 @@ rejects payloads that embed outcome labels. The logged context atoms are fixed
 nonnegative coefficients; if used by CAMP, they preserve affine
 `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No DP-side
 classical Benders decomposition is claimed.
+
+## Progress + Lane/Hard Context Descriptor Separability (`f1ce2d9` source)
+
+This gate adds and runs a context-specific offline separability screen over the
+matched outcome dataset. It is read-only over existing nonformal logs. It does
+not run DP, train CAMP, promote an online selector, run Full36, or use formal
+seeds.
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_descriptor_separability.py
+camp_core/tests/test_diffusion_planner_progress_lane_hard_context_descriptor_separability.py
+```
+
+Validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_descriptor_separability.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_descriptor_separability.py \
+  -q
+```
+
+Result:
+
+```text
+5 passed in 2.30s
+```
+
+Screen command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d
+
+$PY scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_descriptor_separability.py \
+  --root "$ROOT/matched_progress_lane_hard_context_outcomes" \
+  --matched_contract_json "$ROOT/audit/matched_progress_lane_hard_context_outcome_contract.json" \
+  --label autodl_59a1c3d_progress_lane_hard_context_descriptor_separability \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/progress_lane_hard_context_descriptor_separability.json" \
+  --output_md "$ROOT/audit/progress_lane_hard_context_descriptor_separability.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/progress_lane_hard_context_descriptor_separability.json` | `a8625b9d4339acc7145c57115659a7c7d79d5344d759367598a83f4379ca1d6d` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/progress_lane_hard_context_descriptor_separability.md` | `e0a72e0bf4f9fe3323b4429dd96d715c8bb8091f46a826ca9fdc34ac48f90410` |
+
+Verifier result:
+
+```text
+status=progress_lane_hard_context_descriptor_separability_rejected
+passed=False
+primary_gap=progress_lane_hard_context_descriptors_do_not_separate_candidates
+authorized_next_work=diagnose_progress_lane_hard_context_descriptor_bottleneck_before_retraining
+promising_screen_count=0
+records={total_records: 48, candidate_rows: 384, alternative_rows: 336, formal_seed_records: 0}
+class_counts={beneficial_alternative: 56, harmful_alternative: 180, neutral_alternative: 100}
+best_screen=affine_simplex:0.250*atom_curvature_conditioned_lateral_rate_excess_v1+0.750*max_heading_error_worse_vs_top1_rad
+best_harmful_block_rate=1.0
+best_beneficial_retain_rate=0.017857142857142856
+best_allowed_harmful_rate=0.0
+failure_gap=beneficial_retain_rate_insufficient
+```
+
+Decision:
+
+Reject the current context descriptor family as sufficient for a certificate or
+selector design on this matched dataset. The class support is material, and the
+screen can block harmful alternatives, but it does so by blocking almost all
+beneficial alternatives. This is not a stable safety-score improvement signal
+over DP Top-1 and does not justify CAMP retraining, online selector promotion,
+Full36, or formal seeds.
+
+Next admissible work:
+
+Run only a bottleneck diagnosis over the same matched dataset to explain why
+beneficial alternatives overlap harmful alternatives in the current context
+descriptor space. The diagnosis should separate candidate-set limitations from
+atom-definition limitations and should inspect whether outcome labels are
+dominated by progress/value terms rather than lane/hard context. Do not train
+new CAMP weights until this bottleneck is understood and a revised atom/schema
+proposal is justified.
+
+Mathematical boundary:
+
+The separability screen uses outcome labels only to define offline
+beneficial/harmful/neutral classes and oracle thresholds. Descriptor values are
+computed exclusively from logged current-tick payload fields. Nonnegative
+simplex affine screens are diagnostics over fixed coefficients and preserve the
+CAMP affine score form if later atomized. No DP-side classical Benders
+decomposition, dual, or cut is introduced.
