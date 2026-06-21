@@ -47636,3 +47636,106 @@ ProofProtocol v2. This does not authorize new replay or a tiny smoke by itself.
 The next self-iteration must run or refresh the candidate-branch oracle
 input-readiness gate against the planned non-formal matrix outputs before any
 selector training, tiny smoke, larger non-formal run, or formal-seed work.
+
+## Candidate-Branch Oracle Readiness And Opportunity Refresh (`d2899e6` source)
+
+Purpose:
+
+The scenario evidence matrix gate found that the 108-run diverse matrix was
+predeclared under ProofProtocol v2. This refresh checks whether those outputs
+actually contain the offline candidate labels required by the candidate-branch
+oracle, then runs the SafetyCost oracle audit. Both steps are read-only over
+existing non-formal artifacts. They do not run Diffusion Planner, train CAMP,
+promote a selector, modify DP, or use formal seeds.
+
+Inputs:
+
+```text
+OUTCOME=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+```
+
+Readiness command:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python scripts/integrations/audit_diffusion_planner_candidate_availability_inputs.py \
+  --root "$OUTCOME" \
+  --output_json "$OUT/candidate_availability_input_readiness.json" \
+  --output_md "$OUT/candidate_availability_input_readiness.md"
+```
+
+Readiness artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_availability_input_readiness_d2899e6/candidate_availability_input_readiness.json
+sha256=8b306a3ec46007306965661f71374ecaa127c6a71daf3a8a89415f056456806d
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_availability_input_readiness_d2899e6/candidate_availability_input_readiness.md
+sha256=8406f95bcbd40bc21075cd7daadaaa55fc7ff381a18db30e30e7636660a8900b
+```
+
+Readiness result:
+
+```text
+candidate_availability_oracle_ready=True
+next_step=run_outcome_labeled_candidate_availability_oracle
+logs=108
+records=21600
+fallback_records=4979
+nonfallback_records=16621
+missing_examples=
+```
+
+Oracle command:
+
+```text
+/root/autodl-tmp/dp312_venv/bin/python scripts/integrations/analyze_diffusion_planner_safety_cost_oracle.py \
+  --root "$OUTCOME" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --output_json "$OUT/safety_cost_oracle.json" \
+  --output_md "$OUT/safety_cost_oracle.md" \
+  --fail_on_formal_seeds
+```
+
+Oracle artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_d2899e6/safety_cost_oracle.json
+sha256=f84e941b86cbc0db384a11397c2a47aa8d6aca541005ba627889e177dfdef6e9
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_d2899e6/safety_cost_oracle.md
+sha256=434d17567d556b0f40e11c549b61e9226f956e035e7970f3df9f12e39278449f
+```
+
+Oracle result:
+
+```text
+opportunity_gate.passed=True
+coverage_gaps.missing_required_buckets=
+formal_seed_logs=0
+records=21600
+overall.hard_guarded_oracle_minus_top1.ci95_high=-0.9930808306024836
+```
+
+Required-bucket hard-guarded oracle CI highs:
+
+| Bucket | Records | CI95 high |
+| --- | ---: | ---: |
+| `normal` | `1200` | `-0.0325641326082991` |
+| `traffic_light` | `3600` | `-0.3987928894323747` |
+| `red_light_turn` | `3600` | `-0.40351534568305525` |
+| `sharp_turn` | `7200` | `-0.49181274966907734` |
+| `npc_interaction` | `1200` | `-0.7727011259726725` |
+| `dense_scene` | `1200` | `-0.7722944315209478` |
+| `lane_change_or_merge` | `7200` | `-1.0438644638589512` |
+
+Decision:
+
+Accept this as candidate-pool opportunity evidence under ProofProtocol v2: the
+fixed DP candidate pool contains hard-guarded lower-SafetyCost alternatives in
+all required buckets. This still does not prove current CAMP is better than DP
+Top-1, because the oracle uses offline outcome labels that are forbidden as
+online selector inputs. The next self-iteration must compare current logged
+CAMP and any candidate-branch trained/evaluated selector against this oracle
+under the same SafetyCost protocol before considering training, tiny smoke,
+larger non-formal runs, or formal seeds.
