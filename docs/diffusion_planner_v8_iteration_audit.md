@@ -56116,3 +56116,161 @@ self-iteration is only `default_off_temporal_consistency_payload_runtime_preflig
 implement or preflight default-off runtime extraction/logging for this
 coefficient, measure exact-equivalence and latency, and keep the selector route
 paused unless that gate passes.
+
+## Temporal Consistency Runtime Preflight (`c525a35` -> `eaa3e12`)
+
+This iteration implements the default-off runtime preflight authorized by the
+payload design gate. It does not change DP candidate generation, CAMP atom
+schema, CAMP weights, feasibility, scores, selected trajectory, tracker
+execution, or replay policy. The new runtime payload logs
+`previous_plan_temporal_consistency_rms_m` by comparing each current candidate
+against the previous tick's selected planned trajectory shifted by the elapsed
+planner samples.
+
+Implementation:
+
+```text
+c525a3587b2553fec7d4bc8204756b448ebf07fa Add temporal consistency runtime preflight
+camp_core/camp_core/integrations/diffusion_planner_temporal_consistency_payload.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_payload_runtime.py
+scripts/integrations/run_diffusion_planner_camp_replay.py
+scripts/integrations/summarize_diffusion_planner_camp_replay.py
+
+eaa3e1229915c27fbe7c93766c31f74a9c98c57d Add temporal consistency runtime preflight gate
+scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_runtime_preflight.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_payload_runtime_preflight.py
+```
+
+Runtime contract:
+
+```text
+cli=--camp_temporal_consistency_payload_logging
+default_off=True
+selection_effect=False
+online_selector_change=False
+deployed_atom_vector_change=False
+logged_field=temporal_consistency_payload_logging
+coefficient=previous_plan_temporal_consistency_rms_m
+definition=current candidate RMS deviation from previous selected plan shifted by elapsed planner samples
+first_tick_or_missing_previous_plan=available False, reason previous_selected_plan_absent, payload_valid False
+availability_requires=finite current candidates, finite previous plan, overlap >= 2 samples
+```
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\run_diffusion_planner_camp_replay.py \
+  scripts\integrations\summarize_diffusion_planner_camp_replay.py \
+  camp_core\camp_core\integrations\diffusion_planner_temporal_consistency_payload.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_design.py -q
+result=12 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_replay_summary.py -q
+result=26 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\plan_diffusion_planner_temporal_consistency_payload_runtime_preflight.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_runtime_preflight.py \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_runtime.py -q
+result=12 passed
+```
+
+AutoDL verification:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/summarize_diffusion_planner_camp_replay.py \
+  camp_core/camp_core/integrations/diffusion_planner_temporal_consistency_payload.py \
+  scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_runtime_preflight.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_runtime_preflight.py \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_runtime.py -q
+result=12 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_design.py \
+  camp_core/tests/test_diffusion_planner_new_no_leak_targeted_support_or_reject.py -q
+result=11 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core/tests/test_diffusion_planner_replay_summary.py -q
+result=26 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/temporal_consistency_runtime_preflight_eaa3e12
+
+$PY scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_runtime_preflight.py \
+  --payload_design_gate_json "$ROOT/temporal_consistency_payload_design_12b2c6d/temporal_consistency_payload_design.json" \
+  --label autodl_eaa3e12_temporal_consistency_runtime_preflight \
+  --output_json "$OUT/temporal_consistency_runtime_preflight.json" \
+  --output_md "$OUT/temporal_consistency_runtime_preflight.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_runtime_preflight_eaa3e12/temporal_consistency_runtime_preflight.json` | `ee547a93fad62cd3d30b9d9d006e2f35d5d7a2670bb1c53d7e1cf7492eb5120f` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_runtime_preflight_eaa3e12/temporal_consistency_runtime_preflight.md` | `95fb56988b3e63b8f0e89431668f05054b2dbb6364d8127224f42d3cf85852aa` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_runtime_preflight_eaa3e12
+```
+
+Final decision:
+
+```text
+runtime.status=temporal_consistency_payload_runtime_preflight_ready
+runtime.passed=True
+runtime.runtime_preflight_ready=True
+runtime.authorized_next_work=default_off_temporal_consistency_tiny_paired_smoke_plan_only
+runtime.failed_checks=[]
+runtime.new_replay_authorized=False
+runtime.closed_loop_smoke_authorized=False
+runtime.online_selector_authorized=False
+runtime.classic_benders_claim_authorized=False
+```
+
+Mathematical boundary:
+
+The runtime payload computes a fixed finite-candidate coefficient `a_k` before
+selection. When available, it is finite and nonnegative by construction because
+it is an RMS distance. Missing previous-plan memory or insufficient overlap
+fails closed instead of creating a neutral zero atom. If later atomized after a
+separate gate, CAMP still scores candidates as `score_k(w)=a_k^T w`, so the
+simplex/CVaR/L2 master remains convex in weights. This preflight constructs no
+DP-side master/subproblem, dual, or valid cuts, so it is not a classical
+Benders claim.
+
+Decision:
+
+Accept the default-off temporal consistency runtime preflight. The next
+self-iteration may only plan a tiny paired nonformal smoke for this payload. It
+must prove that turning on `--camp_temporal_consistency_payload_logging`
+preserves candidate generation, selected indices, trajectories, summary
+metadata, and closed-loop outputs relative to the same run with the payload off,
+while recording payload availability and latency. This does not yet authorize
+executing broader replay, CAMP retraining, online selector promotion, Full36,
+formal seeds, DP modification, or any DP-side classical Benders claim.
