@@ -40377,3 +40377,142 @@ values remain current-tick finite coefficients from the default-off payload.
 For any fixed DP candidate set, nonnegative simplex screens remain affine in
 `w` if later used inside CAMP, preserving the simplex/CVaR/L2 convex master.
 No DP-side classical Benders master/subproblem, dual, or cut is introduced.
+
+## Revised Context Strict Label Sensitivity (`b3d097e` source)
+
+This gate runs the predeclared threshold sensitivity from the strict-label
+audit. It changes only offline label thresholds on the same matched logs. It
+does not run new replay, train CAMP, promote an online selector, run Full36,
+use formal seeds, or modify DP.
+
+Predeclared grid:
+
+```text
+progress_loss_budgets_m      = 0.05, 0.10
+safety_improvement_margins   = 0.00, 0.025, 0.05
+comfort_jerk_delta_budgets   = 0.0, 0.5, 1.0
+comfort_lateral_delta_budgets= 0.0, 0.05, 0.10
+harmful_safety_margin        = 0.05
+```
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_revised_context_strict_label_sensitivity.py
+camp_core/tests/test_diffusion_planner_revised_context_strict_label_sensitivity.py
+```
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_revised_context_strict_label_separability.py `
+  camp_core\tests\test_diffusion_planner_revised_context_strict_label_sensitivity.py `
+  -q
+```
+
+Result:
+
+```text
+11 passed in 1.23s
+```
+
+AutoDL validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_revised_context_strict_label_sensitivity.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_revised_context_strict_label_separability.py \
+  camp_core/tests/test_diffusion_planner_revised_context_strict_label_sensitivity.py \
+  -q
+```
+
+Result:
+
+```text
+11 passed in 0.83s
+```
+
+Diagnostic command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY scripts/integrations/analyze_diffusion_planner_revised_context_strict_label_sensitivity.py \
+  --root "$ROOT/matched_revised_context_outcomes" \
+  --strict_label_json "$ROOT/audit/revised_context_strict_label_separability.json" \
+  --label_objective_audit_json "$ROOT/audit/revised_context_label_objective_audit.json" \
+  --label autodl_b3d097e_strict_label_sensitivity \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/revised_context_strict_label_sensitivity.json" \
+  --output_md "$ROOT/audit/revised_context_strict_label_sensitivity.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_strict_label_sensitivity.json` | `cb008f7bf407378e1873477856ec833b5ac31c24395647c159a629d42150bbcf` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_strict_label_sensitivity.md` | `b786505e1ab996c0824219ac517b8a3eb5aba4ef2cfc2f35daa489a53875b059` |
+
+Verifier result:
+
+```text
+status=revised_context_strict_label_sensitivity_diagnosed
+passed=True
+primary_gap=support_exists_but_revised_atoms_do_not_separate_relaxed_strict_label
+authorized_next_work=diagnose_relaxed_strict_label_atom_bottleneck_before_replay
+grid_count=54
+support_sufficient_count=36
+support_limited_count=18
+promising_count=0
+max_strict_beneficial_candidates=41
+max_records_with_strict_beneficial=29
+
+best_by_support:
+  params={progress_loss_budget_m: 0.10, safety_improvement_margin: 0.00,
+          comfort_jerk_delta_budget: 0.5,
+          comfort_lateral_delta_budget: 0.10}
+  class_counts={beneficial_alternative: 41, harmful_alternative: 251,
+                neutral_alternative: 44}
+  records_with_strict_beneficial=29
+  best_screen=affine_simplex:0.250*revised_atom_heading_progress_conflict_v1+0.750*revised_atom_route_progress_efficiency_shortfall_v1
+  best_harmful_block_rate=0.9920318725099602
+  best_beneficial_retain_rate=0.04878048780487805
+  best_allowed_harmful_rate=0.5
+```
+
+Interpretation:
+
+Accept the sensitivity diagnosis. The previous strict-label support bottleneck
+is not absolute: 36 of 54 nearby label settings have enough beneficial and
+harmful support, and the best support setting has 41 beneficial alternatives
+across 29 records. However, none of the grid settings produced a promising
+revised-atom screen. The best support setting still retains only about 4.9% of
+beneficial alternatives while allowing 50% harmful among allowed candidates.
+
+Decision:
+
+Reject CAMP retraining, online selector promotion, Full36, formal seeds, DP
+modification, and new replay from this result. The next admissible work is a
+read-only bottleneck diagnosis over the best relaxed strict-label setting:
+explain why the current revised atoms block almost all relaxed-strict
+beneficial candidates while admitting harmful candidates. If that diagnosis
+shows atom-definition overlap, then propose a new no-leak atom schema; if it
+shows candidate-set/outcome support limits, record the route as support-limited
+before requesting broader nonformal support.
+
+Mathematical boundary:
+
+The sensitivity changes only offline outcome-label thresholds over an already
+fixed DP candidate set. Revised atom values remain current-tick finite
+coefficients from the default-off payload. Any later CAMP use still requires
+affine `score_k(w)=a_k^T w` and preserves the simplex/CVaR/L2 convex master.
+No DP-side classical Benders decomposition, dual, or cut is introduced.
