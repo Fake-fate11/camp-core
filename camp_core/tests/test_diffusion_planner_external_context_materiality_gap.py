@@ -23,6 +23,20 @@ def _materiality(*, rejected: bool = True) -> dict:
                 "finite_max": None,
             },
             {
+                "family": "traffic_signal",
+                "field": "candidate_signal_phase_change_margin_s",
+                "material": False,
+                "finite_min": None,
+                "finite_max": None,
+            },
+            {
+                "family": "traffic_signal",
+                "field": "candidate_right_of_way_blocked_indicator",
+                "material": False,
+                "finite_min": 0.0,
+                "finite_max": 0.0,
+            },
+            {
                 "family": "route_speed",
                 "field": "candidate_route_speed_limit_min_mps",
                 "material": False,
@@ -86,10 +100,26 @@ def _record() -> dict:
     }
 
 
+def _traffic_signal_constant_record() -> dict:
+    record = _record()
+    payload = record["external_context_payload_logging"]
+    payload["traffic_signal_context_available"] = True
+    payload["candidate_right_of_way_blocked_indicator"] = [0.0] * 8
+    return record
+
+
 def _write_log(root: Path, *, records: int = 3) -> None:
     root.mkdir(parents=True)
     root.joinpath("camp_selection_log.json").write_text(
         json.dumps([_record() for _ in range(records)]),
+        encoding="utf-8",
+    )
+
+
+def _write_signal_constant_log(root: Path, *, records: int = 3) -> None:
+    root.mkdir(parents=True)
+    root.joinpath("camp_selection_log.json").write_text(
+        json.dumps([_traffic_signal_constant_record() for _ in range(records)]),
         encoding="utf-8",
     )
 
@@ -120,6 +150,28 @@ def test_external_context_materiality_gap_diagnoses_real_smoke_shape(
         "nonmaterial_constant_speed_limit",
     ]
     assert "score_k(w)=a_k^T w" in report["analysis"]["math_boundary"]
+
+
+def test_external_context_materiality_gap_diagnoses_signal_horizon_gap(
+    tmp_path: Path,
+) -> None:
+    candidate_root = tmp_path / "candidate"
+    _write_signal_constant_log(candidate_root)
+
+    report = diagnose(
+        materiality=_materiality(),
+        candidate_root=candidate_root,
+        label="unit_signal",
+    )
+
+    assert report["final_decision"]["status"] == DIAGNOSED_STATUS
+    assert report["final_decision"]["gap_names"] == [
+        "traffic_signal_context_available_but_no_candidate_arrival",
+        "traffic_signal_right_of_way_indicator_constant_clear",
+        "route_speed_context_available_but_no_candidate_excess",
+        "route_speed_availability_constant",
+        "nonmaterial_constant_speed_limit",
+    ]
 
 
 def test_external_context_materiality_gap_rejects_ready_source(

@@ -192,6 +192,15 @@ def _gap_reports(
     speed_excess_values = _collect_field(records, "candidate_speed_limit_excess_integral_mps")
     speed_limit_values = _collect_field(records, "candidate_route_speed_limit_min_mps")
     availability_values = _collect_field(records, "candidate_speed_limit_available_fraction")
+    signal_arrival_values = _collect_field(
+        records, "candidate_first_signal_arrival_time_s"
+    )
+    signal_margin_values = _collect_field(
+        records, "candidate_signal_phase_change_margin_s"
+    )
+    right_of_way_values = _collect_field(
+        records, "candidate_right_of_way_blocked_indicator"
+    )
     return [
         {
             "name": "traffic_signal_context_absent",
@@ -204,6 +213,53 @@ def _gap_reports(
             "interpretation": (
                 "traffic-signal atom candidates cannot be material because the "
                 "runtime payload recorded signal_context=None for this smoke"
+            ),
+        },
+        {
+            "name": "traffic_signal_context_available_but_no_candidate_arrival",
+            "present": any(traffic_available) and not signal_arrival_values,
+            "evidence": {
+                "traffic_signal_available_records": sum(
+                    1 for value in traffic_available if value
+                ),
+                "arrival_finite_values": len(signal_arrival_values),
+                "phase_margin_finite_values": len(signal_margin_values),
+                "right_of_way_min": (
+                    min(right_of_way_values) if right_of_way_values else None
+                ),
+                "right_of_way_max": (
+                    max(right_of_way_values) if right_of_way_values else None
+                ),
+            },
+            "interpretation": (
+                "traffic-signal context was logged, but no candidate reached "
+                "the current signal within the payload support horizon, so "
+                "arrival and phase-margin fields cannot rank candidates"
+            ),
+        },
+        {
+            "name": "traffic_signal_right_of_way_indicator_constant_clear",
+            "present": bool(right_of_way_values)
+            and min(right_of_way_values) == max(right_of_way_values) == 0.0,
+            "evidence": {
+                "right_of_way_min": (
+                    min(right_of_way_values) if right_of_way_values else None
+                ),
+                "right_of_way_max": (
+                    max(right_of_way_values) if right_of_way_values else None
+                ),
+                "field_material": bool(
+                    (
+                        field_reports.get(
+                            "candidate_right_of_way_blocked_indicator"
+                        )
+                        or {}
+                    ).get("material")
+                ),
+            },
+            "interpretation": (
+                "right-of-way was logged as a finite indicator, but it was "
+                "constant zero across candidates and therefore has no ranking signal"
             ),
         },
         {
