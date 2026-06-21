@@ -41906,3 +41906,130 @@ diagnostics. If any descriptor is later atomized, it is a fixed coefficient
 robust master remains convex. Products and hinges are feature computations
 over fixed payloads, not a trajectory-space convexity claim. No DP-side
 classical Benders master/subproblem, dual, or cut is constructed.
+
+## Observable Interaction Coverage Plan (`660de35` source)
+
+This gate follows the observable interaction descriptor bottleneck diagnosis.
+It is design-only: it reads the existing bottleneck artifact and predeclares a
+broader nonformal paired smoke matrix intended to expose red-risk,
+clearance-deficit, turn/lateral, and normal-control current-tick variation.
+It does not run replay, does not train CAMP, does not change selection, and
+does not modify DP.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.py
+camp_core/tests/test_diffusion_planner_observable_interaction_coverage_plan.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_observable_interaction_coverage.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_coverage_plan.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_descriptor_bottleneck.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+9 passed in 0.46s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_660de35
+mkdir -p "$OUT"
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_coverage_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_descriptor_bottleneck.py \
+  -q
+
+$PY scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.py \
+  --bottleneck_json /root/autodl-tmp/camp_dp_observable_interaction_descriptor_bottleneck_e4e70d7/observable_interaction_descriptor_bottleneck.json \
+  --label autodl_660de35_observable_interaction_coverage_plan \
+  --output_root "$OUT" \
+  --output_json "$OUT/observable_interaction_coverage_plan.json" \
+  --output_md "$OUT/observable_interaction_coverage_plan.md"
+```
+
+Result:
+
+```text
+9 passed in 0.28s
+status=observable_interaction_coverage_broader_nonformal_plan_ready
+passed=True
+authorized_next_work=observable_interaction_coverage_broader_nonformal_paired_smoke_only
+paired_smoke_execution_authorized=False
+FOLLOWUP_KEYS=observable_interaction_coverage_contract,selector_equivalence_contract
+HAS_FAKE_SELECTOR_SCRIPT=False
+CAMP_HEAD=660de3566a93c7749ac6f8dbd68c59121a2eb160
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_coverage_plan.json
+747c1b23d1f58dc905ce6821e1aa7ab9ef4d2e80bb9e418e2d5c18f6b8c07c35
+
+observable_interaction_coverage_plan.md
+3d282db49c55487ff591d64edd5cf5ed999fc46b99ef21990eb53771f3e9ae51
+```
+
+Predeclared scope:
+
+```text
+planned_logs=4
+planned_records=48
+planned_candidate_rows=384
+traffic_lights={on, off}
+scenario_buckets={red_light, clearance, turn_lateral, normal_control}
+target_context_families={red_context, clearance_context, turn_lateral_context, normal_control}
+```
+
+Decision:
+
+Accept the coverage plan gate. It converts the measured bottleneck into a
+bounded next experiment: a 4-run x 12-step paired nonformal smoke that should
+test whether the collapsed observable interaction descriptors were caused by
+insufficient red-risk and clearance-deficit current-tick variation. The plan
+itself still authorizes no immediate replay execution, Full36, formal seeds,
+online selector promotion, CAMP retraining, DP modification, or classic
+Benders claim.
+
+Next admissible work:
+
+Execute only the predeclared observable-interaction coverage paired smoke in
+the next gate, then run selector-equivalence and coverage audits. If the smoke
+does not produce red-risk, clearance-deficit, and turn/lateral materiality
+without selection effects or future leakage, reject the route and return to a
+smaller observable-state inventory or candidate-support diagnosis. If it does,
+the following gate may run an offline separability screen over the newly
+covered logs.
+
+Mathematical boundary:
+
+This plan creates no new atom and no selector. All future runtime-eligible
+quantities remain current-tick finite-candidate descriptors. If a descriptor
+is later atomized, it must enter CAMP only as a fixed nonnegative coefficient
+\(a_k\), keeping `score_k(w)=a_k^T w` affine and the simplex/CVaR/L2 robust
+master convex in \(w\). Closed-loop outcomes may only be used as offline labels.
+No DP-side classical Benders master/subproblem, dual, or valid cut is
+constructed.
