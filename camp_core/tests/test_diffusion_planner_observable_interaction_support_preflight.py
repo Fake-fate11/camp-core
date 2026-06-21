@@ -40,7 +40,7 @@ def _geometry_report(
             "current_observable_interaction_route_rejected": True,
             "new_replay_authorized": False,
             "offline_separability_authorized": False,
-            "CAMP_retraining_authorized": False,
+            "camp_retraining_authorized": False,
         },
     }
 

@@ -159,7 +159,7 @@ def _source_gate(report: dict[str, Any]) -> dict[str, Any]:
             and final.get("current_observable_interaction_route_rejected") is True
             and final.get("new_replay_authorized") is False
             and final.get("offline_separability_authorized") is False
-            and final.get("CAMP_retraining_authorized") is False
+            and _any_false(final, "CAMP_retraining_authorized", "camp_retraining_authorized")
         ),
     }
 
@@ -248,6 +248,10 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"{path} must contain a JSON object.")
     return payload
+
+
+def _any_false(payload: dict[str, Any], *keys: str) -> bool:
+    return any(payload.get(key) is False for key in keys)
 
 
 if __name__ == "__main__":
