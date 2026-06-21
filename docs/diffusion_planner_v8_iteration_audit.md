@@ -50387,3 +50387,177 @@ change weights, change online selection, or prove CAMP beats DP Top-1. Logged
 descriptors remain fixed current-tick finite-candidate quantities; any future
 atomization must preserve affine `score_k(w)=a_k^T w` and the convex
 simplex/CVaR/L2 master, with no DP-side classical Benders claim.
+
+## Missing Candidate-State Broader Coverage Execution (`266b49c` artifacts)
+
+Purpose:
+
+The `6fbb53b` plan authorized a broader but still nonformal logging-only
+coverage matrix. This step ran exactly that matrix on AutoDL: four planned
+contexts, each with baseline and logging-enabled replay for 12 steps, followed
+by selector equivalence, payload smoke audit, payload coverage/materiality
+audit, and finite-candidate dataset audit. It did not train CAMP, change online
+selection, modify DP, run Full36, or touch formal seeds.
+
+Executed scope:
+
+```text
+root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_broader_coverage_current_chain
+runs=4
+paired_replays=8
+steps_per_run=12
+records=48
+candidate_rows=384
+seed=1 only
+formal_seeds=none
+contexts=[
+  sample_map_tl_route_59_to_86, npc0, traffic_lights=on,
+  sample_map_tl_route_59_to_86, npc4, traffic_lights=on,
+  sample_map_tl_route_59_to_86, npc4, traffic_lights=off,
+  sample_map_route_2_to_104, npc0, traffic_lights=off
+]
+```
+
+Execution summary:
+
+```text
+all_passed=True
+replay elapsed_s range approximately 7.688 to 7.998 per run
+selector_equivalence elapsed_s=0.321
+payload_smoke_audit elapsed_s=0.246
+payload_coverage_audit elapsed_s=0.229
+dataset_audit elapsed_s=0.391
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_broader_coverage_current_chain/audit/broader_coverage_execution_summary.json
+sha256=35324a2780a490c0a751e89d00673165e25eba14e4b38998e22ba008ca69209f
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_broader_coverage_current_chain/audit/selector_equivalence.json
+sha256=ef314ab2c67874a79765f4aecd977054fb104ef1088a00a1a4e6b6a4dcbd0a65
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_broader_coverage_current_chain/audit/observable_state_logging_smoke.json
+sha256=cb665990b3263f99e49ea2b0d32f35d68f085d3d30e1bbc0a2685749df2cb867
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_broader_coverage_current_chain/audit/observable_state_logging_smoke.md
+sha256=3c4d21b6d2f8e21e89569e25353994dfb4b0db6aea964e2834869c9e361e450e
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_broader_coverage_current_chain/audit/observable_state_payload_coverage.json
+sha256=ecc6c12c886529547c943401369b91f051bf640dc03b6bc82461108735a7c350
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_broader_coverage_current_chain/audit/observable_state_payload_coverage.md
+sha256=11675d937a6d2d7f27dd80b660530a663d678d43597f7d3b48155e1fedba5704
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_broader_coverage_current_chain/audit/dataset_audit.json
+sha256=be0c5ec10bead710ba32dd9d5fb8d9449b235f10fe72cf1e3b678d29a7b9e6fd
+```
+
+Selector equivalence:
+
+```text
+equivalent=True
+records=48
+exact_field_mismatches=0 for selected_index, feasible_mask, infeasibility_reasons, used_fallback, camp_fallback_mode, atom_schema_version, atom_names
+numeric_field_mismatches=0 for scores, selection_scores, weights, selection_weights, atoms, normalized_atoms, selection_normalized_atoms
+```
+
+Payload smoke audit:
+
+```text
+status=observable_state_logging_smoke_passed
+passed=True
+paired_logs=4
+records=48
+baseline_payload_records=0
+candidate_payload_records=48
+errors=[]
+```
+
+Payload coverage/materiality audit:
+
+```text
+status=observable_state_payload_coverage_ready_for_offline_separability_design
+validation_passed=True
+materiality_gate_passed=True
+records_total=48
+payload_records=48
+red_context_records=24
+red_context_record_rate=0.5
+obstacle_context_records=4
+route_curvature_nonempty_records=48
+route_segment_count_values=[127,276]
+red_route_point_count_values=[0,40]
+authorized_next_work=offline_no_leak_observable_descriptor_separability_design_only
+```
+
+Material candidate fields:
+
+```text
+candidate_route_segment_index
+candidate_route_projection_s_m
+candidate_route_lateral_error_m
+candidate_red_stopline_distance_m
+candidate_red_heading_alignment
+candidate_route_heading_change_rad
+candidate_min_obstacle_clearance_lower_bound_m
+```
+
+Dataset audit:
+
+```text
+passed=True
+logs=4
+records=48
+candidates=384
+closed_loop_outcomes_forbidden=True
+forbidden_seed_check=True
+finite_candidate_contract_verified=True
+exact_candidate_and_atom_shapes=True
+red_light_atom_matches_online_dp_reward=True
+```
+
+Accepted route:
+
+```text
+default_off_missing_candidate_state_logging_broader_nonformal_paired_smoke
+```
+
+Rejected routes:
+
+```text
+using broader coverage as performance proof
+online selector promotion
+CAMP retraining
+Full36
+formal seeds 11/12/13
+DP modification or retraining
+DP-side classical Benders claim
+```
+
+Conclusion:
+
+The broader logging-only matrix proves the current-tick observable descriptors
+have enough nonformal coverage and cross-candidate materiality for an offline
+separability design gate. It still does not prove CAMP improves over DP Top-1,
+and it does not authorize training or online selection changes.
+
+Next gate:
+
+Design an offline no-leak observable descriptor separability analysis. It must
+consume only current-tick logged descriptors plus offline evaluation labels,
+keep labels out of online inputs, predeclare the safety/comfort/progress score,
+report whether any descriptor family can separate safer candidates from DP
+Top-1 without unacceptable progress/comfort loss, and still avoid CAMP
+retraining until the separability evidence is positive and mathematically
+compatible with fixed nonnegative/affine CAMP atoms.
+
+Mathematical boundary:
+
+Descriptors remain fixed finite-candidate data. Offline labels may be used only
+to evaluate separability and design candidate atoms, not as online features.
+Any atom proposal must map descriptors to fixed nonnegative candidate
+coefficients `a_k` or nonnegative signed parts, preserving affine
+`score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. No DP-side
+classical Benders decomposition is claimed.
