@@ -40234,3 +40234,146 @@ Any future label or atom change must keep CAMP scoring affine in `w` for fixed
 DP candidates and preserve the simplex/CVaR/L2 convex master. This remains a
 finite-candidate CAMP diagnostic, not a DP-side classical Benders
 decomposition.
+
+## Revised Context Strict Label Separability (`b4dadaa` source)
+
+This gate implements the next predeclared step from the label/objective audit:
+define a stricter offline comprehensive safety-score label, then rerun support
+and revised-atom separability only on the same matched logs. It does not run
+new replay, train CAMP, promote an online selector, run Full36, use formal
+seeds, or modify DP.
+
+Strict offline label:
+
+- beneficial: candidate `k>0` lowers the diagnostic safety penalty versus DP
+  Top-1 by the declared margin, is feasible, has no hard-safety regression,
+  preserves progress within budget, and has no jerk/lateral comfort regression
+  beyond the declared budgets;
+- harmful: candidate `k>0` is infeasible, hard-safety-worse, loses progress
+  beyond budget, worsens jerk/lateral beyond budget, or increases diagnostic
+  safety penalty by the harmful margin;
+- neutral: all other non-Top-1 candidates.
+
+The diagnostic safety penalty is lower-is-better and remains an offline label
+only. It is not a runtime selector score.
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_revised_context_strict_label_separability.py
+camp_core/tests/test_diffusion_planner_revised_context_strict_label_separability.py
+```
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_revised_context_label_objective_audit.py `
+  camp_core\tests\test_diffusion_planner_revised_context_strict_label_separability.py `
+  -q
+```
+
+Result:
+
+```text
+11 passed in 0.83s
+```
+
+AutoDL validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_revised_context_strict_label_separability.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_revised_context_label_objective_audit.py \
+  camp_core/tests/test_diffusion_planner_revised_context_strict_label_separability.py \
+  -q
+```
+
+Result:
+
+```text
+11 passed in 0.60s
+```
+
+Diagnostic command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY scripts/integrations/analyze_diffusion_planner_revised_context_strict_label_separability.py \
+  --root "$ROOT/matched_revised_context_outcomes" \
+  --label_objective_audit_json "$ROOT/audit/revised_context_label_objective_audit.json" \
+  --label autodl_b4dadaa_strict_label_separability \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/revised_context_strict_label_separability.json" \
+  --output_md "$ROOT/audit/revised_context_strict_label_separability.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_strict_label_separability.json` | `640322a9753e855d1cc4df1976014ba8f5b7c2bc2edeed274cf9d8fb8b779f78` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_strict_label_separability.md` | `6e9a47fb82507c23e1a5e37a32e0e69e4aa261fbe1a3c127d8fed1dfbda3c224` |
+
+Verifier result:
+
+```text
+status=revised_context_strict_label_separability_rejected
+passed=False
+primary_gap=strict_beneficial_support_insufficient
+authorized_next_work=relax_or_redefine_strict_label_or_expand_nonformal_support
+records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+class_counts={beneficial_alternative: 4, harmful_alternative: 318, neutral_alternative: 14}
+records_with_strict_beneficial=4
+strict_beneficial_value_delta_mean=0.7022026400362247
+strict_beneficial_progress_delta_mean_m=0.04147247908629348
+strict_beneficial_safety_penalty_delta_mean=-0.27487532259316905
+strict_beneficial_jerk_delta_mean_mps3=-2.219590315271843
+strict_beneficial_lateral_delta_mean_mps2=-0.10583258213196944
+best_screen=affine_simplex:0.250*revised_atom_heading_progress_conflict_v1+0.750*revised_atom_route_progress_efficiency_shortfall_v1
+best_harmful_block_rate=0.9874213836477987
+best_beneficial_retain_rate=0.0
+best_allowed_harmful_rate=1.0
+promising_screen_count=0
+```
+
+Interpretation:
+
+Accept the strict-label audit as a negative gate. Tightening the label fixed
+the earlier permissiveness problem, but it exposed a support bottleneck: only 4
+strict beneficial alternatives exist in 48 records, below the predeclared
+minimum support. The best revised-atom screen blocks almost all harmful
+candidates but retains none of the strict beneficial candidates. This is not
+enough evidence to design an online selector, retrain CAMP, or claim
+improvement over DP Top-1.
+
+Decision:
+
+Reject direct atom redesign, CAMP retraining, online selector promotion,
+Full36, formal seeds, and DP modification from this result. The next admissible
+gate should stay offline on the same logs and run a declared threshold
+sensitivity over the strict label margins. The goal is to determine whether
+there is a nearby label definition with enough beneficial support while still
+excluding the previously permissive comfort/safety regressions. If no such
+definition exists, the bottleneck should be recorded as candidate-set/support
+limited and any new replay or broader scenario support must be separately
+authorized.
+
+Mathematical boundary:
+
+The strict label uses closed-loop outcomes only as offline labels. Revised atom
+values remain current-tick finite coefficients from the default-off payload.
+For any fixed DP candidate set, nonnegative simplex screens remain affine in
+`w` if later used inside CAMP, preserving the simplex/CVaR/L2 convex master.
+No DP-side classical Benders master/subproblem, dual, or cut is introduced.
