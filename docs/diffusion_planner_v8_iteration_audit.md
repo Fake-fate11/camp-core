@@ -48275,3 +48275,204 @@ schema, no formal seeds, and no DP execution. It must produce weights,
 scales, a training summary, and a post-training candidate-branch evaluation
 artifact before any closed-loop replay or online selector promotion is
 considered.
+
+## Offline Convex Selector Training Dry Run (`35fedb8`)
+
+Purpose:
+
+The input manifest gate authorized only an offline training dry run over frozen
+non-formal candidate logs. This step executes that dry run without running or
+modifying Diffusion Planner, then evaluates the trained static CAMP selector on
+the same fixed candidate-branch SafetyCost protocol.
+
+Implementation:
+
+```text
+35fedb8 Add DP CAMP offline selector training dry run
+```
+
+Files:
+
+```text
+scripts/integrations/run_diffusion_planner_offline_convex_selector_training_dry_run.py
+camp_core/tests/test_diffusion_planner_offline_convex_selector_training_dry_run.py
+```
+
+Local validation:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+23 passed in 0.51s
+
+git diff --check
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=35fedb897b7f1b79c75d3d4463dd4df1c57c137a
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+23 passed in 0.48s
+```
+
+Dry-run command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PLAN_ROOT=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f
+OUT=$ROOT/offline_convex_selector_training_dry_run_35fedb8
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/run_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  --manifest_json "$ROOT/offline_convex_selector_training_input_manifest_069057e_diverse/offline_convex_selector_training_input_manifest.json" \
+  --oracle_report "$ROOT/safety_cost_oracle_d2899e6/safety_cost_oracle.json" \
+  --scenario_bucket_manifest "$PLAN_ROOT/diverse_nonformal_scenario_buckets_py312_9e2158f.json" \
+  --output_dir "$OUT" \
+  --selector_name offline_convex_safety_cost_v1_35fedb8 \
+  --timeout_seconds 3600 \
+  --output_json "$OUT/offline_convex_selector_training_dry_run.json" \
+  --output_md "$OUT/offline_convex_selector_training_dry_run.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_selector_training_dry_run_35fedb8/offline_convex_selector_training_dry_run.json
+sha256=d297047bc016fa63b91755f79c95b6d4aa605ca1f8c7207d93d11df4149ed8c3
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_selector_training_dry_run_35fedb8/offline_convex_selector_training_dry_run.md
+sha256=7c0da6da2413a7023718d0bdbd72b9c95d97cbecd15ebfcc3c29a1eaef5844fe
+```
+
+Generated sub-artifacts:
+
+```text
+training/training_summary.json
+training/atom_scales_dp_static.json
+training/offline_weights_dp_static.npy
+selector_eval/selector_eval.json
+proof/camp_vs_top1_safety_cost_proof.json
+```
+
+Training result:
+
+```text
+converged=True
+final_master_gap=0.0
+input_records=21600
+num_records_after_hard_guarded_feasibility=16564
+dropped_records_without_eligible_candidate=5036
+
+train.oracle_match_rate=0.6264632580620799
+train.cvar_violation=0.06468437035655812
+val.oracle_match_rate=0.6533253084562143
+val.cvar_violation=0.05766927058457677
+```
+
+Nonzero static weights:
+
+```text
+planned_red_light_cost=0.6719951129731132
+red_stopping_margin_cost=0.14975645081676672
+jerk_early=0.09249169087290612
+progress_shortfall=0.029077485326530605
+planned_lateral_acceleration_cost=0.026463899005409148
+rms_acceleration=0.011116698560292959
+dp_prior_jerk_excess_cost=0.009618195077416196
+speed_limit_margin_1_0=0.00884991836969329
+clearance=0.0006305489975977993
+```
+
+Candidate-branch evaluation:
+
+```text
+status=offline_convex_selector_training_dry_run_complete
+candidate_branch_proof_passed=False
+candidate_branch_proof_status=proof_incomplete
+authorized_next_work=diagnose_offline_convex_selector_training_failure_modes
+
+overall CAMP-Top1 mean=-0.6179243116767918
+overall CAMP-Top1 ci95_high=-0.34682270969345136
+overall CAMP-HardOracle mean=0.9194781368431563
+overall CAMP-HardOracle ci95_high=1.4315686802263639
+overall CVaR90 CAMP-Top1 ci95_high=-0.7797551270612002
+
+changed_record_rate=0.21518518518518517
+evaluated_minus_logged_cost_mean=0.07642029005813743
+evaluated_minus_logged_cost_ci95_high=0.1696159122690624
+```
+
+Failed SafetyCost gates:
+
+```text
+safety_cost_trained_selector_vs_top1=False
+top1_bucket_failures={
+  traffic_light: 0.2572459303690283,
+  red_light_turn: 0.26412876138262353,
+  sharp_turn: 0.09598184260907616
+}
+
+safety_cost_trained_selector_gap_closed=False
+gap_bucket_failures={
+  normal: 0.008339899740734236,
+  traffic_light: 1.0997179828543109,
+  red_light_turn: 1.0876859188720396,
+  sharp_turn: 0.8948021155578489,
+  npc_interaction: 0.8009216333608942,
+  dense_scene: 0.8009216333608941,
+  lane_change_or_merge: 3.3446367410425917
+}
+```
+
+Bucket snapshot for the trained selector:
+
+```text
+normal: records=1200, top1_ci_high=-0.02432098266533309, cvar_ci_high=-0.02357674919259012, gap_ci_high=0.008339899740734236
+traffic_light: records=3600, top1_ci_high=0.2572459303690283, cvar_ci_high=-1.0029114197161029, gap_ci_high=1.0997179828543109
+red_light_turn: records=3600, top1_ci_high=0.26412876138262353, cvar_ci_high=-1.0029114197161029, gap_ci_high=1.0876859188720396
+sharp_turn: records=7200, top1_ci_high=0.09598184260907616, cvar_ci_high=0.13993082353088226, gap_ci_high=0.8948021155578489
+npc_interaction: records=1200, top1_ci_high=-0.4090092606666578, cvar_ci_high=-0.6784419653373881, gap_ci_high=0.8009216333608942
+dense_scene: records=1200, top1_ci_high=-0.4090092606666578, cvar_ci_high=-0.6784419653373881, gap_ci_high=0.8009216333608941
+lane_change_or_merge: records=7200, top1_ci_high=-0.20049231303952478, cvar_ci_high=-0.40108609498182446, gap_ci_high=3.3446367410425917
+```
+
+Decision:
+
+Reject this trained static selector for any closed-loop replay, online selector
+promotion, Full36, formal seeds, or deployability claim. The optimization
+itself converged, but the dry-run evidence fails the candidate-branch proof
+gate: traffic-light, red-light-turn, and sharp-turn buckets are not proven
+better than DP Top-1, the hard-guarded oracle gap remains open in every
+required bucket, and the trained selector is worse than the logged selector on
+mean SafetyCost with positive run-level CI high.
+
+Mathematically, the failure is not a DP limit and not a reason to modify DP.
+It is evidence that the current hard-guarded robust-margin objective and/or
+fixed atom family overweights planned-red/stopping terms and does not align
+with the full SafetyCost proof gate across buckets. The finite-candidate CAMP
+training remains convex and affine in `w`; the result is simply insufficient.
+
+Next gate:
+
+Run a diagnosis-only failure-mode audit over this dry-run artifact before any
+new training. The audit should compare trained-vs-logged selections by bucket,
+SafetyCost component, atom delta, fallback/eligibility status, and hard-guarded
+oracle availability. It should decide whether to revise the loss/bucket weights,
+label mask, atom schema, or training split; it must not run DP, promote online
+selection, or claim classical Benders.
