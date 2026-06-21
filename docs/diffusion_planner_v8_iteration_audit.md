@@ -41180,3 +41180,160 @@ features. Each atom remains a nonnegative finite-candidate coefficient
 `score_k(w)=a_k^T w`, and the simplex/CVaR/L2 master remains convex in
 weights \(w\). No DP-side classical Benders master/subproblem, dual, or valid
 cut is constructed.
+
+## Relaxed Strict-Label Atom Component Overlap (`b45430b` source)
+
+This gate follows the relaxed strict-label atom bottleneck diagnosis. It asks
+one narrow question before any atom redesign: do the existing current-tick
+component atoms already separate the 40 blocked low-risk beneficial
+alternatives from the harmful alternatives admitted by the first threshold
+relaxation? This remains read-only and offline. It does not run DP, train
+CAMP, promote an online selector, use formal seeds, run Full36, or modify DP.
+
+Changed files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_relaxed_strict_label_atom_component_overlap.py
+camp_core/tests/test_diffusion_planner_relaxed_strict_label_atom_component_overlap.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_relaxed_strict_label_atom_component_overlap.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_relaxed_strict_label_atom_component_overlap.py `
+  camp_core\tests\test_diffusion_planner_relaxed_strict_label_atom_bottleneck.py `
+  -q
+```
+
+Result:
+
+```text
+10 passed in 0.40s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY -m py_compile scripts/integrations/analyze_diffusion_planner_relaxed_strict_label_atom_component_overlap.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_relaxed_strict_label_atom_component_overlap.py \
+  camp_core/tests/test_diffusion_planner_relaxed_strict_label_atom_bottleneck.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_relaxed_strict_label_atom_component_overlap.py \
+  --root "$ROOT/matched_revised_context_outcomes" \
+  --bottleneck_json "$ROOT/audit/relaxed_strict_label_atom_bottleneck.json" \
+  --label autodl_b45430b_relaxed_strict_label_atom_component_overlap \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/relaxed_strict_label_atom_component_overlap.json" \
+  --output_md "$ROOT/audit/relaxed_strict_label_atom_component_overlap.md"
+```
+
+Result:
+
+```text
+10 passed in 0.35s
+status=relaxed_strict_label_atom_component_overlap_diagnosed
+passed=True
+primary_gap=component_atoms_do_not_separate_blocked_beneficial_from_leaked_harmful
+authorized_next_work=record_relaxed_strict_atom_observability_limit
+CAMP_HEAD=b45430b9e0111b38c9e1f9b8a2c5eeb6e1bbdabb
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+relaxed_strict_label_atom_component_overlap.json
+1df763b148096c3a2496d7d6db56ff62118df625d6056fbf42b9861604fc1e8a
+
+relaxed_strict_label_atom_component_overlap.md
+7d8d8c68aaac657985689a2f8656ad5a774ee5b2a37faf861f14f4b59b7b6546
+```
+
+Groups compared:
+
+```text
+blocked_beneficial=40
+newly_admitted_harmful=5
+target_retain_rate=0.1
+relaxed_threshold=0.020622436025802878
+beneficial_retain_rate_at_threshold=0.12195121951219512
+harmful_block_rate_at_threshold=0.9800796812749004
+```
+
+Outcome summaries:
+
+```text
+blocked_beneficial:
+  hard_safety_worse_count=0
+  safety_penalty_delta_mean=-0.7990777663530085
+  progress_delta_mean_m=0.1986741806950582
+  value_delta_mean=1.318399996856888
+
+newly_admitted_harmful:
+  hard_safety_worse_count=0
+  safety_penalty_delta_mean=-0.011219939913089472
+  progress_delta_mean_m=-0.053275193209641004
+  value_delta_mean=-0.024540688810856182
+```
+
+Component screen summary:
+
+```text
+lateral_rate_change_surrogate:
+  good_retain_rate=0.125, harmful_block_rate=1.0, allowed_harmful_rate=0.0, auc=0.175
+longitudinal_accel_step_excess:
+  good_retain_rate=0.075, harmful_block_rate=1.0, allowed_harmful_rate=0.0, auc=0.245
+heading_error_change_surrogate:
+  good_retain_rate=0.05, harmful_block_rate=1.0, allowed_harmful_rate=0.0, auc=0.125
+roughness_corridor_conflict:
+  good_retain_rate=0.025, harmful_block_rate=1.0, allowed_harmful_rate=0.0, auc=0.045
+longitudinal_jerk_surrogate:
+  good_retain_rate=0.2, harmful_block_rate=0.8, allowed_harmful_rate=0.1111111111111111, auc=0.185
+corridor_margin_drop_surrogate:
+  good_retain_rate=0.025, harmful_block_rate=0.8, allowed_harmful_rate=0.5, auc=0.03
+```
+
+Decision:
+
+Reject component-level reuse of the current relaxed strict atom family. The
+best component atom can block the five newly admitted harmful alternatives,
+but only by retaining 5 of 40 blocked beneficial alternatives. No existing
+component atom reaches the predeclared gate of retaining at least half of the
+blocked beneficial group while blocking harmful leakage. This means the
+current component atom family does not expose enough current-tick information
+to rescue the rejected roughness/corridor product.
+
+Immediate CAMP retraining, online selector promotion, new replay, Full36, and
+formal seeds remain rejected.
+
+Next admissible work:
+
+Record this as a relaxed strict atom observability limitation. The next gate
+should not tune thresholds or recombine these same six atoms. Instead, either:
+1. reject the relaxed strict atom route and return to a broader observable-state
+   inventory, or
+2. predeclare a genuinely new current-tick no-leak descriptor family whose
+   fields are already logged or can be added default-off without selection
+   effect, then run a preflight before any separability claim.
+
+Mathematical boundary:
+
+The component-overlap diagnostic compares fixed current-tick atom coefficients
+for blocked beneficial candidates and harmful candidates newly admitted by an
+offline threshold relaxation. Closed-loop outcomes define only offline groups.
+Each component value is a nonnegative fixed finite-candidate coefficient
+\(a_k\), so any later CAMP score would remain `score_k(w)=a_k^T w` and remain
+compatible with the simplex/CVaR/L2 convex master. No DP-side classical
+Benders master/subproblem, dual, or valid cut is constructed.
