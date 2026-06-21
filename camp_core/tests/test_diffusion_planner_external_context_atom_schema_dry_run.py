@@ -100,6 +100,38 @@ def _materiality(*, material: bool = True) -> dict[str, object]:
     }
 
 
+def _signal_arrival_atomization() -> dict:
+    atomization = build_atomization_report(
+        materiality={
+            "field_reports": [
+                {
+                    "family": "traffic_signal",
+                    "field": "candidate_first_signal_arrival_time_s",
+                    "material": True,
+                }
+            ],
+            "material_families": ["traffic_signal"],
+            "final_decision": {
+                "status": "external_context_payload_materiality_ready",
+                "passed": True,
+                "authorized_next_work": (
+                    "external_context_payload_atomization_preflight_existing_smoke_only"
+                ),
+                "new_replay_authorized": False,
+                "closed_loop_replay_authorized": False,
+                "camp_retraining_authorized": False,
+                "formal_seeds_authorized": False,
+                "dp_modification_authorized": False,
+                "classic_benders_claim_authorized": False,
+            },
+        }
+    )
+    assert atomization["final_decision"]["selected_atom_candidate_names"] == [
+        "signal_arrival_time_reaches_control_v1"
+    ]
+    return atomization
+
+
 def _atomization(*, ready: bool = True, material: bool = True) -> dict:
     report = build_atomization_report(materiality=_materiality(material=material))
     if not ready:
@@ -139,6 +171,33 @@ def test_external_context_atom_schema_dry_run_accepts_route_speed_atom(
     assert report["dry_run_records"][0]["combined_atom_score"] == [0.0, 1.0]
     assert report["dry_run_records"][0]["atom_best_index"] == 0
     assert "score_k(w)=a_k^T w" in report["analysis"]["math_boundary"]
+
+
+def test_external_context_atom_schema_dry_run_maps_missing_signal_arrival_to_zero(
+    tmp_path: Path,
+) -> None:
+    payload = _payload(material=False)
+    payload["candidate_first_signal_arrival_time_s"] = [None, 2.0]
+    payload["field_shapes"]["candidate_first_signal_arrival_time_s"] = [2]
+    candidate_root = tmp_path / "candidate"
+    _write_log(candidate_root, payload=payload, records=1)
+
+    report = analyze(
+        atomization=_signal_arrival_atomization(),
+        candidate_root=candidate_root,
+        expected_records=1,
+        expected_candidates=2,
+    )
+
+    decision = report["final_decision"]
+    assert decision["status"] == READY_STATUS
+    assert decision["selected_atom_candidate_names"] == [
+        "signal_arrival_time_reaches_control_v1"
+    ]
+    assert report["dry_run_records"][0]["atom_scores"][
+        "signal_arrival_time_reaches_control_v1"
+    ] == [0.0, 1.0]
+    assert report["dry_run_records"][0]["atom_best_index"] == 0
 
 
 def test_external_context_atom_schema_dry_run_rejects_source_not_ready(

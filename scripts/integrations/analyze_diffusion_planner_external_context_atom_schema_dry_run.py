@@ -299,7 +299,13 @@ def _atom_coefficients(
 ) -> list[float]:
     name = str(spec.get("name"))
     source_field = str(spec.get("source_field"))
-    raw_values = _field_values(payload, source_field, candidate_count)
+    allow_missing = name == "signal_arrival_time_reaches_control_v1"
+    raw_values = _field_values(
+        payload,
+        source_field,
+        candidate_count,
+        allow_missing=allow_missing,
+    )
     rules: dict[str, Callable[[float], float]] = {
         "route_speed_limit_excess_integral_v1": lambda value: value,
         "route_speed_limit_missing_context_v1": lambda value: max(1.0 - value, 0.0),
@@ -321,6 +327,8 @@ def _field_values(
     payload: dict[str, Any],
     source_field: str,
     candidate_count: int,
+    *,
+    allow_missing: bool = False,
 ) -> list[float]:
     values = payload.get(source_field)
     if not isinstance(values, list):
@@ -329,8 +337,15 @@ def _field_values(
         raise ValueError(
             f"field {source_field!r} has {len(values)} values, expected {candidate_count}"
         )
-    parsed = [float(value) for value in values]
-    if not all(math.isfinite(value) for value in parsed):
+    parsed = []
+    for value in values:
+        if value is None:
+            if allow_missing:
+                parsed.append(math.nan)
+                continue
+            raise ValueError(f"field {source_field!r} contains null values")
+        parsed.append(float(value))
+    if not allow_missing and not all(math.isfinite(value) for value in parsed):
         raise ValueError(f"field {source_field!r} contains non-finite values")
     return parsed
 
