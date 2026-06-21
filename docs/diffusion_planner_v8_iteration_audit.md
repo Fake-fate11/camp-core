@@ -57398,3 +57398,106 @@ classical Benders claim. The next admissible action is to reject this atom as th
 current safety route and predeclare a different current-tick, no-leak
 atom/source whose proxy can plausibly improve the safety objective before any
 new replay or training.
+
+## Alternative Safety Source Materiality (`ee8c310`)
+
+This gate follows the temporal-consistency safety-proxy rejection. It reads the
+same existing broader nonformal smoke logs and asks a narrower question: do any
+already logged current-tick safety proxy fields expose an improvement
+opportunity over the current selected candidate? This prevents us from simply
+repackaging a red-light proxy when the selected candidate is already optimal for
+that proxy in the available smoke.
+
+Implementation:
+
+```text
+ee8c310b0ad20128240de70cfd77fd49a0b49257
+scripts/integrations/analyze_diffusion_planner_alternative_safety_source_materiality.py
+camp_core/tests/test_diffusion_planner_alternative_safety_source_materiality.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_alternative_safety_source_materiality.py \
+         camp_core\tests\test_diffusion_planner_temporal_consistency_shadow_safety_proxy.py -q
+  result=9 passed
+
+AutoDL:
+  CAMP HEAD=ee8c310b0ad20128240de70cfd77fd49a0b49257
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest result=9 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SRC=$DEV/temporal_consistency_shadow_safety_proxy_db49745/temporal_consistency_shadow_safety_proxy.json
+ROOT=/root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_667eb7d/logging_enabled
+OUT=$DEV/alternative_safety_source_materiality_ee8c310
+
+$PY scripts/integrations/analyze_diffusion_planner_alternative_safety_source_materiality.py \
+  --safety_proxy_json "$SRC" \
+  --candidate_root "$ROOT" \
+  --expected_logs 5 \
+  --expected_records 50 \
+  --expected_candidates 8 \
+  --expected_available_records 45 \
+  --label autodl_ee8c310_alternative_safety_source_materiality \
+  --output_json "$OUT/alternative_safety_source_materiality.json" \
+  --output_md "$OUT/alternative_safety_source_materiality.md" \
+  --require_pass
+```
+
+Materiality result:
+
+```text
+status=alternative_safety_source_materiality_ready
+passed=True
+has_material_safety_source=True
+has_actionable_existing_safety_source=False
+actionable_existing_safety_sources=[]
+material_but_current_selection_already_best=[
+  h30_union_planned_red_light_cost,
+  h80_full_planned_red_light_cost,
+  red_stopping_margin_cost
+]
+authorized_next_work=targeted_safety_support_scenario_or_source_design_only
+```
+
+Source summary:
+
+| Source | Nonzero range records | Selected not best | Selected gap sum | Top1 not best | Top1 gap sum | Mean range |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `h30_union_planned_red_light_cost` | `2` | `0` | `0` | `0` | `0` | `0.5111111111111111` |
+| `h80_full_planned_red_light_cost` | `2` | `0` | `0` | `0` | `0` | `0.5111111111111111` |
+| `red_stopping_margin_cost` | `2` | `0` | `0` | `0` | `0` | `0.0038561523931686173` |
+| `soft_clearance_violation_cost` | `0` | `0` | `0` | `0` | `0` | `0.0` |
+| `near_miss_violation_cost` | `0` | `0` | `0` | `0` | `0` | `0.0` |
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/alternative_safety_source_materiality_ee8c310/alternative_safety_source_materiality.json` | `f8810a4ddde495401e49bcb5b520aedd24ca7080cb7b92255636ec2aab1967ea` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/alternative_safety_source_materiality_ee8c310/alternative_safety_source_materiality.md` | `03eaf30d858418509cb449e3c33cfdf8150e1d80d2b69a12c0ec9652b81a283e` |
+
+Decision:
+
+Accept the materiality diagnostic and reject an atom-schema design from the
+existing smoke safety proxies. The red-light fields are material in only 2/45
+available records, but the current selected candidate and DP Top-1 are already
+best for those fields. Obstacle clearance proxies have no nonzero range in this
+smoke. Therefore tuning CAMP weights or atomizing these existing fields cannot
+prove a safety improvement on the current evidence. The next admissible gate is
+`targeted_safety_support_scenario_or_source_design_only`: predeclare a tiny,
+nonformal, default-off targeted safety support design or a new current-tick
+source that can create observable safety intervention opportunity without using
+future outcomes as online features.
