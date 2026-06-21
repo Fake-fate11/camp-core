@@ -52915,3 +52915,101 @@ route speed-limit values alone are not treated as sufficient materiality. A
 passing result authorizes only atomization preflight over existing smoke fields;
 it does not authorize new replay, online selection, CAMP retraining, Full36,
 formal seeds, DP modification, or any classical Benders claim.
+
+## External Context Atomization Preflight (`848b87c` artifacts)
+
+Purpose:
+
+This step adds a plan-only atomization preflight for external-context payload
+fields after the materiality gate. It maps material current-tick finite-candidate
+payload fields to candidate CAMP atom coefficient definitions and checks that the
+definitions preserve the affine score and convex robust master boundary. It does
+not mutate the deployed atom schema, run Diffusion Planner, execute closed-loop
+replay, train CAMP, promote an online selector, use formal seeds, or claim a
+classical Benders decomposition.
+
+Status audit:
+
+```text
+local_head_before_gate=fa04146fc9ed23e68ae580bd10e70514ff578808
+github_origin_main_before_gate=fa04146fc9ed23e68ae580bd10e70514ff578808
+autodl_batchmode_auth=Permission denied (publickey,password)
+autodl_sync_executed=False
+```
+
+Implementation:
+
+```text
+848b87c Add external context atomization preflight
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_atomization_preflight.py
+camp_core/tests/test_diffusion_planner_external_context_atomization_preflight.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_external_context_atomization_preflight.py \
+  camp_core\tests\test_diffusion_planner_external_context_atomization_preflight.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_atomization_preflight.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_materiality.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_result.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+35 passed
+git diff --check passed
+```
+
+Synthetic schema artifact:
+
+```text
+F:\camp_core-main\analysis_bundles\external_context_atomization_preflight_848b87c\external_context_atomization_preflight.json
+sha256=17F97398DC7433D2463713AD52422D71B99C720EA4B56691BA9592E5F911E8E5
+
+F:\camp_core-main\analysis_bundles\external_context_atomization_preflight_848b87c\external_context_atomization_preflight.md
+sha256=3DED67E89B5F02F0C739341410EE2C0DA3B38F58FE7E634BE72988522ECA5952
+```
+
+The artifact above is synthetic and proves the atomization-preflight schema and
+decision boundary only. It is not evidence that the AutoDL paired smoke has
+executed.
+
+Decision boundary:
+
+```text
+status_on_pass=external_context_atomization_preflight_ready
+authorized_next_work_on_pass=external_context_atom_schema_dry_run_existing_smoke_only
+closed_loop_replay_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+The accepted synthetic materiality input selects only
+`route_speed_limit_excess_integral_v1`, sourced from
+`candidate_speed_limit_excess_integral_mps`. The coefficient is defined as a
+fixed current-tick finite-candidate nonnegative integral,
+`sum_t max(speed_k,t - limit_k,t, 0) * dt`, computed before selection from DP
+candidate prefix speeds and route speed-limit context. CAMP still sees fixed
+candidate coefficients, so any later score remains `score_k(w)=a_k^T w`, and
+the simplex/CVaR/L2 master remains convex over weights. This section does not
+assert convexity over trajectory coordinates and does not construct a classical
+Benders master/subproblem, dual, or cut.
+
+Next allowed work is an existing-smoke-only atom-schema dry run that consumes
+the same logged payloads and reports score/ranking effects without deployment,
+training, new replay, formal seeds, or DP modification.
