@@ -49389,3 +49389,147 @@ simplex/CVaR/L2 master remains convex. Offline closed-loop outcomes may be used
 only as labels or evaluation evidence. This gate does not construct a DP-side
 classical Benders master/subproblem, dual, or cut, and it makes no global
 trajectory-coordinate convexity claim.
+
+## Current-Tick No-Leak Atom Support Inventory (`8aa1e4d`)
+
+Purpose:
+
+The `ca654f9` redesign plan authorized only a current-tick no-leak atom support
+inventory preflight. This step adds and runs that inventory against the existing
+diverse nonformal selection logs. It checks whether the logs expose any
+candidate-level runtime fields that are not already closed or previously
+audited as proxy families. It does not inspect closed-loop outcome labels for
+features, train CAMP, run Diffusion Planner, run replay, promote an online
+selector, use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+8aa1e4d Add current-tick atom support inventory
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_current_tick_no_leak_atom_support_inventory.py
+camp_core/tests/test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core\tests\test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core\tests\test_diffusion_planner_observable_state_inventory.py \
+  camp_core\tests\test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core\tests\test_diffusion_planner_post_closure_state_remainder.py \
+  camp_core\tests\test_diffusion_planner_current_tick_tensor_visibility.py \
+  camp_core\tests\test_diffusion_planner_no_leak_score_family_inventory.py -q
+36 passed in 1.14s
+
+git diff --check
+```
+
+AutoDL sync and validation:
+
+```text
+CAMP_HEAD=8aa1e4df906880d1d48a1c6672c0d0fde021380c
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core/tests/test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_state_inventory.py \
+  camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core/tests/test_diffusion_planner_post_closure_state_remainder.py \
+  camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py \
+  camp_core/tests/test_diffusion_planner_no_leak_score_family_inventory.py -q
+36 passed in 0.52s
+```
+
+Inventory command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PLAN=$ROOT/no_leak_atom_or_proof_objective_redesign_plan_ca654f9/no_leak_atom_or_proof_objective_redesign_plan.json
+LOGROOT=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MANIFEST=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_scenario_buckets_py312_9e2158f.json
+OUT=$ROOT/current_tick_no_leak_atom_support_inventory_8aa1e4d
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  --redesign_plan_json "$PLAN" \
+  --root "$LOGROOT" \
+  --scenario_bucket_manifest "$MANIFEST" \
+  --fail_on_formal_seeds \
+  --label autodl_8aa1e4d_current_tick_no_leak_atom_support_inventory \
+  --output_json "$OUT/current_tick_no_leak_atom_support_inventory.json" \
+  --output_md "$OUT/current_tick_no_leak_atom_support_inventory.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/current_tick_no_leak_atom_support_inventory_8aa1e4d/current_tick_no_leak_atom_support_inventory.json
+sha256=6d1e63081c8f2753cc8ff9434d245b94de0c9067bbb88b37236b459c585c50b4
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/current_tick_no_leak_atom_support_inventory_8aa1e4d/current_tick_no_leak_atom_support_inventory.md
+sha256=8dd85a4679e88fb47d6acf7c90f3943df2da77b86a2eb337f2fa415ba1ddee8c
+```
+
+Final decision:
+
+```text
+status=current_tick_no_leak_atom_support_inventory_no_unclosed_fields
+passed=False
+primary_gap=no_admissible_unclosed_current_tick_candidate_support
+records=21600
+candidate_rows=172800
+admissible_unclosed_candidate_families=[]
+partial_candidate_families=[]
+available_existing_or_closed_proxy_families=[
+  dp_reward_lane_proxy,
+  dp_reward_neighbor_proxy,
+  dp_scene_aggregate,
+  existing_comfort_proxy,
+  existing_shape_support_proxy,
+  existing_traffic_proxy
+]
+authorized_next_work=proof_objective_v2_or_default_off_logging_preflight_design_only
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Reject designing a new CAMP atom directly from the current diverse nonformal
+logs. They expose only existing or already closed proxy families: DP reward
+lane/neighbor proxies, aggregate DP scene features, comfort proxies, shape
+support proxies, and traffic proxies. No unclosed candidate-level current-tick
+state family is available in these logs.
+
+Next gate:
+
+Do not train, replay, promote an online selector, run Full36, use formal seeds,
+or modify DP from this inventory. The next admissible work is either a
+design-only ProofObjective/ProofProtocol v2 refinement, or a default-off logging
+preflight for missing candidate-level state before any new atom schema.
+
+Mathematical boundary:
+
+The inventory preserves DP as a fixed black-box candidate generator and reads
+only current-log fields before any new online decision. It does not inspect
+closed-loop outcome labels for runtime features. If a future atom is created,
+it must be a fixed current-tick finite-candidate coefficient `a_k`, preferably
+nonnegative or represented with a nonnegative signed split, so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
+convex. This is not a DP-side classical Benders decomposition.
