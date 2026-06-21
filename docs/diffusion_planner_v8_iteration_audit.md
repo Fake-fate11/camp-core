@@ -59014,3 +59014,120 @@ selector work, Full36, formal seeds, or DP modification. The screen must consume
 only existing logged candidate prefixes, compute the predeclared coefficient,
 and keep any safety/oracle labels strictly as offline diagnosis rather than
 runtime coefficient inputs.
+
+## Candidate-Set Consensus Existing-Log Materiality (`574d990`)
+
+This self-iteration implements and runs the read-only existing-log materiality
+screen authorized by the payload design gate. It consumes only existing
+selection logs under the AutoDL development artifact root. It does not run DP,
+does not replay, does not train CAMP, does not create or promote an online
+selector, does not use formal seeds, and does not modify DP.
+
+Implementation:
+
+```text
+574d990d16c820fe1fcb54f5e4ea5eebe4b42b59 Add candidate set consensus materiality screen
+
+scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_materiality.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_materiality.py
+```
+
+Verification:
+
+```text
+Local:
+  CAMP HEAD=574d990d16c820fe1fcb54f5e4ea5eebe4b42b59
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_materiality.py \
+         camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_design.py \
+         camp_core/tests/test_diffusion_planner_post_reconciliation_source_proposal_screen.py -q
+  result=18 passed
+
+AutoDL:
+  CAMP HEAD=574d990d16c820fe1fcb54f5e4ea5eebe4b42b59
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  same pytest command result=18 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+DESIGN=$DEV/candidate_set_consensus_payload_design_8f44a13/candidate_set_consensus_payload_design.json
+OUT=$DEV/candidate_set_consensus_existing_log_materiality_574d990
+
+$PY scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_materiality.py \
+  --payload_design_json "$DESIGN" \
+  --search_root "$DEV" \
+  --label autodl_574d990_candidate_set_consensus_existing_log_materiality \
+  --output_json "$OUT/candidate_set_consensus_existing_log_materiality.json" \
+  --output_md "$OUT/candidate_set_consensus_existing_log_materiality.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_existing_log_materiality_574d990/candidate_set_consensus_existing_log_materiality.json` | `47f9f8cd8362344db6d8f3c2e4d765a033b703c17a63154af7460983cf9f832a` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_existing_log_materiality_574d990/candidate_set_consensus_existing_log_materiality.md` | `129a4505e8d997d98918a4bde90a8a2f8dbfdf5fe6ddabd4f1e65a0debbb33b4` |
+
+Result:
+
+```text
+status=candidate_set_consensus_existing_log_materiality_insufficient
+screen_completed=True
+passed=False
+materiality_gate_passed=False
+authorized_next_work=candidate_set_consensus_default_off_payload_logging_preflight_only
+primary_gap=too_few_existing_candidate_prefix_records
+failed_checks=[
+  materiality_minimum_valid_records,
+  materiality_nonzero_spread_rate
+]
+selection_logs_found=378
+records_scanned=72002
+valid_records=0
+missing_prefix_records=72002
+invalid_records=72002
+nonzero_spread_rate=0.0
+payload_implementation_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Reject materiality promotion from existing logs. The screen found many existing
+selection records, but none contain `candidate_raw_trajectory_prefix`; therefore
+it cannot compute `candidate_set_consensus_center_rms_cost_v1` or prove
+candidate-set consensus materiality. This is not evidence against the atom's
+mathematical legality, but it is direct evidence that current artifacts are
+insufficient for materiality or payload implementation authorization.
+
+Mathematical boundary:
+
+The analyzer's coefficient computation is nonnegative and finite when a logged
+candidate prefix exists, and remains a fixed current-tick finite-candidate
+coefficient. Because no valid prefix records exist in the current artifacts, no
+atom, weight, selector, replay, or training conclusion is drawn. No DP-side
+classical Benders master/subproblem, dual, or valid cut is constructed.
+
+Next admissible work:
+
+Run only a default-off payload logging/runtime preflight for the candidate-set
+consensus source, or reject this source. The preflight must prove that the fixed
+DP candidate tensor is available at the selection-log site and that logging can
+be added with no selection effect, no future-outcome leakage, no DP change, and
+explicit latency accounting. It still must not run replay, train CAMP, promote
+an online selector, run Full36, use formal seeds, or modify DP.
