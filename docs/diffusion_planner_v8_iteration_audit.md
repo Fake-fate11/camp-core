@@ -59535,3 +59535,230 @@ Run the generated AutoDL runbook
 After it finishes, summarize selector equivalence, payload availability,
 latency, dataset audit, and fail-closed/no-leak metadata with a separate smoke
 result gate before any broader replay, atom promotion, or retraining discussion.
+
+### 2026-06-22 - Candidate-Set Consensus Payload Tiny Smoke Result Gate
+
+Objective:
+
+Execute the authorized paired 3-step nonformal default-off smoke and summarize
+the result with a separate accept/reject gate. This gate still does not claim
+safety benefit, atom promotion, CAMP retraining readiness, online selector
+readiness, or superiority over DP Top-1.
+
+Execution note:
+
+The generated runbook first failed at `camp_sync` because AutoDL's direct HTTPS
+connection to GitHub ended with `GnuTLS recv error (-110)`. This was treated as
+an environment/network gap, not a CAMP/DP runtime failure. CAMP had already been
+bundle-synced and verified:
+
+```text
+CAMP AutoDL HEAD=2f0580f82ff11a8d8846ef6b78c306fc2cf1b087
+CAMP AutoDL origin/main=2f0580f82ff11a8d8846ef6b78c306fc2cf1b087
+DP AutoDL HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+The remaining runbook commands were executed from the plan JSON after a
+successful `head_audit`, preserving the planned replay and audit parameters.
+
+Smoke output root:
+
+```text
+/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke
+```
+
+Observed smoke outputs:
+
+```text
+head_audit passed:
+  CAMP_HEAD=2f0580f82ff11a8d8846ef6b78c306fc2cf1b087
+  DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+baseline replay:
+  output=/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke/baseline
+  steps=3
+  reason=max_steps
+
+candidate replay:
+  output=/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke/logging_enabled
+  steps=3
+  reason=max_steps
+  camp_candidate_set_consensus_payload_logging.enabled=True
+```
+
+Selector equivalence:
+
+```text
+equivalent=True
+records=3
+selected_index mismatches=0
+feasible_mask mismatches=0
+scores mismatches=0
+selection_scores mismatches=0
+atoms mismatches=0
+normalized_atoms mismatches=0
+weights mismatches=0
+numeric_max_abs_diff=0.0 for all checked fields
+```
+
+Payload smoke audit:
+
+```text
+status=candidate_set_consensus_payload_smoke_audit_passed
+passed=True
+baseline_logs=1
+candidate_logs=1
+records=3
+baseline_payload_records=0
+candidate_payload_records=3
+available_payload_records=3
+invalid_payload_records=0
+latency_ms_candidate_set_consensus_payload:
+  count=3
+  min=0.17944537103176117
+  mean=0.2129124477505684
+  max=0.2594972029328346
+```
+
+Dataset audit:
+
+```text
+passed=True
+logs=1
+records=3
+candidates=24
+closed_loop_outcomes_forbidden=True
+forbidden_seed_check=True
+finite_candidate_contract_verified=True
+```
+
+Result summarizer implementation:
+
+```text
+scripts/integrations/summarize_diffusion_planner_candidate_set_consensus_payload_smoke_result.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_smoke_result.py
+```
+
+Local result-gate verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+C:\Users\lenovo\anaconda3\python.exe -m py_compile `
+  scripts\integrations\summarize_diffusion_planner_candidate_set_consensus_payload_smoke_result.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload_smoke_result.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload_smoke_result.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload_smoke.py `
+  -q
+```
+
+Result:
+
+```text
+py_compile passed
+15 passed in 0.51s
+```
+
+AutoDL result-gate verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/summarize_diffusion_planner_candidate_set_consensus_payload_smoke_result.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_smoke_result.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_smoke_result.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_smoke.py \
+  -q
+```
+
+Result:
+
+```text
+py_compile passed
+15 passed in 0.43s
+```
+
+AutoDL result artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+SMOKE=/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$DEV/candidate_set_consensus_payload_smoke_result_2f0580f
+mkdir -p "$OUT"
+
+$PY scripts/integrations/summarize_diffusion_planner_candidate_set_consensus_payload_smoke_result.py \
+  --selector_equivalence_json "$SMOKE/audit/selector_equivalence.json" \
+  --payload_smoke_json "$SMOKE/audit/candidate_set_consensus_payload_smoke.json" \
+  --dataset_audit_json "$SMOKE/audit/dataset_audit.json" \
+  --baseline_summary_json "$SMOKE/baseline/camp_validation_summary.json" \
+  --candidate_summary_json "$SMOKE/logging_enabled/camp_validation_summary.json" \
+  --label autodl_2f0580f_candidate_set_consensus_payload_smoke_result \
+  --output_json "$OUT/candidate_set_consensus_payload_smoke_result.json" \
+  --output_md "$OUT/candidate_set_consensus_payload_smoke_result.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_smoke_result_2f0580f/candidate_set_consensus_payload_smoke_result.json` | `f4b61d7acc3ec97c2c4f0fff8ec0bcdda9b57b3632b4f16f9d5dd4862efdcdf1` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_smoke_result_2f0580f/candidate_set_consensus_payload_smoke_result.md` | `c2b14d178b0146b513ed04cf4ade44015c5b1d00e810d6d15f79d6c286e5037a` |
+
+Result:
+
+```text
+status=candidate_set_consensus_payload_smoke_result_ready
+passed=True
+authorized_next_work=candidate_set_consensus_payload_tiny_smoke_materiality_diagnosis_only
+runtime_equivalence_ready=True
+payload_logging_ready=True
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept the tiny smoke result gate. The default-off candidate-set consensus
+payload can be logged in a real paired DP replay without changing
+selector-visible CAMP fields or violating no-leak/no-formal-seed boundaries.
+This only proves runtime logging and equivalence on a tiny nonformal smoke. It
+does not show safety improvement over DP Top-1 and does not authorize atom
+promotion, broader replay, Full36, formal seeds, online selector changes, or
+CAMP retraining.
+
+Mathematical boundary:
+
+The observed payload remains a current-tick, fixed finite-candidate diagnostic.
+Its RMS coefficient is nonnegative and fixed before selection; if later
+atomized after a separate materiality gate, it may preserve
+`score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master in `w`. No
+trajectory-coordinate convexity and no DP-side classical Benders
+master/subproblem, dual, or valid cut is claimed.
+
+Next admissible work:
+
+Run a tiny-smoke materiality diagnosis over the real smoke logs only. The next
+gate should inspect coefficient spread, selected-candidate ranks, relation to
+existing CAMP scores, and whether this signal could plausibly change selection
+under a bounded affine atom without using future outcomes. It must not run new
+replay, promote an atom, train CAMP, enter Full36, touch formal seeds, or claim
+that CAMP is better than DP Top-1.
