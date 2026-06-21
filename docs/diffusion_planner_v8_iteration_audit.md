@@ -58446,3 +58446,120 @@ all-infeasible cases from score/schema misses, and identify whether any legal
 current-tick atom/schema/training route remains. Do not train CAMP, run replay,
 promote a selector, use formal seeds, modify DP, or claim deployment until that
 gap diagnosis authorizes a concrete next gate.
+
+## Post-Oracle Deployability Gap Gate (`893107c`)
+
+This self-iteration adds and executes a read-only gate for the gap between the
+offline hard-guarded SafetyCost oracle and the current deployable CAMP selector.
+It consumes the refreshed oracle artifact and the latest post-source-visibility
+runtime inventory. It does not train CAMP, run DP, run replay, promote an online
+selector, use formal seeds, modify DP, or create a new Benders claim.
+
+Verification:
+
+```text
+Local:
+  CAMP HEAD=893107ceec23683adc4442c22a888c20154d3171
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_post_oracle_deployable_gap.py \
+         camp_core/tests/test_diffusion_planner_safety_cost_oracle.py -q
+  result=14 passed
+
+AutoDL:
+  CAMP HEAD=893107ceec23683adc4442c22a888c20154d3171
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_post_oracle_deployable_gap.py \
+         camp_core/tests/test_diffusion_planner_safety_cost_oracle.py -q
+  result=14 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+ORACLE=$DEV/safety_cost_oracle_post_source_inventory_4ff54e6/safety_cost_oracle.json
+SOURCE=$DEV/post_source_visibility_runtime_inventory_e9d778d/post_source_visibility_runtime_inventory.json
+OUT=$DEV/post_oracle_deployable_gap_893107c
+
+$PY scripts/integrations/plan_diffusion_planner_post_oracle_deployable_gap.py \
+  --oracle_json "$ORACLE" \
+  --source_inventory_json "$SOURCE" \
+  --label autodl_893107c_post_oracle_deployable_gap \
+  --output_json "$OUT/post_oracle_deployable_gap.json" \
+  --output_md "$OUT/post_oracle_deployable_gap.md" \
+  --require_pass
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_oracle_deployable_gap_893107c/post_oracle_deployable_gap.json` | `216b0952f13623eda18163811dbf4357eedf88e8473e9eb059980261361207de` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_oracle_deployable_gap_893107c/post_oracle_deployable_gap.md` | `56899e273de3da737c09eabac69b9c724adc4232a1893b429ff31bf06ed9d61d` |
+
+Final decision:
+
+```text
+status=post_oracle_deployable_gap_current_selector_misses_oracle
+passed=True
+authorized_next_work=selector_label_weight_design_preflight_only
+current_selector_gap_closed=False
+overall.camp_minus_top1_mean=-0.6943446017349293
+overall.camp_minus_hard_guarded_oracle_mean=0.8430578467850187
+overall.camp_minus_hard_guarded_oracle_ci_high=1.2783421424772765
+hard_guarded_oracle_gap_bucket_failures=[
+  normal,
+  traffic_light,
+  red_light_turn,
+  sharp_turn,
+  npc_interaction,
+  dense_scene,
+  lane_change_or_merge
+]
+```
+
+Decision reasons:
+
+```text
+fixed_candidate_pool_has_oracle_opportunity
+current_selector_does_not_close_hard_guarded_oracle_gap
+hard_guarded_oracle_gap_bucket_failures
+camp_top1_required_bucket_failures
+camp_cvar90_required_bucket_failures
+fallback_all_infeasible_records_present
+camp_misses_available_hard_guarded_oracle_records
+no_new_runtime_source_available_from_latest_inventory
+```
+
+Interpretation:
+
+Accept this gate as the current authoritative next-step constraint. The fixed DP
+candidate pool contains substantial hard-guarded SafetyCost opportunity, but the
+current deployable CAMP selector does not close that opportunity. Current CAMP
+is better than DP Top-1 on mean SafetyCost in this nonformal matrix, yet it is
+still about `0.843` worse than the hard-guarded oracle on mean and has positive
+CI high against the oracle in every required bucket. Therefore more replay,
+Full36, online selector promotion, or CAMP retraining is not yet authorized.
+
+Mathematical boundary:
+
+This gate creates no atom and trains no weight. It only translates the oracle
+evidence into a deployability decision. A later route must use current-tick,
+finite-candidate, outcome-free coefficients in `score_k(w)=a_k^T w`, preserving
+the convex simplex/CVaR/L2 CAMP master. Offline closed-loop outcomes may be used
+only as supervision/evaluation labels. This is not a DP-side classical Benders
+decomposition because no DP master/subproblem, dual, or valid cuts are
+constructed.
+
+Next admissible work:
+
+Run `selector_label_weight_design_preflight_only`: predeclare a legal
+outcome-free label and weight-design route that tries to imitate or approach the
+hard-guarded oracle using only runtime-available candidate features. It must
+define candidate atoms, convexity/affineness constraints, feasibility and
+fallback handling, acceptance metrics, and rejection criteria before any
+training, replay, online selector, Full36, formal seeds, or DP modification.
