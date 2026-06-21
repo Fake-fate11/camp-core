@@ -46890,3 +46890,147 @@ safety flags, and whether the issue is support size, label definition, or atom
 definition. If the diagnosis shows this atom family cannot isolate harmful
 candidates without discarding beneficial candidates, reject it and return to the
 broader progress + lane/hard context evidence path rather than tuning thresholds.
+
+## 2026-06-21 - Non-Turn-Logit Interaction Bottleneck Diagnosis
+
+Commit: `6f428d6891bc9614471d458ee7f7dccb9d797f31`
+
+Purpose:
+
+Diagnose the rejected non-turn-logit interaction atom using only the existing
+matched-outcome artifact and the rejected separability report. This step does
+not run Diffusion Planner, does not collect new replay data, does not train CAMP,
+and does not change the online selector.
+
+Added files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_bottleneck.py
+camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_bottleneck.py
+```
+
+Verification:
+
+```text
+Local:
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_bottleneck.py \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_outcome_separability.py \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_matched_outcome_plan.py \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  -q
+
+27 passed in 0.52s
+
+AutoDL:
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_outcome_separability.py \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_matched_outcome_plan.py \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  -q
+
+27 passed in 0.47s
+```
+
+Diagnostic artifact:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_bottleneck_6f428d6/audit/non_turn_logit_interaction_bottleneck.json
+e5ebca49e55b721881f0b02bab076c604991a0e1c4c24bf9b1e86aaf2ccd312b
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_bottleneck_6f428d6/audit/non_turn_logit_interaction_bottleneck.md
+aadd0e1f817a775877b9b58c570237c031c8e55f5f532eb36a2f9a7b7c88103a
+```
+
+Diagnosis result:
+
+```text
+status=non_turn_logit_interaction_bottleneck_diagnosed
+passed=True
+primary_bottleneck=zero_threshold_blocks_all_beneficial
+authorized_next_work=reject_non_turn_interaction_or_return_to_progress_lane_hard_context
+new_replay_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+schema_promotion_authorized=False
+
+records.total_records=3
+records.candidate_rows=24
+records.alternative_rows=21
+records.class_counts.beneficial_alternative=5
+records.class_counts.harmful_alternative=15
+records.class_counts.neutral_alternative=1
+records.formal_seed_records=0
+```
+
+Key evidence:
+
+```text
+best_screen=comfort_progress_interaction_cost >= 0
+  harmful_block_rate=1.0
+  beneficial_retain_rate=0.0
+  allowed_harmful_rate=0.0
+
+best_positive_atom_screen=comfort_progress_interaction_cost >= 0.563812316743
+  harmful_block_rate=0.2
+  beneficial_retain_rate=1.0
+  allowed_harmful_rate=0.6666666666666666
+
+beneficial_count=5
+harmful_count=15
+zero_interaction_harmful=12
+zero_progress_deficit_harmful=10
+zero_jerk_excess_harmful=3
+allowed_harmful_at_best_positive=12
+blocked_beneficial_at_zero=5
+
+harmful_reason_counts:
+  outcome_value_loss=14
+  progress_loss=2
+  infeasible=1
+  hard_violation_worse=1
+  lane_worse=1
+```
+
+Interpretation:
+
+The product atom fails structurally on this artifact. A zero threshold blocks
+all harmful alternatives but also blocks all beneficial alternatives because
+every beneficial alternative has
+`comfort_progress_interaction_cost = 0`. Positive thresholds retain all
+beneficial alternatives, but they also allow 12/15 harmful alternatives. Most of
+those harmful misses have zero interaction because the product collapses when
+either route-progress deficit or jerk excess is zero; 10/15 harmful alternatives
+have zero route-progress deficit and 3/15 have zero jerk excess.
+
+Decision:
+
+Reject `comfort_progress_interaction_cost` and this non-turn interaction atom
+family for promotion on the current evidence. The failure mode is not a simple
+threshold issue; it is a product-support issue. Do not train CAMP, promote the
+schema, change the online selector, run Full36, or use formal seeds based on this
+atom.
+
+Mathematical boundary:
+
+The diagnosis used future outcomes only to explain offline beneficial/harmful
+class overlap. Runtime payload features remained current-tick fixed
+finite-candidate descriptors. Since the atom is rejected, no new coefficient is
+added to the CAMP affine score and the simplex/CVaR/L2 convex master is
+unchanged. No DP-side classical Benders decomposition, dual, or cut is claimed.
+
+Next admissible work:
+
+Return to the broader progress + lane/hard context evidence path. Before any new
+replay, design a plan-only gate that consumes the existing progress/lane/hard
+logging and matched-outcome artifacts, confirms default-off/no-leak contracts,
+and asks whether a fixed nonnegative additive or lexicographic descriptor can
+separate harmful alternatives without discarding beneficial ones. Do not tune
+the rejected product threshold, do not retrain CAMP, and do not promote any new
+atom until that evidence exists.
