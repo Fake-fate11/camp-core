@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -82,6 +83,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--label", default=None)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
+    parser.add_argument("--output_bash", type=Path, default=None)
     parser.add_argument("--replay_source", type=Path, default=RUNNER)
     parser.add_argument("--payload_audit_source", type=Path, default=PAYLOAD_AUDIT)
     parser.add_argument(
@@ -109,6 +111,9 @@ def main() -> None:
         encoding="utf-8",
     )
     args.output_md.write_text(render_markdown(report), encoding="utf-8")
+    if args.output_bash is not None:
+        args.output_bash.parent.mkdir(parents=True, exist_ok=True)
+        args.output_bash.write_text(render_bash(report), encoding="utf-8")
     print(json.dumps(report["final_decision"], indent=2, sort_keys=True))
 
 
@@ -184,7 +189,7 @@ def build_report(
             "diffusion_planner_execution": False,
             "future_outcome_labels_used": False,
             "formal_seed_records": 0,
-        "known_runtime_boundary": (
+            "known_runtime_boundary": (
                 "Runtime currently wires route-speed context from "
                 "context.speed_limit and leaves signal_context=None. This smoke "
                 "therefore treats traffic-signal fields as expected unavailable "
@@ -593,6 +598,45 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.extend(["", "## Reject Criteria", ""])
     lines.extend(f"- {item}" for item in report["reject_criteria"])
     lines.extend(["", "## Math Boundary", "", report["analysis"]["math_boundary"], ""])
+    return "\n".join(lines)
+
+
+def render_bash(report: dict[str, Any]) -> str:
+    decision = report["final_decision"]
+    if decision.get("authorized_next_work") != AUTHORIZED_NEXT_WORK:
+        raise ValueError("Cannot render bash for a rejected smoke plan.")
+    commands = report["commands"]
+    command_order = (
+        "camp_sync",
+        "head_audit",
+        "baseline_replay",
+        "candidate_replay",
+        "selector_equivalence",
+        "payload_audit",
+        "dataset_audit",
+    )
+    lines = [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        "",
+        "# Auto-generated from dp_camp_external_context_payload_nonformal_smoke_plan_v1.",
+        "# Scope: paired nonformal seed1, 3 steps, 8 candidates only.",
+        "# Forbidden: formal seeds, Full36, online selector promotion, CAMP retraining, DP modification.",
+        f"# Expected DP HEAD: {EXPECTED_DP_HEAD}",
+        "",
+        "cd /root/autodl-tmp/camp_core",
+        "",
+    ]
+    for name in command_order:
+        lines.extend(
+            [
+                f'echo "== {name} =="',
+                shlex.join(commands[name]),
+                "",
+            ]
+        )
+    lines.append('echo "external_context_payload_paired_three_step_smoke_complete"')
+    lines.append("")
     return "\n".join(lines)
 
 

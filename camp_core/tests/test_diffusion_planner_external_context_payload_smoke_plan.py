@@ -22,6 +22,8 @@ from scripts.integrations.plan_diffusion_planner_external_context_payload_smoke 
     READY_STATUS,
     SmokeSpec,
     build_report,
+    main,
+    render_bash,
 )
 
 
@@ -239,6 +241,24 @@ def test_external_context_payload_smoke_plan_authorizes_paired_three_step_only()
     assert candidate_command[candidate_command.index("--num_candidates") + 1] == "8"
 
 
+def test_external_context_payload_smoke_plan_renders_bash_runbook() -> None:
+    report = build_report(label="unit")
+
+    bash = render_bash(report)
+
+    assert bash.startswith("#!/usr/bin/env bash")
+    assert "set -euo pipefail" in bash
+    assert "cd /root/autodl-tmp/camp_core" in bash
+    assert "== camp_sync ==" in bash
+    assert "== head_audit ==" in bash
+    assert "== baseline_replay ==" in bash
+    assert "== candidate_replay ==" in bash
+    assert "--camp_external_context_payload_logging" in bash
+    assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in bash
+    assert "Full36" in bash
+    assert "external_context_payload_paired_three_step_smoke_complete" in bash
+
+
 def test_external_context_payload_smoke_plan_rejects_formal_seed() -> None:
     report = build_report(smoke=replace(SmokeSpec(), seed=11))
 
@@ -263,3 +283,38 @@ def test_external_context_payload_smoke_plan_rejects_missing_payload_audit(
         item for item in report["source_checks"] if item["name"] == "payload_audit_available"
     )
     assert check["passed"] is False
+
+
+def test_external_context_payload_smoke_plan_cli_writes_bash(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    output_json = tmp_path / "plan.json"
+    output_md = tmp_path / "plan.md"
+    output_bash = tmp_path / "run.sh"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "external-context-smoke-plan",
+            "--label",
+            "unit_cli",
+            "--output_json",
+            str(output_json),
+            "--output_md",
+            str(output_md),
+            "--output_bash",
+            str(output_bash),
+        ],
+    )
+
+    main()
+
+    payload = json.loads(output_json.read_text(encoding="utf-8"))
+    assert payload["analysis"]["label"] == "unit_cli"
+    assert payload["final_decision"]["status"] == READY_STATUS
+    assert "External Context Payload Smoke Plan" in output_md.read_text(
+        encoding="utf-8"
+    )
+    assert "external_context_payload_paired_three_step_smoke_complete" in (
+        output_bash.read_text(encoding="utf-8")
+    )
