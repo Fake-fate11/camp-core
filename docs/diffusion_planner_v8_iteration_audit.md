@@ -40783,3 +40783,105 @@ simplex/CVaR/L2 robust master remains convex in the weights \(w\). No claim is
 made that the atom functions are globally convex in trajectory coordinates,
 and this gate does not construct a DP-side classical Benders
 master/subproblem, dual, or valid cut.
+
+## Relaxed Strict-Label Atom Payload Implementation (`4c01c58`)
+
+This gate implements only the default-off payload fields authorized by the
+previous no-leak atom schema preflight. It does not run a new replay, train
+CAMP, promote an online selector, use formal seeds, run Full36, or modify DP.
+The new fields are emitted inside the existing
+`progress_lane_hard_context_logging` payload and are therefore still
+selection-neutral diagnostics.
+
+Changed files:
+
+```text
+camp_core/camp_core/integrations/diffusion_planner_progress_lane_hard_context.py
+camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py
+scripts/integrations/run_diffusion_planner_camp_replay.py
+```
+
+Runtime payload additions:
+
+```text
+relaxed_strict_progress_lane_hard_context_atom_schema_version
+relaxed_strict_progress_lane_hard_context_atom_names
+relaxed_strict_progress_lane_hard_context_atoms
+finite_checks.relaxed_strict_progress_lane_hard_context_atoms
+finite_checks.relaxed_strict_progress_lane_hard_context_atoms_nonnegative
+```
+
+The ordered atom names match the accepted preflight:
+
+```text
+longitudinal_accel_step_excess_v1
+longitudinal_jerk_surrogate_v1
+lateral_rate_change_surrogate_v1
+heading_error_change_surrogate_v1
+corridor_margin_drop_surrogate_v1
+roughness_corridor_conflict_v1
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  camp_core\camp_core\integrations\diffusion_planner_progress_lane_hard_context.py `
+  scripts\integrations\run_diffusion_planner_camp_replay.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_logging_smoke.py `
+  camp_core\tests\test_diffusion_planner_progress_lane_hard_context_payload_coverage.py `
+  camp_core\tests\test_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py `
+  -q
+```
+
+Result:
+
+```text
+25 passed in 0.57s
+```
+
+AutoDL synchronization and validation:
+
+GitHub HTTPS fetch on AutoDL failed twice with `GnuTLS recv error (-110)`.
+Because SSH/SFTP were healthy, the commit was synchronized with a verified Git
+bundle from local `9210afe52edb6df49c8501b508b7ad09de2426e9..main` and then
+fast-forwarded on AutoDL.
+
+```text
+CAMP_HEAD=4c01c58500447cf7495b4da1e1d95494ffb8c773
+CAMP_STATUS=## main...origin/main
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+25 passed in 0.37s
+```
+
+Decision:
+
+Accept the default-off payload implementation gate. The new atom coefficients
+are finite, nonnegative, ordered by schema name, active in the unit roughness
+case, and included in replay metadata while preserving
+`selection_effect=False`, `future_outcome_leakage=False`,
+`closed_loop_outcome_fields_read=False`, and `classical_benders_claim=False`.
+This is still not evidence that CAMP beats DP Top-1 and does not authorize
+online selector promotion, formal seeds, Full36, new replay, or retraining.
+
+Next admissible work:
+
+Run only an offline no-leak separability screen over the same existing matched
+logs, computing this relaxed strict-label atom family from the logged
+current-tick fields. The screen may use closed-loop outcomes only as offline
+labels and must report whether these runtime-compatible atoms separate the
+relaxed strict beneficial/harmful classes before any new replay.
+
+Mathematical boundary:
+
+The payload implementation adds fixed finite-candidate coefficients derived
+from speed, lateral-rate, heading-error, and corridor-margin profiles available
+at the current tick. The product atom is a product of already fixed diagnostic
+features, not an optimization over trajectory coordinates. CAMP scoring
+remains `score_k(w)=a_k^T w`; the simplex/CVaR/L2 master remains convex in
+weights \(w\). No DP-side classical Benders decomposition, dual, or cut is
+constructed.
