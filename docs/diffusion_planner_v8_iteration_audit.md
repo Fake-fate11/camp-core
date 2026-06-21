@@ -55965,3 +55965,154 @@ only predeclare a new proof objective or a genuinely new current-tick
 candidate-level source family; objective-only redesign still does not authorize
 replay, training, online selector promotion, Full36, formal seeds, DP
 modification, or a DP-side classical Benders claim.
+
+## Temporal Consistency Source Proposal And Payload Design (`4b32087` -> `12b2c6d`)
+
+The refreshed pause gate authorized only a new proof objective or a genuinely
+new current-tick candidate-level source predeclaration. This iteration
+predeclares `previous_plan_temporal_consistency_source_v1`: compare each
+current DP candidate against the previous tick's selected planned trajectory
+after shifting the previous plan by one planner step. The source is stateful
+through already-known planner output, but it does not use future outcomes,
+closed-loop labels, DP Top-1 rank, or post-hoc replay success.
+
+Implementation:
+
+```text
+4b3208784f0c1a2a99e0db3569f9183f64c95415 Predeclare temporal consistency source proposal
+configs/integrations/dp_camp_temporal_consistency_source_proposal_v1.json
+
+12b2c6dce5e34782fdf91064fd2cdc03079dd0bc Add temporal consistency payload design gate
+scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_design.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_payload_design.py
+```
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m json.tool \
+  configs\integrations\dp_camp_temporal_consistency_source_proposal_v1.json
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  camp_core\tests\test_diffusion_planner_post_pause_source_family_ledger.py -q
+result=11 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\plan_diffusion_planner_temporal_consistency_payload_design.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_design.py \
+  camp_core\tests\test_diffusion_planner_new_no_leak_targeted_support_or_reject.py -q
+result=11 passed
+```
+
+AutoDL verification:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  camp_core/tests/test_diffusion_planner_post_pause_source_family_ledger.py -q
+result=11 passed
+
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_design.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_design.py \
+  camp_core/tests/test_diffusion_planner_new_no_leak_targeted_support_or_reject.py -q
+result=11 passed
+```
+
+AutoDL artifact commands:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+
+$PY scripts/integrations/plan_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  --targeted_failure_attribution_json "$ROOT/targeted_failure_attribution_980973c/targeted_failure_attribution.json" \
+  --observable_bridge_json "$ROOT/current_observable_separability_bridge_cf047ca/current_observable_separability_bridge.json" \
+  --support_inventory_json "$ROOT/current_tick_no_leak_atom_support_inventory_8aa1e4d/current_tick_no_leak_atom_support_inventory.json" \
+  --support_bottleneck_json "$ROOT/support_bottleneck_synthesis_0fe5a24/support_bottleneck_synthesis.json" \
+  --proposal_json configs/integrations/dp_camp_temporal_consistency_source_proposal_v1.json \
+  --label autodl_4b32087_temporal_consistency_source_proposal \
+  --output_json "$ROOT/temporal_consistency_source_proposal_4b32087/temporal_consistency_source_proposal.json" \
+  --output_md "$ROOT/temporal_consistency_source_proposal_4b32087/temporal_consistency_source_proposal.md"
+
+$PY scripts/integrations/plan_diffusion_planner_temporal_consistency_payload_design.py \
+  --source_proposal_gate_json "$ROOT/temporal_consistency_source_proposal_4b32087/temporal_consistency_source_proposal.json" \
+  --label autodl_12b2c6d_temporal_consistency_payload_design \
+  --output_json "$ROOT/temporal_consistency_payload_design_12b2c6d/temporal_consistency_payload_design.json" \
+  --output_md "$ROOT/temporal_consistency_payload_design_12b2c6d/temporal_consistency_payload_design.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_source_proposal_4b32087/temporal_consistency_source_proposal.json` | `5f387fa6a991107172b013d3cadcda3c2408f32ebfd5d868362d4f04651196dd` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_source_proposal_4b32087/temporal_consistency_source_proposal.md` | `329f0682add08d956af1e00890cd5c1623aa9ac0debe3f90bfa46629487e1dd8` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_payload_design_12b2c6d/temporal_consistency_payload_design.json` | `f83e5e26cf1629215b267f3dc6b7e2e0643fd3c88346a5ec0e11130b0f7d9dc6` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_payload_design_12b2c6d/temporal_consistency_payload_design.md` | `71809213482873c29f044da287e513d96220790759bf3ef7c40ccec2eacbcb33` |
+
+Local artifact copies:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_source_proposal_4b32087
+F:\camp_core-main\analysis_bundles\temporal_consistency_payload_design_12b2c6d
+```
+
+Decisions:
+
+```text
+source.status=new_no_leak_targeted_support_source_predeclared
+source.passed=True
+source.support_source_ready=True
+source.authorized_next_work=default_off_new_no_leak_support_payload_design_only
+source.admissible_support_sources=previous_plan_temporal_consistency_source_v1
+
+payload.status=temporal_consistency_payload_design_predeclared
+payload.passed=True
+payload.payload_design_ready=True
+payload.authorized_next_work=default_off_temporal_consistency_payload_runtime_preflight_only
+payload.failed_checks=[]
+payload.new_replay_authorized=False
+payload.online_selector_authorized=False
+payload.classic_benders_claim_authorized=False
+```
+
+Payload contract:
+
+```text
+runtime_inputs=current_tick_dp_candidate_trajectories_before_selection,
+  previous_tick_selected_planned_trajectory_memory, planner_dt_seconds
+atom_coefficient=previous_plan_temporal_consistency_rms_m
+definition=sqrt(mean_i ||p_candidate[k,i] - p_previous_shifted[i]||_2^2)
+domain=finite nonnegative scalar per candidate
+first_or_missing_previous_plan=fail closed before selector promotion
+```
+
+Mathematical boundary:
+
+The temporal consistency value is an additional fixed current-tick
+candidate-level coefficient. For a finite candidate set, CAMP still scores
+candidate `k` as an affine function `score_k(w)=a_k^T w`, so the existing
+simplex/CVaR/L2 master convexity boundary is unchanged. This step does not
+construct a DP-side master/subproblem pair, dual, or valid cuts, so it is not a
+classical Benders claim. It also does not prove superiority over DP Top-1 or
+authorize replay, training, online selector promotion, Full36, formal seeds, or
+DP modification.
+
+Decision:
+
+Accept the temporal consistency source proposal and default-off payload design
+as the first open source-family route after the pause gate. The next admissible
+self-iteration is only `default_off_temporal_consistency_payload_runtime_preflight_only`:
+implement or preflight default-off runtime extraction/logging for this
+coefficient, measure exact-equivalence and latency, and keep the selector route
+paused unless that gate passes.
