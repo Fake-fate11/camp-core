@@ -55668,3 +55668,128 @@ current-tick finite-candidate coefficient `a_k`, nonnegative, hinged, or
 signed-split, preserving `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2
 master. It is not a DP-side classical Benders decomposition because it
 constructs no DP master/subproblem, dual, or valid cut.
+
+## Post-Ledger Strict Tensor Source Audit (`b0de93f`)
+
+The post-pause source-family ledger authorized only materially new current-tick
+source discovery or keeping the selector route paused. A first broad rerun of
+the tensor visibility inventory at `b0679f6` scanned the whole CAMP checkout and
+reported apparent DP-prior and denoising sources. Inspection showed those hits
+came from CAMP tests and analysis scripts, not the runtime wrapper or fixed DP
+source. That broad result is rejected as a source-discovery false positive.
+
+Implementation:
+
+```text
+b0de93f6edaad7f4eff3ecdc650c19f6a0d3f7d1 Filter nonruntime tensor visibility sources
+
+scripts/integrations/analyze_diffusion_planner_current_tick_tensor_visibility.py
+camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py
+```
+
+The scanner now excludes default non-runtime files under `tests`,
+`__pycache__`, `.ipynb_checkpoints`, and `scripts/integrations` when a
+directory is supplied through `--source_root`. Explicit `--source_file` inputs
+remain allowed for runtime wrapper files.
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_current_tick_tensor_visibility.py
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_current_tick_tensor_visibility.py \
+  camp_core\tests\test_diffusion_planner_targeted_source_route_closure.py \
+  camp_core\tests\test_diffusion_planner_post_pause_source_family_ledger.py -q
+result=17 passed
+```
+
+AutoDL sync and verification:
+
+```text
+autodl_camp_head=b0de93f6edaad7f4eff3ecdc650c19f6a0d3f7d1
+autodl_camp_origin=b0de93f6edaad7f4eff3ecdc650c19f6a0d3f7d1
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_strict_source_tests=17 passed
+```
+
+Strict AutoDL artifact commands:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+
+$PY scripts/integrations/analyze_diffusion_planner_current_tick_tensor_visibility.py \
+  --post_closure_remainder_json /root/autodl-tmp/camp_dp_post_closure_state_remainder_refresh_2a0e803/post_closure_state_remainder.json \
+  --source_file /root/autodl-tmp/camp_core/camp_core/camp_core/integrations/diffusion_planner.py \
+  --source_file /root/autodl-tmp/camp_core/camp_core/camp_core/integrations/diffusion_planner_turn_logit_payload.py \
+  --source_root /root/autodl-tmp/Diffusion-Planner \
+  --label autodl_b0de93f_post_ledger_strict_current_tick_tensor_visibility \
+  --output_json "$ROOT/current_tick_tensor_visibility_post_ledger_strict_b0de93f/current_tick_tensor_visibility.json" \
+  --output_md "$ROOT/current_tick_tensor_visibility_post_ledger_strict_b0de93f/current_tick_tensor_visibility.md"
+
+$PY scripts/integrations/plan_diffusion_planner_targeted_source_route_closure.py \
+  --support_reject_json "$ROOT/postprocess_execution_source_proposal_reject_245c582/postprocess_execution_source_proposal_reject.json" \
+  --score_family_inventory_json /root/autodl-tmp/camp_dp_no_leak_score_family_inventory_refresh_2a0e803/no_leak_score_family_inventory.json \
+  --tensor_visibility_json "$ROOT/current_tick_tensor_visibility_post_ledger_strict_b0de93f/current_tick_tensor_visibility.json" \
+  --proof_protocol_redesign_json "$ROOT/proof_protocol_redesign_1671ab6/proof_protocol_redesign.json" \
+  --label autodl_b0de93f_post_ledger_strict_targeted_source_route_closure \
+  --output_json "$ROOT/targeted_source_route_closure_post_ledger_strict_b0de93f/targeted_source_route_closure.json" \
+  --output_md "$ROOT/targeted_source_route_closure_post_ledger_strict_b0de93f/targeted_source_route_closure.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/current_tick_tensor_visibility_post_ledger_strict_b0de93f/current_tick_tensor_visibility.json` | `39a44c0f463eec291e60bcee51429358985448291e5a29dfd506e8384d5841d0` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/current_tick_tensor_visibility_post_ledger_strict_b0de93f/current_tick_tensor_visibility.md` | `52767c8b1a3d3c6d3fc6e11aba898d4d3f28e4bb463b0e0dae76c4b89a485108` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_source_route_closure_post_ledger_strict_b0de93f/targeted_source_route_closure.json` | `65bcbfb3050da0cf3e6498dc2304c1ca9b82f28cd4956bf25b958683f64a7291` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_source_route_closure_post_ledger_strict_b0de93f/targeted_source_route_closure.md` | `f390056f2f04ab36115fa5238a1c110481d277d14a867d63ff396740a65e7afa` |
+
+Local artifact copies:
+
+```text
+F:\camp_core-main\analysis_bundles\current_tick_tensor_visibility_post_ledger_strict_b0de93f
+F:\camp_core-main\analysis_bundles\targeted_source_route_closure_post_ledger_strict_b0de93f
+```
+
+Strict source audit decision:
+
+```text
+tensor_visibility.status=current_tick_tensor_visibility_no_new_candidate_source
+tensor_visibility.primary_gap=visible_candidate_tensor_sources_already_closed
+tensor_visibility.candidate_source_names=[]
+tensor_visibility.closed_visible_candidate_source_names=[turn_indicator_logits]
+targeted_source.status=targeted_source_discovery_route_closed
+targeted_source.passed=True
+targeted_source.authorized_next_work=proof_protocol_v2_or_scenario_objective_redesign_only
+failed_checks=[]
+```
+
+Decision:
+
+Reject the broad source-root scan as a non-runtime false positive. Accept the
+strict scan as the current source-discovery evidence: DP-native log-probability
+or denoising residuals are not visible from the fixed DP/runtime wrapper without
+DP modification or internal tensor exposure; turn logits remain visible but are
+already closed by the turn-logit score family; generator noise/guidance controls
+are not admissible runtime atom sources.
+
+Next admissible work:
+
+Do not reopen current tensor/source families. Continue only with ProofProtocol
+v2 or scenario/objective redesign, or keep the selector route paused. Training,
+closed-loop replay, Full36, formal seeds, online selector promotion, DP
+modification, and DP-side classical Benders claims remain unauthorized.
+
+Mathematical boundary:
+
+This audit scans source text and consumes prior JSON gates only. It creates no
+atom, runs no DP, trains no weights, and uses no outcome label as a runtime
+input. Any future source must still be a fixed current-tick finite-candidate
+coefficient `a_k`, preserving affine `score_k(w)=a_k^T w` and the convex
+simplex/CVaR/L2 master.
