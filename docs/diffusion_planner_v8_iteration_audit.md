@@ -55430,3 +55430,123 @@ be current-tick fixed finite-candidate coefficients `a_k`, nonnegative, hinged,
 or signed-split, preserving `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2
 master. Offline outcomes and SafetyCost are labels for proof gates only. No
 DP-side classical Benders master/subproblem, dual, or valid cut is constructed.
+
+## Postprocess/Execution Source Proposal Rejection (`245c582`)
+
+The deployability-first proof objective authorized only a genuinely new
+current-tick source-family proposal. This step predeclares one tempting but
+likely duplicate proposal:
+`postprocess_execution_distortion_source_v1`, intended to capture candidate-level
+raw-to-SG/postprocess/PerfectTracker distortion. The proposal is deliberately
+fail-closed because the raw-prefix, postprocess/tracker descriptor, materiality,
+and support-bottleneck gates already closed this family as insufficient without
+new non-equivalence evidence.
+
+Implementation:
+
+```text
+245c5826c0edf72ea4952e3e74a622f379d9f22b Add postprocess source proposal precheck
+
+configs/integrations/dp_camp_postprocess_execution_distortion_source_proposal_v1.json
+```
+
+Local verification:
+
+```text
+C:\Users\lenovo\anaconda3\python.exe -m json.tool \
+  configs\integrations\dp_camp_postprocess_execution_distortion_source_proposal_v1.json
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_new_no_leak_targeted_support_or_reject.py -q
+result=6 passed
+
+proposal_load_check=1 postprocess_execution_distortion_source_v1 True
+```
+
+AutoDL synchronization and verification:
+
+```text
+autodl_camp_head=245c5826c0edf72ea4952e3e74a622f379d9f22b
+autodl_camp_origin=245c5826c0edf72ea4952e3e74a622f379d9f22b
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_source_gate_tests=8 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$DEV/postprocess_execution_source_proposal_reject_245c582
+
+$PY scripts/integrations/plan_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  --targeted_failure_attribution_json "$DEV/targeted_failure_attribution_980973c/targeted_failure_attribution.json" \
+  --observable_bridge_json "$DEV/current_observable_separability_bridge_cf047ca/current_observable_separability_bridge.json" \
+  --support_inventory_json "$DEV/current_tick_no_leak_atom_support_inventory_8aa1e4d/current_tick_no_leak_atom_support_inventory.json" \
+  --support_bottleneck_json "$DEV/support_bottleneck_synthesis_0fe5a24/support_bottleneck_synthesis.json" \
+  --proposal_json configs/integrations/dp_camp_postprocess_execution_distortion_source_proposal_v1.json \
+  --label autodl_245c582_postprocess_execution_source_proposal_reject \
+  --output_json "$OUT/postprocess_execution_source_proposal_reject.json" \
+  --output_md "$OUT/postprocess_execution_source_proposal_reject.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/postprocess_execution_source_proposal_reject_245c582/postprocess_execution_source_proposal_reject.json` | `27448f2582c9b6d1c73038b32e0feefed9d365d248cdf24df3b68b46f5339b4b` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/postprocess_execution_source_proposal_reject_245c582/postprocess_execution_source_proposal_reject.md` | `05c3d8f1e9bc7c78c4f42d6896b3a99c33f486178e7395f3140df07d8d152e9e` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\postprocess_execution_source_proposal_reject_245c582
+```
+
+Final decision:
+
+```text
+status=new_no_leak_targeted_support_source_not_available
+passed=True
+support_source_ready=False
+admissible_support_sources=[]
+rejected_support_sources=[postprocess_execution_distortion_source_v1]
+current_camp_dp_selector_route_rejected=True
+authorized_next_work=source_level_targeted_support_discovery_or_pause_current_selector_route_only
+new_replay_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Reject the postprocess/execution-distortion proposal as a new source. Although
+the raw-to-postprocess/tracker distortion quantity is current-tick,
+candidate-level, finite, deterministic, and nonnegative in isolation, it is not
+a genuinely new no-leak source under the current evidence. It reopens the
+already closed postprocess/tracker descriptor family without new non-equivalence
+or existing-log noninferiority evidence.
+
+Next admissible work:
+
+Keep the current selector route paused, or predeclare a materially different
+current-tick source family. Any next proposal must not be route-speed,
+signal/right-of-way, turn-logit, DP-prior/Top-1 retention, progress/lane-hard,
+observable interaction, route topology, mode-seeking, source-donor, raw-prefix,
+or postprocess/tracker descriptor evidence unless it supplies new
+non-equivalence evidence first.
+
+Mathematical boundary:
+
+This rejection creates no atom and runs no selector. If a future source is
+accepted, its candidate coefficients must still be fixed current-tick finite
+values `a_k`, nonnegative, hinged, or signed-split, preserving
+`score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. No DP-side
+classical Benders master/subproblem, dual, or valid cut is claimed.
