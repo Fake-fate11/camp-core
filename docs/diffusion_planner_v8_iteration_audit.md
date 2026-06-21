@@ -45893,3 +45893,135 @@ justified interaction term, and must reject schema promotion unless it proves
 the candidate atoms are not merely duplicating existing CAMP fields. No replay,
 CAMP retraining, Full36, formal seeds, or online selector change is authorized
 yet.
+
+## Non-Turn-Logit Interaction Payload Design Plan (`fde7b0a` source)
+
+This plan-only gate consumes the accepted non-turn-logit interaction preflight
+artifact and checks whether a minimal default-off payload can be designed
+without simply duplicating the deployed DP-CAMP v10 atom schema. It does not
+run replay, train CAMP, promote a schema, use formal seeds, modify DP, or
+change the online selector.
+
+Added:
+
+```text
+scripts/integrations/plan_diffusion_planner_non_turn_logit_interaction_payload_design.py
+camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_payload_design_plan.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile scripts\integrations\plan_diffusion_planner_non_turn_logit_interaction_payload_design.py
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_payload_design_plan.py camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_atom_preflight.py -q
+
+6 passed in 1.82s
+```
+
+AutoDL state:
+
+```text
+CAMP HEAD:
+fde7b0ad0183b5a9376ce727282ae9fb79960e31
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```text
+6 passed in 0.91s
+```
+
+Plan command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a
+OUT=/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_design_fde7b0a
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+scripts/integrations/plan_diffusion_planner_non_turn_logit_interaction_payload_design.py \
+  --preflight_json "$ROOT/audit/non_turn_logit_interaction_atom_preflight.json" \
+  --label fde7b0a_non_turn_logit_interaction_payload_design \
+  --output_json "$OUT/non_turn_logit_interaction_payload_design_plan.json" \
+  --output_md "$OUT/non_turn_logit_interaction_payload_design_plan.md"
+```
+
+Plan result:
+
+```text
+status=non_turn_logit_interaction_payload_design_plan_ready
+passed=True
+authorized_next_work=implement_default_off_non_turn_logit_interaction_payload_only
+payload_implementation_authorized=True
+schema_promotion_authorized=False
+CAMP_retraining_authorized=False
+online_selector_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+DP_modification_authorized=False
+failed_source_checks=[]
+failed_overlap_checks=[]
+failed_design_checks=[]
+```
+
+Selected payload fields:
+
+```text
+route_progress_deficit_vs_top1_m:
+  role=diagnostic_source
+  add_as_new_atom_candidate=False
+  duplicate_status=near_existing_progress_shortfall
+
+dp_prior_jerk_excess_cost:
+  role=diagnostic_source
+  add_as_new_atom_candidate=False
+  duplicate_status=exact_existing_dp_camp_v10_atom
+
+comfort_progress_interaction_cost:
+  role=new_interaction_atom_candidate
+  add_as_new_atom_candidate=True
+  duplicate_status=not_in_dp_camp_v10_schema
+  expression=route_progress_deficit_vs_top1_m * dp_prior_jerk_excess_cost
+```
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_design_fde7b0a/non_turn_logit_interaction_payload_design_plan.json
+3544d27500ae3d613ca343e2c4c5b9fd2c9ab942129ebd2159cf699a3257b3c0
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_payload_design_fde7b0a/non_turn_logit_interaction_payload_design_plan.md
+0c1ead0c19689fcd1893393ab589abbe801df6e03eaaff31eaf743e85e744a48
+```
+
+Decision:
+
+Accept the plan gate. The best preflight screen relied on existing or
+near-existing progress and jerk terms, so those are explicitly diagnostic-only
+and must not be added as new schema dimensions. The only proposed new candidate
+coefficient is the nonnegative interaction
+`comfort_progress_interaction_cost = route_progress_deficit_vs_top1_m *
+dp_prior_jerk_excess_cost`, which is not in the deployed v10 atom schema. This
+still does not prove closed-loop safety improvement and does not authorize
+schema promotion or CAMP retraining.
+
+Mathematical boundary:
+
+The planned payload computes fixed current-tick candidate coefficients before
+any closed-loop outcome labels are read. Existing progress and jerk terms remain
+diagnostics. The interaction is a product of two nonnegative fixed candidate
+coefficients; if later promoted after further evidence, it would enter the CAMP
+score as a fixed `a_k` coordinate, preserving `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master. No trajectory-coordinate convexity or DP-side
+classical Benders decomposition is claimed.
+
+Next admissible work:
+
+Implement only the default-off non-turn-logit interaction payload with unit
+tests and summary metadata. The implementation must not append the interaction
+to deployed CAMP atoms, must not affect selection, must not read closed-loop
+outcomes, and must include fail-closed finite/nonnegative checks. No replay,
+schema promotion, CAMP retraining, Full36, formal seeds, or online selector
+change is authorized by this plan alone.
