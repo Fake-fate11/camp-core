@@ -50715,3 +50715,110 @@ future atom derived from these descriptors must enter as a fixed coefficient
 `a_k`, preserving affine `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2
 master. No DP-side classical Benders master/subproblem, dual, or cut is
 constructed.
+
+## Post-Bridge Proof Objective Next Design Plan (`145e714` artifacts)
+
+Purpose:
+
+After the current observable separability bridge closed the missing
+candidate-state descriptor route as a duplicate of an already rejected
+observable family, this step adds a design-only next gate. It prevents the loop
+from drifting into another same-family descriptor rerun or direct CAMP
+retraining, and instead predeclares that the next useful step is a targeted
+safety-intervention proof-objective design.
+
+Code change:
+
+```text
+145e714 Add post-bridge proof objective design gate
+```
+
+Local verification:
+
+```text
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_post_bridge_proof_objective_next_design.py \
+  camp_core/tests/test_diffusion_planner_current_observable_separability_bridge.py \
+  camp_core/tests/test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core/tests/test_diffusion_planner_post_inventory_next_design.py \
+  -q
+
+19 passed
+git diff --check passed
+```
+
+AutoDL verification:
+
+AutoDL was synchronized to:
+
+```text
+145e714a8a4f3d003ddcaa1af403cf0fe05cdf90
+```
+
+The same targeted AutoDL test set passed:
+
+```text
+19 passed
+git diff --check passed
+```
+
+Artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_bridge_proof_objective_next_design_145e714/post_bridge_proof_objective_next_design.json
+sha256=8adfc399d3f6b2d32199a8314452656d3edc1d05abe119a62da4c57300e6fa35
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_bridge_proof_objective_next_design_145e714/post_bridge_proof_objective_next_design.md
+sha256=60f51f52f4a8dd085838089c32060e3b71f8dda2adc6c33895004cbddb8989ae
+```
+
+Source input:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/current_observable_separability_bridge_cf047ca/current_observable_separability_bridge.json
+```
+
+Decision:
+
+```text
+status=post_bridge_proof_objective_next_design_plan_ready
+authorized_next_work=predeclare_targeted_safety_intervention_proof_objective_only
+recommended_first_action=predeclare_targeted_safety_intervention_proof_objective
+training_execution_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Closed routes:
+
+```text
+current_observable_descriptor_separability_rerun
+missing_candidate_state_logging_expansion_without_new_fields
+camp_retraining_from_closed_descriptor_family
+direct_replay_or_full36
+```
+
+Next gate:
+
+Predeclare a targeted safety-intervention proof objective. The design should
+keep SafetyCost-style lower-is-better scoring, but make the claim shape more
+explicit: improve safety-critical buckets such as traffic-light turns, sharp
+turns, NPC interactions, and lane-change/merge cases while proving normal-scene
+nondegradation and no hard-gate regression. This remains design-only; it does
+not authorize training, replay, or online selection.
+
+Mathematical boundary:
+
+This plan does not add atoms. If a later objective design leads to new CAMP
+training, the runtime atoms must still be fixed current-tick finite-candidate
+coefficients `a_k`, nonnegative or represented by nonnegative signed parts, so
+`score_k(w)=a_k^T w` stays affine and the simplex/CVaR/L2 master remains
+convex. Offline outcomes may define labels or evaluation gates, but they must
+not become online selector inputs. No DP-side classical Benders decomposition
+is claimed.
