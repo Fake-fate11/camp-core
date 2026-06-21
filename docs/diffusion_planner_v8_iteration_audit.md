@@ -47252,3 +47252,134 @@ design-only and should not introduce another atom family from any closed route.
 It should define what evidence would prove CAMP useful against DP Top-1 on a
 comprehensive safety score, including diverse red-light, turn, NPC, and normal
 contexts, while preserving no-leak runtime features and the CAMP convex master.
+
+## Proof Protocol Redesign Gate (`1671ab6`)
+
+Purpose:
+
+The previous tensor-visibility gate closed the current atom/source-discovery
+route and pointed the next iteration at a higher-level proof protocol or
+scenario/objective redesign. This gate consolidates the already accepted
+source artifacts before allowing that redesign work. It is read-only: it does
+not run Diffusion Planner, replay closed-loop logs, train CAMP, promote an
+online selector, or reopen closed score families.
+
+Implementation:
+
+```text
+1671ab6 Add DP CAMP proof protocol redesign gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_proof_protocol_redesign.py
+camp_core/tests/test_diffusion_planner_proof_protocol_redesign.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m py_compile scripts\integrations\plan_diffusion_planner_proof_protocol_redesign.py
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_proof_protocol_redesign.py -q
+4 passed in 0.06s
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_safety_cost_proof_summary.py camp_core\tests\test_diffusion_planner_proof_to_deployable_gap.py camp_core\tests\test_diffusion_planner_support_bottleneck_summary.py camp_core\tests\test_diffusion_planner_next_design_gate.py -q
+6 passed in 0.23s
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=1671ab6683158cdc4f8a56bbfba1affad872b3ff
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_proof_protocol_redesign.py
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_proof_protocol_redesign.py -q
+4 passed in 0.04s
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py camp_core/tests/test_diffusion_planner_proof_to_deployable_gap.py camp_core/tests/test_diffusion_planner_support_bottleneck_summary.py camp_core/tests/test_diffusion_planner_next_design_gate.py -q
+6 passed in 0.14s
+```
+
+Input artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_no_leak_score_family_inventory_refresh_2a0e803/no_leak_score_family_inventory.json
+/root/autodl-tmp/camp_dp_current_tick_tensor_visibility_refresh_2a0e803/current_tick_tensor_visibility.json
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/camp_vs_top1_safety_cost_proof_cb339c3/camp_vs_top1_safety_cost_proof.json
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/proof_to_deployable_gap_b8f8f29/proof_to_deployable_gap.json
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/support_bottleneck_synthesis_0fe5a24/support_bottleneck_synthesis.json
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/next_design_gate_preflight_1020942/next_design_gate_preflight.json
+```
+
+Output artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/proof_protocol_redesign_1671ab6/proof_protocol_redesign.json
+sha256=c863ba58b4258d868236a2ceb79dc51d170354d4850b4f258af6e95090643131
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/proof_protocol_redesign_1671ab6/proof_protocol_redesign.md
+sha256=e1bd631cd72dd4715ae33ba9a25e81ae895f480980f754c6b60b64d97cb83ac4
+```
+
+Final gate results:
+
+```text
+status=proof_protocol_redesign_required
+passed=True
+authorized_next_work=predeclare_proof_protocol_v2_or_scenario_objective_design_only
+incomplete_sources=
+source_authorization_conflicts=
+
+reasons=closed_score_families_exhaust_current_atom_routes,
+        tensor_visibility_has_no_unclosed_runtime_candidate_source,
+        safetycost_candidate_branch_proof_exists,
+        deployable_closed_loop_gap_remains_open,
+        fixed_dp_selector_calibration_route_exhausted,
+        legacy_conditional_paths_require_new_design_gate
+```
+
+ProofProtocol v2 contract carried forward by this gate:
+
+```text
+score=SafetyCost_v1
+direction=lower_is_better
+claim_rule=hard gate passes and ci95_high(CAMP_minus_DP_Top1) < 0
+tail_rule=report and gate CVaR90 delta before larger nonformal runs
+required_buckets=normal,traffic_light,red_light_turn,sharp_turn,npc_interaction,dense_scene,lane_change_or_merge
+comparators=DP Top-1,current logged CAMP,hard-guarded candidate-branch oracle
+```
+
+Blocked actions:
+
+```text
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Mathematical boundary:
+
+This gate keeps DP as a frozen black-box candidate generator. It only reads
+prior JSON artifacts and source decisions. Runtime CAMP features must remain
+fixed current-tick finite-candidate coefficients, so `score_k(w)=a_k^T w`
+stays affine and the simplex/CVaR/L2 robust master remains convex. Offline
+outcomes may be used only as evaluation labels. No DP-side classical Benders
+master/subproblem, dual, or cut is constructed here.
+
+Decision:
+
+Accept this gate as the current self-iteration boundary. The evidence supports
+moving to a design-only ProofProtocol v2 or scenario-objective redesign, not to
+new replay, Full36, formal seeds, online selector promotion, or CAMP
+retraining. The next work must predeclare the proof protocol and scenario
+coverage first, preserve the SafetyCost claim rule, compare against DP Top-1
+and current CAMP, and reject any design that reopens the closed score/tensor
+families.
