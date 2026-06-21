@@ -58563,3 +58563,116 @@ hard-guarded oracle using only runtime-available candidate features. It must
 define candidate atoms, convexity/affineness constraints, feasibility and
 fallback handling, acceptance metrics, and rejection criteria before any
 training, replay, online selector, Full36, formal seeds, or DP modification.
+
+## Post-Oracle Selector Route Reconciliation (`245b8ac`)
+
+This self-iteration reconciles the refreshed post-oracle gap with the already
+accepted source-closure and pause gates. It prevents the offline hard-guarded
+oracle opportunity from being treated as a new deployable runtime source. It
+does not train CAMP, run DP, run replay, promote an online selector, use formal
+seeds, modify DP, or construct a DP-side Benders claim.
+
+Implementation:
+
+```text
+245b8ac76f6f82759242f07651f89cf8e1cb2014 Add post oracle selector route reconciliation gate
+
+scripts/integrations/plan_diffusion_planner_post_oracle_selector_route_reconciliation.py
+camp_core/tests/test_diffusion_planner_post_oracle_selector_route_reconciliation.py
+```
+
+Verification:
+
+```text
+Local:
+  CAMP HEAD=245b8ac76f6f82759242f07651f89cf8e1cb2014
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_post_oracle_selector_route_reconciliation.py \
+         camp_core/tests/test_diffusion_planner_post_oracle_deployable_gap.py \
+         camp_core/tests/test_diffusion_planner_post_source_visibility_runtime_inventory.py \
+         camp_core/tests/test_diffusion_planner_post_external_context_pause_gate.py -q
+  result=24 passed
+
+AutoDL:
+  CAMP HEAD=245b8ac76f6f82759242f07651f89cf8e1cb2014
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  same pytest command result=24 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+POST=$DEV/post_oracle_deployable_gap_893107c/post_oracle_deployable_gap.json
+SOURCE=$DEV/post_source_visibility_runtime_inventory_e9d778d/post_source_visibility_runtime_inventory.json
+PAUSE=$DEV/post_external_context_pause_gate_1f9677c/post_external_context_pause_gate.json
+OUT=$DEV/post_oracle_selector_route_reconciliation_245b8ac
+
+$PY scripts/integrations/plan_diffusion_planner_post_oracle_selector_route_reconciliation.py \
+  --post_oracle_gap_json "$POST" \
+  --source_inventory_json "$SOURCE" \
+  --pause_gate_json "$PAUSE" \
+  --label autodl_245b8ac_post_oracle_selector_route_reconciliation \
+  --output_json "$OUT/post_oracle_selector_route_reconciliation.json" \
+  --output_md "$OUT/post_oracle_selector_route_reconciliation.md" \
+  --require_pass
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_oracle_selector_route_reconciliation_245b8ac/post_oracle_selector_route_reconciliation.json` | `93f580ca5611e03f622c7d0fb65baaf522732b3a15c1b8a947d4b475001fda97` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_oracle_selector_route_reconciliation_245b8ac/post_oracle_selector_route_reconciliation.md` | `cb0fdefe87fdc02cb4bc485cb926ffc36c6ea6ccbfe578a52186367eb3e4bad1` |
+
+Result:
+
+```text
+status=post_oracle_selector_route_reconciliation_paused
+passed=True
+selector_route_paused=True
+deployable_camp_dp_selector_route_exists=False
+repeat_selector_label_weight_preflight_authorized=False
+offline_convex_selector_training_authorized=False
+training_execution_authorized=False
+authorized_next_work=new_current_tick_source_predeclaration_or_keep_paused_only
+failed_checks=[]
+```
+
+Upstream reconciliation:
+
+```text
+post_oracle_next_work=selector_label_weight_design_preflight_only
+source_inventory_status=post_source_visibility_runtime_inventory_no_new_source_paused
+pause_gate_status=post_external_context_selector_route_paused
+```
+
+Decision:
+
+Accept this reconciliation gate. The refreshed post-oracle artifact is valid
+evidence that the fixed candidate pool contains offline oracle opportunity, but
+it is not a new runtime selector input. Because the latest source inventory has
+no new runtime source and the earlier pause gate rejected the current selector
+route, repeating the old selector label/weight or offline convex selector
+training path is explicitly not authorized.
+
+Mathematical boundary:
+
+This gate creates no atom and trains no weight. The hard-guarded oracle outcome
+remains an offline label/evaluation source only and cannot enter the runtime
+selector. Any future CAMP feature must be a fixed current-tick finite-candidate
+coefficient `a_k`, nonnegative, hinged, or signed-split, preserving
+`score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. No DP-side
+classical Benders master/subproblem, dual, or valid cut is constructed.
+
+Next admissible work:
+
+Keep the current selector route paused unless a genuinely new current-tick
+candidate-level source is predeclared, or a new proof objective is predeclared
+without claiming deployability. Do not train CAMP, run replay, promote an
+online selector, run Full36, use formal seeds, modify DP, or repeat the old
+label/weight preflight as if it were new.
