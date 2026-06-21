@@ -52346,3 +52346,105 @@ the next smallest implementation step: default-off external-context payload
 construction with unit tests and baseline-equivalence checks. Closed-loop smoke,
 new replay, online selector changes, CAMP retraining, Full36, formal seeds, DP
 modification, and classical Benders claims remain unauthorized.
+
+## External Context Payload Runtime Wiring (`2771449`)
+
+Purpose:
+
+This step implements the previously approved default-off external-context
+payload construction and replay logging hook. It remains diagnostic only: it
+does not alter DP candidate generation, `postprocess_reference`, PerfectTracker,
+CAMP atom schemas, CAMP weights, feasibility, scoring, selected trajectory,
+closed-loop replay policy, or the fixed DP repository.
+
+Implementation:
+
+```text
+2771449 Implement external context payload wiring
+```
+
+Files:
+
+```text
+camp_core/camp_core/integrations/diffusion_planner_external_context_payload.py
+camp_core/tests/test_diffusion_planner_external_context_payload_runtime.py
+scripts/integrations/run_diffusion_planner_camp_replay.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  camp_core\camp_core\integrations\diffusion_planner_external_context_payload.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  scripts\integrations\run_diffusion_planner_camp_replay.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+11 passed
+git diff --check passed
+```
+
+Implemented payload fields:
+
+```text
+traffic_signal_phase_timing_or_right_of_way_state:
+  candidate_first_signal_arrival_time_s
+  candidate_signal_phase_change_margin_s
+  candidate_right_of_way_blocked_indicator
+
+route_speed_limit_and_control_context:
+  candidate_route_speed_limit_min_mps
+  candidate_speed_limit_excess_integral_mps
+  candidate_speed_limit_available_fraction
+```
+
+Runtime boundary:
+
+```text
+default_off=True
+selection_effect=False
+future_outcome_leakage=False
+closed_loop_outcome_fields_read=False
+online_selector_change=False
+deployed_atom_vector_change=False
+classic_benders_claim_authorized=False
+```
+
+Math boundary:
+
+The payload consumes only fixed current-tick DP candidates and explicit
+pre-selection context. The fields are finite-candidate coefficients or null
+fail-closed diagnostics. Right-of-way indicators and speed-limit excess
+integrals are nonnegative. Signal phase margins require signed-split or hinge
+atomization before any future score use. If later promoted by a separate atom
+gate, the CAMP selector score remains affine, `score_k(w)=a_k^T w`, and the
+simplex/CVaR/L2 master remains convex. No trajectory-coordinate convexity,
+DP-side Benders, or classical Benders cut claim is made here.
+
+Decision:
+
+```text
+status=external_context_payload_runtime_wiring_ready
+passed=True
+authorized_next_work=predeclare_default_off_external_context_payload_smoke_plan_only
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+The next admissible work is a design-only smoke plan gate. That plan must define
+the exact non-formal routes/seeds, expected summary fields, baseline-equivalence
+checks, latency budget, acceptance/rejection criteria, and fail-closed behavior
+before running any DP replay. CAMP retraining remains premature until a
+separate evidence gate shows that the current atom/payload family can produce a
+lower comprehensive safety score than DP top-1 without unacceptable progress,
+comfort, fallback, or latency regressions.

@@ -83,6 +83,13 @@ from camp_core.integrations.diffusion_planner_non_turn_logit_interaction_payload
     NON_TURN_LOGIT_INTERACTION_PAYLOAD_SCHEMA_VERSION,
     build_non_turn_logit_interaction_payload,
 )
+from camp_core.integrations.diffusion_planner_external_context_payload import (  # noqa: E402
+    EXTERNAL_CONTEXT_PAYLOAD_ATOM_CANDIDATE_NAMES,
+    EXTERNAL_CONTEXT_PAYLOAD_FIELD_NAMES,
+    EXTERNAL_CONTEXT_PAYLOAD_LATENCY_KEYS,
+    EXTERNAL_CONTEXT_PAYLOAD_SCHEMA_VERSION,
+    build_external_context_payload,
+)
 from camp_core.atoms.driver_atoms import (  # noqa: E402
     exact_centerline_slice_for_candidates,
 )
@@ -683,6 +690,28 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--camp_external_context_payload_logging",
+        action="store_true",
+        help=(
+            "Default-off no-leak logging of current-tick traffic-signal and "
+            "route speed-limit context payload fields. This records diagnostics "
+            "only and does not change feasibility, scores, candidates, tracker "
+            "execution, atom schema, CAMP weights, or selection."
+        ),
+    )
+    parser.add_argument(
+        "--camp_external_context_payload_steps",
+        type=int,
+        default=10,
+        help="Candidate prefix steps for external-context payload logging.",
+    )
+    parser.add_argument(
+        "--camp_external_context_payload_dt_s",
+        type=float,
+        default=0.1,
+        help="Time step used for external-context payload speed/arrival logging.",
+    )
+    parser.add_argument(
         "--camp_splice_shadow_rule",
         action="store_true",
         help=(
@@ -941,6 +970,15 @@ def _validate_args(args: argparse.Namespace) -> None:
     ):
         raise ValueError(
             "--camp_progress_lane_hard_context_corridor_safety_margin_m must be finite and nonnegative."
+        )
+    if args.camp_external_context_payload_steps < 2:
+        raise ValueError("--camp_external_context_payload_steps must be >= 2.")
+    if (
+        not np.isfinite(args.camp_external_context_payload_dt_s)
+        or args.camp_external_context_payload_dt_s <= 0.0
+    ):
+        raise ValueError(
+            "--camp_external_context_payload_dt_s must be finite and positive."
         )
     splice_shadow_budgets = (
         args.camp_splice_shadow_progress_loss_budget_m,
@@ -3744,6 +3782,9 @@ def _install_camp_predictor(
     progress_lane_hard_context_corridor_safety_margin_m: float,
     turn_logit_payload_logging: bool,
     non_turn_logit_interaction_payload_logging: bool,
+    external_context_payload_logging: bool,
+    external_context_payload_steps: int,
+    external_context_payload_dt_s: float,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -4015,6 +4056,10 @@ def _install_camp_predictor(
         non_turn_logit_interaction_payload_latency_ms = {
             key: 0.0 for key in NON_TURN_LOGIT_INTERACTION_PAYLOAD_LATENCY_KEYS
         }
+        external_context_payload_logging_payload = None
+        external_context_payload_latency_ms = {
+            key: 0.0 for key in EXTERNAL_CONTEXT_PAYLOAD_LATENCY_KEYS
+        }
         route_centerline_ego = None
         if (
             observable_state_logging
@@ -4022,6 +4067,7 @@ def _install_camp_predictor(
             or lane_hard_violation_support_logging
             or progress_lane_hard_context_logging
             or non_turn_logit_interaction_payload_logging
+            or external_context_payload_logging
         ):
             route_centerline_ego = _ego_frame_xy(
                 route_centerline,
@@ -4243,6 +4289,19 @@ def _install_camp_predictor(
             )
             non_turn_logit_interaction_payload_latency_ms = (
                 non_turn_logit_interaction_payload_logging_payload["latency_ms"]
+            )
+        if external_context_payload_logging:
+            external_context_payload_logging_payload = build_external_context_payload(
+                candidates=candidates,
+                route_centerline_ego=route_centerline_ego,
+                support_steps=external_context_payload_steps,
+                dt_s=external_context_payload_dt_s,
+                signal_context=None,
+                route_speed_limit_mps=context.speed_limit,
+                route_has_speed_limit=context.speed_limit is not None,
+            )
+            external_context_payload_latency_ms = (
+                external_context_payload_logging_payload["latency_ms"]
             )
         if lexicographic_progress_epsilon_m is not None:
             if candidate_progress is None or candidate_planned_red_light_cost is None:
@@ -4471,6 +4530,7 @@ def _install_camp_predictor(
             **progress_lane_hard_context_latency_ms,
             **turn_logit_payload_latency_ms,
             **non_turn_logit_interaction_payload_latency_ms,
+            **external_context_payload_latency_ms,
             "latency_ms_context_and_obstacles": (
                 context_and_obstacles_done - lateral_comfort_done
             )
@@ -4786,6 +4846,9 @@ def _install_camp_predictor(
                 "non_turn_logit_interaction_payload_logging": (
                     non_turn_logit_interaction_payload_logging_payload
                 ),
+                "external_context_payload_logging": (
+                    external_context_payload_logging_payload
+                ),
                 "candidate_obstacle_clearance": candidate_obstacle_clearance,
                 "candidate_step_reach": (
                     candidate_step_reach.tolist()
@@ -5063,6 +5126,11 @@ def main() -> None:
             non_turn_logit_interaction_payload_logging=bool(
                 args.camp_non_turn_logit_interaction_payload_logging
             ),
+            external_context_payload_logging=bool(
+                args.camp_external_context_payload_logging
+            ),
+            external_context_payload_steps=args.camp_external_context_payload_steps,
+            external_context_payload_dt_s=args.camp_external_context_payload_dt_s,
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
             ),
@@ -5809,6 +5877,101 @@ def main() -> None:
         if records is not None
         else None
     )
+    camp_external_context_payload_logging = (
+        {
+            "schema_version": EXTERNAL_CONTEXT_PAYLOAD_SCHEMA_VERSION,
+            "enabled": bool(args.camp_external_context_payload_logging),
+            "default_off": True,
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "closed_loop_outcome_fields_read": False,
+            "online_selector_change": False,
+            "deployed_atom_vector_change": False,
+            "authorized_stage": "unit_tests_only_default_off_payload_wiring",
+            "logged_field": "external_context_payload_logging",
+            "fields": list(EXTERNAL_CONTEXT_PAYLOAD_FIELD_NAMES),
+            "atom_candidate_names": list(
+                EXTERNAL_CONTEXT_PAYLOAD_ATOM_CANDIDATE_NAMES
+            ),
+            "latency_fields": list(EXTERNAL_CONTEXT_PAYLOAD_LATENCY_KEYS),
+            "records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if record.get("external_context_payload_logging")
+                        is not None
+                    )
+                )
+                if args.camp_external_context_payload_logging
+                else 0
+            ),
+            "available_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get("external_context_payload_logging")
+                            is not None
+                            and record["external_context_payload_logging"].get(
+                                "available"
+                            )
+                            is True
+                        )
+                    )
+                )
+                if args.camp_external_context_payload_logging
+                else 0
+            ),
+            "invalid_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get("external_context_payload_logging")
+                            is not None
+                            and not record["external_context_payload_logging"]
+                            .get("finite_checks", {})
+                            .get("payload_valid", False)
+                        )
+                    )
+                )
+                if args.camp_external_context_payload_logging
+                else 0
+            ),
+            "latency_ms": (
+                {
+                    key: _summary(
+                        [
+                            float(record[key])
+                            for record in records
+                            if key in record and record[key] is not None
+                        ]
+                    )
+                    for key in EXTERNAL_CONTEXT_PAYLOAD_LATENCY_KEYS
+                }
+                if args.camp_external_context_payload_logging
+                else None
+            ),
+            "definition": (
+                "default-off current-tick traffic-signal and route speed-limit "
+                "context diagnostics computed from fixed DP candidates and "
+                "explicit pre-selection context"
+            ),
+            "math_boundary": (
+                "External-context fields are fixed finite-candidate "
+                "coefficients or fail-closed diagnostics. If later atomized "
+                "after a separate gate, CAMP score remains affine in weights "
+                "and the simplex/CVaR/L2 master remains convex. No DP-side "
+                "classical Benders claim is made."
+            ),
+            "classical_benders_claim": False,
+        }
+        if records is not None
+        else None
+    )
     finite_candidate_contract = _dp_camp_finite_candidate_contract(
         selector_mode=args.camp_selector_mode,
         num_candidates=args.num_candidates,
@@ -5872,6 +6035,9 @@ def main() -> None:
         "camp_turn_logit_payload_logging": camp_turn_logit_payload_logging,
         "camp_non_turn_logit_interaction_payload_logging": (
             camp_non_turn_logit_interaction_payload_logging
+        ),
+        "camp_external_context_payload_logging": (
+            camp_external_context_payload_logging
         ),
         "camp_splice_shadow_rule": effective_splice_shadow_rule,
         "camp_traffic_light_hybrid_postselection": (
@@ -6175,6 +6341,9 @@ def main() -> None:
     validation["camp_turn_logit_payload_logging"] = camp_turn_logit_payload_logging
     validation["camp_non_turn_logit_interaction_payload_logging"] = (
         camp_non_turn_logit_interaction_payload_logging
+    )
+    validation["camp_external_context_payload_logging"] = (
+        camp_external_context_payload_logging
     )
     validation["camp_splice_shadow_rule"] = effective_splice_shadow_rule
     validation["camp_traffic_light_hybrid_postselection"] = (
