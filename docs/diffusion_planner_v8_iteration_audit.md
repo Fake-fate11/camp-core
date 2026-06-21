@@ -23256,6 +23256,145 @@ signed-split atomization before entering the affine `score_k(w)=a_k^T w`.
 The simplex/CVaR/L2 master remains convex, and no DP-side classical Benders
 decomposition is claimed.
 
+## Signal-Context Wiring Implementation Unit Gate (`799096f` artifacts)
+
+Purpose:
+
+This step implements the next authorized unit-test-only gate from the
+signal-context preflight. It adds wrapper-side, default-off construction of
+`signal_context` for the external-context payload using current-tick red route
+points already exposed by the fixed DP simulator state. It does not modify DP,
+run replay, train CAMP, change selection, promote atoms, use formal seeds, or
+enter Full36.
+
+Implementation:
+
+```text
+799096f7bd7b77a7d64b8b4365f432128e8e23c6
+
+scripts/integrations/run_diffusion_planner_camp_replay.py
+scripts/integrations/plan_diffusion_planner_external_context_payload_smoke.py
+camp_core/tests/test_diffusion_planner_external_context_payload_runtime.py
+```
+
+Implemented behavior:
+
+```text
+helper=build_current_tick_signal_context
+inputs=[
+  red_route_points_ego,
+  route_centerline_ego,
+  traffic_lights_enabled
+]
+outputs=[
+  signal_s_m,
+  current_phase=red,
+  phase_remaining_s=None,
+  blocked_phases=[red, yellow]
+]
+fail_closed_to=None when traffic lights are disabled, red route points are
+absent, route geometry is absent/invalid, or the red point cannot be projected
+onto the current route centerline.
+```
+
+The implementation deliberately uses `red_route_points_from_scene(scene,
+ego_id)` rather than direct `tl_controller` access because the CAMP monkey-patch
+boundary has `scene`, `map_cache`, and model tensors but no direct
+`tl_controller` argument. This is narrower and less invasive: the fixed DP
+simulator has already written traffic-light state into route lanes before
+prediction, and CAMP only reads that current-tick state.
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\run_diffusion_planner_camp_replay.py \
+  scripts\integrations\plan_diffusion_planner_external_context_payload_smoke.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_signal_wiring_preflight.py \
+  camp_core\tests\test_diffusion_planner_external_context_next_materiality_gate.py \
+  -q
+
+25 passed
+git diff --check passed
+```
+
+AutoDL verification:
+
+```text
+autodl_camp_head=799096f7bd7b77a7d64b8b4365f432128e8e23c6
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core/tests/test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_external_context_signal_wiring_preflight.py \
+  camp_core/tests/test_diffusion_planner_external_context_next_materiality_gate.py \
+  -q
+
+25 passed
+```
+
+Artifacts:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_signal_wiring_impl_799096f
+local_copy=F:\camp_core-main\analysis_bundles\external_context_signal_wiring_impl_799096f
+
+run_signal_context_wiring_impl_799096f.log
+sha256=365EB74BE054396D97431481E1FF09BF9A3FB485A8349DB61A9D3F2DF807E787
+
+signal_context_wiring_unit_smoke.json
+sha256=7D18DDCDC2F0CE959B2070FFE751AC0EE7C7D50BAD8CD2A40C1E6643E19BFC8C
+```
+
+Unit smoke result:
+
+```text
+schema_version=dp_camp_signal_context_wiring_impl_unit_smoke_v1
+selection_effect=False
+closed_loop_replay=False
+diffusion_planner_execution=False
+training=False
+signal_context={
+  signal_s_m: 1.5,
+  current_phase: red,
+  phase_remaining_s: null,
+  blocked_phases: [red, yellow]
+}
+payload_traffic_signal_context_available=True
+candidate_first_signal_arrival_time_s=[2.0, 1.0]
+candidate_right_of_way_blocked_indicator=[1.0, 1.0]
+finite_checks_all=True
+```
+
+Decision:
+
+Accept the implementation unit gate only. The code now has a default-off path
+that can make traffic-signal external-context payload fields available when
+current red route points exist, while preserving fail-closed behavior when they
+do not. This does not prove materiality, improve CAMP over DP Top-1, or
+authorize replay by itself. The next admissible step is a separate smoke-plan
+gate for a tiny paired nonformal replay with traffic lights enabled, selector
+equivalence, payload audit, dataset audit, and materiality diagnosis. No
+training, online selector promotion, Full36, formal seeds, or DP modification is
+authorized.
+
+Mathematical boundary:
+
+The helper reads only current-tick red route points and route geometry before
+selection. The resulting payload fields are fixed finite-candidate diagnostics:
+arrival time and right-of-way indicators are nonnegative; phase margin remains
+null in this implementation. If later atomized after a separate materiality and
+atom-schema gate, the coefficients still enter CAMP as `score_k(w)=a_k^T w`,
+preserving the convex simplex/CVaR/L2 master. This is not a DP-side classical
+Benders decomposition.
+
 Decision:
 
 Reject score-margin preservation as a finite-filter route. Do not implement an
