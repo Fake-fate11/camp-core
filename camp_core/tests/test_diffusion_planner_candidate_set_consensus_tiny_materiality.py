@@ -109,6 +109,31 @@ def test_candidate_set_consensus_tiny_materiality_rejects_no_spread(
     assert "finite_lambda_records" in failed
 
 
+def test_candidate_set_consensus_tiny_materiality_allows_infeasible_inf_scores(
+    tmp_path: Path,
+) -> None:
+    log = tmp_path / "camp_selection_log.json"
+    rows = [
+        {
+            **_record(),
+            "feasible_mask": [True, True, True, False],
+            "selection_scores": [0.4, 0.5, 0.1, float("inf")],
+            "candidate_set_consensus_payload_logging": {
+                "available": True,
+                "candidate_set_consensus_center_rms_m": [0.02, 0.01, 0.08, 0.0],
+                "candidate_set_consensus_center_rms_rank": [1, 0, 2, 3],
+            },
+        }
+        for _ in range(3)
+    ]
+    _write_log(log, rows)
+
+    report = analyze(selection_log=log, smoke_result=_smoke_result())
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["record_summary"]["valid_records"] == 3
+
+
 def test_candidate_set_consensus_tiny_materiality_markdown_states_no_promotion(
     tmp_path: Path,
 ) -> None:

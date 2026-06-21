@@ -206,7 +206,7 @@ def _record_report(row: dict[str, Any], index: int) -> dict[str, Any]:
         and 0 <= selected_index < costs.size
         and bool(feasible[selected_index])
         and np.all(np.isfinite(costs))
-        and np.all(np.isfinite(scores))
+        and np.all(np.isfinite(scores[feasible]))
     )
     if not valid:
         return {
