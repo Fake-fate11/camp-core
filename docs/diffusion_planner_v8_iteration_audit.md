@@ -37352,6 +37352,108 @@ beneficial/harmful evaluation labels, not as runtime features. It should first
 run on the tiny smoke only as a contract check; broader matched nonformal replay
 requires a separate plan and latency justification.
 
+## Revised Atom Separability Tiny Contract (`7fc33c1` source)
+
+This gate adds the read-only revised atom separability analyzer and runs it on
+the tiny revised-context logging smoke. Because that smoke intentionally forbids
+closed-loop outcome labels, the correct result is a rejected separability audit
+that still verifies revised atom payload coverage and authorizes only a matched
+outcome-label plan.
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_revised_progress_lane_hard_context_atom_separability.py
+camp_core/tests/test_diffusion_planner_revised_progress_lane_hard_context_atom_separability.py
+```
+
+Validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_revised_progress_lane_hard_context_atom_separability.py \
+  -q
+```
+
+Result:
+
+```text
+6 passed in 0.44s
+```
+
+Tiny contract command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e
+OUT=/root/autodl-tmp/camp_dp_revised_context_atom_separability_tiny_contract_7fc33c1
+
+$PY scripts/integrations/analyze_diffusion_planner_revised_progress_lane_hard_context_atom_separability.py \
+  --root "$ROOT/logging_enabled" \
+  --source_smoke_audit_json "$ROOT/audit/progress_lane_hard_context_logging_smoke.json" \
+  --label autodl_7fc33c1_revised_context_atom_separability_tiny_contract \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/revised_context_atom_separability_tiny_contract.json" \
+  --output_md "$OUT/revised_context_atom_separability_tiny_contract.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_atom_separability_tiny_contract_7fc33c1/revised_context_atom_separability_tiny_contract.json` | `d7bb9425c52064054b119dccd45f4c4e33e1dfa86267f1c7a5cc704b2d4e5ae9` |
+| `/root/autodl-tmp/camp_dp_revised_context_atom_separability_tiny_contract_7fc33c1/revised_context_atom_separability_tiny_contract.md` | `d11c17fa1536b6709e8003d61412832e289a430d8ca1eaab8b0809f9e5e4a29b` |
+
+Verifier result:
+
+```text
+status=revised_progress_lane_hard_context_atom_separability_missing_outcome_labels
+passed=False
+primary_gap=candidate_closed_loop_outcomes_missing_for_revised_atom_separability
+authorized_next_work=revised_progress_lane_hard_context_matched_outcome_label_plan_only
+source_smoke_gate.passed=True
+records=3
+candidate_rows=24
+classified_candidate_rows=0
+missing_outcome_records=3
+formal_seed_records=0
+new_replay_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+```
+
+Payload descriptor coverage:
+
+```text
+revised_atom_route_progress_shortfall_vs_candidate_best_v1: 24/24 finite
+revised_atom_route_progress_efficiency_shortfall_v1: 24/24 finite
+revised_atom_heading_progress_conflict_v1: 24/24 finite
+revised_atom_lateral_rate_progress_conflict_v1: 24/24 finite
+revised_atom_corridor_progress_conflict_v1: 24/24 finite
+```
+
+Decision:
+
+Accept the analyzer contract and reject the tiny smoke as insufficient for
+separability. The rejection is intentional: the tiny smoke proves revised atom
+observability, not CAMP-vs-Top-1 advantage. The next admissible work is a
+matched outcome-label plan that replays a small, nonformal, non-formal-seed set
+with revised context logging and candidate closed-loop outcomes enabled, then
+reruns this analyzer.
+
+Mathematical boundary:
+
+The revised atoms are fixed current-tick candidate coefficients. Outcome labels
+are not read by the atom computation or online selector; they are used only to
+define offline beneficial/harmful/neutral classes and oracle thresholds. Any
+accepted screen remains a finite-candidate affine scalarization over fixed
+coefficients and preserves `score_k(w)=a_k^T w` plus the simplex/CVaR/L2 convex
+master. No DP-side classical Benders decomposition is claimed.
+
 ## Progress + Lane/Hard Joint Screen Preflight (`886b100`)
 
 This design-only gate follows the lane/hard standalone bottleneck diagnosis.
