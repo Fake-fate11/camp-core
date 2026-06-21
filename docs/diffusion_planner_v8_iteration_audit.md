@@ -45548,3 +45548,200 @@ equivalence, turn-logit payload audit, dataset audit with
 `closed_loop_outcome_policy=required`, and the new offline atom separability
 screen. If source equivalence, no-leak checks, formal-seed exclusion, or
 separability support fails, reject the route and do not train CAMP.
+
+## Turn-Logit Matched Outcome Atom Separability Result (`da2a0f6` source)
+
+This run executed only the bounded nonformal matched label pass authorized by
+the previous plan. It used the same four nonformal scenario keys and 12 replay
+steps per run. The baseline branch kept both `--camp_turn_logit_payload_logging`
+and `--camp_collect_closed_loop_outcomes` disabled; the matched branch enabled
+both flags so that current-tick turn-logit payloads and posterior closed-loop
+outcome labels are co-located in the same record.
+
+The run did not use formal seeds, did not modify DP, did not train CAMP, did
+not promote an online selector, and did not enter Full36.
+
+AutoDL state:
+
+```text
+CAMP HEAD:
+da2a0f67c167885aadc2b213378276f784c823ba
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Replay execution:
+
+```text
+baseline/tl_route59_seed1_npc0_tlon: 7.752s
+matched/tl_route59_seed1_npc0_tlon: 16.146s
+baseline/tl_route59_seed1_npc4_tlon: 7.643s
+matched/tl_route59_seed1_npc4_tlon: 15.773s
+baseline/tl_route59_seed2_npc4_tloff: 7.730s
+matched/tl_route59_seed2_npc4_tloff: 15.765s
+baseline/normal_route2_seed1_npc0_tloff: 7.642s
+matched/normal_route2_seed1_npc0_tloff: 8.533s
+```
+
+Audit results:
+
+```text
+selector_equivalence=True
+payload_status=turn_logit_payload_smoke_passed
+candidate_payload_records=48
+available_payload_records=48
+invalid_payload_records=0
+max_latency_ms_turn_logit_payload=0.12360140681266785
+dataset_audit.passed=True
+closed_loop_outcome_policy=required
+closed_loop_outcome_records=48
+complete_closed_loop_outcomes=True
+finite_candidate_contract_verified=True
+forbidden_seed_check=True
+formal_seed_records=0
+```
+
+The matched label collection itself is accepted: selector equivalence holds,
+the default-off payload remains no-leak and selector-neutral, and the dataset
+audit confirms complete outcome labels for all 48 records and 384 candidate
+rows.
+
+Separability result:
+
+```text
+status=turn_logit_atom_separability_rejected
+passed=False
+primary_gap=turn_logit_atoms_do_not_separate_candidates
+authorized_next_work=diagnose_turn_logit_atom_bottleneck_before_retraining
+promising_screen_count=0
+beneficial_alternative=56
+harmful_alternative=180
+neutral_alternative=100
+```
+
+Best screen:
+
+```text
+screen=turn_logit_entropy_cost_v1:allow_low
+harmful_block_rate=0.9944444444444445
+beneficial_retain_rate=0.0
+allowed_harmful_rate=1.0
+auc_beneficial_vs_harmful=0.580952380952381
+threshold=3.2594806565238955e-05
+```
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/selector_equivalence.json
+b6f67a73b0831f0d91928179718a31be2d3b37d6bc488bf0e6b8bd63d0e2f194
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/turn_logit_matched_payload_audit.json
+4a3f0f13bfdc1bc8d19d796a4a96c50fce3145b2922a6f2e767544fa9714c270
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/turn_logit_matched_payload_audit.md
+feea4dedb0bebcf528f9e38bb90f4178e6a19cb4edff86bfa691e13f1bc8372b
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/dataset_required_outcome_audit.json
+4f343fd69d13ff6ddf22e08ead30955024d0f8e6f3d1d898bb73898456b3c1a5
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/turn_logit_atom_separability.json
+2bbade2404392efb4b007332c429f9efee9a39bd093e86882f47a59c97fcef85
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/turn_logit_atom_separability.md
+fa996efb3bed3f19007bf75321c01f0500d82d8b04a9853a063deb1731f60286
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/turn_logit_matched_execution_log.json
+3dd4faac553031fa8551becca56e98bf2344ef67b46baa4fdc2ff906d193766a
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/turn_logit_matched_audit_execution_log.json
+e2eabaf1f203a523821abe19706eb0423806f9f67c1d57e57f7d064aa2a073dd
+```
+
+Because the separability screen was rejected, a read-only bottleneck diagnostic
+was added and run over the same existing matched logs and rejected
+separability artifact:
+
+```text
+scripts/integrations/analyze_diffusion_planner_turn_logit_atom_bottleneck.py
+camp_core/tests/test_diffusion_planner_turn_logit_atom_bottleneck.py
+```
+
+Local verification:
+
+```text
+11 passed in 0.49s
+```
+
+AutoDL verification:
+
+```text
+11 passed in 0.40s
+```
+
+Bottleneck result:
+
+```text
+status=turn_logit_atom_bottleneck_diagnosed
+passed=True
+primary_bottleneck=best_screen_blocks_all_beneficial_candidates
+authorized_next_work=design_non_turn_logit_or_interaction_atoms_before_retraining
+CAMP_retraining_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+```
+
+Bottleneck summary:
+
+```text
+best_screen_name=turn_logit_entropy_cost_v1:allow_low
+best_screen_beneficial_retain_rate=0.0
+best_screen_harmful_block_rate=0.9944444444444445
+best_screen_allowed_harmful_rate=1.0
+features_with_beneficial_lower_median=[turn_logit_entropy_cost_v1]
+features_with_beneficial_harmful_iqr_overlap=[
+  turn_logit_entropy_cost_v1,
+  turn_logit_margin_shortfall_v1,
+  turn_logit_non_top1_disagreement_v1
+]
+```
+
+Bottleneck artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/turn_logit_atom_bottleneck.json
+d9244f334b263ab10325aa7bfdeec8bb5d4fe38c6e843a82750c30d9fe0f2031
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/turn_logit_atom_bottleneck.md
+f1712dc9354041579b6ce4ad765c65be3530d5461759414875093b2562c1b961
+```
+
+Decision:
+
+Accept the matched label collection as valid evidence, but reject direct
+turn-logit atomization and reject CAMP retraining from these three atom
+candidates. The features are no-leak and mathematically admissible as fixed
+nonnegative candidate coefficients, but they do not separate beneficial from
+harmful alternatives on the matched nonformal evidence. The best available
+screen blocks all 56 beneficial alternatives while still allowing a harmful
+candidate, and all three candidate atom families have beneficial/harmful IQR
+overlap.
+
+Mathematical boundary:
+
+This result preserves the CAMP affine-score boundary: the rejected atom
+candidates would still be fixed `a_k` coefficients and would not break
+`score_k(w)=a_k^T w` or the simplex/CVaR/L2 convex master. Rejection is based
+on empirical separability, not on a convexity violation. The outcome labels
+were used only offline for class definitions and threshold diagnostics, never
+as online features. No DP-side Benders claim is made.
+
+Next admissible work:
+
+Do not train CAMP, promote a selector, run Full36, use formal seeds, or modify
+DP from this evidence. The next step is a read-only design/preflight for
+non-turn-logit or interaction atoms before any retraining. That preflight
+should explicitly avoid repeating the rejected direct turn-logit route and
+should justify each proposed atom as a fixed current-tick candidate coefficient
+with nonnegative/convex-compatible form before any new replay or schema change.
