@@ -91,6 +91,13 @@ def test_observable_interaction_coverage_plan_authorizes_next_gate_only() -> Non
     assert len(baseline) == len(logging) == 4
     assert all("--camp_observable_state_logging" not in item["command"] for item in baseline)
     assert all("--camp_observable_state_logging" in item["command"] for item in logging)
+    unsupported_runner_args = {
+        "--camp_enable",
+        "--camp_shadow_only",
+        "--camp_emit_selection_log",
+    }
+    for item in replay_commands:
+        assert unsupported_runner_args.isdisjoint(item["command"])
     followup = report["commands"]["required_followup_checks"]
     assert "selector_equivalence_contract" in followup
     assert "observable_interaction_coverage_contract" in followup

@@ -36848,6 +36848,204 @@ preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
 No DP-side classical Benders master/subproblem, dual, or valid cut is
 constructed.
 
+## Observable Interaction Coverage Smoke (`8307cc6` source)
+
+This gate executes the tiny paired nonformal smoke authorized by the observable
+interaction coverage plan. It keeps DP fixed, uses only the predeclared
+4-run x 12-step scope, and adds a smoke audit for selector neutrality plus
+current-tick observable materiality. It does not run Full36, does not use
+formal seeds, does not train CAMP, does not promote an online selector, and
+does not modify DP.
+
+Implementation note:
+
+The first replay attempt exposed a plan-command bug: the previous plan emitted
+three stale runner flags, `--camp_enable`, `--camp_shadow_only`, and
+`--camp_emit_selection_log`. The current runner no longer accepts these flags,
+so the plan generator was fixed and tested to forbid them. Replay also must use
+`/root/autodl-tmp/dp312_venv/bin/python`; the older CAMP Python 3.9 environment
+cannot import the fixed DP code because DP uses Python 3.10+ union type syntax.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.py
+scripts/integrations/analyze_diffusion_planner_observable_interaction_coverage_smoke.py
+camp_core/tests/test_diffusion_planner_observable_interaction_coverage_plan.py
+camp_core/tests/test_diffusion_planner_observable_interaction_coverage_smoke.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_observable_interaction_coverage.py `
+  scripts\integrations\analyze_diffusion_planner_observable_interaction_coverage_smoke.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_coverage_plan.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_coverage_smoke.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+9 passed in 0.15s
+```
+
+AutoDL plan repair, replay, and audit:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+ROOT=/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_cmdfix_8307cc6
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.py \
+  scripts/integrations/analyze_diffusion_planner_observable_interaction_coverage_smoke.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_coverage_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_coverage_smoke.py \
+  -q
+
+$PY scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.py \
+  --bottleneck_json /root/autodl-tmp/camp_dp_observable_interaction_descriptor_bottleneck_e4e70d7/observable_interaction_descriptor_bottleneck.json \
+  --label autodl_8307cc6_observable_interaction_coverage_plan_cmdfix \
+  --output_root "$ROOT" \
+  --output_json "$ROOT/observable_interaction_coverage_plan.json" \
+  --output_md "$ROOT/observable_interaction_coverage_plan.md"
+
+# Then execute only the 8 predeclared paired replay commands from the repaired
+# plan JSON with /root/autodl-tmp/dp312_venv/bin/python.
+
+$PY scripts/integrations/analyze_diffusion_planner_observable_interaction_coverage_smoke.py \
+  --plan_json "$ROOT/observable_interaction_coverage_plan.json" \
+  --root "$ROOT" \
+  --output_json "$ROOT/observable_interaction_coverage_smoke.json" \
+  --output_md "$ROOT/observable_interaction_coverage_smoke.md"
+```
+
+Replay result:
+
+```text
+8/8 paired replay commands returned rc=0
+per-run elapsed_s range: 9.1-10.4
+CAMP_HEAD=8307cc6ea22d2ed6d9fdb6acf2dcd89d364a00c3
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Smoke audit result:
+
+```text
+status=observable_interaction_coverage_broader_nonformal_smoke_rejected
+passed=False
+authorized_next_work=reject_observable_interaction_coverage_or_predeclare_smaller_inventory
+paired_logs=4
+records=48
+candidate_payload_records=48
+baseline_payload_records=0
+equivalence_mismatches=0
+```
+
+Coverage:
+
+```text
+records_with_red_distance_payload=24
+records_with_red_risk_nonzero=0
+records_with_red_risk_candidate_variation=0
+records_with_clearance_deficit_nonzero=0
+records_with_clearance_deficit_candidate_variation=0
+records_with_turn_signal_candidate_variation=48
+records_with_lateral_excess_candidate_variation=4
+records_with_projection_candidate_variation=48
+normal_control_red_risk_nonzero_records=0
+normal_control_clearance_deficit_nonzero_records=0
+min_red_distance_m=4.83404756877959
+max_red_alignment=0.0
+min_clearance_m=40.09188153863257
+max_lateral_excess_m=0.2838983832156613
+```
+
+Per-run attribution:
+
+```text
+tl_route59_seed1_npc0_tlon:
+  red_distance_payload_records=12
+  red_risk_variation_records=0
+  min_red_distance_m=4.83404756877959
+  max_red_alignment=-0.30157372946551847
+  lateral_excess_variation_records=2
+
+tl_route59_seed1_npc4_tlon:
+  red_distance_payload_records=12
+  red_risk_variation_records=0
+  clearance_deficit_variation_records=0
+  min_clearance_m=40.09188153863257
+  max_red_alignment=-0.30157372946551847
+  lateral_excess_variation_records=2
+
+tl_route59_seed2_npc4_tloff:
+  red_distance_payload_records=0
+  clearance_deficit_variation_records=0
+  lateral_excess_variation_records=0
+
+normal_route2_seed1_npc0_tloff:
+  normal_control_records=12
+  red_or_clearance_spurious_records=0
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_coverage_plan.json
+d1edde8a99645fce23224a048f3e078b8ee14fd2c0df850a3fa025270562ade9
+
+observable_interaction_coverage_smoke.json
+6edfb0854bd48b1b677864cfe50228c370b9348b0dd031a9aa86c8bfbeded407
+
+observable_interaction_coverage_smoke.md
+0e324da69f08e943c76ecf8d1649d5174f0b231346fc4a61ecf03c5a0c0e20fb
+```
+
+Decision:
+
+Reject the broader observable-interaction coverage route before any offline
+separability screen. The plan succeeded operationally and remained
+selector-neutral: logging was default-off, candidate payloads appeared in all
+48 candidate records, baseline payload records stayed zero, and selected
+indices/scores/weights/atoms matched exactly. However, the scenario matrix did
+not create the required safety-context materiality. Red stopline distances were
+logged, but all red alignments were nonpositive, so the red-risk interaction
+remained zero. NPC runs also failed to create clearance-deficit variation: the
+minimum logged clearance was about 40.09 m, far above the 2.0 m deficit budget.
+Only turn/lateral and projection variation were material.
+
+Next admissible work:
+
+Do not run an offline separability screen on these covered logs, because the
+two intended safety-context families are still absent. The next route should be
+smaller and read-only first: inspect available route/traffic-light/NPC geometry
+or existing logs to identify a scenario that can produce positive red alignment
+and near-obstacle clearance before running another replay. If no such
+current-tick scenario can be found under fixed DP and the lightweight simulator,
+record an observable-state scenario-support bottleneck rather than training
+CAMP or changing the selector.
+
+Mathematical boundary:
+
+This smoke uses current-tick payloads and selector-neutrality checks only.
+Closed-loop outcome labels are not used. No atom, selector threshold, CAMP
+weight update, online optimization, DP modification, or classical Benders
+master/subproblem/cut is introduced. Any later atomization must still use fixed
+finite-candidate nonnegative coefficients and preserve affine
+`score_k(w)=a_k^T w`.
+
 ## Lane/Hard-Violation Support Broader Nonformal Paired Smoke Result (`232df61`)
 
 This gate executes exactly the broader nonformal paired smoke predeclared by
