@@ -44261,3 +44261,128 @@ label, replay result, or Benders cut. It only rejects one unsupported design
 route. Any future atomization must still use current-tick finite-candidate
 coefficients and preserve affine `score_k(w)=a_k^T w` with a convex
 simplex/CVaR/L2 robust master.
+
+## No-Leak Score-Family Inventory (`7c5b1ba` source)
+
+This gate follows the rejected observable-interaction route/support discovery
+and closes the current no-leak score-family loop at a higher level. It is
+read-only: it consumes existing gate JSON artifacts for the already tested
+progress+lane/hard context, revised-context atoms, relaxed-strict atoms, and
+observable-interaction families. It does not run Diffusion Planner, does not
+use outcome labels as runtime inputs, does not change online selection, and
+does not train CAMP.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_no_leak_score_family_inventory.py
+camp_core/tests/test_diffusion_planner_no_leak_score_family_inventory.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_no_leak_score_family_inventory.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_no_leak_score_family_inventory.py `
+  -q
+```
+
+Result:
+
+```text
+5 passed in 0.07s
+```
+
+AutoDL synchronization and validation:
+
+The code commit was pushed to GitHub and synchronized to AutoDL with a git
+bundle from local `10131eab05efc3dbe043270c785a770db7f94c6a..main`, because
+AutoDL's GitHub fetch path has previously been unreliable.
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:$PYTHONPATH
+OUT=/root/autodl-tmp/camp_dp_no_leak_score_family_inventory_7c5b1ba
+mkdir -p "$OUT"
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_no_leak_score_family_inventory.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_no_leak_score_family_inventory.py \
+  -q
+
+$PY scripts/integrations/plan_diffusion_planner_no_leak_score_family_inventory.py \
+  --family_json progress_lane_hard_context=/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/progress_lane_hard_context_descriptor_separability.json \
+  --family_json revised_context_atom=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_atom_separability.json \
+  --family_json relaxed_strict_atom_limit=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/relaxed_strict_atom_observability_limit.json \
+  --family_json observable_interaction_descriptor=/root/autodl-tmp/camp_dp_observable_interaction_descriptor_separability_a3fc213/observable_interaction_descriptor_separability.json \
+  --family_json observable_interaction_route=/root/autodl-tmp/camp_dp_observable_interaction_route_support_discovery_71fb3bc/observable_interaction_route_support_discovery.json \
+  --label autodl_7c5b1ba_no_leak_score_family_inventory \
+  --output_json "$OUT/no_leak_score_family_inventory.json" \
+  --output_md "$OUT/no_leak_score_family_inventory.md"
+```
+
+Result:
+
+```text
+5 passed in 0.02s
+status=no_leak_score_family_inventory_requires_new_design
+authorized_next_work=predeclare_new_current_tick_no_leak_descriptor_family_or_observable_state_inventory_design_only
+new_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+classic_benders_claim_authorized=False
+CAMP_HEAD=7c5b1ba9091c715168c50203658f70dea8aacc24
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+no_leak_score_family_inventory.json
+c3d8a6c4b81ddfc90eaa258fd00d965e8306a027d21c7a4b544a39f5bfcbf12d
+
+no_leak_score_family_inventory.md
+fa1587f8d903138d65724d2b617ede89a1f8e3aa8fcfbcb95e524994d689ac5b
+```
+
+Family inventory:
+
+```text
+observable_interaction_family: rejected_or_limited, evidence=2
+progress_lane_hard_context: rejected_or_limited, evidence=1
+relaxed_strict_atom_family: rejected_or_limited, evidence=1
+revised_context_atom_family: rejected_or_limited, evidence=1
+```
+
+Decision:
+
+Accept this inventory as the current self-iteration boundary. The previously
+tested no-leak score families are all closed by rejected or observability-limited
+evidence, so the next iteration must not tune those families, rerun their
+thresholds, or treat them as support for CAMP retraining.
+
+Next admissible work:
+
+Predeclare a genuinely new current-tick no-leak descriptor family, or return to
+a broader observable-state inventory design-only gate. That next gate must
+define the candidate-level inputs, nonnegativity or signed-split handling,
+affine `score_k(w)=a_k^T w` compatibility, simplex/CVaR/L2 master convexity,
+and explicit accept/reject criteria before any new replay is run. New replay,
+online selector promotion, Full36, formal seeds, CAMP retraining, DP
+modification, and any classical Benders claim remain unauthorized.
+
+Mathematical boundary:
+
+This inventory only reads prior gate decisions. It creates no atom, selector,
+learned weight, replay result, or cut. Closed-loop outcomes remain confined to
+the source offline evaluation artifacts and are not converted into runtime
+inputs. Any future atomization must still use fixed current-tick finite-candidate
+coefficients and preserve CAMP's affine score and convex robust master.
