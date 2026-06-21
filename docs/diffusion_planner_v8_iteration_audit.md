@@ -35144,6 +35144,141 @@ simplex scalarizations preserve affine `score_k(w)=a_k^T w` after atomization
 and remain compatible with the simplex/CVaR/L2 convex master. No DP-side
 classical Benders master/subproblem, dual, or cut is constructed.
 
+## Turn-Logit Payload Implementation Gate (`db555ee`)
+
+This gate implements the default-off turn-logit payload authorized by the
+previous design gate. It adds runtime logging only behind
+`--camp_turn_logit_payload_logging`; the default replay path remains unchanged.
+The payload records optional DP `turn_indicator_logit` values before CAMP
+selection and exposes null-safe diagnostics for all candidates.
+
+Files:
+
+```text
+camp_core/camp_core/integrations/diffusion_planner_turn_logit_payload.py
+camp_core/tests/test_diffusion_planner_turn_logit_payload_runtime.py
+scripts/integrations/run_diffusion_planner_camp_replay.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  camp_core\camp_core\integrations\diffusion_planner_turn_logit_payload.py `
+  scripts\integrations\run_diffusion_planner_camp_replay.py
+
+git diff --check
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_turn_logit_payload_runtime.py `
+  camp_core\tests\test_diffusion_planner_turn_logit_payload_design.py `
+  camp_core\tests\test_diffusion_planner_current_tick_tensor_visibility.py `
+  -q
+```
+
+Result:
+
+```text
+14 passed in 0.80s
+```
+
+GitHub synchronization:
+
+```text
+local_head=db555ee0aababa748ef07fd992e971621e21165b
+origin_main=db555ee0aababa748ef07fd992e971621e21165b
+```
+
+AutoDL synchronization and validation:
+
+AutoDL was fast-forwarded from `5933fc8e7f4160f322423b0530468f12e932cd9f`
+to `db555ee0aababa748ef07fd992e971621e21165b` using a git bundle because
+the AutoDL worktree's GitHub tracking ref remains stale.
+
+```text
+bundle_local_path=C:\Users\lenovo\AppData\Local\Temp\camp_update_5933fc8_to_db555ee.bundle
+bundle_sha256=8aad8b0abeb45c2981c9e9b6e1e55b70a909834dae510c8e487835dcbf58f3c6
+remote_bundle_path=/root/autodl-tmp/camp_update_5933fc8_to_db555ee.bundle
+```
+
+Remote validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:$PYTHONPATH
+$PY -m py_compile \
+  camp_core/camp_core/integrations/diffusion_planner_turn_logit_payload.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_turn_logit_payload_runtime.py \
+  camp_core/tests/test_diffusion_planner_turn_logit_payload_design.py \
+  camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py \
+  -q
+```
+
+Result:
+
+```text
+AFTER_CAMP_HEAD=db555ee0aababa748ef07fd992e971621e21165b
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+14 passed in 0.33s
+```
+
+Implemented payload contract:
+
+```text
+logged_field=turn_logit_payload_logging
+schema_version=dp_camp_turn_logit_payload_v1
+default_off=True
+selection_effect=False
+future_outcome_leakage=False
+closed_loop_outcome_fields_read=False
+online_selector_change=False
+classical_benders_claim=False
+payload_fields=candidate_turn_indicator_logits,candidate_turn_indicator_probabilities,candidate_turn_indicator_top_class
+latency_field=latency_ms_turn_logit_payload
+```
+
+Null and invalid-input behavior:
+
+- If DP does not return `turn_indicator_logit`, payload fields are `null`,
+  `available=False`, and atomization candidates are not marked available.
+- If logits have a bad candidate shape or contain nonfinite values, the payload
+  fails closed with `finite_checks.payload_valid=False` and leaves all payload
+  fields `null`.
+- Valid logits are converted with a stable softmax, top class is computed per
+  candidate, row sums are checked, and latency is recorded in
+  `latency_ms_turn_logit_payload`.
+
+Decision:
+
+Accept the default-off turn-logit payload implementation gate. It preserves DP
+candidate generation, `postprocess_reference`, PerfectTracker execution,
+selected trajectory, existing selected-candidate turn-indicator behavior,
+feasibility, CAMP atoms, scores, weights, and all default CLI behavior. It
+does not run replay, does not promote an online selector, does not use Full36
+or formal seeds, does not retrain CAMP, and does not modify DP.
+
+Next admissible work:
+
+Predeclare only a tiny paired nonformal smoke plan for
+`--camp_turn_logit_payload_logging`. The plan must require selector
+equivalence with and without the flag, records containing null-safe payloads,
+latency accounting for `latency_ms_turn_logit_payload`, zero formal seeds, and
+no CAMP retraining or online selector promotion. Do not run the smoke until the
+plan artifact and its unit tests pass.
+
+Mathematical boundary:
+
+The implemented payload logs fixed current-tick candidate quantities only. If
+later atomized, entropy, margin shortfall, and candidate0-relative top-class
+disagreement remain finite nonnegative candidate coefficients in `a_k`, so
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 robust master stay convex in
+`w`. This implementation still constructs no DP-side classical Benders
+master/subproblem, dual, or valid cut.
+
 ## Observable Interaction Descriptor Bottleneck (`e4e70d7` source)
 
 This gate diagnoses the rejected observable interaction descriptor screen above.
