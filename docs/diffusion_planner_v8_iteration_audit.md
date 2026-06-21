@@ -45300,3 +45300,111 @@ Mathematical boundary:
 This plan still creates no atom and no learned weight. It only checks whether
 current-tick turn-logit payloads are consistently available and cheap enough to
 justify a later no-leak atom separability screen.
+
+## Turn-Logit Payload Broader Nonformal Smoke (`070c373` source)
+
+This smoke executes the plan-authorized broader nonformal matrix for the
+default-off turn-logit payload. It covers traffic-light/red-turn, sharp-turn
+with NPCs, and normal-route cases. Baseline runs keep
+`--camp_turn_logit_payload_logging` disabled; candidate runs enable only that
+flag. No Full36, formal seeds, CAMP retraining, online selector promotion, or
+DP modification are used.
+
+Execution root:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_payload_broader_nonformal_smoke
+```
+
+Plan artifact:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_payload_broader_plan_51f8159/turn_logit_payload_broader_plan.json
+```
+
+Run matrix:
+
+```text
+tl_route59_seed1_npc0_tlon: baseline + logging_enabled
+tl_route59_seed1_npc4_tlon: baseline + logging_enabled
+tl_route59_seed2_npc4_tloff: baseline + logging_enabled
+normal_route2_seed1_npc0_tloff: baseline + logging_enabled
+```
+
+Execution times:
+
+```text
+replay_tl_route59_seed1_npc0_tlon_baseline=7.905s
+replay_tl_route59_seed1_npc0_tlon_logging_enabled=7.810s
+replay_tl_route59_seed1_npc4_tlon_baseline=7.825s
+replay_tl_route59_seed1_npc4_tlon_logging_enabled=7.574s
+replay_tl_route59_seed2_npc4_tloff_baseline=7.517s
+replay_tl_route59_seed2_npc4_tloff_logging_enabled=7.539s
+replay_normal_route2_seed1_npc0_tloff_baseline=7.447s
+replay_normal_route2_seed1_npc0_tloff_logging_enabled=7.408s
+```
+
+Audit results:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=48
+payload_status=turn_logit_payload_smoke_passed
+candidate_payload_records=48
+available_payload_records=48
+invalid_payload_records=0
+max_latency_ms_turn_logit_payload=0.5231611430644989
+dataset_audit.passed=True
+closed_loop_outcomes_forbidden=True
+finite_candidate_contract_verified=True
+forbidden_seed_check=True
+formal_seed_records=0
+```
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_payload_broader_nonformal_smoke/audit/selector_equivalence.json
+aae5354af044ff7fd91c0afaf22239b27159b64e5d077026eb46184ce0cae5ad
+
+/root/autodl-tmp/camp_dp_turn_logit_payload_broader_nonformal_smoke/audit/turn_logit_payload_broader_smoke.json
+a825a6b4f67ff51c277c20b9b9b4e9874a006ac773867a348ba70fdfae0b92c3
+
+/root/autodl-tmp/camp_dp_turn_logit_payload_broader_nonformal_smoke/audit/turn_logit_payload_broader_smoke.md
+b28e417da26dd49f56e35ab850cb71062711ae9697326678af8d1a0b7f7da424
+
+/root/autodl-tmp/camp_dp_turn_logit_payload_broader_nonformal_smoke/audit/dataset_audit.json
+aa51c337b459ddaad4b0ec505cfb8d1bc771736416fe4316dcd151785b3aec00
+
+/root/autodl-tmp/camp_dp_turn_logit_payload_broader_nonformal_smoke/audit/turn_logit_broader_execution_log.json
+63907a18be81ff10d6d521c3f5ee9912382c60861461a8fcf3a0b41407347bb8
+```
+
+Decision:
+
+Accept the broader turn-logit payload smoke. The payload is consistently
+available across the 4-run nonformal matrix, latency is comfortably below the
+predeclared 2 ms payload budget, selector equivalence holds for selected
+indices, feasibility, atoms, scores, and weights, and dataset audit confirms
+the finite-candidate contract with closed-loop outcomes forbidden.
+
+This is still availability and latency evidence only. It does not prove CAMP
+selection improvement over DP Top-1, does not train CAMP, and does not create a
+new online atom.
+
+Next admissible work:
+
+Predeclare a matched-outcome-label and turn-logit atom separability plan. The
+plan may collect offline closed-loop outcome labels for the same fixed
+candidate records, but must keep those labels out of online selection. It must
+define the candidate coefficients for entropy, margin shortfall, and
+candidate0-relative top-class disagreement; prove nonnegativity and fixed
+coefficient status; and require an offline separability screen before any CAMP
+retraining, schema change, Full36, formal seeds, or selector promotion.
+
+Mathematical boundary:
+
+The broader smoke only logs fixed current-tick DP logits before selection. A
+future atom screen may use these logs as candidate coefficients, but the robust
+master remains convex only in `w`; no trajectory-coordinate convexity and no
+DP-side classical Benders decomposition is claimed.
