@@ -47034,3 +47034,77 @@ and asks whether a fixed nonnegative additive or lexicographic descriptor can
 separate harmful alternatives without discarding beneficial ones. Do not tune
 the rejected product threshold, do not retrain CAMP, and do not promote any new
 atom until that evidence exists.
+
+## No-Leak Score-Family Inventory Refresh (`40bd34b` source)
+
+Purpose:
+
+Refresh the prior no-leak score-family inventory after the non-turn logit
+interaction bottleneck diagnosis. This is a plan-only/read-only gate: it
+collects already accepted or rejected offline evidence and prevents the next
+iteration from re-entering score-family routes that have already failed support,
+separability, or observability checks.
+
+Local validation:
+
+```text
+py -3.12 -m py_compile scripts\integrations\plan_diffusion_planner_no_leak_score_family_inventory.py
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_no_leak_score_family_inventory.py -q
+5 passed in 0.06s
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=40bd34b7495056b08899042cfd9da4c3087135fe
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_no_leak_score_family_inventory.py -q
+5 passed in 0.04s
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_no_leak_score_family_inventory_refresh_40bd34b/no_leak_score_family_inventory.json
+sha256=8f29d2370ac305124b831f778c221534870c00a21c6e6e6f5fd69f8310d1fdda
+
+/root/autodl-tmp/camp_dp_no_leak_score_family_inventory_refresh_40bd34b/no_leak_score_family_inventory.md
+```
+
+Inventory result:
+
+```text
+Decision: no_leak_score_family_inventory_requires_new_design
+Authorized next work: predeclare_new_current_tick_no_leak_descriptor_family_or_observable_state_inventory_design_only
+
+non_turn_interaction_family: rejected_or_limited
+observable_interaction_family: rejected_or_limited
+progress_lane_hard_context: rejected_or_limited
+relaxed_strict_atom_family: rejected_or_limited
+revised_context_atom_family: rejected_or_limited
+```
+
+Interpretation:
+
+All currently attempted no-leak DP-side score-family routes are now explicitly
+closed or limited in the inventory, including the newly diagnosed non-turn
+interaction family. The next iteration must not tune progress/lane-hard,
+revised-context, relaxed-strict, observable-interaction, or non-turn interaction
+atoms. A valid next step must either predeclare a genuinely new current-tick
+finite-candidate descriptor family or run a broader observable-state inventory
+before any new replay, selector promotion, CAMP retraining, or formal-seed work.
+
+Mathematical boundary:
+
+This refresh only reads prior gate decisions. It does not create runtime atoms,
+train CAMP weights, run Diffusion Planner, use future outcomes as online inputs,
+or construct a DP-side Benders decomposition. Any later atom must be a
+current-tick fixed finite-candidate coefficient so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 CAMP master remains
+convex. The DP-side finite selector remains a finite-candidate selector unless a
+legitimate master/subproblem, dual, and valid cuts are explicitly constructed.
+
+Decision:
+
+Accept this inventory refresh as the current self-iteration boundary. Continue
+only from the authorized next work above.
