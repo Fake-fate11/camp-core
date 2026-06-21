@@ -46648,3 +46648,126 @@ ask whether `comfort_progress_interaction_cost` has a useful monotone/paired
 relationship with offline safety outcomes. The plan must remain design-only:
 no new replay, no online selector change, no retraining, no Full36, and no formal
 seeds until the separability gate is explicitly passed.
+
+## 2026-06-21 - Non-Turn-Logit Interaction Outcome-Separability Plan
+
+Commit: `f165a68b2dde28f4fa0073fa411e8c1d173d5823`
+
+Purpose:
+
+Add a fail-closed plan-only gate for a no-leak separability screen over the
+existing matched-outcome artifact. This step does not run Diffusion Planner and
+does not execute the separability screen as evidence. It only verifies that the
+next screen can be run over existing artifacts without changing the runtime
+selector contract.
+
+Added files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_outcome_separability.py
+scripts/integrations/plan_diffusion_planner_non_turn_logit_interaction_outcome_separability.py
+camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_outcome_separability.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_outcome_separability.py \
+  scripts/integrations/plan_diffusion_planner_non_turn_logit_interaction_outcome_separability.py
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_outcome_separability.py \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_matched_outcome_plan.py \
+  camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  -q
+
+22 passed in 0.50s
+```
+
+AutoDL verification:
+
+```text
+CAMP HEAD=/root/autodl-tmp/camp_core
+f165a68b2dde28f4fa0073fa411e8c1d173d5823
+
+DP HEAD=/root/autodl-tmp/Diffusion-Planner
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_outcome_separability.py \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_matched_outcome_plan.py \
+  camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_payload_smoke.py \
+  -q
+
+22 passed in 0.46s
+```
+
+Plan artifact:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_outcome_separability_plan_f165a68/non_turn_logit_interaction_outcome_separability_plan.json
+06e24b10b80b3319e2c1b6397ff028b1ba7c32483ad3107dfc5d48ce66d1b405
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_outcome_separability_plan_f165a68/non_turn_logit_interaction_outcome_separability_plan.md
+bbddc9a5d5aa796496a124e948f5557c2bdf1291cfe38b84fad511bf9af17b71
+```
+
+Plan result:
+
+```text
+status=non_turn_logit_interaction_outcome_separability_plan_ready
+passed=True
+authorized_next_work=non_turn_logit_interaction_outcome_separability_existing_artifact_screen_only
+separability_execution_authorized_now=False
+new_replay_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+schema_promotion_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Mathematical boundary:
+
+The planned separability screen is read-only over existing matched artifacts.
+Runtime payload fields remain current-tick finite-candidate descriptors, while
+candidate closed-loop outcomes are offline labels used only for beneficial/harmful
+class labels and threshold diagnostics. Only
+`comfort_progress_interaction_cost` is treated as an atom-candidate descriptor in
+the screen; `route_progress_deficit_vs_top1_m` and
+`dp_prior_jerk_excess_cost` remain explanatory diagnostics. If the interaction
+term is later promoted, it remains a fixed nonnegative coefficient in
+`score_k(w)=a_k^T w`, preserving the simplex/CVaR/L2 convex master. No DP-side
+classical Benders decomposition, dual, or cut is claimed.
+
+Decision:
+
+Accept the design-only plan. It authorizes only the next gate's existing-artifact
+separability screen. It does not prove that the interaction improves CAMP over DP
+Top-1, and it does not authorize new replay, Full36, formal seeds, online selector
+promotion, schema promotion, CAMP retraining, or DP modification.
+
+Next admissible work:
+
+Run only the planned existing-artifact separability screen:
+
+```text
+scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_outcome_separability.py
+```
+
+against:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/matched_interaction_outcomes/camp_selection_log.json
+```
+
+using the matched contract and dataset audit JSONs from the accepted smoke. If
+the screen rejects due insufficient beneficial/harmful support or weak monotone
+separation, record that as a reject and do not train or promote the atom. If it
+passes, the next gate is certificate design only, still without online selector
+promotion or formal seeds.
