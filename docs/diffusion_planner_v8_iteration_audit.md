@@ -49253,3 +49253,139 @@ The diagnosis is read-only. It preserves DP as a black-box candidate generator,
 uses fixed logged candidate atoms, keeps `score_k(w)=a_k^T w`, and does not
 claim a classical DP-side Benders decomposition. Closed-loop outcomes remain
 offline labels/evaluation targets only.
+
+## No-Leak Atom / Proof-Objective Redesign Plan (`ca654f9`)
+
+Purpose:
+
+The `9425434` diagnosis rejected the objective/label sensitivity route and
+authorized only a plan-only redesign gate. This step adds that gate. It reads
+the diagnosis, records the rejected routes, states the atom admissibility and
+proof-objective contracts, and authorizes only a current-tick no-leak atom
+support inventory preflight. It does not train CAMP, run Diffusion Planner,
+run replay, promote an online selector, use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+ca654f9 Add no-leak redesign plan gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_no_leak_atom_or_proof_objective_redesign.py
+camp_core/tests/test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_results_diagnosis.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+37 passed in 1.61s
+
+git diff --check
+```
+
+AutoDL sync and validation:
+
+```text
+CAMP_HEAD=ca654f9f25c33f6d784b8c326d573f6386c51352
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_results_diagnosis.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+37 passed in 0.65s
+```
+
+Plan command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+DIAG=$ROOT/offline_convex_objective_label_sensitivity_results_diagnosis_9425434/offline_convex_objective_label_sensitivity_results_diagnosis.json
+OUT=$ROOT/no_leak_atom_or_proof_objective_redesign_plan_ca654f9
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_no_leak_atom_or_proof_objective_redesign.py \
+  --diagnosis_json "$DIAG" \
+  --label autodl_ca654f9_from_9425434_sensitivity_diagnosis \
+  --output_json "$OUT/no_leak_atom_or_proof_objective_redesign_plan.json" \
+  --output_md "$OUT/no_leak_atom_or_proof_objective_redesign_plan.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_leak_atom_or_proof_objective_redesign_plan_ca654f9/no_leak_atom_or_proof_objective_redesign_plan.json
+sha256=db7dc450b6a1056966a984ac43c3758b0a816a4e8dff6f717dc0ae98f2db0e83
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/no_leak_atom_or_proof_objective_redesign_plan_ca654f9/no_leak_atom_or_proof_objective_redesign_plan.md
+sha256=49ca96a2fb31ccbde9248fc7dd17fef6f824a6b23f1a77061b7019e84324bcc1
+```
+
+Final decision:
+
+```text
+status=no_leak_atom_or_proof_objective_redesign_plan_ready
+passed=True
+authorized_next_work=current_tick_no_leak_atom_support_inventory_preflight_only
+recommended_first_action=support_inventory_refresh
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Rejected routes:
+
+```text
+alpha_l2_simplex_floor_sensitivity
+overall_mean_only_acceptance
+future_outcome_online_feature
+direct_closed_loop_replay_from_sensitivity
+dp_change_or_retraining
+classic_benders_claim_for_finite_selector
+```
+
+Next gate:
+
+Run only a current-tick no-leak atom support inventory preflight. The inventory
+must list candidate-level runtime fields, mark whether each is unavailable,
+already closed, or admissible for atom preflight, and keep training, replay,
+selector promotion, Full36, formal seeds, and DP changes disabled.
+
+Mathematical boundary:
+
+This plan preserves DP as a fixed black-box candidate generator. Runtime CAMP
+inputs must be finite current-tick candidate quantities. A new atom may enter
+CAMP only as a fixed coefficient `a_k`, preferably nonnegative or represented
+with a nonnegative signed split, so `score_k(w)=a_k^T w` remains affine and the
+simplex/CVaR/L2 master remains convex. Offline closed-loop outcomes may be used
+only as labels or evaluation evidence. This gate does not construct a DP-side
+classical Benders master/subproblem, dual, or cut, and it makes no global
+trajectory-coordinate convexity claim.
