@@ -47885,3 +47885,123 @@ not an artifact of the evaluation wrapper. The next admissible work is a
 design-only selector label/weight preflight using the hard-guarded oracle only
 as offline supervision. Do not train, run tiny smoke, promote an online
 selector, run Full36, or touch formal seeds yet.
+
+## Selector Label/Weight Design Preflight (`28d64a9`)
+
+Purpose:
+
+The selector-oracle gap refresh authorized only a design-only preflight before
+any training or replay. This step checks whether the next route can be stated
+as offline supervision over fixed DP candidates while keeping CAMP's affine
+score and convex master boundary intact.
+
+Implementation:
+
+```text
+28d64a9 Add DP CAMP selector label weight preflight
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_selector_label_weight_preflight.py
+camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py -q
+5 passed in 0.11s
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+4 passed in 0.02s
+
+git diff --check
+```
+
+AutoDL sync and validation:
+
+```text
+CAMP_HEAD=28d64a98f394a95b2381062232608b488773d1ce
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+9 passed in 0.08s
+```
+
+Preflight command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/selector_label_weight_preflight_28d64a9
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_selector_label_weight_preflight.py \
+  --selector_oracle_gap_json "$ROOT/selector_oracle_gap_87a924d/selector_oracle_gap.json" \
+  --safety_cost_oracle_json "$ROOT/safety_cost_oracle_d2899e6/safety_cost_oracle.json" \
+  --selector_eval_json "$ROOT/safety_cost_v1_selector_eval_c7bb0d9/selector_eval.json" \
+  --label autodl_28d64a9_selector_label_weight_preflight \
+  --output_json "$OUT/selector_label_weight_preflight.json" \
+  --output_md "$OUT/selector_label_weight_preflight.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/selector_label_weight_preflight_28d64a9/selector_label_weight_preflight.json
+sha256=480f1af834b87c77cc03b9e00cfed1f7a1d0fdd941a94dbf8cce774fe7fd58f3
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/selector_label_weight_preflight_28d64a9/selector_label_weight_preflight.md
+sha256=5ae5b6799202f5cda7951f3890bf818923f9933eb1d29ed4c4e5f9d3fd0cc317
+```
+
+Result:
+
+```text
+status=selector_label_weight_preflight_ready
+passed=True
+authorized_next_work=offline_convex_selector_training_plan_design_only
+training_execution_authorized=False
+camp_retraining_authorized=False
+source_checks_failed=
+```
+
+Mathematical decision:
+
+Accept the design boundary only. The admissible next plan may use the
+hard-guarded oracle as offline supervision for fixed candidate records, but the
+oracle outcome labels remain forbidden as online selector inputs. Candidate
+atoms/features must be current-tick constants, so CAMP selection keeps
+`score_k(w)=a_k^T w`. A softmax training plan may use logits `-a_k^T w` to
+respect CAMP's lower-score-is-better convention; cross-entropy composed with
+affine logits is convex. Pairwise hinge losses of
+`margin + score_target - score_alternative` are also convex for fixed
+candidate coefficients. Simplex, L2, and CVaR-style robust epigraph terms
+remain convex when bucket/group weights are predeclared nonnegative constants.
+
+This preflight does not authorize training execution, online selector
+promotion, closed-loop replay, Full36, formal seeds, DP modification, or a
+classical Benders claim. The finite-candidate selector must still be described
+as finite-candidate convex selector training unless a legitimate
+master/subproblem, dual, and valid cuts are explicitly constructed.
+
+Next gate:
+
+Write an offline convex selector training plan with fixed inputs, label masks,
+loss, constraints, split policy, robust bucket weighting, artifact schema,
+tests, and accept/reject gates. Do not train CAMP until that plan is reviewed
+by tests and recorded as a separate artifact.
