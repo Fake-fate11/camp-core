@@ -53987,3 +53987,202 @@ coefficients, nonnegative or signed-split before scoring, so
 `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
 convex. No DP-side classical Benders master/subproblem, dual, or cut is
 constructed.
+## Signal-Context Paired Smoke and Materiality Gap (`2cb95be`/`08c433c` artifacts)
+
+Purpose:
+
+This step follows the implementation unit gate with the first real
+traffic-lights-on paired smoke for the external-context payload. The smoke is
+tiny, paired, nonformal, default-off, and fail-closed: seed `1`, route
+`sample_map_tl_route_59_to_86`, `3` steps, `8` candidates, traffic lights
+enabled, no formal seeds, no Full36, no DP modification, no CAMP retraining, and
+no online selector promotion.
+
+Plan gate:
+
+```text
+plan_commit=2cb95bec6f543bdb8f20fa169a95c0f474dc30d8
+source_implementation_commit=799096f7bd7b77a7d64b8b4365f432128e8e23c6
+autodl_camp_head_for_plan=2cb95bec6f543bdb8f20fa169a95c0f474dc30d8
+autodl_dp_head_for_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_signal_context_smoke.py
+camp_core/tests/test_diffusion_planner_external_context_signal_context_smoke_plan.py
+```
+
+Plan verification:
+
+```text
+local targeted plan tests: 20 passed
+AutoDL targeted plan tests: 20 passed
+```
+
+Plan artifact:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_signal_context_smoke_plan_2cb95be
+local_copy=F:\camp_core-main\analysis_bundles\camp_dp_external_context_signal_context_smoke_plan_2cb95be
+
+external_context_signal_context_smoke_plan.json
+sha256=1ACA3D421DF65D05231E261FA2A0E2818E20FEB93BE89ED7E74FB4A51F408F29
+
+external_context_signal_context_smoke_plan.md
+sha256=80A7E821C4E7DC0AF0557933639EDD9390C472E38FBE8C00BD8794E3E63955C6
+
+run_signal_context_smoke.sh
+sha256=00AC78377EAEFAB7E7E3383A554A4EB476BE65080D8333C0F8EF71D417400DD8
+```
+
+Plan decision:
+
+```text
+status=external_context_signal_context_smoke_plan_ready
+passed=True
+authorized_next_work=external_context_signal_context_paired_smoke_only
+closed_loop_replay_scope=paired nonformal signal-context smoke,
+  seed1 npc4 traffic_lights_on static, 3 steps, 8 candidates
+new_replay_authorized=True
+closed_loop_smoke_authorized=True
+CAMP_retraining_authorized=False
+online_selector_promotion_authorized=False
+formal_seeds_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Execution note:
+
+AutoDL could not reach GitHub over HTTPS during this iteration, so the CAMP
+checkout was synchronized by verified local git bundles instead of `git pull`.
+The smoke execution log records this substitution and verifies
+`HEAD == origin/main == 2cb95bec6f543bdb8f20fa169a95c0f474dc30d8` before replay.
+The fixed DP checkout remained `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Smoke result:
+
+```text
+root=/root/autodl-tmp/camp_dp_external_context_signal_context_smoke
+route=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+seed=1
+steps=3
+num_candidates=8
+traffic_lights=on
+selector_equivalence=True
+selector_records=3
+selector_exact_mismatches=0
+selector_numeric_mismatches=0
+payload_audit_status=external_context_payload_smoke_audit_passed
+dataset_audit=passed
+smoke_result_status=external_context_payload_smoke_result_ready
+smoke_result_authorized_next_work=external_context_payload_materiality_diagnosis_existing_smoke_only
+payload_records=3
+available_payload_records=3
+external_context_latency_mean_ms=3.6295788983503976
+traffic_signal_payload_latency_mean_ms=2.0845836649338403
+```
+
+Materiality result:
+
+```text
+materiality_status=external_context_payload_materiality_rejected
+materiality_passed=False
+material_families=[]
+traffic_signal.fields_with_finite_values=[
+  candidate_right_of_way_blocked_indicator
+]
+traffic_signal.material=False
+route_speed.material=False
+authorized_next_work=None
+```
+
+The traffic-signal payload was available, but the 10-step payload support did
+not produce candidate arrivals at the current signal. Therefore
+`candidate_first_signal_arrival_time_s` and
+`candidate_signal_phase_change_margin_s` were null for all three records, and
+`candidate_right_of_way_blocked_indicator` was finite but constant zero across
+all candidates. That is correct fail-closed behavior, but it is not a ranking
+signal.
+
+Gap diagnosis update:
+
+```text
+gap_diagnosis_commit=08c433cdd6fd389f4a9e1c1f54212228eb1cf0b3
+local_gap_tests=9 passed
+autodl_gap_tests=9 passed
+gap_status=external_context_materiality_gap_diagnosed
+gap_names=[
+  traffic_signal_context_available_but_no_candidate_arrival,
+  traffic_signal_right_of_way_indicator_constant_clear,
+  route_speed_context_available_but_no_candidate_excess,
+  route_speed_availability_constant,
+  nonmaterial_constant_speed_limit
+]
+new_replay_authorized=False
+CAMP_retraining_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+DP_modification_authorized=False
+```
+
+Smoke and diagnosis artifacts:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_signal_context_smoke/audit
+local_copy=F:\camp_core-main\analysis_bundles\external_context_signal_context_smoke_2cb95be
+
+run_signal_context_smoke_2cb95be.log
+sha256=19FB4D62E3012DD450D894369EB1762DF4675A1820C17C074D09FB1CF37D07D3
+
+selector_equivalence.json
+sha256=41AE4A5BC40C891F6497286670E8916446D47414303DFF87F569063AC253CC72
+
+external_context_payload_smoke.json
+sha256=EEB2BF937F6DDD3F15959DAC64152D0EC89697414C559422930C5E596A8DA6A5
+
+external_context_payload_smoke.md
+sha256=DCD75586AD2568C33EDA68546BD8C9DAC52CCD147D11BA9998BEE392269EAC4E
+
+dataset_audit.json
+sha256=4BD34FED2FEF09413F412DD0D7BC55364FFC3978A587156F54DF6ED5471186DD
+
+external_context_payload_smoke_result.json
+sha256=DECF3DBC38EE722879F9619C63FD38B8D2D9DBCEA48A0F71E46279F49224873F
+
+external_context_payload_smoke_result.md
+sha256=3F11700B2AD215E1809A3979D39859E05EE6C71D9C2085E86F800A96EF032F86
+
+external_context_payload_materiality.json
+sha256=B7158368FC44ABEBBA8066832F52A6DABC897DDFECD61C5713138A56F9365D9E
+
+external_context_payload_materiality.md
+sha256=1C3576C49C796BE5022B213A5F85185B6C381649098928AF6570A3FEAB990987
+
+external_context_materiality_gap_08c433c.json
+sha256=155F9146A375E776BD60BD2F663A2DB716FA5E26365DF0FAD3A8B3BCBA78ECF8
+
+external_context_materiality_gap_08c433c.md
+sha256=E31708A3EF0C6F210A30CC844F94488FACCAB4AA4828351F70166112A8BDB095
+```
+
+Decision:
+
+Accept the smoke as a valid default-off traffic-lights-on logging check, but
+reject atomization from this smoke. The signal-context wiring works in the
+sense that the payload is available and selector equivalence is exact, but the
+chosen support horizon and route location do not expose candidate-level signal
+arrival variation. The next admissible step is plan-only targeted materiality
+design, most likely a support-horizon or route-position screen that can expose
+candidate arrivals without training, online selection, Full36, formal seeds, or
+DP modification.
+
+Mathematical boundary:
+
+This smoke only logs current-tick finite-candidate diagnostics. It does not
+change CAMP scores, feasibility, selected indices, DP candidate generation, DP
+weights, postprocessing, or PerfectTracker behavior. The rejected
+traffic-signal fields remain diagnostics only. No atom is created, no CAMP
+weight is retrained, and no DP-side classical Benders claim is made.
