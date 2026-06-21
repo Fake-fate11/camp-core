@@ -217,8 +217,21 @@ def test_external_context_payload_smoke_plan_authorizes_paired_three_step_only()
     assert report["final_decision"]["CAMP_retraining_authorized"] is False
     assert report["final_decision"]["DP_modification_authorized"] is False
     assert "score_k(w)=a_k^T w" in report["analysis"]["math_boundary"]
+    assert "git pull" in report["analysis"]["sync_boundary"]
+    camp_sync = report["commands"]["camp_sync"]
+    head_audit = report["commands"]["head_audit"]
     baseline_command = report["commands"]["baseline_replay"]
     candidate_command = report["commands"]["candidate_replay"]
+    assert camp_sync == [
+        "git",
+        "-C",
+        "/root/autodl-tmp/camp_core",
+        "pull",
+        "--ff-only",
+        "origin",
+        "main",
+    ]
+    assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in head_audit[-1]
     assert "--camp_external_context_payload_logging" not in baseline_command
     assert "--camp_external_context_payload_logging" in candidate_command
     assert baseline_command[baseline_command.index("--steps") + 1] == "3"

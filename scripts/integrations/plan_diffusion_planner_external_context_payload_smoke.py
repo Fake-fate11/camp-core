@@ -24,10 +24,12 @@ SOURCE_STATUS = "external_context_payload_runtime_wiring_ready"
 AUTHORIZED_NEXT_WORK = "external_context_payload_paired_three_step_smoke_only"
 FORMAL_SEEDS = frozenset({11, 12, 13})
 SUMMARY_KEY = "camp_external_context_payload_logging"
+EXPECTED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 
 
 @dataclass(frozen=True)
 class SmokeSpec:
+    camp_repo: str = "/root/autodl-tmp/camp_core"
     root: str = "/root/autodl-tmp/camp_dp_external_context_payload_smoke"
     diffusion_repo: str = "/root/autodl-tmp/Diffusion-Planner"
     map_path: str = (
@@ -66,6 +68,7 @@ class SmokeSpec:
     payload_steps: int = 10
     payload_dt_s: float = 0.1
     min_available_records: int = 1
+    expected_dp_head: str = EXPECTED_DP_HEAD
 
 
 def parse_args() -> argparse.Namespace:
@@ -130,6 +133,8 @@ def build_report(
     candidate_dir = f"{smoke.root}/logging_enabled"
     audit_dir = f"{smoke.root}/audit"
     commands = {
+        "camp_sync": _camp_sync_command(smoke),
+        "head_audit": _head_audit_command(smoke),
         "baseline_replay": _runner_command(smoke, baseline_dir, logging=False),
         "candidate_replay": _runner_command(smoke, candidate_dir, logging=True),
         "selector_equivalence": _selector_equivalence_command(
@@ -179,11 +184,16 @@ def build_report(
             "diffusion_planner_execution": False,
             "future_outcome_labels_used": False,
             "formal_seed_records": 0,
-            "known_runtime_boundary": (
+        "known_runtime_boundary": (
                 "Runtime currently wires route-speed context from "
                 "context.speed_limit and leaves signal_context=None. This smoke "
                 "therefore treats traffic-signal fields as expected unavailable "
                 "fail-closed diagnostics, not as a traffic-light atom gate."
+            ),
+            "sync_boundary": (
+                "Before running replay on AutoDL, sync CAMP with git pull "
+                "--ff-only and confirm the fixed DP checkout exactly matches "
+                f"{EXPECTED_DP_HEAD}."
             ),
             "math_boundary": (
                 "The smoke only enables default-off logging of current-tick "
@@ -307,6 +317,38 @@ def _plan_checks(smoke: SmokeSpec) -> list[dict[str, Any]]:
             "passed": smoke.min_available_records >= 1,
             "value": smoke.min_available_records,
         },
+        {
+            "name": "fixed_dp_head_declared",
+            "passed": smoke.expected_dp_head == EXPECTED_DP_HEAD,
+            "value": smoke.expected_dp_head,
+        },
+    ]
+
+
+def _camp_sync_command(smoke: SmokeSpec) -> list[str]:
+    return [
+        "git",
+        "-C",
+        smoke.camp_repo,
+        "pull",
+        "--ff-only",
+        "origin",
+        "main",
+    ]
+
+
+def _head_audit_command(smoke: SmokeSpec) -> list[str]:
+    return [
+        "/bin/bash",
+        "-lc",
+        (
+            f'test "$(git -C {smoke.camp_repo} rev-parse HEAD)" = '
+            f'"$(git -C {smoke.camp_repo} rev-parse origin/main)" && '
+            f'test "$(git -C {smoke.diffusion_repo} rev-parse HEAD)" = '
+            f'"{smoke.expected_dp_head}" && '
+            f'echo "CAMP_HEAD=$(git -C {smoke.camp_repo} rev-parse HEAD)" && '
+            f'echo "DP_HEAD=$(git -C {smoke.diffusion_repo} rev-parse HEAD)"'
+        ),
     ]
 
 
@@ -472,6 +514,7 @@ def _dataset_audit_command(
 
 def _accept_criteria(smoke: SmokeSpec) -> list[str]:
     return [
+        "CAMP sync and head audit commands exit 0 before replay",
         "both paired replay commands exit 0",
         "no formal seed 11/12/13 appears in any output path or summary",
         f"baseline summary reports {SUMMARY_KEY}.enabled=false",
@@ -490,6 +533,7 @@ def _accept_criteria(smoke: SmokeSpec) -> list[str]:
 
 def _reject_criteria() -> list[str]:
     return [
+        "CAMP sync fails or DP HEAD differs from the fixed commit",
         "any replay, selector-equivalence, payload, or dataset audit fails",
         "any formal seed is detected",
         "any selected_index or CAMP score/atom field changes between baseline and logging-enabled runs",
@@ -513,6 +557,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         "## Known Runtime Boundary",
         "",
         report["analysis"]["known_runtime_boundary"],
+        "",
+        "## Sync Boundary",
+        "",
+        report["analysis"]["sync_boundary"],
         "",
         "## Source Checks",
         "",
