@@ -47522,3 +47522,117 @@ must remain design-only: build a scenario manifest and evidence matrix plan
 that covers every required bucket without outcome-field filters. No DP replay,
 training, Full36, formal seeds, or online selector promotion is authorized by
 this step.
+
+## Scenario Evidence Matrix Gate (`7ddef8c`)
+
+Purpose:
+
+ProofProtocol v2 authorized only a design-only scenario manifest and evidence
+matrix step. The existing diverse non-formal matrix plan was created before
+ProofProtocol v2, so this gate revalidates it under the current contract
+instead of blindly treating the old plan as still sufficient. It is read-only:
+it does not run Diffusion Planner, collect labels, train CAMP, promote an
+online selector, or use formal seeds.
+
+Implementation:
+
+```text
+7ddef8c Add DP CAMP scenario evidence matrix gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_scenario_evidence_matrix_gate.py
+camp_core/tests/test_diffusion_planner_scenario_evidence_matrix_gate.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m py_compile scripts\integrations\plan_diffusion_planner_scenario_evidence_matrix_gate.py
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_scenario_evidence_matrix_gate.py -q
+5 passed in 0.09s
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_scenario_evidence_matrix_gate.py camp_core\tests\test_diffusion_planner_diverse_scenario_matrix_plan.py camp_core\tests\test_diffusion_planner_scenario_bucket_manifest.py camp_core\tests\test_diffusion_planner_scenario_bucket_audit.py camp_core\tests\test_diffusion_planner_safety_score_compare.py -q
+22 passed in 2.20s
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=7ddef8c1a1ef911956eccab604e06f615bd3b838
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_scenario_evidence_matrix_gate.py
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_scenario_evidence_matrix_gate.py -q
+5 passed in 0.04s
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_proof_protocol_v2.py camp_core/tests/test_diffusion_planner_diverse_scenario_matrix_plan.py camp_core/tests/test_diffusion_planner_scenario_evidence_matrix_gate.py camp_core/tests/test_diffusion_planner_scenario_bucket_manifest.py camp_core/tests/test_diffusion_planner_scenario_bucket_audit.py camp_core/tests/test_diffusion_planner_safety_score_compare.py -q
+26 passed in 1.38s
+```
+
+Input artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/proof_protocol_v2_3605f51/proof_protocol_v2.json
+sha256=5fd1633c1d4cb75ccc7d45d363db862602d333ca7ae8b26e4811d5cca946d4f8
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_matrix_plan_py312_9e2158f.json
+```
+
+Output artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_evidence_matrix_gate_7ddef8c/scenario_evidence_matrix_gate.json
+sha256=5a6ee354f64e5c1e1528b76e3d06142c4b2ace1f7dde972d8d681a543d2411fb
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_evidence_matrix_gate_7ddef8c/scenario_evidence_matrix_gate.md
+sha256=35a1e5197db34efb8e3b6b0c31b21ea1af6cc14342bf36ec6fc6134e42df26c0
+```
+
+Final gate results:
+
+```text
+status=scenario_evidence_matrix_predeclared
+passed=True
+authorized_next_work=candidate_branch_oracle_input_readiness_gate
+planned_run_count=108
+missing_required_buckets=
+formal_seeds=
+
+reasons=all_required_buckets_have_predeclared_coverage,
+        scenario_labels_use_route_or_config_metadata_only,
+        static_outcome_label_matrix_command_is_predeclared,
+        formal_seeds_are_excluded
+```
+
+Blocked actions:
+
+```text
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Mathematical boundary:
+
+Scenario bucket labels and matrix rows are evaluation metadata. They do not
+change DP candidate generation, postprocessing, PerfectTracker, CAMP atoms,
+candidate features, affine `score_k(w)=a_k^T w`, or the simplex/CVaR/L2 robust
+master. This gate does not construct a DP-side classical Benders
+master/subproblem, dual, or valid cuts.
+
+Decision:
+
+Accept the scenario manifest and evidence matrix as predeclared under
+ProofProtocol v2. This does not authorize new replay or a tiny smoke by itself.
+The next self-iteration must run or refresh the candidate-branch oracle
+input-readiness gate against the planned non-formal matrix outputs before any
+selector training, tiny smoke, larger non-formal run, or formal-seed work.
