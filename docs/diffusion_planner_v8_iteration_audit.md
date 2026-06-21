@@ -53378,3 +53378,156 @@ atom-schema dry-run on this real smoke. The only authorized next work is
 plan-only targeted materiality smoke design that can expose candidate-level
 external-context variation without training, online selection, Full36, formal
 seeds, or DP modification.
+
+## Targeted Route-Speed Materiality Probe (`3fcb09a` artifacts)
+
+Purpose:
+
+This step follows the real materiality-gap diagnosis with a plan-only targeted
+route-speed materiality smoke design, then executes exactly that tiny probe on
+AutoDL. The probe keeps the same non-formal route, seed, 3-step horizon, 8
+candidates, traffic lights off, static CAMP selector, fixed DP checkout, and
+paired baseline/logging-enabled structure. The only probe change is increasing
+`candidate_noise_scale` from `1.0` to `2.0` in both paired runs, to test whether
+extra finite-candidate diversity exposes route-speed excess materiality. It does
+not modify DP code or weights, train CAMP, use formal seeds, enter Full36, or
+promote online selection.
+
+Status audit:
+
+```text
+local_head_before_plan=03f384f7f40f850494fa04b6e97868eeaeab0370
+targeted_plan_commit=8890093 Plan targeted external context materiality smoke
+targeted_plan_cli_fix_commit=3fcb09a Fix targeted materiality smoke plan CLI
+autodl_camp_head_for_probe=3fcb09a0b5f24468437bfa122aa3fb81ed4c8e09
+autodl_dp_head_for_probe=7a1d33da277a1992ec474b5383a0c963c72e04e4
+remote_targeted_plan_py_compile=passed
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_targeted_materiality_smoke.py
+camp_core/tests/test_diffusion_planner_external_context_targeted_materiality_smoke_plan.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_external_context_targeted_materiality_smoke.py \
+  camp_core\tests\test_diffusion_planner_external_context_targeted_materiality_smoke_plan.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_targeted_materiality_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_materiality_gap.py \
+  camp_core\tests\test_diffusion_planner_external_context_atom_schema_dry_run.py \
+  camp_core\tests\test_diffusion_planner_external_context_atomization_preflight.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_materiality.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_result.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+47 passed
+git diff --check passed
+```
+
+Plan artifact:
+
+```text
+F:\camp_core-main\analysis_bundles\external_context_targeted_materiality_smoke_plan_3fcb09a\external_context_targeted_materiality_smoke_plan.json
+sha256=C59E7E5CA3F5B1531F1A01BEADA1EA40FA1ECFBAD28D6C5E3A83A8FD8659F97D
+
+F:\camp_core-main\analysis_bundles\external_context_targeted_materiality_smoke_plan_3fcb09a\external_context_targeted_materiality_smoke_plan.md
+sha256=49E3B5C351231E0832700F2D0AE5FBE5287A09F457F2A6B563D0CC09CCC5B211
+
+F:\camp_core-main\analysis_bundles\external_context_targeted_materiality_smoke_plan_3fcb09a\run_targeted_external_context_materiality_smoke.sh
+sha256=48DB2DF39CE75CB04217F805ECE01EA7115E450DAEA14AD50DC347927A1A6F66
+```
+
+Probe scope:
+
+```text
+root=/root/autodl-tmp/camp_dp_external_context_route_speed_materiality_probe
+route=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+seed=1
+steps=3
+num_candidates=8
+candidate_noise_scale=2.0
+max_npcs=4
+traffic_lights=off
+formal_seeds=not_used
+Full36=False
+CAMP_retraining=False
+online_selector_promotion=False
+DP_modification=False
+```
+
+Probe result:
+
+```text
+selector_equivalence=True
+selector_records=3
+selector_exact_mismatches=0
+selector_numeric_mismatches=0
+payload_audit_status=external_context_payload_smoke_audit_passed
+dataset_audit=passed
+smoke_result_status=external_context_payload_smoke_result_ready
+materiality_status=external_context_payload_materiality_rejected
+materiality_authorized_next_work=None
+traffic_signal_fields_finite=0
+route_speed_limit_min_mps_min=8.333333015441895
+route_speed_limit_min_mps_max=8.333333015441895
+candidate_speed_limit_excess_integral_mps_min=0.0
+candidate_speed_limit_excess_integral_mps_max=0.0
+candidate_speed_limit_available_fraction_min=1.0
+candidate_speed_limit_available_fraction_max=1.0
+gap_status=external_context_materiality_gap_diagnosed
+gap_names=traffic_signal_context_absent,
+  route_speed_context_available_but_no_candidate_excess,
+  route_speed_availability_constant,
+  nonmaterial_constant_speed_limit
+```
+
+Probe artifact paths and SHA:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_route_speed_materiality_probe/audit
+local_copy=F:\camp_core-main\analysis_bundles\external_context_targeted_materiality_probe_3fcb09a
+
+run_targeted_external_context_materiality_smoke_3fcb09a.log
+sha256=F40D30E806DECE17B24BCBCBF49B2A55E102E8DF990A2CF2EEBFB185873F03FD
+
+selector_equivalence.json
+sha256=34E5947AB35B29F6C72F9537ED4E74D91B9B6C1D0D3A989C809240C1EADDD876
+
+external_context_payload_smoke.json
+sha256=16E053F262F9942DAD1242E8DC53C11902470A09426218709159FAD87AED21EE
+
+dataset_audit.json
+sha256=878470F7F85286B791706379CDB8E36E42DFF2378C29BB87EBE1818DF026CE73
+
+external_context_payload_smoke_result.json
+sha256=0B1EE56AF6F264FD2CCB471E4ACB03AE229F5D1004A145FE967E3F76308F750B
+
+external_context_payload_materiality.json
+sha256=E8E6DF29D3944E4AD1EDC5798BDBCC995E9F3879C18BC8D3C2487A091C114D53
+
+external_context_materiality_gap.json
+sha256=36AC2E9D53C62370F0F0244E2ABB30CEF3BC3430B05910E1D6F7AA4F141AA0AC
+```
+
+Decision:
+
+Accept the targeted probe as a valid no-leak/default-off paired smoke, but
+reject route-speed materiality from this route even under the bounded noise
+probe. Increasing candidate noise to `2.0` did not create any speed-limit excess
+or candidate-level external-context variation. Do not continue tuning noise on
+this route as if it were evidence of a promising atom. The next smaller,
+evidence-aligned route is a plan-only source/visibility gate: either find a
+different non-formal route/map context likely to expose speed-limit materiality,
+or design signal-context runtime visibility before any traffic-signal atom
+materiality smoke. Neither path authorizes training, online selection, Full36,
+formal seeds, or DP modification.
