@@ -45745,3 +45745,151 @@ non-turn-logit or interaction atoms before any retraining. That preflight
 should explicitly avoid repeating the rejected direct turn-logit route and
 should justify each proposed atom as a fixed current-tick candidate coefficient
 with nonnegative/convex-compatible form before any new replay or schema change.
+
+## Non-Turn-Logit Interaction Atom Preflight (`612554e` source)
+
+This is the read-only design/preflight authorized by the turn-logit bottleneck
+diagnostic. It reuses only the existing matched nonformal logs and the accepted
+turn-logit bottleneck artifact. It does not run replay, train CAMP, promote an
+online selector, enter Full36, use formal seeds, or modify DP.
+
+The preflight explicitly avoids the rejected direct turn-logit atom route. It
+screens fixed current-tick candidate coefficients from already logged
+candidate diagnostics:
+
+```text
+route_progress_deficit_vs_top1_m
+dp_reward_total_deficit_vs_top1
+union_red_light_cost
+red_stopping_margin_cost
+dp_prior_jerk_excess_cost
+lateral_acceleration_excess_vs_top1
+dp_prior_deviation_excess_vs_top1
+soft_clearance_violation_cost
+near_miss_violation_cost
+red_progress_interaction_cost
+comfort_progress_interaction_cost
+clearance_progress_interaction_cost
+reward_red_interaction_cost
+```
+
+Interaction terms are products of nonnegative fixed coefficients after logging.
+They are not claimed to be convex functions of trajectory coordinates. If later
+materialized as CAMP atoms, they would be fixed `a_k` coefficients and preserve
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
+
+Added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_atom_preflight.py
+camp_core/tests/test_diffusion_planner_non_turn_logit_interaction_atom_preflight.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile scripts\integrations\analyze_diffusion_planner_non_turn_logit_interaction_atom_preflight.py
+py -3.12 -m pytest camp_core\tests\test_diffusion_planner_non_turn_logit_interaction_atom_preflight.py camp_core\tests\test_diffusion_planner_turn_logit_atom_bottleneck.py -q
+
+4 passed in 1.60s
+```
+
+AutoDL state:
+
+```text
+CAMP HEAD:
+612554e7058afa21a6531c74b253d4fd66ba2dc7
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL verification:
+
+```text
+4 passed in 0.89s
+```
+
+Preflight command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+scripts/integrations/analyze_diffusion_planner_non_turn_logit_interaction_atom_preflight.py \
+  --root "$ROOT/matched_turn_logit_outcomes" \
+  --source_bottleneck_json "$ROOT/audit/turn_logit_atom_bottleneck.json" \
+  --label 612554e_non_turn_logit_interaction_preflight \
+  --expected_logs 4 \
+  --expected_records 12 \
+  --expected_candidates 8 \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/non_turn_logit_interaction_atom_preflight.json" \
+  --output_md "$ROOT/audit/non_turn_logit_interaction_atom_preflight.md"
+```
+
+Preflight result:
+
+```text
+status=non_turn_logit_interaction_atom_preflight_promising_for_payload_design
+passed=True
+primary_gap=no_gap_promising_non_turn_logit_interaction_screen_found
+authorized_next_work=non_turn_logit_interaction_atom_payload_design_plan_only
+promising_screen_count=26
+beneficial_alternative=56
+harmful_alternative=180
+neutral_alternative=100
+formal_seed_records=0
+missing_feature_records=0
+```
+
+Best screen:
+
+```text
+screen=affine_simplex:0.750*route_progress_deficit_vs_top1_m+0.250*dp_prior_jerk_excess_cost
+threshold=0.060391030079414064
+harmful_block_rate=0.9722222222222222
+beneficial_retain_rate=0.8035714285714286
+allowed_harmful_rate=0.037037037037037035
+allowed_value_delta_mean=0.32539241074078246
+allowed_progress_delta_mean_m=0.24316337572663427
+allowed_candidates=135
+blocked_candidates=201
+```
+
+Other high-ranked screens combine the same route-progress-deficit signal with
+`dp_prior_jerk_excess_cost`, `dp_reward_total_deficit_vs_top1`, or
+`reward_red_interaction_cost`. This is encouraging but also a warning: the
+preflight may be rediscovering a progress/comfort tradeoff already adjacent to
+existing CAMP atoms. It is not yet proof that a new deployed schema or retrained
+weights will improve closed-loop safety score.
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/non_turn_logit_interaction_atom_preflight.json
+9a8878de85428c4c17d9f68dee052cc2ab461b8e83424b2a6e4572f01657d263
+
+/root/autodl-tmp/camp_dp_turn_logit_matched_outcome_atom_separability_nonformal_a36ee8a/audit/non_turn_logit_interaction_atom_preflight.md
+1033e980f1c4cebc836f8e4d97f147c22b3023825edef0d0a0c2c4ea1a029302
+```
+
+Decision:
+
+Accept the preflight as a promising offline design signal, but do not train
+CAMP, do not promote a selector, do not run Full36/formal seeds, and do not
+modify DP. The result only authorizes a default-off payload/schema design plan
+for non-turn-logit interaction atoms. That plan must be explicit about overlap
+with existing progress and jerk atoms, must preserve fixed current-tick
+candidate coefficients, and must include a fail-closed audit before any new
+replay or training.
+
+Next admissible work:
+
+Write only `non_turn_logit_interaction_atom_payload_design_plan_only`. It should
+select a minimal atom set, likely starting from the best preflight screen
+(`route_progress_deficit_vs_top1_m` and `dp_prior_jerk_excess_cost`) plus any
+justified interaction term, and must reject schema promotion unless it proves
+the candidate atoms are not merely duplicating existing CAMP fields. No replay,
+CAMP retraining, Full36, formal seeds, or online selector change is authorized
+yet.
