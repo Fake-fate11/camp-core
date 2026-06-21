@@ -58797,3 +58797,114 @@ the selector route paused. Do not train CAMP, run replay, promote an online
 selector, run Full36, use formal seeds, modify DP, or repeat closed
 external-context/temporal-consistency/targeted-red-clearance/source-visibility
 routes without new non-equivalence evidence.
+
+## Post-Reconciliation Candidate-Set Consensus Source Proposal Screen (`44237a5`)
+
+This self-iteration submits one materially new current-tick candidate-level
+source proposal after the post-reconciliation paused state. It is read-only:
+it screens a proposal for boundary compliance and creates no atom, no selector,
+no replay, no CAMP training, no formal-seed result, and no DP modification.
+
+Implementation:
+
+```text
+44237a51cad349d9ec451090e7c47285eadd53df Add candidate set consensus source proposal screen
+
+scripts/integrations/plan_diffusion_planner_post_reconciliation_source_proposal_screen.py
+configs/integrations/dp_camp_candidate_set_consensus_source_proposal_v1.json
+camp_core/tests/test_diffusion_planner_post_reconciliation_source_proposal_screen.py
+```
+
+Verification:
+
+```text
+Local:
+  CAMP HEAD=44237a51cad349d9ec451090e7c47285eadd53df
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_post_reconciliation_source_proposal_screen.py \
+         camp_core/tests/test_diffusion_planner_post_reconciliation_current_goal_state.py \
+         camp_core/tests/test_diffusion_planner_source_visibility_predeclaration_screen.py -q
+  result=18 passed
+
+AutoDL:
+  CAMP HEAD=44237a51cad349d9ec451090e7c47285eadd53df
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  same pytest command result=18 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+GOAL=$DEV/post_reconciliation_current_goal_state_d58d32c/post_reconciliation_current_goal_state.json
+LEDGER=$DEV/post_pause_source_family_ledger_3e6e7fa/post_pause_source_family_ledger.json
+PROPOSAL=configs/integrations/dp_camp_candidate_set_consensus_source_proposal_v1.json
+OUT=$DEV/post_reconciliation_source_proposal_screen_44237a5
+
+$PY scripts/integrations/plan_diffusion_planner_post_reconciliation_source_proposal_screen.py \
+  --goal_state_json "$GOAL" \
+  --source_family_ledger_json "$LEDGER" \
+  --proposal_json "$PROPOSAL" \
+  --label autodl_44237a5_candidate_set_consensus_source_proposal_screen \
+  --output_json "$OUT/post_reconciliation_source_proposal_screen.json" \
+  --output_md "$OUT/post_reconciliation_source_proposal_screen.md" \
+  --require_pass
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_reconciliation_source_proposal_screen_44237a5/post_reconciliation_source_proposal_screen.json` | `ea2892bebe7d4cad7a579e07f41962fcb3c0fcb24730f3dc5af6e7629672465d` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_reconciliation_source_proposal_screen_44237a5/post_reconciliation_source_proposal_screen.md` | `07ba760de9291d1eb96a5b063ad3e35a0e04003a6dc438580c13f04b582997d4` |
+
+Result:
+
+```text
+status=post_reconciliation_source_proposal_screen_ready
+passed=True
+authorized_next_work=default_off_current_tick_source_payload_design_only
+support_source_ready=True
+admissible_sources=candidate_set_consensus_density_source_v1
+rejected_sources=[]
+failed_checks=[]
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept `candidate_set_consensus_density_source_v1` as a design-only current-tick
+source proposal. The source is candidate-level, deterministic, finite,
+fail-closed, default-off, and computed only from the fixed DP candidate set at
+the current tick. It is not a selector, not safety evidence, and not permission
+to run replay, train CAMP, promote online behavior, run Full36, use formal
+seeds, or modify DP.
+
+Mathematical boundary:
+
+The proposed coefficient is a nonnegative candidate-set outlierness/consensus
+quantity computed after fixed DP candidate generation. If a later gate accepts
+it as an atom, it can enter CAMP as a fixed finite-candidate coefficient `a_k`,
+preserving `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. This
+screen does not claim trajectory-coordinate convexity and does not construct a
+DP-side classical Benders master/subproblem, dual, or valid cut.
+
+Next admissible work:
+
+Design the default-off source payload for `candidate_set_consensus_density_source_v1`.
+The next gate must define the exact coefficient, required current-tick inputs,
+finite/fail-closed availability behavior, deterministic tie handling, latency
+accounting, and an existing-log materiality screen before any replay, training,
+or online-selector work is considered.
