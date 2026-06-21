@@ -50100,3 +50100,140 @@ execution. If descriptors are later atomized, they enter CAMP as fixed
 candidate coefficients `a_k`, preserving `score_k(w)=a_k^T w` and the
 simplex/CVaR/L2 convex master. This is not a DP-side classical Benders
 decomposition.
+
+## Missing Candidate-State Tiny Smoke Execution (`3d054be` artifacts)
+
+Purpose:
+
+The `8f47b0c` plan authorized only one paired three-step nonformal smoke. This
+step executed exactly that plan on AutoDL: baseline without
+`--camp_observable_state_logging`, candidate with
+`--camp_observable_state_logging`, then selector-log equivalence, payload audit,
+and finite-candidate dataset audit. It did not run Full36, formal seeds, CAMP
+retraining, online selector promotion, or DP modification.
+
+Executed scope:
+
+```text
+root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_tiny_smoke_current_chain
+route=sample_map_tl_route_59_to_86
+seed=1
+max_npcs=4
+traffic_lights=off
+steps=3
+num_candidates=8
+advance_mode=perfect
+selector=static
+```
+
+AutoDL state:
+
+```text
+CAMP_HEAD=3d054bea221a956eb895e554ef28620d998e8575
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_tiny_smoke_current_chain/baseline/camp_validation_summary.json
+sha256=ae574256073361024fd496e98802aeb9945fbd8917dc4a594f1c0e78444efce8
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_tiny_smoke_current_chain/baseline/camp_selection_log.json
+sha256=c0661cad98303f0572b37e8cd2c5e6e0006b3a63affb0ee7619ccfaecd460583
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_tiny_smoke_current_chain/logging_enabled/camp_validation_summary.json
+sha256=5ef9e4cbd380435cb7473613880f7b3edb5e891bcf8381e116cc5ff0701d8d44
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_tiny_smoke_current_chain/logging_enabled/camp_selection_log.json
+sha256=a689cd411f39b791bccd9aad56ccf55f44dd3bb20b716e7bfd85dc85eea04832
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_tiny_smoke_current_chain/audit/selector_equivalence.json
+sha256=d6176c85e5b271387d3fe4c3dc24c32807e4f19e4d61f0f25d6d970ec2996827
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_tiny_smoke_current_chain/audit/observable_state_logging_smoke.json
+sha256=4c4eb30fb5892eb4ad58fd84d4b74ae5b92c4b59f1974d0619e6898718f0d431
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_tiny_smoke_current_chain/audit/observable_state_logging_smoke.md
+sha256=f3bbc04246cf8ad84b27c61272ac4d60c5e28c3eba3b101a63fab89fb0bf56f9
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_tiny_smoke_current_chain/audit/dataset_audit.json
+sha256=57e806c12ad8e0354afe8dd2797cf0d53fc8001b526d8bc7f763508536523b9a
+```
+
+Results:
+
+```text
+selector_equivalent=True
+selector_records=3
+selector_exact_field_mismatches=0 for selected_index, feasible_mask, infeasibility_reasons, used_fallback, camp_fallback_mode, atom_schema_version, atom_names
+selector_numeric_field_mismatches=0 for scores, selection_scores, weights, selection_weights, atoms, normalized_atoms, selection_normalized_atoms
+
+payload_status=observable_state_logging_smoke_passed
+payload_passed=True
+payload_records=3
+baseline_payload_records=0
+candidate_payload_records=3
+paired_logs=1
+
+dataset_passed=True
+dataset_records=3
+dataset_candidates=24
+closed_loop_outcomes_forbidden=True
+forbidden_seed_check=True
+finite_candidate_contract_verified=True
+exact_candidate_and_atom_shapes=True
+red_light_atom_matches_online_dp_reward=True
+```
+
+Observed logging latency:
+
+```text
+latency_ms_observable_state_route_topology max=2.4303048849105835 mean=2.40330770611763
+latency_ms_observable_state_route_turn max=0.0757947564125061 mean=0.07076282054185867
+latency_ms_observable_state_traffic_light_relation max=0.004289671778678894 mean=0.0038860986630121865
+latency_ms_observable_state_neighbor_clearance max=0.0 mean=0.0
+```
+
+Accepted route:
+
+```text
+default_off_missing_candidate_state_logging_paired_three_step_smoke
+```
+
+Rejected routes:
+
+```text
+broadening directly to Full36
+formal seeds 11/12/13
+online selector promotion
+CAMP retraining
+DP modification or retraining
+using this smoke as a performance-improvement claim
+```
+
+Conclusion:
+
+The tiny smoke proves the default-off current-tick missing candidate-state
+logging can be enabled without changing selection, CAMP atoms/scores/weights,
+feasibility, or finite-candidate contracts over this minimal nonformal scope.
+It does not prove CAMP improves over DP Top-1 and does not authorize training
+or formal evaluation.
+
+Next gate:
+
+Write a plan-only broader nonformal coverage gate for this logging path. The
+next plan should keep selector behavior unchanged and target coverage diversity
+only: at minimum red-light context, normal context, npc/no-npc, and a route or
+traffic-light setting that can expose turn/lane context. It must predeclare
+record counts, latency checks, selector equivalence, payload materiality, no
+formal seeds, and reject criteria before any broader replay is run.
+
+Mathematical boundary:
+
+The smoke validates no-leak logging and baseline equivalence only. Logged
+descriptors remain current-tick finite-candidate data. Any later atomization
+must still enter CAMP as fixed coefficients `a_k`, nonnegative or decomposed
+into nonnegative signed parts, preserving affine `score_k(w)=a_k^T w` and the
+convex simplex/CVaR/L2 master. This remains outside a DP-side classical Benders
+claim.
