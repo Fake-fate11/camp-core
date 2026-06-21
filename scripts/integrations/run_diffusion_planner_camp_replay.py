@@ -75,6 +75,14 @@ from camp_core.integrations.diffusion_planner_turn_logit_payload import (  # noq
     TURN_LOGIT_PAYLOAD_SCHEMA_VERSION,
     build_turn_logit_payload,
 )
+from camp_core.integrations.diffusion_planner_non_turn_logit_interaction_payload import (  # noqa: E402
+    NON_TURN_LOGIT_INTERACTION_PAYLOAD_ATOM_CANDIDATE_NAMES,
+    NON_TURN_LOGIT_INTERACTION_PAYLOAD_DIAGNOSTIC_FIELD_NAMES,
+    NON_TURN_LOGIT_INTERACTION_PAYLOAD_FIELD_NAMES,
+    NON_TURN_LOGIT_INTERACTION_PAYLOAD_LATENCY_KEYS,
+    NON_TURN_LOGIT_INTERACTION_PAYLOAD_SCHEMA_VERSION,
+    build_non_turn_logit_interaction_payload,
+)
 from camp_core.atoms.driver_atoms import (  # noqa: E402
     exact_centerline_slice_for_candidates,
 )
@@ -662,6 +670,16 @@ def parse_args() -> argparse.Namespace:
             "records diagnostics only and does not change feasibility, scores, "
             "candidates, tracker execution, turn-indicator behavior, or "
             "selection."
+        ),
+    )
+    parser.add_argument(
+        "--camp_non_turn_logit_interaction_payload_logging",
+        action="store_true",
+        help=(
+            "Default-off no-leak logging of current-tick non-turn-logit "
+            "progress/comfort interaction fields. This records diagnostics "
+            "only and does not change feasibility, scores, candidates, "
+            "tracker execution, atom schema, CAMP weights, or selection."
         ),
     )
     parser.add_argument(
@@ -3725,6 +3743,7 @@ def _install_camp_predictor(
     progress_lane_hard_context_corridor_half_width_m: float,
     progress_lane_hard_context_corridor_safety_margin_m: float,
     turn_logit_payload_logging: bool,
+    non_turn_logit_interaction_payload_logging: bool,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -3992,12 +4011,17 @@ def _install_camp_predictor(
         turn_logit_payload_latency_ms = {
             key: 0.0 for key in TURN_LOGIT_PAYLOAD_LATENCY_KEYS
         }
+        non_turn_logit_interaction_payload_logging_payload = None
+        non_turn_logit_interaction_payload_latency_ms = {
+            key: 0.0 for key in NON_TURN_LOGIT_INTERACTION_PAYLOAD_LATENCY_KEYS
+        }
         route_centerline_ego = None
         if (
             observable_state_logging
             or progress_support_logging
             or lane_hard_violation_support_logging
             or progress_lane_hard_context_logging
+            or non_turn_logit_interaction_payload_logging
         ):
             route_centerline_ego = _ego_frame_xy(
                 route_centerline,
@@ -4174,7 +4198,11 @@ def _install_camp_predictor(
             reward_latency_breakdown_ms["latency_ms_reward_step_reach_guard"] = (
                 time.perf_counter() - reward_step_reach_guard_start
             ) * 1000.0
-        if min_candidate0_route_progress_ratio is not None or shadow_route_progress:
+        if (
+            min_candidate0_route_progress_ratio is not None
+            or shadow_route_progress
+            or non_turn_logit_interaction_payload_logging
+        ):
             reward_route_progress_start = time.perf_counter()
             route_centerline_ego = _ego_frame_xy(
                 route_centerline,
@@ -4203,6 +4231,19 @@ def _install_camp_predictor(
             reward_latency_breakdown_ms["latency_ms_reward_route_progress_guard"] = (
                 time.perf_counter() - reward_route_progress_guard_start
             ) * 1000.0
+        if non_turn_logit_interaction_payload_logging:
+            non_turn_logit_interaction_payload_logging_payload = (
+                build_non_turn_logit_interaction_payload(
+                    candidate_route_progress=candidate_route_progress,
+                    candidate_dp_prior_jerk_excess_cost=(
+                        candidate_dp_prior_jerk_excess_cost
+                    ),
+                    candidate_count=int(candidates.shape[0]),
+                )
+            )
+            non_turn_logit_interaction_payload_latency_ms = (
+                non_turn_logit_interaction_payload_logging_payload["latency_ms"]
+            )
         if lexicographic_progress_epsilon_m is not None:
             if candidate_progress is None or candidate_planned_red_light_cost is None:
                 raise RuntimeError(
@@ -4429,6 +4470,7 @@ def _install_camp_predictor(
             **lane_hard_violation_support_latency_ms,
             **progress_lane_hard_context_latency_ms,
             **turn_logit_payload_latency_ms,
+            **non_turn_logit_interaction_payload_latency_ms,
             "latency_ms_context_and_obstacles": (
                 context_and_obstacles_done - lateral_comfort_done
             )
@@ -4741,6 +4783,9 @@ def _install_camp_predictor(
                     progress_lane_hard_context_logging_payload
                 ),
                 "turn_logit_payload_logging": turn_logit_payload_logging_payload,
+                "non_turn_logit_interaction_payload_logging": (
+                    non_turn_logit_interaction_payload_logging_payload
+                ),
                 "candidate_obstacle_clearance": candidate_obstacle_clearance,
                 "candidate_step_reach": (
                     candidate_step_reach.tolist()
@@ -5015,6 +5060,9 @@ def main() -> None:
                 args.camp_progress_lane_hard_context_corridor_safety_margin_m
             ),
             turn_logit_payload_logging=bool(args.camp_turn_logit_payload_logging),
+            non_turn_logit_interaction_payload_logging=bool(
+                args.camp_non_turn_logit_interaction_payload_logging
+            ),
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
             ),
@@ -5653,6 +5701,114 @@ def main() -> None:
         if records is not None
         else None
     )
+    camp_non_turn_logit_interaction_payload_logging = (
+        {
+            "schema_version": NON_TURN_LOGIT_INTERACTION_PAYLOAD_SCHEMA_VERSION,
+            "enabled": bool(
+                args.camp_non_turn_logit_interaction_payload_logging
+            ),
+            "default_off": True,
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "closed_loop_outcome_fields_read": False,
+            "online_selector_change": False,
+            "deployed_atom_vector_change": False,
+            "authorized_stage": "unit_tests_only_default_off_payload_wiring",
+            "logged_field": "non_turn_logit_interaction_payload_logging",
+            "fields": list(NON_TURN_LOGIT_INTERACTION_PAYLOAD_FIELD_NAMES),
+            "diagnostic_field_names": list(
+                NON_TURN_LOGIT_INTERACTION_PAYLOAD_DIAGNOSTIC_FIELD_NAMES
+            ),
+            "atom_candidate_names": list(
+                NON_TURN_LOGIT_INTERACTION_PAYLOAD_ATOM_CANDIDATE_NAMES
+            ),
+            "latency_fields": list(
+                NON_TURN_LOGIT_INTERACTION_PAYLOAD_LATENCY_KEYS
+            ),
+            "records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if record.get("non_turn_logit_interaction_payload_logging")
+                        is not None
+                    )
+                )
+                if args.camp_non_turn_logit_interaction_payload_logging
+                else 0
+            ),
+            "available_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get(
+                                "non_turn_logit_interaction_payload_logging"
+                            )
+                            is not None
+                            and record[
+                                "non_turn_logit_interaction_payload_logging"
+                            ].get("available")
+                            is True
+                        )
+                    )
+                )
+                if args.camp_non_turn_logit_interaction_payload_logging
+                else 0
+            ),
+            "invalid_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get(
+                                "non_turn_logit_interaction_payload_logging"
+                            )
+                            is not None
+                            and not record[
+                                "non_turn_logit_interaction_payload_logging"
+                            ]
+                            .get("finite_checks", {})
+                            .get("payload_valid", False)
+                        )
+                    )
+                )
+                if args.camp_non_turn_logit_interaction_payload_logging
+                else 0
+            ),
+            "latency_ms": (
+                {
+                    key: _summary(
+                        [
+                            float(record[key])
+                            for record in records
+                            if key in record and record[key] is not None
+                        ]
+                    )
+                    for key in NON_TURN_LOGIT_INTERACTION_PAYLOAD_LATENCY_KEYS
+                }
+                if args.camp_non_turn_logit_interaction_payload_logging
+                else None
+            ),
+            "definition": (
+                "current-tick progress/comfort interaction diagnostics "
+                "computed from fixed DP candidate route progress and "
+                "DP-prior jerk-excess costs before selection"
+            ),
+            "math_boundary": (
+                "If later atomized, comfort_progress_interaction_cost is a "
+                "fixed nonnegative finite-candidate coefficient; CAMP score "
+                "remains affine in weights and the simplex/CVaR/L2 master "
+                "remains convex. Existing progress and jerk fields remain "
+                "diagnostic-only in this payload."
+            ),
+            "classical_benders_claim": False,
+        }
+        if records is not None
+        else None
+    )
     finite_candidate_contract = _dp_camp_finite_candidate_contract(
         selector_mode=args.camp_selector_mode,
         num_candidates=args.num_candidates,
@@ -5714,6 +5870,9 @@ def main() -> None:
             camp_progress_lane_hard_context_logging
         ),
         "camp_turn_logit_payload_logging": camp_turn_logit_payload_logging,
+        "camp_non_turn_logit_interaction_payload_logging": (
+            camp_non_turn_logit_interaction_payload_logging
+        ),
         "camp_splice_shadow_rule": effective_splice_shadow_rule,
         "camp_traffic_light_hybrid_postselection": (
             effective_traffic_light_hybrid_postselection
@@ -6014,6 +6173,9 @@ def main() -> None:
         camp_progress_lane_hard_context_logging
     )
     validation["camp_turn_logit_payload_logging"] = camp_turn_logit_payload_logging
+    validation["camp_non_turn_logit_interaction_payload_logging"] = (
+        camp_non_turn_logit_interaction_payload_logging
+    )
     validation["camp_splice_shadow_rule"] = effective_splice_shadow_rule
     validation["camp_traffic_light_hybrid_postselection"] = (
         effective_traffic_light_hybrid_postselection
