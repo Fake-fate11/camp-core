@@ -46529,3 +46529,122 @@ on AutoDL, then run selector equivalence, dataset audit with
 only if all records contain both payload and offline outcomes, the payload does
 not embed outcomes, selection logs are exactly equivalent, no formal seed appears,
 and the run stays within the predeclared tiny scope.
+
+## 2026-06-21 - Non-Turn-Logit Interaction Matched-Outcome Contract Smoke
+
+Commit: `d698ebe0db1d10f15822df2cd7ea55ff41ca3f1f`
+
+Purpose:
+
+Execute the predeclared 1-run x 3-step nonformal matched-outcome contract
+smoke authorized by the previous design-only plan. This gate checks whether the
+runtime non-turn-logit interaction payload and offline candidate closed-loop
+outcome labels can be collected in the same fixed candidate ordering without
+changing CAMP selection logs.
+
+Scope:
+
+```text
+root=/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1
+route=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+map=/root/autodl-tmp/camp_dp_assets/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm
+seed=1
+steps=3
+max_npcs=4
+traffic_lights=off
+num_candidates=8
+candidate_noise_scale=1.0
+candidate_reference_blend_steps=5
+```
+
+Execution note:
+
+An initial hand-written replay command was rejected before replay startup because
+it passed `--reward_config redstopfloor05` instead of the required config path.
+The accepted run used the commands emitted by the plan artifact:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_plan_db034a1/non_turn_logit_interaction_matched_outcome_plan.json
+```
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/baseline/camp_selection_log.json
+d7a0ff2f2c19ff75b17135fba394b14f361c67ec43f0a129c56957989fe30ee8
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/matched_interaction_outcomes/camp_selection_log.json
+c65b40979f8986737b18003a92157e7ed67eebf72021d68c792f0c1b0330337f
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/audit/selector_equivalence.json
+e076237927b308cf4f5e4355e1cc7a82358fe4234b01ab431487f78a390a862e
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/audit/dataset_required_outcome_audit.json
+a21582bd72c571a3ee624a446bcb9c407e999e724644a5d7e8465f17a557768f
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/audit/matched_interaction_outcome_contract.json
+1bb2dd28ee7b67a34cc6a09053e4eff30a0c95aaf62a1a1854a56b2486727e7e
+
+/root/autodl-tmp/camp_dp_non_turn_logit_interaction_matched_outcome_contract_v1/audit/matched_interaction_outcome_contract.md
+5addfa404ca5cc3a4988617994d85e4d903f671ca9712f7475273ec274e43fb5
+```
+
+Smoke result:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=3
+selector_equivalence.exact_field_mismatches=0 for selected_index, feasible_mask, infeasibility_reasons, used_fallback, camp_fallback_mode, atom_schema_version, atom_names
+selector_equivalence.numeric_field_mismatches=0 for scores, selection_scores, weights, selection_weights, atoms, normalized_atoms, selection_normalized_atoms
+selector_equivalence.numeric_shape_mismatches=0
+selector_equivalence.numeric_nonexact_entries=0
+
+dataset_audit.passed=True
+dataset_audit.closed_loop_outcome_policy=required
+dataset_audit.closed_loop_outcome_records=3
+dataset_audit.complete_closed_loop_outcomes=True
+dataset_audit.outcome_candidate_coverage=1.0
+dataset_audit.finite_candidate_contract_verified=True
+dataset_audit.forbidden_seed_check=True
+
+matched_contract.status=non_turn_logit_interaction_matched_outcome_contract_passed
+matched_contract.passed=True
+matched_contract.records=3
+matched_contract.payload_records=3
+matched_contract.outcome_records=3
+matched_contract.candidate_rows=24
+matched_contract.formal_seed_records=0
+matched_contract.errors=[]
+matched_contract.latency_ms_non_turn_logit_interaction_payload.max=0.05153566598892212
+```
+
+Decision:
+
+Accept the matched-outcome contract smoke. The runtime interaction payload and
+offline candidate outcome labels coexist in the same matched records, the payload
+does not embed outcome labels, and the matched branch is exact-equivalent to the
+baseline branch for CAMP selection-relevant fields.
+
+This is still not evidence that the candidate coefficient improves CAMP over DP
+Top-1. It only proves that the next offline separability analysis can be designed
+without outcome leakage into runtime selection. It does not authorize Full36,
+formal seeds, online selector promotion, schema promotion, CAMP retraining, or DP
+modification.
+
+Mathematical boundary:
+
+The runtime payload remains a current-tick fixed finite-candidate descriptor.
+Closed-loop outcomes are posterior offline labels used only after replay for
+audit/separability analysis. Therefore the CAMP runtime score remains
+`score_k(w)=a_k^T w` over fixed candidate coefficients, and the
+simplex/CVaR/L2 master remains convex. No DP-side classical Benders
+decomposition, dual, or cut is claimed.
+
+Next admissible work:
+
+Design a fail-closed non-turn-logit interaction outcome-separability plan. The
+plan may consume the matched contract artifacts above and define diagnostics that
+ask whether `comfort_progress_interaction_cost` has a useful monotone/paired
+relationship with offline safety outcomes. The plan must remain design-only:
+no new replay, no online selector change, no retraining, no Full36, and no formal
+seeds until the separability gate is explicitly passed.
