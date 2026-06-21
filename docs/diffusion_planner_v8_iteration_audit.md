@@ -52654,3 +52654,88 @@ classic_benders_claim_authorized=False
 Reject the next execution immediately if CAMP cannot fast-forward to GitHub
 `main`, DP HEAD differs from `7a1d33da277a1992ec474b5383a0c963c72e04e4`, any
 formal seed is detected, or any paired replay/audit/equivalence check fails.
+
+## External Context Payload Smoke Bash Runbook (`6598c99` artifacts)
+
+Purpose:
+
+This step adds an optional bash runbook output to the accepted external-context
+payload smoke plan. It still does not execute Diffusion Planner locally or on
+AutoDL; it only renders the already authorized command sequence into a single
+auditable shell script for later remote use.
+
+Status audit:
+
+```text
+local_head_before_gate=ebe31dab9119acbea134c2d39a70e22b0eb8a039
+github_origin_main_before_gate=ebe31dab9119acbea134c2d39a70e22b0eb8a039
+autodl_batchmode_auth=Permission denied (publickey,password)
+autodl_sync_executed=False
+```
+
+Implementation:
+
+```text
+6598c99 Emit external context smoke bash runbook
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_payload_smoke.py
+camp_core/tests/test_diffusion_planner_external_context_payload_smoke_plan.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_external_context_payload_smoke.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+20 passed
+git diff --check passed
+```
+
+Local artifacts:
+
+```text
+F:\camp_core-main\analysis_bundles\external_context_payload_smoke_runbook_6598c99\external_context_payload_smoke_runbook.json
+sha256=D1B9DEF23CB9346AB2C7A0714BF04C1DD0449442DB0670BC48C10E489DFC5544
+
+F:\camp_core-main\analysis_bundles\external_context_payload_smoke_runbook_6598c99\external_context_payload_smoke_runbook.md
+sha256=9FFA21C80FBE1EF88FDD4DDF6817F1E475D11776A41646D6D52F3B1EC39912F1
+
+F:\camp_core-main\analysis_bundles\external_context_payload_smoke_runbook_6598c99\run_external_context_payload_smoke.sh
+sha256=B15B83AD360EB9506EBF5199F01109CAEFACA7EF075E1EC4DF12AE8F7997F5A4
+```
+
+Runbook boundary:
+
+The generated bash script uses `set -euo pipefail`, changes into
+`/root/autodl-tmp/camp_core`, runs CAMP sync, checks CAMP and DP HEADs, then
+runs only the authorized baseline replay, logging-enabled replay, selector
+equivalence, external-context payload audit, and dataset audit. The scope
+remains seed1, 3 steps, 8 candidates. The script explicitly labels Full36,
+formal seeds, online selector promotion, CAMP retraining, and DP modification
+as forbidden.
+
+Decision:
+
+```text
+status=external_context_payload_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=external_context_payload_paired_three_step_smoke_only
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
