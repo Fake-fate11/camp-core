@@ -59762,3 +59762,181 @@ existing CAMP scores, and whether this signal could plausibly change selection
 under a bounded affine atom without using future outcomes. It must not run new
 replay, promote an atom, train CAMP, enter Full36, touch formal seeds, or claim
 that CAMP is better than DP Top-1.
+
+### 2026-06-22 - Candidate-Set Consensus Tiny Materiality Diagnosis
+
+Objective:
+
+Inspect the real tiny-smoke candidate log to determine whether the
+candidate-set consensus coefficient has any ranking signal relative to the
+existing CAMP selector. This gate uses only fixed current-tick payload values,
+feasible masks, selected indices, and existing selection scores. It does not
+use closed-loop outcomes, run new replay, promote an atom, train CAMP, or claim
+safety benefit.
+
+Implementation:
+
+```text
+scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_tiny_materiality.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_tiny_materiality.py
+```
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+C:\Users\lenovo\anaconda3\python.exe -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_candidate_set_consensus_tiny_materiality.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_tiny_materiality.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_tiny_materiality.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload_smoke_result.py `
+  -q
+```
+
+Result:
+
+```text
+initial local result before infeasible-score fix: 11 passed in 0.22s
+after infeasible-score fix: 6 passed in 0.21s for focused materiality tests
+```
+
+Debug note:
+
+The first AutoDL materiality run at commit `bb07e17` rejected all records because
+the analyzer required every `selection_scores` entry to be finite. Real selector
+logs legitimately use `inf` for infeasible candidates. The analyzer was fixed in
+commit `07bb5e9` to require finite scores only on feasible candidates, with a
+unit test covering infeasible `inf` scores.
+
+AutoDL verification after fix:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_tiny_materiality.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_tiny_materiality.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_tiny_materiality.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_smoke_result.py \
+  -q
+```
+
+Result:
+
+```text
+CAMP AutoDL HEAD=07bb5e92f130e983c8cadef0e9c5dcd75da15bac
+CAMP AutoDL origin/main=07bb5e92f130e983c8cadef0e9c5dcd75da15bac
+DP AutoDL HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+py_compile passed
+12 passed in 0.19s
+```
+
+AutoDL materiality command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+SMOKE=/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+RESULT=$DEV/candidate_set_consensus_payload_smoke_result_2f0580f/candidate_set_consensus_payload_smoke_result.json
+OUT=$DEV/candidate_set_consensus_tiny_materiality_07bb5e9
+mkdir -p "$OUT"
+
+$PY scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_tiny_materiality.py \
+  --selection_log "$SMOKE/logging_enabled/camp_selection_log.json" \
+  --smoke_result_json "$RESULT" \
+  --label autodl_07bb5e9_candidate_set_consensus_tiny_materiality \
+  --output_json "$OUT/candidate_set_consensus_tiny_materiality.json" \
+  --output_md "$OUT/candidate_set_consensus_tiny_materiality.md" \
+  --require_pass
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_tiny_materiality_07bb5e9/candidate_set_consensus_tiny_materiality.json` | `6c0075c58f93ba8a556929747bb77676ae68c8e10537362af544f6ccae8ae56a` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_tiny_materiality_07bb5e9/candidate_set_consensus_tiny_materiality.md` | `efa775b1fd14e2349fe449a2a4339680ede422e41696c778d4f9dbe36190cbe6` |
+
+Observed materiality summary:
+
+```text
+records=3
+available_records=3
+valid_records=3
+positive_spread_records=3
+selected_not_consensus_best_records=3
+finite_lambda_records=3
+selected_rank_mean=6.0
+selected_rank_max=7.0
+selected_minus_best_cost_mean=0.0877307169006704
+selected_minus_best_cost_max=0.11954481562322954
+cost_spread_mean=0.10697834050395279
+min_lambda_to_change_any_record=0.20212395639810232
+min_lambda_to_change_mean=3.2325617241424047
+```
+
+Per-record diagnosis:
+
+| Record | Selected | Best consensus | Selected rank | Best rank | Selected cost | Best cost | Min lambda to change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 2 | 7 | 5 | 1 | 0.061368171033886046 | 0.014691473830945646 | 0.20212395639810232 |
+| 1 | 2 | 1 | 6 | 0 | 0.10874759608374199 | 0.011776958207900753 | 2.6804654476444125 |
+| 2 | 2 | 7 | 7 | 0 | 0.13445336106348732 | 0.01490854544025778 | 6.815095768384699 |
+
+Final decision:
+
+```text
+status=candidate_set_consensus_tiny_materiality_diagnosis_ready
+passed=True
+signal_present=True
+materiality_gate_passed=False
+sample_too_small_for_promotion=True
+authorized_next_work=candidate_set_consensus_broader_nonformal_materiality_plan_only
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept the tiny materiality diagnosis. The signal is not empty: selected
+candidates were not consensus-best in all three records, and a nonnegative
+affine consensus coefficient could in principle change the finite-candidate
+argmin at finite weight thresholds. However, three records are far too few for
+atom promotion or safety claims, and no closed-loop outcome evidence was used.
+
+Mathematical boundary:
+
+This diagnosis only studies a fixed logged coefficient against fixed existing
+CAMP scores. It does not alter the score, selector, DP sampler, candidate set,
+PerfectTracker, or outcomes. If later atomized after broader evidence, the
+coefficient remains fixed before scoring and can preserve
+`score_k(w)=a_k^T w` and convex simplex/CVaR/L2 optimization in `w`. No
+trajectory-coordinate convexity or DP-side classical Benders claim is made.
+
+Next admissible work:
+
+Design a broader nonformal materiality plan for candidate-set consensus. The
+plan may propose a small paired nonformal matrix with diverse but non-formal
+routes/seeds, but it must remain plan-only until accepted. It must predeclare
+route/seed scope, latency and selector-equivalence gates, spread/rank/sensitivity
+diagnostics, safety-score evaluation boundaries, and reject criteria. It still
+must not use formal seeds, promote the atom, train CAMP, enter Full36, or claim
+DP Top-1 improvement before evidence exists.
