@@ -58908,3 +58908,109 @@ The next gate must define the exact coefficient, required current-tick inputs,
 finite/fail-closed availability behavior, deterministic tie handling, latency
 accounting, and an existing-log materiality screen before any replay, training,
 or online-selector work is considered.
+
+## Candidate-Set Consensus Payload Design (`8f44a13`)
+
+This self-iteration consumes the accepted post-reconciliation source proposal
+and predeclares a default-off payload design for
+`candidate_set_consensus_density_source_v1`. It is design-only: it does not run
+DP, replay, train CAMP, create an online selector, use formal seeds, or modify
+DP.
+
+Implementation:
+
+```text
+8f44a130d60736fb09f4f0ba8f7a9e068d08fe5a Add candidate set consensus payload design gate
+
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_payload_design.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_design.py
+```
+
+Verification:
+
+```text
+Local:
+  CAMP HEAD=8f44a130d60736fb09f4f0ba8f7a9e068d08fe5a
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_design.py \
+         camp_core/tests/test_diffusion_planner_post_reconciliation_source_proposal_screen.py -q
+  result=12 passed
+
+AutoDL:
+  CAMP HEAD=8f44a130d60736fb09f4f0ba8f7a9e068d08fe5a
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  same pytest command result=12 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SOURCE=$DEV/post_reconciliation_source_proposal_screen_44237a5/post_reconciliation_source_proposal_screen.json
+OUT=$DEV/candidate_set_consensus_payload_design_8f44a13
+
+$PY scripts/integrations/plan_diffusion_planner_candidate_set_consensus_payload_design.py \
+  --source_proposal_screen_json "$SOURCE" \
+  --label autodl_8f44a13_candidate_set_consensus_payload_design \
+  --output_json "$OUT/candidate_set_consensus_payload_design.json" \
+  --output_md "$OUT/candidate_set_consensus_payload_design.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_design_8f44a13/candidate_set_consensus_payload_design.json` | `d32e85b0bf749b1147b6b477f317158d58c1b063775c117ffb7b7199a7910e04` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_design_8f44a13/candidate_set_consensus_payload_design.md` | `41106e7837c549790a1079c4631ba5f432daec86cf5adc00fd6676065ab108b5` |
+
+Result:
+
+```text
+status=candidate_set_consensus_payload_design_ready
+passed=True
+payload_design_ready=True
+authorized_next_work=candidate_set_consensus_existing_log_materiality_screen_only
+primary_coefficient=candidate_set_consensus_center_rms_cost_v1
+failed_checks=[]
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept the payload design gate. The predeclared coefficient is
+`candidate_set_consensus_center_rms_cost_v1`: for candidate `k`, compute the
+RMS distance from its current-tick candidate xy trajectory to the coordinate-wise
+median xy center over the fixed DP candidate set. The payload is default-off,
+requires at least two finite candidates and two horizon samples, and fails
+closed before selector promotion if the current candidate tensor is missing or
+nonfinite.
+
+Mathematical boundary:
+
+The coefficient is nonnegative by norm construction and fixed before CAMP
+selection. If a later atom-schema gate accepts it, it may enter CAMP as a fixed
+finite-candidate coefficient `a_k`, preserving `score_k(w)=a_k^T w` and the
+convex simplex/CVaR/L2 master in `w`. This gate does not claim
+trajectory-coordinate convexity and does not construct a DP-side classical
+Benders master/subproblem, dual, or valid cut.
+
+Next admissible work:
+
+Run a read-only existing-log materiality screen for the candidate-set consensus
+coefficient before any payload implementation, replay, training, online
+selector work, Full36, formal seeds, or DP modification. The screen must consume
+only existing logged candidate prefixes, compute the predeclared coefficient,
+and keep any safety/oracle labels strictly as offline diagnosis rather than
+runtime coefficient inputs.
