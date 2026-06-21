@@ -48119,3 +48119,159 @@ Build and audit an immutable nonformal training input manifest before any
 training execution. The manifest must discover the exact `camp_selection_log`
 inputs, exclude formal seeds 11/12/13, prove required label and atom fields are
 present, preserve required bucket coverage, and write path counts plus SHA.
+
+## Offline Convex Selector Training Input Manifest (`069057e`)
+
+Purpose:
+
+The offline convex training plan authorized only an input-manifest gate before
+any training execution. This step materializes the exact non-formal labeled
+logs that a later training dry run may consume, verifies no formal seeds are
+present, verifies candidate outcome labels and atom fields, and checks explicit
+scenario-bucket coverage.
+
+Implementation:
+
+```text
+4ac85b0 Add DP CAMP offline selector training input manifest gate
+7f9a175 Fix DP CAMP training input manifest CLI
+069057e Fix DP CAMP training manifest route aliases
+```
+
+Files:
+
+```text
+scripts/integrations/audit_diffusion_planner_offline_convex_selector_training_inputs.py
+camp_core/tests/test_diffusion_planner_offline_convex_selector_training_inputs.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\audit_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_inputs.py
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+20 passed in 0.41s
+
+git diff --check
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=069057ef8dadc1a465df560adc92496445e9a877
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+20 passed in 0.41s
+```
+
+Rejected manifest attempt:
+
+Using the older redstopfloor05 manifest
+`configs/integrations/dp_camp_development_scenario_buckets_redstopfloor05_v1.json`
+against the new diverse outcome-label root was rejected:
+
+```text
+status=offline_convex_selector_training_input_manifest_blocked
+logs=108
+records=21600
+formal_seed_logs=0
+missing_required_buckets=dense_scene,lane_change_or_merge,npc_interaction
+errors=1
+```
+
+This was the correct outcome because that older manifest explicitly records
+known missing coverage for those buckets. It must not be reused for the diverse
+training input.
+
+A second attempt with the diverse manifest initially failed because the audit
+used the benchmark route file stem as `route_name`, while the diverse manifest
+uses the predeclared route aliases (`sample_normal`, `sample_tl_turn`,
+`nishishinjuku_lane_change`). Commit `069057e` fixes the audit to keep the
+actual route path in `route` while using the path alias as `route_name` for
+bucket matching.
+
+Accepted manifest command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PLAN_ROOT=$ROOT/diverse_nonformal_matrix_plan_py312_9e2158f
+OUT=$ROOT/offline_convex_selector_training_input_manifest_069057e_diverse
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_offline_convex_selector_training_inputs.py \
+  --training_plan_json "$ROOT/offline_convex_selector_training_plan_3f59dd8/offline_convex_selector_training_plan.json" \
+  --root "$PLAN_ROOT" \
+  --scenario_bucket_manifest "$PLAN_ROOT/diverse_nonformal_scenario_buckets_py312_9e2158f.json" \
+  --label autodl_069057e_offline_convex_selector_training_input_manifest_diverse \
+  --output_json "$OUT/offline_convex_selector_training_input_manifest.json" \
+  --output_md "$OUT/offline_convex_selector_training_input_manifest.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_selector_training_input_manifest_069057e_diverse/offline_convex_selector_training_input_manifest.json
+sha256=7b03ff8e627f99b078d7d26f11f63d7f9bb9834d010ae262f1c954bae10378bd
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_selector_training_input_manifest_069057e_diverse/offline_convex_selector_training_input_manifest.md
+sha256=e60194e7f784124281b5cefce21c16bb417bc9fcb129987c4f50d068fcd51ecd
+```
+
+Result:
+
+```text
+status=offline_convex_selector_training_input_manifest_ready
+passed=True
+authorized_next_work=offline_convex_selector_training_execution_dry_run_only
+training_execution_authorized=False
+logs=108
+records=21600
+formal_seed_logs=0
+missing_required_buckets=
+errors=0
+bucket_record_counts={
+  'dense_scene': 1200,
+  'lane_change_or_merge': 7200,
+  'normal': 1200,
+  'npc_interaction': 1200,
+  'overall': 21600,
+  'red_light_turn': 3600,
+  'sharp_turn': 7200,
+  'traffic_light': 3600
+}
+```
+
+Mathematical decision:
+
+Accept the manifest as fixed non-formal training input evidence only. The
+manifest freezes existing DP candidate logs and their SHA-256 values, confirms
+all required buckets have explicit scenario-label coverage from the diverse
+manifest, and confirms the labels are offline `candidate_closed_loop_outcomes`
+fields. It does not train, change DP, change online selector inputs, or claim
+classical Benders.
+
+Next gate:
+
+Run at most an offline convex selector training execution dry run over this
+manifest. The dry run must keep `--label_source safety_cost_v1_hard_guarded`,
+simplex weights, robust margin/CVaR objective, grouped split, required atom
+schema, no formal seeds, and no DP execution. It must produce weights,
+scales, a training summary, and a post-training candidate-branch evaluation
+artifact before any closed-loop replay or online selector promotion is
+considered.
