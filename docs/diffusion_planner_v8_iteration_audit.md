@@ -39173,3 +39173,129 @@ computed exclusively from logged current-tick payload fields. Nonnegative
 simplex affine screens are diagnostics over fixed coefficients and preserve the
 CAMP affine score form if later atomized. No DP-side classical Benders
 decomposition, dual, or cut is introduced.
+
+## Progress + Lane/Hard Context Separability Bottleneck (`847cc80` source)
+
+This gate adds and runs a read-only bottleneck diagnosis for the rejected
+context separability screen. It uses only the existing matched nonformal logs
+and the rejected separability artifact. It does not run DP, train CAMP, promote
+an online selector, run Full36, or use formal seeds.
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_separability_bottleneck.py
+camp_core/tests/test_diffusion_planner_progress_lane_hard_context_separability_bottleneck.py
+```
+
+Validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_separability_bottleneck.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_separability_bottleneck.py \
+  -q
+```
+
+Result:
+
+```text
+5 passed in 0.37s
+```
+
+Diagnostic command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d
+
+$PY scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_separability_bottleneck.py \
+  --root "$ROOT/matched_progress_lane_hard_context_outcomes" \
+  --separability_json "$ROOT/audit/progress_lane_hard_context_descriptor_separability.json" \
+  --label autodl_847cc80_progress_lane_hard_context_separability_bottleneck \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/progress_lane_hard_context_separability_bottleneck.json" \
+  --output_md "$ROOT/audit/progress_lane_hard_context_separability_bottleneck.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/progress_lane_hard_context_separability_bottleneck.json` | `3fe8d9ccce266d16092fc7d568ad849e9bad86963341d1de665568fb4d043422` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d/audit/progress_lane_hard_context_separability_bottleneck.md` | `56e9d32546c6736378ccda69bd90f56edef98e1e99bde0931074670c5e0fb745` |
+
+Verifier result:
+
+```text
+status=progress_lane_hard_context_separability_bottleneck_diagnosed
+passed=True
+primary_gap=strict_screens_overblock_beneficial_and_high_retain_screens_allow_harmful
+authorized_next_work=predeclare_revised_context_atom_schema_or_reject_context_route
+source_status=progress_lane_hard_context_descriptor_separability_rejected
+source_primary_gap=progress_lane_hard_context_descriptors_do_not_separate_candidates
+beneficial_total=56
+beneficial_blocked=50
+beneficial_retained=6
+harmful_total=180
+harmful_allowed=9
+harmful_blocked=171
+neutral_total=100
+best_screen=affine_simplex:0.250*atom_curvature_conditioned_lateral_rate_excess_v1+0.750*max_heading_error_worse_vs_top1_rad
+best_screen_beneficial_retain_rate=0.10714285714285714
+best_screen_allowed_harmful_rate_among_allowed_nonneutral=0.6
+strict_safe_screen_count=50
+high_retain_screen_count=3
+blocked_beneficial_value_delta_mean=1.2943786318760204
+blocked_beneficial_progress_delta_mean_m=0.5600299521771867
+blocked_beneficial_reasons={beneficial_or_neutral_shape_overlap: 50}
+allowed_harmful_value_delta_mean=-0.8686053434843658
+allowed_harmful_progress_delta_mean_m=-0.5615746874044704
+allowed_harmful_reasons={progress_loss: 9, outcome_value_loss: 8}
+```
+
+Interpretation:
+
+The reject is not caused by insufficient class support. It is a descriptor
+overlap/tradeoff problem. The strict screens that block harmful candidates also
+block most beneficial alternatives. The high-retain screens that keep
+beneficial alternatives allow too many harmful alternatives. The residual
+harmful candidates are dominated by progress/value loss, not by red-light,
+lane, collision, or near-miss regressions in this small matched set.
+
+Two descriptor overlap symptoms are especially important:
+
+1. `atom_corridor_margin_exhaustion_v1` and
+   `max_corridor_margin_exhaustion_m` are identically zero for both beneficial
+   and harmful classes in this matched dataset, so they provide no separating
+   signal.
+2. `atom_lane_progress_coherence_excess_v1` has high overlap pressure: many
+   harmful candidates remain below the beneficial upper quartile while many
+   beneficial candidates sit above the harmful lower quartile.
+
+Decision:
+
+Accept the bottleneck diagnosis, but keep the current context descriptor route
+rejected for certificate/selector design. The next admissible work is only to
+predeclare a revised context atom schema or explicitly reject this context route.
+The revised schema must target the observed bottleneck: progress/value loss
+versus beneficial shape overlap, with current-tick finite-candidate descriptors
+only. It must state nonnegativity/convexity or fixed-coefficient affine
+compatibility before any implementation or replay.
+
+This still does not authorize CAMP retraining, online selector promotion,
+Full36, formal seeds, DP modification, or new replay.
+
+Mathematical boundary:
+
+The bottleneck diagnosis uses outcome labels only after the rejected offline
+screen to explain error modes. Runtime-eligible quantities remain current-tick
+finite-candidate descriptors. Any revised atom must enter CAMP as a fixed
+candidate coefficient \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master. No DP-side classical Benders decomposition,
+dual, or cut is introduced.
