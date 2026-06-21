@@ -97,6 +97,13 @@ from camp_core.integrations.diffusion_planner_temporal_consistency_payload impor
     TEMPORAL_CONSISTENCY_PAYLOAD_SCHEMA_VERSION,
     build_temporal_consistency_payload,
 )
+from camp_core.integrations.diffusion_planner_candidate_set_consensus_payload import (  # noqa: E402
+    CANDIDATE_SET_CONSENSUS_PAYLOAD_ATOM_CANDIDATE_NAMES,
+    CANDIDATE_SET_CONSENSUS_PAYLOAD_FIELD_NAMES,
+    CANDIDATE_SET_CONSENSUS_PAYLOAD_LATENCY_KEYS,
+    CANDIDATE_SET_CONSENSUS_PAYLOAD_SCHEMA_VERSION,
+    build_candidate_set_consensus_payload,
+)
 from camp_core.atoms.driver_atoms import (  # noqa: E402
     exact_centerline_slice_for_candidates,
 )
@@ -757,6 +764,23 @@ def parse_args() -> argparse.Namespace:
         help="Minimum overlap steps required for temporal-consistency payload availability.",
     )
     parser.add_argument(
+        "--camp_candidate_set_consensus_payload_logging",
+        action="store_true",
+        help=(
+            "Default-off no-leak logging of current-tick candidate-set "
+            "consensus diagnostics computed from the fixed DP candidate tensor "
+            "before CAMP selection. This records diagnostics only and does not "
+            "change feasibility, scores, candidates, tracker execution, atom "
+            "schema, CAMP weights, or selection."
+        ),
+    )
+    parser.add_argument(
+        "--camp_candidate_set_consensus_payload_steps",
+        type=int,
+        default=10,
+        help="Candidate prefix steps for candidate-set consensus payload logging.",
+    )
+    parser.add_argument(
         "--camp_splice_shadow_rule",
         action="store_true",
         help=(
@@ -1042,6 +1066,8 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError(
             "--camp_temporal_consistency_payload_min_overlap_steps must be >= 2."
         )
+    if args.camp_candidate_set_consensus_payload_steps < 2:
+        raise ValueError("--camp_candidate_set_consensus_payload_steps must be >= 2.")
     splice_shadow_budgets = (
         args.camp_splice_shadow_progress_loss_budget_m,
         args.camp_splice_shadow_smoothness_loss_budget,
@@ -3921,6 +3947,8 @@ def _install_camp_predictor(
     temporal_consistency_payload_dt_s: float,
     temporal_consistency_payload_elapsed_steps: int,
     temporal_consistency_payload_min_overlap_steps: int,
+    candidate_set_consensus_payload_logging: bool,
+    candidate_set_consensus_payload_steps: int,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -4202,6 +4230,10 @@ def _install_camp_predictor(
         temporal_consistency_payload_latency_ms = {
             key: 0.0 for key in TEMPORAL_CONSISTENCY_PAYLOAD_LATENCY_KEYS
         }
+        candidate_set_consensus_payload_logging_payload = None
+        candidate_set_consensus_payload_latency_ms = {
+            key: 0.0 for key in CANDIDATE_SET_CONSENSUS_PAYLOAD_LATENCY_KEYS
+        }
         route_centerline_ego = None
         if (
             observable_state_logging
@@ -4466,6 +4498,16 @@ def _install_camp_predictor(
             temporal_consistency_payload_latency_ms = (
                 temporal_consistency_payload_logging_payload["latency_ms"]
             )
+        if candidate_set_consensus_payload_logging:
+            candidate_set_consensus_payload_logging_payload = (
+                build_candidate_set_consensus_payload(
+                    candidates=candidates,
+                    support_steps=candidate_set_consensus_payload_steps,
+                )
+            )
+            candidate_set_consensus_payload_latency_ms = (
+                candidate_set_consensus_payload_logging_payload["latency_ms"]
+            )
         if lexicographic_progress_epsilon_m is not None:
             if candidate_progress is None or candidate_planned_red_light_cost is None:
                 raise RuntimeError(
@@ -4695,6 +4737,7 @@ def _install_camp_predictor(
             **non_turn_logit_interaction_payload_latency_ms,
             **external_context_payload_latency_ms,
             **temporal_consistency_payload_latency_ms,
+            **candidate_set_consensus_payload_latency_ms,
             "latency_ms_context_and_obstacles": (
                 context_and_obstacles_done - lateral_comfort_done
             )
@@ -5020,6 +5063,9 @@ def _install_camp_predictor(
                 "temporal_consistency_payload_logging": (
                     temporal_consistency_payload_logging_payload
                 ),
+                "candidate_set_consensus_payload_logging": (
+                    candidate_set_consensus_payload_logging_payload
+                ),
                 "candidate_obstacle_clearance": candidate_obstacle_clearance,
                 "candidate_step_reach": (
                     candidate_step_reach.tolist()
@@ -5316,6 +5362,12 @@ def main() -> None:
             ),
             temporal_consistency_payload_min_overlap_steps=(
                 args.camp_temporal_consistency_payload_min_overlap_steps
+            ),
+            candidate_set_consensus_payload_logging=bool(
+                args.camp_candidate_set_consensus_payload_logging
+            ),
+            candidate_set_consensus_payload_steps=(
+                args.camp_candidate_set_consensus_payload_steps
             ),
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
@@ -6276,6 +6328,110 @@ def main() -> None:
         if records is not None
         else None
     )
+    camp_candidate_set_consensus_payload_logging = (
+        {
+            "schema_version": CANDIDATE_SET_CONSENSUS_PAYLOAD_SCHEMA_VERSION,
+            "enabled": bool(args.camp_candidate_set_consensus_payload_logging),
+            "default_off": True,
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "closed_loop_outcome_fields_read": False,
+            "online_selector_change": False,
+            "deployed_atom_vector_change": False,
+            "authorized_stage": (
+                "candidate_set_consensus_payload_implementation_unit_tests_only"
+            ),
+            "logged_field": "candidate_set_consensus_payload_logging",
+            "fields": list(CANDIDATE_SET_CONSENSUS_PAYLOAD_FIELD_NAMES),
+            "atom_candidate_names": list(
+                CANDIDATE_SET_CONSENSUS_PAYLOAD_ATOM_CANDIDATE_NAMES
+            ),
+            "latency_fields": list(CANDIDATE_SET_CONSENSUS_PAYLOAD_LATENCY_KEYS),
+            "horizons": {
+                "support_steps": int(
+                    args.camp_candidate_set_consensus_payload_steps
+                ),
+            },
+            "records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if record.get("candidate_set_consensus_payload_logging")
+                        is not None
+                    )
+                )
+                if args.camp_candidate_set_consensus_payload_logging
+                else 0
+            ),
+            "available_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get("candidate_set_consensus_payload_logging")
+                            is not None
+                            and record["candidate_set_consensus_payload_logging"].get(
+                                "available"
+                            )
+                            is True
+                        )
+                    )
+                )
+                if args.camp_candidate_set_consensus_payload_logging
+                else 0
+            ),
+            "invalid_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get("candidate_set_consensus_payload_logging")
+                            is not None
+                            and not record[
+                                "candidate_set_consensus_payload_logging"
+                            ]
+                            .get("finite_checks", {})
+                            .get("payload_valid", False)
+                        )
+                    )
+                )
+                if args.camp_candidate_set_consensus_payload_logging
+                else 0
+            ),
+            "latency_ms": (
+                {
+                    key: _summary(
+                        [
+                            float(record[key])
+                            for record in records
+                            if key in record and record[key] is not None
+                        ]
+                    )
+                    for key in CANDIDATE_SET_CONSENSUS_PAYLOAD_LATENCY_KEYS
+                }
+                if args.camp_candidate_set_consensus_payload_logging
+                else None
+            ),
+            "definition": (
+                "default-off current-tick candidate RMS distance from the "
+                "coordinate-wise median xy center of the fixed DP candidate set"
+            ),
+            "math_boundary": (
+                "The candidate-set consensus field is a fixed finite-candidate "
+                "coefficient when available and is nonnegative by construction. "
+                "Too few candidates fail closed. If later atomized after a "
+                "separate gate, CAMP score remains affine in weights and the "
+                "simplex/CVaR/L2 master remains convex. No DP-side classical "
+                "Benders claim is made."
+            ),
+            "classical_benders_claim": False,
+        }
+        if records is not None
+        else None
+    )
     finite_candidate_contract = _dp_camp_finite_candidate_contract(
         selector_mode=args.camp_selector_mode,
         num_candidates=args.num_candidates,
@@ -6345,6 +6501,9 @@ def main() -> None:
         ),
         "camp_temporal_consistency_payload_logging": (
             camp_temporal_consistency_payload_logging
+        ),
+        "camp_candidate_set_consensus_payload_logging": (
+            camp_candidate_set_consensus_payload_logging
         ),
         "camp_splice_shadow_rule": effective_splice_shadow_rule,
         "camp_traffic_light_hybrid_postselection": (
@@ -6654,6 +6813,9 @@ def main() -> None:
     )
     validation["camp_temporal_consistency_payload_logging"] = (
         camp_temporal_consistency_payload_logging
+    )
+    validation["camp_candidate_set_consensus_payload_logging"] = (
+        camp_candidate_set_consensus_payload_logging
     )
     validation["camp_splice_shadow_rule"] = effective_splice_shadow_rule
     validation["camp_traffic_light_hybrid_postselection"] = (
