@@ -37055,6 +37055,141 @@ master/subproblem/cut is introduced. Any later atomization must still use fixed
 finite-candidate nonnegative coefficients and preserve affine
 `score_k(w)=a_k^T w`.
 
+## Observable Interaction Scenario Support Audit (`c8f095c` source)
+
+This gate follows the rejected observable-interaction coverage smoke. It is
+read-only: it scans existing `observable_state_logging` payloads from prior
+nonformal artifacts to determine whether any already-recorded current-tick
+candidate state can support the intended red-aligned stopline or near-obstacle
+clearance descriptors. It does not run replay, does not use closed-loop outcome
+labels, does not train CAMP, does not promote an online selector, and does not
+modify DP.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_observable_interaction_scenario_support.py
+camp_core/tests/test_diffusion_planner_observable_interaction_scenario_support.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_observable_interaction_scenario_support.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_scenario_support.py `
+  -q
+```
+
+Result:
+
+```text
+4 passed in 0.53s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_scenario_support_c8f095c
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_interaction_scenario_support.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_scenario_support.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_observable_interaction_scenario_support.py \
+  --source_smoke_json /root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_cmdfix_8307cc6/observable_interaction_coverage_smoke.json \
+  --root /root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263 \
+  --root /root/autodl-tmp/camp_dp_lane_hard_violation_support_broader_nonformal_smoke \
+  --root /root/autodl-tmp/camp_dp_lane_hard_violation_support_logging_smoke \
+  --root /root/autodl-tmp/camp_dp_lane_hard_violation_support_matched_outcome_labels_nonformal_v1 \
+  --root /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698 \
+  --root /root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_cmdfix_8307cc6 \
+  --root /root/autodl-tmp/camp_dp_observable_state_logging_coverage_broader_436debb \
+  --root /root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke \
+  --root /root/autodl-tmp/camp_dp_progress_lane_hard_context_logging_smoke \
+  --root /root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d \
+  --root /root/autodl-tmp/camp_dp_progress_lane_hard_joint_cologged_outcomes_nonformal_v1 \
+  --root /root/autodl-tmp/camp_dp_progress_support_broader_nonformal_smoke \
+  --root /root/autodl-tmp/camp_dp_progress_support_logging_smoke \
+  --root /root/autodl-tmp/camp_dp_progress_support_logging_smoke_optimized_5e80a85 \
+  --root /root/autodl-tmp/camp_dp_progress_support_matched_outcome_labels_nonformal_v1 \
+  --root /root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e \
+  --root /root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7 \
+  --label autodl_c8f095c_observable_interaction_scenario_support \
+  --output_json "$OUT/observable_interaction_scenario_support.json" \
+  --output_md "$OUT/observable_interaction_scenario_support.md"
+```
+
+Result:
+
+```text
+4 passed in 0.36s
+status=observable_interaction_scenario_support_bottleneck_recorded
+passed=False
+primary_gap=red_context_support_absent,clearance_context_support_absent
+authorized_next_work=reject_observable_interaction_coverage_or_inspect_map_geometry_before_replay
+input_log_paths=502
+scanned_logs=502
+excluded_formal_seed_logs=0
+records=80186
+candidate_payload_records=147
+payload_candidates=1176
+formal_seed_records=0
+red_context_candidate_count=0
+clearance_context_candidate_count=0
+min_red_distance_m=4.83404756877959
+max_red_alignment=0.0
+min_clearance_m=37.6667987950201
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_scenario_support.json
+53d310e99bd0a54d0ee5ec221423f31eb3f9555d46accd1819c25e474cbbfa14
+
+observable_interaction_scenario_support.md
+200f848ce2895888dd08c56a35ca7b42255f4157f905143d153f84394408e674
+```
+
+Decision:
+
+Reject using the existing observable-interaction log inventory for separability
+screening, selector promotion, or CAMP retraining. The scan covers all known
+artifact roots that contain `observable_state_logging` payloads and finds no
+runtime-eligible red-aligned stopline support and no near-obstacle clearance
+support. The closest red stopline distance is within the 5 m distance budget,
+but the maximum descriptor-level red alignment is `0.0`, so red risk remains
+zero. The minimum obstacle clearance is about `37.67 m`, far above the `2.0 m`
+clearance-deficit budget.
+
+Next admissible work:
+
+Do not run an offline separability screen or train CAMP from these logs. The
+next route must either reject the observable-interaction coverage family for
+the fixed lightweight simulator evidence set, or perform a separate read-only
+map/route/traffic-light/NPC geometry inspection before any new replay. A new
+replay is not authorized by this gate.
+
+Mathematical boundary:
+
+This audit scans existing current-tick finite-candidate observable payloads
+only. Red and clearance support are diagnostic state coefficients, not
+selector thresholds, outcome labels, atom weights, or trajectory-space
+convexity claims. If later atomized, they must enter CAMP as fixed candidate
+coefficients preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2
+convex master. No DP-side classical Benders master/subproblem, dual, or valid
+cut is constructed.
+
 ## Lane/Hard-Violation Support Broader Nonformal Paired Smoke Result (`232df61`)
 
 This gate executes exactly the broader nonformal paired smoke predeclared by
