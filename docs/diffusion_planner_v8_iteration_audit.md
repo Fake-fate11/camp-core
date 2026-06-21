@@ -51678,3 +51678,139 @@ This gate is a finite-candidate planning/rejection gate, not a classical
 Benders decomposition. It constructs no DP master/subproblem, no dual, and no
 valid cuts. Closed-loop outcomes and SafetyCost labels remain offline
 evaluation labels only.
+
+## Targeted Source Route Closure Gate (`2794ad9` artifacts)
+
+Purpose:
+
+The new no-leak support gate paused the current selector/training route unless
+a genuinely new targeted source is found. This follow-up gate connects that
+current rejection with the refreshed `2a0e803` score-family and tensor-visibility
+closures, preventing stale source-discovery artifacts from reopening closed atom
+families such as direct turn logits. It is read-only and does not run DP, train
+CAMP, replay closed loop, promote an online selector, use formal seeds, or
+modify DP.
+
+Implementation:
+
+```text
+2794ad9 Add targeted source route closure gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_targeted_source_route_closure.py
+camp_core/tests/test_diffusion_planner_targeted_source_route_closure.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_targeted_source_route_closure.py \
+  camp_core\tests\test_diffusion_planner_targeted_source_route_closure.py
+
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_targeted_source_route_closure.py \
+  camp_core\tests\test_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  camp_core\tests\test_diffusion_planner_current_tick_tensor_visibility.py \
+  camp_core\tests\test_diffusion_planner_no_leak_score_family_inventory.py \
+  camp_core\tests\test_diffusion_planner_post_closure_state_remainder.py \
+  -q
+
+28 passed
+git diff --check passed
+```
+
+AutoDL sync and verification:
+
+```text
+CAMP_HEAD=2794ad9958d3594884688fa549d33550af880065
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_targeted_source_route_closure.py \
+  camp_core/tests/test_diffusion_planner_new_no_leak_targeted_support_or_reject.py \
+  camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py \
+  camp_core/tests/test_diffusion_planner_no_leak_score_family_inventory.py \
+  camp_core/tests/test_diffusion_planner_post_closure_state_remainder.py \
+  -q
+
+28 passed
+```
+
+Artifact command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/targeted_source_route_closure_2794ad9
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_targeted_source_route_closure.py \
+  --support_reject_json "$ROOT/new_no_leak_targeted_support_or_reject_5bd558c/new_no_leak_targeted_support_or_reject.json" \
+  --score_family_inventory_json "/root/autodl-tmp/camp_dp_no_leak_score_family_inventory_refresh_2a0e803/no_leak_score_family_inventory.json" \
+  --tensor_visibility_json "/root/autodl-tmp/camp_dp_current_tick_tensor_visibility_refresh_2a0e803/current_tick_tensor_visibility.json" \
+  --proof_protocol_redesign_json "$ROOT/proof_protocol_redesign_1671ab6/proof_protocol_redesign.json" \
+  --label autodl_2794ad9_targeted_source_route_closure \
+  --output_json "$OUT/targeted_source_route_closure.json" \
+  --output_md "$OUT/targeted_source_route_closure.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_source_route_closure_2794ad9/targeted_source_route_closure.json
+sha256=97423caa3c6464bd24f02ded7aa6f4d031790701575eda06312f33f99ac67229
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_source_route_closure_2794ad9/targeted_source_route_closure.md
+sha256=cc2c9ebc6f8e4272af3b57e46aadaa3bc781be93e2366dd3bccb6d53810c5346
+```
+
+Final decision:
+
+```text
+status=targeted_source_discovery_route_closed
+passed=True
+source_discovery_closed=True
+current_camp_dp_selector_route_rejected=True
+authorized_next_work=proof_protocol_v2_or_scenario_objective_redesign_only
+failed_checks=[]
+closed_score_families=non_turn_interaction_family,observable_interaction_family,progress_lane_hard_context,relaxed_strict_atom_family,revised_context_atom_family,turn_logit_atom_family
+tensor_candidate_sources=[]
+tensor_closed_visible=turn_indicator_logits
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept this closure gate. The current targeted source-discovery route is closed:
+the latest support gate found no new source proposal, all required no-leak score
+families are already rejected or limited, and refreshed tensor visibility has no
+unclosed runtime-admissible candidate source. The only closed-visible tensor is
+`turn_indicator_logits`, which belongs to the already closed turn-logit atom
+family.
+
+Therefore, do not reopen progress/lane-hard, observable interaction,
+turn-logit, non-turn interaction, relaxed/revised context, tensor-visibility, or
+generic selector-label routes. The next admissible work is only a higher-level
+ProofProtocol v2 or scenario/objective redesign, or keeping the current CAMP-DP
+selector route paused. Training, replay, online selector promotion, Full36,
+formal seeds, DP modification, and classical Benders claims remain blocked.
+
+Mathematical boundary:
+
+This gate reads prior JSON artifacts and source-visibility decisions only. CAMP
+features remain fixed current-tick finite-candidate coefficients and any future
+runtime score must remain affine `score_k(w)=a_k^T w`, preserving the
+simplex/CVaR/L2 convex master. No DP-side classical Benders master/subproblem,
+dual, or cut is constructed.
