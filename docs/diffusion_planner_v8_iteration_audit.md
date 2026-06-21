@@ -38832,3 +38832,142 @@ each candidate coefficient \(a_k\) is fixed before scoring, so
 `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
 convex. This gate still constructs no DP-side classical Benders
 master/subproblem, dual, or valid cut.
+
+## Progress + Lane/Hard Context Matched Outcome Plan (`ef7b29a` source)
+
+This gate adds only the design and contract checks needed before collecting
+matched offline outcome labels for the already accepted progress+lane/hard
+context descriptors. It does not execute replay, does not train CAMP, does not
+promote an online selector, does not modify DP, and does not authorize formal
+seeds.
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_matched_progress_lane_hard_context_outcomes.py
+scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_matched_outcome_label_pass.py
+camp_core/tests/test_diffusion_planner_matched_progress_lane_hard_context_outcomes.py
+camp_core/tests/test_diffusion_planner_progress_lane_hard_context_matched_outcome_label_pass_plan.py
+```
+
+Source audit state:
+
+```text
+local_head=ef7b29abb807ba560fe56d470b8703b5c9f6776f
+github_main=ef7b29abb807ba560fe56d470b8703b5c9f6776f
+autodl_camp_head=ef7b29abb807ba560fe56d470b8703b5c9f6776f
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_camp_status=main...origin/main [ahead 29] with only known untracked files before this gate
+```
+
+Local validation:
+
+```powershell
+& 'C:\Users\lenovo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_matched_progress_lane_hard_context_outcomes.py `
+  scripts\integrations\plan_diffusion_planner_progress_lane_hard_context_matched_outcome_label_pass.py
+
+git diff --check -- `
+  scripts/integrations/analyze_diffusion_planner_matched_progress_lane_hard_context_outcomes.py `
+  scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_matched_outcome_label_pass.py `
+  camp_core/tests/test_diffusion_planner_matched_progress_lane_hard_context_outcomes.py `
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_matched_outcome_label_pass_plan.py
+```
+
+Both checks exited `0`. Local pytest was not available on the desktop runtime,
+so the substantive unit tests were run on AutoDL's project environment.
+
+AutoDL validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_matched_progress_lane_hard_context_outcomes.py \
+  scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_matched_outcome_label_pass.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_matched_progress_lane_hard_context_outcomes.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_matched_outcome_label_pass_plan.py \
+  -q
+```
+
+Result:
+
+```text
+9 passed in 0.36s
+```
+
+Plan generation:
+
+```bash
+SRC=/root/autodl-tmp/camp_dp_progress_lane_hard_context_broader_nonformal_smoke/audit
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_plan_ef7b29a
+
+$PY scripts/integrations/plan_diffusion_planner_progress_lane_hard_context_matched_outcome_label_pass.py \
+  --broader_smoke_audit_json "$SRC/progress_lane_hard_context_logging_smoke.json" \
+  --broader_selector_equivalence_json "$SRC/selector_equivalence.json" \
+  --broader_dataset_audit_json "$SRC/dataset_audit.json" \
+  --broader_coverage_audit_json "$SRC/progress_lane_hard_context_payload_coverage.json" \
+  --label autodl_ef7b29a_progress_lane_hard_context_matched_outcome_plan \
+  --output_json "$OUT/progress_lane_hard_context_matched_outcome_plan.json" \
+  --output_md "$OUT/progress_lane_hard_context_matched_outcome_plan.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_plan_ef7b29a/progress_lane_hard_context_matched_outcome_plan.json` | `7fdaf5f542e08e88a701c5b569fe99379df94a56d67814d5273ace63ee2a5a9e` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_plan_ef7b29a/progress_lane_hard_context_matched_outcome_plan.md` | `b64954dcf55f6e58f19ec38be662ab66896a776a052f036090964a954a8ffceb` |
+
+Verifier result:
+
+```text
+status=progress_lane_hard_context_matched_outcome_label_pass_plan_ready
+passed=True
+authorized_next_work=progress_lane_hard_context_matched_outcome_label_nonformal_smoke_only
+paired_smoke_execution_authorized=False
+new_replay_authorized=False
+matched_records=48
+matched_candidate_rows=384
+failed_source_checks=[]
+failed_plan_checks=[]
+```
+
+Implementation note:
+
+The first plan run correctly rejected because the new plan expected a
+`final_decision.passed` field in the existing broader coverage artifact. The
+actual accepted artifact records `validation_passed=true` plus
+`materiality_gate_passed=true`. The plan was corrected to use the existing
+schema without weakening the materiality, no-leak, selector-equivalence, or
+formal-seed gates.
+
+Decision:
+
+Accept this design gate. The next admissible work is only the predeclared
+matched outcome nonformal smoke: 4 paired runs x 12 steps. The baseline branch
+must leave `--camp_progress_lane_hard_context_logging` and
+`--camp_collect_closed_loop_outcomes` disabled. The matched branch may enable
+`--camp_progress_lane_hard_context_logging` and
+`--camp_collect_closed_loop_outcomes`, then must pass selector equivalence,
+dataset audit with `closed_loop_outcome_policy=required`, and the new matched
+context contract audit.
+
+This still does not prove CAMP is better than DP Top-1. It only authorizes
+collecting same-record offline labels so the next gate can test whether the
+current-tick context atoms have separability against closed-loop safety labels
+without leakage.
+
+Mathematical boundary:
+
+The matched plan preserves the finite-candidate contract. Context descriptors
+are computed from current-tick DP candidates and route geometry before any
+closed-loop outcome labels. Outcome labels are posterior offline labels only
+and are not runtime selector features. The context atoms remain fixed
+nonnegative coefficients \(a_k\), so CAMP `score_k(w)=a_k^T w` remains affine
+and the simplex/CVaR/L2 robust master remains convex. This gate still
+constructs no DP-side classical Benders master/subproblem, dual, or valid cut.
