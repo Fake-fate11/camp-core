@@ -51067,3 +51067,122 @@ candidate features, affine `score_k(w)=a_k^T w`, or the simplex/CVaR/L2 robust
 master. Outcome labels may be collected later only after a separate gate and
 are never online selector inputs. No DP-side classical Benders decomposition is
 claimed.
+
+## Targeted Candidate Oracle Input Readiness Gate (`47ef85c` artifacts)
+
+Purpose:
+
+The targeted scenario manifest gate authorized only a candidate-branch oracle
+input-readiness check. This step verifies that the already collected nonformal
+matrix outputs provide complete candidate availability, closed-loop outcome
+labels, and current-tick proxy inputs for the 108 predeclared targeted/guard
+runs. It does not train CAMP, run new replays, promote an online selector, or
+modify Diffusion Planner.
+
+Code change:
+
+```text
+47ef85c Add targeted oracle input readiness gate
+```
+
+Local verification:
+
+```text
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_targeted_candidate_oracle_input_readiness.py \
+  camp_core/tests/test_diffusion_planner_candidate_availability_inputs.py \
+  camp_core/tests/test_diffusion_planner_targeted_safety_scenario_manifest_gate.py \
+  camp_core/tests/test_diffusion_planner_safety_cost_oracle.py \
+  -q
+
+26 passed
+git diff --check passed
+```
+
+AutoDL verification:
+
+AutoDL was synchronized to:
+
+```text
+47ef85cd22e40256786188c79730d19aca401a11
+```
+
+The AutoDL Diffusion Planner checkout remains fixed at:
+
+```text
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_candidate_oracle_input_readiness_47ef85c/candidate_availability_input_readiness.json
+sha256=8b306a3ec46007306965661f71374ecaa127c6a71daf3a8a89415f056456806d
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_candidate_oracle_input_readiness_47ef85c/candidate_availability_input_readiness.md
+sha256=8406f95bcbd40bc21075cd7daadaaa55fc7ff381a18db30e30e7636660a8900b
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_candidate_oracle_input_readiness_47ef85c/targeted_candidate_oracle_input_readiness.json
+sha256=a535a61b5be693eae6f0c99f6a92e1d5e6f43a80eebf5a8a54b095f0af933266
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_candidate_oracle_input_readiness_47ef85c/targeted_candidate_oracle_input_readiness.md
+sha256=76349fbbdd83e8e1aaa9d39b535e4196099bdc40df60b60531e72de864c4a49d
+```
+
+Readiness source summary:
+
+```text
+logs=108
+planned_logs=108
+records=21600
+fallback_records=4979
+nonfallback_records=16621
+candidate_availability_oracle_ready=True
+outcome_labels_ready=True
+current_tick_proxy_inputs_ready=True
+missing_examples={}
+```
+
+Decision:
+
+```text
+status=targeted_candidate_branch_oracle_input_readiness_ready
+authorized_next_work=targeted_safety_cost_oracle_audit_only
+recommended_first_action=targeted_safety_cost_oracle_audit
+training_execution_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Accepted evidence:
+
+```text
+all_planned_logs_present
+candidate_closed_loop_outcomes_complete
+current_tick_proxy_inputs_complete
+oracle_input_scope_matches_targeted_manifest
+```
+
+Next gate:
+
+Run a targeted SafetyCost oracle audit against the same 108-run targeted
+manifest before any training, replay promotion, online selector change, Full36,
+or formal seeds. The audit must report target-bucket improvement opportunities
+and guard-bucket regressions against DP Top-1, but it remains offline evidence
+until a later gate separately authorizes implementation or retraining.
+
+Mathematical boundary:
+
+Candidate availability, closed-loop outcomes, and SafetyCost labels are
+offline oracle evidence only. They are not runtime CAMP inputs. A future runtime
+selector may only use fixed current-tick finite-candidate coefficients `a_k`
+with affine `score_k(w)=a_k^T w`; the simplex/CVaR/L2 robust master must remain
+convex. No DP-side classical Benders decomposition is claimed.
