@@ -57791,3 +57791,110 @@ materiality test. It should predeclare either richer current-tick support
 logging/source visibility for safety-critical interactions, or reject the
 current fixed-DP candidate-pool route for safety proof until a new support source
 is available.
+
+## Post Targeted Safety Support Boundary (`a86035e`)
+
+This gate consumes the latest targeted safety-support materiality result, the
+temporal-consistency safety-proxy rejection, the post-pause source-family ledger,
+and the strict post-ledger source closure. It is read-only: it does not run DP,
+train CAMP, create atoms, change selection, use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+a86035e56745e926a1979b98aac852e73285177e Add post targeted safety support boundary
+scripts/integrations/plan_diffusion_planner_post_targeted_safety_support_boundary.py
+camp_core/tests/test_diffusion_planner_post_targeted_safety_support_boundary.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_post_targeted_safety_support_boundary.py \
+         camp_core\tests\test_diffusion_planner_targeted_safety_support_tiny_runbook.py \
+         camp_core\tests\test_diffusion_planner_temporal_consistency_shadow_safety_proxy.py \
+         camp_core\tests\test_diffusion_planner_post_pause_source_family_ledger.py -q
+  result=18 passed
+
+AutoDL:
+  CAMP HEAD=a86035e56745e926a1979b98aac852e73285177e
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest result=18 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+TARGET=/root/autodl-tmp/camp_dp_targeted_safety_support_tiny_e63f385/audit/alternative_safety_source_materiality.json
+TEMPORAL=$DEV/temporal_consistency_shadow_safety_proxy_db49745/temporal_consistency_shadow_safety_proxy.json
+LEDGER=$DEV/post_pause_source_family_ledger_3e6e7fa/post_pause_source_family_ledger.json
+STRICT=$DEV/targeted_source_route_closure_post_ledger_strict_b0de93f/targeted_source_route_closure.json
+OUT=$DEV/post_targeted_safety_support_boundary_a86035e
+
+$PY scripts/integrations/plan_diffusion_planner_post_targeted_safety_support_boundary.py \
+  --targeted_safety_materiality_json "$TARGET" \
+  --temporal_safety_proxy_json "$TEMPORAL" \
+  --source_family_ledger_json "$LEDGER" \
+  --strict_source_closure_json "$STRICT" \
+  --label autodl_a86035e_post_targeted_safety_support_boundary \
+  --output_json "$OUT/post_targeted_safety_support_boundary.json" \
+  --output_md "$OUT/post_targeted_safety_support_boundary.md" \
+  --require_pass
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_targeted_safety_support_boundary_a86035e/post_targeted_safety_support_boundary.json` | `05912d2c9ab1a25e82ad79eec57ab00e742bf8eb390d04d87f10995af9d2ee18` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_targeted_safety_support_boundary_a86035e/post_targeted_safety_support_boundary.md` | `9a144aba3c6060423cf73f3f4e3c3ce4615edefb99630a343ed7f2ee9219682b` |
+
+Decision:
+
+```text
+status=post_targeted_safety_support_boundary_ready
+passed=True
+selector_route_paused=True
+support_source_ready=False
+current_camp_dp_selector_route_rejected=True
+authorized_next_work=new_current_tick_source_visibility_predeclaration_or_keep_selector_route_paused_only
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Accept this boundary. It closes the loop opened by the targeted safety-support
+tiny execution: repeating red/clearance-only materiality, temporal-consistency
+weight scans, external-context signal/route-speed sources, or closed observable
+interaction families is not admissible progress. The current fixed-DP CAMP
+selector route remains paused until a genuinely new current-tick source is
+predeclared with visibility, non-equivalence, atomization, latency, and
+existing-log evidence.
+
+Mathematical boundary:
+
+The gate creates no atom and runs no selector. A future source must still be a
+fixed current-tick finite-candidate coefficient `a_k`, nonnegative, hinged, or
+signed-split, so `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2
+master remains convex. No DP-side classical Benders decomposition is claimed.
+
+Next admissible work:
+
+Do not run a new replay yet. Either keep the selector route paused, or
+predeclare one materially new current-tick source-visibility candidate that is
+not equivalent to closed families and does not require DP modification. The
+predeclaration must justify why existing logs can or cannot test the source
+before any smoke, atomization, CAMP retraining, online selector change, Full36,
+or formal seeds are considered.
