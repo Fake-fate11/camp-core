@@ -90,6 +90,13 @@ from camp_core.integrations.diffusion_planner_external_context_payload import ( 
     EXTERNAL_CONTEXT_PAYLOAD_SCHEMA_VERSION,
     build_external_context_payload,
 )
+from camp_core.integrations.diffusion_planner_temporal_consistency_payload import (  # noqa: E402
+    TEMPORAL_CONSISTENCY_PAYLOAD_ATOM_CANDIDATE_NAMES,
+    TEMPORAL_CONSISTENCY_PAYLOAD_FIELD_NAMES,
+    TEMPORAL_CONSISTENCY_PAYLOAD_LATENCY_KEYS,
+    TEMPORAL_CONSISTENCY_PAYLOAD_SCHEMA_VERSION,
+    build_temporal_consistency_payload,
+)
 from camp_core.atoms.driver_atoms import (  # noqa: E402
     exact_centerline_slice_for_candidates,
 )
@@ -712,6 +719,44 @@ def parse_args() -> argparse.Namespace:
         help="Time step used for external-context payload speed/arrival logging.",
     )
     parser.add_argument(
+        "--camp_temporal_consistency_payload_logging",
+        action="store_true",
+        help=(
+            "Default-off no-leak logging of current-tick candidate RMS "
+            "deviation from the previous tick selected planned trajectory. "
+            "This records diagnostics only and does not change feasibility, "
+            "scores, candidates, tracker execution, atom schema, CAMP weights, "
+            "or selection."
+        ),
+    )
+    parser.add_argument(
+        "--camp_temporal_consistency_payload_steps",
+        type=int,
+        default=10,
+        help="Candidate prefix steps for temporal-consistency payload logging.",
+    )
+    parser.add_argument(
+        "--camp_temporal_consistency_payload_dt_s",
+        type=float,
+        default=0.1,
+        help="Time step used for temporal-consistency payload logging.",
+    )
+    parser.add_argument(
+        "--camp_temporal_consistency_payload_elapsed_steps",
+        type=int,
+        default=1,
+        help=(
+            "Planner samples to drop from the previous selected plan before "
+            "temporal-consistency comparison."
+        ),
+    )
+    parser.add_argument(
+        "--camp_temporal_consistency_payload_min_overlap_steps",
+        type=int,
+        default=2,
+        help="Minimum overlap steps required for temporal-consistency payload availability.",
+    )
+    parser.add_argument(
         "--camp_splice_shadow_rule",
         action="store_true",
         help=(
@@ -979,6 +1024,23 @@ def _validate_args(args: argparse.Namespace) -> None:
     ):
         raise ValueError(
             "--camp_external_context_payload_dt_s must be finite and positive."
+        )
+    if args.camp_temporal_consistency_payload_steps < 2:
+        raise ValueError("--camp_temporal_consistency_payload_steps must be >= 2.")
+    if (
+        not np.isfinite(args.camp_temporal_consistency_payload_dt_s)
+        or args.camp_temporal_consistency_payload_dt_s <= 0.0
+    ):
+        raise ValueError(
+            "--camp_temporal_consistency_payload_dt_s must be finite and positive."
+        )
+    if args.camp_temporal_consistency_payload_elapsed_steps < 0:
+        raise ValueError(
+            "--camp_temporal_consistency_payload_elapsed_steps must be nonnegative."
+        )
+    if args.camp_temporal_consistency_payload_min_overlap_steps < 2:
+        raise ValueError(
+            "--camp_temporal_consistency_payload_min_overlap_steps must be >= 2."
         )
     splice_shadow_budgets = (
         args.camp_splice_shadow_progress_loss_budget_m,
@@ -3854,6 +3916,11 @@ def _install_camp_predictor(
     external_context_payload_logging: bool,
     external_context_payload_steps: int,
     external_context_payload_dt_s: float,
+    temporal_consistency_payload_logging: bool,
+    temporal_consistency_payload_steps: int,
+    temporal_consistency_payload_dt_s: float,
+    temporal_consistency_payload_elapsed_steps: int,
+    temporal_consistency_payload_min_overlap_steps: int,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -3873,6 +3940,7 @@ def _install_camp_predictor(
     records: list[dict[str, Any]] = []
     metric_records: list[dict[str, Any]] = []
     evaluation_records: list[dict[str, Any]] = []
+    previous_selected_plan_memory: np.ndarray | None = None
 
     def camp_predict(
         model,
@@ -3885,6 +3953,7 @@ def _install_camp_predictor(
         inference_delay=0,
         turn_indicator_keep_bias=0.25,
     ):
+        nonlocal previous_selected_plan_memory
         base = original_predict(
             model,
             model_args,
@@ -4128,6 +4197,10 @@ def _install_camp_predictor(
         external_context_payload_logging_payload = None
         external_context_payload_latency_ms = {
             key: 0.0 for key in EXTERNAL_CONTEXT_PAYLOAD_LATENCY_KEYS
+        }
+        temporal_consistency_payload_logging_payload = None
+        temporal_consistency_payload_latency_ms = {
+            key: 0.0 for key in TEMPORAL_CONSISTENCY_PAYLOAD_LATENCY_KEYS
         }
         route_centerline_ego = None
         if (
@@ -4377,6 +4450,22 @@ def _install_camp_predictor(
             external_context_payload_latency_ms = (
                 external_context_payload_logging_payload["latency_ms"]
             )
+        if temporal_consistency_payload_logging:
+            temporal_consistency_payload_logging_payload = (
+                build_temporal_consistency_payload(
+                    candidates=candidates,
+                    previous_selected_plan=previous_selected_plan_memory,
+                    support_steps=temporal_consistency_payload_steps,
+                    dt_s=temporal_consistency_payload_dt_s,
+                    elapsed_steps=temporal_consistency_payload_elapsed_steps,
+                    min_overlap_steps=(
+                        temporal_consistency_payload_min_overlap_steps
+                    ),
+                )
+            )
+            temporal_consistency_payload_latency_ms = (
+                temporal_consistency_payload_logging_payload["latency_ms"]
+            )
         if lexicographic_progress_epsilon_m is not None:
             if candidate_progress is None or candidate_planned_red_light_cost is None:
                 raise RuntimeError(
@@ -4605,6 +4694,7 @@ def _install_camp_predictor(
             **turn_logit_payload_latency_ms,
             **non_turn_logit_interaction_payload_latency_ms,
             **external_context_payload_latency_ms,
+            **temporal_consistency_payload_latency_ms,
             "latency_ms_context_and_obstacles": (
                 context_and_obstacles_done - lateral_comfort_done
             )
@@ -4716,6 +4806,10 @@ def _install_camp_predictor(
 
         selected_trajectory = candidates[selected_index]
         predictions[ego_id] = selected_trajectory
+        previous_selected_plan_memory = np.asarray(
+            selected_trajectory,
+            dtype=np.float64,
+        ).copy()
         state = _evaluation_state(scene, ego_id)
         state["step"] = len(evaluation_records)
         evaluation_records.append(state)
@@ -4922,6 +5016,9 @@ def _install_camp_predictor(
                 ),
                 "external_context_payload_logging": (
                     external_context_payload_logging_payload
+                ),
+                "temporal_consistency_payload_logging": (
+                    temporal_consistency_payload_logging_payload
                 ),
                 "candidate_obstacle_clearance": candidate_obstacle_clearance,
                 "candidate_step_reach": (
@@ -5205,6 +5302,21 @@ def main() -> None:
             ),
             external_context_payload_steps=args.camp_external_context_payload_steps,
             external_context_payload_dt_s=args.camp_external_context_payload_dt_s,
+            temporal_consistency_payload_logging=bool(
+                args.camp_temporal_consistency_payload_logging
+            ),
+            temporal_consistency_payload_steps=(
+                args.camp_temporal_consistency_payload_steps
+            ),
+            temporal_consistency_payload_dt_s=(
+                args.camp_temporal_consistency_payload_dt_s
+            ),
+            temporal_consistency_payload_elapsed_steps=(
+                args.camp_temporal_consistency_payload_elapsed_steps
+            ),
+            temporal_consistency_payload_min_overlap_steps=(
+                args.camp_temporal_consistency_payload_min_overlap_steps
+            ),
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
             ),
@@ -6046,6 +6158,124 @@ def main() -> None:
         if records is not None
         else None
     )
+    camp_temporal_consistency_payload_logging = (
+        {
+            "schema_version": TEMPORAL_CONSISTENCY_PAYLOAD_SCHEMA_VERSION,
+            "enabled": bool(args.camp_temporal_consistency_payload_logging),
+            "default_off": True,
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "closed_loop_outcome_fields_read": False,
+            "online_selector_change": False,
+            "deployed_atom_vector_change": False,
+            "authorized_stage": (
+                "default_off_temporal_consistency_payload_runtime_preflight_only"
+            ),
+            "logged_field": "temporal_consistency_payload_logging",
+            "fields": list(TEMPORAL_CONSISTENCY_PAYLOAD_FIELD_NAMES),
+            "atom_candidate_names": list(
+                TEMPORAL_CONSISTENCY_PAYLOAD_ATOM_CANDIDATE_NAMES
+            ),
+            "latency_fields": list(TEMPORAL_CONSISTENCY_PAYLOAD_LATENCY_KEYS),
+            "records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if record.get("temporal_consistency_payload_logging")
+                        is not None
+                    )
+                )
+                if args.camp_temporal_consistency_payload_logging
+                else 0
+            ),
+            "available_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get("temporal_consistency_payload_logging")
+                            is not None
+                            and record[
+                                "temporal_consistency_payload_logging"
+                            ].get("available")
+                            is True
+                        )
+                    )
+                )
+                if args.camp_temporal_consistency_payload_logging
+                else 0
+            ),
+            "invalid_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get("temporal_consistency_payload_logging")
+                            is not None
+                            and not record[
+                                "temporal_consistency_payload_logging"
+                            ]
+                            .get("finite_checks", {})
+                            .get("payload_valid", False)
+                        )
+                    )
+                )
+                if args.camp_temporal_consistency_payload_logging
+                else 0
+            ),
+            "first_tick_fail_closed_records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if (
+                            record.get("temporal_consistency_payload_logging")
+                            is not None
+                            and record[
+                                "temporal_consistency_payload_logging"
+                            ].get("availability_reason")
+                            == "previous_selected_plan_absent"
+                        )
+                    )
+                )
+                if args.camp_temporal_consistency_payload_logging
+                else 0
+            ),
+            "latency_ms": (
+                {
+                    key: _summary(
+                        [
+                            float(record[key])
+                            for record in records
+                            if key in record and record[key] is not None
+                        ]
+                    )
+                    for key in TEMPORAL_CONSISTENCY_PAYLOAD_LATENCY_KEYS
+                }
+                if args.camp_temporal_consistency_payload_logging
+                else None
+            ),
+            "definition": (
+                "default-off current-tick candidate RMS deviation from the "
+                "previous tick selected planned trajectory after shifting by "
+                "elapsed planner samples"
+            ),
+            "math_boundary": (
+                "The temporal consistency field is a fixed finite-candidate "
+                "coefficient when available and is nonnegative by construction. "
+                "Missing previous-plan memory fails closed. If later atomized "
+                "after a separate gate, CAMP score remains affine in weights "
+                "and the simplex/CVaR/L2 master remains convex. No DP-side "
+                "classical Benders claim is made."
+            ),
+            "classical_benders_claim": False,
+        }
+        if records is not None
+        else None
+    )
     finite_candidate_contract = _dp_camp_finite_candidate_contract(
         selector_mode=args.camp_selector_mode,
         num_candidates=args.num_candidates,
@@ -6112,6 +6342,9 @@ def main() -> None:
         ),
         "camp_external_context_payload_logging": (
             camp_external_context_payload_logging
+        ),
+        "camp_temporal_consistency_payload_logging": (
+            camp_temporal_consistency_payload_logging
         ),
         "camp_splice_shadow_rule": effective_splice_shadow_rule,
         "camp_traffic_light_hybrid_postselection": (
@@ -6418,6 +6651,9 @@ def main() -> None:
     )
     validation["camp_external_context_payload_logging"] = (
         camp_external_context_payload_logging
+    )
+    validation["camp_temporal_consistency_payload_logging"] = (
+        camp_temporal_consistency_payload_logging
     )
     validation["camp_splice_shadow_rule"] = effective_splice_shadow_rule
     validation["camp_traffic_light_hybrid_postselection"] = (

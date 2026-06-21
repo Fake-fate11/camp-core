@@ -51,6 +51,7 @@ REPLAY_METADATA_FIELDS = (
     "camp_shadow_perfect_tracker_command",
     "camp_shadow_perfect_tracker_open_loop_rollout",
     "camp_shadow_full_horizon_red_light",
+    "camp_temporal_consistency_payload_logging",
     "selector_mode",
     "camp_fallback_mode",
     "advance_mode",
