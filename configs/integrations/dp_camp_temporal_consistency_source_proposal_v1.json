@@ -1,0 +1,29 @@
+{
+  "proposals": [
+    {
+      "name": "previous_plan_temporal_consistency_source_v1",
+      "source_family": "closed_loop_plan_memory_temporal_consistency",
+      "score_family": "temporal_consistency_atom_family",
+      "current_tick_available": true,
+      "candidate_level": true,
+      "finite": true,
+      "deterministic": true,
+      "available_before_selection": true,
+      "uses_future_outcome_labels": false,
+      "requires_dp_modification": false,
+      "requires_replay_to_compute": false,
+      "requires_training_to_compute": false,
+      "equivalent_to_closed_family": false,
+      "atom_value_domain": "nonnegative",
+      "runtime_definition": "For candidate k at tick t, align the previous tick's selected planned trajectory after one simulator step with the current candidate horizon, then compute a finite nonnegative L2/RMS deviation over matched ego poses. If no previous selected plan exists, the source must fail closed or emit a documented neutral default before any selector promotion.",
+      "non_equivalence_evidence": [
+        "not DP Top-1 retention because the reference is the previous selected plan state, not the current DP ranking",
+        "not route/progress/lane-hard because it measures temporal plan continuity against prior selector memory, not map progress or lane relation",
+        "not candidate-set shape support because it compares each candidate to the prior selected trajectory, not to the current candidate ensemble distribution",
+        "not postprocess/tracker distortion because it does not compare raw and postprocessed versions of the same candidate",
+        "not traffic-signal or external-context because it uses no signal phase, right-of-way, or future outcome labels"
+      ],
+      "rationale": "Industrial planners often need temporal hysteresis to avoid candidate flicker. This source is current-tick, finite-candidate, nonnegative, and stateful only through previously selected planning output already known before current selection. Once atomized as a fixed coefficient a_k, CAMP scoring remains affine score_k(w)=a_k^T w and the simplex/CVaR/L2 master remains convex. This proposal only authorizes a default-off payload design gate, not replay, training, online selector promotion, Full36, formal seeds, DP modification, or a DP-side classical Benders claim."
+    }
+  ]
+}
