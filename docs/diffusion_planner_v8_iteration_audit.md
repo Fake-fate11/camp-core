@@ -49943,3 +49943,160 @@ atomized, it must be a fixed coefficient `a_k`, nonnegative or represented by
 nonnegative signed parts, preserving `score_k(w)=a_k^T w` and the convex
 simplex/CVaR/L2 master. No DP-side classical Benders decomposition, dual, or
 valid cut is claimed.
+
+## Missing Candidate-State Tiny Smoke Plan (`8f47b0c`)
+
+Purpose:
+
+The `efd9ccd` implementation gate authorized only a plan for the first tiny
+paired nonformal smoke. This step adds a current-chain plan-only gate that
+consumes the implementation artifact, reuses the existing paired replay,
+selector-log equivalence, payload audit, and finite-candidate dataset audit
+tools, and emits exact baseline/candidate commands for a three-step nonformal
+smoke. It does not run the smoke itself. Full36, formal seeds, online selector
+promotion, CAMP retraining, and DP modification remain blocked.
+
+Implementation:
+
+```text
+8f47b0c Add missing candidate-state tiny smoke plan gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_missing_candidate_state_tiny_smoke.py
+camp_core/tests/test_diffusion_planner_missing_candidate_state_tiny_smoke_plan.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_tiny_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_logging_implementation.py \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_logging_preflight.py \
+  camp_core\tests\test_diffusion_planner_post_inventory_next_design.py \
+  camp_core\tests\test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core\tests\test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_design.py \
+  camp_core\tests\test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_smoke.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_coverage_plan.py -q
+45 passed in 1.34s
+
+git diff --check
+```
+
+AutoDL sync and validation:
+
+```text
+CAMP_HEAD=8f47b0cf854f85816b51050cfbdc3352c75e7b0b
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_tiny_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_logging_implementation.py \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_logging_preflight.py \
+  camp_core/tests/test_diffusion_planner_post_inventory_next_design.py \
+  camp_core/tests/test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core/tests/test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_design.py \
+  camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_coverage_plan.py -q
+45 passed in 0.69s
+```
+
+Plan command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+IMPL=$ROOT/missing_candidate_state_logging_implementation_efd9ccd/missing_candidate_state_logging_implementation.json
+OUT=$ROOT/missing_candidate_state_tiny_smoke_plan_8f47b0c
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_missing_candidate_state_tiny_smoke.py \
+  --implementation_json "$IMPL" \
+  --label autodl_8f47b0c_missing_candidate_state_tiny_smoke_plan \
+  --output_json "$OUT/missing_candidate_state_tiny_smoke_plan.json" \
+  --output_md "$OUT/missing_candidate_state_tiny_smoke_plan.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_tiny_smoke_plan_8f47b0c/missing_candidate_state_tiny_smoke_plan.json
+sha256=f9b8ae9f85b0faeada166bee0e1edc29ef920c5e3a0ba109cb44c638dd78fc42
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_tiny_smoke_plan_8f47b0c/missing_candidate_state_tiny_smoke_plan.md
+sha256=25e4d8eac713b376950c27c0c385778514360f18704c2d39561432fc4b5dd884
+```
+
+Final decision:
+
+```text
+status=missing_candidate_state_logging_tiny_smoke_plan_ready
+passed=True
+authorized_next_work=default_off_missing_candidate_state_logging_paired_three_step_smoke_only
+closed_loop_replay_authorized=True
+tiny_smoke_authorized=True
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+source_failed=[]
+plan_failed=[]
+training_execution_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Accept criteria for the next run:
+
+```text
+- baseline replay exits 0 without --camp_observable_state_logging
+- candidate replay exits 0 with --camp_observable_state_logging
+- both replays use exactly 3 steps, seed 1, and 8 candidates
+- no path, command, summary, or audit references formal seeds 11/12/13
+- baseline summary reports camp_observable_state_logging.enabled=false
+- candidate summary reports camp_observable_state_logging.enabled=true
+- candidate records contain non-null observable_state_logging payloads
+- payload schema, field shapes, finite checks, latency fields, and no future outcome keys pass audit
+- selector-log equivalence passes for selected_index, feasibility, atoms, scores, and weights
+- dataset audit passes finite-candidate contract checks with closed-loop outcomes forbidden
+```
+
+Rejected routes:
+
+```text
+running beyond the paired three-step nonformal scope
+formal seeds 11/12/13
+Full36
+online selector promotion
+CAMP retraining
+DP modification or retraining
+claiming a DP-side classical Benders decomposition
+```
+
+Next gate:
+
+Run only the paired three-step nonformal smoke commands and audits emitted by
+the `8f47b0c` plan artifact. If selector equivalence, payload audit,
+finite-candidate dataset audit, formal-seed exclusion, or command scope fails,
+reject the route and do not broaden. If the tiny smoke passes, document runtime
+latency and authorize only the next smallest coverage plan.
+
+Mathematical boundary:
+
+The planned smoke only toggles default-off logging for fixed current-tick
+finite-candidate descriptors. It must not change DP candidates, CAMP atoms,
+scores, feasibility, selected index, `postprocess_reference`, or PerfectTracker
+execution. If descriptors are later atomized, they enter CAMP as fixed
+candidate coefficients `a_k`, preserving `score_k(w)=a_k^T w` and the
+simplex/CVaR/L2 convex master. This is not a DP-side classical Benders
+decomposition.
