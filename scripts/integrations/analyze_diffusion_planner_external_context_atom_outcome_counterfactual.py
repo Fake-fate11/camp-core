@@ -299,17 +299,32 @@ def _counterfactual_row(
         selected,
         progress_loss_budget_m=progress_loss_budget_m,
     )
+    selected_preserving_guarded = _selected_preserving_guarded_atom_best_index(
+        combined,
+        route_progress,
+        selected,
+        progress_loss_budget_m=progress_loss_budget_m,
+    )
     guarded_cost = float(components[guarded_atom_best]["cost"])
+    selected_preserving_cost = float(components[selected_preserving_guarded]["cost"])
     guarded_progress = _outcome_float(outcomes[guarded_atom_best], "progress_m")
+    selected_preserving_progress = _outcome_float(
+        outcomes[selected_preserving_guarded],
+        "progress_m",
+    )
     return {
         "record_index": index,
         "passed": True,
         "selected_index": selected,
         "atom_best_index": int(atom_best),
         "guarded_atom_best_index": int(guarded_atom_best),
+        "selected_preserving_guarded_atom_best_index": int(selected_preserving_guarded),
         "top1_index": top1,
         "would_change_selected_index": bool(atom_best != selected),
         "guarded_would_change_selected_index": bool(guarded_atom_best != selected),
+        "selected_preserving_guarded_would_change_selected_index": bool(
+            selected_preserving_guarded != selected
+        ),
         "ranking_signal_present": bool(combined and max(combined) > min(combined)),
         "combined_atom_score": combined,
         "candidate_route_progress": route_progress,
@@ -318,20 +333,33 @@ def _counterfactual_row(
             "selected": selected_cost,
             "atom_best": atom_cost,
             "guarded_atom_best": guarded_cost,
+            "selected_preserving_guarded_atom_best": selected_preserving_cost,
             "top1": top1_cost,
         },
         "deltas": {
             "atom_best_minus_selected_cost": atom_cost - selected_cost,
             "guarded_atom_best_minus_selected_cost": guarded_cost - selected_cost,
+            "selected_preserving_guarded_atom_best_minus_selected_cost": (
+                selected_preserving_cost - selected_cost
+            ),
             "atom_best_minus_top1_cost": atom_cost - top1_cost,
             "guarded_atom_best_minus_top1_cost": guarded_cost - top1_cost,
+            "selected_preserving_guarded_atom_best_minus_top1_cost": (
+                selected_preserving_cost - top1_cost
+            ),
             "selected_minus_top1_cost": selected_cost - top1_cost,
             "atom_best_progress_minus_selected_m": atom_progress - selected_progress,
             "guarded_atom_best_progress_minus_selected_m": (
                 guarded_progress - selected_progress
             ),
+            "selected_preserving_guarded_atom_best_progress_minus_selected_m": (
+                selected_preserving_progress - selected_progress
+            ),
             "guarded_route_progress_minus_selected_m": (
                 route_progress[guarded_atom_best] - route_progress[selected]
+            ),
+            "selected_preserving_guarded_route_progress_minus_selected_m": (
+                route_progress[selected_preserving_guarded] - route_progress[selected]
             ),
         },
         "relations": {
@@ -357,11 +385,26 @@ def _counterfactual_row(
                 outcomes[guarded_atom_best],
                 outcomes[selected],
             ),
+            "selected_preserving_guarded_atom_best_better_than_selected": (
+                selected_preserving_cost < selected_cost - EPS
+            ),
+            "selected_preserving_guarded_atom_best_noninferior_to_selected": (
+                selected_preserving_cost <= selected_cost + EPS
+            ),
+            "selected_preserving_guarded_atom_best_progress_within_budget": (
+                selected_preserving_progress + progress_loss_budget_m >= selected_progress
+            ),
+            "selected_preserving_guarded_atom_best_hard_nonworse_than_selected": (
+                _hard_nonworse(outcomes[selected_preserving_guarded], outcomes[selected])
+            ),
         },
         "component_costs": {
             "selected": components[selected],
             "atom_best": components[atom_best],
             "guarded_atom_best": components[guarded_atom_best],
+            "selected_preserving_guarded_atom_best": components[
+                selected_preserving_guarded
+            ],
             "top1": components[top1],
         },
         "future_outcome_labels_used_for_atoms": False,
@@ -411,15 +454,52 @@ def _guarded_atom_best_index(
     return int(best)
 
 
+def _selected_preserving_guarded_atom_best_index(
+    scores: list[float],
+    route_progress: list[float],
+    selected_index: int,
+    *,
+    progress_loss_budget_m: float,
+) -> int:
+    selected_progress = route_progress[selected_index]
+    eligible = [
+        index
+        for index, progress in enumerate(route_progress)
+        if progress + progress_loss_budget_m >= selected_progress
+    ]
+    if not eligible:
+        return selected_index
+    best_score = min(float(scores[index]) for index in eligible)
+    selected_score = float(scores[selected_index])
+    if selected_index in eligible and selected_score <= best_score + EPS:
+        return selected_index
+    best = eligible[0]
+    best_value = float(scores[best])
+    for index in eligible[1:]:
+        value = float(scores[index])
+        if value < best_value:
+            best = index
+            best_value = value
+    return int(best)
+
+
 def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     valid = [row for row in rows if row.get("passed")]
     deltas = [float(row["deltas"]["atom_best_minus_selected_cost"]) for row in valid]
     guarded_deltas = [
         float(row["deltas"]["guarded_atom_best_minus_selected_cost"]) for row in valid
     ]
+    selected_preserving_deltas = [
+        float(row["deltas"]["selected_preserving_guarded_atom_best_minus_selected_cost"])
+        for row in valid
+    ]
     changed = [row for row in valid if row["would_change_selected_index"]]
     guarded_changed = [
         row for row in valid if row["guarded_would_change_selected_index"]
+    ]
+    selected_preserving_changed = [
+        row for row in valid
+        if row["selected_preserving_guarded_would_change_selected_index"]
     ]
     better = [row for row in valid if row["relations"]["atom_best_better_than_selected"]]
     noninferior = [row for row in valid if row["relations"]["atom_best_noninferior_to_selected"]]
@@ -439,11 +519,36 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         row for row in valid
         if row["relations"]["guarded_atom_best_progress_within_budget"]
     ]
+    selected_preserving_better = [
+        row for row in valid
+        if row["relations"][
+            "selected_preserving_guarded_atom_best_better_than_selected"
+        ]
+    ]
+    selected_preserving_noninferior = [
+        row for row in valid
+        if row["relations"][
+            "selected_preserving_guarded_atom_best_noninferior_to_selected"
+        ]
+    ]
+    selected_preserving_hard = [
+        row for row in valid
+        if row["relations"][
+            "selected_preserving_guarded_atom_best_hard_nonworse_than_selected"
+        ]
+    ]
+    selected_preserving_progress = [
+        row for row in valid
+        if row["relations"][
+            "selected_preserving_guarded_atom_best_progress_within_budget"
+        ]
+    ]
     return {
         "records": len(rows),
         "valid_records": len(valid),
         "changed_records": len(changed),
         "guarded_changed_records": len(guarded_changed),
+        "selected_preserving_guarded_changed_records": len(selected_preserving_changed),
         "ranking_signal_records": sum(int(row["ranking_signal_present"]) for row in valid),
         "atom_best_better_records": len(better),
         "atom_best_noninferior_records": len(noninferior),
@@ -453,10 +558,28 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "guarded_atom_best_noninferior_records": len(guarded_noninferior),
         "guarded_atom_best_hard_nonworse_records": len(guarded_hard),
         "guarded_atom_best_progress_within_budget_records": len(guarded_progress),
+        "selected_preserving_guarded_atom_best_better_records": len(
+            selected_preserving_better
+        ),
+        "selected_preserving_guarded_atom_best_noninferior_records": len(
+            selected_preserving_noninferior
+        ),
+        "selected_preserving_guarded_atom_best_hard_nonworse_records": len(
+            selected_preserving_hard
+        ),
+        "selected_preserving_guarded_atom_best_progress_within_budget_records": len(
+            selected_preserving_progress
+        ),
         "atom_best_minus_selected_cost_mean": _mean(deltas),
         "guarded_atom_best_minus_selected_cost_mean": _mean(guarded_deltas),
+        "selected_preserving_guarded_atom_best_minus_selected_cost_mean": _mean(
+            selected_preserving_deltas
+        ),
         "atom_best_minus_selected_cost_values": deltas,
         "guarded_atom_best_minus_selected_cost_values": guarded_deltas,
+        "selected_preserving_guarded_atom_best_minus_selected_cost_values": (
+            selected_preserving_deltas
+        ),
     }
 
 
@@ -473,6 +596,21 @@ def _final_decision(passed: bool, summary: dict[str, Any]) -> dict[str, Any]:
     )
     guarded_progress_all = (
         valid > 0 and summary["guarded_atom_best_progress_within_budget_records"] == valid
+    )
+    selected_preserving_noninferior_all = (
+        valid > 0
+        and summary["selected_preserving_guarded_atom_best_noninferior_records"] == valid
+    )
+    selected_preserving_hard_all = (
+        valid > 0
+        and summary["selected_preserving_guarded_atom_best_hard_nonworse_records"] == valid
+    )
+    selected_preserving_progress_all = (
+        valid > 0
+        and summary[
+            "selected_preserving_guarded_atom_best_progress_within_budget_records"
+        ]
+        == valid
     )
     return {
         "status": READY_STATUS if passed else REJECT_STATUS,
@@ -493,6 +631,11 @@ def _final_decision(passed: bool, summary: dict[str, Any]) -> dict[str, Any]:
         "tiny_counterfactual_noninferior": bool(noninferior_all and hard_all and progress_all),
         "guarded_tiny_counterfactual_noninferior": bool(
             guarded_noninferior_all and guarded_hard_all and guarded_progress_all
+        ),
+        "selected_preserving_guarded_tiny_counterfactual_noninferior": bool(
+            selected_preserving_noninferior_all
+            and selected_preserving_hard_all
+            and selected_preserving_progress_all
         ),
         "next_step": (
             "Use this tiny posterior-label result only to decide whether a "
@@ -517,12 +660,16 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Valid records: `{summary['valid_records']}`",
         f"- Changed records: `{summary['changed_records']}`",
         f"- Guarded changed records: `{summary['guarded_changed_records']}`",
+        f"- Selected-preserving guarded changed records: `{summary['selected_preserving_guarded_changed_records']}`",
         f"- Atom-best better records: `{summary['atom_best_better_records']}`",
         f"- Guarded atom-best better records: `{summary['guarded_atom_best_better_records']}`",
+        f"- Selected-preserving guarded atom-best better records: `{summary['selected_preserving_guarded_atom_best_better_records']}`",
         f"- Atom-best noninferior records: `{summary['atom_best_noninferior_records']}`",
         f"- Guarded atom-best noninferior records: `{summary['guarded_atom_best_noninferior_records']}`",
+        f"- Selected-preserving guarded atom-best noninferior records: `{summary['selected_preserving_guarded_atom_best_noninferior_records']}`",
         f"- Mean atom-best minus selected SafetyCost: `{summary['atom_best_minus_selected_cost_mean']}`",
         f"- Mean guarded atom-best minus selected SafetyCost: `{summary['guarded_atom_best_minus_selected_cost_mean']}`",
+        f"- Mean selected-preserving guarded atom-best minus selected SafetyCost: `{summary['selected_preserving_guarded_atom_best_minus_selected_cost_mean']}`",
         "",
         "## Record Effects",
         "",
@@ -535,8 +682,10 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"- record `{row['record_index']}`: selected=`{row['selected_index']}`, "
             f"atom_best=`{row['atom_best_index']}`, "
             f"guarded_atom_best=`{row['guarded_atom_best_index']}`, "
+            f"selected_preserving_guarded_atom_best=`{row['selected_preserving_guarded_atom_best_index']}`, "
             f"delta_cost=`{row['deltas']['atom_best_minus_selected_cost']}`, "
             f"guarded_delta_cost=`{row['deltas']['guarded_atom_best_minus_selected_cost']}`, "
+            f"selected_preserving_guarded_delta_cost=`{row['deltas']['selected_preserving_guarded_atom_best_minus_selected_cost']}`, "
             f"hard_nonworse=`{row['relations']['atom_best_hard_nonworse_than_selected']}`"
         )
     lines.extend(["", "## Math Boundary", "", report["analysis"]["math_boundary"], ""])

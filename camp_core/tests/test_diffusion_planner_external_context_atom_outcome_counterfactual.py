@@ -159,6 +159,55 @@ def test_external_context_atom_outcome_counterfactual_progress_guard_retains_sel
     assert report["final_decision"]["guarded_tiny_counterfactual_noninferior"] is True
 
 
+def test_external_context_atom_outcome_counterfactual_selected_preserving_tie_break(
+    tmp_path: Path,
+) -> None:
+    record = {
+        "seed": 1,
+        "num_candidates": 3,
+        "selected_index": 2,
+        "feasible_mask": [True, True, True],
+        "candidate_horizon_union_planned_red_light_cost": [0.0, 1.0, 0.0],
+        "candidate_route_progress": [0.0, 10.0, 10.0],
+        "external_context_payload_logging": {
+            "candidate_count": 3,
+            "candidate_first_signal_arrival_time_s": [None, 2.0, 2.0],
+            "candidate_right_of_way_blocked_indicator": [0.0, 1.0, 1.0],
+            "finite_checks": {"payload_valid": True},
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "closed_loop_outcome_fields_read": False,
+        },
+        "candidate_closed_loop_outcomes": [
+            _outcome(0, progress=0.0, jerk=1.0, lateral=0.5),
+            _outcome(1, progress=10.0, jerk=1.0, lateral=0.5, red=True),
+            _outcome(2, progress=10.0, jerk=1.0, lateral=0.5),
+        ],
+    }
+    candidate_root = tmp_path / "candidate"
+    _write_log(candidate_root, record)
+
+    report = analyze(
+        atomization=_atomization(),
+        candidate_root=candidate_root,
+        expected_records=1,
+        expected_candidates=3,
+        progress_loss_budget_m=0.1,
+    )
+
+    row = report["counterfactual_rows"][0]
+    assert row["atom_best_index"] == 0
+    assert row["guarded_atom_best_index"] == 1
+    assert row["selected_preserving_guarded_atom_best_index"] == 2
+    assert row["guarded_would_change_selected_index"] is True
+    assert row["selected_preserving_guarded_would_change_selected_index"] is False
+    assert report["summary"]["guarded_changed_records"] == 1
+    assert report["summary"]["selected_preserving_guarded_changed_records"] == 0
+    assert report["final_decision"][
+        "selected_preserving_guarded_tiny_counterfactual_noninferior"
+    ] is True
+
+
 def test_external_context_atom_outcome_counterfactual_rejects_source_not_ready(
     tmp_path: Path,
 ) -> None:
