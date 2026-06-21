@@ -66,6 +66,9 @@ def test_targeted_safety_support_tiny_runbook_accepts_design() -> None:
     assert report["analysis"]["label"] == "unit"
     assert "score_k(w)=a_k^T w" in report["analysis"]["math_boundary"]
     assert len(report["commands"]["replays"]) == 5
+    materiality_command = report["commands"]["materiality_audit"]
+    assert "--availability_mode" in materiality_command
+    assert "candidate_safety_fields" in materiality_command
     assert any(
         row["route_name"] == "nishishinjuku_lane_change"
         for row in report["runbook_manifest"]["rows"]

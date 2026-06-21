@@ -21,6 +21,12 @@ READY_STATUS = "alternative_safety_source_materiality_ready"
 REJECT_STATUS = "alternative_safety_source_materiality_rejected"
 EXISTING_SOURCE_NEXT_WORK = "predeclare_no_leak_atom_schema_from_existing_safety_source_only"
 TARGETED_SUPPORT_NEXT_WORK = "targeted_safety_support_scenario_or_source_design_only"
+AVAILABILITY_TEMPORAL_PAYLOAD = "temporal_payload"
+AVAILABILITY_CANDIDATE_SAFETY_FIELDS = "candidate_safety_fields"
+AVAILABILITY_MODES = (
+    AVAILABILITY_TEMPORAL_PAYLOAD,
+    AVAILABILITY_CANDIDATE_SAFETY_FIELDS,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,6 +42,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expected_records", type=int, required=True)
     parser.add_argument("--expected_candidates", type=int, required=True)
     parser.add_argument("--expected_available_records", type=int, required=True)
+    parser.add_argument(
+        "--availability_mode",
+        choices=AVAILABILITY_MODES,
+        default=AVAILABILITY_TEMPORAL_PAYLOAD,
+        help=(
+            "Record availability policy. The default preserves the original "
+            "temporal-consistency smoke contract; targeted support runbooks use "
+            "candidate_safety_fields because they do not enable temporal payloads."
+        ),
+    )
     parser.add_argument("--label", default=None)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
@@ -52,6 +68,7 @@ def main() -> None:
         expected_records=args.expected_records,
         expected_candidates=args.expected_candidates,
         expected_available_records=args.expected_available_records,
+        availability_mode=args.availability_mode,
         label=args.label,
         paths={
             "safety_proxy_json": str(args.safety_proxy_json),
@@ -78,6 +95,7 @@ def analyze(
     expected_records: int,
     expected_candidates: int,
     expected_available_records: int,
+    availability_mode: str = AVAILABILITY_TEMPORAL_PAYLOAD,
     label: str | None = None,
     paths: dict[str, str] | None = None,
 ) -> dict[str, Any]:
@@ -89,6 +107,8 @@ def analyze(
         raise ValueError("expected_candidates must be positive.")
     if expected_available_records < 0:
         raise ValueError("expected_available_records must be nonnegative.")
+    if availability_mode not in AVAILABILITY_MODES:
+        raise ValueError(f"unsupported availability_mode: {availability_mode}")
 
     source = _source_summary(safety_proxy_report)
     logs = _load_selection_logs(candidate_root)
@@ -99,6 +119,7 @@ def analyze(
             record_index=record_index,
             global_index=global_index,
             expected_candidates=expected_candidates,
+            availability_mode=availability_mode,
         )
         for global_index, (run_id, record_index, record) in enumerate(_iter_records(logs))
     ]
@@ -124,6 +145,7 @@ def analyze(
             "diffusion_planner_modification": False,
             "future_outcome_labels_used": False,
             "selection_effect": False,
+            "availability_mode": availability_mode,
             "paths": paths or {},
             "math_boundary": (
                 "This preflight reads existing current-tick candidate proxy "
@@ -166,10 +188,24 @@ def _record_materiality(
     record_index: int,
     global_index: int,
     expected_candidates: int,
+    availability_mode: str,
 ) -> dict[str, Any]:
     errors: list[str] = []
-    payload = record.get("temporal_consistency_payload_logging")
-    available = isinstance(payload, dict) and bool(payload.get("available"))
+    source_rows = []
+    selected_index = _optional_int(record.get("selected_index"))
+    for spec in [item for item in PROXY_SPECS if item.family == "safety"]:
+        vector = _float_vector(_get_path(record, spec.path))
+        if len(vector) == expected_candidates:
+            source_rows.append((spec, vector))
+
+    if availability_mode == AVAILABILITY_TEMPORAL_PAYLOAD:
+        payload = record.get("temporal_consistency_payload_logging")
+        available = isinstance(payload, dict) and bool(payload.get("available"))
+    elif availability_mode == AVAILABILITY_CANDIDATE_SAFETY_FIELDS:
+        available = bool(source_rows)
+    else:
+        raise ValueError(f"unsupported availability_mode: {availability_mode}")
+
     if not available:
         return {
             "run_id": run_id,
@@ -182,10 +218,9 @@ def _record_materiality(
         }
     if record.get("candidate_closed_loop_outcomes") is not None:
         errors.append("candidate_closed_loop_outcomes_present")
-    selected_index = _optional_int(record.get("selected_index"))
     if selected_index is None or selected_index < 0 or selected_index >= expected_candidates:
         errors.append("selected_index_invalid")
-    source_rows = []
+    materiality_rows = []
     for spec in [item for item in PROXY_SPECS if item.family == "safety"]:
         vector = _float_vector(_get_path(record, spec.path))
         if len(vector) != expected_candidates:
@@ -197,7 +232,7 @@ def _record_materiality(
         best_value = min(vector)
         selected_value = vector[selected_index] if selected_index is not None else math.nan
         top1_value = vector[0]
-        source_rows.append(
+        materiality_rows.append(
             {
                 "name": spec.name,
                 "range": max(vector) - min(vector),
@@ -219,7 +254,7 @@ def _record_materiality(
         "selected_index": selected_index,
         "passed": not errors,
         "errors": errors,
-        "safety_sources": source_rows,
+        "safety_sources": materiality_rows,
     }
 
 

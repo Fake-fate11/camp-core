@@ -142,6 +142,30 @@ def test_alternative_safety_source_materiality_routes_to_targeted_support_when_c
     )
 
 
+def test_alternative_safety_source_materiality_can_use_candidate_safety_fields(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "logs"
+    _write_logs(root, selected_index=0, red_values=[1.0, 0.0])
+
+    report = analyze(
+        safety_proxy_report=_safety_proxy_report(),
+        candidate_root=root,
+        expected_logs=2,
+        expected_records=4,
+        expected_candidates=2,
+        expected_available_records=2,
+        availability_mode="candidate_safety_fields",
+    )
+
+    decision = report["final_decision"]
+    assert decision["status"] == READY_STATUS
+    assert decision["authorized_next_work"] == EXISTING_SOURCE_NEXT_WORK
+    assert decision["has_actionable_existing_safety_source"] is True
+    assert report["analysis"]["availability_mode"] == "candidate_safety_fields"
+    assert report["materiality_summary"]["available_records"] == 2
+
+
 def test_alternative_safety_source_materiality_rejects_source_not_ready(
     tmp_path: Path,
 ) -> None:
