@@ -37,6 +37,18 @@ PROGRESS_LANE_HARD_CONTEXT_ATOM_NAMES = (
     "lane_progress_coherence_excess_v1",
 )
 
+PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION = (
+    "dp_camp_progress_lane_hard_context_revised_atoms_v1"
+)
+
+PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES = (
+    "route_progress_shortfall_vs_candidate_best_v1",
+    "route_progress_efficiency_shortfall_v1",
+    "heading_progress_conflict_v1",
+    "lateral_rate_progress_conflict_v1",
+    "corridor_progress_conflict_v1",
+)
+
 PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS = (
     "latency_ms_progress_lane_hard_context_logging",
     "latency_ms_progress_lane_hard_context_projection",
@@ -130,6 +142,15 @@ def build_progress_lane_hard_context_logging_payload(
         progress_lateral_rate_gain=float(progress_lateral_rate_gain),
         progress_curvature_gain=float(progress_curvature_gain),
     )
+    revised_atoms = _revised_progress_lane_hard_context_atoms(
+        lateral_error_rate=lateral_error_rate,
+        speed=speed,
+        route_progress_delta=route_progress_delta,
+        corridor_margin=corridor_margin,
+        heading_error=heading_error,
+        dt_s=float(dt_s),
+        corridor_safety_margin_m=float(corridor_safety_margin_m),
+    )
     atom_done = time.perf_counter()
 
     fields = {
@@ -150,6 +171,12 @@ def build_progress_lane_hard_context_logging_payload(
     finite_checks["progress_lane_hard_context_atoms_nonnegative"] = bool(
         np.all(atoms >= -1e-12)
     )
+    finite_checks["revised_progress_lane_hard_context_atoms"] = bool(
+        np.all(np.isfinite(revised_atoms))
+    )
+    finite_checks["revised_progress_lane_hard_context_atoms_nonnegative"] = bool(
+        np.all(revised_atoms >= -1e-12)
+    )
 
     serialization_start = time.perf_counter()
     field_lists = {
@@ -157,6 +184,7 @@ def build_progress_lane_hard_context_logging_payload(
         for name, value in fields.items()
     }
     atom_list = atoms.tolist()
+    revised_atom_list = revised_atoms.tolist()
     serialization_done = time.perf_counter()
 
     latency_ms = (serialization_done - start) * 1000.0
@@ -220,11 +248,20 @@ def build_progress_lane_hard_context_logging_payload(
             PROGRESS_LANE_HARD_CONTEXT_ATOM_NAMES
         ),
         "progress_lane_hard_context_atoms": atom_list,
+        "revised_progress_lane_hard_context_atom_schema_version": (
+            PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION
+        ),
+        "revised_progress_lane_hard_context_atom_names": list(
+            PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES
+        ),
+        "revised_progress_lane_hard_context_atoms": revised_atom_list,
         "math_boundary": (
             "Progress+lane/hard context atoms are fixed finite-candidate "
-            "nonnegative coefficients. CAMP score remains affine in weights: "
-            "score_k(w)=a_k^T w. No global convexity over trajectory "
-            "coordinates and no classical Benders claim is made."
+            "nonnegative coefficients, including revised progress-context "
+            "conflict atoms computed before outcome labels. CAMP score "
+            "remains affine in weights: score_k(w)=a_k^T w. No global "
+            "convexity over trajectory coordinates and no classical Benders "
+            "claim is made."
         ),
         "classical_benders_claim": False,
     }
@@ -362,6 +399,74 @@ def _progress_lane_hard_context_atoms(
             corridor_margin_exhaustion,
             heading_curvature_residual,
             lane_progress_coherence_excess,
+        ],
+        axis=1,
+    )
+    return np.maximum(atoms, 0.0)
+
+
+def _revised_progress_lane_hard_context_atoms(
+    *,
+    lateral_error_rate: np.ndarray,
+    speed: np.ndarray,
+    route_progress_delta: np.ndarray,
+    corridor_margin: np.ndarray,
+    heading_error: np.ndarray,
+    dt_s: float,
+    corridor_safety_margin_m: float,
+) -> np.ndarray:
+    rate_abs = np.abs(np.asarray(lateral_error_rate, dtype=np.float64))
+    speed = np.asarray(speed, dtype=np.float64)
+    progress_delta = np.asarray(route_progress_delta, dtype=np.float64)
+    corridor_margin = np.asarray(corridor_margin, dtype=np.float64)
+    heading_error = np.abs(np.asarray(heading_error, dtype=np.float64))
+    if rate_abs.shape != speed.shape or rate_abs.shape != progress_delta.shape:
+        raise ValueError("rate, speed, and progress-delta profiles must match.")
+    interval_count = progress_delta.shape[1]
+    if corridor_margin.shape[1] < interval_count:
+        raise ValueError("corridor margin horizon is shorter than intervals.")
+    if heading_error.shape[1] < interval_count:
+        raise ValueError("heading horizon is shorter than intervals.")
+
+    total_progress = np.sum(progress_delta, axis=1)
+    route_progress_shortfall = np.maximum(np.max(total_progress) - total_progress, 0.0)
+
+    speed_integral = np.sum(np.maximum(speed, 0.0), axis=1) * float(dt_s)
+    nonnegative_route_progress = np.sum(np.maximum(progress_delta, 0.0), axis=1)
+    route_progress_efficiency_shortfall = np.maximum(
+        speed_integral - nonnegative_route_progress,
+        0.0,
+    )
+
+    interval_progress_shortfall = np.maximum(
+        np.max(progress_delta, axis=0, keepdims=True) - progress_delta,
+        0.0,
+    )
+    heading_interval = heading_error[:, :interval_count]
+    corridor_exhaustion = np.maximum(
+        float(corridor_safety_margin_m) - corridor_margin[:, :interval_count],
+        0.0,
+    )
+
+    heading_progress_conflict = np.max(
+        heading_interval * interval_progress_shortfall,
+        axis=1,
+    )
+    lateral_rate_progress_conflict = np.max(
+        rate_abs * interval_progress_shortfall,
+        axis=1,
+    )
+    corridor_progress_conflict = np.max(
+        corridor_exhaustion * interval_progress_shortfall,
+        axis=1,
+    )
+    atoms = np.stack(
+        [
+            route_progress_shortfall,
+            route_progress_efficiency_shortfall,
+            heading_progress_conflict,
+            lateral_rate_progress_conflict,
+            corridor_progress_conflict,
         ],
         axis=1,
     )

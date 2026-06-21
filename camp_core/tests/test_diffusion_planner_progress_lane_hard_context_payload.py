@@ -15,6 +15,8 @@ from camp_core.integrations.diffusion_planner_progress_lane_hard_context import 
     PROGRESS_LANE_HARD_CONTEXT_FIELD_NAMES,
     PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS,
     PROGRESS_LANE_HARD_CONTEXT_LOGGING_SCHEMA_VERSION,
+    PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES,
+    PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION,
     build_progress_lane_hard_context_logging_payload,
 )
 
@@ -38,6 +40,16 @@ def _candidates() -> np.ndarray:
             [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 1.0], [4.0, 2.0]],
             [[0.0, 0.0], [1.0, 1.4], [2.0, 2.0], [3.0, 2.5], [4.0, 3.0]],
             [[0.0, 0.0], [1.0, 0.1], [2.0, 0.2], [3.0, 1.0], [4.0, 2.0]],
+        ],
+        dtype=np.float64,
+    )
+
+
+def _progress_conflict_candidates() -> np.ndarray:
+    return np.asarray(
+        [
+            [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]],
+            [[0.0, 0.0], [0.3, 0.2], [0.5, 0.5], [0.5, 0.8], [0.5, 1.0]],
         ],
         dtype=np.float64,
     )
@@ -80,6 +92,23 @@ def test_progress_lane_hard_context_payload_schema_shapes_and_metadata() -> None
         3,
         len(PROGRESS_LANE_HARD_CONTEXT_ATOM_NAMES),
     )
+    assert payload["revised_progress_lane_hard_context_atom_schema_version"] == (
+        PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION
+    )
+    assert payload["revised_progress_lane_hard_context_atom_names"] == list(
+        PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES
+    )
+    assert np.asarray(
+        payload["revised_progress_lane_hard_context_atoms"],
+        dtype=np.float64,
+    ).shape == (3, len(PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES))
+    assert payload["finite_checks"]["revised_progress_lane_hard_context_atoms"] is True
+    assert (
+        payload["finite_checks"][
+            "revised_progress_lane_hard_context_atoms_nonnegative"
+        ]
+        is True
+    )
 
 
 def test_progress_lane_hard_context_atoms_are_nonnegative_fixed_coefficients() -> None:
@@ -110,6 +139,38 @@ def test_progress_lane_hard_context_atoms_are_nonnegative_fixed_coefficients() -
         atoms[2, atom_index["corridor_margin_exhaustion_v1"]]
         <= atoms[1, atom_index["corridor_margin_exhaustion_v1"]]
     )
+
+
+def test_revised_progress_lane_hard_context_atoms_are_nonnegative_and_active() -> None:
+    payload = build_progress_lane_hard_context_logging_payload(
+        candidates=_progress_conflict_candidates(),
+        route_centerline_ego=np.asarray(
+            [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]],
+            dtype=np.float64,
+        ),
+        support_steps=5,
+        dt_s=0.1,
+        corridor_half_width_m=0.6,
+        corridor_safety_margin_m=0.25,
+    )
+    atoms = np.asarray(
+        payload["revised_progress_lane_hard_context_atoms"],
+        dtype=np.float64,
+    )
+    atom_index = {
+        name: idx
+        for idx, name in enumerate(payload["revised_progress_lane_hard_context_atom_names"])
+    }
+
+    assert np.all(np.isfinite(atoms))
+    assert np.all(atoms >= 0.0)
+    np.testing.assert_allclose(atoms[0], np.zeros(atoms.shape[1]), atol=1e-12)
+    assert atoms[1, atom_index["route_progress_shortfall_vs_candidate_best_v1"]] > 0.0
+    assert atoms[1, atom_index["route_progress_efficiency_shortfall_v1"]] >= 0.0
+    assert atoms[1, atom_index["heading_progress_conflict_v1"]] > 0.0
+    assert atoms[1, atom_index["lateral_rate_progress_conflict_v1"]] > 0.0
+    assert atoms[1, atom_index["corridor_progress_conflict_v1"]] >= 0.0
+    assert "before outcome labels" in payload["math_boundary"]
 
 
 def test_progress_lane_hard_context_payload_accepts_width_profile() -> None:

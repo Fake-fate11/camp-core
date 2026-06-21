@@ -37110,6 +37110,74 @@ a fixed coefficient vector \(a_k\). CAMP scoring remains affine
 No global convexity over trajectory coordinates is claimed. No DP-side
 classical Benders master/subproblem, dual, or valid cut is introduced.
 
+## Revised Progress + Lane/Hard Context Atom Payload (`7eba75c` source)
+
+This gate implements the default-off revised atom coefficients authorized by
+the schema preflight above. It is unit-test-only evidence: no replay is run, no
+new matched outcome labels are collected, no selector behavior changes, and DP
+remains fixed.
+
+Code changed:
+
+```text
+camp_core/camp_core/integrations/diffusion_planner_progress_lane_hard_context.py
+camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py
+```
+
+Implementation boundary:
+
+- The existing `progress_lane_hard_context_atoms` and schema version are kept
+  intact for backward compatibility.
+- The payload now additionally emits
+  `revised_progress_lane_hard_context_atom_schema_version`,
+  `revised_progress_lane_hard_context_atom_names`, and
+  `revised_progress_lane_hard_context_atoms`.
+- The replay flag remains the existing default-off
+  `--camp_progress_lane_hard_context_logging`; no online selector path reads
+  the revised atoms.
+- The builder signature still has no outcome or closed-loop inputs.
+
+Validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_payload.py \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_atom_schema_redesign_preflight.py \
+  -q
+```
+
+Result:
+
+```text
+13 passed in 0.30s
+```
+
+Artifacts:
+
+No new experiment artifact is produced by this gate. The evidence is the
+tracked code diff plus the targeted AutoDL unit-test result above.
+
+Decision:
+
+Accept the payload implementation as a unit gate only. The next admissible work
+is to design a default-off revised context logging smoke/contract check that
+verifies replay logs include the revised atom fields, selector equivalence still
+holds, formal seeds are absent, and latency remains reported. This does not
+authorize Full36, formal seeds, online selector promotion, DP modification, or
+CAMP retraining.
+
+Mathematical boundary:
+
+The revised atoms are computed from current-tick route-progress deltas, speed,
+heading error, lateral-error rate, and corridor margin already available inside
+the default-off context payload. Product terms are evaluated before any CAMP
+weight optimization; they are fixed coefficients in \(a_k\), preserving
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. The payload makes
+no global trajectory-coordinate convexity claim and no classical Benders claim.
+
 ## Progress + Lane/Hard Joint Screen Preflight (`886b100`)
 
 This design-only gate follows the lane/hard standalone bottleneck diagnosis.
