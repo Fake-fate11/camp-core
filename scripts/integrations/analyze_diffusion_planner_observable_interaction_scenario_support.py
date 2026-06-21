@@ -112,6 +112,13 @@ def analyze(
     baseline_disabled_records = 0
     payload_candidates = 0
     formal_seed_records = 0
+    records_with_red_distance_payload = 0
+    records_with_red_distance_inside_budget = 0
+    records_with_positive_red_alignment = 0
+    records_with_red_near_and_positive_alignment = 0
+    records_with_finite_clearance = 0
+    records_with_clearance_inside_budget = 0
+    records_with_positive_obstacle_slots = 0
     log_reports: list[dict[str, Any]] = []
     red_examples: list[dict[str, Any]] = []
     clearance_examples: list[dict[str, Any]] = []
@@ -130,6 +137,13 @@ def analyze(
             "baseline_disabled_records": 0,
             "red_context_records": 0,
             "clearance_context_records": 0,
+            "records_with_red_distance_payload": 0,
+            "records_with_red_distance_inside_budget": 0,
+            "records_with_positive_red_alignment": 0,
+            "records_with_red_near_and_positive_alignment": 0,
+            "records_with_finite_clearance": 0,
+            "records_with_clearance_inside_budget": 0,
+            "records_with_positive_obstacle_slots": 0,
             "min_red_distance_m": math.inf,
             "max_red_alignment": -math.inf,
             "min_clearance_m": math.inf,
@@ -154,9 +168,65 @@ def analyze(
                 clearance_budget_m=clearance_budget_m,
             )
             payload_candidates += len(contexts)
-            if any(item["red_risk"] > 0.0 for item in contexts):
+            has_red_distance_payload = any(
+                math.isfinite(item["red_distance_m"]) for item in contexts
+            )
+            has_red_distance_inside_budget = any(
+                math.isfinite(item["red_distance_m"])
+                and item["red_distance_m"] < red_distance_budget_m
+                for item in contexts
+            )
+            has_positive_red_alignment = any(
+                math.isfinite(item["red_alignment"]) and item["red_alignment"] > 0.0
+                for item in contexts
+            )
+            has_red_near_and_positive_alignment = any(
+                item["red_risk"] > 0.0 for item in contexts
+            )
+            has_finite_clearance = any(
+                math.isfinite(item["clearance_m"]) for item in contexts
+            )
+            has_clearance_inside_budget = any(
+                math.isfinite(item["clearance_m"])
+                and item["clearance_m"] < clearance_budget_m
+                for item in contexts
+            )
+            has_positive_obstacle_slots = any(
+                item["obstacle_slot_count"] > 0 for item in contexts
+            )
+            records_with_red_distance_payload += int(has_red_distance_payload)
+            records_with_red_distance_inside_budget += int(
+                has_red_distance_inside_budget
+            )
+            records_with_positive_red_alignment += int(has_positive_red_alignment)
+            records_with_red_near_and_positive_alignment += int(
+                has_red_near_and_positive_alignment
+            )
+            records_with_finite_clearance += int(has_finite_clearance)
+            records_with_clearance_inside_budget += int(has_clearance_inside_budget)
+            records_with_positive_obstacle_slots += int(has_positive_obstacle_slots)
+            log_report["records_with_red_distance_payload"] += int(
+                has_red_distance_payload
+            )
+            log_report["records_with_red_distance_inside_budget"] += int(
+                has_red_distance_inside_budget
+            )
+            log_report["records_with_positive_red_alignment"] += int(
+                has_positive_red_alignment
+            )
+            log_report["records_with_red_near_and_positive_alignment"] += int(
+                has_red_near_and_positive_alignment
+            )
+            log_report["records_with_finite_clearance"] += int(has_finite_clearance)
+            log_report["records_with_clearance_inside_budget"] += int(
+                has_clearance_inside_budget
+            )
+            log_report["records_with_positive_obstacle_slots"] += int(
+                has_positive_obstacle_slots
+            )
+            if has_red_near_and_positive_alignment:
                 log_report["red_context_records"] += 1
-            if any(item["clearance_deficit"] > 0.0 for item in contexts):
+            if has_clearance_inside_budget:
                 log_report["clearance_context_records"] += 1
             for item in contexts:
                 log_report["min_red_distance_m"] = min(
@@ -185,10 +255,22 @@ def analyze(
         "clearance_context_candidate_count": len(clearance_examples),
         "red_context_record_count": _distinct_record_count(red_examples),
         "clearance_context_record_count": _distinct_record_count(clearance_examples),
+        "records_with_red_distance_payload": records_with_red_distance_payload,
+        "records_with_red_distance_inside_budget": (
+            records_with_red_distance_inside_budget
+        ),
+        "records_with_positive_red_alignment": records_with_positive_red_alignment,
+        "records_with_red_near_and_positive_alignment": (
+            records_with_red_near_and_positive_alignment
+        ),
+        "records_with_finite_clearance": records_with_finite_clearance,
+        "records_with_clearance_inside_budget": records_with_clearance_inside_budget,
+        "records_with_positive_obstacle_slots": records_with_positive_obstacle_slots,
         "min_red_distance_m": _finite_min(log_reports, "min_red_distance_m"),
         "max_red_alignment": _finite_max(log_reports, "max_red_alignment"),
         "min_clearance_m": _finite_min(log_reports, "min_clearance_m"),
     }
+    diagnosis = _inventory_diagnosis(support)
     source_passed = bool(source["passed"])
     found = (
         source_passed
@@ -253,6 +335,7 @@ def analyze(
             "formal_seed_records": formal_seed_records,
         },
         "support": _finite_json(support),
+        "inventory_diagnosis": diagnosis,
         "top_red_context_examples": [
             _finite_json(item) for item in red_examples[:max(0, max_examples)]
         ],
@@ -291,9 +374,39 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- clearance context supported: `{support['clearance_context_supported']}`",
         f"- red context candidates: `{support['red_context_candidate_count']}`",
         f"- clearance context candidates: `{support['clearance_context_candidate_count']}`",
+        f"- records with red-distance payload: `{support['records_with_red_distance_payload']}`",
+        (
+            "- records with red distance inside budget: "
+            f"`{support['records_with_red_distance_inside_budget']}`"
+        ),
+        (
+            "- records with positive red alignment: "
+            f"`{support['records_with_positive_red_alignment']}`"
+        ),
+        (
+            "- records with finite clearance: "
+            f"`{support['records_with_finite_clearance']}`"
+        ),
+        (
+            "- records with clearance inside budget: "
+            f"`{support['records_with_clearance_inside_budget']}`"
+        ),
+        (
+            "- records with positive obstacle slots: "
+            f"`{support['records_with_positive_obstacle_slots']}`"
+        ),
         f"- min red distance m: `{_fmt(support['min_red_distance_m'])}`",
         f"- max red alignment: `{_fmt(support['max_red_alignment'])}`",
         f"- min clearance m: `{_fmt(support['min_clearance_m'])}`",
+        "",
+        "## Inventory Diagnosis",
+        "",
+        f"- red bottleneck: `{report['inventory_diagnosis']['red_bottleneck']}`",
+        (
+            "- clearance bottleneck: "
+            f"`{report['inventory_diagnosis']['clearance_bottleneck']}`"
+        ),
+        f"- next gate: `{report['inventory_diagnosis']['next_gate_hint']}`",
         "",
         "## Top Red Examples",
         "",
@@ -338,11 +451,18 @@ def _candidate_contexts(
         reduce_matrix="min",
         none_value=math.inf,
     )
+    obstacle_slots = _candidate_vector(
+        payload.get("candidate_obstacle_slot_count"),
+        candidate_count,
+        reduce_matrix="max",
+        none_value=0.0,
+    )
     contexts = []
     for candidate_index in range(candidate_count):
         distance = red_distance[candidate_index]
         alignment = red_alignment[candidate_index]
         min_clearance = clearance[candidate_index]
+        obstacle_slot_count = max(0, int(obstacle_slots[candidate_index]))
         red_risk = max(alignment, 0.0) * max(red_distance_budget_m - distance, 0.0)
         clearance_deficit = max(clearance_budget_m - min_clearance, 0.0)
         contexts.append(
@@ -355,6 +475,7 @@ def _candidate_contexts(
                 "red_risk": red_risk,
                 "clearance_m": min_clearance,
                 "clearance_deficit": clearance_deficit,
+                "obstacle_slot_count": obstacle_slot_count,
             }
         )
     return contexts
@@ -390,6 +511,8 @@ def _candidate_item_value(raw: Any, reduce_matrix: str, none_value: float) -> fl
             return min(finite)
         if reduce_matrix == "mean":
             return sum(finite) / len(finite)
+        if reduce_matrix == "max":
+            return max(finite)
         raise ValueError(f"Unsupported matrix reduction: {reduce_matrix}")
     value = _as_finite_float(raw)
     return none_value if value is None else value
@@ -423,6 +546,56 @@ def _primary_gap(source_passed: bool, support: dict[str, Any]) -> str | None:
     if not support["clearance_context_supported"]:
         missing.append("clearance_context_support_absent")
     return ",".join(missing) if missing else None
+
+
+def _inventory_diagnosis(support: dict[str, Any]) -> dict[str, str]:
+    red = _red_bottleneck(support)
+    clearance = _clearance_bottleneck(support)
+    return {
+        "red_bottleneck": red,
+        "clearance_bottleneck": clearance,
+        "next_gate_hint": _next_gate_hint(red, clearance),
+    }
+
+
+def _red_bottleneck(support: dict[str, Any]) -> str:
+    if support["red_context_supported"]:
+        return "red_context_supported"
+    if support["records_with_red_distance_payload"] <= 0:
+        return "red_payload_absent"
+    if support["records_with_red_distance_inside_budget"] <= 0:
+        return "red_distance_budget_never_active"
+    if support["records_with_positive_red_alignment"] <= 0:
+        return "nonpositive_red_alignment_collapses_risk"
+    if support["records_with_red_near_and_positive_alignment"] <= 0:
+        return "red_distance_and_positive_alignment_never_overlap"
+    return "red_context_absent_without_single_cause"
+
+
+def _clearance_bottleneck(support: dict[str, Any]) -> str:
+    if support["clearance_context_supported"]:
+        return "clearance_context_supported"
+    if support["records_with_finite_clearance"] <= 0:
+        return "clearance_payload_absent"
+    if support["records_with_clearance_inside_budget"] <= 0:
+        if support["records_with_positive_obstacle_slots"] <= 0:
+            return "no_positive_obstacle_slots_and_clearance_budget_never_active"
+        return "clearance_budget_never_active"
+    return "clearance_context_absent_without_single_cause"
+
+
+def _next_gate_hint(red_bottleneck: str, clearance_bottleneck: str) -> str:
+    missing = {
+        red_bottleneck,
+        clearance_bottleneck,
+    }
+    if "red_payload_absent" in missing or "clearance_payload_absent" in missing:
+        return "inspect_logging_payload_wiring_before_new_replay"
+    if "nonpositive_red_alignment_collapses_risk" in missing:
+        return "inspect_route_stopline_heading_geometry_before_red_support_replay"
+    if any("clearance_budget_never_active" in item for item in missing):
+        return "inspect_npc_spawn_and_clearance_budget_before_support_replay"
+    return "reject_or_predeclare_narrow_no_leak_support_experiment"
 
 
 def _distinct_record_count(examples: list[dict[str, Any]]) -> int:
