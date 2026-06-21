@@ -51376,3 +51376,170 @@ finite-candidate coefficients. The CAMP score remains affine
 The finite-candidate selector and oracle summaries are not a DP-side classical
 Benders decomposition because no DP master/subproblem, dual, or valid cuts are
 constructed.
+
+## Targeted Failure Attribution Gate (`980973c` artifacts)
+
+Purpose:
+
+The targeted SafetyCost oracle audit showed that the fixed DP candidate pool
+contains hard-guarded SafetyCost-improving alternatives in every targeted
+bucket, but the logged CAMP selector still fails traffic-light and
+red-light-turn ProofProtocol v2 gates. This step adds a read-only targeted
+failure-attribution gate that consumes the targeted oracle, selector-gap
+summary, rejected training diagnosis, rejected objective/label sensitivity
+diagnosis, observable bridge closure, and current-tick support inventory. It
+does not run Diffusion Planner, train CAMP, run replay, promote an online
+selector, or use formal seeds.
+
+Implementation:
+
+```text
+980973c Add targeted failure attribution gate
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_targeted_failure_attribution.py
+camp_core/tests/test_diffusion_planner_targeted_failure_attribution.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_targeted_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_targeted_failure_attribution.py
+
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_targeted_failure_attribution.py \
+  camp_core\tests\test_diffusion_planner_targeted_candidate_oracle_input_readiness.py \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_results_diagnosis.py \
+  -q
+
+19 passed
+git diff --check passed
+```
+
+AutoDL sync and verification:
+
+```text
+CAMP_HEAD=980973c7ca930ff4f3d76b8bb003cc99717f900a
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_targeted_failure_attribution.py \
+  camp_core/tests/test_diffusion_planner_targeted_candidate_oracle_input_readiness.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_results_diagnosis.py \
+  -q
+
+19 passed
+```
+
+Artifact command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/targeted_failure_attribution_980973c
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_targeted_failure_attribution.py \
+  --targeted_oracle_json "$ROOT/targeted_safety_cost_oracle_audit_a8336e8/targeted_safety_cost_oracle.json" \
+  --selector_gap_json "$ROOT/targeted_selector_oracle_gap_a8336e8/targeted_selector_oracle_gap.json" \
+  --training_failure_diagnosis_json "$ROOT/offline_convex_selector_training_failure_diagnosis_bf57a20/offline_convex_selector_training_failure_diagnosis.json" \
+  --sensitivity_diagnosis_json "$ROOT/offline_convex_objective_label_sensitivity_results_diagnosis_9425434/offline_convex_objective_label_sensitivity_results_diagnosis.json" \
+  --observable_bridge_json "$ROOT/current_observable_separability_bridge_cf047ca/current_observable_separability_bridge.json" \
+  --support_inventory_json "$ROOT/current_tick_no_leak_atom_support_inventory_8aa1e4d/current_tick_no_leak_atom_support_inventory.json" \
+  --label autodl_980973c_targeted_failure_attribution \
+  --output_json "$OUT/targeted_failure_attribution.json" \
+  --output_md "$OUT/targeted_failure_attribution.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_failure_attribution_980973c/targeted_failure_attribution.json
+sha256=622ee0e6ad5a646a84d6575ddbe0163e4f47fdcd33efea86c31d3a99e54f81bf
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_failure_attribution_980973c/targeted_failure_attribution.md
+sha256=ac507bcbe4b28b7a619c8bdde100b914f0586b7ffb0b7402e91e4cecc9e6a64a
+```
+
+Final decision:
+
+```text
+status=targeted_failure_attribution_no_current_route
+passed=True
+current_camp_dp_selector_route_rejected=True
+authorized_next_work=predeclare_new_no_leak_targeted_support_source_or_reject_current_route_only
+primary_attribution=candidate_pool_has_opportunity_but_current_and_retrained_selectors_lack_no_leak_support
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Failure summary:
+
+```text
+candidate_pool_opportunity_confirmed=True
+current_camp_targeted_failure_confirmed=True
+old_training_and_sensitivity_routes_closed=True
+new_no_leak_support_missing_in_current_artifacts=True
+```
+
+Target-bucket attribution:
+
+```text
+traffic_light:
+  candidate_pool_has_hard_guarded_safetycost_opportunity
+  current_selector_does_not_close_hard_guarded_oracle_gap
+  current_selector_fails_bucket_top1_gate
+  rejected_training_route_increased_hard_safety_components
+  available_oracle_candidates_are_not_selected_often_enough
+
+red_light_turn:
+  candidate_pool_has_hard_guarded_safetycost_opportunity
+  current_selector_does_not_close_hard_guarded_oracle_gap
+  current_selector_fails_bucket_top1_gate
+  rejected_training_route_increased_hard_safety_components
+  available_oracle_candidates_are_not_selected_often_enough
+```
+
+Decision:
+
+Accept the attribution gate as the current self-iteration boundary. It proves
+that the bottleneck is not lack of DP candidate-pool opportunity: the targeted
+oracle exists and passes. The current logged selector fails the targeted
+ProofProtocol v2 buckets, the previous offline convex training route introduced
+hard safety regressions, the objective/label sensitivity variants found no
+credible nonworse direction, and the current observable/support inventories do
+not expose an unclosed no-leak current-tick candidate family.
+
+Therefore, reject the current CAMP-DP selector/training route for replay,
+Full36, formal seeds, online selector promotion, or deployability claims. The
+next admissible work is only a design/read-only gate: either predeclare a
+genuinely new targeted no-leak support source that is not one of the closed
+descriptor families, or explicitly reject/pause the current selector route
+until such support exists. Do not repeat selector-label preflight, the
+`35fedb8` offline convex training route, or the objective/label sensitivity
+route as if they were new.
+
+Mathematical boundary:
+
+The gate reads only existing offline artifacts. Closed-loop outcomes remain
+offline labels/evaluation evidence and are not runtime inputs. DP remains a
+fixed black-box candidate generator. Any future atom must still be a fixed
+current-tick finite-candidate coefficient `a_k`, nonnegative or represented by
+nonnegative signed parts, preserving affine `score_k(w)=a_k^T w` and the
+convex simplex/CVaR/L2 robust master. No DP-side classical Benders
+decomposition, dual, or valid cuts are claimed.
