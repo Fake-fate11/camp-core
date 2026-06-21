@@ -57059,3 +57059,136 @@ does not authorize Full36/formal seeds, and does not create a DP-side classical
 Benders decomposition. The next admissible gate is a shadow-only atom dry-run:
 append the coefficient to a candidate atom table and verify shapes, fixed scale
 policy, affine score bookkeeping, and exact deployed-selection non-effect.
+
+## Temporal Consistency Shadow Atom Dry Run (`3f4643e`/`cad6203`)
+
+This gate appends the temporal-consistency coefficient to existing candidate atom
+tables in shadow only. It reads the broader nonformal logging-enabled smoke
+records, appends a zero shadow weight, verifies affine score bookkeeping, and
+requires deployed scores/selection to remain unchanged. It does not rerun DP,
+change online selection, train CAMP, or promote the atom.
+
+Implementation:
+
+```text
+3f4643eb164eef88b776059b97b027a15b2d75f8
+scripts/integrations/analyze_diffusion_planner_temporal_consistency_shadow_atom_dry_run.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_shadow_atom_dry_run.py
+```
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_temporal_consistency_shadow_atom_dry_run.py \
+  scripts\integrations\plan_diffusion_planner_temporal_consistency_atom_schema_preflight.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_shadow_atom_dry_run.py \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_atom_schema_preflight.py \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_materiality.py -q
+result=12 passed
+```
+
+First AutoDL attempt:
+
+```text
+tests=12 passed
+status=temporal_consistency_shadow_atom_dry_run_rejected
+failed_checks=[all_records_valid, record_errors_empty]
+record_error_counts={selection_affine_score_mismatch: 2}
+```
+
+Diagnosis: the two failing rows were all-infeasible learned-fallback first
+ticks. In those records the existing simulator logs `selection_scores == scores`
+rather than all-`inf` masked scores. This is a fallback bookkeeping convention,
+not a temporal atom failure. The analyzer was updated at:
+
+```text
+cad62037568b5377efb6faab3c3e7103c442b131
+Handle fallback scores in temporal shadow dry run
+```
+
+AutoDL verification after the fallback-score fix:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_temporal_consistency_shadow_atom_dry_run.py \
+  scripts/integrations/plan_diffusion_planner_temporal_consistency_atom_schema_preflight.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_shadow_atom_dry_run.py \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_atom_schema_preflight.py \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_materiality.py -q
+result=12 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SCHEMA=$DEV/temporal_consistency_atom_schema_preflight_1268200/temporal_consistency_atom_schema_preflight.json
+ROOT=/root/autodl-tmp/camp_dp_temporal_consistency_broader_nonformal_smoke_667eb7d
+OUT=$DEV/temporal_consistency_shadow_atom_dry_run_cad6203
+
+$PY scripts/integrations/analyze_diffusion_planner_temporal_consistency_shadow_atom_dry_run.py \
+  --schema_preflight_json "$SCHEMA" \
+  --candidate_root "$ROOT/logging_enabled" \
+  --expected_logs 5 \
+  --expected_records 50 \
+  --expected_candidates 8 \
+  --expected_available_records 45 \
+  --expected_fail_closed_records 5 \
+  --label autodl_cad6203_temporal_consistency_shadow_atom_dry_run \
+  --output_json "$OUT/temporal_consistency_shadow_atom_dry_run.json" \
+  --output_md "$OUT/temporal_consistency_shadow_atom_dry_run.md" \
+  --require_pass
+```
+
+Dry-run result:
+
+```text
+status=temporal_consistency_shadow_atom_dry_run_ready
+records=50
+available_records=45
+fail_closed_unavailable_records=5
+shadow_appended_records=45
+ranking_signal_records=45
+deployed_selection_preserved_records=50
+max_shadow_zero_weight_score_abs_diff=4.440892098500626e-16
+max_shadow_zero_weight_selection_score_abs_diff=4.440892098500626e-16
+temporal_only_would_change_selected_index_records=37
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+authorized_next_work=temporal_consistency_shadow_weight_sensitivity_existing_smoke_only
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_shadow_atom_dry_run_cad6203/temporal_consistency_shadow_atom_dry_run.json` | `ec3b4b9229fdca6929ecb34b9bc29484e36e88e3d40a582e7e962adb5031380d` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_shadow_atom_dry_run_cad6203/temporal_consistency_shadow_atom_dry_run.md` | `5ebc1579149c2e6a32050963a1ac383adbd23540228271a25adb33a6d5520c92` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_shadow_atom_dry_run_cad6203
+```
+
+Decision:
+
+Accept the shadow atom dry-run. The temporal-consistency atom can be appended to
+the finite candidate atom table with a zero shadow weight while preserving
+existing deployed CAMP scores and selected indices exactly up to floating-point
+roundoff. This still is not a safety-improvement result and does not authorize
+online selector promotion, CAMP retraining, Full36, formal seeds, DP
+modification, or a DP-side classical Benders claim. The next admissible gate is
+an existing-smoke shadow weight-sensitivity diagnosis that remains shadow-only.
