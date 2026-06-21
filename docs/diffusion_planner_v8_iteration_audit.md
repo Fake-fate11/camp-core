@@ -58216,3 +58216,116 @@ Run or refresh the candidate-branch oracle input-readiness gate against the
 planned nonformal matrix outputs. That gate must prove required outcome/log
 files exist and are sufficient before any selector training, tiny paired smoke,
 or larger nonformal run is considered.
+
+## Candidate Oracle Input Readiness (`b2513de`)
+
+This self-iteration implements the general candidate-branch oracle readiness
+gate authorized by the refreshed scenario evidence matrix. It consumes the
+already collected nonformal matrix outputs and does not run DP, replay, train
+CAMP, promote an online selector, use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+b2513dec53d7d6761e4299da9bc8b72181a4ad5a Add candidate oracle input readiness gate
+scripts/integrations/plan_diffusion_planner_candidate_oracle_input_readiness.py
+camp_core/tests/test_diffusion_planner_candidate_oracle_input_readiness.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_candidate_oracle_input_readiness.py \
+         camp_core\tests\test_diffusion_planner_targeted_candidate_oracle_input_readiness.py -q
+  result=15 passed
+
+AutoDL:
+  CAMP HEAD=b2513dec53d7d6761e4299da9bc8b72181a4ad5a
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest result=15 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+ROOT=$DEV/diverse_nonformal_matrix_plan_py312_9e2158f/candidate_outcome_labels_static
+MATRIX_GATE=$DEV/scenario_evidence_matrix_gate_post_source_inventory_d2df67f/scenario_evidence_matrix_gate.json
+OUT=$DEV/candidate_oracle_input_readiness_b2513de
+
+$PY scripts/integrations/audit_diffusion_planner_candidate_availability_inputs.py \
+  --root "$ROOT" \
+  --output_json "$OUT/candidate_availability_input_audit.json" \
+  --output_md "$OUT/candidate_availability_input_audit.md" \
+  --fail_on_not_ready
+
+$PY scripts/integrations/plan_diffusion_planner_candidate_oracle_input_readiness.py \
+  --scenario_evidence_matrix_gate_json "$MATRIX_GATE" \
+  --candidate_readiness_json "$OUT/candidate_availability_input_audit.json" \
+  --label autodl_b2513de_candidate_oracle_input_readiness \
+  --output_json "$OUT/candidate_oracle_input_readiness.json" \
+  --output_md "$OUT/candidate_oracle_input_readiness.md" \
+  --require_pass
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_oracle_input_readiness_b2513de/candidate_availability_input_audit.json` | `8b306a3ec46007306965661f71374ecaa127c6a71daf3a8a89415f056456806d` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_oracle_input_readiness_b2513de/candidate_availability_input_audit.md` | `8406f95bcbd40bc21075cd7daadaaa55fc7ff381a18db30e30e7636660a8900b` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_oracle_input_readiness_b2513de/candidate_oracle_input_readiness.json` | `817f164fb614519f4394690a16139e701d5945d82c9e74faabf94503e6bd88b9` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_oracle_input_readiness_b2513de/candidate_oracle_input_readiness.md` | `abcaf058c6c5b826378a778b7e611391b18e7d983c45b643f424e6ce2397043c` |
+
+Readiness summary:
+
+```text
+candidate_availability_oracle_ready=True
+logs=108
+records=21600
+missing_example_keys=[]
+status=candidate_branch_oracle_input_readiness_ready
+passed=True
+authorized_next_work=candidate_branch_safety_cost_oracle_audit_only
+reasons=[
+  all_planned_logs_present,
+  candidate_closed_loop_outcomes_complete,
+  current_tick_proxy_inputs_complete,
+  oracle_input_scope_matches_scenario_matrix
+]
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Accept this readiness gate. It proves the current nonformal matrix has the
+existing selection logs, candidate outcome labels, and fixed current-tick proxy
+inputs needed for an offline candidate-branch SafetyCost oracle audit. Outcome
+labels remain offline evidence only and are not runtime selector inputs.
+
+Mathematical boundary:
+
+The readiness gate only audits existing finite-candidate logs. It creates no
+atom and runs no selector. Fixed current-tick proxy fields may be used as
+candidate constants in later analysis; any deployable CAMP score must still be
+`score_k(w)=a_k^T w` with a convex simplex/CVaR/L2 master. No DP-side classical
+Benders decomposition is claimed.
+
+Next admissible work:
+
+Run the offline candidate-branch SafetyCost oracle audit against this nonformal
+matrix. The audit may use closed-loop outcomes only as labels/evaluation
+evidence, must compare against DP Top-1/current CAMP under ProofProtocol v2, and
+must not train CAMP, run replay, promote a selector, use formal seeds, modify
+DP, or claim deployment.
