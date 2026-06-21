@@ -59131,3 +59131,113 @@ DP candidate tensor is available at the selection-log site and that logging can
 be added with no selection effect, no future-outcome leakage, no DP change, and
 explicit latency accounting. It still must not run replay, train CAMP, promote
 an online selector, run Full36, use formal seeds, or modify DP.
+
+## Candidate-Set Consensus Payload Logging Preflight (`58ebd99`)
+
+This self-iteration consumes the insufficient existing-log materiality artifact
+and checks the replay source for safe default-off logging hook points. It is
+read-only: it does not implement payload logging, run DP, replay, train CAMP,
+promote a selector, use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+58ebd99c1876b8a2476fcdba0ad78a34375d81fb Add candidate set consensus logging preflight
+
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_payload_logging_preflight.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_logging_preflight.py
+```
+
+Verification:
+
+```text
+Local:
+  CAMP HEAD=58ebd99c1876b8a2476fcdba0ad78a34375d81fb
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_logging_preflight.py \
+         camp_core/tests/test_diffusion_planner_candidate_set_consensus_materiality.py \
+         camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_design.py \
+         camp_core/tests/test_diffusion_planner_post_reconciliation_source_proposal_screen.py -q
+  result=23 passed
+
+AutoDL:
+  CAMP HEAD=58ebd99c1876b8a2476fcdba0ad78a34375d81fb
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  same pytest command result=23 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+MAT=$DEV/candidate_set_consensus_existing_log_materiality_574d990/candidate_set_consensus_existing_log_materiality.json
+OUT=$DEV/candidate_set_consensus_payload_logging_preflight_58ebd99
+
+$PY scripts/integrations/plan_diffusion_planner_candidate_set_consensus_payload_logging_preflight.py \
+  --materiality_json "$MAT" \
+  --label autodl_58ebd99_candidate_set_consensus_payload_logging_preflight \
+  --output_json "$OUT/candidate_set_consensus_payload_logging_preflight.json" \
+  --output_md "$OUT/candidate_set_consensus_payload_logging_preflight.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_logging_preflight_58ebd99/candidate_set_consensus_payload_logging_preflight.json` | `f617f6de6ad9afccc950dece5c4b10b21b2928f0345ee251359ff17796086af1` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_logging_preflight_58ebd99/candidate_set_consensus_payload_logging_preflight.md` | `d5e4641e2090d77add6c795d8d56dd72643937d0dd00e96dfa948e75c18de6f2` |
+
+Result:
+
+```text
+status=candidate_set_consensus_payload_logging_preflight_ready
+passed=True
+authorized_next_work=candidate_set_consensus_payload_implementation_unit_tests_only
+payload_implementation_authorized=True
+failed_checks=[]
+source_hooks=[
+  fixed_candidate_tensor_available_before_selection=True,
+  selection_log_append_site_available=True,
+  default_off_payload_pattern_available=True,
+  latency_accounting_site_available=True,
+  summary_metadata_pattern_available=True
+]
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept the logging preflight. The fixed candidate tensor exists before
+selection, the existing selection-log append site can carry a default-off
+payload, existing payload patterns show `selection_effect=False`, and component
+latency can be added to the per-step latency dictionary and replay summary.
+This only authorizes unit-test-level payload implementation and wiring.
+
+Mathematical boundary:
+
+The preflight creates no atom and no runtime behavior. A future implementation
+may only compute fixed current-tick finite-candidate coefficients from the
+already generated DP candidate tensor before selection. If later atomized after
+separate evidence gates, those coefficients enter `score_k(w)=a_k^T w` and
+preserve convex simplex/CVaR/L2 optimization over `w`. No DP-side classical
+Benders master/subproblem, dual, or valid cut is constructed.
+
+Next admissible work:
+
+Implement only the default-off candidate-set consensus payload and unit tests.
+The implementation must keep logging disabled by default, record explicit
+availability/finite checks and component latency, have no selection effect, and
+avoid replay, CAMP training, online selector promotion, Full36, formal seeds,
+or DP modification.
