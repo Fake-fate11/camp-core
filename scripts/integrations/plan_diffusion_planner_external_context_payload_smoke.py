@@ -190,10 +190,10 @@ def build_report(
             "future_outcome_labels_used": False,
             "formal_seed_records": 0,
             "known_runtime_boundary": (
-                "Runtime currently wires route-speed context from "
-                "context.speed_limit and leaves signal_context=None. This smoke "
-                "therefore treats traffic-signal fields as expected unavailable "
-                "fail-closed diagnostics, not as a traffic-light atom gate."
+                "Runtime wires route-speed context from context.speed_limit "
+                "and default-off signal context from current red route points "
+                "when available. This smoke still treats traffic-signal fields "
+                "as fail-closed diagnostics, not as a traffic-light atom gate."
             ),
             "sync_boundary": (
                 "Before running replay on AutoDL, sync CAMP with git pull "
@@ -247,7 +247,8 @@ def _source_checks(
                 "future_outcome_leakage",
                 "closed_loop_outcome_fields_read",
                 "route_speed_limit_mps=context.speed_limit",
-                "signal_context=None",
+                "build_current_tick_signal_context(",
+                "signal_context=signal_context",
             ),
         ),
         _check_order(
@@ -527,7 +528,7 @@ def _accept_criteria(smoke: SmokeSpec) -> list[str]:
         "candidate records contain non-null external_context_payload_logging payloads",
         "payload schema, field shapes, finite checks, latency fields, and no-leak metadata pass audit",
         f"at least {smoke.min_available_records} payload record is available",
-        "traffic-signal fields may be unavailable because runtime currently passes signal_context=None",
+        "traffic-signal fields may be unavailable because runtime signal context can fail closed",
         "available route-speed fields are finite, nonnegative, and unit-interval where required",
         "candidate_closed_loop_outcomes remain absent",
         "selector log equivalence passes with selected_index, feasibility, atoms, scores, and weights unchanged",

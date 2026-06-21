@@ -12,6 +12,9 @@ from camp_core.integrations.diffusion_planner_external_context_payload import (
     EXTERNAL_CONTEXT_PAYLOAD_SCHEMA_VERSION,
     build_external_context_payload,
 )
+from scripts.integrations.run_diffusion_planner_camp_replay import (
+    build_current_tick_signal_context,
+)
 
 
 REPLAY_SCRIPT = Path(__file__).resolve().parents[2] / (
@@ -112,6 +115,40 @@ def test_external_context_payload_traffic_signal_context() -> None:
     assert all(payload["finite_checks"].values())
 
 
+def test_current_tick_signal_context_from_red_route_points() -> None:
+    context = build_current_tick_signal_context(
+        red_route_points_ego=np.asarray([[1.5, 0.0, 1.0, 0.0]], dtype=np.float64),
+        route_centerline_ego=_route(),
+        traffic_lights_enabled=True,
+    )
+
+    assert context == {
+        "signal_s_m": 1.5,
+        "current_phase": "red",
+        "phase_remaining_s": None,
+        "blocked_phases": ["red", "yellow"],
+    }
+
+
+def test_current_tick_signal_context_fails_closed_without_red_points() -> None:
+    assert (
+        build_current_tick_signal_context(
+            red_route_points_ego=np.zeros((0, 4), dtype=np.float64),
+            route_centerline_ego=_route(),
+            traffic_lights_enabled=True,
+        )
+        is None
+    )
+    assert (
+        build_current_tick_signal_context(
+            red_route_points_ego=np.asarray([[1.5, 0.0, 1.0, 0.0]], dtype=np.float64),
+            route_centerline_ego=_route(),
+            traffic_lights_enabled=False,
+        )
+        is None
+    )
+
+
 def test_external_context_payload_invalid_signal_context_fails_closed() -> None:
     payload = build_external_context_payload(
         candidates=_candidates(),
@@ -153,6 +190,8 @@ def test_replay_script_wires_external_context_payload_default_off() -> None:
 
     assert "--camp_external_context_payload_logging" in source
     assert "build_external_context_payload(" in source
+    assert "build_current_tick_signal_context(" in source
+    assert "signal_context=signal_context" in source
     assert "external_context_payload_logging=bool(" in source
     assert "args.camp_external_context_payload_logging" in source
     assert '"external_context_payload_logging": (' in source

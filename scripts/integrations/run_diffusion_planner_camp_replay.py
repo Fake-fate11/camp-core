@@ -1333,6 +1333,75 @@ def _candidate_route_progress(
     return np.max(point_arcs.reshape(candidate_xy.shape[:2]), axis=1)
 
 
+def _route_progress_for_points(
+    points_xy: np.ndarray,
+    route_centerline: np.ndarray,
+) -> np.ndarray | None:
+    points = np.asarray(points_xy, dtype=np.float64)
+    centerline = np.asarray(route_centerline, dtype=np.float64)
+    if points.ndim != 2 or points.shape[0] < 1 or points.shape[1] < 2:
+        return None
+    if centerline.ndim != 2 or centerline.shape[0] < 2 or centerline.shape[1] < 2:
+        return None
+    if not np.all(np.isfinite(points[:, :2])) or not np.all(
+        np.isfinite(centerline[:, :2])
+    ):
+        return None
+
+    starts = centerline[:-1, :2]
+    ends = centerline[1:, :2]
+    segments = ends - starts
+    lengths = np.linalg.norm(segments, axis=1)
+    valid = lengths > 1e-6
+    if not np.any(valid):
+        return None
+    starts = starts[valid]
+    segments = segments[valid]
+    lengths = lengths[valid]
+    cumulative = np.concatenate([[0.0], np.cumsum(lengths)])
+    cumulative_starts = cumulative[:-1]
+
+    progress = np.zeros(points.shape[0], dtype=np.float64)
+    for point_idx, point in enumerate(points[:, :2]):
+        rel = point.reshape(1, 2) - starts
+        t = np.sum(rel * segments, axis=1) / np.maximum(lengths * lengths, 1e-12)
+        t = np.clip(t, 0.0, 1.0)
+        projected = starts + t.reshape(-1, 1) * segments
+        distances = np.linalg.norm(projected - point.reshape(1, 2), axis=1)
+        best = int(np.argmin(distances))
+        progress[point_idx] = cumulative_starts[best] + t[best] * lengths[best]
+    return progress
+
+
+def build_current_tick_signal_context(
+    *,
+    red_route_points_ego: np.ndarray | None,
+    route_centerline_ego: np.ndarray | None,
+    traffic_lights_enabled: bool,
+) -> dict[str, Any] | None:
+    """Build fail-closed current-tick signal context for payload logging only."""
+    if not bool(traffic_lights_enabled):
+        return None
+    if red_route_points_ego is None or route_centerline_ego is None:
+        return None
+    red = np.asarray(red_route_points_ego, dtype=np.float64)
+    if red.ndim != 2 or red.shape[0] < 1 or red.shape[1] < 2:
+        return None
+    progress = _route_progress_for_points(red[:, :2], route_centerline_ego)
+    if progress is None:
+        return None
+    finite = np.isfinite(progress) & (progress >= -1e-6)
+    if not np.any(finite):
+        return None
+    signal_s = float(np.min(np.maximum(progress[finite], 0.0)))
+    return {
+        "signal_s_m": signal_s,
+        "current_phase": "red",
+        "phase_remaining_s": None,
+        "blocked_phases": ["red", "yellow"],
+    }
+
+
 def _shape_or_none(value: Any) -> list[int] | None:
     if value is None:
         return None
@@ -4291,12 +4360,17 @@ def _install_camp_predictor(
                 non_turn_logit_interaction_payload_logging_payload["latency_ms"]
             )
         if external_context_payload_logging:
+            signal_context = build_current_tick_signal_context(
+                red_route_points_ego=red_route_points,
+                route_centerline_ego=route_centerline_ego,
+                traffic_lights_enabled=bool(spawn_config.enable_traffic_lights),
+            )
             external_context_payload_logging_payload = build_external_context_payload(
                 candidates=candidates,
                 route_centerline_ego=route_centerline_ego,
                 support_steps=external_context_payload_steps,
                 dt_s=external_context_payload_dt_s,
-                signal_context=None,
+                signal_context=signal_context,
                 route_speed_limit_mps=context.speed_limit,
                 route_has_speed_limit=context.speed_limit is not None,
             )
