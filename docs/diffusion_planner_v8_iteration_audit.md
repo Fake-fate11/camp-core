@@ -56531,3 +56531,105 @@ temporal consistency payload logging. The next self-iteration may only evaluate
 this smoke result and decide whether to plan a slightly broader nonformal
 coverage smoke or reject the source as insufficiently material. No broader
 replay, atom promotion, or training is authorized yet.
+
+## Temporal Consistency Smoke Result Evaluation (`ed4c4ac`)
+
+This gate evaluates the tiny paired smoke artifacts without running additional
+replay. It accepts the smoke as runtime-equivalence evidence, but explicitly
+does not treat the result as safety-benefit evidence, CAMP superiority over DP
+Top-1, atom promotion evidence, or training authorization.
+
+Implementation:
+
+```text
+ed4c4ac04456729453e21aa5a70673ddf623bd64 Evaluate temporal consistency smoke result
+scripts/integrations/summarize_diffusion_planner_temporal_consistency_payload_smoke_result.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_payload_smoke_result.py
+```
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\summarize_diffusion_planner_temporal_consistency_payload_smoke_result.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_smoke_result.py \
+  camp_core\tests\test_diffusion_planner_temporal_consistency_payload_smoke_plan.py -q
+result=14 passed
+```
+
+AutoDL verification:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/summarize_diffusion_planner_temporal_consistency_payload_smoke_result.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_smoke_result.py \
+  camp_core/tests/test_diffusion_planner_temporal_consistency_payload_smoke_plan.py -q
+result=14 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+RUNROOT=/root/autodl-tmp/camp_dp_temporal_consistency_payload_smoke
+OUT=$ROOT/temporal_consistency_smoke_result_eval_ed4c4ac
+
+$PY scripts/integrations/summarize_diffusion_planner_temporal_consistency_payload_smoke_result.py \
+  --payload_smoke_json "$RUNROOT/audit/temporal_consistency_payload_smoke.json" \
+  --selector_equivalence_json "$RUNROOT/audit/selector_equivalence.json" \
+  --dataset_audit_json "$RUNROOT/audit/dataset_audit.json" \
+  --baseline_summary_json "$RUNROOT/baseline/camp_validation_summary.json" \
+  --candidate_summary_json "$RUNROOT/logging_enabled/camp_validation_summary.json" \
+  --label autodl_ed4c4ac_temporal_consistency_smoke_result \
+  --output_json "$OUT/temporal_consistency_smoke_result.json" \
+  --output_md "$OUT/temporal_consistency_smoke_result.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_smoke_result_eval_ed4c4ac/temporal_consistency_smoke_result.json` | `ac07e091fcb31711a4c5e3ad77543943bd87ea944b23491e0d3b66b51129213a` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_smoke_result_eval_ed4c4ac/temporal_consistency_smoke_result.md` | `931a6c44c100c88988cd58ce705d0b602e5be842388e2711c691e2e8132e8e08` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_smoke_result_eval_ed4c4ac
+```
+
+Final decision:
+
+```text
+result.status=temporal_consistency_payload_smoke_result_ready
+result.passed=True
+result.runtime_equivalence_ready=True
+result.safety_benefit_evidence=False
+result.atom_promotion_authorized=False
+result.authorized_next_work=default_off_temporal_consistency_broader_nonformal_coverage_plan_only
+result.failed_checks=[]
+result.new_replay_authorized=False
+result.closed_loop_smoke_authorized=False
+result.online_selector_authorized=False
+result.camp_retraining_authorized=False
+result.full36_authorized=False
+result.formal_seeds_authorized=False
+result.classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept the result evaluation. The temporal consistency payload is now eligible
+only for a broader nonformal coverage-smoke plan. The evidence is still
+runtime-equivalence and observability evidence, not a safety-improvement proof.
+Do not promote the atom, train new CAMP weights, run Full36, touch formal seeds,
+or claim classical Benders on the DP side.
