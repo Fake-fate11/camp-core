@@ -62,6 +62,8 @@ from camp_core.integrations.diffusion_planner_progress_lane_hard_context import 
     PROGRESS_LANE_HARD_CONTEXT_FIELD_NAMES,
     PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS,
     PROGRESS_LANE_HARD_CONTEXT_LOGGING_SCHEMA_VERSION,
+    PROGRESS_LANE_HARD_CONTEXT_RELAXED_STRICT_ATOM_NAMES,
+    PROGRESS_LANE_HARD_CONTEXT_RELAXED_STRICT_ATOM_SCHEMA_VERSION,
     PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES,
     PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION,
     build_progress_lane_hard_context_logging_payload,
@@ -5267,6 +5269,12 @@ def main() -> None:
                 PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION
             ),
             "revised_atom_names": list(PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES),
+            "relaxed_strict_atom_schema_version": (
+                PROGRESS_LANE_HARD_CONTEXT_RELAXED_STRICT_ATOM_SCHEMA_VERSION
+            ),
+            "relaxed_strict_atom_names": list(
+                PROGRESS_LANE_HARD_CONTEXT_RELAXED_STRICT_ATOM_NAMES
+            ),
             "latency_fields": list(PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS),
             "horizons": {
                 "support_steps": int(

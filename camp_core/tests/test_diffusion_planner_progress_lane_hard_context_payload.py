@@ -15,6 +15,8 @@ from camp_core.integrations.diffusion_planner_progress_lane_hard_context import 
     PROGRESS_LANE_HARD_CONTEXT_FIELD_NAMES,
     PROGRESS_LANE_HARD_CONTEXT_LATENCY_KEYS,
     PROGRESS_LANE_HARD_CONTEXT_LOGGING_SCHEMA_VERSION,
+    PROGRESS_LANE_HARD_CONTEXT_RELAXED_STRICT_ATOM_NAMES,
+    PROGRESS_LANE_HARD_CONTEXT_RELAXED_STRICT_ATOM_SCHEMA_VERSION,
     PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_NAMES,
     PROGRESS_LANE_HARD_CONTEXT_REVISED_ATOM_SCHEMA_VERSION,
     build_progress_lane_hard_context_logging_payload,
@@ -109,6 +111,27 @@ def test_progress_lane_hard_context_payload_schema_shapes_and_metadata() -> None
         ]
         is True
     )
+    assert (
+        payload["relaxed_strict_progress_lane_hard_context_atom_schema_version"]
+        == PROGRESS_LANE_HARD_CONTEXT_RELAXED_STRICT_ATOM_SCHEMA_VERSION
+    )
+    assert payload["relaxed_strict_progress_lane_hard_context_atom_names"] == list(
+        PROGRESS_LANE_HARD_CONTEXT_RELAXED_STRICT_ATOM_NAMES
+    )
+    assert np.asarray(
+        payload["relaxed_strict_progress_lane_hard_context_atoms"],
+        dtype=np.float64,
+    ).shape == (3, len(PROGRESS_LANE_HARD_CONTEXT_RELAXED_STRICT_ATOM_NAMES))
+    assert (
+        payload["finite_checks"]["relaxed_strict_progress_lane_hard_context_atoms"]
+        is True
+    )
+    assert (
+        payload["finite_checks"][
+            "relaxed_strict_progress_lane_hard_context_atoms_nonnegative"
+        ]
+        is True
+    )
 
 
 def test_progress_lane_hard_context_atoms_are_nonnegative_fixed_coefficients() -> None:
@@ -171,6 +194,41 @@ def test_revised_progress_lane_hard_context_atoms_are_nonnegative_and_active() -
     assert atoms[1, atom_index["lateral_rate_progress_conflict_v1"]] > 0.0
     assert atoms[1, atom_index["corridor_progress_conflict_v1"]] >= 0.0
     assert "before outcome labels" in payload["math_boundary"]
+
+
+def test_relaxed_strict_progress_lane_hard_context_atoms_are_nonnegative_and_active() -> None:
+    payload = build_progress_lane_hard_context_logging_payload(
+        candidates=_progress_conflict_candidates(),
+        route_centerline_ego=np.asarray(
+            [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [4.0, 0.0]],
+            dtype=np.float64,
+        ),
+        support_steps=5,
+        dt_s=0.1,
+        corridor_half_width_m=0.6,
+        corridor_safety_margin_m=0.25,
+    )
+    atoms = np.asarray(
+        payload["relaxed_strict_progress_lane_hard_context_atoms"],
+        dtype=np.float64,
+    )
+    atom_index = {
+        name: idx
+        for idx, name in enumerate(
+            payload["relaxed_strict_progress_lane_hard_context_atom_names"]
+        )
+    }
+
+    assert np.all(np.isfinite(atoms))
+    assert np.all(atoms >= 0.0)
+    np.testing.assert_allclose(atoms[0], np.zeros(atoms.shape[1]), atol=1e-12)
+    assert atoms[1, atom_index["longitudinal_accel_step_excess_v1"]] > 0.0
+    assert atoms[1, atom_index["longitudinal_jerk_surrogate_v1"]] > 0.0
+    assert atoms[1, atom_index["lateral_rate_change_surrogate_v1"]] > 0.0
+    assert atoms[1, atom_index["heading_error_change_surrogate_v1"]] > 0.0
+    assert atoms[1, atom_index["corridor_margin_drop_surrogate_v1"]] > 0.0
+    assert atoms[1, atom_index["roughness_corridor_conflict_v1"]] > 0.0
+    assert "relaxed strict-label roughness atoms" in payload["math_boundary"]
 
 
 def test_progress_lane_hard_context_payload_accepts_width_profile() -> None:
@@ -289,6 +347,8 @@ def test_progress_lane_hard_context_replay_wiring_is_default_off_and_neutral() -
     assert "\"closed_loop_outcome_fields_read\": False" in source
     assert "\"online_selector_change\": False" in source
     assert "\"classical_benders_claim\": False" in source
+    assert "relaxed_strict_atom_schema_version" in source
+    assert "relaxed_strict_atom_names" in source
     assert (
         "progress_lane_hard_context_logging=bool("
         in source
