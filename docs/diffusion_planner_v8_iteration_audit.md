@@ -52347,7 +52347,7 @@ construction with unit tests and baseline-equivalence checks. Closed-loop smoke,
 new replay, online selector changes, CAMP retraining, Full36, formal seeds, DP
 modification, and classical Benders claims remain unauthorized.
 
-## External Context Payload Runtime Wiring (`2771449`)
+## External Context Payload Runtime Wiring (`3473e13`)
 
 Purpose:
 
@@ -52360,7 +52360,7 @@ closed-loop replay policy, or the fixed DP repository.
 Implementation:
 
 ```text
-2771449 Implement external context payload wiring
+3473e13 Implement external context payload wiring
 ```
 
 Files:
