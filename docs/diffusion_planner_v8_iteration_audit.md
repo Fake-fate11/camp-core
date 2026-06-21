@@ -37008,6 +37008,108 @@ they remain fixed coefficients in an affine `score_k(w)=a_k^T w` for the
 simplex/CVaR/L2 convex master. No DP-side classical Benders master/subproblem,
 dual, or cut is introduced.
 
+## Progress + Lane/Hard Context Atom Schema Redesign Preflight (`7760a69` source)
+
+This gate adds a design-only preflight for a revised progress+lane/hard context
+atom schema. It consumes the already matched nonformal logs plus the bottleneck
+diagnosis above. It does not run DP, train CAMP, promote an online selector, run
+Full36, or use formal seeds.
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_atom_schema_redesign_preflight.py
+camp_core/tests/test_diffusion_planner_progress_lane_hard_context_atom_schema_redesign_preflight.py
+```
+
+Validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_progress_lane_hard_context_atom_schema_redesign_preflight.py \
+  -q
+```
+
+Result:
+
+```text
+5 passed in 0.31s
+```
+
+Preflight command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_matched_outcome_labels_nonformal_59a1c3d
+OUT=/root/autodl-tmp/camp_dp_progress_lane_hard_context_atom_schema_preflight_7760a69
+
+$PY scripts/integrations/analyze_diffusion_planner_progress_lane_hard_context_atom_schema_redesign_preflight.py \
+  --root "$ROOT/matched_progress_lane_hard_context_outcomes" \
+  --bottleneck_json "$ROOT/audit/progress_lane_hard_context_separability_bottleneck.json" \
+  --label autodl_7760a69_progress_lane_hard_context_atom_schema_preflight \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/progress_lane_hard_context_atom_schema_preflight.json" \
+  --output_md "$OUT/progress_lane_hard_context_atom_schema_preflight.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_atom_schema_preflight_7760a69/progress_lane_hard_context_atom_schema_preflight.json` | `759ffaa1225a330d04dd16873d729bb48242301fcbe3283519207cd82e50ac6d` |
+| `/root/autodl-tmp/camp_dp_progress_lane_hard_context_atom_schema_preflight_7760a69/progress_lane_hard_context_atom_schema_preflight.md` | `ff3f059e6e7a1133968292063f424eba8464340f4c034488a6e3a467ef58c5b8` |
+
+Verifier result:
+
+```text
+status=progress_lane_hard_context_atom_schema_redesign_preflight_ready
+passed=True
+primary_gap=revised_context_atom_schema_preflight_passed
+authorized_next_work=default_off_revised_progress_lane_hard_context_atom_payload_implementation_unit_tests_only
+records=48
+candidate_rows=384
+formal_seed_records=0
+failed_atoms=[]
+failed_math_checks=[]
+```
+
+Atom summaries:
+
+| Atom | Mean | P95 | Max | Note |
+| --- | ---: | ---: | ---: | --- |
+| `route_progress_shortfall_vs_candidate_best_v1` | 0.240162 | 0.751965 | 1.102882 | active progress-loss signal |
+| `route_progress_efficiency_shortfall_v1` | 0.016496 | 0.095900 | 0.299694 | active progress-efficiency signal |
+| `heading_progress_conflict_v1` | 0.003982 | 0.020985 | 0.034145 | product of fixed current-tick coefficients |
+| `lateral_rate_progress_conflict_v1` | 0.014162 | 0.083074 | 0.131288 | product of fixed current-tick coefficients |
+| `corridor_progress_conflict_v1` | 0.000000 | 0.000000 | 0.000000 | mathematically valid but inactive on this matched set |
+
+Decision:
+
+Accept the revised atom schema preflight as a design gate only. The proposed
+atoms are finite and nonnegative on the 48-record, 384-candidate matched
+nonformal context set, and all math checks pass. This authorizes only the next
+minimal implementation gate: add default-off payload support and unit tests for
+the revised atom coefficients. It does not authorize replay, online selector
+promotion, Full36, formal seeds, DP modification, or CAMP retraining.
+
+The `corridor_progress_conflict_v1` atom is retained only as a mathematically
+valid schema candidate; it is not evidence of current separability because it
+is inactive on this dataset. Any later separability result must report whether
+this atom remains zero and should drop it if it contributes no signal.
+
+Mathematical boundary:
+
+The revised atoms use only current-tick finite-candidate profiles already
+logged by the default-off context payload: route-progress deltas, speed,
+heading error, lateral-error rate, and corridor margin. Products and max
+operators are evaluated before optimizing CAMP weights, so each candidate sees
+a fixed coefficient vector \(a_k\). CAMP scoring remains affine
+`score_k(w)=a_k^T w`, and the simplex/CVaR/L2 master remains convex in `w`.
+No global convexity over trajectory coordinates is claimed. No DP-side
+classical Benders master/subproblem, dual, or valid cut is introduced.
+
 ## Progress + Lane/Hard Joint Screen Preflight (`886b100`)
 
 This design-only gate follows the lane/hard standalone bottleneck diagnosis.
