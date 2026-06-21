@@ -48476,3 +48476,162 @@ SafetyCost component, atom delta, fallback/eligibility status, and hard-guarded
 oracle availability. It should decide whether to revise the loss/bucket weights,
 label mask, atom schema, or training split; it must not run DP, promote online
 selection, or claim classical Benders.
+
+## Offline Convex Selector Failure Diagnosis (`bf57a20`)
+
+Purpose:
+
+The dry run at `35fedb8` converged but failed the candidate-branch proof gate.
+This step adds a read-only diagnosis gate that explains why the trained static
+selector is rejected and emits a self-iteration contract for the next plan-only
+step. It does not train, run Diffusion Planner, replay closed loop, promote an
+online selector, or use formal seeds.
+
+Implementation:
+
+```text
+bf57a20 Add offline selector failure diagnosis gate
+```
+
+Files:
+
+```text
+scripts/integrations/diagnose_diffusion_planner_offline_convex_selector_training_failure.py
+camp_core/tests/test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py -q
+2 passed in 0.33s
+
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+23 passed in 0.53s
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=bf57a20e7925af2042bdb09e1ec106bd87766791
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+25 passed in 0.52s
+```
+
+Diagnosis command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+DRY=$ROOT/offline_convex_selector_training_dry_run_35fedb8
+OUT=$ROOT/offline_convex_selector_training_failure_diagnosis_bf57a20
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/diagnose_diffusion_planner_offline_convex_selector_training_failure.py \
+  --dry_run_json "$DRY/offline_convex_selector_training_dry_run.json" \
+  --training_summary "$DRY/training/training_summary.json" \
+  --selector_eval_json "$DRY/selector_eval/selector_eval.json" \
+  --proof_json "$DRY/proof/camp_vs_top1_safety_cost_proof.json" \
+  --static_weights "$DRY/training/offline_weights_dp_static.npy" \
+  --label autodl_bf57a20_from_35fedb8_dry_run \
+  --output_json "$OUT/offline_convex_selector_training_failure_diagnosis.json" \
+  --output_md "$OUT/offline_convex_selector_training_failure_diagnosis.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_selector_training_failure_diagnosis_bf57a20/offline_convex_selector_training_failure_diagnosis.json
+sha256=6209c7cf5f7316aea5bb01043742a11dfe1c3ca82426821d5797a3d485bf2272
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_selector_training_failure_diagnosis_bf57a20/offline_convex_selector_training_failure_diagnosis.md
+sha256=fe5945df97e11f9576af777358d5d7bd105ef483a85427bfca30461d660b43b6
+```
+
+Final decision:
+
+```text
+status=offline_convex_selector_training_failure_diagnosed
+passed=True
+dry_run_selector_rejected=True
+authorized_next_work=offline_convex_objective_and_label_sensitivity_plan_only
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Top selector-vs-logged SafetyCost regressions:
+
+```text
+collision=0.0787037037037037
+near_miss=0.005555555555555556
+mean_lateral_acceleration=0.0002587161839181777
+```
+
+Top trained weights:
+
+```text
+planned_red_light_cost=0.6719951129731132
+red_stopping_margin_cost=0.14975645081676672
+jerk_early=0.09249169087290612
+progress_shortfall=0.029077485326530605
+planned_lateral_acceleration_cost=0.026463899005409148
+```
+
+Diagnosed failure modes:
+
+```text
+weight_mass_concentrated_on_red_stop_atoms
+trained_selector_worsens_weighted_safety_components_vs_logged
+trained_selector_not_nonworse_than_logged_selector
+critical_bucket_top1_gate_failure
+hard_guarded_oracle_gap_remains_open
+```
+
+Decision:
+
+Reject the trained static selector from `35fedb8`. It is better than DP Top-1
+on the overall candidate-branch mean, but this is not enough: traffic-light,
+red-light-turn, and sharp-turn buckets still fail the Top-1 proof gate; the
+hard-guarded oracle gap remains open in every required bucket; and the trained
+selector is worse than the previously logged selector on mean SafetyCost with a
+positive run-level CI high. The strongest diagnosed regression is collision,
+while the learned simplex mass is dominated by planned-red and red-stopping
+atoms. This points to objective/label alignment work, not DP retraining.
+
+Mathematical boundary:
+
+The diagnosis keeps DP as a fixed black-box candidate generator. It reads only
+existing non-formal offline artifacts. Candidate atoms are fixed finite
+constants; CAMP scoring remains affine in `w`; the simplex/CVaR/L2 master
+remains the convex training object. The diagnosis still does not create a
+classical DP-side Benders master/subproblem/dual/cut system.
+
+Next gate:
+
+Perform only an offline convex objective/label sensitivity plan. The plan must
+predeclare candidate-branch gates before any new training dry run: no formal
+seeds, no DP execution, no online outcome leakage, unchanged affine CAMP score,
+unchanged convex simplex/CVaR/L2 master, bucket-wise Top-1 and oracle-gap gates,
+and a logged-selector nonworse or bounded-regression gate. If the plan cannot
+explain how to reduce collision/near-miss regressions without breaking the
+math boundary, reject the route and keep the current shadow/diagnosis state.
