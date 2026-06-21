@@ -52739,3 +52739,90 @@ camp_retraining_authorized=False
 dp_modification_authorized=False
 classic_benders_claim_authorized=False
 ```
+
+## External Context Payload Smoke Result Gate (`00ad488` artifacts)
+
+Purpose:
+
+This step adds a read-only result gate for the external-context payload paired
+smoke. It consumes selector equivalence, external-context payload audit, dataset
+audit, and baseline/candidate validation summaries after the authorized tiny
+smoke has run. It does not run Diffusion Planner, modify DP, train CAMP,
+promote an online selector, enter Full36, or use formal seeds.
+
+Status audit:
+
+```text
+local_head_before_gate=9d8c499cf8243bd866ea608e296c307451603733
+github_origin_main_before_gate=9d8c499cf8243bd866ea608e296c307451603733
+autodl_batchmode_auth=Permission denied (publickey,password)
+autodl_sync_executed=False
+```
+
+Implementation:
+
+```text
+00ad488 Add external context smoke result gate
+```
+
+Files:
+
+```text
+scripts/integrations/summarize_diffusion_planner_external_context_payload_smoke_result.py
+camp_core/tests/test_diffusion_planner_external_context_payload_smoke_result.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\summarize_diffusion_planner_external_context_payload_smoke_result.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_result.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_result.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+25 passed
+git diff --check passed
+```
+
+Synthetic schema artifact:
+
+```text
+F:\camp_core-main\analysis_bundles\external_context_payload_smoke_result_gate_00ad488\external_context_payload_smoke_result.json
+sha256=988869F60F45543EF72799D8391BBB9EB458E3EC4A806339CA3156942807E8B4
+
+F:\camp_core-main\analysis_bundles\external_context_payload_smoke_result_gate_00ad488\external_context_payload_smoke_result.md
+sha256=39D013CD35DE105A15497CA870510151004D14156BB07A9EC723E785076DB6BE
+```
+
+The artifact above is synthetic and only proves the result-gate schema and
+decision boundary. It is not evidence that the AutoDL paired smoke has executed.
+
+Decision boundary:
+
+```text
+status_on_pass=external_context_payload_smoke_result_ready
+authorized_next_work_on_pass=external_context_payload_materiality_diagnosis_existing_smoke_only
+closed_loop_replay_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+The result gate accepts only if selector equivalence has zero exact/numeric
+mismatches, payload audit passes with at least one available route-speed payload
+record, dataset audit confirms closed-loop outcomes are forbidden and formal
+seeds absent, baseline logging is disabled with zero records, and candidate
+logging is enabled with three records and no leakage/selection effect. Passing
+the tiny smoke still authorizes only materiality/coverage diagnosis over the
+existing smoke logs. It does not authorize broader replay, Full36, online
+selection, CAMP retraining, or any DP-side Benders claim.
