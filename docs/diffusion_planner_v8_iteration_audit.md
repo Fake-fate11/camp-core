@@ -55041,3 +55041,142 @@ branch accepts one of these atoms, CAMP would still see fixed coefficients
 `a_k` and score candidates by `score_k(w)=a_k^T w`; the simplex/CVaR/L2 master
 would remain convex. This artifact constructs no DP-side master/subproblem,
 dual, or valid cut.
+
+## Post External-Context Source Closure (`588fe6f`)
+
+This gate closes the external-context source route that was opened by the
+external source visibility inventory. It consumes existing JSON artifacts only:
+the source visibility inventory, the route-speed materiality-gap diagnosis, the
+selected-preserving signal counterfactual, and the alternative external-context
+atom search. It does not run DP, replay closed loop, train CAMP, change the
+online selector, use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+588fe6f55185b33afb3300411417a8abec8cd477 Add post external context source closure gate
+
+scripts/integrations/plan_diffusion_planner_post_external_context_source_closure.py
+camp_core/tests/test_diffusion_planner_post_external_context_source_closure.py
+```
+
+Local verification:
+
+```text
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\plan_diffusion_planner_post_external_context_source_closure.py \
+  camp_core\tests\test_diffusion_planner_post_external_context_source_closure.py
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_post_external_context_source_closure.py -q
+result=6 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_post_external_context_source_closure.py \
+  camp_core\tests\test_diffusion_planner_external_context_alternative_atom_search.py \
+  camp_core\tests\test_diffusion_planner_external_source_visibility_inventory.py -q
+result=18 passed
+```
+
+AutoDL synchronization and verification:
+
+```text
+autodl_camp_head=588fe6f55185b33afb3300411417a8abec8cd477
+autodl_camp_origin=588fe6f55185b33afb3300411417a8abec8cd477
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_tests=18 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SIG=/root/autodl-tmp/camp_dp_external_context_signal_arrival_outcome_counterfactual/audit
+OUT=$DEV/post_external_context_source_closure_588fe6f
+
+$PY scripts/integrations/plan_diffusion_planner_post_external_context_source_closure.py \
+  --source_inventory_json "$DEV/external_source_visibility_inventory_5318700/external_source_visibility_inventory.json" \
+  --route_speed_gap_json /root/autodl-tmp/camp_dp_external_context_route_speed_materiality_probe/audit/external_context_materiality_gap.json \
+  --signal_counterfactual_json "$SIG/external_context_selected_preserving_atom_outcome_counterfactual.json" \
+  --alternative_search_json "$SIG/external_context_alternative_atom_search_e38914e/external_context_alternative_atom_search.json" \
+  --label autodl_588fe6f_post_external_context_source_closure \
+  --output_json "$OUT/post_external_context_source_closure.json" \
+  --output_md "$OUT/post_external_context_source_closure.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_external_context_source_closure_588fe6f/post_external_context_source_closure.json` | `065ecfb7213c4b06f5c7dbe8179fce1c253700160e85aadb4bac7b4053db6fc9` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_external_context_source_closure_588fe6f/post_external_context_source_closure.md` | `f06af9be8c28c6fa1ba08d032d439d0dd120001c6a79ffe4501cd6498186c556` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\post_external_context_source_closure_588fe6f
+```
+
+Final decision:
+
+```text
+status=post_external_context_source_route_closed
+passed=True
+external_context_source_route_closed=True
+current_camp_dp_selector_route_rejected=True
+authorized_next_work=scenario_objective_redesign_or_pause_only
+failed_checks=[]
+new_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Evidence consumed:
+
+1. The source visibility inventory had only two admissible design candidates:
+   traffic-signal/right-of-way context and route-speed/control context.
+2. The route-speed branch is closed by the materiality-gap diagnosis:
+   `route_speed_context_available_but_no_candidate_excess`,
+   `route_speed_availability_constant`, and
+   `nonmaterial_constant_speed_limit`.
+3. The signal/right-of-way branch is closed by the outcome counterfactuals:
+   the unguarded atom path is not noninferior, the guarded path is not
+   noninferior, and the selected-preserving guard changes zero records and
+   improves zero records.
+4. The alternative external-context atom search found no passing candidate,
+   no changed records, and no all-gate records.
+
+Decision:
+
+Accept this closure gate. Do not reopen external-context signal/right-of-way
+or route-speed atomization from the current evidence. This closes the current
+external source discovery branch and leaves only scenario/objective redesign or
+pausing the current CAMP-DP selector route. It does not prove CAMP is better
+than DP Top-1 and does not authorize online selector promotion, new replay,
+Full36, formal seeds, CAMP retraining, DP modification, or a classical Benders
+claim.
+
+Next admissible work:
+
+If continuing, write a design/read-only scenario-objective closure or pause
+gate that states the current CAMP-DP selector route has no deployable no-leak
+source left under the fixed DP boundary. Any future reopening must introduce a
+genuinely new current-tick candidate-level source with non-equivalence,
+no-leak, latency, atomization, and existing-log noninferiority evidence before
+any replay or online implementation.
+
+Mathematical boundary:
+
+The closure gate reads prior JSON artifacts only. It creates no atom, runs no
+DP replay, trains no weights, and changes no selector. Any future runtime CAMP
+feature must still be a fixed current-tick finite-candidate coefficient `a_k`,
+nonnegative, hinged, or signed-split, so `score_k(w)=a_k^T w` remains affine
+and the simplex/CVaR/L2 master remains convex. No DP-side classical Benders
+master/subproblem, dual, or cut is claimed.
