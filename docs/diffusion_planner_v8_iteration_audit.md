@@ -50561,3 +50561,157 @@ Any atom proposal must map descriptors to fixed nonnegative candidate
 coefficients `a_k` or nonnegative signed parts, preserving affine
 `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. No DP-side
 classical Benders decomposition is claimed.
+
+## Current Observable Separability Bridge Closure (`cf047ca` artifacts)
+
+Purpose:
+
+The `bb55e4f` broader missing candidate-state logging coverage authorized only
+an offline no-leak observable descriptor separability design gate. Before
+rerunning that route, this step added and executed a read-only bridge/closure
+gate to determine whether the current observable payload is materially new or
+only duplicates the older matched observable descriptor family that was already
+rejected.
+
+Code changes:
+
+```text
+5d7de40 Add current observable separability bridge gate
+cf047ca Fix current observable bridge CLI imports
+```
+
+Local verification:
+
+```text
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_current_observable_separability_bridge.py \
+  camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core/tests/test_diffusion_planner_matched_observable_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_constrained_affine_upper_bound.py \
+  camp_core/tests/test_diffusion_planner_affine_allowed_harmful_residual.py \
+  -q
+
+25 passed
+git diff --check passed
+```
+
+AutoDL sync and verification:
+
+AutoDL could not reach GitHub over port 443 during this round, so the exact
+commits were synchronized by git bundle over SSH/SFTP. AutoDL CAMP HEAD after
+sync was:
+
+```text
+cf047ca2979fc90101b3c70feb0f0b063ff0c012
+```
+
+The same targeted AutoDL test set passed:
+
+```text
+25 passed
+git diff --check passed
+```
+
+Bridge artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/current_observable_separability_bridge_cf047ca/current_observable_separability_bridge.json
+sha256=51ce17536abbf33e1cd70bd1f6b60f691ae2169a84f77f2c55b27a9b90f7e687
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/current_observable_separability_bridge_cf047ca/current_observable_separability_bridge.md
+sha256=2856936803036497beaacc89fdeeb97519eb58d72b40015f912b635737369141
+```
+
+Inputs consumed:
+
+```text
+current_payload_coverage_json=
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_broader_coverage_current_chain/audit/observable_state_payload_coverage.json
+
+matched_contract_json=
+/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/audit/matched_observable_outcome_contract.json
+
+observable_separability_json=
+/root/autodl-tmp/camp_dp_matched_observable_descriptor_separability_84cc0c3/matched_observable_descriptor_separability.json
+
+constrained_affine_json=
+/root/autodl-tmp/camp_dp_constrained_affine_upper_bound_3a8fed6/constrained_affine_upper_bound.json
+
+affine_residual_json=
+/root/autodl-tmp/camp_dp_affine_allowed_harmful_residual_ae6819c/affine_allowed_harmful_residual.json
+```
+
+Bridge decision:
+
+```text
+status=current_observable_separability_bridge_duplicate_rejected
+closure_gate_passed=True
+primary_gap=current_observable_route_duplicates_rejected_old_family
+authorized_next_work=proof_objective_or_new_descriptor_family_design_only
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Equivalence evidence:
+
+```text
+duplicate_route_evidence=True
+materially_new_route=False
+current_records=48
+current_candidate_rows=384
+old_observable_records=48
+old_observable_candidate_rows=384
+uncovered_current_material_fields=[]
+```
+
+Conclusion:
+
+Reject a direct rerun of the current observable descriptor separability route.
+The current broader coverage payload does not introduce a materially new
+descriptor family relative to the already rejected matched observable evidence:
+the scope matches at 48 records and 384 candidate rows, and all current material
+fields are covered by the old observable descriptor source fields. Repeating
+the same separability screen would violate the "do not repeat rejected routes"
+rule.
+
+Accepted route:
+
+```text
+current_observable_separability_bridge_closure
+```
+
+Rejected routes:
+
+```text
+rerun_current_observable_descriptor_separability_without_new_descriptors
+online selector promotion
+CAMP retraining
+Full36
+formal seeds 11/12/13
+DP modification or retraining
+DP-side classical Benders claim
+```
+
+Next gate:
+
+Move to `proof_objective_or_new_descriptor_family_design_only`. The next step
+must either redefine the proof objective/label protocol for demonstrating CAMP
+utility against DP Top-1, or predeclare a genuinely new current-tick no-leak
+descriptor family. It must not launch new replay, train CAMP, or promote an
+online selector until the new objective/descriptor route has a written
+math-boundary and offline evidence gate.
+
+Mathematical boundary:
+
+The bridge consumes existing JSON artifacts only. Current payload descriptors
+remain finite current-tick candidate data. Older outcome labels are used only to
+close or justify an offline separability route, never as online features. Any
+future atom derived from these descriptors must enter as a fixed coefficient
+`a_k`, preserving affine `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2
+master. No DP-side classical Benders master/subproblem, dual, or cut is
+constructed.
