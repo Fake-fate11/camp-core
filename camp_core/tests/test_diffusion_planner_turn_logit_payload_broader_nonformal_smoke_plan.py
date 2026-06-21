@@ -47,8 +47,10 @@ def _selector_equivalence(*, equivalent: bool = True) -> dict:
 def _dataset_audit(*, passed: bool = True) -> dict:
     return {
         "passed": passed,
-        "closed_loop_outcomes_forbidden": True,
-        "finite_candidate_contract_verified": True,
+        "checks": {
+            "closed_loop_outcomes_forbidden": True,
+            "finite_candidate_contract_verified": True,
+        },
     }
 
 

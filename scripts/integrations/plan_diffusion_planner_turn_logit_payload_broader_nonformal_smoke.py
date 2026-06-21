@@ -260,6 +260,7 @@ def _source_artifact_checks(
     smoke_final = smoke.get("final_decision", {})
     smoke_counts = smoke.get("counts", {})
     smoke_latency = smoke.get("latency_ms", {})
+    dataset_checks = _dataset_checks(dataset)
     source_latency_ms = _float(smoke_latency.get("latency_ms_turn_logit_payload"))
     return [
         {
@@ -302,14 +303,14 @@ def _source_artifact_checks(
         {
             "name": "source_dataset_audit_passed",
             "passed": dataset.get("passed") is True
-            and dataset.get("closed_loop_outcomes_forbidden") is True
-            and dataset.get("finite_candidate_contract_verified") is True,
+            and dataset_checks.get("closed_loop_outcomes_forbidden") is True
+            and dataset_checks.get("finite_candidate_contract_verified") is True,
             "dataset_summary": {
                 "passed": dataset.get("passed"),
-                "closed_loop_outcomes_forbidden": dataset.get(
+                "closed_loop_outcomes_forbidden": dataset_checks.get(
                     "closed_loop_outcomes_forbidden"
                 ),
-                "finite_candidate_contract_verified": dataset.get(
+                "finite_candidate_contract_verified": dataset_checks.get(
                     "finite_candidate_contract_verified"
                 ),
             },
@@ -734,6 +735,14 @@ def _sum_nested_numbers(value: Any) -> float:
         return float(value)
     except (TypeError, ValueError):
         return 0.0
+
+
+def _dataset_checks(dataset: dict[str, Any]) -> dict[str, Any]:
+    for key in ("checks", "summary"):
+        value = dataset.get(key)
+        if isinstance(value, dict):
+            return value
+    return dataset
 
 
 def _read_json(path: Path) -> dict[str, Any]:
