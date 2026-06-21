@@ -55793,3 +55793,92 @@ atom, runs no DP, trains no weights, and uses no outcome label as a runtime
 input. Any future source must still be a fixed current-tick finite-candidate
 coefficient `a_k`, preserving affine `score_k(w)=a_k^T w` and the convex
 simplex/CVaR/L2 master.
+
+## Post-Ledger Strict Development State Refresh (`1a57df1`)
+
+After the strict source audit closed the current tensor/source route, this step
+refreshes the overall development gate state using the strict post-ledger source
+closure instead of the older `2794ad9` closure artifact.
+
+AutoDL verification:
+
+```text
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/plan_diffusion_planner_current_development_gate_state.py
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_current_development_gate_state.py \
+  camp_core/tests/test_diffusion_planner_targeted_source_route_closure.py \
+  camp_core/tests/test_diffusion_planner_proof_protocol_v2.py \
+  camp_core/tests/test_diffusion_planner_scenario_evidence_matrix_gate.py -q
+result=19 passed
+```
+
+Artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/current_development_gate_state_post_ledger_strict_1a57df1
+
+$PY scripts/integrations/plan_diffusion_planner_current_development_gate_state.py \
+  --source_closure_json "$ROOT/targeted_source_route_closure_post_ledger_strict_b0de93f/targeted_source_route_closure.json" \
+  --proof_protocol_v2_json "$ROOT/proof_protocol_v2_3605f51/proof_protocol_v2.json" \
+  --scenario_evidence_matrix_json "$ROOT/scenario_evidence_matrix_gate_7ddef8c/scenario_evidence_matrix_gate.json" \
+  --targeted_oracle_json "$ROOT/targeted_safety_cost_oracle_audit_a8336e8/targeted_safety_cost_oracle.json" \
+  --targeted_failure_attribution_json "$ROOT/targeted_failure_attribution_980973c/targeted_failure_attribution.json" \
+  --support_reject_json "$ROOT/postprocess_execution_source_proposal_reject_245c582/postprocess_execution_source_proposal_reject.json" \
+  --label autodl_1a57df1_post_ledger_strict_current_development_gate_state \
+  --output_json "$OUT/current_development_gate_state.json" \
+  --output_md "$OUT/current_development_gate_state.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/current_development_gate_state_post_ledger_strict_1a57df1/current_development_gate_state.json` | `a4a202db7429abd071cd380ab876e8cc83b796438f5204c99420572b9a4d3996` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/current_development_gate_state_post_ledger_strict_1a57df1/current_development_gate_state.md` | `fe3116bb9a6089c2d2a7aae0a71e33ecdaf8de34a901e52743ba42bf0b9638d4` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\current_development_gate_state_post_ledger_strict_1a57df1
+```
+
+Final decision:
+
+```text
+status=current_development_gate_state_no_deployable_route_yet
+passed=True
+development_gates_complete=False
+formal_seeds_ready=False
+current_camp_dp_selector_route_rejected=True
+authorized_next_work=scenario_objective_redesign_or_external_source_discovery_only
+failed_checks=[]
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept this refresh as the current development state. ProofProtocol v2,
+scenario evidence matrix, and candidate-branch oracle opportunity remain
+available, but they still do not create a deployable no-leak CAMP selector.
+Current logged CAMP is rejected, old training/sensitivity routes are closed,
+strict source discovery is closed, and the latest source proposal gate reports
+no new support source.
+
+Next admissible work:
+
+Do not rerun closed atom/source/training routes. Continue only with a
+scenario/objective redesign or external source-discovery contract, or keep the
+current selector route paused. This does not authorize replay, training, online
+promotion, Full36, formal seeds, DP modification, or DP-side classical Benders.
