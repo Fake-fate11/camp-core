@@ -40885,3 +40885,142 @@ features, not an optimization over trajectory coordinates. CAMP scoring
 remains `score_k(w)=a_k^T w`; the simplex/CVaR/L2 master remains convex in
 weights \(w\). No DP-side classical Benders decomposition, dual, or cut is
 constructed.
+
+## Relaxed Strict-Label Atom Separability (`2610219` source)
+
+This gate tests whether the default-off relaxed strict-label atom payload is
+actually useful for separating offline beneficial and harmful alternatives on
+the existing matched logs. It does not run a new replay, train CAMP, promote
+an online selector, use formal seeds, run Full36, or modify DP.
+
+Changed files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_relaxed_strict_label_atom_separability.py
+camp_core/tests/test_diffusion_planner_relaxed_strict_label_atom_separability.py
+```
+
+The analyzer recomputes the relaxed strict atom values from current-tick
+`progress_lane_hard_context_logging` fields, because the matched logs were
+recorded before the runtime payload existed. It uses
+`candidate_closed_loop_outcomes` only as offline beneficial/harmful labels.
+The source gates require the no-leak preflight artifact and the relaxed strict
+label sensitivity artifact to be ready before any screen is considered.
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_relaxed_strict_label_atom_separability.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_relaxed_strict_label_atom_separability.py `
+  camp_core\tests\test_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py `
+  -q
+```
+
+Result:
+
+```text
+10 passed in 1.01s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY -m py_compile scripts/integrations/analyze_diffusion_planner_relaxed_strict_label_atom_separability.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_relaxed_strict_label_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_relaxed_strict_label_atom_separability.py \
+  --root "$ROOT/matched_revised_context_outcomes" \
+  --preflight_json "$ROOT/audit/revised_context_relaxed_strict_label_atom_schema_preflight.json" \
+  --sensitivity_json "$ROOT/audit/revised_context_strict_label_sensitivity.json" \
+  --label autodl_2610219_relaxed_strict_label_atom_separability \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/relaxed_strict_label_atom_separability.json" \
+  --output_md "$ROOT/audit/relaxed_strict_label_atom_separability.md"
+```
+
+Result:
+
+```text
+10 passed in 0.77s
+status=relaxed_strict_label_atom_separability_rejected
+passed=False
+primary_gap=relaxed_strict_atoms_do_not_separate_candidates
+authorized_next_work=diagnose_relaxed_strict_label_atom_separability_bottleneck_before_replay
+promising_screen_count=0
+classic_benders_claim_authorized=False
+CAMP_HEAD=2610219f4b14cea581bc5841f7e9a082f6c77b71
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+relaxed_strict_label_atom_separability.json
+d7a1c127a7b777cb4890621403a44f4a8c93c14670d274a6541d2d961553c9c9
+
+relaxed_strict_label_atom_separability.md
+c31eacd6a5d044ac90c68116d0aef3574d095d4eab52a4ef71d62554f6935dc1
+```
+
+Observed support:
+
+```text
+total_records=48
+outcome_records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+beneficial_alternative=41
+harmful_alternative=251
+neutral_alternative=44
+```
+
+Best screen:
+
+```text
+screen=relaxed_strict_atom_roughness_corridor_conflict_v1:allow_low
+harmful_block_rate=1.0
+beneficial_retain_rate=0.024390243902439025
+allowed_harmful_rate=0.0
+auc_beneficial_vs_harmful=0.615197745602954
+failure_gap=beneficial_retain_rate_insufficient
+```
+
+Decision:
+
+Reject the relaxed strict-label atom family as sufficient for certificate or
+selector design. The best screen blocks all harmful alternatives and admits no
+harmful alternatives, but retains only 1 of 41 beneficial alternatives.
+Immediate retraining, selector promotion, replay expansion, formal seeds, and
+Full36 remain rejected.
+
+Next admissible work:
+
+Run only a bottleneck diagnosis over this rejected relaxed strict-label atom
+screen before replay. The diagnosis must explain which beneficial candidates
+are blocked by roughness/corridor atoms, whether those beneficial candidates
+are genuinely low-risk under the comprehensive safety score, and whether a
+smaller no-leak atom change or different relaxed-label budget is justified. If
+the classes intrinsically overlap, reject this atom route instead of tuning
+thresholds.
+
+Mathematical boundary:
+
+The separability analyzer still treats every relaxed strict atom as a fixed
+finite-candidate nonnegative coefficient at the current tick. CAMP scoring
+remains `score_k(w)=a_k^T w`; the simplex/CVaR/L2 master remains convex in
+weights \(w\). Candidate closed-loop outcomes are used only as offline labels,
+not as runtime atom features. No DP-side classical Benders master/subproblem,
+dual, or valid cut is constructed.
