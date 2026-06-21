@@ -57997,3 +57997,119 @@ selection, candidate-level or deterministically joinable, finite or fail-closed,
 non-equivalent to closed source labels, not a future outcome or SafetyCost
 label, not require DP modification/retraining, and predeclare latency and
 atomization before any replay is considered.
+
+## Post Source-Visibility Runtime Inventory (`e9d778d`)
+
+This is the immediate self-iteration after the negative source-visibility
+predeclaration screen. It checks the visible DP/simulator runtime source
+families that still look tempting after the screen, without running DP, replay,
+selection, atom promotion, training, or formal seeds.
+
+Implementation:
+
+```text
+e9d778d367284a8b72cf0accf2e496f8eaf97fc6 Add post source visibility runtime inventory
+scripts/integrations/plan_diffusion_planner_post_source_visibility_runtime_inventory.py
+camp_core/tests/test_diffusion_planner_post_source_visibility_runtime_inventory.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_post_source_visibility_runtime_inventory.py \
+         camp_core\tests\test_diffusion_planner_source_visibility_predeclaration_screen.py -q
+  result=12 passed
+
+AutoDL:
+  CAMP HEAD=e9d778d367284a8b72cf0accf2e496f8eaf97fc6
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest result=12 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SCREEN=$DEV/source_visibility_predeclaration_screen_940af46/source_visibility_predeclaration_screen.json
+OUT=$DEV/post_source_visibility_runtime_inventory_e9d778d
+
+$PY scripts/integrations/plan_diffusion_planner_post_source_visibility_runtime_inventory.py \
+  --screen_json "$SCREEN" \
+  --label autodl_e9d778d_post_source_visibility_runtime_inventory \
+  --output_json "$OUT/post_source_visibility_runtime_inventory.json" \
+  --output_md "$OUT/post_source_visibility_runtime_inventory.md" \
+  --require_pass
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_source_visibility_runtime_inventory_e9d778d/post_source_visibility_runtime_inventory.json` | `f37b32dcbbedb56be92e111adddbb48107bbd4f86ab2eacef83e1008dc5d0dbe` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_source_visibility_runtime_inventory_e9d778d/post_source_visibility_runtime_inventory.md` | `1871e4b05021ed92fafeddf401b5dfee91c4389664dd75cfd8435b9f64118830` |
+
+Decision:
+
+```text
+status=post_source_visibility_runtime_inventory_no_new_source_paused
+passed=True
+selector_route_paused=True
+support_source_ready=False
+authorized_next_work=keep_selector_route_paused_or_scenario_objective_redesign_only
+new_runtime_source_candidates=[]
+rejected_runtime_source_candidates=[
+  intersection_stopline_crosswalk_map_context,
+  candidate_npc_ttc_or_conflict_zone_interaction,
+  traffic_light_phase_or_right_of_way_context,
+  dp_native_logprob_or_denoising_uncertainty,
+  raw_prefix_or_source_donor_reuse
+]
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Interpretation:
+
+Accept this as a negative runtime-source inventory. It does not prove CAMP is
+deployable on DP; it proves the current fixed-DP black-box route still lacks a
+new no-leak source family after the source-visibility screen. The rejected
+families map to already closed support:
+
+- map intersection/stop-line/crosswalk context is route-topology or lane/hard
+  support, not a new family;
+- candidate NPC TTC/conflict-zone logic is observable interaction support;
+- traffic-light phase/right-of-way context is external-context/signal/red
+  support;
+- native DP log-probability or denoising uncertainty would require DP boundary
+  exposure or modification;
+- raw-prefix/source-donor/top-1 reuse is already closed.
+
+Mathematical boundary:
+
+The gate creates no atom and runs no selector. If one of these quantities were
+available as a fixed current-tick finite-candidate coefficient, a nonnegative,
+hinged, or signed-split version could preserve `score_k(w)=a_k^T w` and keep the
+simplex/CVaR/L2 master convex. That is not enough here because every visible
+family is either equivalent to a closed source label or violates the fixed-DP
+black-box boundary. No DP-side classical Benders decomposition is claimed.
+
+Next admissible work:
+
+Keep the selector route paused. The next self-iteration should switch from
+source mining to scenario/objective redesign: define a proof-oriented nonformal
+evaluation objective and scenario matrix that can demonstrate CAMP usefulness
+when a legitimate current-tick atom/source is available, without reopening
+closed source families, modifying DP, using formal seeds, retraining CAMP, or
+claiming deployment from synthetic artifacts.
