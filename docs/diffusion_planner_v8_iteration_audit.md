@@ -39955,3 +39955,140 @@ finite-candidate descriptors. Any revised atom must enter CAMP as a fixed
 candidate coefficient \(a_k\), preserving affine `score_k(w)=a_k^T w` and the
 simplex/CVaR/L2 convex master. No DP-side classical Benders decomposition,
 dual, or cut is introduced.
+
+## Revised Context Atom Separability Bottleneck (`de8d699` source)
+
+This gate adds a read-only bottleneck diagnosis for the rejected revised
+context atom separability artifact from the matched-outcome nonformal smoke.
+It consumes only existing logs and the rejected offline separability report. It
+does not run DP, generate new replay, train CAMP, promote an online selector,
+run Full36, use formal seeds, or modify the fixed DP checkout.
+
+Code added:
+
+```text
+scripts/integrations/analyze_diffusion_planner_revised_context_atom_separability_bottleneck.py
+camp_core/tests/test_diffusion_planner_revised_context_atom_separability_bottleneck.py
+```
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_revised_progress_lane_hard_context_atom_separability.py `
+  camp_core\tests\test_diffusion_planner_revised_context_atom_separability_bottleneck.py `
+  -q
+```
+
+Result:
+
+```text
+11 passed in 0.60s
+```
+
+AutoDL validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_revised_context_atom_separability_bottleneck.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_revised_progress_lane_hard_context_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_revised_context_atom_separability_bottleneck.py \
+  -q
+```
+
+Result:
+
+```text
+11 passed in 0.45s
+```
+
+Diagnostic command:
+
+```bash
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY scripts/integrations/analyze_diffusion_planner_revised_context_atom_separability_bottleneck.py \
+  --root "$ROOT/matched_revised_context_outcomes" \
+  --separability_json "$ROOT/audit/revised_context_atom_separability.json" \
+  --label autodl_de8d699_revised_context_atom_bottleneck \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/revised_context_atom_separability_bottleneck.json" \
+  --output_md "$ROOT/audit/revised_context_atom_separability_bottleneck.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_atom_separability_bottleneck.json` | `e6b11fa9603a5c66191e646a5a9b9b1994a297e895a46e0c7e5ed9cf56d269f6` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_atom_separability_bottleneck.md` | `7e490e09c3ee2ef6ba92b5c705a0a12b21fceab2c767d2624c5c73bd8b2b5382` |
+
+Verifier result:
+
+```text
+status=revised_context_atom_separability_bottleneck_diagnosed
+passed=True
+primary_gap=strict_atom_screens_overblock_beneficial_and_high_retain_screens_allow_harmful
+authorized_next_work=revise_atom_label_or_objective_before_retraining
+source_status=revised_progress_lane_hard_context_atom_separability_rejected
+source_primary_gap=revised_context_atoms_do_not_separate_candidates
+records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+missing_outcome_records=0
+class_counts={beneficial_alternative: 56, harmful_alternative: 180, neutral_alternative: 100}
+beneficial_total=56
+beneficial_blocked=54
+beneficial_retained=2
+harmful_total=180
+harmful_allowed=0
+harmful_blocked=180
+neutral_total=100
+best_screen=affine_simplex:0.250*revised_atom_heading_progress_conflict_v1+0.750*revised_atom_route_progress_efficiency_shortfall_v1
+best_screen_beneficial_retain_rate_on_logs=0.03571428571428571
+best_screen_allowed_harmful_rate_among_allowed_nonneutral=0.0
+strict_safe_screen_count=21
+high_retain_screen_count=1
+likely_bottleneck=atom_label_overlap_or_objective_mismatch
+camp_retraining_recommended=False
+stale_camp_weight_bottleneck_supported=False
+```
+
+Interpretation:
+
+Accept the bottleneck diagnosis and keep the current revised atom family
+rejected for certificate or selector design. The issue is not currently
+supported as stale CAMP weights: the strict screen blocks every harmful
+alternative but also blocks 54 of 56 beneficial alternatives. A high-retain
+screen exists, but the source tradeoff still shows that keeping beneficial
+alternatives would relax the safety screen too far. This is an atom/label or
+objective mismatch diagnosis, not a training authorization.
+
+Decision:
+
+Do not train CAMP, promote an online selector, run Full36, use formal seeds, or
+modify DP from this result. The next admissible work is to revise or audit the
+atom/label/objective definition before retraining. In particular, the next gate
+should separate three hypotheses using the same matched logs before any new
+replay: (1) beneficial labels are too permissive relative to safety-score
+intent, (2) revised atoms over-penalize benign progress/heading shapes, or
+(3) the DP candidate set lacks enough alternatives that are both safer and
+progress/comfort-compatible.
+
+Mathematical boundary:
+
+The bottleneck diagnosis uses closed-loop outcomes only after the rejected
+offline screen to explain error modes. Runtime-eligible quantities remain
+current-tick finite revised atom coefficients. If revised atoms are changed,
+each new atom must be nonnegative or otherwise explicitly justified and must
+enter CAMP as a fixed candidate coefficient \(a_k\), preserving affine
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. This remains a
+finite-candidate diagnostic, not a DP-side classical Benders decomposition.
