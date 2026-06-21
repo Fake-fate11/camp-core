@@ -55180,3 +55180,128 @@ feature must still be a fixed current-tick finite-candidate coefficient `a_k`,
 nonnegative, hinged, or signed-split, so `score_k(w)=a_k^T w` remains affine
 and the simplex/CVaR/L2 master remains convex. No DP-side classical Benders
 master/subproblem, dual, or cut is claimed.
+
+## Post External-Context Pause Gate (`1f9677c`)
+
+This gate is the read-only closure step requested by the previous milestone. It
+consumes the current development ledger, the scenario/objective-vs-external
+source contract, and the post external-context source closure. It does not run
+DP, replay closed loop, train CAMP, create atoms, change the online selector,
+use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+1f9677c91b7bf020bed99d9723b7658b34b46441 Add post external context pause gate
+
+scripts/integrations/plan_diffusion_planner_post_external_context_pause_gate.py
+camp_core/tests/test_diffusion_planner_post_external_context_pause_gate.py
+```
+
+Local verification:
+
+```text
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\plan_diffusion_planner_post_external_context_pause_gate.py \
+  camp_core\tests\test_diffusion_planner_post_external_context_pause_gate.py
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_post_external_context_pause_gate.py -q
+result=6 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_post_external_context_pause_gate.py \
+  camp_core\tests\test_diffusion_planner_post_external_context_source_closure.py \
+  camp_core\tests\test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py -q
+result=18 passed
+```
+
+AutoDL synchronization and verification:
+
+```text
+autodl_camp_head=1f9677c91b7bf020bed99d9723b7658b34b46441
+autodl_camp_origin=1f9677c91b7bf020bed99d9723b7658b34b46441
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_py_compile=passed
+autodl_pause_gate_tests=6 passed
+autodl_related_tests=23 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$DEV/post_external_context_pause_gate_1f9677c
+
+$PY scripts/integrations/plan_diffusion_planner_post_external_context_pause_gate.py \
+  --development_gate_state_json "$DEV/current_development_gate_state_7e6e2de/current_development_gate_state.json" \
+  --scenario_objective_contract_json "$DEV/scenario_objective_external_source_contract_851cf18/scenario_objective_external_source_contract.json" \
+  --post_external_context_closure_json "$DEV/post_external_context_source_closure_588fe6f/post_external_context_source_closure.json" \
+  --label autodl_1f9677c_post_external_context_pause_gate \
+  --output_json "$OUT/post_external_context_pause_gate.json" \
+  --output_md "$OUT/post_external_context_pause_gate.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_external_context_pause_gate_1f9677c/post_external_context_pause_gate.json` | `5d3278aa9812c0a28662f3c8c6f151021bb9ea62189cfcc13e5783cda276cc4f` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_external_context_pause_gate_1f9677c/post_external_context_pause_gate.md` | `3311decdce2464d293dce28285f02f323dbcd3838155c913b6d7af2cf271d6e9` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\post_external_context_pause_gate_1f9677c
+```
+
+Final decision:
+
+```text
+status=post_external_context_selector_route_paused
+passed=True
+selector_route_paused=True
+deployable_camp_dp_selector_route_exists=False
+development_gates_complete=False
+formal_seeds_ready=False
+current_camp_dp_selector_route_rejected=True
+authorized_next_work=new_proof_objective_or_new_current_tick_source_predeclaration_only
+failed_checks=[]
+new_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept this pause gate. The current fixed-DP CAMP selector route is paused: all
+currently inspected no-leak source families under this boundary have either
+failed to produce material selector support or were closed by prior gates. This
+does not prove CAMP is better than DP Top-1 and does not authorize online
+selector promotion, new replay, Full36, formal seeds, CAMP retraining, DP
+modification, or a classical Benders claim.
+
+Next admissible work:
+
+Continue only with a new proof-objective predeclaration or a genuinely new
+current-tick candidate-level source predeclaration. A new source must be visible
+before selection, finite and candidate-level or deterministically joinable,
+non-equivalent to closed families, not a future outcome label, atomizable as a
+nonnegative/hinged/signed-split coefficient, latency-measurable default-off, and
+supported by existing-log materiality/noninferiority evidence before any replay.
+
+Mathematical boundary:
+
+The pause gate creates no atom and runs no selector. It records only that the
+current fixed-DP finite-candidate selector route is paused. A future runtime CAMP
+feature must still be a current-tick finite-candidate coefficient `a_k` that is
+nonnegative, hinged, or signed-split, so `score_k(w)=a_k^T w` remains affine and
+the simplex/CVaR/L2 master remains convex. No DP-side classical Benders
+master/subproblem, dual, or cut is claimed.
