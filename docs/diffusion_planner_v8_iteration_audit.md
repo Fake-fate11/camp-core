@@ -43766,3 +43766,187 @@ convexity claim. If later atomized, they must be fixed before scoring so
 `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
 remains convex. No DP-side classical Benders master/subproblem, dual, or cut
 is constructed.
+
+## Observable Interaction Geometry Audit (`c261abc` source)
+
+This gate follows the inventory diagnosis with a read-only geometry audit over
+the refreshed smoke logs, the coverage plan routes, and route/map metadata. It
+does not run Diffusion Planner, does not modify DP, does not use closed-loop
+outcome labels, does not create a selector, and does not train CAMP.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_observable_interaction_geometry.py
+camp_core/tests/test_diffusion_planner_observable_interaction_geometry.py
+```
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_observable_interaction_geometry.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_geometry.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_scenario_support.py `
+  -q
+```
+
+Result:
+
+```text
+7 passed in 0.58s
+```
+
+AutoDL synchronization:
+
+AutoDL was fast-forwarded to `c261abc1ddfd6a37a0a338c960c819684ac39722`
+with a git bundle because the remote GitHub fetch path was still unreliable.
+The AutoDL worktree is current; its `origin/main` tracking ref may still be
+stale until GitHub TLS fetch recovers. DP stayed fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/Diffusion-Planner:/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:$PYTHONPATH
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_interaction_geometry.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_geometry.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_scenario_support.py \
+  -q
+
+ROOT=/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_3a3992e_cmdrefresh
+INV=/root/autodl-tmp/camp_dp_observable_interaction_inventory_eeb42ac/observable_interaction_inventory.json
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_geometry_c261abc
+mkdir -p "$OUT"
+
+$PY scripts/integrations/analyze_diffusion_planner_observable_interaction_geometry.py \
+  --inventory_json "$INV" \
+  --plan_json "$ROOT/observable_interaction_coverage_plan.json" \
+  --root "$ROOT" \
+  --label autodl_c261abc_observable_interaction_geometry \
+  --output_json "$OUT/observable_interaction_geometry.json" \
+  --output_md "$OUT/observable_interaction_geometry.md"
+```
+
+Result:
+
+```text
+7 passed in 0.34s
+status=observable_interaction_geometry_bottleneck_diagnosed
+passed=True
+primary_gap=reduced_red_alignment_nonpositive,clearance_budget_never_active
+authorized_next_work=reject_observable_interaction_route_or_predeclare_narrow_support_experiment
+current_observable_interaction_route_rejected=True
+new_replay_authorized=False
+offline_separability_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_geometry.json
+724d88a318d659595818a86a65eaa694ac90a424a4898093c5691b4bed7adbc4
+
+observable_interaction_geometry.md
+44de8cbfa3bc2c57f1b5e35784cd198763ba6a193cfef5d4148addc722b77ba8
+```
+
+Red geometry:
+
+```text
+payload_records=24
+reduced_candidate_count=192
+reduced_near_budget_candidates=2
+reduced_positive_alignment_candidates=0
+reduced_near_and_positive_candidates=0
+raw_sample_count=5760
+raw_near_budget_samples=2
+raw_positive_alignment_samples=10
+raw_near_and_positive_samples=0
+min_red_distance_m=4.83404756877959
+max_reduced_alignment=-0.30157372946551847
+max_raw_alignment=0.06441071014757037
+red_bottleneck=reduced_red_alignment_nonpositive
+```
+
+Clearance geometry:
+
+```text
+payload_records=48
+candidate_count=384
+finite_clearance_candidates=16
+positive_obstacle_slot_candidates=16
+inside_budget_candidates=0
+min_clearance_m=40.09188153863257
+clearance_bottleneck=clearance_budget_never_active
+```
+
+Route/map metadata:
+
+```text
+sample_map_tl_route_59_to_86.pkl:
+  map_exists=True
+  map_route_relation_hits=23
+  route_lanelet_count=23
+  start_lanelet_id=59
+  goal_lanelet_id=86
+  start_heading_rad=-1.0915353298187256
+  goal_heading_rad=-1.443731427192688
+  start_to_goal_distance_m=192.84522800780948
+
+sample_map_route_2_to_104.pkl:
+  map_exists=True
+  map_route_relation_hits=10
+  route_lanelet_count=10
+  start_lanelet_id=2
+  goal_lanelet_id=104
+```
+
+Decision:
+
+Accept the geometry audit gate and keep the current observable-interaction
+coverage route rejected. The red-light failure is not simply "no red light";
+the stopline payload exists and two candidate-level reduced distances enter
+the 5m budget, but the reduced candidate alignment used by the diagnostic
+coefficient is never positive. The raw payload contains 10 positive alignment
+samples, but none overlap with the near-budget samples, and the candidate-level
+reduced/mean alignment remains nonpositive. Therefore the current no-leak red
+coefficient remains zero.
+
+The clearance failure is also geometric/support-based: obstacle slots and
+finite lower-bound clearances exist, but the closest lower-bound clearance is
+about 40.09m, far above the 2m budget, so no clearance-deficit coefficient can
+activate.
+
+Next admissible work:
+
+Do not run separability, Full36, formal seeds, online selector promotion, CAMP
+retraining, or any new replay from this evidence. The current
+observable-interaction route should either be rejected, or the next gate must
+be design-only: predeclare a narrower no-leak support experiment that changes
+only route/support selection criteria needed to create positive reduced red
+alignment and near-clearance support. Before any replay, that plan must specify
+why the selected route/NPC support should activate the fixed current-tick
+coefficients and must preserve selector neutrality.
+
+Mathematical boundary:
+
+This geometry audit only reads existing current-tick observable payloads and
+route/map metadata. It creates no atom, no selector, no learned weights, no
+closed-loop label, and no Benders cut. If a future gate atomizes these
+quantities, they must enter CAMP as fixed finite-candidate coefficients so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
+remains convex.
