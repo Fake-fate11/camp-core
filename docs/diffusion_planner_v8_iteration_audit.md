@@ -45049,3 +45049,123 @@ This plan still creates no atom, no learned weight, no selector change, and no
 Benders cut. It only authorizes a default-off logging smoke to verify that
 turn-logit payloads are null-safe, no-leak, latency-accounted, and behavior
 equivalent to the baseline.
+
+## Turn-Logit Payload Paired 3-Step Smoke (`e673aa4` source)
+
+This smoke executes only the plan-authorized paired nonformal run:
+sample map route 59 to 86, seed 1, npc 4, traffic lights off, perfect tracking,
+3 steps, 8 candidates. Baseline keeps `--camp_turn_logit_payload_logging`
+disabled; candidate enables only that flag. No formal seeds, Full36, online
+selector promotion, CAMP retraining, or DP modification are used.
+
+AutoDL execution root:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_payload_smoke
+```
+
+Commands:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_turn_logit_payload_smoke
+BASELINE=$ROOT/baseline
+CANDIDATE=$ROOT/logging_enabled
+AUDIT=$ROOT/audit
+
+# Baseline and candidate use the generated plan command family from
+# /root/autodl-tmp/camp_dp_turn_logit_payload_smoke_plan_4fae2cf.
+# Candidate appends only:
+--camp_turn_logit_payload_logging
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  /root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/compare_diffusion_planner_selector_logs.py \
+  --baseline_root "$BASELINE" \
+  --candidate_root "$CANDIDATE" \
+  --output_json "$AUDIT/selector_equivalence.json" \
+  --require_equivalent
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  /root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_turn_logit_payload_smoke.py \
+  --baseline_root "$BASELINE" \
+  --candidate_root "$CANDIDATE" \
+  --expected_logs 1 \
+  --expected_records 3 \
+  --expected_candidates 8 \
+  --output_json "$AUDIT/turn_logit_payload_smoke.json" \
+  --output_md "$AUDIT/turn_logit_payload_smoke.md" \
+  --require_pass
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+  /root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_camp_dataset.py \
+  --selection_log "$CANDIDATE/camp_selection_log.json" \
+  --atom_scales /root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json \
+  --expected_logs 1 \
+  --expected_candidates 8 \
+  --expected_advance_mode perfect \
+  --closed_loop_outcome_policy forbidden \
+  --forbid_seed 11 \
+  --forbid_seed 12 \
+  --forbid_seed 13 \
+  --require_finite_candidate_contract \
+  --output_json "$AUDIT/dataset_audit.json"
+```
+
+Results:
+
+```text
+baseline replay: 3 frames, reason=max_steps
+candidate replay: 3 frames, reason=max_steps
+selector_equivalence.equivalent=True
+payload_status=turn_logit_payload_smoke_passed
+dataset_audit=passed
+candidate_payload_records=3
+available_payload_records=3
+invalid_payload_records=0
+max_latency_ms_turn_logit_payload=0.13667438179254532
+closed_loop_outcome_records=0
+formal_seed_records=0
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_payload_smoke/audit/selector_equivalence.json
+e0954fca2caa6736595b5ff291ab5526dbc6507c287585598c91197d11f2e797
+
+/root/autodl-tmp/camp_dp_turn_logit_payload_smoke/audit/turn_logit_payload_smoke.json
+68809bf94843d5cdb583a70200215b911184bfd6360ae2ee8b1992a4f99208b4
+
+/root/autodl-tmp/camp_dp_turn_logit_payload_smoke/audit/turn_logit_payload_smoke.md
+bf4f9b8707f9a343edba089acdf4259c947c80897a30ae0955dba4743e855e66
+
+/root/autodl-tmp/camp_dp_turn_logit_payload_smoke/audit/dataset_audit.json
+de48e16bd53ea0beafa4cfa6ec9b6f7593efc3cb05f5981ffaad34e5a22a6cef
+```
+
+Decision:
+
+Accept the tiny paired turn-logit payload smoke. The default-off payload is
+available in this route, latency is negligible at this scale, and enabling the
+flag did not change selected indices, feasibility, atoms, scores, or weights.
+This is logging evidence only; it is not a selector improvement, not a CAMP
+training result, and not a Benders claim.
+
+Next admissible work:
+
+Predeclare a broader nonformal turn-logit payload availability/latency plan
+covering at least one traffic-light-sensitive run and one normal run. The plan
+must remain default-off, require selector equivalence and dataset audit, and
+only answer whether turn-logit payloads are consistently available and cheap
+enough to support a later no-leak atom separability screen. Do not train CAMP,
+promote an online selector, run Full36, use formal seeds, or modify DP.
+
+Mathematical boundary:
+
+The smoke reads only current-tick DP logits before selection. It adds no atom
+to CAMP and leaves `score_k(w)=a_k^T w`, the simplex/CVaR/L2 master, and the
+finite-candidate selector unchanged.
