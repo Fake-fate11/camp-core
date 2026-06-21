@@ -657,6 +657,8 @@ def _dot_scores(matrix: list[list[float]], weights: list[float]) -> list[float]:
 
 
 def _masked_selection_scores(scores: list[float], feasible_mask: list[bool]) -> list[float]:
+    if feasible_mask and not any(feasible_mask):
+        return list(scores)
     return [
         score if index < len(feasible_mask) and feasible_mask[index] else math.inf
         for index, score in enumerate(scores)
