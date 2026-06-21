@@ -52089,3 +52089,137 @@ current-tick finite-candidate coefficient `a_k`, nonnegative or signed-split,
 so `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
 remains convex. No DP-side classical Benders master/subproblem, dual, or cut is
 constructed.
+
+## External Source Visibility Inventory (`5318700` artifacts)
+
+Purpose:
+
+This step executes the next authorized read-only route from the
+scenario/objective boundary: inspect the fixed Tier4 Diffusion Planner source
+for current-tick candidate/context sources that could support a future CAMP
+payload. It does not run DP inference, collect labels, replay closed loop, train
+CAMP, promote a selector, use formal seeds, modify DP, or make a classical
+Benders claim.
+
+Implementation:
+
+```text
+5318700 Add external source visibility inventory gate
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_external_source_visibility_inventory.py
+camp_core/tests/test_diffusion_planner_external_source_visibility_inventory.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_external_source_visibility_inventory.py \
+  camp_core\tests\test_diffusion_planner_external_source_visibility_inventory.py
+
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_source_visibility_inventory.py \
+  camp_core\tests\test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  -q
+
+11 passed
+git diff --check passed
+```
+
+AutoDL sync and verification:
+
+```text
+CAMP_HEAD=5318700de6cb13c8dfbee7c160634e28d4f66d0a
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_external_source_visibility_inventory.py \
+  camp_core/tests/test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  -q
+
+11 passed
+```
+
+Artifact command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/external_source_visibility_inventory_5318700
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/analyze_diffusion_planner_external_source_visibility_inventory.py \
+  --source_contract_json "$ROOT/scenario_objective_external_source_contract_851cf18/scenario_objective_external_source_contract.json" \
+  --source_root /root/autodl-tmp/Diffusion-Planner \
+  --label autodl_5318700_external_source_visibility_inventory \
+  --output_json "$OUT/external_source_visibility_inventory.json" \
+  --output_md "$OUT/external_source_visibility_inventory.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/external_source_visibility_inventory_5318700/external_source_visibility_inventory.json
+sha256=110a1ce8ff803baafe26a50217245e216b54ec429b9ba4a7f732f36017030529
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/external_source_visibility_inventory_5318700/external_source_visibility_inventory.md
+sha256=263a00cfb75253922b8e28b7a4d87dfa8fb16acd85062b53d7fd7ed8dfb42e32
+```
+
+Final decision:
+
+```text
+status=external_source_visibility_inventory_has_design_candidate
+passed=True
+primary_gap=current_tick_context_source_visible_but_payload_gate_required
+design_candidate_names=[
+  traffic_signal_phase_timing_or_right_of_way_state,
+  route_speed_limit_and_control_context
+]
+authorized_next_work=predeclare_default_off_external_context_payload_design_only
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Observed source statuses:
+
+```text
+traffic_signal_phase_timing_or_right_of_way_state:
+  design_candidate_requires_payload_gate
+route_speed_limit_and_control_context:
+  design_candidate_requires_payload_gate
+dp_native_log_probability_or_candidate_score:
+  visible_but_requires_dp_modification_or_internal_tensor_exposure
+denoising_residual_or_uncertainty:
+  visible_but_requires_dp_modification_or_internal_tensor_exposure
+turn_indicator_logits:
+  visible_but_closed_score_family
+```
+
+Decision:
+
+Accept this inventory only as a payload-design precondition. The two accepted
+source families are current-tick context candidates visible in the fixed
+simulator/source stack, but neither is an atom yet and neither proves selector
+quality. The DP-native log-probability/score and denoising-residual routes
+remain blocked because they would require DP modification or internal tensor
+exposure. Turn logits remain closed and must not be reopened as a new source.
+
+The next admissible work is a design-only default-off external-context payload
+plan. That plan must specify exact fields, null/fail-closed behavior, latency
+accounting, no-leak/current-tick proof, non-equivalence to closed families, and
+atomization sketches that preserve affine `score_k(w)=a_k^T w`. It still must
+not train CAMP, run replay, promote an online selector, enter Full36, use formal
+seeds, modify DP, or claim classical Benders.
