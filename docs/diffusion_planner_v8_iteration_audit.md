@@ -56963,3 +56963,99 @@ training, online use, Full36, formal seeds, DP changes, or a classical Benders
 claim. The next admissible self-iteration is a schema-only atom preflight that
 proves nonnegativity, fixed-current-tick observability, no future leakage, and
 affine `score_k(w)=a_k^T w` compatibility before any selector or training work.
+
+## Temporal Consistency Atom Schema Preflight (`1268200`)
+
+This schema-only gate consumes the accepted temporal-consistency materiality
+diagnosis. It defines how the candidate coefficient may enter a future CAMP atom
+table while preserving the current mathematical boundary. It does not append the
+atom to deployed selection, does not train CAMP, and does not execute DP.
+
+Implementation:
+
+```text
+12682007666683d4d436fe89d2db4e238b780866
+scripts/integrations/plan_diffusion_planner_temporal_consistency_atom_schema_preflight.py
+camp_core/tests/test_diffusion_planner_temporal_consistency_atom_schema_preflight.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_temporal_consistency_atom_schema_preflight.py \
+         camp_core\tests\test_diffusion_planner_temporal_consistency_materiality.py -q
+  result=8 passed
+
+AutoDL:
+  py_compile passed
+  pytest result=8 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+MAT=$DEV/temporal_consistency_materiality_24c2601/temporal_consistency_materiality.json
+OUT=$DEV/temporal_consistency_atom_schema_preflight_1268200
+
+$PY scripts/integrations/plan_diffusion_planner_temporal_consistency_atom_schema_preflight.py \
+  --materiality_json "$MAT" \
+  --label autodl_1268200_temporal_consistency_atom_schema_preflight \
+  --output_json "$OUT/temporal_consistency_atom_schema_preflight.json" \
+  --output_md "$OUT/temporal_consistency_atom_schema_preflight.md"
+```
+
+Schema result:
+
+```text
+status=temporal_consistency_atom_schema_preflight_ready
+atom_name=previous_plan_temporal_consistency_rms_m
+payload_key=temporal_consistency_payload_logging
+coefficient_key=previous_plan_temporal_consistency_rms_m
+direction=lower_is_better
+value_domain=[0,+inf)
+nonnegative_by_definition=True
+signed_split_required=False
+hinge_required=False
+current_tick_observable=True
+uses_future_outcomes=False
+uses_closed_loop_outcomes=False
+missing_policy=fail_closed_unavailable_not_zero
+affine_score_compatible=True
+convex_master_compatible=True
+classic_benders_claim=False
+trajectory_coordinate_convexity_claim=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+authorized_next_work=temporal_consistency_shadow_atom_dry_run_only
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_atom_schema_preflight_1268200/temporal_consistency_atom_schema_preflight.json` | `a850c20a7da36248b06d61ceb54b8c273d2a8fc05de92ec52ea0a607dfe4ef62` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_atom_schema_preflight_1268200/temporal_consistency_atom_schema_preflight.md` | `770b3886e1a9793caa6ca952c68837a8461664118fb2da2bc5a7e088728b79fb` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_atom_schema_preflight_1268200
+```
+
+Decision:
+
+Accept the schema preflight. The temporal-consistency coefficient is a legal
+candidate atom source under CAMP's affine scoring boundary because it is fixed
+before scoring, finite and nonnegative when available, fail-closed when missing,
+and independent of future outcomes. This still does not prove safety benefit,
+does not promote the atom into deployed CAMP selection, does not train weights,
+does not authorize Full36/formal seeds, and does not create a DP-side classical
+Benders decomposition. The next admissible gate is a shadow-only atom dry-run:
+append the coefficient to a candidate atom table and verify shapes, fixed scale
+policy, affine score bookkeeping, and exact deployed-selection non-effect.
