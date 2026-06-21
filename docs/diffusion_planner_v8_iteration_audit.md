@@ -41337,3 +41337,123 @@ Each component value is a nonnegative fixed finite-candidate coefficient
 \(a_k\), so any later CAMP score would remain `score_k(w)=a_k^T w` and remain
 compatible with the simplex/CVaR/L2 convex master. No DP-side classical
 Benders master/subproblem, dual, or valid cut is constructed.
+
+## Relaxed Strict Atom Observability Limit (`0bd82b` source)
+
+This gate records the negative conclusion authorized by the component-overlap
+diagnosis above. It does not run DP, does not train CAMP, does not change the
+online selector, and does not introduce a new atom family. Its purpose is to
+close the rejected relaxed-strict atom route so the next iteration does not
+continue threshold tuning or recombining the same six current atoms.
+
+Files:
+
+```text
+scripts/integrations/synthesize_diffusion_planner_relaxed_strict_atom_observability_limit.py
+camp_core/tests/test_diffusion_planner_relaxed_strict_atom_observability_limit.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\synthesize_diffusion_planner_relaxed_strict_atom_observability_limit.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_relaxed_strict_atom_observability_limit.py `
+  camp_core\tests\test_diffusion_planner_relaxed_strict_label_atom_component_overlap.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+9 passed in 0.36s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY -m py_compile \
+  scripts/integrations/synthesize_diffusion_planner_relaxed_strict_atom_observability_limit.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_relaxed_strict_atom_observability_limit.py \
+  camp_core/tests/test_diffusion_planner_relaxed_strict_label_atom_component_overlap.py \
+  -q
+
+$PY scripts/integrations/synthesize_diffusion_planner_relaxed_strict_atom_observability_limit.py \
+  --component_overlap_json "$ROOT/audit/relaxed_strict_label_atom_component_overlap.json" \
+  --label autodl_0bd82b_relaxed_strict_atom_observability_limit \
+  --output_json "$ROOT/audit/relaxed_strict_atom_observability_limit.json" \
+  --output_md "$ROOT/audit/relaxed_strict_atom_observability_limit.md"
+```
+
+Result:
+
+```text
+9 passed in 0.28s
+status=relaxed_strict_atom_observability_limit_recorded
+passed=True
+primary_gap=current_relaxed_strict_atom_family_lacks_observable_separation
+authorized_next_work=predeclare_new_current_tick_no_leak_descriptor_family_or_return_to_observable_state_inventory_design_only
+CAMP_HEAD=0bd82b67967e32a54f29341d072406279b62d593
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+relaxed_strict_atom_observability_limit.json
+33196c611ae9b41543042c7f408be08b70e4bd7f1ca2fb1ebfde7cbb604b5cf9
+
+relaxed_strict_atom_observability_limit.md
+5b30da63755848213efac20512663fbca0d5055d81a17fa167646c6e92157710
+```
+
+Decision:
+
+Record the current relaxed-strict atom family as observability-limited for the
+strict relaxed label. The latest source artifact has `blocked_beneficial=40`
+and `newly_admitted_harmful=5`; the best component can block the five harmful
+alternatives only while retaining 5 of the 40 blocked beneficial alternatives.
+That is insufficient for a material selector or retraining claim.
+
+Rejected routes:
+
+```text
+threshold_tuning_current_relaxed_strict_atoms=True
+component_recombination_current_relaxed_strict_atoms=True
+immediate_camp_retraining_from_current_atoms=True
+online_selector_promotion=True
+new_replay_from_this_gate=True
+Full36=True
+formal_seeds=True
+classic_benders_claim=True
+```
+
+Next admissible work:
+
+Either predeclare a genuinely new current-tick no-leak descriptor family, or
+return to the broader observable-state inventory/design-only path. The next
+gate must remain design-only unless it is explicitly authorized by an existing
+payload/plan gate. Do not use this limit record to run new replay, promote an
+online selector, enter Full36/formal seeds, or retrain CAMP.
+
+Mathematical boundary:
+
+This synthesis records a negative offline result from fixed current-tick
+relaxed strict atom coefficients. Closed-loop outcomes in the source artifact
+define only the offline beneficial and harmful groups; no future outcome value
+is made available to online scoring. The rejected atom values would still be
+finite nonnegative coefficients \(a_k\) in `score_k(w)=a_k^T w`, so CAMP's
+simplex/CVaR/L2 master remains convex. The result does not construct a DP-side
+classical Benders master, subproblem, dual, or valid cut.
