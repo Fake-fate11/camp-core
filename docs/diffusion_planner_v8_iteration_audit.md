@@ -55550,3 +55550,121 @@ accepted, its candidate coefficients must still be fixed current-tick finite
 values `a_k`, nonnegative, hinged, or signed-split, preserving
 `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. No DP-side
 classical Benders master/subproblem, dual, or valid cut is claimed.
+
+## Post-Pause Source-Family Ledger (`3e6e7fa`)
+
+The previous step rejected the postprocess/execution-distortion proposal, but
+the closed source families and next-source contract were still distributed
+across the post-pause objective, external-context closure, and latest source
+gate. This step adds a read-only ledger so the next self-iteration has a single
+machine-checkable boundary before trying any new source-family idea.
+
+Implementation:
+
+```text
+3e6e7faff8b690c05eff8afb9f0a1b68b14e5c23 Add post-pause source family ledger
+
+scripts/integrations/plan_diffusion_planner_post_pause_source_family_ledger.py
+camp_core/tests/test_diffusion_planner_post_pause_source_family_ledger.py
+```
+
+Local verification:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\plan_diffusion_planner_post_pause_source_family_ledger.py
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_post_pause_source_family_ledger.py \
+  camp_core\tests\test_diffusion_planner_new_no_leak_targeted_support_or_reject.py -q
+result=11 passed
+```
+
+AutoDL synchronization and verification:
+
+```text
+autodl_camp_head=3e6e7faff8b690c05eff8afb9f0a1b68b14e5c23
+autodl_camp_origin=3e6e7faff8b690c05eff8afb9f0a1b68b14e5c23
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_ledger_tests=11 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$DEV/post_pause_source_family_ledger_3e6e7fa
+
+$PY scripts/integrations/plan_diffusion_planner_post_pause_source_family_ledger.py \
+  --post_pause_objective_json "$DEV/post_pause_deployability_proof_objective_786bcad/post_pause_deployability_proof_objective.json" \
+  --latest_source_gate_json "$DEV/postprocess_execution_source_proposal_reject_245c582/postprocess_execution_source_proposal_reject.json" \
+  --post_external_context_closure_json "$DEV/post_external_context_source_closure_588fe6f/post_external_context_source_closure.json" \
+  --label autodl_3e6e7fa_post_pause_source_family_ledger \
+  --output_json "$OUT/post_pause_source_family_ledger.json" \
+  --output_md "$OUT/post_pause_source_family_ledger.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_pause_source_family_ledger_3e6e7fa/post_pause_source_family_ledger.json` | `6c399c5c5493b4884844a0f0813b5ec2ce742d7b369cf3ded5e95153df233416` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_pause_source_family_ledger_3e6e7fa/post_pause_source_family_ledger.md` | `184abc3d42494088501c080158eb95bcb73cd7228bd6c2240c67660058e756f5` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\post_pause_source_family_ledger_3e6e7fa
+```
+
+Final decision:
+
+```text
+status=post_pause_source_family_ledger_ready
+passed=True
+source_family_ledger_ready=True
+support_source_ready=False
+current_camp_dp_selector_route_rejected=True
+authorized_next_work=materially_new_current_tick_source_family_discovery_or_keep_paused_only
+failed_checks=[]
+closed_source_family_labels_count=12
+rejected_source_proposals=postprocess_execution_distortion_source_v1
+new_replay_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept the ledger as the next self-iteration control boundary. It consolidates
+the currently closed source labels:
+`dp_prior_deviation`, `external_context`, `mode_seeking`,
+`observable_interaction`, `postprocess_tracker_descriptor_family`,
+`postprocess_tracker_descriptor_signal`, `progress_lane_hard`, `route_speed`,
+`route_topology`, `signal_right_of_way`, `top1_retention`, and `turn_logit`.
+
+Next admissible work:
+
+Only search for a materially new current-tick source family, or keep the current
+selector route paused. A valid next proposal must be available before
+selection, candidate-level or deterministically joinable, finite for every
+candidate or fail-closed, deterministic, not a future outcome or SafetyCost
+proxy, not equivalent to the closed source/score families, not require DP
+modification, not require replay/training to compute the runtime value, and
+predeclare atomization, existing-log materiality/noninferiority, and latency.
+
+Mathematical boundary:
+
+This ledger creates no atom, runs no selector, trains no weights, and uses no
+closed-loop outcomes as runtime features. Any later source must be a fixed
+current-tick finite-candidate coefficient `a_k`, nonnegative, hinged, or
+signed-split, preserving `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2
+master. It is not a DP-side classical Benders decomposition because it
+constructs no DP master/subproblem, dual, or valid cut.
