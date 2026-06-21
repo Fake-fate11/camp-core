@@ -37454,6 +37454,113 @@ accepted screen remains a finite-candidate affine scalarization over fixed
 coefficients and preserves `score_k(w)=a_k^T w` plus the simplex/CVaR/L2 convex
 master. No DP-side classical Benders decomposition is claimed.
 
+## Revised Context Matched Outcome Plan (`0b84fc7` source)
+
+This gate adds a design-only plan for collecting matched revised-context atom
+payloads and candidate closed-loop outcomes in the same nonformal replay
+records. It consumes the tiny revised-atom separability contract above, the
+source revised logging smoke audit, selector equivalence audit, and dataset
+audit. It does not run DP in this gate.
+
+Code added:
+
+```text
+scripts/integrations/plan_diffusion_planner_revised_progress_lane_hard_context_matched_outcome_label_pass.py
+camp_core/tests/test_diffusion_planner_revised_progress_lane_hard_context_matched_outcome_label_pass_plan.py
+```
+
+Validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_revised_progress_lane_hard_context_atom_separability.py \
+  camp_core/tests/test_diffusion_planner_revised_progress_lane_hard_context_matched_outcome_label_pass_plan.py \
+  -q
+```
+
+Result:
+
+```text
+10 passed in 0.46s
+```
+
+Plan command:
+
+```bash
+BASE=/root/autodl-tmp/camp_dp_revised_context_logging_smoke_77d396e/audit
+TINY=/root/autodl-tmp/camp_dp_revised_context_atom_separability_tiny_contract_7fc33c1/revised_context_atom_separability_tiny_contract.json
+OUT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_plan_0b84fc7
+RUN_ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY scripts/integrations/plan_diffusion_planner_revised_progress_lane_hard_context_matched_outcome_label_pass.py \
+  --tiny_separability_contract_json "$TINY" \
+  --source_smoke_audit_json "$BASE/progress_lane_hard_context_logging_smoke.json" \
+  --selector_equivalence_json "$BASE/selector_equivalence.json" \
+  --dataset_audit_json "$BASE/dataset_audit.json" \
+  --label autodl_0b84fc7_revised_context_matched_outcome_plan \
+  --output_root "$RUN_ROOT" \
+  --output_json "$OUT/revised_context_matched_outcome_plan.json" \
+  --output_md "$OUT/revised_context_matched_outcome_plan.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_plan_0b84fc7/revised_context_matched_outcome_plan.json` | `e79a4253c736e40af1202680d10d8de7378d64cbc429b665ae7751954591d7ba` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_plan_0b84fc7/revised_context_matched_outcome_plan.md` | `d0764920504cd1316d85039b38d9b4e0ac461b0e07f2637105304c95fee5b3ba` |
+
+Verifier result:
+
+```text
+status=revised_progress_lane_hard_context_matched_outcome_label_pass_plan_ready
+passed=True
+authorized_next_work=revised_progress_lane_hard_context_matched_outcome_label_nonformal_smoke_only
+paired_smoke_execution_authorized=False
+paired_smoke_execution_scope=next gate only: 4 paired nonformal runs x 12 steps
+matched_records=48
+matched_candidate_rows=384
+baseline_logs=4
+matched_logs=4
+paired_replay_count=8
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+```
+
+Scenario coverage targets:
+
+```text
+normal=1
+npc_interaction=2
+red_light_turn=2
+sharp_turn=3
+traffic_light=2
+```
+
+Decision:
+
+Accept the matched-outcome plan. The next admissible work is only the planned
+4-paired-run nonformal smoke. The matched branch must enable both
+`--camp_progress_lane_hard_context_logging` and
+`--camp_collect_closed_loop_outcomes`, then run selector equivalence, dataset
+required-outcome audit, matched context contract audit, and revised atom
+separability audit. This still does not authorize Full36, formal seeds, online
+selector promotion, DP modification, or CAMP retraining.
+
+Mathematical boundary:
+
+The planned replay records outcome labels only after fixed current-tick revised
+atom coefficients are computed. Those labels are offline evaluation labels, not
+runtime features. Any later separability screen remains a finite-candidate
+affine scalarization over fixed coefficients and preserves
+`score_k(w)=a_k^T w`; no DP-side classical Benders construction is introduced.
+
 ## Progress + Lane/Hard Joint Screen Preflight (`886b100`)
 
 This design-only gate follows the lane/hard standalone bottleneck diagnosis.
