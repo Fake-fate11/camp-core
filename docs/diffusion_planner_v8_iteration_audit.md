@@ -52223,3 +52223,126 @@ accounting, no-leak/current-tick proof, non-equivalence to closed families, and
 atomization sketches that preserve affine `score_k(w)=a_k^T w`. It still must
 not train CAMP, run replay, promote an online selector, enter Full36, use formal
 seeds, modify DP, or claim classical Benders.
+
+## External Context Payload Design (`5fcc84e` artifacts)
+
+Purpose:
+
+This step consumes the external-source visibility inventory and predeclares the
+default-off payload schema for the two visible current-tick context families. It
+does not implement runtime logging, run DP, replay closed loop, train CAMP,
+promote a selector, enter Full36, use formal seeds, modify DP, or make a
+classical Benders claim.
+
+Implementation:
+
+```text
+5fcc84e Add external context payload design gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_payload_design.py
+camp_core/tests/test_diffusion_planner_external_context_payload_design.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_external_context_payload_design.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py
+
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  camp_core\tests\test_diffusion_planner_external_source_visibility_inventory.py \
+  camp_core\tests\test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  -q
+
+16 passed
+git diff --check passed
+```
+
+AutoDL sync and verification:
+
+```text
+CAMP_HEAD=5fcc84e0215d0c5401dbd0a4db6b9f41994e012b
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_external_context_payload_design.py \
+  camp_core/tests/test_diffusion_planner_external_source_visibility_inventory.py \
+  camp_core/tests/test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  -q
+
+16 passed
+```
+
+Artifact command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/external_context_payload_design_5fcc84e
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_external_context_payload_design.py \
+  --inventory_json "$ROOT/external_source_visibility_inventory_5318700/external_source_visibility_inventory.json" \
+  --label autodl_5fcc84e_external_context_payload_design \
+  --output_json "$OUT/external_context_payload_design.json" \
+  --output_md "$OUT/external_context_payload_design.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/external_context_payload_design_5fcc84e/external_context_payload_design.json
+sha256=a8bb06588ba1fc3b75d33533036bd9dcb42a4126332de8e97e73cf52db37349e
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/external_context_payload_design_5fcc84e/external_context_payload_design.md
+sha256=a0a61de6ddb1406d0af042289886a5c206534c789cc41d3cfa4998bbefb647fc
+```
+
+Final decision:
+
+```text
+status=external_context_payload_design_ready
+passed=True
+authorized_next_work=default_off_external_context_payload_implementation_unit_tests_only
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Payload families:
+
+```text
+traffic_signal_phase_timing_or_right_of_way_state:
+  candidate_first_signal_arrival_time_s
+  candidate_signal_phase_change_margin_s
+  candidate_right_of_way_blocked_indicator
+
+route_speed_limit_and_control_context:
+  candidate_route_speed_limit_min_mps
+  candidate_speed_limit_excess_integral_mps
+  candidate_speed_limit_available_fraction
+```
+
+Decision:
+
+Accept this as a design-only payload contract. The payload fields are
+default-off, current-tick, fail-closed, latency-accounted, and have atomization
+sketches that require nonnegative or signed-split fixed candidate coefficients.
+This still creates no atom and proves no selector benefit. It only authorizes
+the next smallest implementation step: default-off external-context payload
+construction with unit tests and baseline-equivalence checks. Closed-loop smoke,
+new replay, online selector changes, CAMP retraining, Full36, formal seeds, DP
+modification, and classical Benders claims remain unauthorized.
