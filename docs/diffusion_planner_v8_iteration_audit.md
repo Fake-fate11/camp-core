@@ -36848,6 +36848,161 @@ preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
 No DP-side classical Benders master/subproblem, dual, or valid cut is
 constructed.
 
+## Red Alignment Semantics Microaudit (`8b534d5` source)
+
+This gate follows the observable-interaction payload attribution diagnosis. It
+is read-only over existing `observable_state_logging` payloads and asks a
+narrow question: can the current logs prove whether
+`candidate_red_heading_alignment` has the correct sign semantics for red
+support? It does not run replay, does not use closed-loop outcome labels, does
+not change selection, does not create an atom, does not train CAMP, and does
+not modify DP.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_red_alignment_semantics.py
+camp_core/tests/test_diffusion_planner_red_alignment_semantics.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_red_alignment_semantics.py `
+  scripts\integrations\analyze_diffusion_planner_observable_interaction_payload_attribution.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_red_alignment_semantics.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_payload_attribution.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+8 passed in 0.68s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_red_alignment_semantics_microaudit_8b534d5
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_red_alignment_semantics.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_red_alignment_semantics.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_payload_attribution.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_red_alignment_semantics.py \
+  --payload_attribution_json /root/autodl-tmp/camp_dp_observable_interaction_payload_attribution_e7dd7ec/observable_interaction_payload_attribution.json \
+  --root <same 17 nonformal observable-state artifact roots as payload attribution> \
+  --label autodl_8b534d5_red_alignment_semantics_microaudit \
+  --output_json "$OUT/red_alignment_semantics_microaudit.json" \
+  --output_md "$OUT/red_alignment_semantics_microaudit.md"
+```
+
+AutoDL status:
+
+```text
+CAMP_HEAD=8b534d588d1534811acaff444acfdbe0e2d058d9
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+8 passed in 0.39s
+```
+
+Artifact hashes:
+
+```text
+red_alignment_semantics_microaudit.json
+d7f058cfce20a175c2385a3f575086f8957a96dbe12217b5b6dbbff017a85636
+
+red_alignment_semantics_microaudit.md
+f317cbec71bc73dec5cbddf894ba8ec3d999b5a5b4100ba7621a2d5279e748d5
+```
+
+Result:
+
+```text
+status=red_alignment_sign_semantics_underdetermined
+passed=True
+primary_gap=reverse_sign_would_create_support_but_red_geometry_is_unlogged
+authorized_next_work=predeclare_red_route_point_vector_logging_plan_or_reject_red_descriptor
+
+scanned_logs=502
+records=80186
+candidate_payload_records=147
+payload_candidates=1176
+red_relation_candidate_count=576
+within_budget_candidate_count=2
+current_mean_supported_candidate_count=0
+reverse_mean_supported_candidate_count=2
+current_distance_gated_positive_step_candidate_count=0
+reverse_distance_gated_positive_step_candidate_count=2
+records_with_logged_red_geometry=0
+```
+
+Reason counts:
+
+```text
+red_route_points_or_relation_absent=600
+reverse_positive_step_but_distance_outside_budget=562
+current_positive_step_but_distance_outside_budget=12
+reverse_mean_supported_but_geometry_unlogged=2
+```
+
+Key metrics:
+
+```text
+min_red_distance_m=4.83404756877959
+max_current_mean_alignment=-0.30157372946551847
+max_current_step_alignment=0.06441071014757037
+max_current_distance_gated_step_alignment=-0.8187545259986574
+max_reverse_mean_alignment=0.8970751854774955
+max_reverse_step_alignment=0.9999998291618681
+max_reverse_distance_gated_step_alignment=0.8187545259986574
+max_reverse_mean_alignment_within_budget=0.6600970255408388
+```
+
+Decision:
+
+Accept this gate only as a read-only semantics diagnosis. The existing current
+sign has no distance-gated mean or sparse-step red support. Reversing the sign
+would create support for the same two within-budget candidates, so the prior
+red descriptor failure may be a sign-convention problem. However, the existing
+selection logs do not contain the red route point vectors or equivalent
+geometry needed to prove whether the sign should be reversed. Therefore this
+does not authorize selector promotion, separability screening, replay, Full36,
+formal seeds, CAMP retraining, DP modification, or a Benders claim.
+
+Next admissible work:
+
+Predeclare a smaller default-off red-route-point vector logging plan, or reject
+the current red alignment descriptor for the existing payload family. The plan
+must be design-only first: record exactly which current-tick fields are needed
+to prove sign semantics (`red_route_points` xy/direction, chosen nearest red
+point index, candidate heading vector or enough candidate prefix to recompute
+it), prove no future outcome leakage and no selection effect, and include a
+selector-equivalence audit. Do not run a new replay until that plan gate passes.
+
+Mathematical boundary:
+
+This microaudit reads only existing current-tick finite-candidate payloads.
+Current-sign and reverse-sign counts are diagnostics over fixed logged
+coefficients, not atom weights, thresholds, online selection rules, or
+trajectory-space convexity claims. If a later red descriptor is atomized, it
+must be a fixed pre-outcome nonnegative coefficient \(a_k\), preserving
+`score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. No DP-side
+classical Benders master/subproblem, dual, or valid cut is constructed.
+
 ## Observable Interaction Payload Attribution (`e7dd7ec` source)
 
 This gate follows the scenario-support bottleneck and route-geometry
