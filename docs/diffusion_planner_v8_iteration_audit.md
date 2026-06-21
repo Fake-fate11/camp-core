@@ -44919,3 +44919,133 @@ nonnegative indicator. If later used by CAMP, each enters the candidate vector
 `a_k`, preserving `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 robust
 master in `w`. No trajectory-coordinate convexity claim and no DP-side
 classical Benders master/subproblem, dual, or cut is constructed.
+
+## Turn-Logit Payload Smoke Plan Gate (`4fae2cf`)
+
+This gate predeclares the first runnable paired nonformal smoke for the
+default-off turn-logit payload. It does not run DP replay. It adds a lightweight
+payload smoke analyzer and a plan generator that emits the exact paired
+baseline/logging commands plus selector-equivalence, payload-audit, and dataset
+audit commands.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_turn_logit_payload_smoke.py
+scripts/integrations/plan_diffusion_planner_turn_logit_payload_smoke.py
+camp_core/tests/test_diffusion_planner_turn_logit_payload_smoke_plan.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_turn_logit_payload_smoke.py `
+  scripts\integrations\plan_diffusion_planner_turn_logit_payload_smoke.py `
+  camp_core\camp_core\integrations\diffusion_planner_turn_logit_payload.py `
+  scripts\integrations\run_diffusion_planner_camp_replay.py
+
+git diff --check
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_turn_logit_payload_runtime.py `
+  camp_core\tests\test_diffusion_planner_turn_logit_payload_design.py `
+  camp_core\tests\test_diffusion_planner_turn_logit_payload_smoke_plan.py `
+  camp_core\tests\test_diffusion_planner_current_tick_tensor_visibility.py `
+  -q
+```
+
+Result:
+
+```text
+20 passed in 0.55s
+```
+
+AutoDL synchronization and validation:
+
+AutoDL was fast-forwarded from `dea2edb52651a667e16d1598b379d988e958a6a3`
+to `4fae2cfee95119177cb9f405528f346c76188d2b` using a git bundle.
+Diffusion Planner remained fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+```text
+bundle_local_path=C:\Users\lenovo\AppData\Local\Temp\camp_update_dea2edb_to_4fae2cf.bundle
+bundle_sha256=ca329f75f18eaf0e6646f8e7fd03fa3ca66f7f94152938b641126a5ebee16227
+remote_bundle_path=/root/autodl-tmp/camp_update_dea2edb_to_4fae2cf.bundle
+```
+
+Remote validation and artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core:$PYTHONPATH
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_turn_logit_payload_smoke.py \
+  scripts/integrations/plan_diffusion_planner_turn_logit_payload_smoke.py \
+  camp_core/camp_core/integrations/diffusion_planner_turn_logit_payload.py \
+  scripts/integrations/run_diffusion_planner_camp_replay.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_turn_logit_payload_runtime.py \
+  camp_core/tests/test_diffusion_planner_turn_logit_payload_design.py \
+  camp_core/tests/test_diffusion_planner_turn_logit_payload_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py \
+  -q
+OUT=/root/autodl-tmp/camp_dp_turn_logit_payload_smoke_plan_4fae2cf
+$PY scripts/integrations/plan_diffusion_planner_turn_logit_payload_smoke.py \
+  --label autodl_4fae2cf_turn_logit_payload_smoke_plan \
+  --output_json "$OUT/turn_logit_payload_smoke_plan.json" \
+  --output_md "$OUT/turn_logit_payload_smoke_plan.md"
+```
+
+Result:
+
+```text
+AFTER_CAMP_HEAD=4fae2cfee95119177cb9f405528f346c76188d2b
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+20 passed in 0.38s
+status=turn_logit_payload_nonformal_smoke_plan_ready
+authorized_next_work=turn_logit_payload_paired_three_step_smoke_only
+new_replay_authorized=True
+closed_loop_smoke_authorized=True
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+Full36_authorized=False
+formal_seeds_authorized=False
+online_selector_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Artifact hashes:
+
+```text
+/root/autodl-tmp/camp_dp_turn_logit_payload_smoke_plan_4fae2cf/turn_logit_payload_smoke_plan.json
+dee47b72b3029ab06774efec98ae1c413f50be9ee28720b56e0decce51b8ed57
+
+/root/autodl-tmp/camp_dp_turn_logit_payload_smoke_plan_4fae2cf/turn_logit_payload_smoke_plan.md
+d95ed6129e7da84773d129d3022ef6c0bce9cacfe19b028a61f9a2f4f43a61f1
+```
+
+Decision:
+
+Accept the turn-logit payload smoke plan gate. The only newly authorized replay
+is the generated paired 3-step nonformal smoke with baseline logging disabled
+and candidate logging enabled. The smoke must pass selector equivalence,
+payload audit, dataset audit, zero formal seeds, and no closed-loop outcome
+collection.
+
+Next admissible work:
+
+Run only `turn_logit_payload_paired_three_step_smoke_only` from the generated
+plan. Do not expand to broader nonformal runs, Full36, formal seeds, online
+selector promotion, CAMP retraining, or DP modification unless that smoke
+passes and is documented.
+
+Mathematical boundary:
+
+This plan still creates no atom, no learned weight, no selector change, and no
+Benders cut. It only authorizes a default-off logging smoke to verify that
+turn-logit payloads are null-safe, no-leak, latency-accounted, and behavior
+equivalent to the baseline.
