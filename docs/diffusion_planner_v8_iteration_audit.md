@@ -35144,6 +35144,169 @@ simplex scalarizations preserve affine `score_k(w)=a_k^T w` after atomization
 and remain compatible with the simplex/CVaR/L2 convex master. No DP-side
 classical Benders master/subproblem, dual, or cut is constructed.
 
+## Observable Interaction Descriptor Bottleneck (`e4e70d7` source)
+
+This gate diagnoses the rejected observable interaction descriptor screen above.
+It is read-only over the same existing matched observable outcome logs and the
+same separability artifact. It does not run replay, does not change selection,
+does not train CAMP, and does not modify DP.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_observable_interaction_descriptor_bottleneck.py
+camp_core/tests/test_diffusion_planner_observable_interaction_descriptor_bottleneck.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_observable_interaction_descriptor_bottleneck.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_descriptor_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_descriptor_separability.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+9 passed in 0.42s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_descriptor_bottleneck_e4e70d7
+mkdir -p "$OUT"
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_observable_interaction_descriptor_bottleneck.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_descriptor_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_descriptor_separability.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_observable_interaction_descriptor_bottleneck.py \
+  --root /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/matched_observable_outcomes \
+  --separability_json /root/autodl-tmp/camp_dp_observable_interaction_descriptor_separability_a3fc213/observable_interaction_descriptor_separability.json \
+  --label autodl_e4e70d7_observable_interaction_descriptor_bottleneck \
+  --output_json "$OUT/observable_interaction_descriptor_bottleneck.json" \
+  --output_md "$OUT/observable_interaction_descriptor_bottleneck.md"
+```
+
+Result:
+
+```text
+9 passed in 0.31s
+status=observable_interaction_descriptor_bottleneck_diagnosed
+passed=True
+primary_gap=interaction_descriptors_collapse_due_to_missing_context_variation
+authorized_next_work=predeclare_broader_nonformal_observable_interaction_coverage_plan_only
+CAMP_HEAD=e4e70d7f78340afbc35f863c4b54ff6e124186f5
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_descriptor_bottleneck.json
+a769d1c83c860eb7c849c1636ac460e4fdb512b7d7fea92c62374d819c2235d2
+
+observable_interaction_descriptor_bottleneck.md
+d404f0607df751c6dbc2bfd328a3fddfb8e558a787843c234cb96cc22bae625d
+```
+
+Data summary:
+
+```text
+records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+beneficial_alternative=58
+harmful_alternative=178
+neutral_alternative=100
+```
+
+Payload materiality:
+
+```text
+records_with_red_distance_payload=24
+records_with_red_risk_candidate_variation=0
+records_with_red_risk_nonzero=0
+records_with_clearance_deficit_candidate_variation=0
+records_with_clearance_deficit_nonzero=0
+records_with_turn_signal_candidate_variation=48
+records_with_turn_signal_nonzero=48
+records_with_lateral_excess_candidate_variation=6
+records_with_lateral_excess_nonzero=6
+records_with_projection_candidate_variation=48
+```
+
+Descriptor collapse:
+
+```text
+collapsed_descriptors=[
+  red_aligned_stopline_proximity_hinge_v1,
+  clearance_progress_tradeoff_hinge_v1,
+  turn_lateral_clearance_context_hinge_v1
+]
+varying_descriptors=[
+  top1_deviation_without_current_safety_gain_v1
+]
+missing_context_families=[red_context, clearance_context]
+```
+
+Best-screen residual:
+
+```text
+allowed_harmful_count=65
+blocked_beneficial_count=20
+allowed_harmful_reasons={lane_worse: 2, progress_loss: 50, value_loss: 13}
+allowed_harmful_value_delta_mean=-1.0568352081116827
+allowed_harmful_progress_delta_mean_m=-0.15735606649376616
+blocked_beneficial_value_delta_mean=0.5512336959748588
+blocked_beneficial_progress_delta_mean_m=0.38665001879717037
+```
+
+Decision:
+
+Accept the bottleneck diagnosis, but keep the descriptor family rejected for
+selector/certificate promotion. The screen failure is primarily a coverage and
+materiality problem in the current 48-record evidence set: the red interaction
+terms and clearance interaction terms collapse because there is no current-tick
+red-risk variation or clearance-deficit variation. The only varying descriptor,
+`top1_deviation_without_current_safety_gain_v1`, still allows 65 harmful
+alternatives and blocks 20 beneficial alternatives.
+
+Next admissible work:
+
+Predeclare a broader nonformal observable interaction coverage plan only. The
+plan must target scenario diversity with actual red-risk, clearance-deficit,
+turn/lateral, and normal-control records, while remaining default-off and
+selection-effect-free. This gate does not authorize executing new replay,
+Full36, formal seeds, online selector promotion, DP modification, or CAMP
+retraining.
+
+Mathematical boundary:
+
+This diagnostic does not create selector thresholds or new atoms. It uses
+outcome labels only after the fixed rejected interaction screen to explain
+residual errors and payload coverage. Runtime-eligible quantities remain fixed
+current-tick finite-candidate descriptors; any later atomization must preserve
+affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. No DP-side
+classical Benders master/subproblem, dual, or cut is constructed.
+
 ```text
 status=progress_support_broader_nonformal_smoke_passed
 passed=True
