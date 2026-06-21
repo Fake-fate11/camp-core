@@ -36988,6 +36988,137 @@ nonnegative coefficient \(a_k\), preserving `score_k(w)=a_k^T w` and the
 convex simplex/CVaR/L2 master. No DP-side classical Benders
 master/subproblem, dual, or valid cut is constructed.
 
+## Red Route Vector Logging Implementation (`d1eb8b7` source)
+
+This gate implements the previously accepted red route vector logging plan as
+a default-off diagnostic path in the CAMP replay wrapper. It does not run
+replay, use closed-loop outcome labels, change DP candidate generation, change
+CAMP scoring/feasibility/selection, create an atom, train CAMP, modify DP, or
+claim Benders.
+
+Files:
+
+```text
+scripts/integrations/run_diffusion_planner_camp_replay.py
+camp_core/tests/test_diffusion_planner_integration.py
+```
+
+Implementation summary:
+
+```text
+schema_version=dp_camp_red_route_vector_logging_v1
+cli_flag=--camp_red_route_vector_logging
+record_field=red_route_vector_logging
+summary_field=camp_red_route_vector_logging
+latency_field=latency_ms_red_route_vector_logging
+default_off=True
+selection_effect=False
+future_outcome_leakage=False
+```
+
+Logged fields:
+
+```text
+red_route_points_ego_xy_dir
+candidate_red_selected_route_point_index
+candidate_red_heading_vector_xy
+candidate_red_vector_to_selected_point_xy
+candidate_red_alignment_recomputed_current
+candidate_red_alignment_recomputed_reverse
+```
+
+File hashes:
+
+```text
+scripts/integrations/run_diffusion_planner_camp_replay.py
+c7d7d7c145deb54b19a4e046e49e5ae939860691b2d2d2def2d3bacc32232db4
+
+camp_core/tests/test_diffusion_planner_integration.py
+a7726aab0dd5a5559bc939c5e0ee2f6d27a8e184c30ef5be4315f21b9598854d
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\run_diffusion_planner_camp_replay.py `
+  scripts\integrations\plan_diffusion_planner_red_route_vector_logging.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_integration.py `
+  -k "red_route_vector or observable_state_logging_payload" `
+  camp_core\tests\test_diffusion_planner_red_route_vector_logging_plan.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+11 passed, 129 deselected in 0.60s
+```
+
+Note: running the full local `test_diffusion_planner_integration.py` file on
+this Windows environment aborts inside an unrelated `torch` import path at
+`test_candidate_generation_disables_guidance_by_default`; the new tests were
+therefore verified with the narrow selector above and again on AutoDL.
+
+AutoDL validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+
+$PY -m py_compile \
+  scripts/integrations/run_diffusion_planner_camp_replay.py \
+  scripts/integrations/plan_diffusion_planner_red_route_vector_logging.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_integration.py \
+  -k 'red_route_vector or observable_state_logging_payload' \
+  camp_core/tests/test_diffusion_planner_red_route_vector_logging_plan.py \
+  -q
+```
+
+AutoDL status:
+
+```text
+CAMP_HEAD=d1eb8b707dde1b4d61fb80bab62feaba6633ce8f
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+11 passed, 129 deselected in 0.68s
+```
+
+Decision:
+
+Accept the implementation gate as default-off unit-tested diagnostic plumbing
+only. The new payload exactly recomputes the existing current-sign red
+alignment and records the reverse-sign diagnostic needed by the previous
+semantics audit. Empty-red-route cases remain finite and selector-neutral. This
+does not authorize any replay, selector-equivalence smoke, separability screen,
+Full36/formal seeds, online selector promotion, CAMP retraining, DP
+modification, or classic Benders claim.
+
+Next admissible work:
+
+Design a selector-equivalence smoke/audit gate for this specific default-off
+red route vector logging path. The design must remain plan-only first and
+predeclare a tiny paired nonformal run, the exact equality checks for selected
+index, feasibility masks, atoms, normalized atoms, scores, weights,
+PerfectTracker inputs, and trajectories, plus latency/materiality checks for
+the new payload. Do not run replay until that design gate passes.
+
+Mathematical boundary:
+
+This implementation adds only current-tick finite-candidate diagnostics
+computed before closed-loop outcomes. No atom is created. If a later red
+descriptor is atomized, it must be a fixed pre-outcome nonnegative coefficient
+\(a_k\), preserving `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master.
+No DP-side classical Benders master/subproblem, dual, or valid cut is
+constructed.
+
 ## Red Alignment Semantics Microaudit (`8b534d5` source)
 
 This gate follows the observable-interaction payload attribution diagnosis. It
