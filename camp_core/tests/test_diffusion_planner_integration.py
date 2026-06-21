@@ -57,11 +57,14 @@ from camp_core.outer_master.robust_margin_master import (
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     OBSERVABLE_STATE_LATENCY_KEYS,
     OBSERVABLE_STATE_LOGGING_SCHEMA_VERSION,
+    RED_ROUTE_VECTOR_FIELDS,
+    RED_ROUTE_VECTOR_LOGGING_SCHEMA_VERSION,
     _apply_candidate0_route_progress_guard,
     _apply_candidate0_step_reach_guard,
     _apply_lexicographic_admissible_filter,
     _apply_traffic_light_hybrid_postselection,
     _apply_underprogress_relaxation_override,
+    _candidate_red_light_relation,
     _candidate_route_progress,
     _candidate_step_reach,
     _candidate_feasibility_from_rewards,
@@ -69,6 +72,7 @@ from scripts.integrations.run_diffusion_planner_camp_replay import (
     _perfect_tracker_candidate_preprocessing,
     _prepare_perfect_tracker_reference_candidates,
     _prepare_reward_scoring_candidates,
+    _red_route_vector_logging_payload,
     _reward_horizon_trajectories,
 )
 from scripts.integrations.create_diffusion_planner_smoke_route import (
@@ -761,6 +765,108 @@ def test_observable_state_logging_payload_allows_empty_red_route() -> None:
     assert payload["finite_checks"]["candidate_red_stopline_distance_m"] is True
     assert payload["finite_checks"]["candidate_red_heading_alignment"] is True
     assert payload["finite_checks"]["route_curvature_context_abs"] is True
+    assert payload["selection_effect"] is False
+    assert payload["future_outcome_leakage"] is False
+
+
+def test_red_route_vector_logging_payload_recomputes_current_alignment() -> None:
+    candidates = np.array(
+        [
+            [
+                [0.0, 0.0, 1.0, 0.0],
+                [1.0, 0.0, 1.0, 0.0],
+                [2.0, 0.0, 1.0, 0.0],
+            ],
+            [
+                [0.0, 0.0, 1.0, 0.0],
+                [0.5, 0.0, 1.0, 0.0],
+                [1.0, 0.0, 1.0, 0.0],
+            ],
+        ],
+        dtype=np.float64,
+    )
+    red_route_points = np.array([[3.0, 0.0, 1.0, 0.0]], dtype=np.float64)
+
+    payload = _red_route_vector_logging_payload(
+        candidates=candidates,
+        red_route_points=red_route_points,
+        traffic_light_steps=3,
+        latency_ms=0.125,
+    )
+    relation = _candidate_red_light_relation(
+        candidates,
+        red_route_points,
+        horizon_steps=3,
+    )
+
+    assert payload["schema_version"] == RED_ROUTE_VECTOR_LOGGING_SCHEMA_VERSION
+    assert payload["enabled"] is True
+    assert payload["default_off"] is True
+    assert payload["selection_effect"] is False
+    assert payload["future_outcome_leakage"] is False
+    assert "candidate_closed_loop_outcomes" not in payload
+    assert payload["red_route_point_count"] == 1
+    assert payload["valid_red_route_point_count"] == 1
+    assert set(payload["field_shapes"]) == set(RED_ROUTE_VECTOR_FIELDS)
+    assert payload["field_shapes"]["red_route_points_ego_xy_dir"] == [1, 4]
+    assert payload["field_shapes"]["candidate_red_selected_route_point_index"] == [2, 3]
+    assert payload["field_shapes"]["candidate_red_heading_vector_xy"] == [2, 3, 2]
+    assert payload["field_shapes"]["candidate_red_vector_to_selected_point_xy"] == [2, 3, 2]
+    assert payload["field_shapes"]["candidate_red_alignment_recomputed_current"] == [2, 3]
+    assert payload["field_shapes"]["candidate_red_alignment_recomputed_reverse"] == [2, 3]
+    assert all(payload["finite_checks"].values())
+    assert payload["candidate_red_selected_route_point_index"] == [[0, 0, 0], [0, 0, 0]]
+    np.testing.assert_allclose(
+        payload["candidate_red_heading_vector_xy"][0][0],
+        [1.0, 0.0],
+    )
+    np.testing.assert_allclose(
+        payload["candidate_red_vector_to_selected_point_xy"][0],
+        [[3.0, 0.0], [2.0, 0.0], [1.0, 0.0]],
+    )
+    np.testing.assert_allclose(
+        payload["candidate_red_alignment_recomputed_current"],
+        relation["candidate_red_heading_alignment"],
+    )
+    np.testing.assert_allclose(
+        payload["candidate_red_alignment_recomputed_reverse"],
+        -np.asarray(relation["candidate_red_heading_alignment"]),
+    )
+    assert payload["latency_ms"]["latency_ms_red_route_vector_logging"] == 0.125
+
+
+def test_red_route_vector_logging_payload_handles_empty_red_route() -> None:
+    candidates = np.array(
+        [
+            [
+                [0.0, 0.0, 1.0, 0.0],
+                [1.0, 0.0, 1.0, 0.0],
+                [2.0, 0.0, 1.0, 0.0],
+            ],
+        ],
+        dtype=np.float64,
+    )
+
+    payload = _red_route_vector_logging_payload(
+        candidates=candidates,
+        red_route_points=np.zeros((0, 4), dtype=np.float64),
+        traffic_light_steps=3,
+    )
+
+    assert payload["red_route_point_count"] == 0
+    assert payload["valid_red_route_point_count"] == 0
+    assert payload["field_shapes"]["red_route_points_ego_xy_dir"] == [0, 4]
+    assert payload["field_shapes"]["candidate_red_selected_route_point_index"] == [1, 3]
+    assert payload["candidate_red_selected_route_point_index"] == [[-1, -1, -1]]
+    np.testing.assert_allclose(
+        payload["candidate_red_alignment_recomputed_current"],
+        np.zeros((1, 3)),
+    )
+    np.testing.assert_allclose(
+        payload["candidate_red_alignment_recomputed_reverse"],
+        np.zeros((1, 3)),
+    )
+    assert all(payload["finite_checks"].values())
     assert payload["selection_effect"] is False
     assert payload["future_outcome_leakage"] is False
 

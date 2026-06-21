@@ -135,6 +135,16 @@ OBSERVABLE_STATE_FIELDS = (
     "candidate_min_obstacle_clearance_lower_bound_m",
     "candidate_obstacle_slot_count",
 )
+RED_ROUTE_VECTOR_LOGGING_SCHEMA_VERSION = "dp_camp_red_route_vector_logging_v1"
+RED_ROUTE_VECTOR_LATENCY_KEYS = ("latency_ms_red_route_vector_logging",)
+RED_ROUTE_VECTOR_FIELDS = (
+    "red_route_points_ego_xy_dir",
+    "candidate_red_selected_route_point_index",
+    "candidate_red_heading_vector_xy",
+    "candidate_red_vector_to_selected_point_xy",
+    "candidate_red_alignment_recomputed_current",
+    "candidate_red_alignment_recomputed_reverse",
+)
 def _parse_step_list(value: str) -> tuple[int, ...]:
     steps = tuple(int(part.strip()) for part in value.split(",") if part.strip())
     if not steps:
@@ -524,6 +534,15 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=10,
         help="Candidate prefix steps for observable turn-context descriptors.",
+    )
+    parser.add_argument(
+        "--camp_red_route_vector_logging",
+        action="store_true",
+        help=(
+            "Default-off no-leak logging of current-tick red route point vectors "
+            "and candidate heading vectors used to audit traffic-light alignment "
+            "sign semantics. This does not change feasibility, scores, or selection."
+        ),
     )
     parser.add_argument(
         "--camp_progress_support_logging",
@@ -1391,6 +1410,110 @@ def _candidate_red_light_relation(
         "candidate_red_heading_alignment": alignments,
         "red_route_point_count": int(red.shape[0]),
     }
+
+
+def _red_route_vector_logging_payload(
+    *,
+    candidates: np.ndarray,
+    red_route_points: np.ndarray,
+    traffic_light_steps: int,
+    latency_ms: float = 0.0,
+) -> dict[str, Any]:
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.ndim != 3 or trajectories.shape[0] < 1 or trajectories.shape[2] < 2:
+        raise ValueError("candidates must have shape [K,T,>=2].")
+    horizon = min(max(int(traffic_light_steps), 2), int(trajectories.shape[1]))
+    points = trajectories[:, :horizon, :2]
+    headings = _candidate_headings(trajectories, horizon)
+    heading_vectors = np.stack((np.cos(headings), np.sin(headings)), axis=2)
+    red = np.asarray(red_route_points, dtype=np.float64)
+    red_points = (
+        np.asarray(red[:, :4], dtype=np.float64)
+        if red.ndim == 2 and red.shape[0] > 0 and red.shape[1] >= 4
+        else np.zeros((0, 4), dtype=np.float64)
+    )
+    selected_indices = np.full(points.shape[:2], -1, dtype=np.int32)
+    vectors_to_selected = np.zeros((*points.shape[:2], 2), dtype=np.float64)
+    current_alignment = np.zeros(points.shape[:2], dtype=np.float64)
+    reverse_alignment = np.zeros(points.shape[:2], dtype=np.float64)
+    valid_red_count = 0
+
+    if red_points.shape[0] > 0:
+        red_xy = red_points[:, :2]
+        red_dirs = red_points[:, 2:4]
+        red_norms = np.linalg.norm(red_dirs, axis=1)
+        valid = np.isfinite(red_norms) & (red_norms > 1e-8)
+        valid_red_count = int(np.count_nonzero(valid))
+        if valid_red_count > 0:
+            valid_indices = np.nonzero(valid)[0]
+            valid_xy = red_xy[valid]
+            valid_dirs = red_dirs[valid] / red_norms[valid].reshape(-1, 1)
+            for index in np.ndindex(points.shape[:2]):
+                point = points[index]
+                heading_vec = heading_vectors[index]
+                deltas = valid_xy - point.reshape(1, 2)
+                ahead = np.sum(deltas * heading_vec.reshape(1, 2), axis=1) >= -1e-6
+                candidate_xy = valid_xy[ahead] if np.any(ahead) else valid_xy
+                candidate_dirs = valid_dirs[ahead] if np.any(ahead) else valid_dirs
+                candidate_indices = valid_indices[ahead] if np.any(ahead) else valid_indices
+                distances = np.linalg.norm(candidate_xy - point.reshape(1, 2), axis=1)
+                best = int(np.argmin(distances))
+                selected_indices[index] = int(candidate_indices[best])
+                vectors_to_selected[index] = candidate_xy[best] - point
+                current = float(
+                    np.clip(np.dot(heading_vec, candidate_dirs[best]), -1.0, 1.0)
+                )
+                current_alignment[index] = current
+                reverse_alignment[index] = -current
+
+    payload = {
+        "schema_version": RED_ROUTE_VECTOR_LOGGING_SCHEMA_VERSION,
+        "enabled": True,
+        "default_off": True,
+        "selection_effect": False,
+        "future_outcome_leakage": False,
+        "definition": (
+            "current-tick red route point vectors and candidate heading vectors "
+            "computed from fixed DP candidates before closed-loop outcome labels"
+        ),
+        "candidate_count": int(trajectories.shape[0]),
+        "horizons": {"traffic_light_steps": horizon},
+        "red_route_point_count": int(red_points.shape[0]),
+        "valid_red_route_point_count": valid_red_count,
+        "field_shapes": {},
+        "finite_checks": {},
+        "latency_ms": {"latency_ms_red_route_vector_logging": float(latency_ms)},
+        "red_route_points_ego_xy_dir": red_points.tolist(),
+        "candidate_red_selected_route_point_index": selected_indices.tolist(),
+        "candidate_red_heading_vector_xy": heading_vectors.tolist(),
+        "candidate_red_vector_to_selected_point_xy": vectors_to_selected.tolist(),
+        "candidate_red_alignment_recomputed_current": current_alignment.tolist(),
+        "candidate_red_alignment_recomputed_reverse": reverse_alignment.tolist(),
+    }
+    for field in RED_ROUTE_VECTOR_FIELDS:
+        payload["field_shapes"][field] = (
+            list(red_points.shape)
+            if field == "red_route_points_ego_xy_dir"
+            else _shape_or_none(payload[field])
+        )
+    payload["finite_checks"] = {
+        "red_route_points_ego_xy_dir": bool(np.all(np.isfinite(red_points))),
+        "candidate_red_selected_route_point_index": bool(
+            selected_indices.shape == points.shape[:2]
+            and np.all(selected_indices >= -1)
+        ),
+        "candidate_red_heading_vector_xy": _finite_nested(heading_vectors),
+        "candidate_red_vector_to_selected_point_xy": _finite_nested(
+            vectors_to_selected
+        ),
+        "candidate_red_alignment_recomputed_current": _finite_nested(
+            current_alignment
+        ),
+        "candidate_red_alignment_recomputed_reverse": _finite_nested(
+            reverse_alignment
+        ),
+    }
+    return payload
 
 
 def _candidate_route_heading_change(
@@ -3569,6 +3692,7 @@ def _install_camp_predictor(
     observable_state_support_steps: int,
     observable_state_traffic_light_steps: int,
     observable_state_turn_steps: int,
+    red_route_vector_logging: bool,
     progress_support_logging: bool,
     progress_support_steps: int,
     progress_support_dt_s: float,
@@ -3831,6 +3955,8 @@ def _install_camp_predictor(
         observable_state_latency_ms = {
             key: 0.0 for key in OBSERVABLE_STATE_LATENCY_KEYS
         }
+        red_route_vector_logging_payload = None
+        red_route_vector_latency_ms = 0.0
         progress_support_logging_payload = None
         progress_support_latency_ms = {
             key: 0.0 for key in PROGRESS_SUPPORT_LATENCY_KEYS
@@ -3891,6 +4017,19 @@ def _install_camp_predictor(
             observable_state_latency_ms = observable_state_logging_payload[
                 "latency_ms"
             ]
+        if red_route_vector_logging:
+            red_vector_start = time.perf_counter()
+            red_route_vector_logging_payload = _red_route_vector_logging_payload(
+                candidates=candidates,
+                red_route_points=red_route_points,
+                traffic_light_steps=observable_state_traffic_light_steps,
+            )
+            red_route_vector_latency_ms = (
+                time.perf_counter() - red_vector_start
+            ) * 1000.0
+            red_route_vector_logging_payload["latency_ms"][
+                "latency_ms_red_route_vector_logging"
+            ] = red_route_vector_latency_ms
         if progress_support_logging:
             progress_support_logging_payload = (
                 build_progress_support_logging_payload(
@@ -4304,6 +4443,7 @@ def _install_camp_predictor(
                 splice_shadow_done - underprogress_relaxation_done
             )
             * 1000.0,
+            "latency_ms_red_route_vector_logging": red_route_vector_latency_ms,
             "latency_ms_camp_atom_computation": selection.timings_ms[
                 "atom_computation"
             ],
@@ -4560,6 +4700,7 @@ def _install_camp_predictor(
                     else None
                 ),
                 "observable_state_logging": observable_state_logging_payload,
+                "red_route_vector_logging": red_route_vector_logging_payload,
                 "progress_support_logging": progress_support_logging_payload,
                 "lane_hard_violation_support_logging": (
                     lane_hard_violation_support_logging_payload
@@ -4806,6 +4947,7 @@ def main() -> None:
                 args.camp_observable_state_traffic_light_steps
             ),
             observable_state_turn_steps=args.camp_observable_state_turn_steps,
+            red_route_vector_logging=bool(args.camp_red_route_vector_logging),
             progress_support_logging=bool(args.camp_progress_support_logging),
             progress_support_steps=args.camp_progress_support_steps,
             progress_support_dt_s=args.camp_progress_support_dt_s,
@@ -5122,6 +5264,64 @@ def main() -> None:
         if records is not None
         else None
     )
+    camp_red_route_vector_logging = (
+        {
+            "schema_version": RED_ROUTE_VECTOR_LOGGING_SCHEMA_VERSION,
+            "enabled": bool(args.camp_red_route_vector_logging),
+            "default_off": True,
+            "selection_effect": False,
+            "future_outcome_leakage": False,
+            "closed_loop_outcome_fields_read": False,
+            "online_selector_change": False,
+            "authorized_stage": "unit_tests_only_default_off_preflight",
+            "logged_field": "red_route_vector_logging",
+            "fields": list(RED_ROUTE_VECTOR_FIELDS),
+            "latency_fields": list(RED_ROUTE_VECTOR_LATENCY_KEYS),
+            "horizons": {
+                "traffic_light_steps": int(
+                    args.camp_observable_state_traffic_light_steps
+                ),
+            },
+            "records": (
+                int(
+                    sum(
+                        1
+                        for record in records
+                        if record.get("red_route_vector_logging") is not None
+                    )
+                )
+                if args.camp_red_route_vector_logging
+                else 0
+            ),
+            "latency_ms": (
+                {
+                    key: _summary(
+                        [
+                            float(record[key])
+                            for record in records
+                            if key in record and record[key] is not None
+                        ]
+                    )
+                    for key in RED_ROUTE_VECTOR_LATENCY_KEYS
+                }
+                if args.camp_red_route_vector_logging
+                else None
+            ),
+            "definition": (
+                "current-tick fixed-candidate red route point and candidate "
+                "heading vector diagnostics computed before closed-loop outcomes"
+            ),
+            "math_boundary": (
+                "These fields are diagnostics only. If a later red descriptor is "
+                "atomized, it must be a fixed pre-outcome nonnegative candidate "
+                "coefficient; CAMP score remains affine in weights and the "
+                "simplex/CVaR/L2 master remains convex."
+            ),
+            "classical_benders_claim": False,
+        }
+        if records is not None
+        else None
+    )
     camp_progress_support_logging = (
         {
             "schema_version": PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
@@ -5385,6 +5585,7 @@ def main() -> None:
         ),
         "camp_raw_candidate_prefix_logging": camp_raw_candidate_prefix_logging,
         "camp_observable_state_logging": camp_observable_state_logging,
+        "camp_red_route_vector_logging": camp_red_route_vector_logging,
         "camp_progress_support_logging": camp_progress_support_logging,
         "camp_lane_hard_violation_support_logging": (
             camp_lane_hard_violation_support_logging
@@ -5683,6 +5884,7 @@ def main() -> None:
         camp_raw_candidate_prefix_logging
     )
     validation["camp_observable_state_logging"] = camp_observable_state_logging
+    validation["camp_red_route_vector_logging"] = camp_red_route_vector_logging
     validation["camp_progress_support_logging"] = camp_progress_support_logging
     validation["camp_lane_hard_violation_support_logging"] = (
         camp_lane_hard_violation_support_logging
