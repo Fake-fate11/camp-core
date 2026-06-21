@@ -49094,3 +49094,162 @@ executed. Candidate features were fixed logged atoms; CAMP scores remained
 affine in `w`; simplex/CVaR/L2 training stayed convex. Closed-loop outcomes
 were used only as offline labels/evaluation evidence. No classical DP-side
 Benders construction is claimed.
+
+## Offline Convex Objective/Label Sensitivity Results Diagnosis (`9425434`)
+
+Purpose:
+
+The corrected `275374a` sensitivity wrapper completed but accepted no variant.
+This step adds and runs a read-only diagnosis gate over the wrapper result and
+its linked per-variant training, selector-evaluation, proof, and weight
+artifacts. It does not train, run Diffusion Planner, replay closed loop,
+promote an online selector, or use formal seeds.
+
+Implementation:
+
+```text
+9425434 Add objective label sensitivity results diagnosis
+```
+
+Files:
+
+```text
+scripts/integrations/diagnose_diffusion_planner_offline_convex_objective_label_sensitivity_results.py
+camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_results_diagnosis.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_results_diagnosis.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+33 passed in 2.34s
+
+git diff --check
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=94254348c31bf6c445cc4bfb828b551c8ba4d07f
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_results_diagnosis.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+33 passed in 0.64s
+```
+
+Diagnosis command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SRC=$ROOT/offline_convex_objective_label_sensitivity_dry_run_275374a/offline_convex_objective_label_sensitivity_dry_run.json
+OUT=$ROOT/offline_convex_objective_label_sensitivity_results_diagnosis_9425434
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/diagnose_diffusion_planner_offline_convex_objective_label_sensitivity_results.py \
+  --sensitivity_json "$SRC" \
+  --label autodl_9425434_from_275374a_sensitivity_run \
+  --output_json "$OUT/offline_convex_objective_label_sensitivity_results_diagnosis.json" \
+  --output_md "$OUT/offline_convex_objective_label_sensitivity_results_diagnosis.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_objective_label_sensitivity_results_diagnosis_9425434/offline_convex_objective_label_sensitivity_results_diagnosis.json
+sha256=1c2e8813c7ec74a237b0ec390dab51831441b0b6429f079196267cb1e6d3e33c
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_objective_label_sensitivity_results_diagnosis_9425434/offline_convex_objective_label_sensitivity_results_diagnosis.md
+sha256=c4079fe6152b044a34ee63691e7efb0554616d8271fd3d47ca92abf1fa4220d0
+```
+
+Final decision:
+
+```text
+status=offline_convex_objective_label_sensitivity_results_diagnosed
+passed=True
+sensitivity_route_rejected=True
+credible_direction_candidates=[]
+authorized_next_work=predeclare_no_leak_atom_or_proof_objective_redesign_plan_only
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Persistent failed checks:
+
+```text
+component_nonpositive_collision
+component_nonpositive_near_miss
+logged_selector_nonworse_ci_high
+oracle_gap_gate_passed
+top1_bucket_gate_passed
+```
+
+Best candidate summaries from the diagnosis:
+
+```text
+best_by_logged_nonworse_ci_high=safety_guard_floor, value=0.17207710056260256
+best_by_collision_delta=tail_alpha_0p95, value=0.0787037037037037
+best_by_near_miss_delta=tail_alpha_0p95, value=0.006481481481481481
+
+top1_failure_counts:
+  tail_alpha_0p95=3
+  tail_alpha_0p95_l2_1e3=3
+  safety_guard_floor=3
+  balanced_comfort_progress_floor=3
+
+oracle_gap_failure_counts:
+  tail_alpha_0p95=7
+  tail_alpha_0p95_l2_1e3=7
+  safety_guard_floor=7
+  balanced_comfort_progress_floor=7
+```
+
+Decision:
+
+Reject the current objective/label sensitivity route. No predeclared objective
+knob variant produced a credible nonworse direction versus the control: all
+candidates still failed the critical Top-1 bucket gate, the oracle-gap gate,
+the logged-selector nonworse CI gate, and collision/near-miss component gates.
+The result is not an argument to relax the gate; it is evidence that the fixed
+atom family plus this hard-guarded label/objective knob set is insufficient.
+
+Next gate:
+
+Do not run another training dry run, closed-loop replay, online selector,
+Full36, formal seed, or DP modification from this route. The only authorized
+next work is a plan-only redesign gate: either introduce a new no-leak atom
+schema with explicit nonnegativity/affine-score admissibility and offline
+support evidence, or redesign the proof/objective contract without using future
+outcomes online. The plan must explicitly cite this rejection and avoid
+repeating alpha/L2/simplex-floor sensitivity as the main route.
+
+Mathematical boundary:
+
+The diagnosis is read-only. It preserves DP as a black-box candidate generator,
+uses fixed logged candidate atoms, keeps `score_k(w)=a_k^T w`, and does not
+claim a classical DP-side Benders decomposition. Closed-loop outcomes remain
+offline labels/evaluation targets only.
