@@ -41024,3 +41024,159 @@ remains `score_k(w)=a_k^T w`; the simplex/CVaR/L2 master remains convex in
 weights \(w\). Candidate closed-loop outcomes are used only as offline labels,
 not as runtime atom features. No DP-side classical Benders master/subproblem,
 dual, or valid cut is constructed.
+
+## Relaxed Strict-Label Atom Bottleneck Diagnosis (`d44d14b` source)
+
+This gate follows the rejected relaxed strict-label atom separability screen.
+It is read-only and offline: it reuses the existing matched logs and the
+`relaxed_strict_label_atom_separability.json` artifact, applies the rejected
+best screen, and diagnoses whether the failure is threshold strictness, atom
+overblocking, harmful leakage, or intrinsic overlap. It does not run DP, train
+CAMP, promote an online selector, use formal seeds, run Full36, or modify DP.
+
+Changed files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_relaxed_strict_label_atom_bottleneck.py
+camp_core/tests/test_diffusion_planner_relaxed_strict_label_atom_bottleneck.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_relaxed_strict_label_atom_bottleneck.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_relaxed_strict_label_atom_bottleneck.py `
+  camp_core\tests\test_diffusion_planner_relaxed_strict_label_atom_separability.py `
+  -q
+```
+
+Result:
+
+```text
+10 passed in 1.06s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY -m py_compile scripts/integrations/analyze_diffusion_planner_relaxed_strict_label_atom_bottleneck.py
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_relaxed_strict_label_atom_bottleneck.py \
+  camp_core/tests/test_diffusion_planner_relaxed_strict_label_atom_separability.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_relaxed_strict_label_atom_bottleneck.py \
+  --root "$ROOT/matched_revised_context_outcomes" \
+  --separability_json "$ROOT/audit/relaxed_strict_label_atom_separability.json" \
+  --label autodl_d44d14b_relaxed_strict_label_atom_bottleneck \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/relaxed_strict_label_atom_bottleneck.json" \
+  --output_md "$ROOT/audit/relaxed_strict_label_atom_bottleneck.md"
+```
+
+Result:
+
+```text
+10 passed in 0.78s
+status=relaxed_strict_label_atom_bottleneck_diagnosed
+passed=True
+primary_gap=relaxed_strict_atom_threshold_tradeoff_overblocks_or_leaks_harmful
+authorized_next_work=reject_or_redesign_relaxed_strict_no_leak_atom_family
+CAMP_HEAD=d44d14b037dc6151349b00ae8a06887a5d09ba94
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+relaxed_strict_label_atom_bottleneck.json
+bc70df26997a11c1eb05435615e7e2d6c652c0dc77a0ff419fa4a8762c8437e5
+
+relaxed_strict_label_atom_bottleneck.md
+28523a72a34d3b65d4359d04f182642530c79c11c6511bdd43710d633d3b542a
+```
+
+Best-screen application:
+
+```text
+beneficial_total=41
+beneficial_retained=1
+beneficial_blocked=40
+harmful_total=251
+harmful_allowed=0
+harmful_blocked=251
+neutral_total=44
+beneficial_block_rate=0.975609756097561
+```
+
+Blocked-beneficial outcome summary:
+
+```text
+hard_safety_worse_count=0
+red_light_worse_count=0
+lane_worse_count=0
+collision_worse_count=0
+near_miss_worse_count=0
+progress_compatible_count=40
+jerk_compatible_count=40
+lateral_compatible_count=40
+safety_penalty_delta_mean=-0.7990777663530085
+safety_penalty_delta_max=-0.0007268775476436673
+progress_delta_mean_m=0.1986741806950582
+value_delta_mean=1.318399996856888
+```
+
+Threshold counterfactuals:
+
+```text
+retain 10% beneficial -> beneficial_retain=0.12195121951219512, harmful_allowed=5, allowed_harmful_rate=0.5
+retain 25% beneficial -> beneficial_retain=0.2682926829268293, harmful_allowed=61, allowed_harmful_rate=0.8472222222222222
+retain 50% beneficial -> beneficial_retain=0.5121951219512195, harmful_allowed=112, allowed_harmful_rate=0.8421052631578947
+retain 75% beneficial -> beneficial_retain=0.7804878048780488, harmful_allowed=129, allowed_harmful_rate=0.8012422360248447
+retain 100% beneficial -> beneficial_retain=1.0, harmful_allowed=209, allowed_harmful_rate=0.836
+```
+
+Decision:
+
+Diagnose and reject the current relaxed strict-label atom family. The best
+screen is safe only by being too strict: it blocks 40 of 41 beneficial
+alternatives. Those blocked beneficial alternatives are genuinely low-risk
+under the current comprehensive safety-penalty label: they are hard-safety
+nonworse, progress/jerk/lateral compatible, and have negative safety-penalty
+delta on average and at the worst blocked case. Relaxing the threshold is not
+an acceptable fix because even 10% beneficial retention admits harmful
+alternatives, and higher retention rapidly admits many harmful alternatives.
+
+Immediate CAMP retraining, online selector promotion, new replay, Full36, and
+formal seeds remain rejected.
+
+Next admissible work:
+
+Do not tune thresholds on this atom family. Either reject the relaxed strict
+atom route entirely, or predeclare a smaller no-leak atom redesign that can
+separate the blocked low-risk beneficial cases from the low-score harmful
+cases. The next analyzer should first compare blocked-beneficial versus
+newly-admitted harmful candidates under each current-tick component atom
+before proposing any new atom schema. If no current-tick signal can separate
+them, record the limitation as an observability/candidate-support bottleneck
+instead of training CAMP.
+
+Mathematical boundary:
+
+The bottleneck diagnosis applies a rejected offline screen to fixed
+current-tick relaxed strict atom coefficients. Candidate closed-loop outcomes
+explain offline labels and error modes only; they are not runtime atom
+features. Each atom remains a nonnegative finite-candidate coefficient
+\(a_k\), so any CAMP score using these coefficients remains
+`score_k(w)=a_k^T w`, and the simplex/CVaR/L2 master remains convex in
+weights \(w\). No DP-side classical Benders master/subproblem, dual, or valid
+cut is constructed.
