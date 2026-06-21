@@ -58676,3 +58676,124 @@ candidate-level source is predeclared, or a new proof objective is predeclared
 without claiming deployability. Do not train CAMP, run replay, promote an
 online selector, run Full36, use formal seeds, modify DP, or repeat the old
 label/weight preflight as if it were new.
+
+## Post-Reconciliation Current Goal State (`7ffe950`/`d58d32c`)
+
+This self-iteration refreshes the machine-readable current goal state after the
+post-oracle selector-route reconciliation. It is read-only: it consumes the
+latest reconciliation, source inventory, scenario evidence matrix, candidate
+oracle-readiness gate, and SafetyCost oracle. It does not run DP, replay closed
+loop, train CAMP, create atoms, promote an online selector, use formal seeds, or
+modify DP.
+
+Implementation:
+
+```text
+7ffe95082c2dc3a8fa3508a365db5601e871103d Add post reconciliation current goal state gate
+d58d32c49a60fae29b2e70815d3f60deee57596d Read candidate readiness source in goal state gate
+
+scripts/integrations/plan_diffusion_planner_post_reconciliation_current_goal_state.py
+camp_core/tests/test_diffusion_planner_post_reconciliation_current_goal_state.py
+```
+
+Verification:
+
+```text
+Local:
+  CAMP HEAD=d58d32c49a60fae29b2e70815d3f60deee57596d
+  py_compile passed
+  pytest camp_core/tests/test_diffusion_planner_post_reconciliation_current_goal_state.py \
+         camp_core/tests/test_diffusion_planner_post_oracle_selector_route_reconciliation.py \
+         camp_core/tests/test_diffusion_planner_candidate_oracle_input_readiness.py \
+         camp_core/tests/test_diffusion_planner_scenario_evidence_matrix_gate.py -q
+  result=25 passed
+
+AutoDL:
+  CAMP HEAD=d58d32c49a60fae29b2e70815d3f60deee57596d
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  same pytest command result=25 passed
+```
+
+AutoDL command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+RECON=$DEV/post_oracle_selector_route_reconciliation_245b8ac/post_oracle_selector_route_reconciliation.json
+SOURCE=$DEV/post_source_visibility_runtime_inventory_e9d778d/post_source_visibility_runtime_inventory.json
+SCENARIO=$DEV/scenario_evidence_matrix_gate_post_source_inventory_d2df67f/scenario_evidence_matrix_gate.json
+CAND=$DEV/candidate_oracle_input_readiness_b2513de/candidate_oracle_input_readiness.json
+ORACLE=$DEV/safety_cost_oracle_post_source_inventory_4ff54e6/safety_cost_oracle.json
+OUT=$DEV/post_reconciliation_current_goal_state_d58d32c
+
+$PY scripts/integrations/plan_diffusion_planner_post_reconciliation_current_goal_state.py \
+  --reconciliation_json "$RECON" \
+  --source_inventory_json "$SOURCE" \
+  --scenario_matrix_json "$SCENARIO" \
+  --candidate_readiness_json "$CAND" \
+  --safety_cost_oracle_json "$ORACLE" \
+  --label autodl_d58d32c_post_reconciliation_current_goal_state \
+  --output_json "$OUT/post_reconciliation_current_goal_state.json" \
+  --output_md "$OUT/post_reconciliation_current_goal_state.md" \
+  --require_pass
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_reconciliation_current_goal_state_d58d32c/post_reconciliation_current_goal_state.json` | `1b38deeb511823005b8bd869102c7df3dc5e42b642c0723da938d8c2ba49aeed` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_reconciliation_current_goal_state_d58d32c/post_reconciliation_current_goal_state.md` | `5042d16ddcd53eb742316505b439c47156403ab336377d2d2dd4bebde13ba37d` |
+
+Result:
+
+```text
+status=post_reconciliation_current_goal_state_paused
+passed=True
+authorized_next_work=submit_new_current_tick_source_proposal_or_keep_paused_only
+selector_route_paused=True
+deployable_camp_dp_selector_route_exists=False
+development_gates_complete=False
+formal_seeds_ready=False
+candidate_pool_opportunity_exists=True
+no_new_runtime_source_available=True
+stale_goal_head_detected=True
+failed_checks=[]
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept this current-state refresh as the authoritative control point after the
+post-oracle reconciliation. The candidate pool still has offline SafetyCost
+oracle opportunity, but the fixed-DP CAMP selector route remains paused because
+no deployable no-leak runtime source is currently open. The active goal text may
+still mention `dfbc83668b2e7d35cc7e9982374dafe0e47fbb67`; that commit is an
+ancestor of the current synchronized HEAD, not the current state.
+
+Mathematical boundary:
+
+This state refresh creates no atom, trains no weight, and runs no selector. Any
+future CAMP source must be a fixed current-tick finite-candidate coefficient
+`a_k`, nonnegative, hinged, or signed-split, preserving
+`score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master. Offline outcomes
+remain labels/evidence only. No DP-side classical Benders master/subproblem,
+dual, or valid cut is constructed.
+
+Next admissible work:
+
+Submit one materially new current-tick candidate-level source proposal, or keep
+the selector route paused. Do not train CAMP, run replay, promote an online
+selector, run Full36, use formal seeds, modify DP, or repeat closed
+external-context/temporal-consistency/targeted-red-clearance/source-visibility
+routes without new non-equivalence evidence.
