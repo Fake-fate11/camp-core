@@ -52826,3 +52826,92 @@ logging is enabled with three records and no leakage/selection effect. Passing
 the tiny smoke still authorizes only materiality/coverage diagnosis over the
 existing smoke logs. It does not authorize broader replay, Full36, online
 selection, CAMP retraining, or any DP-side Benders claim.
+
+## External Context Payload Materiality Gate (`994eb79` artifacts)
+
+Purpose:
+
+This step adds a read-only materiality diagnosis for external-context payload
+smoke logs. It is intended to run only after the external-context smoke result
+gate has passed. It reads existing `camp_selection_log.json` files and checks
+whether the logged external-context fields have candidate-level nonzero or
+nonconstant signal. It does not run Diffusion Planner, modify DP, train CAMP,
+promote an online selector, enter Full36, or use formal seeds.
+
+Status audit:
+
+```text
+local_head_before_gate=ebd7a0b161dff3531abd1c8ec14517b940b2b67e
+github_origin_main_before_gate=ebd7a0b161dff3531abd1c8ec14517b940b2b67e
+autodl_batchmode_auth=Permission denied (publickey,password)
+autodl_sync_executed=False
+```
+
+Implementation:
+
+```text
+994eb79 Add external context payload materiality gate
+```
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_external_context_payload_materiality.py
+camp_core/tests/test_diffusion_planner_external_context_payload_materiality.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\analyze_diffusion_planner_external_context_payload_materiality.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_materiality.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_payload_materiality.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_result.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_runtime.py \
+  camp_core\tests\test_diffusion_planner_external_context_payload_design.py \
+  -q
+
+30 passed
+git diff --check passed
+```
+
+Synthetic schema artifact:
+
+```text
+F:\camp_core-main\analysis_bundles\external_context_payload_materiality_gate_994eb79\external_context_payload_materiality.json
+sha256=EB4A17D42080E398998EE1BEC2D31458DE258E8893C0BB829F72673DF395A9CE
+
+F:\camp_core-main\analysis_bundles\external_context_payload_materiality_gate_994eb79\external_context_payload_materiality.md
+sha256=13F5530B8CBDD9C1349C68CC4A3E9547A1C031B92A2B303C95DC7943C75EE583
+```
+
+The artifact above is synthetic and proves the materiality-gate schema and
+decision boundary only. It is not evidence that the AutoDL paired smoke has
+executed.
+
+Decision boundary:
+
+```text
+status_on_pass=external_context_payload_materiality_ready
+authorized_next_work_on_pass=external_context_payload_atomization_preflight_existing_smoke_only
+closed_loop_replay_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Materiality requires the prior smoke result gate to pass, candidate logs to
+remain no-leak and selection-effect-free, and at least one external-context
+family to contain a nonzero or nonconstant candidate-level signal. Constant
+route speed-limit values alone are not treated as sufficient materiality. A
+passing result authorizes only atomization preflight over existing smoke fields;
+it does not authorize new replay, online selection, CAMP retraining, Full36,
+formal seeds, DP modification, or any classical Benders claim.
