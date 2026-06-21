@@ -54500,3 +54500,142 @@ definitions are valid finite-candidate coefficients for an affine CAMP score
 `score_k(w)=a_k^T w`; the simplex/CVaR/L2 master remains convex over weights.
 This still does not construct a DP-side classical Benders master/subproblem,
 dual, or valid cuts.
+
+## External Context Atom Outcome Counterfactual
+
+This step adds and runs a read-only posterior-label counterfactual for the
+signal-arrival atom candidates. It answers one narrow question: if the
+`right_of_way_blocked_indicator_v1` and
+`signal_arrival_time_reaches_control_v1` atom score chose its best candidate on
+the same fixed DP candidate pool, would that choice be better than the logged
+CAMP selection under candidate-branch SafetyCost v1 labels? Outcomes are used
+only after selection as labels for this audit, never as deployable atom inputs.
+
+Analyzer commit:
+
+```text
+31f1f0a72ae24f06cfcddc1b28e712b54832577b Add external context atom outcome counterfactual
+```
+
+Local tests:
+
+```text
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests\test_diffusion_planner_external_context_atom_outcome_counterfactual.py -q
+result=4 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests -k diffusion_planner_external_context -q
+result=71 passed, 1137 deselected
+```
+
+AutoDL sync:
+
+```text
+autodl_camp_head=31f1f0a72ae24f06cfcddc1b28e712b54832577b
+autodl_camp_origin=31f1f0a72ae24f06cfcddc1b28e712b54832577b
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Outcome-labeled replay:
+
+```text
+root=/root/autodl-tmp/camp_dp_external_context_signal_arrival_outcome_counterfactual
+scope=single nonformal logging-enabled replay, seed1 npc4 traffic_lights_on static, 3 steps, 8 candidates
+flags=[camp_external_context_payload_logging, camp_external_context_payload_steps=50, camp_collect_closed_loop_outcomes, camp_outcome_horizon_steps=30]
+training=False
+online_selector_change=False
+formal_seeds_used=False
+DP_modification=False
+```
+
+Outcome replay gates:
+
+```text
+autodl_counterfactual_tests=4 passed
+selector_equivalence_vs_materiality_probe=True
+selector_records=3
+selector_exact_mismatches=0
+selector_numeric_mismatches=0
+dataset_audit=passed
+closed_loop_outcome_policy=required
+counterfactual_status=external_context_atom_outcome_counterfactual_ready
+promotion_authorized=False
+tiny_counterfactual_noninferior=False
+new_replay_authorized=False
+camp_retraining_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+DP_modification_authorized=False
+```
+
+Counterfactual result:
+
+```text
+valid_records=3
+changed_records=3
+ranking_signal_records=3
+atom_best_better_records=2
+atom_best_noninferior_records=2
+atom_best_hard_nonworse_records=3
+atom_best_progress_within_budget_records=0
+mean_atom_best_minus_selected_safety_cost=-12.549130991674522
+cost_delta_values=[1.4837931439617584, -18.5457833139018, -20.585402805083522]
+
+record0 selected=2 atom_best=0 delta_cost=+1.4837931439617584 progress_delta_m=-220.6913337397996 hard_nonworse=True
+record1 selected=2 atom_best=0 delta_cost=-18.5457833139018 progress_delta_m=-220.51674057544554 hard_nonworse=True
+record2 selected=6 atom_best=0 delta_cost=-20.585402805083522 progress_delta_m=-0.7015660130829948 hard_nonworse=True
+```
+
+Artifacts:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_signal_arrival_outcome_counterfactual/audit
+local_copy=F:\camp_core-main\analysis_bundles\external_context_signal_arrival_outcome_counterfactual_31f1f0a
+
+selector_equivalence_vs_materiality_probe.json
+sha256=14A233A74698FF565640AC96922E8C828F0FE5A48BAEC3ACC4AE170782739DB2
+
+dataset_audit.json
+sha256=FC490ECEB3788E4F3468DF6428A06DDB54C7AFF2DA5388F89ADD6B1F04A6BAEA
+
+external_context_atom_outcome_counterfactual.json
+sha256=AB8CB5F9AC711CFFBC45909AD33F5C85951B4DC03AEBC561D2559B4993E913D8
+
+external_context_atom_outcome_counterfactual.md
+sha256=6A8E58332F1B7D8272D64B577A856E772D249FD7672EFB79D8F9BD3071442D0B
+```
+
+Decision:
+
+Reject promotion or expansion of the pure signal-atom selector from this
+evidence. The atom family is mathematically admissible and material, and it
+creates a real ranking signal, but the current unguarded atom-best rule is too
+conservative: it selects candidate 0 in all three records, violates the 0.10 m
+progress-loss budget in all records, and even worsens SafetyCost in record 0.
+This result does not prove CAMP is better than DP Top-1. It proves the opposite
+engineering lesson: a traffic-signal atom needs a finite-candidate
+progress/budget guard before any broader experiment.
+
+Next admissible work:
+
+Design a read-only guarded counterfactual gate over the existing
+outcome-labeled signal-arrival logs. The candidate set, payload fields, and
+outcome labels already exist; no new replay is needed for the next gate. The
+guard should consider only fixed current-tick finite-candidate quantities such
+as atom score, selected/Top-1 progress proxy, and deterministic tie-breaks. It
+must reject any rule whose atom-best candidate violates the declared progress
+budget, hard outcome nonworse checks, or SafetyCost noninferiority in the
+posterior-label audit. No training, online selector promotion, Full36, formal
+seeds, or DP modification is authorized.
+
+Mathematical boundary:
+
+The counterfactual selector score is computed from fixed atom coefficients only.
+Candidate closed-loop outcomes are posterior labels used strictly for
+evaluation. They do not enter CAMP atoms, the deployed selector, training, or a
+Benders cut. A future guarded rule may still be compatible with CAMP if its
+online decision uses only fixed finite-candidate coefficients and preserves
+`score_k(w)=a_k^T w`; any non-affine lexicographic/budget filter must be named
+as a finite-candidate selector guard, not a classical Benders subproblem.
