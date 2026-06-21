@@ -41582,3 +41582,164 @@ each candidate as `score_k(w)=a_k^T w`, so the simplex/CVaR/L2 master remains
 convex in weights. This gate does not claim trajectory-space convexity and does
 not construct a DP-side classical Benders master/subproblem, dual, or valid
 cut.
+
+## Observable Interaction Descriptor Separability (`a3fc213` source)
+
+This gate executes the offline separability screen authorized by the observable
+interaction descriptor preflight. It uses only the existing matched observable
+outcome logs from `/root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698`.
+It does not run replay, does not train CAMP, does not change online selection,
+and does not modify DP.
+
+Implementation note:
+
+The reused matched-observable screen helper previously used
+`zip(..., strict=True)`, which is valid on local Python 3.12 but fails on the
+current AutoDL CAMP Python. This gate replaces that one call with an explicit
+length check followed by plain `zip(...)`, preserving behavior while restoring
+remote compatibility.
+
+Files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_observable_interaction_descriptor_separability.py
+camp_core/tests/test_diffusion_planner_observable_interaction_descriptor_separability.py
+scripts/integrations/analyze_diffusion_planner_matched_observable_descriptor_separability.py
+```
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_matched_observable_descriptor_separability.py `
+  scripts\integrations\analyze_diffusion_planner_observable_interaction_descriptor_separability.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_descriptor_separability.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_descriptor_preflight.py `
+  camp_core\tests\test_diffusion_planner_matched_observable_descriptor_separability.py `
+  -q
+
+git diff --check
+```
+
+Result:
+
+```text
+14 passed in 0.45s
+```
+
+AutoDL validation and artifact run:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_descriptor_separability_a3fc213
+mkdir -p "$OUT"
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_matched_observable_descriptor_separability.py \
+  scripts/integrations/analyze_diffusion_planner_observable_interaction_descriptor_separability.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_descriptor_separability.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_descriptor_preflight.py \
+  camp_core/tests/test_diffusion_planner_matched_observable_descriptor_separability.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_observable_interaction_descriptor_separability.py \
+  --root /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/matched_observable_outcomes \
+  --preflight_json /root/autodl-tmp/camp_dp_observable_interaction_descriptor_preflight_b9c4aa2/observable_interaction_descriptor_preflight.json \
+  --matched_contract_json /root/autodl-tmp/camp_dp_matched_observable_outcome_smoke_0d74698/audit/matched_observable_outcome_contract.json \
+  --label autodl_a3fc213_observable_interaction_descriptor_separability \
+  --fail_on_formal_seeds \
+  --output_json "$OUT/observable_interaction_descriptor_separability.json" \
+  --output_md "$OUT/observable_interaction_descriptor_separability.md"
+```
+
+Result:
+
+```text
+14 passed in 0.32s
+status=observable_interaction_descriptor_separability_rejected
+passed=False
+primary_gap=observable_interaction_descriptors_do_not_separate_beneficial_and_harmful_candidates
+authorized_next_work=diagnose_observable_interaction_descriptor_bottleneck_before_new_replay
+promising_screen_count=0
+CAMP_HEAD=a3fc21320da4ecd8616e94cb534f7fd52454a24a
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact hashes:
+
+```text
+observable_interaction_descriptor_separability.json
+514f2e3c1cf6e3eeb2f398f925d727fa9bb5e01babdfd6e48db01e75393a6a32
+
+observable_interaction_descriptor_separability.md
+0e11d916769491aaca06783233159adb9c997f2f40c34ee2f34c3a0a66e29278
+```
+
+Data summary:
+
+```text
+records=48
+candidate_rows=384
+alternative_rows=336
+formal_seed_records=0
+beneficial_alternative=58
+harmful_alternative=178
+neutral_alternative=100
+```
+
+Best rejected screen:
+
+```text
+screen=top1_deviation_without_current_safety_gain_v1:allow_low
+threshold=0.031416666740818736
+harmful_block_rate=0.6348314606741573
+beneficial_retain_rate=0.6551724137931034
+allowed_harmful_rate=0.3869047619047619
+allowed_value_delta_mean=-0.05711098388713507
+allowed_progress_delta_mean_m=0.17449212744910728
+```
+
+Feature coverage:
+
+```text
+red_aligned_stopline_proximity_hinge_v1: finite_rows=336, has_variation=0
+clearance_progress_tradeoff_hinge_v1: finite_rows=336, has_variation=0
+turn_lateral_clearance_context_hinge_v1: finite_rows=336, has_variation=0
+top1_deviation_without_current_safety_gain_v1: finite_rows=336, has_variation=1
+```
+
+Decision:
+
+Reject this interaction descriptor family for selector/certificate promotion.
+The only varying descriptor fails the predeclared screen targets, and the red,
+clearance-progress, and turn-lateral-clearance interaction descriptors are
+constant on the current 48-record matched observable evidence set. This is a
+data/observability bottleneck, not a justification for threshold tuning,
+online selector promotion, Full36/formal seeds, or CAMP retraining.
+
+Next admissible work:
+
+Diagnose the observable interaction descriptor bottleneck before any new replay.
+The diagnosis should explain whether the failure is caused by missing red/turn/
+obstacle variation in the current sample, by interaction formulas that collapse
+to zero under existing payloads, or by true beneficial/harmful overlap. It must
+remain read-only over existing artifacts unless a later gate explicitly
+authorizes broader nonformal logging.
+
+Mathematical boundary:
+
+Observable interaction descriptors are fixed current-tick finite-candidate
+coefficients computed before candidate closed-loop outcomes. Outcome labels
+define only offline beneficial/harmful classes and threshold-screen
+diagnostics. If any descriptor is later atomized, it is a fixed coefficient
+\(a_k\), so CAMP `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2
+robust master remains convex. Products and hinges are feature computations
+over fixed payloads, not a trajectory-space convexity claim. No DP-side
+classical Benders master/subproblem, dual, or cut is constructed.

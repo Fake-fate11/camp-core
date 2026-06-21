@@ -704,7 +704,13 @@ def _screen_metrics(
     for row in rows:
         row_allowed = True
         row_considered = True
-        for feature_name, direction, threshold in zip(feature_names, directions, thresholds, strict=True):
+        if not (len(feature_names) == len(directions) == len(thresholds)):
+            raise ValueError("Screen feature, direction, and threshold lengths differ.")
+        for feature_name, direction, threshold in zip(
+            feature_names,
+            directions,
+            thresholds,
+        ):
             value = row["features"].get(feature_name)
             if value is None or not np.isfinite(float(value)):
                 row_allowed = False
