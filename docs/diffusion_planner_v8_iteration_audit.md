@@ -56406,3 +56406,128 @@ Accept the temporal consistency tiny paired smoke plan. The next self-iteration
 may execute only the generated 3-step nonformal paired smoke and its audits. It
 does not authorize broader replay, formal seeds, CAMP retraining, online
 selector promotion, DP modification, or Full36.
+
+## Temporal Consistency Tiny Paired Smoke Result (`439b835`)
+
+The authorized tiny paired smoke was executed on AutoDL with the temporal
+payload off for the baseline and on for the candidate run. The first attempt to
+run the generated bash script stopped at the `git pull --ff-only origin main`
+sync command because GitHub returned a transient TLS termination error:
+`GnuTLS recv error (-110)`. No replay had started. CAMP had already been
+fast-forwarded to the documented commit through the bundle sync path, so the
+run was retried with a generated no-pull wrapper that removed only the failing
+network pull and retained the head audit, baseline replay, candidate replay,
+selector equivalence, payload audit, and dataset audit commands from the plan.
+
+Execution boundary:
+
+```text
+CAMP HEAD before smoke=439b835947432f4a1df5a44279419c2a102024d8
+CAMP origin/main before smoke=439b835947432f4a1df5a44279419c2a102024d8
+DP HEAD before smoke=7a1d33da277a1992ec474b5383a0c963c72e04e4
+route=sample_map_tl_route_59_to_86
+seed=1
+steps=3
+traffic_lights=off
+advance_mode=perfect
+num_candidates=8
+formal seeds used=0
+```
+
+Execution command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PLAN=$ROOT/temporal_consistency_smoke_plan_509267a/run_temporal_consistency_smoke.sh
+PLAN_NOPULL=$ROOT/temporal_consistency_smoke_plan_509267a/run_temporal_consistency_smoke_no_gitpull.sh
+RUNLOG=$ROOT/temporal_consistency_smoke_plan_509267a/run_temporal_consistency_smoke_no_gitpull.log
+
+/root/autodl-tmp/dp312_venv/bin/python - "$PLAN" "$PLAN_NOPULL" <<'PY'
+from pathlib import Path
+import sys
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+lines = src.read_text(encoding="utf-8").splitlines()
+filtered = [
+    line for line in lines
+    if line.strip() != "git -C /root/autodl-tmp/camp_core pull --ff-only origin main"
+]
+dst.write_text("\n".join(filtered) + "\n", encoding="utf-8")
+PY
+
+bash "$PLAN_NOPULL" > "$RUNLOG" 2>&1
+```
+
+Smoke results:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.records=3
+selector_equivalence.exact_field_mismatches all 0
+selector_equivalence.numeric_field_mismatches all 0
+selector_equivalence.numeric_max_abs_diff all 0.0
+
+payload_audit.status=temporal_consistency_payload_smoke_audit_passed
+payload_audit.passed=True
+payload_audit.errors=[]
+payload_audit.counts.baseline_records=3
+payload_audit.counts.candidate_records=3
+payload_audit.counts.candidate_payload_records=3
+payload_audit.counts.available_payload_records=2
+payload_audit.counts.first_tick_fail_closed_records=1
+payload_latency.count=3
+payload_latency.min_ms=0.02457946538925171
+payload_latency.mean_ms=0.05896358440319697
+payload_latency.max_ms=0.07805973291397095
+
+dataset_audit.passed=True
+candidate_summary.enabled=True
+candidate_summary.records=3
+candidate_summary.available_records=2
+candidate_summary.invalid_records=1
+candidate_summary.first_tick_fail_closed_records=1
+baseline_summary.enabled=False
+baseline_summary.records=0
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_payload_smoke/baseline/camp_selection_log.json` | `cf90f19634f4daa6bc1b34bad9ac1967cd72c56ee394d458a4aee2f5a365051b` |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_payload_smoke/baseline/camp_validation_summary.json` | `842cc7cd4157be3aac1ac5b296d6f91070ed1a541360e38fe474753c01a670cf` |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_payload_smoke/logging_enabled/camp_selection_log.json` | `9f037028e251feee3a6ab6ffb712c021e1560ce60873e8584f61157d5c622beb` |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_payload_smoke/logging_enabled/camp_validation_summary.json` | `2385e03d77cf29a305d3cf291cdb9c51d7a66a35d19c9fafd08c424404fa2d95` |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_payload_smoke/audit/selector_equivalence.json` | `8f1c82fa0d1095eab68d3605aeecd6bdc7e9fa7ffea6b94e3fb8c30557cbc599` |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_payload_smoke/audit/temporal_consistency_payload_smoke.json` | `4a72e5f83b6088ad8585b9a17def7c32e0ed487996cb5f4aa4e7cd57f59280df` |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_payload_smoke/audit/temporal_consistency_payload_smoke.md` | `75ccc21ce9134ec99731876c6390e5750aa21114d0bffad448a7a64eb965f167` |
+| `/root/autodl-tmp/camp_dp_temporal_consistency_payload_smoke/audit/dataset_audit.json` | `38acca2ce183efb4b1baca76a028f3ab0bdb81ba0e4459d84c6d6e5d24628fbf` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_smoke_plan_509267a/run_temporal_consistency_smoke.log` | `b5a5d18a677e3846dff32886f9669c0406fded4da838f8d09d875a37a194ec50` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_smoke_plan_509267a/run_temporal_consistency_smoke_no_gitpull.sh` | `4fd42fa7984676938f7727a937f264299c71a224db2fe79c410e97b29b61c7b9` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/temporal_consistency_smoke_plan_509267a/run_temporal_consistency_smoke_no_gitpull.log` | `b162f169ac73cb35d3668a36f70d21cbef32647b93cde4d2cb33ec699539a8f3` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\temporal_consistency_smoke_result_439b835
+```
+
+Mathematical boundary:
+
+The smoke proves only runtime logging equivalence for this tiny nonformal
+scope. It confirms that enabling the temporal payload did not change selected
+indices, feasibility, atoms, weights, scores, or validation metadata other than
+the default-off payload block. It also confirms the first-tick fail-closed
+behavior and two available finite nonnegative coefficient records. It does not
+show that CAMP is better than DP Top-1, does not justify atom promotion, and
+does not authorize CAMP retraining, online selector promotion, Full36, formal
+seeds, DP modification, or a classical DP-side Benders claim.
+
+Decision:
+
+Accept the tiny paired smoke result as runtime-equivalence evidence for
+temporal consistency payload logging. The next self-iteration may only evaluate
+this smoke result and decide whether to plan a slightly broader nonformal
+coverage smoke or reject the source as insufficiently material. No broader
+replay, atom promotion, or training is authorized yet.
