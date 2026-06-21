@@ -262,10 +262,16 @@ def _candidate_summary(report: dict[str, Any]) -> dict[str, Any]:
         "status": final.get("status"),
         "passed": bool(final.get("passed")),
         "authorized_next_work": final.get("authorized_next_work"),
-        "logs": _get(report, "readiness_summary", "logs") or _get(report, "logs", "total"),
-        "records": _get(report, "readiness_summary", "records")
+        "logs": _get(report, "candidate_readiness_source", "logs")
+        or _get(report, "readiness_summary", "logs")
+        or _get(report, "logs", "total"),
+        "records": _get(report, "candidate_readiness_source", "records")
+        or _get(report, "readiness_summary", "records")
         or _get(report, "records", "total"),
         "missing_example_keys": _string_list(
+            _get(report, "candidate_readiness_source", "missing_example_keys")
+        )
+        or _string_list(
             _get(report, "readiness_summary", "missing_example_keys")
         ),
         "blocked_action_conflicts": _blocked_conflicts(final),
