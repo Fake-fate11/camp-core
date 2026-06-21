@@ -13,6 +13,16 @@ READY_STATUS = "current_tick_tensor_visibility_has_candidate_source"
 REJECT_STATUS = "current_tick_tensor_visibility_no_new_candidate_source"
 SOURCE_BLOCKED_STATUS = "current_tick_tensor_visibility_source_not_ready"
 
+REQUIRED_CLOSED_SCORE_FAMILIES = frozenset(
+    {
+        "non_turn_interaction_family",
+        "observable_interaction_family",
+        "progress_lane_hard_context",
+        "relaxed_strict_atom_family",
+        "revised_context_atom_family",
+    }
+)
+
 BLOCKED_ACTIONS = (
     "new_replay_authorized",
     "closed_loop_smoke_authorized",
@@ -212,11 +222,18 @@ def analyze(
 def _source_gate(report: dict[str, Any]) -> dict[str, Any]:
     decision = report.get("final_decision") or {}
     status = str(decision.get("status") or "")
+    required_closed = set(report.get("required_closed_score_families") or [])
+    missing_closed = set(decision.get("missing_closed_score_families") or [])
+    missing_required = sorted(REQUIRED_CLOSED_SCORE_FAMILIES - required_closed)
+    stale = bool(missing_closed or missing_required)
     return {
         "status": status,
-        "passed": status == SOURCE_REQUIRED_STATUS,
+        "passed": status == SOURCE_REQUIRED_STATUS and not stale,
         "required_status": SOURCE_REQUIRED_STATUS,
         "authorized_next_work": decision.get("authorized_next_work"),
+        "missing_closed_score_families": sorted(missing_closed),
+        "missing_required_closed_score_families": missing_required,
+        "stale": stale,
     }
 
 
@@ -280,9 +297,17 @@ def _decision(
 ) -> dict[str, Any]:
     if not source_gate["passed"]:
         status = SOURCE_BLOCKED_STATUS
-        primary_gap = "post_closure_remainder_source_not_ready"
-        authorized_next_work = "fix_post_closure_remainder_before_tensor_inventory"
-        next_step = "Run this inventory only after the post-closure remainder gate."
+        if source_gate.get("stale"):
+            primary_gap = "post_closure_remainder_missing_current_score_inventory_closure"
+            authorized_next_work = "refresh_post_closure_remainder_before_tensor_inventory"
+            next_step = (
+                "Regenerate the post-closure remainder from the current "
+                "score-family inventory before scanning tensor visibility."
+            )
+        else:
+            primary_gap = "post_closure_remainder_source_not_ready"
+            authorized_next_work = "fix_post_closure_remainder_before_tensor_inventory"
+            next_step = "Run this inventory only after the post-closure remainder gate."
     elif candidate_sources:
         status = READY_STATUS
         primary_gap = "visible_runtime_admissible_candidate_tensor_source_found"

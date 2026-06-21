@@ -14,9 +14,17 @@ from scripts.integrations.analyze_diffusion_planner_current_tick_tensor_visibili
 def _post_closure(status: str = "post_closure_state_remainder_requires_source_visibility_inventory"):
     return {
         "analysis": {"name": "dp_camp_post_closure_state_remainder_v1"},
+        "required_closed_score_families": [
+            "non_turn_interaction_family",
+            "observable_interaction_family",
+            "progress_lane_hard_context",
+            "relaxed_strict_atom_family",
+            "revised_context_atom_family",
+        ],
         "final_decision": {
             "status": status,
             "authorized_next_work": "read_only_current_tick_tensor_visibility_inventory_only",
+            "missing_closed_score_families": [],
             "new_replay_authorized": False,
             "online_selector_authorized": False,
             "formal_seeds_authorized": False,
@@ -90,6 +98,37 @@ def test_tensor_visibility_fails_closed_when_post_closure_source_not_ready(tmp_p
     decision = report["final_decision"]
     assert decision["status"] == "current_tick_tensor_visibility_source_not_ready"
     assert decision["closed_loop_smoke_authorized"] is False
+
+
+def test_tensor_visibility_fails_closed_when_post_closure_is_stale(tmp_path) -> None:
+    source = tmp_path / "wrapper.py"
+    source.write_text("turn_logits = outputs.get('turn_indicator_logit')", encoding="utf-8")
+    stale = _post_closure()
+    stale["required_closed_score_families"] = [
+        family
+        for family in stale["required_closed_score_families"]
+        if family != "non_turn_interaction_family"
+    ]
+
+    report = analyze(
+        post_closure_remainder=stale,
+        source_files=[source],
+        source_roots=[],
+    )
+
+    decision = report["final_decision"]
+    assert decision["status"] == "current_tick_tensor_visibility_source_not_ready"
+    assert decision["primary_gap"] == (
+        "post_closure_remainder_missing_current_score_inventory_closure"
+    )
+    assert decision["authorized_next_work"] == (
+        "refresh_post_closure_remainder_before_tensor_inventory"
+    )
+    assert decision["new_replay_authorized"] is False
+    assert report["source_gate"]["stale"] is True
+    assert report["source_gate"]["missing_required_closed_score_families"] == [
+        "non_turn_interaction_family"
+    ]
 
 
 def test_tensor_visibility_cli_writes_json_and_markdown(
