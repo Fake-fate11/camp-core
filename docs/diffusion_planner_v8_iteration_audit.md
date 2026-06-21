@@ -48635,3 +48635,148 @@ unchanged convex simplex/CVaR/L2 master, bucket-wise Top-1 and oracle-gap gates,
 and a logged-selector nonworse or bounded-regression gate. If the plan cannot
 explain how to reduce collision/near-miss regressions without breaking the
 math boundary, reject the route and keep the current shadow/diagnosis state.
+
+## Offline Convex Objective/Label Sensitivity Plan (`18415f3`)
+
+Purpose:
+
+The previous failure diagnosis authorized only a plan-only gate for the next
+objective/label sensitivity step. This step predeclares a finite offline
+sensitivity dry-run wrapper contract over the existing non-formal manifest and
+the failed selector diagnosis. It does not train, run Diffusion Planner, replay
+closed loop, promote an online selector, or use formal seeds.
+
+Implementation:
+
+```text
+18415f3 Add offline objective label sensitivity plan
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_offline_convex_objective_label_sensitivity.py
+camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+28 passed in 0.61s
+
+git diff --check
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=18415f381a5fb36c62beea1eb636e116fd68b4c4
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_offline_convex_objective_label_sensitivity_plan.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_failure_diagnosis.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_dry_run.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_inputs.py \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+28 passed in 0.54s
+```
+
+Plan command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+DIAG=$ROOT/offline_convex_selector_training_failure_diagnosis_bf57a20/offline_convex_selector_training_failure_diagnosis.json
+OUT=$ROOT/offline_convex_objective_label_sensitivity_plan_18415f3
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_offline_convex_objective_label_sensitivity.py \
+  --diagnosis_json "$DIAG" \
+  --label autodl_18415f3_from_bf57a20_failure_diagnosis \
+  --output_json "$OUT/offline_convex_objective_label_sensitivity_plan.json" \
+  --output_md "$OUT/offline_convex_objective_label_sensitivity_plan.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_objective_label_sensitivity_plan_18415f3/offline_convex_objective_label_sensitivity_plan.json
+sha256=fc2aef849d7fe84f2d28bcd3719c29f35f8e6c51b0735a63d1b8072df4aaf4c3
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_objective_label_sensitivity_plan_18415f3/offline_convex_objective_label_sensitivity_plan.md
+sha256=bd6214f664bb4778634fd080548c6c97b4ea81a7c0eb23347f57f19bfc3840ad
+```
+
+Final decision:
+
+```text
+status=offline_convex_objective_label_sensitivity_plan_ready
+passed=True
+authorized_next_work=implement_objective_label_sensitivity_dry_run_wrapper_only
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Predeclared candidate variants:
+
+```text
+tail_alpha_0p95
+tail_alpha_0p95_l2_1e3
+safety_guard_floor
+balanced_comfort_progress_floor
+```
+
+Explicitly rejected routes:
+
+```text
+rerun_same_hard_guarded_cvar_selector
+overall_mean_only_acceptance
+progress_lane_hard_threshold_tuning_without_new_evidence
+collision_regression_ignored
+```
+
+Decision:
+
+Accept the plan-only gate. The next implementation may add only a wrapper that
+runs the predeclared finite offline sensitivity variants over the existing
+non-formal manifest, then evaluates each variant with the existing selector
+evaluation and proof summary. The plan intentionally does not authorize the
+training execution yet; it authorizes wrapper implementation and tests only.
+
+The wrapper must retain the control variant as a reproduction check for the
+failed `35fedb8` route. Candidate variants may only adjust existing convex
+objective knobs: CVaR alpha, L2 regularization, and simplex lower bounds on
+already-online atoms. No new atom schema, DP modification, formal seed,
+closed-loop replay, or online selector change is allowed in this gate.
+
+Acceptance for any later dry-run result is conjunctive: no formal seeds, DP
+unchanged, all required bucket CAMP-minus-Top1 CI highs negative, oracle-gap
+gate closed or strictly improved without any bucket regression, evaluated-minus-
+logged SafetyCost CI high nonpositive, collision/near-miss/lane/realized-red
+component deltas nonpositive, fallback non-regression, and complete artifact
+SHA recording. Overall mean improvement alone is explicitly insufficient.
+
+Mathematical boundary:
+
+The planned wrapper remains finite-candidate convex CAMP training only.
+Candidate atoms are fixed current-tick constants, `score_k(w)=a_k^T w` remains
+affine, and the simplex/CVaR/L2 master remains convex. Closed-loop outcomes
+remain offline labels/evaluation targets only. This is still not a DP-side
+classical Benders claim.
