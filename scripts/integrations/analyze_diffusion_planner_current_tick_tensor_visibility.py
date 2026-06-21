@@ -252,7 +252,12 @@ def _tensor_source_row(
         token_hits[token] = [
             path for path, text in texts.items() if token in text
         ]
-    visible = all(token_hits[token] for token in spec.required_tokens)
+    cooccurrence_files = [
+        path
+        for path, text in texts.items()
+        if all(token in text for token in spec.required_tokens)
+    ]
+    visible = bool(cooccurrence_files)
     if visible and spec.runtime_admissible and spec.candidate_level:
         visibility_status = "candidate_tensor_source_visible"
     elif visible:
@@ -264,6 +269,7 @@ def _tensor_source_row(
         "visible": visible,
         "visibility_status": visibility_status,
         "token_hits": token_hits,
+        "cooccurrence_files": cooccurrence_files,
     }
 
 
