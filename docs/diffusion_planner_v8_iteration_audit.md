@@ -49796,3 +49796,150 @@ finite-candidate state fields and source hooks. If a logged field later becomes
 a CAMP atom, it must be a fixed coefficient `a_k`, nonnegative or represented
 by nonnegative signed parts, preserving affine `score_k(w)=a_k^T w` and the
 convex simplex/CVaR/L2 master. This is not a classical Benders construction.
+
+## Missing Candidate-State Logging Implementation Unit Gate (`efd9ccd`)
+
+Purpose:
+
+The `681957d` preflight authorized only implementation/unit checks for
+default-off missing candidate-state logging. This step adds a current-chain
+unit/source/order gate that verifies the existing replay script exposes
+default-off observable-state logging, constructs the payload before closed-loop
+outcomes and selection, records metadata and latency fields, and has adjacent
+tests for payload finite-shape/no-leak contracts, coverage rejection of future
+outcome leakage, and paired-smoke baseline equivalence scope. It does not run
+Diffusion Planner replay, train CAMP, promote a selector, authorize Full36,
+touch formal seeds, or modify DP.
+
+Implementation:
+
+```text
+efd9ccd Add missing candidate-state logging implementation gate
+```
+
+Files:
+
+```text
+scripts/integrations/audit_diffusion_planner_missing_candidate_state_logging_implementation.py
+camp_core/tests/test_diffusion_planner_missing_candidate_state_logging_implementation.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_logging_implementation.py \
+  camp_core\tests\test_diffusion_planner_missing_candidate_state_logging_preflight.py \
+  camp_core\tests\test_diffusion_planner_post_inventory_next_design.py \
+  camp_core\tests\test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core\tests\test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_design.py \
+  camp_core\tests\test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_smoke.py \
+  camp_core\tests\test_diffusion_planner_observable_state_logging_coverage_plan.py -q
+40 passed in 1.80s
+
+git diff --check
+```
+
+AutoDL sync and validation:
+
+```text
+CAMP_HEAD=efd9ccd289746c6664fccf937e18e6c4ccaf2936
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_logging_implementation.py \
+  camp_core/tests/test_diffusion_planner_missing_candidate_state_logging_preflight.py \
+  camp_core/tests/test_diffusion_planner_post_inventory_next_design.py \
+  camp_core/tests/test_diffusion_planner_current_tick_no_leak_atom_support_inventory.py \
+  camp_core/tests/test_diffusion_planner_no_leak_atom_or_proof_objective_redesign_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_design.py \
+  camp_core/tests/test_diffusion_planner_observable_state_payload_coverage.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_smoke.py \
+  camp_core/tests/test_diffusion_planner_observable_state_logging_coverage_plan.py -q
+40 passed in 0.65s
+```
+
+Gate command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+PREF=$ROOT/missing_candidate_state_logging_preflight_681957d/missing_candidate_state_logging_preflight.json
+OUT=$ROOT/missing_candidate_state_logging_implementation_efd9ccd
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/audit_diffusion_planner_missing_candidate_state_logging_implementation.py \
+  --preflight_json "$PREF" \
+  --label autodl_efd9ccd_missing_candidate_state_logging_implementation \
+  --output_json "$OUT/missing_candidate_state_logging_implementation.json" \
+  --output_md "$OUT/missing_candidate_state_logging_implementation.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_implementation_efd9ccd/missing_candidate_state_logging_implementation.json
+sha256=f75f9e445cb0fce68a48902418473e21c343d0c1dc0dae8510683501fff19267
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/missing_candidate_state_logging_implementation_efd9ccd/missing_candidate_state_logging_implementation.md
+sha256=a56527140201d9ea4726e1370a5c521082c7d5f6ae136708c09338148d250628
+```
+
+Final decision:
+
+```text
+status=missing_candidate_state_logging_implementation_unit_tested
+passed=True
+authorized_next_work=predeclare_default_off_missing_candidate_state_tiny_smoke_plan_only
+recommended_first_action=predeclare_default_off_missing_candidate_state_tiny_smoke_plan
+runtime_failed=[]
+test_failed=[]
+math_failed=[]
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+tiny_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Accepted route:
+
+```text
+current_chain_default_off_missing_candidate_state_logging_unit_source_gate
+```
+
+Rejected routes:
+
+```text
+direct_replay_without_tiny_smoke_plan
+Full36_or_formal_seed_escalation
+online_selector_promotion
+CAMP_retraining
+DP_modification_or_retraining
+classical_Benders_claim_for_DP_side_finite_selector
+```
+
+Next gate:
+
+Write a separate plan-only gate for the default-off missing candidate-state
+tiny paired nonformal smoke. The plan must specify baseline/candidate commands,
+selector-log equivalence, payload validation, finite-candidate dataset audit,
+no formal seeds, exact scope, accept/reject criteria, and artifact locations.
+Only after that plan passes may the tiny smoke itself be run.
+
+Mathematical boundary:
+
+This gate verifies implementation and test contracts for default-off logging of
+current-tick fixed finite-candidate descriptors. If a logged descriptor is later
+atomized, it must be a fixed coefficient `a_k`, nonnegative or represented by
+nonnegative signed parts, preserving `score_k(w)=a_k^T w` and the convex
+simplex/CVaR/L2 master. No DP-side classical Benders decomposition, dual, or
+valid cut is claimed.
