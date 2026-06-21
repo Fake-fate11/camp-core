@@ -55305,3 +55305,128 @@ feature must still be a current-tick finite-candidate coefficient `a_k` that is
 nonnegative, hinged, or signed-split, so `score_k(w)=a_k^T w` remains affine and
 the simplex/CVaR/L2 master remains convex. No DP-side classical Benders
 master/subproblem, dual, or cut is claimed.
+
+## Post-Pause Deployability-First Proof Objective (`786bcad`)
+
+This design-only gate follows the post external-context pause gate. It consumes
+the pause artifact, the existing proof-to-deployable gap summary, the targeted
+failure-attribution artifact, and the post external-context source closure. It
+does not run DP, replay closed loop, train CAMP, create atoms, change the online
+selector, use formal seeds, or modify DP.
+
+Implementation:
+
+```text
+786bcadbf8bdf5bea44e9b4c23c3922957b51dbb Add post pause deployability proof objective gate
+
+scripts/integrations/plan_diffusion_planner_post_pause_deployability_proof_objective.py
+camp_core/tests/test_diffusion_planner_post_pause_deployability_proof_objective.py
+```
+
+Local verification:
+
+```text
+C:\Users\lenovo\anaconda3\python.exe -m py_compile \
+  scripts\integrations\plan_diffusion_planner_post_pause_deployability_proof_objective.py \
+  camp_core\tests\test_diffusion_planner_post_pause_deployability_proof_objective.py
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_post_pause_deployability_proof_objective.py -q
+result=7 passed
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest \
+  camp_core\tests\test_diffusion_planner_post_pause_deployability_proof_objective.py \
+  camp_core\tests\test_diffusion_planner_post_external_context_pause_gate.py \
+  camp_core\tests\test_diffusion_planner_proof_to_deployable_gap.py \
+  camp_core\tests\test_diffusion_planner_targeted_failure_attribution.py -q
+result=18 passed
+```
+
+AutoDL synchronization and verification:
+
+```text
+autodl_camp_head=786bcadbf8bdf5bea44e9b4c23c3922957b51dbb
+autodl_camp_origin=786bcadbf8bdf5bea44e9b4c23c3922957b51dbb
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_py_compile=passed
+autodl_objective_gate_tests=7 passed
+autodl_related_tests=18 passed
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$DEV/post_pause_deployability_proof_objective_786bcad
+
+$PY scripts/integrations/plan_diffusion_planner_post_pause_deployability_proof_objective.py \
+  --pause_gate_json "$DEV/post_external_context_pause_gate_1f9677c/post_external_context_pause_gate.json" \
+  --proof_to_deployable_gap_json "$DEV/proof_to_deployable_gap_b8f8f29/proof_to_deployable_gap.json" \
+  --targeted_failure_attribution_json "$DEV/targeted_failure_attribution_980973c/targeted_failure_attribution.json" \
+  --post_external_context_closure_json "$DEV/post_external_context_source_closure_588fe6f/post_external_context_source_closure.json" \
+  --label autodl_786bcad_post_pause_deployability_proof_objective \
+  --output_json "$OUT/post_pause_deployability_proof_objective.json" \
+  --output_md "$OUT/post_pause_deployability_proof_objective.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_pause_deployability_proof_objective_786bcad/post_pause_deployability_proof_objective.json` | `0e19d099ad05ecdb9dee6dfb00bfc3ab1f1ec4719a4af33a1d9deb68f4549f33` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/post_pause_deployability_proof_objective_786bcad/post_pause_deployability_proof_objective.md` | `3fc23d230731084c5a480a4b32baa60dab07353526714519442249a2fa7f1b04` |
+
+Local artifact copy:
+
+```text
+F:\camp_core-main\analysis_bundles\post_pause_deployability_proof_objective_786bcad
+```
+
+Final decision:
+
+```text
+status=post_pause_deployability_proof_objective_predeclared
+passed=True
+deployability_first_objective_ready=True
+objective_only_reopening_allowed=False
+authorized_next_work=new_current_tick_source_family_proposal_only
+failed_checks=[]
+new_replay_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept this predeclaration as the next proof boundary. The previous evidence
+already showed a candidate-pool opportunity and a candidate-branch proof gap, but
+the deployable closed-loop path still failed and the current artifacts contain no
+unclosed no-leak current-tick support source. Therefore, a new proof objective
+must be source-first: objective-only redesign is not sufficient to reopen the
+selector route.
+
+Next admissible work:
+
+Predeclare a genuinely new current-tick source family proposal. The proposal
+must prove current-tick visibility before selection, candidate-level or
+deterministically joinable shape, non-equivalence to closed families, no future
+outcome/SafetyCost leakage, atomization as nonnegative/hinged/signed-split
+coefficients, default-off latency accounting, and existing-log
+materiality/noninferiority before replay or training.
+
+Mathematical boundary:
+
+This gate defines proof obligations only. It creates no atom, does not run a
+selector, and does not train CAMP. Runtime CAMP inputs, if later authorized, must
+be current-tick fixed finite-candidate coefficients `a_k`, nonnegative, hinged,
+or signed-split, preserving `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2
+master. Offline outcomes and SafetyCost are labels for proof gates only. No
+DP-side classical Benders master/subproblem, dual, or valid cut is constructed.
