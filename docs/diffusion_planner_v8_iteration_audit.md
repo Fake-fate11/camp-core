@@ -57603,3 +57603,97 @@ simplex/CVaR/L2 master remains convex. This still does not authorize DP
 modification, new replay execution, online selector promotion, CAMP retraining,
 Full36, formal seeds, or a classical Benders claim. The next admissible gate is
 `targeted_safety_support_tiny_runbook_preflight_only`.
+
+## Targeted Safety Support Tiny Runbook Preflight (`8fa05e0`)
+
+This preflight consumes the targeted safety support design and serializes the
+exact five-run nonformal support-discovery runbook. It checks the source gate,
+formal-seed exclusion, route/map/model assets, and fixed DP commit, but it does
+not execute replay. The runbook is scoped to default-off support discovery and
+post-run dataset/materiality audits.
+
+Implementation:
+
+```text
+8fa05e00fe135ae8e2bed16c6789d4d08f7c6601
+scripts/integrations/plan_diffusion_planner_targeted_safety_support_tiny_runbook.py
+camp_core/tests/test_diffusion_planner_targeted_safety_support_tiny_runbook.py
+```
+
+Verification:
+
+```text
+Local:
+  py_compile passed
+  pytest camp_core\tests\test_diffusion_planner_targeted_safety_support_tiny_runbook.py \
+         camp_core\tests\test_diffusion_planner_targeted_safety_support_design.py -q
+  result=9 passed
+
+AutoDL:
+  CAMP HEAD=8fa05e00fe135ae8e2bed16c6789d4d08f7c6601
+  DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+  py_compile passed
+  pytest result=9 passed
+  asset_paths_exist=True
+```
+
+AutoDL artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+SRC=$DEV/targeted_safety_support_design_8d3b2d8/targeted_safety_support_design.json
+OUT=$DEV/targeted_safety_support_tiny_runbook_8fa05e0
+
+$PY scripts/integrations/plan_diffusion_planner_targeted_safety_support_tiny_runbook.py \
+  --design_json "$SRC" \
+  --label autodl_8fa05e0_targeted_safety_support_tiny_runbook \
+  --output_root /root/autodl-tmp/camp_dp_targeted_safety_support_tiny_8fa05e0 \
+  --check_assets \
+  --output_json "$OUT/targeted_safety_support_tiny_runbook.json" \
+  --output_md "$OUT/targeted_safety_support_tiny_runbook.md" \
+  --output_bash "$OUT/targeted_safety_support_tiny_runbook.sh" \
+  --require_pass
+```
+
+Runbook preflight result:
+
+```text
+status=targeted_safety_support_tiny_runbook_preflight_ready
+passed=True
+run_count=5
+expected_records=50
+expected_available_records=45
+new_replay_authorized=True
+closed_loop_replay_authorized=False
+authorized_next_work=targeted_safety_support_tiny_nonformal_execution_only
+```
+
+Rows:
+
+| Run | Route | Seed | NPCs | TL | Buckets |
+| --- | --- | ---: | ---: | --- | --- |
+| `sample_tl_turn_seed1_npc4_tlon` | `sample_map_tl_route_59_to_86` | `1` | `4` | `on` | `traffic_light, red_light_turn, sharp_turn, npc_interaction` |
+| `sample_tl_turn_seed1_npc4_tloff` | `sample_map_tl_route_59_to_86` | `1` | `4` | `off` | `sharp_turn, npc_interaction` |
+| `nishi_lanechange_seed3_npc8_tloff` | `nishishinjuku_lane_change` | `3` | `8` | `off` | `lane_change_or_merge, npc_interaction, dense_scene` |
+| `nishi_lanechange_seed3_npc8_tlon` | `nishishinjuku_lane_change` | `3` | `8` | `on` | `traffic_light, lane_change_or_merge, npc_interaction, dense_scene` |
+| `sample_normal_seed1_npc0_tloff` | `sample_map_route_2_to_104` | `1` | `0` | `off` | `normal` |
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_support_tiny_runbook_8fa05e0/targeted_safety_support_tiny_runbook.json` | `aec51355ebc5572bf8d9babcc3b95318742601746962b8718a5b7d08eeca2281` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_support_tiny_runbook_8fa05e0/targeted_safety_support_tiny_runbook.md` | `efee989828a98e2153b4278add730243458d33aedae51e75a8c481e0f4137452` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_support_tiny_runbook_8fa05e0/targeted_safety_support_tiny_runbook.sh` | `f4734351dddd6240da3b8d2dbc30e4465b92461edd06f2c8592ec2f94f9a37be` |
+
+Decision:
+
+Accept the runbook preflight. The next admissible gate is exact execution of
+this five-run nonformal default-off runbook, followed by the predeclared dataset
+and safety-source materiality audits. The execution authorization is narrow:
+`new_replay_authorized=True` only for this runbook. Closed-loop replay, online
+selector promotion, CAMP retraining, Full36, formal seeds, DP modification, and
+classical Benders claims remain unauthorized.
