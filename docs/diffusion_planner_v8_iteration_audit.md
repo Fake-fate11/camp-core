@@ -59377,3 +59377,161 @@ Design a default-off tiny nonformal smoke plan for logging this payload, still
 without enabling selector effects or training. The smoke plan must be paired,
 tiny, nonformal, avoid formal seeds, record latency and fallback behavior, and
 state explicit accept/reject thresholds before any replay is executed.
+
+### 2026-06-22 - Candidate-Set Consensus Payload Tiny Smoke Plan Gate
+
+Objective:
+
+Turn the accepted default-off candidate-set consensus payload implementation
+into a predeclared tiny paired nonformal smoke plan. This gate does not execute
+Diffusion Planner replay; it only verifies the analyzer, runbook, source hooks,
+scope, and mathematical boundary before any closed-loop smoke.
+
+Local status audit:
+
+```text
+CAMP local HEAD before commit=e18f06d2f4d2d4c021b37da4ce7d72140ea7f257
+CAMP origin/main before commit=e18f06d2f4d2d4c021b37da4ce7d72140ea7f257
+new code commit=35ea5f83332fb233ccd05e786028fdf54b7bad7f
+branch=main
+unrelated local untracked files remain untouched
+```
+
+AutoDL sync and fixed DP audit:
+
+```text
+CAMP AutoDL HEAD after bundle sync=35ea5f83332fb233ccd05e786028fdf54b7bad7f
+CAMP AutoDL origin/main after bundle sync=35ea5f83332fb233ccd05e786028fdf54b7bad7f
+DP AutoDL HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+AutoDL CAMP status still has only pre-existing untracked files:
+  diffusion_planner_integration.md
+  dp_camp_device_handoff.md
+  test_diffusion_planner_benchmark_matrix.py
+```
+
+Implemented files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_payload_smoke.py
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_payload_smoke.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_smoke.py
+```
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+C:\Users\lenovo\anaconda3\python.exe -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_candidate_set_consensus_payload_smoke.py `
+  scripts\integrations\plan_diffusion_planner_candidate_set_consensus_payload_smoke.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload_smoke.py
+
+C:\Users\lenovo\anaconda3\python.exe -m pytest `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload_smoke.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload_logging_preflight.py `
+  -q
+```
+
+Result:
+
+```text
+py_compile passed
+21 passed in 0.51s
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_payload_smoke.py \
+  scripts/integrations/plan_diffusion_planner_candidate_set_consensus_payload_smoke.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_smoke.py
+
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_smoke.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_payload_logging_preflight.py \
+  -q
+```
+
+Result:
+
+```text
+py_compile passed
+21 passed in 0.48s
+```
+
+AutoDL plan artifact command:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+DEV=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+IMPL=$DEV/candidate_set_consensus_payload_implementation_5337098/candidate_set_consensus_payload_implementation.json
+OUT=$DEV/candidate_set_consensus_payload_smoke_plan_35ea5f8
+mkdir -p "$OUT"
+
+$PY scripts/integrations/plan_diffusion_planner_candidate_set_consensus_payload_smoke.py \
+  --implementation_json "$IMPL" \
+  --label autodl_35ea5f8_candidate_set_consensus_payload_smoke_plan \
+  --output_json "$OUT/candidate_set_consensus_payload_smoke_plan.json" \
+  --output_md "$OUT/candidate_set_consensus_payload_smoke_plan.md" \
+  --output_bash "$OUT/run_candidate_set_consensus_payload_smoke.sh"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_smoke_plan_35ea5f8/candidate_set_consensus_payload_smoke_plan.json` | `4675e8346c07a2d0583dc186cf387236f4f1c43ea284bc61ef8908057394cd44` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_smoke_plan_35ea5f8/candidate_set_consensus_payload_smoke_plan.md` | `4da8443ca3a2d31c14f9f25538d5a8b7ee94730b975e6f154d2e181fa5193c96` |
+| `/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_smoke_plan_35ea5f8/run_candidate_set_consensus_payload_smoke.sh` | `fe3af40c9ed7a2a7cabf51e02f3bf6b88fdaf63dd4330e959c3ffe28812ae198` |
+
+Plan result:
+
+```text
+status=candidate_set_consensus_payload_nonformal_smoke_plan_ready
+passed=True
+authorized_next_work=candidate_set_consensus_payload_paired_three_step_smoke_only
+closed_loop_replay_authorized=True
+closed_loop_replay_scope=paired nonformal sample_map_tl_route_59_to_86 seed1 npc4 traffic_lights_off static, 3 steps only
+new_replay_authorized=True
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Mathematical boundary:
+
+The plan only enables default-off logging of current-tick candidate-set
+consensus descriptors computed from the fixed DP candidate tensor before
+selection. The coefficient remains a finite nonnegative per-candidate diagnostic
+when available and fails closed otherwise. It does not change CAMP scores,
+feasibility, selected indices, DP candidates, PerfectTracker execution, or
+closed-loop outcomes. If later atomized after separate evidence gates,
+`candidate_set_consensus_center_rms_cost_v1` can enter CAMP as a fixed
+coefficient and preserve `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2
+master in `w`. This is still not a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept the tiny smoke plan gate. The only newly authorized action is running the
+generated paired 3-step nonformal default-off smoke. This does not authorize
+Full36, formal seeds, CAMP retraining, DP modification, online selector
+promotion, or any claim that CAMP is better than DP Top-1.
+
+Next admissible work:
+
+Run the generated AutoDL runbook
+`/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_payload_smoke_plan_35ea5f8/run_candidate_set_consensus_payload_smoke.sh`.
+After it finishes, summarize selector equivalence, payload availability,
+latency, dataset audit, and fail-closed/no-leak metadata with a separate smoke
+result gate before any broader replay, atom promotion, or retraining discussion.
