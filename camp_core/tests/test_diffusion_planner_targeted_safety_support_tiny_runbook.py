@@ -60,7 +60,7 @@ def test_targeted_safety_support_tiny_runbook_accepts_design() -> None:
     assert decision["authorized_next_work"] == AUTHORIZED_NEXT_WORK
     assert decision["run_count"] == 5
     assert decision["expected_records"] == 50
-    assert decision["expected_available_records"] == 45
+    assert decision["expected_available_records"] == 50
     assert decision["new_replay_authorized"] is True
     assert decision["closed_loop_replay_authorized"] is False
     assert report["analysis"]["label"] == "unit"

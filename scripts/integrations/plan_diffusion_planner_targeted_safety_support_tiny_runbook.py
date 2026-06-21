@@ -515,7 +515,7 @@ def _final_decision(
         ),
         "run_count": len(manifest["rows"]),
         "expected_records": len(manifest["rows"]) * int(manifest["steps"]),
-        "expected_available_records": len(manifest["rows"]) * (int(manifest["steps"]) - 1),
+        "expected_available_records": len(manifest["rows"]) * int(manifest["steps"]),
         "new_replay_authorized": passed,
         "closed_loop_replay_authorized": False,
         "training_execution_authorized": False,
