@@ -3,8 +3,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_ROOT = ROOT / "camp_core"
+for path in (ROOT, PACKAGE_ROOT):
+    path_str = str(path)
+    if path_str not in sys.path:
+        sys.path.insert(0, path_str)
 
 from scripts.integrations.analyze_diffusion_planner_affine_allowed_harmful_residual import (
     READY_STATUS as AFFINE_RESIDUAL_READY_STATUS,

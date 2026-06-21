@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from scripts.integrations.plan_diffusion_planner_current_observable_separability_bridge import (
@@ -261,3 +263,56 @@ def test_current_observable_bridge_cli_writes_outputs(
     assert "Current Observable Separability Bridge" in output_md.read_text(
         encoding="utf-8"
     )
+
+
+def test_current_observable_bridge_direct_script_execution_sets_import_path(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    script = (
+        repo_root
+        / "scripts"
+        / "integrations"
+        / "plan_diffusion_planner_current_observable_separability_bridge.py"
+    )
+    coverage_path = tmp_path / "coverage.json"
+    contract_path = tmp_path / "contract.json"
+    separability_path = tmp_path / "separability.json"
+    affine_path = tmp_path / "affine.json"
+    output_json = tmp_path / "bridge.json"
+    output_md = tmp_path / "bridge.md"
+    coverage_path.write_text(json.dumps(_coverage()), encoding="utf-8")
+    contract_path.write_text(json.dumps(_contract()), encoding="utf-8")
+    separability_path.write_text(
+        json.dumps(_observable_separability()),
+        encoding="utf-8",
+    )
+    affine_path.write_text(json.dumps(_constrained_affine()), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--current_payload_coverage_json",
+            str(coverage_path),
+            "--matched_contract_json",
+            str(contract_path),
+            "--observable_separability_json",
+            str(separability_path),
+            "--constrained_affine_json",
+            str(affine_path),
+            "--output_json",
+            str(output_json),
+            "--output_md",
+            str(output_md),
+        ],
+        cwd=tmp_path,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+    assert DUPLICATE_REJECT_STATUS in result.stdout
+    assert json.loads(output_json.read_text(encoding="utf-8"))["final_decision"][
+        "status"
+    ] == DUPLICATE_REJECT_STATUS
