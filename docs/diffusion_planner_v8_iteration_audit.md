@@ -51957,3 +51957,135 @@ must remain affine `score_k(w)=a_k^T w`, preserving the simplex/CVaR/L2 convex
 master. Closed-loop outcomes and SafetyCost labels remain offline evaluation
 labels only. No DP-side classical Benders master/subproblem, dual, or cut is
 constructed.
+
+## Scenario/Objective Boundary And External Source Contract (`851cf18` artifacts)
+
+Purpose:
+
+The current development gate state authorized only scenario/objective redesign
+or external source discovery. This step separates those two ideas: objective
+redesign can make proof claims stricter, but cannot create a deployable no-leak
+runtime selector by itself. Therefore, the only next actionable route is a
+read-only external source visibility inventory, or keeping the current CAMP-DP
+selector route paused. This step does not run DP, collect labels, train CAMP,
+replay closed loop, promote an online selector, use formal seeds, modify DP, or
+make a classical Benders claim.
+
+Implementation:
+
+```text
+851cf18 Add scenario objective and external source contract gate
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py
+camp_core/tests/test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  camp_core\tests\test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py
+
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  camp_core\tests\test_diffusion_planner_current_development_gate_state.py \
+  camp_core\tests\test_diffusion_planner_proof_protocol_v2.py \
+  camp_core\tests\test_diffusion_planner_scenario_evidence_matrix_gate.py \
+  -q
+
+20 passed
+git diff --check passed
+```
+
+AutoDL sync and verification:
+
+```text
+CAMP_HEAD=851cf18ee4e478ff3aff5e791ea587c62d5ce83c
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  camp_core/tests/test_diffusion_planner_current_development_gate_state.py \
+  camp_core/tests/test_diffusion_planner_proof_protocol_v2.py \
+  camp_core/tests/test_diffusion_planner_scenario_evidence_matrix_gate.py \
+  -q
+
+20 passed
+```
+
+Artifact command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/scenario_objective_external_source_contract_851cf18
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_scenario_objective_redesign_or_external_source_contract.py \
+  --development_gate_state_json "$ROOT/current_development_gate_state_7e6e2de/current_development_gate_state.json" \
+  --label autodl_851cf18_scenario_objective_external_source_contract \
+  --output_json "$OUT/scenario_objective_external_source_contract.json" \
+  --output_md "$OUT/scenario_objective_external_source_contract.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_objective_external_source_contract_851cf18/scenario_objective_external_source_contract.json
+sha256=43ee041211c6b56a030bffdd1c876ff7dfdefa5ef8113f38fc0459e3bb5e1540
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/scenario_objective_external_source_contract_851cf18/scenario_objective_external_source_contract.md
+sha256=459a03f03ab0364b550647965c1b2d1cf36e64a5a84bbcab6f294ce9b3fc2d8a
+```
+
+Final decision:
+
+```text
+status=scenario_objective_redesign_boundary_and_external_source_contract_ready
+passed=True
+scenario_objective_redesign_only_sufficient=False
+external_source_contract_ready=True
+authorized_next_work=external_source_visibility_inventory_or_pause_only
+primary_score=SafetyCost_v1
+training_execution_authorized=False
+closed_loop_replay_authorized=False
+closed_loop_smoke_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept this as the current design boundary. Objective/scenario redesign alone
+cannot prove deployable CAMP because the current bottleneck is missing no-leak
+runtime support, not absence of a proof score. Objective work may only tighten
+or document proof metadata: it must preserve DP Top-1 and current CAMP
+comparators, keep normal/overall non-degradation guards, avoid outcome-derived
+runtime features, and not weaken hard-safety components to pass existing
+results.
+
+The next admissible work is a read-only external source visibility inventory,
+or pausing this route. Hypothesis families may include traffic-signal
+phase/right-of-way timing, DP-native candidate prior or uncertainty, and
+candidate-level map/control context, but only as hypotheses. None may be used
+as an atom until a source gate proves current-tick availability, no leakage,
+non-equivalence to closed families, atomizability as nonnegative or signed-split
+coefficients, and latency feasibility.
+
+Mathematical boundary:
+
+This gate reads only the current development ledger. It creates no atom and
+does not train or replay. Any future runtime feature must be a fixed
+current-tick finite-candidate coefficient `a_k`, nonnegative or signed-split,
+so `score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
+remains convex. No DP-side classical Benders master/subproblem, dual, or cut is
+constructed.
