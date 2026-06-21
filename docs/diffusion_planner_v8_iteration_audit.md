@@ -53531,3 +53531,158 @@ different non-formal route/map context likely to expose speed-limit materiality,
 or design signal-context runtime visibility before any traffic-signal atom
 materiality smoke. Neither path authorizes training, online selection, Full36,
 formal seeds, or DP modification.
+
+## External Context Next Materiality Gate (`0b1b4f1` artifacts)
+
+Purpose:
+
+This step resolves the branch left by the targeted route-speed materiality
+probe. It does not run DP, replay closed loop, train CAMP, promote online
+selection, use formal seeds, modify DP, or create atoms. It reads the existing
+targeted materiality-gap artifact, scans the CAMP replay source for the current
+payload call, scans the fixed DP source for traffic-light runtime state, and
+records whether the next smaller gate should be signal-context wiring preflight
+or route-asset materiality screening.
+
+Status audit:
+
+```text
+local_head_before=bf530cf6db38ea5402a389f2ef4ac9a6ec376c14
+implementation_commit=0b1b4f11f14442597cea23ee13c1b4d44d6eaf0b
+github_origin_main=0b1b4f11f14442597cea23ee13c1b4d44d6eaf0b
+autodl_camp_head=0b1b4f11f14442597cea23ee13c1b4d44d6eaf0b
+autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_external_context_next_materiality_gate.py
+camp_core/tests/test_diffusion_planner_external_context_next_materiality_gate.py
+```
+
+Local verification:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_external_context_next_materiality_gate.py \
+  camp_core\tests\test_diffusion_planner_external_context_next_materiality_gate.py
+
+$env:PYTHONPATH='F:\camp_core-main\camp_core'; py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_external_context_next_materiality_gate.py \
+  camp_core\tests\test_diffusion_planner_external_context_targeted_materiality_smoke_plan.py \
+  camp_core\tests\test_diffusion_planner_external_context_materiality_gap.py \
+  -q
+
+11 passed
+git diff --check passed
+```
+
+AutoDL verification and artifact command:
+
+```text
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_external_context_next_materiality_gate.py \
+  camp_core/tests/test_diffusion_planner_external_context_targeted_materiality_smoke_plan.py \
+  camp_core/tests/test_diffusion_planner_external_context_materiality_gap.py \
+  -q
+
+ROOT=/root/autodl-tmp/camp_dp_external_context_next_materiality_gate_0b1b4f1
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+$PY scripts/integrations/plan_diffusion_planner_external_context_next_materiality_gate.py \
+  --gap_json /root/autodl-tmp/camp_dp_external_context_route_speed_materiality_probe/audit/external_context_materiality_gap.json \
+  --camp_replay_source /root/autodl-tmp/camp_core/scripts/integrations/run_diffusion_planner_camp_replay.py \
+  --dp_source_root /root/autodl-tmp/Diffusion-Planner \
+  --route_asset /root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl \
+  --route_asset /root/autodl-tmp/camp_dp_assets/sample_map_smoke_route.pkl \
+  --route_asset /root/autodl-tmp/camp_dp_assets/sample_map_tl_route_58_to_55.pkl \
+  --route_asset /root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl \
+  --route_asset /root/autodl-tmp/camp_dp_assets/nishishinjuku_auto_route.pkl \
+  --route_asset /root/autodl-tmp/camp_dp_assets/nishishinjuku_release_auto_route.pkl \
+  --route_asset /root/autodl-tmp/camp_dp_assets/nishishinjuku_lane_change_route_7_via_8_to_1.pkl \
+  --targeted_route_speed_probe_executed \
+  --label autodl_0b1b4f1_external_context_next_materiality_gate \
+  --output_json "$ROOT/external_context_next_materiality_gate.json" \
+  --output_md "$ROOT/external_context_next_materiality_gate.md"
+```
+
+Artifacts:
+
+```text
+remote=/root/autodl-tmp/camp_dp_external_context_next_materiality_gate_0b1b4f1
+local_copy=F:\camp_core-main\analysis_bundles\external_context_next_materiality_gate_0b1b4f1
+
+external_context_next_materiality_gate.json
+sha256=4481E519100BCF7E192DEF24BBE30A386E6F3A664DEE292B026C42C2B92C39C9
+
+external_context_next_materiality_gate.md
+sha256=462DD0696E584A5CE8C298AF37AF7D6428BBE42338AEE2E1D0920191EB55869B
+```
+
+Gate result:
+
+```text
+status=external_context_next_materiality_gate_ready
+passed=True
+primary_gap=traffic_signal_source_visible_but_signal_context_not_wired
+authorized_next_work=external_context_signal_context_wiring_preflight_design_only
+route_speed_path_closed_for_current_route=True
+signal_context_missing=True
+signal_wiring_candidate=True
+route_asset_candidate=True
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+CAMP_retraining_authorized=False
+online_selector_promotion_authorized=False
+formal_seeds_authorized=False
+DP_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Source evidence:
+
+```text
+CAMP signal wiring status=signal_context_explicitly_absent
+CAMP replay source=/root/autodl-tmp/camp_core/scripts/integrations/run_diffusion_planner_camp_replay.py
+DP traffic_signal_source_visible=True
+DP matched files=[
+  /root/autodl-tmp/Diffusion-Planner/scenario_generation/replay.py,
+  /root/autodl-tmp/Diffusion-Planner/scenario_generation/traffic_light.py
+]
+route_asset_screen_candidate_count=5
+screen_candidate_names=[
+  sample_map_tl_route_58_to_55.pkl,
+  sample_map_tl_route_59_to_86.pkl,
+  nishishinjuku_auto_route.pkl,
+  nishishinjuku_release_auto_route.pkl,
+  nishishinjuku_lane_change_route_7_via_8_to_1.pkl
+]
+```
+
+Decision:
+
+Accept this as the next-materiality gate and reject further noise tuning on
+`sample_map_tl_route_59_to_86` as the next step. The bounded route-speed probe
+already closed the current-route route-speed path for now, while the fixed DP
+simulator exposes traffic-light runtime state and the CAMP replay still passes
+`signal_context=None` into the default-off payload. Therefore the next
+admissible work is design-only signal-context wiring preflight. It must specify
+the exact current-tick fields, null/fail-closed behavior, latency accounting,
+and no-leak argument before any new replay or traffic-signal atom materiality
+smoke.
+
+Mathematical boundary:
+
+This gate reads existing gap artifacts and source text only. It creates no
+atom, runs no replay, trains no CAMP weights, and changes no selector. Future
+signal or route-speed atoms must be fixed current-tick finite-candidate
+coefficients, nonnegative or signed-split before scoring, so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 master remains
+convex. No DP-side classical Benders master/subproblem, dual, or cut is
+constructed.
