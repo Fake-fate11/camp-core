@@ -48005,3 +48005,117 @@ Write an offline convex selector training plan with fixed inputs, label masks,
 loss, constraints, split policy, robust bucket weighting, artifact schema,
 tests, and accept/reject gates. Do not train CAMP until that plan is reviewed
 by tests and recorded as a separate artifact.
+
+## Offline Convex Selector Training Plan (`3f59dd8`)
+
+Purpose:
+
+The selector label/weight preflight authorized only a design-only training plan.
+This step binds that plan to the existing robust CAMP training implementation
+instead of inventing a new selector.
+
+Implementation:
+
+```text
+3f59dd8 Add DP CAMP offline convex selector training plan
+```
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_offline_convex_selector_training.py
+camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m py_compile \
+  scripts\integrations\plan_diffusion_planner_offline_convex_selector_training.py \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core \
+py -3.12 -m pytest \
+  camp_core\tests\test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core\tests\test_diffusion_planner_selector_label_weight_preflight.py -q
+9 passed in 0.06s
+
+git diff --check
+```
+
+AutoDL sync and validation:
+
+```text
+CAMP_HEAD=3f59dd88ba56a8fbe66fd619cc4a877c1660a313
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python -m pytest \
+  camp_core/tests/test_diffusion_planner_offline_convex_selector_training_plan.py \
+  camp_core/tests/test_diffusion_planner_selector_label_weight_preflight.py \
+  camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+13 passed in 0.11s
+```
+
+Plan command:
+
+```text
+cd /root/autodl-tmp/camp_core
+ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+OUT=$ROOT/offline_convex_selector_training_plan_3f59dd8
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core \
+/root/autodl-tmp/dp312_venv/bin/python \
+  scripts/integrations/plan_diffusion_planner_offline_convex_selector_training.py \
+  --preflight_json "$ROOT/selector_label_weight_preflight_28d64a9/selector_label_weight_preflight.json" \
+  --label autodl_3f59dd8_offline_convex_selector_training_plan \
+  --training_log_root "$ROOT" \
+  --output_training_dir "/root/autodl-tmp/camp_dp_offline_convex_selector_training_3f59dd8" \
+  --output_json "$OUT/offline_convex_selector_training_plan.json" \
+  --output_md "$OUT/offline_convex_selector_training_plan.md"
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_selector_training_plan_3f59dd8/offline_convex_selector_training_plan.json
+sha256=4beb5c66d174958e5f29a320d3d2437e9749d99a43c48d19e2e7d448eddceb42
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/offline_convex_selector_training_plan_3f59dd8/offline_convex_selector_training_plan.md
+sha256=a50c4cde4721bf42df863b9bb674ef90fbc9536a219e6b9031bec347453f557f
+```
+
+Result:
+
+```text
+status=offline_convex_selector_training_plan_ready
+passed=True
+authorized_next_work=offline_convex_selector_training_input_manifest_gate
+training_execution_authorized=False
+camp_retraining_authorized=False
+source_checks_failed=
+plan_checks_failed=
+```
+
+Mathematical decision:
+
+Accept the plan as a design contract only. The planned training route uses the
+existing `train_diffusion_planner_robust_camp.py` entry point with
+`--label_source safety_cost_v1_hard_guarded`, `--mode static`,
+`--training_scope feasible_ranking`, `--objective robust_margin_cvar`,
+`--risk_type cvar`, `--alpha 0.9`, simplex weights, L2 regularization, grouped
+train/validation split, and `--require_atom_schema`.
+
+This keeps candidate atoms fixed and the CAMP score affine in `w`. The robust
+margin cutting-plane master remains a finite-candidate convex CAMP training
+problem. Offline hard-guarded SafetyCost labels may select targets and margins
+inside the training dataset, but they are not online selector inputs. The plan
+does not authorize training execution, replay, online selector promotion,
+Full36, formal seeds, DP modification, or a classical Benders claim.
+
+Next gate:
+
+Build and audit an immutable nonformal training input manifest before any
+training execution. The manifest must discover the exact `camp_selection_log`
+inputs, exclude formal seeds 11/12/13, prove required label and atom fields are
+present, preserve required bucket coverage, and write path counts plus SHA.
