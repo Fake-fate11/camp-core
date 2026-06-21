@@ -47108,3 +47108,147 @@ Decision:
 
 Accept this inventory refresh as the current self-iteration boundary. Continue
 only from the authorized next work above.
+
+## Turn-Logit Closure Added To Self-Iteration Gates (`2a0e803` source)
+
+Purpose:
+
+The prior inventory refresh closed the newly rejected non-turn interaction
+family but did not include the already rejected direct turn-logit atom family.
+That left a self-iteration hole: the refreshed current-tick tensor visibility
+gate could rediscover `turn_indicator_logits` and authorize the same
+turn-logit design path that earlier matched-outcome evidence had already
+rejected. This gate closes that loop.
+
+Implementation:
+
+```text
+360e022 Require current score inventory in post closure gate
+57be1fd Require current post closure for tensor visibility
+2a0e803 Close turn logit route in inventory gates
+```
+
+The final `2a0e803` gate supersedes the intermediate `360e022` and `57be1fd`
+refresh artifacts because it adds `turn_logit_atom_family` to the required
+closed-family set and prevents current-tick tensor visibility from reopening a
+visible tensor source whose score family is already closed.
+
+Files:
+
+```text
+scripts/integrations/plan_diffusion_planner_no_leak_score_family_inventory.py
+scripts/integrations/plan_diffusion_planner_post_closure_state_remainder.py
+scripts/integrations/analyze_diffusion_planner_current_tick_tensor_visibility.py
+camp_core/tests/test_diffusion_planner_no_leak_score_family_inventory.py
+camp_core/tests/test_diffusion_planner_post_closure_state_remainder.py
+camp_core/tests/test_diffusion_planner_current_tick_tensor_visibility.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m py_compile scripts\integrations\plan_diffusion_planner_no_leak_score_family_inventory.py scripts\integrations\plan_diffusion_planner_post_closure_state_remainder.py scripts\integrations\analyze_diffusion_planner_current_tick_tensor_visibility.py
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_no_leak_score_family_inventory.py camp_core\tests\test_diffusion_planner_post_closure_state_remainder.py camp_core\tests\test_diffusion_planner_current_tick_tensor_visibility.py -q
+17 passed in 0.16s
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=2a0e80325be57be25c5310a76b8c118f51b86f59
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+17 passed in 0.13s
+```
+
+Artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_no_leak_score_family_inventory_refresh_2a0e803/no_leak_score_family_inventory.json
+sha256=ee4b9bf7bde2ac2a2658ce96fd4908090a833e256fafaac513b705c6bd14fc2b
+
+/root/autodl-tmp/camp_dp_no_leak_score_family_inventory_refresh_2a0e803/no_leak_score_family_inventory.md
+sha256=7e2e147fd3b07deb90c5744de8c734c6149cafdd5af60ea91b2e58a649e658cc
+
+/root/autodl-tmp/camp_dp_post_closure_state_remainder_refresh_2a0e803/post_closure_state_remainder.json
+sha256=b9e43b756744b1ecdca5e301eb23b3a83a1a71ae8b9ad175cb4b627f12ccd8ae
+
+/root/autodl-tmp/camp_dp_post_closure_state_remainder_refresh_2a0e803/post_closure_state_remainder.md
+sha256=3896c17716c396e3774aa5c5c4b8cb9ae28829e2961e51b4c31f038eeeb91f8e
+
+/root/autodl-tmp/camp_dp_current_tick_tensor_visibility_refresh_2a0e803/current_tick_tensor_visibility.json
+sha256=f569e2ca723010ad8fcbe7b507a747b4f8309858d59c3b4fa4d8af60e74a881a
+
+/root/autodl-tmp/camp_dp_current_tick_tensor_visibility_refresh_2a0e803/current_tick_tensor_visibility.md
+sha256=1f5d163e505257079f95a34e2fc23ef0ef830c62e933e937e945d43dcc68bedf
+```
+
+Final gate results:
+
+```text
+inventory.status=no_leak_score_family_inventory_requires_new_design
+inventory.required=progress_lane_hard_context,revised_context_atom_family,relaxed_strict_atom_family,observable_interaction_family,turn_logit_atom_family,non_turn_interaction_family
+inventory.missing=
+inventory.unclosed=
+
+post.status=post_closure_state_remainder_requires_source_visibility_inventory
+post.primary_gap=all_material_logged_fields_consumed_by_rejected_score_families
+post.required_closed=non_turn_interaction_family,observable_interaction_family,progress_lane_hard_context,relaxed_strict_atom_family,revised_context_atom_family,turn_logit_atom_family
+post.missing_closed=
+
+visibility.status=current_tick_tensor_visibility_no_new_candidate_source
+visibility.primary_gap=visible_candidate_tensor_sources_already_closed
+visibility.authorized_next_work=reject_tensor_visibility_route_or_redefine_scenario_objective
+visibility.candidate_sources=
+visibility.closed_visible=turn_indicator_logits
+visibility.source_gate_stale=False
+```
+
+Tensor visibility interpretation:
+
+```text
+turn_indicator_logits=True/visible_but_score_family_closed/closed=True
+dp_native_log_probability_or_score=False/not_visible/closed=False
+denoising_residual_or_intermediate=False/not_visible/closed=False
+wrapper_sampled_latent_noise=True/visible_but_not_runtime_admissible/closed=False
+neighbor_prediction_tensor=True/visible_but_not_runtime_admissible/closed=True
+guidance_energy_or_scale=True/visible_but_not_runtime_admissible/closed=False
+```
+
+Decision:
+
+Accept the inventory and post-closure refresh, and reject the current tensor
+visibility route as a source of new CAMP atoms. The only visible runtime
+admissible candidate tensor source is `turn_indicator_logits`, but that direct
+turn-logit atom family was already rejected by matched-outcome separability and
+bottleneck evidence. The other visible tensor sources are generator controls or
+already consumed interaction geometry, so they cannot justify a new no-leak
+descriptor family.
+
+Blocked actions:
+
+```text
+new_replay_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+camp_retraining_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Mathematical boundary:
+
+This gate reads only existing artifacts and source text. It does not run DP,
+create atoms, train CAMP, promote a selector, use future outcomes as runtime
+features, or construct a DP-side Benders decomposition. Closing the turn-logit
+route is an empirical separability decision, not a convexity failure: the
+turn-logit atoms would be fixed current-tick coefficients, but they failed the
+offline beneficial/harmful separation gate. CAMP's affine
+`score_k(w)=a_k^T w` and simplex/CVaR/L2 convex master remain unchanged.
+
+Next admissible work:
+
+Reject the current tensor-visibility route and move to a higher-level
+scenario/objective redesign or proof protocol. The next gate should be
+design-only and should not introduce another atom family from any closed route.
+It should define what evidence would prove CAMP useful against DP Top-1 on a
+comprehensive safety score, including diverse red-light, turn, NPC, and normal
+contexts, while preserving no-leak runtime features and the CAMP convex master.
