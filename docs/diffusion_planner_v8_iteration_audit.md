@@ -36848,6 +36848,293 @@ preserving affine `score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master.
 No DP-side classical Benders master/subproblem, dual, or valid cut is
 constructed.
 
+## Latest Status Override (`3a3992e` refresh)
+
+The observable-interaction coverage plan above has now been re-materialized
+from the synchronized `3a3992e` checkout because the earlier AutoDL artifact
+contained stale replay CLI flags. The refreshed artifact is:
+
+```text
+/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_3a3992e_cmdrefresh
+```
+
+Plan hashes:
+
+```text
+observable_interaction_coverage_plan.json
+390c8cdd52e42bc6ee15c6fe34b642416cfb2fcbfbabf1f9b0186d1e5226bd59
+
+observable_interaction_coverage_plan.md
+3d282db49c55487ff591d64edd5cf5ed999fc46b99ef21990eb53771f3e9ae51
+```
+
+The refreshed 4-run x 12-step paired nonformal smoke completed all eight
+baseline/logging replay commands with return code `0`, but the audit rejected
+the route:
+
+```text
+status=observable_interaction_coverage_broader_nonformal_smoke_rejected
+passed=False
+authorized_next_work=reject_observable_interaction_coverage_or_predeclare_smaller_inventory
+offline_separability_authorized=False
+online_selector_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+```
+
+Audit hashes:
+
+```text
+observable_interaction_coverage_smoke.json
+dc160b4af15ded45cca5b9d8e960dcd60267add988b881e58b56425cad3d4cca
+
+observable_interaction_coverage_smoke.md
+0e324da69f08e943c76ecf8d1649d5174f0b231346fc4a61ecf03c5a0c0e20fb
+```
+
+Key evidence:
+
+```text
+records=48
+equivalence_mismatches=0
+baseline_payload_records=0
+candidate_payload_records=48
+records_with_red_risk_nonzero=0
+records_with_red_risk_candidate_variation=0
+records_with_clearance_deficit_nonzero=0
+records_with_clearance_deficit_candidate_variation=0
+records_with_lateral_excess_candidate_variation=4
+red_context=False
+clearance_context=False
+turn_lateral_context=True
+```
+
+Current next admissible work is not separability, retraining, Full36, formal
+seeds, or selector promotion. It is a smaller read-only inventory diagnostic:
+explain why the current route/map/NPC support fails to produce positive
+current-tick red-risk and clearance-deficit materiality, then either reject
+this observable-interaction route or predeclare a narrower no-leak support
+experiment.
+
+## Observable Interaction Coverage Smoke Refresh (`3a3992e` source)
+
+This gate re-audits the current local/GitHub/AutoDL state before continuing
+from the observable-interaction coverage plan. The three CAMP copies were in
+sync at `3a3992ece240c03bbbcce318e96226ac63a23ada`, and AutoDL Diffusion
+Planner remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The previously materialized AutoDL plan artifact under
+`/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_43a128e`
+contained stale replay flags (`--camp_enable`, `--camp_shadow_only`, and
+`--camp_emit_selection_log`) that the current replay runner no longer accepts.
+The tracked plan script and unit test already require those flags to be absent,
+so the plan was regenerated on AutoDL from the current synchronized checkout
+before running replay.
+
+Local validation:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m py_compile `
+  scripts\integrations\plan_diffusion_planner_observable_interaction_coverage.py `
+  scripts\integrations\analyze_diffusion_planner_observable_interaction_coverage_smoke.py
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_observable_interaction_coverage_plan.py `
+  camp_core\tests\test_diffusion_planner_observable_interaction_coverage_smoke.py `
+  -q
+```
+
+Result:
+
+```text
+9 passed in 0.17s
+```
+
+AutoDL plan refresh and validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+OUT=/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_3a3992e_cmdrefresh
+mkdir -p "$OUT"
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.py \
+  scripts/integrations/analyze_diffusion_planner_observable_interaction_coverage_smoke.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_observable_interaction_coverage_plan.py \
+  camp_core/tests/test_diffusion_planner_observable_interaction_coverage_smoke.py \
+  -q
+
+$PY scripts/integrations/plan_diffusion_planner_observable_interaction_coverage.py \
+  --bottleneck_json /root/autodl-tmp/camp_dp_observable_interaction_descriptor_bottleneck_e4e70d7/observable_interaction_descriptor_bottleneck.json \
+  --label autodl_3a3992e_observable_interaction_coverage_plan_cmdrefresh \
+  --output_root "$OUT" \
+  --output_json "$OUT/observable_interaction_coverage_plan.json" \
+  --output_md "$OUT/observable_interaction_coverage_plan.md"
+```
+
+Plan refresh result:
+
+```text
+9 passed in 0.08s
+status=observable_interaction_coverage_broader_nonformal_plan_ready
+passed=True
+authorized_next_work=observable_interaction_coverage_broader_nonformal_paired_smoke_only
+paired_replays=8
+bad_flags=[]
+root=/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_3a3992e_cmdrefresh
+```
+
+Plan artifact hashes:
+
+```text
+observable_interaction_coverage_plan.json
+390c8cdd52e42bc6ee15c6fe34b642416cfb2fcbfbabf1f9b0186d1e5226bd59
+
+observable_interaction_coverage_plan.md
+3d282db49c55487ff591d64edd5cf5ed999fc46b99ef21990eb53771f3e9ae51
+```
+
+Paired nonformal smoke:
+
+The refreshed plan's predeclared eight replay commands were executed exactly:
+four run IDs, each with a baseline and default-off observable-logging-enabled
+variant, `12` steps, `8` candidates, and no formal seeds. All eight replay
+processes returned code `0`.
+
+```text
+tl_route59_seed1_npc0_tlon baseline elapsed_s=10.157
+tl_route59_seed1_npc0_tlon observable_logging_enabled elapsed_s=9.867
+tl_route59_seed1_npc4_tlon baseline elapsed_s=9.872
+tl_route59_seed1_npc4_tlon observable_logging_enabled elapsed_s=9.681
+tl_route59_seed2_npc4_tloff baseline elapsed_s=9.365
+tl_route59_seed2_npc4_tloff observable_logging_enabled elapsed_s=9.289
+normal_route2_seed1_npc0_tloff baseline elapsed_s=8.787
+normal_route2_seed1_npc0_tloff observable_logging_enabled elapsed_s=9.088
+```
+
+Coverage audit:
+
+```bash
+AUDIT=$OUT/audit
+mkdir -p "$AUDIT"
+
+$PY scripts/integrations/analyze_diffusion_planner_observable_interaction_coverage_smoke.py \
+  --plan_json "$OUT/observable_interaction_coverage_plan.json" \
+  --root "$OUT" \
+  --output_json "$AUDIT/observable_interaction_coverage_smoke.json" \
+  --output_md "$AUDIT/observable_interaction_coverage_smoke.md"
+```
+
+Audit artifact hashes:
+
+```text
+observable_interaction_coverage_smoke.json
+dc160b4af15ded45cca5b9d8e960dcd60267add988b881e58b56425cad3d4cca
+
+observable_interaction_coverage_smoke.md
+0e324da69f08e943c76ecf8d1649d5174f0b231346fc4a61ecf03c5a0c0e20fb
+```
+
+Audit result:
+
+```text
+status=observable_interaction_coverage_broader_nonformal_smoke_rejected
+passed=False
+authorized_next_work=reject_observable_interaction_coverage_or_predeclare_smaller_inventory
+offline_separability_authorized=False
+online_selector_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+```
+
+Selector and payload checks:
+
+```text
+paired_logs=4
+records=48
+baseline_payload_records=0
+candidate_payload_records=48
+equivalence_mismatches=0
+```
+
+Coverage evidence:
+
+```text
+records_with_red_distance_payload=24
+records_with_red_risk_nonzero=0
+records_with_red_risk_candidate_variation=0
+records_with_clearance_deficit_nonzero=0
+records_with_clearance_deficit_candidate_variation=0
+records_with_lateral_excess_nonzero=4
+records_with_lateral_excess_candidate_variation=4
+records_with_projection_candidate_variation=48
+records_with_turn_signal_nonzero=48
+records_with_turn_signal_candidate_variation=48
+min_red_distance_m=4.83404756877959
+max_red_alignment=0.0
+min_clearance_m=40.09188153863257
+max_lateral_excess_m=0.2838983832156613
+```
+
+Materiality:
+
+```text
+red_context=False
+clearance_context=False
+turn_lateral_context=True
+errors=[
+  red_context_materiality_not_reached,
+  clearance_context_materiality_not_reached
+]
+```
+
+Latency:
+
+```text
+latency_ms_observable_state_route_topology=3.2884515821933746
+latency_ms_observable_state_traffic_light_relation=5.7196663692593575
+latency_ms_observable_state_route_turn=0.08697714656591415
+latency_ms_observable_state_neighbor_clearance=0.764145515859127
+```
+
+Decision:
+
+Reject the broader observable-interaction coverage smoke for offline
+separability promotion. The refreshed smoke proves that default-off observable
+logging is selector-neutral on these 48 records, but it still fails to expose
+red-risk or clearance-deficit materiality. Red-distance payloads exist in 24
+records, yet the red alignment is nonpositive and red-risk remains zero for
+every candidate. NPC clearance is also far from the configured clearance
+budget (`min_clearance_m` about `40.09`), so clearance-deficit variation is
+absent. This is a scenario/support and observable-materiality bottleneck, not
+evidence that CAMP should be retrained or that a selector should be promoted.
+
+Next admissible work:
+
+Do not run separability, Full36, formal seeds, online selector promotion, or
+CAMP retraining from this evidence. The next gate should either reject this
+observable-interaction coverage route outright or predeclare a smaller
+inventory-style diagnostic that explains why route 59 red-light geometry and
+the current NPC generation fail to create positive current-tick red-risk and
+clearance-deficit coefficients. That diagnostic should remain read-only over
+the refreshed smoke logs and map/route geometry unless it explicitly
+predeclares a new nonformal support experiment.
+
+Mathematical boundary:
+
+This gate creates no atom, no selector, no learned weight, and no Benders cut.
+All audited quantities are current-tick finite-candidate payload fields used
+only for selector-neutral coverage diagnosis. If a later gate atomizes any of
+these fields, the coefficient must be fixed before CAMP scoring so
+`score_k(w)=a_k^T w` remains affine and the simplex/CVaR/L2 robust master
+remains convex. Closed-loop outcomes were not used by this audit.
+
 ## Red Route Vector Logging Plan (`bf68657` source)
 
 This gate follows the red alignment semantics microaudit. It is design-only:
@@ -43233,3 +43520,60 @@ is later atomized, it must enter CAMP only as a fixed nonnegative coefficient
 master convex in \(w\). Closed-loop outcomes may only be used as offline labels.
 No DP-side classical Benders master/subproblem, dual, or valid cut is
 constructed.
+
+## Latest Status Override (`3a3992e` refresh, tail pointer)
+
+The coverage plan above has been executed from a refreshed current-checkout
+artifact because the older AutoDL artifact contained stale replay flags. The
+refreshed root is:
+
+```text
+/root/autodl-tmp/camp_dp_observable_interaction_coverage_plan_3a3992e_cmdrefresh
+```
+
+The eight predeclared paired replay commands all returned `0`, but the smoke
+audit rejected the route:
+
+```text
+status=observable_interaction_coverage_broader_nonformal_smoke_rejected
+passed=False
+authorized_next_work=reject_observable_interaction_coverage_or_predeclare_smaller_inventory
+offline_separability_authorized=False
+online_selector_authorized=False
+Full36_authorized=False
+formal_seeds_authorized=False
+CAMP_retraining_authorized=False
+```
+
+Key evidence:
+
+```text
+records=48
+equivalence_mismatches=0
+baseline_payload_records=0
+candidate_payload_records=48
+records_with_red_risk_nonzero=0
+records_with_red_risk_candidate_variation=0
+records_with_clearance_deficit_nonzero=0
+records_with_clearance_deficit_candidate_variation=0
+records_with_lateral_excess_candidate_variation=4
+red_context=False
+clearance_context=False
+turn_lateral_context=True
+```
+
+Artifacts:
+
+```text
+observable_interaction_coverage_plan.json
+390c8cdd52e42bc6ee15c6fe34b642416cfb2fcbfbabf1f9b0186d1e5226bd59
+
+observable_interaction_coverage_smoke.json
+dc160b4af15ded45cca5b9d8e960dcd60267add988b881e58b56425cad3d4cca
+```
+
+Next admissible work is a smaller read-only inventory diagnostic explaining
+why the current route/map/NPC support fails to produce positive current-tick
+red-risk and clearance-deficit materiality, or an explicit rejection of this
+observable-interaction route. Do not run separability, retraining, Full36,
+formal seeds, or selector promotion from this evidence.
