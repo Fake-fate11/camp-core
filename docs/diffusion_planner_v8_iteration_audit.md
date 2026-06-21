@@ -47739,3 +47739,149 @@ online selector inputs. The next self-iteration must compare current logged
 CAMP and any candidate-branch trained/evaluated selector against this oracle
 under the same SafetyCost protocol before considering training, tiny smoke,
 larger non-formal runs, or formal seeds.
+
+## Selector-vs-Oracle Gap Refresh (`87a924d`)
+
+Purpose:
+
+The previous oracle refresh proved that the fixed DP candidate pool contains
+hard-guarded lower-SafetyCost choices in every required ProofProtocol v2
+bucket. This step checks whether the current saved `redstopfloor05` static CAMP
+weights actually select those opportunities. It is still an offline
+candidate-branch evaluation over fixed logs: candidate outcomes are used only
+as labels, not as runtime selector inputs.
+
+Implementation:
+
+```text
+87a924d Add DP CAMP selector oracle gap summary
+```
+
+Files:
+
+```text
+scripts/integrations/summarize_diffusion_planner_selector_oracle_gap.py
+camp_core/tests/test_diffusion_planner_selector_oracle_gap.py
+```
+
+Local validation:
+
+```text
+py -3.12 -m py_compile scripts\integrations\summarize_diffusion_planner_selector_oracle_gap.py
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_selector_oracle_gap.py -q
+4 passed in 0.16s
+
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core py -3.12 -m pytest camp_core\tests\test_diffusion_planner_selector_oracle_gap.py camp_core\tests\test_diffusion_planner_camp_safety_cost_evaluation.py camp_core\tests\test_diffusion_planner_safety_cost_proof_summary.py camp_core\tests\test_diffusion_planner_scenario_evidence_matrix_gate.py camp_core\tests\test_diffusion_planner_proof_protocol_v2.py -q
+16 passed in 0.43s
+```
+
+AutoDL validation:
+
+```text
+CAMP_HEAD=87a924d98bbabf561be893c10e49b56962d6b4f9
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+/root/autodl-tmp/dp312_venv/bin/python -m py_compile scripts/integrations/summarize_diffusion_planner_selector_oracle_gap.py
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_selector_oracle_gap.py -q
+4 passed in 0.04s
+
+PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core /root/autodl-tmp/dp312_venv/bin/python -m pytest camp_core/tests/test_diffusion_planner_selector_oracle_gap.py camp_core/tests/test_diffusion_planner_camp_safety_cost_evaluation.py camp_core/tests/test_diffusion_planner_safety_cost_proof_summary.py camp_core/tests/test_diffusion_planner_scenario_evidence_matrix_gate.py camp_core/tests/test_diffusion_planner_proof_protocol_v2.py -q
+16 passed in 0.47s
+```
+
+Selector evaluation artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_selector_eval_c7bb0d9/selector_eval.json
+sha256=eff437742a8f892fbca6359ef55df80b3205cc79173934cece8c8a9988a3b5e2
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_v1_selector_eval_c7bb0d9/selector_eval.md
+sha256=8a6fe6c2ccf10cdae25f4b6b978b58c3d87467addedea820ee7653828403c0df
+```
+
+Compatibility proof-summary artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/camp_vs_top1_safety_cost_proof_c7bb0d9/camp_vs_top1_safety_cost_proof.json
+sha256=cef3ae194d16f27b70cd075e4194e00107717c6cb1dfacc6e1d316a3a3e17103
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/camp_vs_top1_safety_cost_proof_c7bb0d9/camp_vs_top1_safety_cost_proof.md
+sha256=65e556d31bb24e0102be4346239b23305d796a199dfd880d71d13b72814f58f2
+```
+
+Generic selector-oracle gap artifacts:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/selector_oracle_gap_87a924d/selector_oracle_gap.json
+sha256=1ae229fe1cad2f5baf95d62a7036f4f00533d36d3ec8bfae785ef7bb57a242f9
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/selector_oracle_gap_87a924d/selector_oracle_gap.md
+sha256=04211df8328db6a9ce50eb9505f1eb720085926c26f949894daf891ce1049455
+```
+
+Selector evaluation result:
+
+```text
+logs=108
+records=21600
+formal_seed_logs=0
+missing_required_buckets=
+changed_record_rate=0.0
+evaluated_minus_logged_cost_mean=0.0
+evaluated_selector.overall.camp_minus_top1.ci95_high=-0.41590087148148136
+evaluated_selector.overall.camp_minus_hard_guarded_oracle.ci95_high=1.2922100122804299
+```
+
+Compatibility proof-summary result:
+
+```text
+status=proof_incomplete
+current_camp_complete_proof=False
+safety_cost_trained_selector_candidate_branch_proof=False
+hard_guarded_oracle_gap_closed=False
+
+current_camp_vs_top1.bucket_failures=traffic_light,red_light_turn
+safety_cost_trained_selector_vs_top1.bucket_failures=traffic_light,red_light_turn
+safety_cost_trained_selector_gap_closed.bucket_failures=normal,traffic_light,red_light_turn,sharp_turn,npc_interaction,dense_scene,lane_change_or_merge
+```
+
+Generic selector-oracle gap result:
+
+```text
+status=current_selector_gap_open
+passed=False
+authorized_next_work=selector_label_weight_design_preflight
+evaluated_passed_proof_protocol_v2=False
+logged_passed_proof_protocol_v2=False
+evaluated_gap_closed=False
+evaluated_same_as_logged=True
+```
+
+Required-bucket failures for the evaluated selector:
+
+```text
+top1_bucket_failures={'traffic_light': 0.08218273836801962, 'red_light_turn': 0.08013826176760376}
+cvar90_bucket_failures={'sharp_turn': 0.11490432997064914}
+gap_bucket_failures={
+  'normal': 0.01394146905254399,
+  'traffic_light': 0.9352687839558874,
+  'red_light_turn': 0.938615129210424,
+  'sharp_turn': 0.804532627552228,
+  'npc_interaction': 0.5668089280113743,
+  'dense_scene': 0.5605416558664467,
+  'lane_change_or_merge': 3.0377703286705118
+}
+```
+
+Decision:
+
+Reject any claim that the current `redstopfloor05` static selector is proven
+better than DP Top-1 under ProofProtocol v2. It improves the overall
+candidate-branch mean and tail SafetyCost, but it fails the required
+traffic-light/red-light-turn bucket gate, fails the sharp-turn CVaR90 tail
+gate, and leaves the hard-guarded oracle gap open in every required bucket.
+Because the evaluated selector exactly matches the logged selector, the gap is
+not an artifact of the evaluation wrapper. The next admissible work is a
+design-only selector label/weight preflight using the hard-guarded oracle only
+as offline supervision. Do not train, run tiny smoke, promote an online
+selector, run Full36, or touch formal seeds yet.
