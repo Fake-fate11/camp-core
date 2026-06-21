@@ -40654,3 +40654,132 @@ remain current-tick finite candidate coefficients. Any new atom must enter
 CAMP as a fixed coefficient \(a_k\), keeping `score_k(w)=a_k^T w` and the
 simplex/CVaR/L2 convex master intact. This is a finite-candidate diagnostic,
 not a DP-side classical Benders decomposition.
+
+## Relaxed Strict-Label No-Leak Atom Schema Preflight (`1b08c80` source)
+
+This gate implements the next admissible step from the relaxed strict-label
+atom bottleneck diagnosis: a design-only preflight for new no-leak atom
+coefficients. It does not run Diffusion Planner, train CAMP, promote an online
+selector, run Full36, use formal seeds, or modify DP. It only reads the
+existing matched nonformal logs and the previous bottleneck artifact.
+
+New files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py
+camp_core/tests/test_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py
+```
+
+The first draft included a mathematically valid product atom using absolute
+corridor exhaustion, but real matched evidence showed that product was zero on
+all 384 candidate rows. That route was rejected as non-material. The accepted
+preflight instead uses corridor-margin drop for the product term and requires
+every proposed atom to have nonzero support before passing.
+
+Proposed atoms:
+
+| Atom | Purpose |
+| --- | --- |
+| `longitudinal_accel_step_excess_v1` | current-tick acceleration-like speed-profile changes |
+| `longitudinal_jerk_surrogate_v1` | speed-profile second-difference roughness |
+| `lateral_rate_change_surrogate_v1` | lateral-rate roughness without closed-loop labels |
+| `heading_error_change_surrogate_v1` | route-heading oscillation |
+| `corridor_margin_drop_surrogate_v1` | movement toward route-corridor boundary |
+| `roughness_corridor_conflict_v1` | fixed product of roughness and corridor-margin drop |
+
+Local validation:
+
+```powershell
+py -3.12 -m py_compile `
+  scripts\integrations\analyze_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py
+
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+py -3.12 -m pytest `
+  camp_core\tests\test_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py `
+  camp_core\tests\test_diffusion_planner_revised_context_relaxed_strict_label_atom_bottleneck.py `
+  -q
+```
+
+Result:
+
+```text
+9 passed in 0.39s
+```
+
+AutoDL validation:
+
+```bash
+cd /root/autodl-tmp/camp_core
+PY=/root/miniconda3/envs/camp/bin/python
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+ROOT=/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7
+
+$PY -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py \
+  camp_core/tests/test_diffusion_planner_revised_context_relaxed_strict_label_atom_bottleneck.py \
+  -q
+
+$PY scripts/integrations/analyze_diffusion_planner_revised_context_relaxed_strict_label_atom_schema_preflight.py \
+  --root "$ROOT/matched_revised_context_outcomes" \
+  --bottleneck_json "$ROOT/audit/revised_context_relaxed_strict_label_atom_bottleneck.json" \
+  --label autodl_1b08c80_relaxed_strict_label_atom_schema_preflight \
+  --fail_on_formal_seeds \
+  --output_json "$ROOT/audit/revised_context_relaxed_strict_label_atom_schema_preflight.json" \
+  --output_md "$ROOT/audit/revised_context_relaxed_strict_label_atom_schema_preflight.md"
+```
+
+Artifacts:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_relaxed_strict_label_atom_schema_preflight.json` | `7e33a3cc7487705d1e546324443beb5da8d5160ff79d35161fecb378c9f5104f` |
+| `/root/autodl-tmp/camp_dp_revised_context_matched_outcome_labels_nonformal_0b84fc7/audit/revised_context_relaxed_strict_label_atom_schema_preflight.md` | `1956eec3cb4b916b0729c2f0a1739df2195aae6df9011d1f99ab089dd82a17bd` |
+
+Verifier result:
+
+```text
+status=revised_context_relaxed_strict_label_atom_schema_preflight_ready
+passed=True
+primary_gap=relaxed_strict_label_no_leak_atom_schema_preflight_passed
+authorized_next_work=default_off_relaxed_strict_label_atom_payload_implementation_unit_tests_only
+records=48
+candidate_rows=384
+formal_seed_records=0
+longitudinal_accel_step_excess_v1_nonzero=384
+longitudinal_jerk_surrogate_v1_nonzero=384
+lateral_rate_change_surrogate_v1_nonzero=384
+heading_error_change_surrogate_v1_nonzero=384
+corridor_margin_drop_surrogate_v1_nonzero=384
+roughness_corridor_conflict_v1_nonzero=384
+```
+
+Decision:
+
+Accept the no-leak atom schema preflight as a design gate only. The proposed
+roughness and corridor-margin-drop atoms are observable from current tick DP
+candidate payloads, finite, nonnegative, nonzero on the matched logs, and
+compatible with fixed-candidate affine CAMP scoring. This still does not prove
+that CAMP beats DP Top-1 and does not authorize replay expansion, online
+selector promotion, formal seeds, Full36, or retraining.
+
+Next admissible work:
+
+Implement only the default-off relaxed strict-label atom payload behind the
+existing progress+lane/hard context logging path, with unit tests proving
+ordered schema names, nonnegative finite coefficients, selection neutrality,
+no outcome leakage, and no DP-side classical Benders claim. After that, run an
+offline separability screen on the same matched logs before any new replay.
+
+Mathematical boundary:
+
+These atom proposals use finite differences, absolute values, maxima, and one
+product over already fixed current-tick candidate descriptors. They are
+therefore fixed nonnegative coefficients \(a_k\) for each candidate at the
+current tick. CAMP score remains `score_k(w)=a_k^T w`, and the
+simplex/CVaR/L2 robust master remains convex in the weights \(w\). No claim is
+made that the atom functions are globally convex in trajectory coordinates,
+and this gate does not construct a DP-side classical Benders
+master/subproblem, dual, or valid cut.
