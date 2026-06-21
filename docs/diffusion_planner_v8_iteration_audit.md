@@ -50955,3 +50955,115 @@ atoms. Any later CAMP atom must remain a fixed current-tick finite-candidate
 coefficient `a_k`, preserving affine `score_k(w)=a_k^T w` and the convex
 simplex/CVaR/L2 robust master. No DP-side classical Benders decomposition is
 claimed.
+
+## Targeted Safety Scenario Manifest Gate (`5cdef1c` artifacts)
+
+Purpose:
+
+The targeted proof objective authorized only scenario manifest design. This
+step adds a targeted manifest/evidence-matrix gate and validates the existing
+diverse nonformal matrix plan against the new target/guard bucket contract. It
+does not run DP, collect labels, train CAMP, or change selection.
+
+Code change:
+
+```text
+5cdef1c Add targeted safety scenario manifest gate
+```
+
+Local verification:
+
+```text
+py -3.12 -m pytest \
+  camp_core/tests/test_diffusion_planner_targeted_safety_scenario_manifest_gate.py \
+  camp_core/tests/test_diffusion_planner_targeted_safety_intervention_proof_objective.py \
+  camp_core/tests/test_diffusion_planner_diverse_scenario_matrix_plan.py \
+  camp_core/tests/test_diffusion_planner_scenario_evidence_matrix_gate.py \
+  -q
+
+22 passed
+git diff --check passed
+```
+
+AutoDL verification:
+
+AutoDL was synchronized to:
+
+```text
+5cdef1cec9894bc64fcadb6431cf37c9afeceada
+```
+
+The same targeted AutoDL test set passed:
+
+```text
+22 passed
+git diff --check passed
+```
+
+Artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_scenario_manifest_gate_5cdef1c/targeted_safety_scenario_manifest_gate.json
+sha256=9ffa9f8771edbabd155e214e7f34113555efadc5afb0663d39c5a1675a72c345
+
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_scenario_manifest_gate_5cdef1c/targeted_safety_scenario_manifest_gate.md
+sha256=5325452cf770241baa01444b9eb826beb4a2c260e407a9fd4e310075ab6c67ed
+```
+
+Inputs:
+
+```text
+targeted_objective_json=
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/targeted_safety_intervention_proof_objective_9fd9d03/targeted_safety_intervention_proof_objective.json
+
+matrix_plan_json=
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/diverse_nonformal_matrix_plan_py312_9e2158f/diverse_nonformal_matrix_plan_py312_9e2158f.json
+```
+
+Decision:
+
+```text
+status=targeted_safety_intervention_scenario_manifest_predeclared
+authorized_next_work=targeted_candidate_branch_oracle_input_readiness_gate
+recommended_first_action=targeted_candidate_branch_oracle_input_readiness_gate
+planned_run_count=108
+target_missing_buckets=[]
+guard_missing_buckets=[]
+formal_seeds=[]
+training_execution_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Accepted evidence:
+
+```text
+all_target_buckets_have_predeclared_coverage
+all_guard_buckets_have_predeclared_coverage
+scenario_labels_use_route_or_config_metadata_only
+static_outcome_label_matrix_command_is_predeclared
+formal_seeds_are_excluded
+```
+
+Next gate:
+
+Run or refresh a targeted candidate-branch oracle input-readiness gate against
+the planned nonformal matrix outputs before any selector training, tiny smoke,
+larger nonformal matrix, or formal seed work. If outcome-labeled selection logs
+are missing or incomplete, the correct next result is a label-collection
+readiness gap or a predeclared label pass, not training.
+
+Mathematical boundary:
+
+Scenario bucket labels and matrix rows are evaluation metadata. They do not
+change DP candidate generation, postprocessing, PerfectTracker, CAMP atoms,
+candidate features, affine `score_k(w)=a_k^T w`, or the simplex/CVaR/L2 robust
+master. Outcome labels may be collected later only after a separate gate and
+are never online selector inputs. No DP-side classical Benders decomposition is
+claimed.
