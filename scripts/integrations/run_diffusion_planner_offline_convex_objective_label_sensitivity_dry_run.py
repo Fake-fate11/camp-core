@@ -702,11 +702,18 @@ def _artifact_map(*paths: Path) -> dict[str, dict[str, str]]:
     for path in paths:
         if not path or not Path(path).is_file():
             continue
-        artifacts[Path(path).stem] = {
+        artifacts[_artifact_key(Path(path))] = {
             "path": str(path),
             "sha256": _sha256(Path(path)),
         }
     return artifacts
+
+
+def _artifact_key(path: Path) -> str:
+    suffix = path.suffix.lower().lstrip(".")
+    if suffix in {"json", "md"}:
+        return f"{path.stem}_{suffix}"
+    return path.stem
 
 
 def _sha256(path: Path) -> str:

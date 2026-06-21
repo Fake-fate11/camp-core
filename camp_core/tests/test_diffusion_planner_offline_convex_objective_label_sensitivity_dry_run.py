@@ -215,9 +215,11 @@ def test_objective_label_sensitivity_wrapper_runs_predeclared_variants(tmp_path:
     assert control["accepted_for_next_review"] is False
     safety = {row["name"]: row for row in report["variants"]}["safety_guard_floor"]
     assert safety["accepted_for_next_review"] is True
-    assert "training_summary" in safety["artifacts"]
-    assert "selector_eval" in safety["artifacts"]
-    assert "camp_vs_top1_safety_cost_proof" in safety["artifacts"]
+    assert "training_summary_json" in safety["artifacts"]
+    assert "selector_eval_json" in safety["artifacts"]
+    assert "selector_eval_md" in safety["artifacts"]
+    assert "camp_vs_top1_safety_cost_proof_json" in safety["artifacts"]
+    assert "camp_vs_top1_safety_cost_proof_md" in safety["artifacts"]
 
 
 def test_objective_label_sensitivity_wrapper_threads_variant_parameters(tmp_path: Path) -> None:
