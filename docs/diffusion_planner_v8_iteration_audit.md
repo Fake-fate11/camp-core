@@ -61266,3 +61266,158 @@ handling, route-level reporting, accept/reject criteria, artifact/SHA/HEADS
 recording, and explicit no-promotion boundaries. It may not execute the sweep,
 train CAMP, promote the atom, run replay, use formal seeds, change online
 selection, claim safety benefit, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Weight-Sensitivity Plan
+
+Objective:
+
+Execute only the plan-only gate authorized by the shadow dry-run result review.
+This gate predeclares a future offline sensitivity sweep over the same existing
+broader nonformal logs. It does not execute the sweep, run replay, train CAMP,
+promote the atom, run Full36, use formal seeds, change online selection, claim
+safety benefit, or modify DP.
+
+State audit before gate:
+
+```text
+CAMP local HEAD=70985cd91f4d1498c04e79a8c4fdff97f4262307
+CAMP origin/main=70985cd91f4d1498c04e79a8c4fdff97f4262307
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+AutoDL CAMP HEAD=70985cd91f4d1498c04e79a8c4fdff97f4262307
+AutoDL CAMP origin/main=70985cd91f4d1498c04e79a8c4fdff97f4262307
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+candidate_set_consensus_shadow_atom_dry_run_83619c33f SHA256SUMS=OK
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity_plan.py
+```
+
+Local verification:
+
+```bash
+python -m py_compile \
+  scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity_plan.py
+
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity_plan.py \
+  -q
+```
+
+Result:
+
+```text
+7 passed in 0.63s
+```
+
+GitHub/AutoDL sync and remote verification:
+
+```text
+plan implementation commit=2fcaee6b9f5bbe2e1a1f35efa2364755f53b60ea
+AutoDL CAMP HEAD=2fcaee6b9f5bbe2e1a1f35efa2364755f53b60ea
+AutoDL CAMP origin/main=2fcaee6b9f5bbe2e1a1f35efa2364755f53b60ea
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+AutoDL verification python=/root/miniconda3/envs/camp/bin/python
+AutoDL verification pytest=7 passed in 0.07s
+AutoDL CAMP status=main...origin/main plus pre-existing untracked files only
+AutoDL DP status=tier4-main...origin/tier4-main
+```
+
+Plan artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_weight_sensitivity_plan_2fcaee6
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_weight_sensitivity_plan.json` | `cce1222799c5c9ca9b815a678bd194ac5be45a55d886529d18fb6eab6d0c7f9b` |
+| `candidate_set_consensus_shadow_atom_weight_sensitivity_plan.md` | `424cead5c325305c474b242acc4c114960c7f4b6c41e65e024b0e8a0f9d9c60d` |
+| `HEADS.txt` | `679c242be948f2a42b5c0aa460d15ca6687dd3ff7e853c4ceabbe03bf9734e79` |
+
+Weight-sensitivity plan decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_weight_sensitivity_plan_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_weight_sensitivity_implementation_unit_tests_only
+weight_sensitivity_plan_ready=True
+sensitivity_implementation_authorized=True
+sensitivity_execution_authorized=False
+failed_checks=[]
+lambda_grid=[0.0, 0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.5, 1.0]
+expected_logs=6
+expected_records=60
+expected_candidates=8
+candidate_root=/root/autodl-tmp/camp_dp_candidate_set_consensus_broader_nonformal_materiality/logging_enabled
+score_formula=score_prime_k(lambda) = selection_score_k + lambda * candidate_set_consensus_center_rms_m[k]
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+camp_retraining_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Required future sensitivity checks:
+
+- read existing `logging_enabled` `camp_selection_log.json` files only;
+- require exactly 6 logs, 60 records, and 8 candidates per valid record;
+- reject any run id or artifact path containing formal seed 11, 12, or 13;
+- require `candidate_set_consensus_payload_logging.available=true` for records
+  included in sensitivity;
+- require coefficient field `candidate_set_consensus_center_rms_m` length equals
+  `candidate_count`;
+- require coefficient values are finite and nonnegative;
+- use only `selection_scores`, `feasible_mask`, `selected_index`, fallback
+  fields, and the current-tick consensus coefficient for candidate selection;
+- do not use closed-loop outcomes or safety-score summaries to define or select
+  candidates;
+- retain all-infeasible fallback records and report them separately;
+- evaluate
+  `score_prime_k(lambda) = selection_score_k + lambda * coefficient_k` for the
+  predeclared lambda grid only;
+- report per-lambda changed records, route-level changes, critical lambda, and
+  selected-index transitions;
+- write sensitivity JSON/markdown/SHA/HEADS artifacts before any later
+  result-review gate;
+- do not change deployed atom schema, CAMP weights, online selector, DP code, or
+  DP weights.
+
+Mathematical boundary:
+
+The planned sweep uses fixed current-tick finite-candidate coefficients from
+existing nonformal logs. For each predeclared nonnegative lambda,
+`score_prime_k(lambda) = selection_score_k + lambda * a_k` remains affine in
+the shadow weight because `a_k` is fixed before scoring. This is only an offline
+diagnostic over a finite candidate set. It does not modify the simplex/CVaR/L2
+master, deploy a nonzero atom weight, train CAMP, execute or modify DP, use
+formal seeds, read closed-loop outcomes or safety scores for selection, or claim
+a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept the weight-sensitivity plan as a plan-only gate. It authorizes only
+implementation and unit tests for a future offline analyzer. It does not
+authorize executing the sensitivity sweep on AutoDL yet, and it does not
+authorize replay, atom promotion, CAMP retraining, online selector changes,
+formal seeds, Full36, safety-benefit claims, or DP modification.
+
+Next admissible work:
+
+Only
+`candidate_set_consensus_shadow_atom_weight_sensitivity_implementation_unit_tests_only`
+is now authorized. The next gate may implement a read-only analyzer and
+synthetic tests for the predeclared lambda-grid sensitivity calculation. A
+separate later gate is still required before running it on the AutoDL broader
+logs.
