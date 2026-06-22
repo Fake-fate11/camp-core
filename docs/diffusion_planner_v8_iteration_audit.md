@@ -65793,3 +65793,194 @@ Only
 `candidate_set_consensus_lane_projected_jerk_progress_support_fixed_snapshot_execution_plan_only`
 is now authorized. That gate may design, but not execute, a guarded fixed
 nonformal snapshot screen for the new policy.
+
+### 2026-06-22 - Candidate-Set Consensus Lane-Projected Jerk/Progress Fixed-Snapshot Execution Plan
+
+Objective:
+
+Design only the guarded fixed-snapshot screen for the default-off
+`lane_projected_jerk_progress_red_stop` policy. This gate audits the
+implementation-unit artifact, predeclares the fixed nonformal snapshot corpus,
+writes a guarded runbook, and records artifact/SHA/HEADS evidence. It does not
+run the screen, execute candidate generation, run replay, train CAMP, promote
+atoms, change online selection, use formal seeds, claim safety benefit, or
+modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD after implementation sync=818c8232cd6254a217a00496cfad3b34cae4949b
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_implementation_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests_ed2a156
+snapshot_source_root=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon
+snapshot_dir=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon/snapshots_no_budget
+snapshot_count=57
+route_topology_gate_json=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon/route_topology_support_gate_d0a5e4b/route_topology_support_gate.json
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+AutoDL sync used a local Git bundle; refs/remotes/origin/main was updated to the same commit.
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py
+```
+
+Verification:
+
+```text
+local:
+python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_route_topology_comfort_support_preflight.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_candidate_generation_support_redesign.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_availability_diversity_synthesis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_post_nonpromotion_next_gate.py -q
+git diff --check
+
+result:
+8 passed
+65 passed
+
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_route_topology_comfort_support_preflight.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_candidate_generation_support_redesign.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_availability_diversity_synthesis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_post_nonpromotion_next_gate.py -q
+bash -n run_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_screen.sh
+
+result:
+65 passed
+bash -n passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution_plan_818c823
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution_plan.json` | `af58849d367501d33839c5c884490a6b64e0a1ded63758454e41e4b6c7651338` |
+| `candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution_plan.md` | `13881eea796fe47f9fb27b343bcd23a6bff989bb378392b6c1e6eb5855be922a` |
+| `run_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_screen.sh` | `c517ac8d044a345f91df2d388a9fb83196ef67ad7434f1d94d4e0f56bdf93845` |
+| `COMMAND.log` | `836cb77deb230ab0aa8cc22c90443a68600503b67b9473e2b953b162c1233528` |
+| `COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `d3ddbeca1da42a21977c12b6452c8ec2e8e582df9bf915c3a5c939a1c8454e6e` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_fixed_snapshot_execution_plan_ready
+passed=True
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_guarded_fixed_snapshot_screen_only
+fixed_snapshot_execution_plan_ready=True
+guarded_fixed_snapshot_screen_next_gate_authorized=True
+selected_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_guarded_fixed_snapshot_screen_only
+guard_env_var=CANDIDATE_SET_CONSENSUS_LANE_PROJECTED_JERK_PROGRESS_FIXED_SNAPSHOT_APPROVED=yes
+candidate_generation_execution_authorized=False
+fixed_snapshot_candidate_generation_authorized=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+exit_code=0
+```
+
+Planned guarded execution scope:
+
+```text
+scope_type=single_existing_nonformal_fixed_snapshot_corpus
+route_name=sample_map_tl_route_59_to_86
+seed=2
+max_npcs=4
+traffic_lights=on
+snapshot_count=57
+policy=lane_projected_jerk_progress_red_stop
+red_stop_margins_m=[2.0, 4.0, 6.0]
+backup_stop_offsets_m=[0.0, 1.0]
+lane_projected_offset_scales=[1.0, 0.5, 0.0]
+max_deceleration_mps2=3.0
+jerk_progress_max_jerk_mps3=8.0
+min_snapshot_support_rate=0.25
+```
+
+The runbook is guarded by
+`CANDIDATE_SET_CONSENSUS_LANE_PROJECTED_JERK_PROGRESS_FIXED_SNAPSHOT_APPROVED=yes`,
+contains no `git pull`, checks CAMP HEAD equals origin/main, checks DP HEAD is
+fixed, checks snapshot count equals 57, runs the candidate screen with explicit
+`lane_projected_jerk_progress_red_stop`, then runs the absolute lateral guard
+audit over the produced screen JSON. It records JSON, markdown, logs,
+`EXIT_CODE`, `HEADS.txt`, and `SHA256SUMS`.
+
+Accept criteria for the future execution gate:
+
+```text
+candidate screen command exits 0
+absolute lateral guard command exits 0
+screen status=route_topology_candidate_support_present
+hard-feasible snapshot support rate >= 0.25
+progress-feasible snapshot support rate >= 0.25
+comfort-admissible snapshot support rate >= 0.25
+absolute lateral guard status=route_topology_absolute_lateral_guard_support_present
+absolute lateral guard snapshot support rate >= 0.25
+generated candidate rows > 0 and finite
+candidate-build p95 latency <= 10 ms
+total p95 latency <= 100 ms
+```
+
+Reject criteria include missing artifacts/SHA/HEADS, CAMP head mismatch, fixed
+DP head mismatch, missing or bypassed runbook guard, snapshot scope drift,
+formal seeds 11/12/13 appearing in scope or command, nonzero command exit,
+hard/progress/comfort/absolute-lateral/latency gate failure, replay, CAMP
+training, online selector promotion, Full36, safety-benefit claim, or DP
+modification.
+
+Evidence evaluation:
+
+The fixed-snapshot execution plan passed. It verified the implementation-unit
+artifact required files, SHA256SUMS, zero exit code, nonempty HEADS, CAMP HEAD
+equal to origin/main, fixed DP HEAD, source status, source selected next work,
+policy name, default-off policy boundary, no blocked source actions, guarded
+runbook content, nonformal seed scope, snapshot count contract, route-topology
+gate path, reward config path, latency gates, artifact SHA/HEADS contract, and
+mathematical boundary. The gate did not run the fixed-snapshot screen.
+
+Mathematical boundary:
+
+This plan reads only the implementation-unit artifact and fixed-head audit,
+then writes a guarded future screen runbook. It does not execute candidate
+generation, run DP as a candidate generator, run replay, recompute outcomes,
+define runtime atoms, choose lambda online, alter `score_k(w)=a_k^T w`, mutate
+the convex simplex/CVaR/L2 master, train CAMP, change online selection, modify
+DP weights or code, or claim a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_fixed_snapshot_execution_plan_only`
+as complete. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_guarded_fixed_snapshot_screen_only`.
+It does not authorize replay, safety benefit claims, atom promotion, CAMP
+retraining, online selector changes, formal seeds, Full36, new label
+attachment, or DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_guarded_fixed_snapshot_screen_only`
+is now authorized. That gate may execute only the guarded fixed nonformal
+snapshot screen runbook under the recorded guard and then classify the result
+against the predeclared accept/reject criteria.
