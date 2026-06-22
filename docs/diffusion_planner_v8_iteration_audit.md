@@ -63497,3 +63497,139 @@ markdown, command log, HEADS, SHA256SUMS, and then stop for a separate result
 review. It may not attach labels to prior artifacts, promote the atom, train
 CAMP, alter online selection, use formal seeds, run replay, claim safety
 benefit, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Safety-Score Evaluation Retry Execution
+
+Objective:
+
+Run only the authorized read-only safety-score evaluation retry against the
+reviewed outcome-label root and fixed weight-sensitivity artifact. This gate
+executes the existing evaluator, records JSON/markdown/command log/exit
+code/HEADS/SHA256SUMS, and stops for a separate result-review gate. It does not
+attach labels to prior artifacts, train CAMP, promote the atom, use formal
+seeds, change online selection, run replay, claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD before execution=a28d089f4b9cbde6e88fc2ecea7fb2022dc32f47
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+authorization_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization_195a58c
+label_root=/root/autodl-tmp/camp_dp_candidate_set_consensus_shadow_atom_safety_score_outcome_labels
+weight_sensitivity_json=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_weight_sensitivity_b373e0cdd/candidate_set_consensus_shadow_atom_weight_sensitivity.json
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+```
+
+Verification:
+
+```text
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py -q
+
+result:
+6 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution_a28d089
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution.json` | `98ffde6b158184ae70fc466e48d1e8e63bb743cf5016d071c2a83c8b3c04faa4` |
+| `candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution.md` | `399075c9b600ce1e70aac3a0bc09f93aa1a9e17bea7ba81c74f2440aee65cf27` |
+| `COMMAND.log` | `4167c7a321ab929730b8142dcc8e9279e2e922f2adaa1909638a6f3ba6544174` |
+| `COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `3ccf4cad5d099404e8b2f5362ca8e20739c3c08fa6315c2e3d7f7dd829039049` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_safety_score_evaluation_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review_only
+safety_score_evaluation_ready=True
+safety_score_evaluation_result_review_authorized=True
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+max_changed_records=11
+failed_checks=[]
+exit_code=0
+```
+
+Evaluation diagnostics:
+
+```text
+log_count=6
+records=60
+valid_records=60
+outcome_available_records=60
+fallback_retained_records=12
+formal_seed_log_count=0
+max_changed_records=11
+lambda_0.0_changed=0
+lambda_0.05_changed=1 better=1 same=0 worse=0 mean_delta=-0.028429673356496377
+lambda_0.1_changed=2 better=2 same=0 worse=0 mean_delta=-0.028728651916846593
+lambda_0.2_changed=3 better=3 same=0 worse=0 mean_delta=-0.025564600273476474
+lambda_0.5_changed=6 better=4 same=0 worse=2 mean_delta=0.020269042588758057
+lambda_1.0_changed=11 better=6 same=0 worse=5 mean_delta=0.005523074401163498
+```
+
+Evidence evaluation:
+
+The read-only retry executed successfully and produced complete diagnostic
+results over six nonformal logs and 60 outcome-available records. Positive
+lambda values do change selections, with the largest tested lambda changing 11
+records. The result is mixed: small positive lambdas improved the changed
+SafetyCost v1 rows in this diagnostic, while larger lambdas introduced worse
+changed rows and positive mean safety-cost deltas. This is sufficient for a
+result-review gate, but it is not a safety-benefit proof and does not authorize
+promotion.
+
+Mathematical boundary:
+
+The evaluator read posterior outcomes only as offline labels after the
+weight-sensitivity artifact had fixed shadow selected indices. It did not
+define an atom, choose lambda online, mutate the selector, train CAMP, run DP,
+modify DP, or claim a DP-side classical Benders decomposition. The affine score
+form `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master remain
+unchanged.
+
+Decision:
+
+Accept
+`candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution_only`
+as complete. This authorizes only
+`candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review_only`.
+It does not authorize safety benefit claims, atom promotion, CAMP retraining,
+online selector changes, formal seeds, Full36, new replay, label attachment, or
+DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review_only`
+is now authorized. That gate may review the retry artifact, classify the mixed
+SafetyCost v1 diagnostic, and decide whether a narrower non-promotion diagnosis
+or further plan-only analysis is warranted. It may not promote the atom, train
+CAMP, enable online selection, use formal seeds, run replay, claim safety
+benefit, attach labels, or modify DP.
