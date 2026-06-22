@@ -61421,3 +61421,24 @@ is now authorized. The next gate may implement a read-only analyzer and
 synthetic tests for the predeclared lambda-grid sensitivity calculation. A
 separate later gate is still required before running it on the AutoDL broader
 logs.
+
+Weight-sensitivity plan gate closeout:
+
+```text
+final local/GitHub/AutoDL CAMP HEAD=9681dc6b83983a2598172e9862da25123641cfda
+final AutoDL CAMP origin/main=9681dc6b83983a2598172e9862da25123641cfda
+final AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+final AutoDL verification pytest=7 passed in 0.12s
+final plan artifact SHA256SUMS=OK
+final AutoDL CAMP status=main...origin/main plus pre-existing untracked files only
+final AutoDL DP status=tier4-main...origin/tier4-main
+```
+
+Closeout decision:
+
+Accept `candidate_set_consensus_shadow_atom_weight_sensitivity_plan_only` as
+complete. The plan artifact, tests, audit documentation, GitHub push, and AutoDL
+sync are complete at the final synchronized CAMP HEAD. This still does not
+execute the sensitivity sweep and does not authorize atom promotion, CAMP
+retraining, online selector changes, replay, formal seeds, Full36, safety-benefit
+claims, or DP modification.
