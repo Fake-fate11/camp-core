@@ -60111,3 +60111,48 @@ reachable, sync CAMP to `origin/main`, verify fixed DP HEAD, generate the remote
 plan artifact/SHA/HEADS files under the recorded template path, and then decide
 in a separate next-round gate whether to explicitly authorize the guarded
 broader nonformal materiality replay.
+
+### 2026-06-22 - AutoDL Endpoint Recheck for Broader Materiality Plan
+
+Objective:
+
+Continue the unresolved AutoDL sync/HEAD/artifact verification for the
+candidate-set consensus broader materiality plan without modifying remote files
+or running replay.
+
+Current local/GitHub state:
+
+```text
+CAMP local HEAD=933727dc3e3de668210415dd4da8c60e0eb53c1f
+CAMP origin/main=933727dc3e3de668210415dd4da8c60e0eb53c1f
+GitHub refs/heads/main=933727dc3e3de668210415dd4da8c60e0eb53c1f
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+```
+
+Read-only endpoint probes:
+
+| Endpoint | Result | Interpretation |
+| --- | --- | --- |
+| `connect.bjb2.seetacloud.com:20885` | `Connection closed by 198.18.0.88 port 20885` | TCP connects, SSH closes during handshake before any repo command |
+| `connect.westd.seetacloud.com:19254` | `Connection closed by 198.18.0.93 port 19254` | SSH config entry exists, but endpoint closes during handshake |
+| `connect.bjb2.seetacloud.com:39458` | `Connection closed by 198.18.0.88 port 39458` | known_hosts entry exists, but endpoint closes during handshake |
+| `connect.bjb2.seetacloud.com:29069` | `Permission denied (publickey,password)` | endpoint reaches SSH authentication, but current local key is not accepted and no password is available in this session |
+
+Decision:
+
+Do not attempt AutoDL mutation, repo sync, artifact generation, or broader
+replay from the current local credential state. The only endpoint that reaches
+authentication is `connect.bjb2.seetacloud.com:29069`, but CAMP/DP HEADs cannot
+be verified without valid credentials. The plan remains locally/GitHub complete
+and AutoDL-incomplete.
+
+Next admissible work:
+
+Obtain a valid AutoDL credential or updated endpoint for the active instance.
+After access is restored, run only the recorded sync/HEAD/artifact commands:
+fast-forward CAMP to `origin/main`, verify DP remains at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, write the plan JSON/markdown/guarded
+runbook plus `SHA256SUMS` and `HEADS.txt` under the recorded remote template
+path, and leave broader replay unauthorized unless a separate gate explicitly
+approves it.
