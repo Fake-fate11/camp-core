@@ -60567,3 +60567,134 @@ review whether and how the already logged nonnegative candidate-set consensus
 coefficient could become a legal CAMP atom. It still may not promote the atom,
 train CAMP, run Full36, consume formal seeds 11/12/13, change online selection,
 or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Atom Design Review Plan
+
+Objective:
+
+Execute only the plan-only atom-design review authorized by the broader
+materiality diagnosis. This gate reviews whether the logged candidate-set
+consensus coefficient is a legal atom candidate. It does not implement the atom,
+promote it, train CAMP, run replay, consume formal seeds, change online
+selection, or modify DP.
+
+State audit before gate:
+
+```text
+CAMP local HEAD=369138f8c4305bbc17105c067ed513cbe735c525
+CAMP origin/main=369138f8c4305bbc17105c067ed513cbe735c525
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+AutoDL CAMP HEAD=369138f8c4305bbc17105c067ed513cbe735c525
+AutoDL CAMP origin/main=369138f8c4305bbc17105c067ed513cbe735c525
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+plan/replay-authorization/diagnosis artifact SHA256SUMS=OK
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_atom_design_review.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_atom_design_review.py
+```
+
+Local verification:
+
+```bash
+python -m py_compile \
+  scripts/integrations/plan_diffusion_planner_candidate_set_consensus_atom_design_review.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_atom_design_review.py
+
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_materiality.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_atom_design_review.py \
+  -q
+```
+
+Result:
+
+```text
+12 passed in 0.98s
+```
+
+GitHub/AutoDL sync:
+
+```text
+atom design review implementation commit=14cad97b47517bb992506cebf0ac8c34970b28ca
+AutoDL CAMP HEAD=14cad97b47517bb992506cebf0ac8c34970b28ca
+AutoDL CAMP origin/main=14cad97b47517bb992506cebf0ac8c34970b28ca
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+AutoDL tests=12 passed in 0.25s
+AutoDL CAMP status=main...origin/main plus pre-existing untracked files only
+AutoDL DP status=tier4-main...origin/tier4-main
+```
+
+Atom design review artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_atom_design_review_plan_14cad97
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_atom_design_review_plan.json` | `30b84e46196a5ea36bbbc94b392d6861a1d92b937633e65f1d849b40b86e6ca1` |
+| `candidate_set_consensus_atom_design_review_plan.md` | `48b148a005a9705d81eb89441144db7d20d254581d7f505a61a0d44e16f14d88` |
+| `HEADS.txt` | `c88c546da4091566af3dede706e909d39390baa22dc43638cb8cc6b5e1569e2e` |
+
+Atom design review decision:
+
+```text
+status=candidate_set_consensus_atom_design_review_plan_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_dry_run_plan_only
+atom_design_review_ready=True
+shadow_atom_dry_run_plan_authorized=True
+atom_name=candidate_set_consensus_center_rms_cost_v1
+payload_key=candidate_set_consensus_payload_logging
+coefficient_field=candidate_set_consensus_center_rms_m
+nonnegative_by_definition=True
+hinge_required=False
+signed_split_required=False
+affine_score_compatible=True
+convex_master_compatible=True
+classic_benders_claim=False
+atom_promotion_authorized=False
+safety_benefit_evidence=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+failed_checks=[]
+```
+
+Mathematical boundary:
+
+The proposed atom is a fixed current-tick finite-candidate coefficient read from
+default-off payload logging after DP has generated the candidate tensor and
+before CAMP scoring. The coefficient is finite and nonnegative by construction,
+so no hinge or signed split is required. If a later dry-run gate appends it as
+an atom coefficient `a_k`, CAMP scoring remains affine as
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 master remains convex in `w`. DP
+remains a black-box candidate generator. No DP-side classical Benders
+master/subproblem, dual, or valid cuts are constructed here.
+
+Decision:
+
+Accept the atom design review as a plan-only gate. The atom candidate is legally
+defined as `candidate_set_consensus_center_rms_cost_v1` backed by payload field
+`candidate_set_consensus_center_rms_m`. This decision still does not promote the
+atom, mutate runtime selection, train CAMP, run Full36, use formal seeds, claim
+safety benefit, or modify DP.
+
+Next admissible work:
+
+Only `candidate_set_consensus_shadow_atom_dry_run_plan_only` is now authorized.
+That next gate may design a shadow-only dry run that appends the coefficient to
+an offline/shadow atom table and proves selector-visible outputs are unchanged.
+It still may not promote the atom, change online selector weights, train CAMP,
+run formal seeds 11/12/13, run Full36, or modify DP.
