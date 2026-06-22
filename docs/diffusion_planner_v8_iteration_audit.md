@@ -65478,3 +65478,155 @@ lane-projected design hypothesis and fixed current-tick contracts. It may not
 generate candidates, run replay, train CAMP, promote atoms, enable online
 selection, use formal seeds, attach new labels, claim safety benefit, or modify
 DP.
+
+### 2026-06-22 - Candidate-Set Consensus Lane-Projected Jerk/Progress Support Design Plan
+
+Objective:
+
+Run only a plan-only design gate after the route/topology comfort-support
+preflight. This gate predeclares a lane-projected jerk/progress support policy
+hypothesis and the unit-test-only implementation contract. It does not execute
+candidate generation, run DP, run replay, train CAMP, promote atoms, change
+online selection, use formal seeds, claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD after implementation sync=a4e9b4f8ed3ed986134404b2678ff5f2711adeee
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_preflight=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_route_topology_comfort_support_preflight_6999ef5
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+AutoDL sync used a local Git bundle; refs/remotes/origin/main was updated to the same commit.
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py
+```
+
+Verification:
+
+```text
+local:
+python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_route_topology_comfort_support_preflight.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_candidate_generation_support_redesign.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_availability_diversity_synthesis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_post_nonpromotion_next_gate.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_review.py -q
+git diff --check
+
+result:
+8 passed
+123 passed
+
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py -q
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_route_topology_comfort_support_preflight.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_candidate_generation_support_redesign.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_availability_diversity_synthesis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_post_nonpromotion_next_gate.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_review.py -q
+
+result:
+8 passed
+123 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_support_design_plan_a4e9b4f
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_lane_projected_jerk_progress_support_design_plan.json` | `88461a092df238e95f3d076b95f7121af5fa0903216b5e05656deb625241c165` |
+| `candidate_set_consensus_lane_projected_jerk_progress_support_design_plan.md` | `e74951ffc07b99a77c85fc3d8c84b031f51b1647f40454a9f0ea0da67e56bcd8` |
+| `COMMAND.log` | `d04fa0c505fa6b97c0984e6e375e01e02d6ead07166be708c765eeb7b4cda8bd` |
+| `COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `69e23714327a73703943dce41cf87843053298205319aad5f62b0577748cd554` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_design_plan_ready
+passed=True
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests_only
+lane_projected_jerk_progress_support_design_plan_ready=True
+implementation_unit_tests_authorized=True
+selected_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests_only
+candidate_generation_execution_authorized=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+exit_code=0
+```
+
+Evidence evaluation:
+
+The design plan passed. It verified the preflight artifact required files,
+SHA256SUMS, zero exit code, nonempty HEADS, CAMP HEAD equal to origin/main, and
+fixed DP HEAD. It also verified that the source preflight is ready, that the
+source authorizes only this design plan, that lane-projected and prefix
+lane-projected absolute-lateral guard support are present, and that the source
+did not authorize blocked actions.
+
+Selected direction:
+
+```text
+selected_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests_only
+proposed_policy_name=lane_projected_jerk_progress_red_stop
+selection_type=implementation_unit_tests_only
+candidate_generation_execution_authorized=False
+new_replay_authorized=False
+```
+
+The next gate must implement only unit-testable support contracts for a
+default-off lane-projected jerk/progress policy: deterministic output, no
+candidate0 mutation, finite generated tensor shape and metadata, no DP import or
+reward/replay/outcome-label access in unit tests, red-stop cap respect,
+monotone nonnegative progress, synthetic acceleration/jerk bounds, invalid
+red-stop fallback to no generated candidates, and explicit default-off
+configuration.
+
+Mathematical boundary:
+
+This design plan reads only the route/topology comfort-support preflight
+artifact and fixed-head audit. It does not generate candidates, run DP, run
+replay, recompute outcomes, define runtime atoms, choose lambda online, alter
+`score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, train CAMP,
+change online selection, modify DP weights or code, or claim a DP-side
+classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_design_plan_only`
+as complete. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests_only`.
+It does not authorize candidate generation execution, replay, safety benefit
+claims, atom promotion, CAMP retraining, online selector changes, formal seeds,
+Full36, new label attachment, or DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests_only`
+is now authorized. That gate may add default-off implementation scaffolding and
+unit tests for the predeclared jerk/progress policy contract. It may not run
+candidate generation on fixed snapshots, run replay, train CAMP, promote atoms,
+enable online selection, use formal seeds, attach new labels, claim safety
+benefit, or modify DP.
