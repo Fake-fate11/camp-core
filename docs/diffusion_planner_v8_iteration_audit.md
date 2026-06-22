@@ -61000,3 +61000,52 @@ already completed broader nonformal `logging_enabled` logs, write JSON/markdown,
 SHA256, and HEADS artifacts, and then stop for result review. It may not run a
 new replay, train CAMP, promote the atom, use formal seeds, run Full36, change
 online selection, claim safety benefit, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Dry-Run CLI Preflight Fix
+
+Objective:
+
+Fix the analyzer CLI path issue found at the start of
+`candidate_set_consensus_shadow_atom_dry_run_existing_broader_logs_execution_only`.
+The first AutoDL execution attempt failed before loading any broader logs with
+`ModuleNotFoundError: No module named 'scripts'` because the script-file CLI
+path did not add the repo root to `sys.path`. No analyzer JSON/markdown/SHA
+artifact was produced, and no replay, training, DP execution, online selector
+change, atom promotion, or formal seed use occurred.
+
+Fix:
+
+```text
+scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py
+```
+
+The analyzer now adds both the repo root and `camp_core` source root before
+importing repo-local modules. A subprocess test executes the analyzer as a script
+file with `--require_pass`, covering the same CLI shape used by AutoDL.
+
+Local verification:
+
+```bash
+python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py
+
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run_plan.py \
+  -q
+```
+
+Result:
+
+```text
+13 passed in 8.85s
+```
+
+Decision:
+
+Accept the CLI preflight fix locally. The next action remains GitHub push,
+AutoDL sync, and remote unit tests only. The existing broader-log dry-run
+execution gate remains pending until the fixed analyzer is synchronized and
+verified on AutoDL.

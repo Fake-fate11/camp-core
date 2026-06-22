@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from scripts.integrations.analyze_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run import (
@@ -313,3 +315,52 @@ def test_candidate_set_consensus_shadow_atom_dry_run_cli_writes_outputs(
     assert "Candidate-Set Consensus Shadow Atom Dry Run" in output_md.read_text(
         encoding="utf-8"
     )
+
+
+def test_candidate_set_consensus_shadow_atom_dry_run_script_file_cli(
+    tmp_path: Path,
+) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    script = (
+        repo_root
+        / "scripts"
+        / "integrations"
+        / "analyze_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py"
+    )
+    root = tmp_path / "logging_enabled"
+    source_json = tmp_path / "shadow_plan.json"
+    output_json = tmp_path / "dry_run.json"
+    output_md = tmp_path / "dry_run.md"
+    _write_logs(root)
+    source_json.write_text(json.dumps(_shadow_plan()), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--shadow_plan_json",
+            str(source_json),
+            "--candidate_root",
+            str(root),
+            "--expected_logs",
+            "2",
+            "--expected_records",
+            "4",
+            "--expected_candidates",
+            "2",
+            "--output_json",
+            str(output_json),
+            "--output_md",
+            str(output_md),
+            "--require_pass",
+        ],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "candidate_set_consensus_shadow_atom_dry_run_ready" in result.stdout
+    assert json.loads(output_json.read_text(encoding="utf-8"))["final_decision"][
+        "status"
+    ] == READY_STATUS
