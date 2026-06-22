@@ -61156,3 +61156,113 @@ authorized. That review may interpret spread/rank/change diagnostics from the
 dry-run artifact and decide whether a later, separately planned sensitivity gate
 is justified. It may not train CAMP, promote the atom, run replay, use formal
 seeds, alter the online selector, claim safety benefit, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Dry-Run Result Review
+
+Objective:
+
+Review the existing broader-log shadow dry-run artifact only. This gate reads
+the completed dry-run JSON/SHA/HEADS, interprets mechanical invariance and
+ranking diagnostics, and decides whether a later sensitivity plan-only gate is
+justified. It does not run replay, rerun the analyzer, promote the atom, train
+CAMP, run Full36, use formal seeds, change online selection, claim safety
+benefit, or modify DP.
+
+State audit:
+
+```text
+local CAMP HEAD=be14d9e4838754d4c76242f55a6bf6fe9ccd0aea
+local origin/main=be14d9e4838754d4c76242f55a6bf6fe9ccd0aea
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+artifact SHA256SUMS=OK
+artifact CAMP HEAD=83619c33f5343eceaa4f0e2db2ef7aa3a0d68cf1
+artifact DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Result-review diagnostics:
+
+```text
+status=candidate_set_consensus_shadow_atom_dry_run_ready
+passed=True
+failed_checks=[]
+records=60
+valid_records=60
+available_records=60
+shadow_appended_records=60
+ranking_signal_records=60
+deployed_selection_preserved_records=60
+fallback_state_preserved_records=60
+formal_seed_log_count=0
+record_error_counts={}
+max_base_score_abs_diff=4.440892098500626e-16
+max_base_selection_score_abs_diff=4.440892098500626e-16
+max_shadow_zero_weight_score_abs_diff=0.0
+max_shadow_zero_weight_selection_score_abs_diff=0.0
+coefficient_spread_min=0.017215316921483505
+coefficient_spread_mean=0.18147700325605598
+coefficient_spread_max=0.660482864828427
+consensus_only_would_change_selected_index_records=39
+consensus_only_change_rate=0.65
+```
+
+Run-level diagnostics:
+
+| Run | Records | Ranking signal | Consensus-only changed |
+| --- | ---: | ---: | ---: |
+| `sample_tl59_seed1_npc0_tlon` | 10 | 10 | 6 |
+| `sample_tl59_seed2_npc4_tlon` | 10 | 10 | 7 |
+| `sample_tl59_seed3_npc4_tloff` | 10 | 10 | 8 |
+| `sample_normal2_seed1_npc0_tloff` | 10 | 10 | 9 |
+| `nishi_release_seed2_npc4_tlon` | 10 | 10 | 0 |
+| `nishi_lanechange_seed4_npc4_tloff` | 10 | 10 | 9 |
+
+Index diagnostics:
+
+```text
+selected_index_counts={0: 6, 1: 9, 2: 12, 3: 8, 4: 3, 5: 6, 6: 10, 7: 6}
+consensus_only_best_index_counts={0: 18, 1: 5, 2: 7, 3: 4, 4: 5, 5: 3, 6: 3, 7: 3, None: 12}
+```
+
+Interpretation:
+
+The shadow atom append is mechanically safe on the existing broader nonformal
+logs: it leaves logged scores, selection scores, selected indices, feasible
+masks, fallback mode, and infeasibility reasons unchanged with exact zero
+shadow-score deltas. The coefficient is not constant: all 60 records have
+ranking signal, and a consensus-only lower-is-better ranking would choose a
+different candidate in 39 of 60 records. However, this remains an offline
+finite-candidate ranking diagnostic only. It does not evaluate closed-loop
+outcomes, does not evaluate safety benefit, and does not prove the coefficient
+should receive nonzero online weight. The `nishi_release_seed2_npc4_tlon` route
+has ranking signal but no consensus-only selection change, so any sensitivity
+plan must report route-level heterogeneity and must not collapse the result to
+a single aggregate claim.
+
+Mathematical boundary:
+
+This review only interprets fixed current-tick finite-candidate coefficients and
+existing logged affine scores. It keeps DP as a black-box candidate generator,
+keeps the coefficient independent of closed-loop outcomes and safety scores, and
+does not construct a DP-side classical Benders master/subproblem, dual, or valid
+cuts. A later sensitivity plan, if designed, must keep score changes affine in
+weights and preserve simplex/CVaR/L2 convexity.
+
+Decision:
+
+Accept `candidate_set_consensus_shadow_atom_dry_run_result_review_only` as
+complete. The evidence justifies planning a bounded offline weight-sensitivity
+analysis over the same existing broader nonformal logs. It does not authorize
+running that sensitivity analysis yet, and it does not authorize atom promotion,
+CAMP retraining, online selector changes, new replay, formal seeds, Full36,
+safety-benefit claims, or DP modification.
+
+Next admissible gate:
+
+Only `candidate_set_consensus_shadow_atom_weight_sensitivity_plan_only` is now
+authorized. That gate may design a future offline sensitivity sweep over
+existing logs, including lambda grid, affine score formula, feasible-mask/fallback
+handling, route-level reporting, accept/reject criteria, artifact/SHA/HEADS
+recording, and explicit no-promotion boundaries. It may not execute the sweep,
+train CAMP, promote the atom, run replay, use formal seeds, change online
+selection, claim safety benefit, or modify DP.
