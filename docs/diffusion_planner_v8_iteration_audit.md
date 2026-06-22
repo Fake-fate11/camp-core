@@ -61720,3 +61720,106 @@ is now authorized. That review may interpret the sensitivity artifact, route
 heterogeneity, fallback-retained records, transition counts, and lambda
 thresholds. It may not train CAMP, promote the atom, run replay, use formal
 seeds, alter the online selector, claim safety benefit, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Weight-Sensitivity Result Review
+
+Objective:
+
+Review the existing broader-log weight-sensitivity artifact only. This gate
+reads the completed sensitivity JSON/SHA/HEADS, interprets the lambda-grid
+diagnostics and route heterogeneity, and decides whether a later safety-score
+evaluation plan-only gate is justified. It does not run replay, rerun the
+analyzer, promote the atom, train CAMP, run Full36, use formal seeds, change
+online selection, claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local CAMP HEAD=653837f1298ca7ac485be85b16eea7d5b0f58315
+local origin/main=653837f1298ca7ac485be85b16eea7d5b0f58315
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+artifact SHA256SUMS=OK
+artifact CAMP HEAD=b373e0cdd8398cf16ca23c220f6f144b99a2c58f
+artifact DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Result-review diagnostics:
+
+```text
+status=candidate_set_consensus_shadow_atom_weight_sensitivity_ready
+passed=True
+failed_checks=[]
+records=60
+valid_records=60
+ranking_signal_records=46
+fallback_retained_records=12
+formal_seed_log_count=0
+critical_positive_lambda_records=39
+min_critical_positive_lambda=0.026845163286762983
+max_changed_records=11
+selected_index_transition_counts={1->5: 2, 2->5: 3, 3->0: 3, 4->0: 2, 5->2: 2, 5->4: 5, 6->0: 5, 6->2: 1}
+```
+
+Lambda interpretation:
+
+- lambda 0.0, 0.005, 0.01, and 0.025 changed 0/60 records;
+- lambda 0.05 changed 1/60 records;
+- lambda 0.1 changed 2/60 records;
+- lambda 0.2 changed 3/60 records;
+- lambda 0.5 changed 6/60 records;
+- lambda 1.0 changed 11/60 records.
+
+Route interpretation:
+
+- `sample_normal2_seed1_npc0_tloff` is the most sensitive route, with 5/10
+  changed records at lambda 1.0;
+- `nishi_lanechange_seed4_npc4_tloff`,
+  `sample_tl59_seed1_npc0_tlon`, and `sample_tl59_seed3_npc4_tloff`
+  each change at most 2/10 records;
+- `sample_tl59_seed2_npc4_tlon` has ranking signal but no selected-index change
+  through lambda 1.0;
+- `nishi_release_seed2_npc4_tlon` is all fallback-retained in this artifact and
+  has no sensitivity changes.
+
+Interpretation:
+
+The offline sensitivity result is mechanically valid and bounded. It confirms
+that the candidate-set consensus coefficient can affect finite-candidate
+selection only for sufficiently large lambda on this sample, with no changes
+below the predeclared 0.05 grid point and 11/60 changed records at lambda 1.0.
+The route-level pattern is heterogeneous and fallback-sensitive. This is useful
+for deciding what to evaluate next, but it is not a promotion signal by itself:
+there is no safety-score evaluation, no closed-loop outcome evaluation, no
+formal seed evidence, and no evidence that any nonzero online weight is safe or
+beneficial.
+
+Mathematical boundary:
+
+This review interprets only the fixed finite-candidate score perturbation
+`score_prime_k(lambda) = selection_score_k + lambda * a_k`. It keeps DP as a
+black-box candidate generator, keeps the coefficient independent of
+closed-loop outcomes and safety scores, and does not construct a DP-side
+classical Benders master/subproblem, dual, or valid cuts. A later safety-score
+evaluation plan may evaluate changed choices with predeclared read-only metrics,
+but must not use those metrics to define the atom or select candidates online.
+
+Decision:
+
+Accept
+`candidate_set_consensus_shadow_atom_weight_sensitivity_result_review_only` as
+complete. The result justifies planning a safety-score evaluation boundary for
+the changed candidates and fallback-retained records. It does not authorize
+executing that evaluation yet, and it does not authorize atom promotion, CAMP
+retraining, online selector changes, new replay, formal seeds, Full36,
+safety-benefit claims, or DP modification.
+
+Next admissible gate:
+
+Only `candidate_set_consensus_shadow_atom_safety_score_evaluation_plan_only` is
+now authorized. That gate may design a future read-only evaluation over existing
+artifacts, including which safety-score fields are allowed, how changed and
+fallback-retained records are separated, route-level reporting, accept/reject
+criteria, artifact/SHA/HEADS recording, and explicit no-promotion boundaries. It
+may not execute the evaluation, train CAMP, promote the atom, run replay, use
+formal seeds, change online selection, claim safety benefit, or modify DP.
