@@ -60396,3 +60396,174 @@ Commit and push the replay-consideration gate, sync AutoDL CAMP to the new
 GitHub HEAD, run the gate on AutoDL against the recorded plan artifact and fixed
 DP checkout, then only if that remote gate passes, run the guarded broader
 nonformal replay with the explicit guard environment variable.
+
+### 2026-06-22 - Broader Replay Authorization, Guarded Replay, and Materiality Diagnosis
+
+Objective:
+
+Complete the replay-consideration gate remotely, run the guarded broader
+nonformal replay only after explicit authorization, then diagnose broader
+candidate-set consensus materiality from the completed replay artifacts.
+
+GitHub and AutoDL sync:
+
+```text
+replay authorization gate commit=56172c92f42d5d5edd1b1e2776f1cf8efa7a169a
+broader diagnosis implementation commit=5e915a0bb0dffc6f453ab8204b3abcff279cf816
+candidate-row accounting fix commit=6d436d2a8acb199a88e57ff06e1215f1f17ea409
+AutoDL CAMP HEAD=6d436d2a8acb199a88e57ff06e1215f1f17ea409
+AutoDL CAMP origin/main=6d436d2a8acb199a88e57ff06e1215f1f17ea409
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+AutoDL CAMP status=main...origin/main plus pre-existing untracked files only
+AutoDL DP status=tier4-main...origin/tier4-main
+```
+
+Remote tests:
+
+```bash
+PY=/root/autodl-tmp/dp312_venv/bin/python
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_materiality.py \
+  -q
+```
+
+Result:
+
+```text
+6 passed in 0.19s
+```
+
+Replay authorization artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_broader_nonformal_materiality_replay_authorization_56172c9
+```
+
+Replay authorization SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_broader_nonformal_materiality_replay_authorization.json` | `3a9a78d2410244fd5bb47651934cce06b8d9273daa1385b2a01370c9bc1159dd` |
+| `candidate_set_consensus_broader_nonformal_materiality_replay_authorization.md` | `a52a367dcd8b72c853feb9c63f97b827706b81b079d988d23f967a1084a12fd0` |
+| `HEADS.txt` | `297fcf6159f9478ab4b0626aa60103eb38a4f13f3ef8f33d9fd89657bd851947` |
+
+Replay authorization decision:
+
+```text
+status=candidate_set_consensus_broader_nonformal_materiality_replay_authorized
+passed=True
+authorized_next_work=candidate_set_consensus_guarded_broader_nonformal_materiality_replay_only
+broader_replay_authorized=True
+new_replay_authorized=True
+closed_loop_replay_authorized=True
+guard_env_var=CANDIDATE_SET_CONSENSUS_BROADER_MATERIALITY_REPLAY_APPROVED=yes
+failed_checks=[]
+atom_promotion_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+safety_benefit_evidence=False
+```
+
+Guarded broader replay:
+
+```text
+runbook=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_broader_nonformal_materiality_plan_e3b4a4f/run_candidate_set_consensus_broader_nonformal_materiality.sh
+guard=CANDIDATE_SET_CONSENSUS_BROADER_MATERIALITY_REPLAY_APPROVED=yes
+log=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_broader_nonformal_materiality_replay_authorization_56172c9/guarded_broader_nonformal_replay_56172c9.log
+replay_root=/root/autodl-tmp/camp_dp_candidate_set_consensus_broader_nonformal_materiality
+return_code=0
+```
+
+Replay audit result:
+
+```text
+selector_equivalence.equivalent=True
+selector_equivalence.paired_logs=6
+selector_equivalence.records=60
+payload_audit.status=candidate_set_consensus_payload_smoke_audit_passed
+payload_audit.passed=True
+dataset_audit.passed=True
+dataset_audit.logs=6
+dataset_audit.records=60
+dataset_audit.candidates=480
+formal_seeds_used=False
+```
+
+Broader materiality diagnosis artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_broader_nonformal_materiality_diagnosis_6d436d2
+```
+
+Broader materiality diagnosis SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_broader_nonformal_materiality_diagnosis.json` | `1bb28c492cf90cb27f9ffa46e8cc17e75fa6f77ac1aed85b6f4182a77b87aaa6` |
+| `candidate_set_consensus_broader_nonformal_materiality_diagnosis.md` | `42a588414139089b5579c8249aab5f35c524b0a433508dfd04b34772ffbdf017` |
+| `HEADS.txt` | `62934ee93b3d523f01a1dc9949195a9b43f6da26029a9995b894966f7b14a2ec` |
+
+Broader materiality diagnosis:
+
+```text
+status=candidate_set_consensus_broader_nonformal_materiality_diagnosis_ready
+passed=True
+screen_completed=True
+materiality_gate_passed=True
+signal_present=True
+sample_too_small_for_promotion=False
+authorized_next_work=candidate_set_consensus_atom_design_review_plan_only
+atom_design_review_plan_authorized=True
+atom_promotion_authorized=False
+safety_benefit_evidence=False
+failed_checks=[]
+records=60
+valid_records=48
+valid_record_rate=0.8
+candidate_rows=480
+valid_candidate_rows=384
+positive_spread_records=46
+positive_spread_rate=0.9583333333333334
+selected_not_consensus_best_records=39
+finite_lambda_records=39
+selected_rank_mean=3.25
+selected_rank_max=7.0
+cost_spread_mean=0.1563658664244291
+cost_spread_max=0.3918897625920324
+min_lambda_to_change_any_record=0.026845163286762983
+```
+
+Decision:
+
+Accept the broader nonformal materiality diagnosis as materiality-positive for
+candidate-set consensus under the predeclared nonformal replay matrix. This
+proves material candidate-set variation and selector-rank sensitivity in the
+fixed finite-candidate logs. It does not prove CAMP is safer or better than DP
+Top-1, and it does not authorize atom promotion, CAMP retraining, online
+selector changes, Full36, formal seeds, or DP modification.
+
+Mathematical boundary:
+
+DP remains only a fixed black-box candidate generator. The diagnosis reads
+current-tick payload coefficients, feasible masks, selected indices, and
+existing CAMP scores from completed nonformal logs. It does not use closed-loop
+outcomes or safety scores to define an online feature. A later atom-design gate
+must still prove the coefficient definition, nonnegativity or hinge/signed-split
+legality, and preservation of `score_k(w)=a_k^T w` and the convex
+simplex/CVaR/L2 master. No DP-side classical Benders master/subproblem, dual, or
+valid cut is constructed here.
+
+Next admissible work:
+
+Only a plan-only atom-design review gate is now authorized:
+`candidate_set_consensus_atom_design_review_plan_only`. That next gate may
+review whether and how the already logged nonnegative candidate-set consensus
+coefficient could become a legal CAMP atom. It still may not promote the atom,
+train CAMP, run Full36, consume formal seeds 11/12/13, change online selection,
+or modify DP.
