@@ -60156,3 +60156,133 @@ fast-forward CAMP to `origin/main`, verify DP remains at
 runbook plus `SHA256SUMS` and `HEADS.txt` under the recorded remote template
 path, and leave broader replay unauthorized unless a separate gate explicitly
 approves it.
+
+### 2026-06-22 - AutoDL Sync and Plan Artifact Verification
+
+Objective:
+
+Complete the previously blocked AutoDL sync/HEAD/artifact verification for the
+candidate-set consensus broader nonformal materiality plan. This entry still
+does not run broader replay and does not modify DP.
+
+Endpoint:
+
+```text
+ssh -p 29069 root@connect.bjb2.seetacloud.com
+```
+
+Remote sync and fixed-DP audit:
+
+```text
+HOSTNAME=autodl-container-29ff4c9452-e32a986b
+CAMP_BEFORE=f36a3a9aa362f09c7e5d1e49a52727330a2c70d3
+CAMP_ORIGIN_BEFORE=f36a3a9aa362f09c7e5d1e49a52727330a2c70d3
+TRACKED_DIRTY_BEFORE=0
+CAMP_AFTER=e3b4a4fe67d3a6958df6fc2b395d24ae805576ab
+CAMP_ORIGIN_AFTER=e3b4a4fe67d3a6958df6fc2b395d24ae805576ab
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+AutoDL CAMP status after sync:
+
+```text
+## main...origin/main
+?? diffusion_planner_integration.md
+?? dp_camp_device_handoff.md
+?? test_diffusion_planner_benchmark_matrix.py
+```
+
+These untracked files were pre-existing and left untouched.
+
+AutoDL DP status after sync:
+
+```text
+## tier4-main...origin/tier4-main
+```
+
+AutoDL verification:
+
+```bash
+cd /root/autodl-tmp/camp_core
+export PYTHONPATH=/root/autodl-tmp/camp_core:/root/autodl-tmp/camp_core/camp_core
+PY=/root/autodl-tmp/dp312_venv/bin/python
+
+$PY -m py_compile \
+  scripts/integrations/plan_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_plan.py
+
+$PY -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_plan.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_tiny_materiality.py \
+  -q
+```
+
+Result:
+
+```text
+13 passed in 0.19s
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_broader_nonformal_materiality_plan_e3b4a4f
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_broader_nonformal_materiality_plan.json` | `402eac6e4b4fe917ddeb8bef10f736d0cdad285cda297fe51d222feaea845756` |
+| `candidate_set_consensus_broader_nonformal_materiality_plan.md` | `f6d6432f1c18a4580d36e76536bc27be8de11cec390cffd909215ecb9f05df83` |
+| `run_candidate_set_consensus_broader_nonformal_materiality.sh` | `fb56457ed64393832c2c25018935a621fb70d8f258f9fb6f1c5aa6c7850ee402` |
+| `HEADS.txt` | `e4af75c489e915c9842f8d018f15009586420981680541d6f41d6ef4b4496dcb` |
+
+HEADS.txt:
+
+```text
+CAMP_HEAD=e3b4a4fe67d3a6958df6fc2b395d24ae805576ab
+CAMP_ORIGIN_MAIN=e3b4a4fe67d3a6958df6fc2b395d24ae805576ab
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+CAMP_STATUS_BEGIN
+## main...origin/main
+?? diffusion_planner_integration.md
+?? dp_camp_device_handoff.md
+?? test_diffusion_planner_benchmark_matrix.py
+CAMP_STATUS_END
+DP_STATUS_BEGIN
+## tier4-main...origin/tier4-main
+DP_STATUS_END
+```
+
+Final decision:
+
+```text
+status=candidate_set_consensus_broader_nonformal_materiality_plan_autodl_verified
+local_github_sync_passed=True
+autodl_camp_sync_passed=True
+autodl_dp_fixed_head_passed=True
+autodl_tests_passed=True
+autodl_plan_artifact_recorded=True
+broader_replay_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Next admissible work:
+
+The plan-only gate is now complete through local tests, GitHub push, AutoDL
+sync, fixed-DP verification, and remote artifact/SHA recording. A later,
+separate gate may consider whether to authorize the guarded broader nonformal
+materiality replay. This entry itself does not authorize that replay.
