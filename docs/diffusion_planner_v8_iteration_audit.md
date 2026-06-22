@@ -61823,3 +61823,144 @@ fallback-retained records are separated, route-level reporting, accept/reject
 criteria, artifact/SHA/HEADS recording, and explicit no-promotion boundaries. It
 may not execute the evaluation, train CAMP, promote the atom, run replay, use
 formal seeds, change online selection, claim safety benefit, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Safety-Score Evaluation Plan
+
+Objective:
+
+Design only the plan-only safety-score evaluation boundary after the completed
+candidate-set consensus shadow atom weight-sensitivity result review. This gate
+does not execute the evaluation, run replay, train CAMP, promote the atom, run
+Full36, use formal seeds, change online selection, claim safety benefit, or
+modify DP.
+
+State audit:
+
+```text
+local CAMP HEAD before implementation=d2dde51bd681a900a43f633793d6826a4d0e919f
+local origin/main before implementation=d2dde51bd681a900a43f633793d6826a4d0e919f
+implementation commit=1e7613f8613d3583373bbd0b89b26e40e983c546
+AutoDL CAMP HEAD after sync=1e7613f8613d3583373bbd0b89b26e40e983c546
+AutoDL CAMP origin/main after sync=1e7613f8613d3583373bbd0b89b26e40e983c546
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+local unrelated untracked handoff/slides files left untouched
+AutoDL unrelated untracked migration files left untouched
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_plan.py
+```
+
+The plan consumes only the completed weight-sensitivity JSON artifact and emits
+the future safety-score evaluation boundary. It records the fixed nonformal
+route/seed matrix, existing sample-map and nishishinjuku assets, allowed
+read-only outcome fields, SafetyCost v1 component contract, traffic-light /
+turn / normal / nishishinjuku coverage, fallback/progress/comfort boundaries,
+latency boundary, spread/rank/sensitivity diagnostics, accept/reject criteria,
+and artifact/SHA/HEADS requirements.
+
+Verification:
+
+```text
+local:
+python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_plan.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py -q
+
+result:
+8 passed
+15 passed
+
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py -q
+
+result:
+23 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_evaluation_plan_1e7613f
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_safety_score_evaluation_plan.json` | `44d4b5a5e48f66e79acb0dc0349c49b54494e3311b115cdd010401a29ca177ca` |
+| `candidate_set_consensus_shadow_atom_safety_score_evaluation_plan.md` | `cbc7471205cdc0ff03e42979a393cda3f1db312f877e969eb7be9f6b47421fdc` |
+| `HEADS.txt` | `8404b57d6e66578beca399f7286717832a76b9a6472feeff92efceb531d068a2` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_safety_score_evaluation_plan_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_safety_score_evaluation_implementation_unit_tests_only
+safety_score_evaluation_plan_ready=True
+safety_score_evaluation_implementation_authorized=True
+safety_score_evaluation_execution_authorized=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+lambda_grid=[0.0, 0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.5, 1.0]
+routes=[
+  sample_tl59_seed1_npc0_tlon,
+  sample_tl59_seed2_npc4_tlon,
+  sample_tl59_seed3_npc4_tloff,
+  sample_normal2_seed1_npc0_tloff,
+  nishi_release_seed2_npc4_tlon,
+  nishi_lanechange_seed4_npc4_tloff
+]
+```
+
+Mathematical boundary:
+
+The plan may read safety/outcome labels only after the shadow selected index has
+already been fixed by the existing lambda-grid weight-sensitivity artifact. It
+keeps DP as a black-box finite-candidate generator and keeps the diagnostic
+selector expression affine:
+
+```text
+score_prime_k(lambda) = selection_score_k + lambda * candidate_set_consensus_center_rms_m[k]
+```
+
+`candidate_closed_loop_outcomes`, SafetyCost v1, progress, comfort, red-light,
+collision, near-miss, and lane-violation fields are read-only future evaluation
+labels. They may not define the candidate-set consensus coefficient, fit CAMP
+weights, choose lambda online, alter the atom schema, select candidates online,
+or support a DP-side classical Benders claim.
+
+Decision:
+
+Accept
+`candidate_set_consensus_shadow_atom_safety_score_evaluation_plan_only` as
+complete. The plan authorizes only implementation and unit tests for a future
+read-only safety-score evaluator. It does not authorize executing that
+evaluation, running replay, promoting the atom, retraining CAMP, using formal
+seeds, changing the online selector, claiming safety benefit, or modifying DP.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_shadow_atom_safety_score_evaluation_implementation_unit_tests_only`
+is now authorized. That gate may implement and unit-test the evaluator against
+synthetic/local fixtures and source artifact contracts. It may not run the
+evaluation on broader logs, run replay, train CAMP, promote the atom, use formal
+seeds, change online selection, claim safety benefit, or modify DP.
