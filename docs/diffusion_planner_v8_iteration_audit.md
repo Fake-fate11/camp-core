@@ -60851,3 +60851,109 @@ is now authorized. The next gate may implement a read-only analyzer that consume
 existing broader nonformal logs and performs the zero-weight shadow append
 checks in tests. A separate later gate would still be required before running it
 on the AutoDL replay artifact.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Dry-Run Implementation Unit Tests
+
+Objective:
+
+Execute only the implementation/unit-tests gate authorized by the shadow atom
+dry-run plan. This gate implements a read-only analyzer and synthetic tests for
+the zero-weight shadow append contract. It does not run the analyzer on real
+AutoDL broader logs, run replay, promote the atom, train CAMP, run formal seeds,
+change online selection, or modify DP.
+
+State audit before gate:
+
+```text
+CAMP local HEAD=4f25f54a9e14ffe3fdc3b16d8648a5f5b9e1bd2c
+CAMP origin/main=4f25f54a9e14ffe3fdc3b16d8648a5f5b9e1bd2c
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+AutoDL CAMP HEAD=4f25f54a9e14ffe3fdc3b16d8648a5f5b9e1bd2c
+AutoDL CAMP origin/main=4f25f54a9e14ffe3fdc3b16d8648a5f5b9e1bd2c
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+candidate_set_consensus_shadow_atom_dry_run_plan_98be8ec SHA256SUMS=OK
+```
+
+Implementation:
+
+```text
+scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py
+```
+
+Implemented checks:
+
+- require source shadow-plan status
+  `candidate_set_consensus_shadow_atom_dry_run_plan_ready`;
+- require source authorized next work
+  `candidate_set_consensus_shadow_atom_dry_run_implementation_unit_tests_only`;
+- require implementation authorization true and dry-run execution authorization
+  false in the source plan;
+- require expected log, record, and candidate counts to match the source plan;
+- reject any selection log path or run id containing formal seeds 11, 12, or 13;
+- require payload `candidate_set_consensus_payload_logging` to be available,
+  default-off, no-leak, no-selection-effect, and current-tick only;
+- require coefficient field `candidate_set_consensus_center_rms_m` length equals
+  candidate count and values are finite and nonnegative;
+- append `candidate_set_consensus_center_rms_cost_v1` only as an offline shadow
+  atom with zero primary and selection weights;
+- recompute affine base scores and selection scores from logged atom tables;
+- prove the zero-weight append leaves scores, selection_scores, selected_index,
+  feasible_mask, fallback mode, and infeasibility reasons unchanged;
+- keep closed-loop outcomes and safety-score fields out of the coefficient and
+  out of this dry-run analysis.
+
+Local verification:
+
+```bash
+python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py
+
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run_plan.py \
+  -q
+```
+
+Result:
+
+```text
+12 passed in 6.59s
+```
+
+Synthetic coverage:
+
+- ready source plan accepts zero-weight shadow append;
+- source plan not ready rejects;
+- bad logged base affine score rejects;
+- negative consensus coefficient rejects;
+- formal seed path rejects;
+- CLI writes JSON/markdown outputs and enforces `--require_pass`.
+
+Mathematical boundary:
+
+The implementation appends the fixed current-tick finite-candidate coefficient
+as a shadow-only atom with weight zero. Base and shadow bookkeeping both remain
+affine in CAMP weights as `score_k(w)=a_k^T w`; the zero appended weight must
+produce exact score deltas of zero. The analyzer is read-only over existing logs
+and constructs no DP-side master/subproblem, dual, or valid cuts. It does not
+train CAMP, execute or modify DP, use formal seeds, read closed-loop outcomes or
+safety scores for the coefficient, change the deployed atom schema, or mutate
+online selection.
+
+Decision:
+
+Accept the local implementation/unit-tests evidence for the shadow atom dry-run
+analyzer. This decision still does not authorize executing the analyzer on the
+AutoDL broader logs until GitHub/AutoDL sync and remote unit tests pass. It also
+does not authorize replay, atom promotion, CAMP retraining, online selector
+changes, formal seeds, Full36, safety-benefit claims, or DP modification.
+
+Next admissible work:
+
+Only GitHub push, AutoDL sync, and remote unit tests for
+`candidate_set_consensus_shadow_atom_dry_run_implementation_unit_tests_only` are
+authorized next. A later separate gate is still required before running the
+analyzer on `/root/autodl-tmp/camp_dp_candidate_set_consensus_broader_nonformal_materiality/logging_enabled`.
