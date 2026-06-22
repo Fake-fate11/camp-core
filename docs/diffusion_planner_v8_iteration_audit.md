@@ -64062,3 +64062,134 @@ frozen plan/result-review/evaluation artifacts and record JSON, markdown,
 command log, exit code, HEADS, and SHA256SUMS. It may not promote the atom,
 train CAMP, enable online selection, use formal seeds, run replay, claim safety
 benefit, attach labels, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Safety-Score Mixed Result Non-Promotion Diagnosis Execution
+
+Objective:
+
+Run only the authorized read-only mixed-result non-promotion diagnosis against
+the frozen diagnosis plan, result-review artifact, and evaluation execution
+artifact. This gate records JSON/markdown/command log/exit code/HEADS/SHA256SUMS
+and stops for a separate result-review gate. It does not recompute outcomes,
+attach labels, train CAMP, promote the atom, use formal seeds, change online
+selection, run replay, claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD before execution=9b19c5bfcc33571c27d3cd2c8063bda24a1878b0
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+plan_json=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_plan_162cfe9/candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_plan.json
+result_review_json=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review_0a87b7b/candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review.json
+execution_json=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution_a28d089/candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution.json
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+```
+
+Verification:
+
+```text
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/diagnose_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py -q
+
+result:
+5 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_execution_9b19c5b
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_execution.json` | `c6493d8cbce4116acaf51c7e798d7fec41d876ba7caec76917c1c124bbd9c024` |
+| `candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_execution.md` | `05ddf2852773559f24dde79bf2bd4b30176669945c9f97d844595cbec0884bcc` |
+| `COMMAND.log` | `732af4087e58a45a8d4af8ef8d7dcf6db6350e962b76b5ff2ee17f465cfc4de3` |
+| `COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `5692132a33834aab49da5233c26be4f5136e9238160646402de064d94f72c6da` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_result_review_only
+mixed_result_nonpromotion_diagnosis_ready=True
+mixed_result_nonpromotion_diagnosis_result_review_authorized=True
+diagnosis_class=mixed_nonpromotion
+sample_too_small_for_promotion=True
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+exit_code=0
+```
+
+Diagnosis summary:
+
+```text
+diagnosis_class=mixed_nonpromotion
+records=60
+better_only_lambda_count=3
+worse_lambda_count=2
+sample_too_small_for_promotion=True
+safety_benefit_evidence=False
+atom_promotion_recommended=False
+by_fallback.nonfallback.changed_records=23
+by_fallback.nonfallback.better_records=16
+by_fallback.nonfallback.worse_records=7
+by_fallback.nonfallback.mean_delta=0.000860317214553384
+```
+
+Evidence evaluation:
+
+The read-only diagnosis executed successfully and confirms the result remains a
+mixed non-promotion diagnostic. The changed rows are concentrated in the
+nonfallback bucket in this artifact: 23 changed records, 16 better, 7 worse,
+and a small positive mean delta. This reinforces the prior conclusion that the
+candidate-set consensus shadow signal is real but not promotion-ready and not a
+safety-benefit proof.
+
+Mathematical boundary:
+
+The diagnosis read existing offline artifacts only. It did not recompute
+outcomes, define atoms, choose lambda online, alter `score_k(w)=a_k^T w`,
+mutate the convex simplex/CVaR/L2 master, train CAMP, change online selection,
+run replay, run DP, modify DP, or claim a DP-side classical Benders
+decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_execution_only`
+as complete. This authorizes only
+`candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_result_review_only`.
+It does not authorize safety benefit claims, atom promotion, CAMP retraining,
+online selector changes, formal seeds, Full36, new replay, label attachment, or
+DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_result_review_only`
+is now authorized. That gate may review the diagnosis artifact and decide the
+next conservative plan-only action. It may not promote the atom, train CAMP,
+enable online selection, use formal seeds, run replay, claim safety benefit,
+attach labels, or modify DP.
