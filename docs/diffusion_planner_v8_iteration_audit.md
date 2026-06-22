@@ -61043,9 +61043,23 @@ Result:
 13 passed in 8.85s
 ```
 
+GitHub/AutoDL sync and remote verification:
+
+```text
+cli fix commit=b40868a20571996ba68ebb995b66c82b04444fb7
+AutoDL CAMP HEAD=b40868a20571996ba68ebb995b66c82b04444fb7
+AutoDL CAMP origin/main=b40868a20571996ba68ebb995b66c82b04444fb7
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+AutoDL verification python=/root/miniconda3/envs/camp/bin/python
+AutoDL verification pytest=13 passed in 0.65s
+AutoDL CAMP status=main...origin/main plus pre-existing untracked files only
+AutoDL DP status=tier4-main...origin/tier4-main
+```
+
 Decision:
 
-Accept the CLI preflight fix locally. The next action remains GitHub push,
-AutoDL sync, and remote unit tests only. The existing broader-log dry-run
-execution gate remains pending until the fixed analyzer is synchronized and
-verified on AutoDL.
+Accept the CLI preflight fix. The analyzer script-file CLI is now verified
+locally and on AutoDL. The existing broader-log dry-run execution gate is
+authorized to restart with the fixed analyzer. This still does not authorize a
+new replay, atom promotion, CAMP retraining, formal seeds, Full36, online
+selector changes, safety-benefit claims, or DP modification.
