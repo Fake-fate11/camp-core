@@ -60,6 +60,7 @@ class RouteTopologyCandidateConfig:
     min_stop_distance_m: float = 2.0
     max_deceleration_mps2: float = 3.0
     default_speed_mps: float = 4.0
+    jerk_progress_max_jerk_mps3: float = 8.0
     min_progress_ratio: float = 0.8
     progress_loss_budgets_m: tuple[float, ...] = (0.5, 1.0, 1.5)
     smoothness_loss_budgets: tuple[float, ...] = (0.0, 0.5, 1.0)
@@ -94,6 +95,7 @@ def parse_args() -> argparse.Namespace:
             "lane_centerline_red_stop",
             "prefix_comfort_red_stop",
             "lane_projected_red_stop",
+            "lane_projected_jerk_progress_red_stop",
             "prefix_lane_projected_red_stop",
             "prefix_lane_projected_latest_safe_red_stop",
         ),
@@ -107,6 +109,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min_stop_distance_m", type=float, default=2.0)
     parser.add_argument("--max_deceleration_mps2", type=float, default=3.0)
     parser.add_argument("--default_speed_mps", type=float, default=4.0)
+    parser.add_argument("--jerk_progress_max_jerk_mps3", type=float, default=8.0)
     parser.add_argument("--min_progress_ratio", type=float, default=0.8)
     parser.add_argument("--progress_loss_budget_m", action="append", type=float)
     parser.add_argument("--smoothness_loss_budget", action="append", type=float)
@@ -148,6 +151,7 @@ def main() -> None:
         min_stop_distance_m=args.min_stop_distance_m,
         max_deceleration_mps2=args.max_deceleration_mps2,
         default_speed_mps=args.default_speed_mps,
+        jerk_progress_max_jerk_mps3=args.jerk_progress_max_jerk_mps3,
         min_progress_ratio=args.min_progress_ratio,
         progress_loss_budgets_m=tuple(
             args.progress_loss_budget_m
@@ -435,6 +439,43 @@ def build_route_topology_candidates(
                             "stop_distance_m": float(stop_distance),
                             "red_distance_m": float(red_s - current_s),
                             "current_speed_mps": float(speed),
+                        }
+                    )
+                continue
+            if config.generator_policy == "lane_projected_jerk_progress_red_stop":
+                progress_distances = _jerk_limited_stop_distance_profile(
+                    horizon=raw.shape[1],
+                    dt=dt,
+                    stop_distance=stop_distance,
+                    current_speed_mps=speed,
+                    max_deceleration_mps2=config.max_deceleration_mps2,
+                    max_jerk_mps3=config.jerk_progress_max_jerk_mps3,
+                )
+                for candidate, offset_scale in _lane_projected_red_stop_candidates(
+                    raw[selected_index],
+                    lane=lane,
+                    cumulative=cumulative,
+                    current_s=current_s,
+                    stop_distances=progress_distances,
+                    offset_scales=config.lane_projected_offset_scales,
+                ):
+                    generated.append(candidate)
+                    metadata.append(
+                        {
+                            "variant": "lane_projected_jerk_progress_red_stop",
+                            "profile": "acceleration_jerk_limited_progress",
+                            "lateral_offset_scale": float(offset_scale),
+                            "red_stop_margin_m": float(margin),
+                            "backup_stop_offset_m": float(backup),
+                            "stop_distance_m": float(stop_distance),
+                            "red_distance_m": float(red_s - current_s),
+                            "current_speed_mps": float(speed),
+                            "max_deceleration_mps2": float(
+                                config.max_deceleration_mps2
+                            ),
+                            "max_jerk_mps3": float(
+                                config.jerk_progress_max_jerk_mps3
+                            ),
                         }
                     )
                 continue
@@ -906,6 +947,53 @@ def _stopping_distance_profile(
     return np.minimum(distances, stop_distance)
 
 
+def _jerk_limited_stop_distance_profile(
+    *,
+    horizon: int,
+    dt: float,
+    stop_distance: float,
+    current_speed_mps: float,
+    max_deceleration_mps2: float,
+    max_jerk_mps3: float,
+) -> np.ndarray:
+    if horizon <= 0:
+        return np.empty(0, dtype=np.float64)
+    step_s = max(float(dt), TOL)
+    cap = max(float(stop_distance), 0.0)
+    speed = max(float(current_speed_mps), 0.0)
+    max_decel = max(float(max_deceleration_mps2), 0.0)
+    max_jerk = max(float(max_jerk_mps3), TOL)
+    position = 0.0
+    acceleration = 0.0
+    distances = np.zeros(horizon, dtype=np.float64)
+    for index in range(horizon):
+        remaining = max(cap - position, 0.0)
+        if remaining <= TOL or speed <= TOL:
+            distances[index:] = position
+            break
+        required_decel = speed * speed / max(2.0 * remaining, TOL)
+        target_acceleration = -min(required_decel, max_decel)
+        max_delta_acceleration = max_jerk * step_s
+        acceleration = float(
+            np.clip(
+                target_acceleration,
+                acceleration - max_delta_acceleration,
+                acceleration + max_delta_acceleration,
+            )
+        )
+        acceleration = min(0.0, max(-max_decel, acceleration))
+        next_speed = max(0.0, speed + acceleration * step_s)
+        step_distance = max(0.0, 0.5 * (speed + next_speed) * step_s)
+        if step_distance >= remaining:
+            position = cap
+            speed = 0.0
+        else:
+            position += step_distance
+            speed = next_speed
+        distances[index] = min(position, cap)
+    return np.minimum(np.maximum.accumulate(distances), cap)
+
+
 def _smoothstep(value: float) -> float:
     clipped = min(1.0, max(0.0, float(value)))
     return clipped * clipped * (3.0 - 2.0 * clipped)
@@ -1358,6 +1446,7 @@ def _validate_config(config: RouteTopologyCandidateConfig) -> None:
         "lane_centerline_red_stop",
         "prefix_comfort_red_stop",
         "lane_projected_red_stop",
+        "lane_projected_jerk_progress_red_stop",
         "prefix_lane_projected_red_stop",
         "prefix_lane_projected_latest_safe_red_stop",
     }:
@@ -1381,6 +1470,7 @@ def _validate_config(config: RouteTopologyCandidateConfig) -> None:
         "min_stop_distance_m",
         "max_deceleration_mps2",
         "default_speed_mps",
+        "jerk_progress_max_jerk_mps3",
         "command_jerk_worse_budget_mps3",
         "command_lateral_worse_budget_mps2",
         "rollout_distance_loss_budget_m",
@@ -1390,6 +1480,8 @@ def _validate_config(config: RouteTopologyCandidateConfig) -> None:
         value = float(getattr(config, name))
         if not np.isfinite(value) or value < 0.0:
             raise ValueError(f"{name} must be nonnegative.")
+    if float(config.jerk_progress_max_jerk_mps3) <= 0.0:
+        raise ValueError("jerk_progress_max_jerk_mps3 must be positive.")
     if not 0.0 <= float(config.min_progress_ratio) <= 1.0:
         raise ValueError("min_progress_ratio must be in [0,1].")
     if not 0.0 <= float(config.min_snapshot_support_rate) <= 1.0:

@@ -272,6 +272,98 @@ def test_route_topology_generator_latest_safe_delays_stop_boundary() -> None:
     assert latest[0, 20, 0] >= decel[0, 20, 0] + 1.0
 
 
+def test_route_topology_generator_builds_default_off_jerk_progress_policy() -> None:
+    horizon = 80
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.8, 80.0, horizon)
+    candidates[0, :, 1] = 0.8
+    candidates[0, :, 2] = 1.0
+    original = candidates.copy()
+    lane_x = np.linspace(-5.0, 100.0, 106)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red_x = np.linspace(80.0, 84.0, 5)
+    red = np.column_stack([red_x, np.zeros_like(red_x)])
+
+    default_generated, default_meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=8.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            lane_projected_offset_scales=(0.0,),
+        ),
+    )
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=8.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            lane_projected_offset_scales=(0.0,),
+            max_deceleration_mps2=3.0,
+            jerk_progress_max_jerk_mps3=6.0,
+        ),
+    )
+
+    assert default_meta[0]["variant"] == "lane_centerline_red_stop"
+    assert generated.shape == (1, horizon, 4)
+    assert meta[0]["variant"] == "lane_projected_jerk_progress_red_stop"
+    assert meta[0]["profile"] == "acceleration_jerk_limited_progress"
+    assert meta[0]["max_deceleration_mps2"] == 3.0
+    assert meta[0]["max_jerk_mps3"] == 6.0
+    np.testing.assert_allclose(candidates, original)
+    assert np.all(np.isfinite(generated))
+    assert np.all(generated[0, :, 0] <= meta[0]["stop_distance_m"] + 1e-9)
+    assert np.all(np.diff(generated[0, :, 0]) >= -1e-9)
+    assert default_generated.shape == (1, horizon, 4)
+
+
+def test_route_topology_generator_jerk_progress_synthetic_bounds() -> None:
+    horizon = 80
+    dt = 0.1
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.8, 80.0, horizon)
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 100.0, 106)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red_x = np.linspace(80.0, 84.0, 5)
+    red = np.column_stack([red_x, np.zeros_like(red_x)])
+
+    generated, _ = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=8.0,
+        dt=dt,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            lane_projected_offset_scales=(0.0,),
+            max_deceleration_mps2=3.0,
+            jerk_progress_max_jerk_mps3=6.0,
+        ),
+    )
+
+    progress = generated[0, :, 0]
+    velocity = np.diff(np.concatenate([[0.0], progress])) / dt
+    acceleration = np.diff(velocity) / dt
+    jerk = np.diff(acceleration) / dt
+    assert np.min(acceleration) >= -3.0 - 1e-6
+    assert np.max(acceleration) <= 1e-6
+    assert np.max(np.abs(jerk)) <= 6.0 + 1e-6
+
+
 def test_route_topology_generator_returns_empty_without_red_ahead() -> None:
     candidates = np.zeros((1, 20, 4), dtype=float)
     candidates[:, :, 2] = 1.0
@@ -292,6 +384,29 @@ def test_route_topology_generator_returns_empty_without_red_ahead() -> None:
     assert meta == []
 
 
+def test_route_topology_generator_jerk_progress_returns_empty_without_red_ahead() -> None:
+    candidates = np.zeros((1, 20, 4), dtype=float)
+    candidates[:, :, 2] = 1.0
+    lane_x = np.linspace(0.0, 30.0, 31)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([[-5.0, 0.0]])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=3.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop"
+        ),
+    )
+
+    assert generated.shape == (0, 20, 4)
+    assert meta == []
+
+
 def test_route_topology_report_rejects_invalid_lane_projected_offset_scale() -> None:
     with np.testing.assert_raises_regex(
         ValueError,
@@ -303,6 +418,21 @@ def test_route_topology_report_rejects_invalid_lane_projected_offset_scale() -> 
             config=RouteTopologyCandidateConfig(
                 generator_policy="lane_projected_red_stop",
                 lane_projected_offset_scales=(1.2,),
+            ),
+        )
+
+
+def test_route_topology_report_rejects_invalid_jerk_progress_jerk_limit() -> None:
+    with np.testing.assert_raises_regex(
+        ValueError,
+        "jerk_progress_max_jerk_mps3 must be positive",
+    ):
+        build_report_from_rows(
+            [],
+            readiness=_readiness_report(),
+            config=RouteTopologyCandidateConfig(
+                generator_policy="lane_projected_jerk_progress_red_stop",
+                jerk_progress_max_jerk_mps3=0.0,
             ),
         )
 
