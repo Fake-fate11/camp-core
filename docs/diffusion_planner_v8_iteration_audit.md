@@ -64607,3 +64607,147 @@ is now authorized. That gate may write the final documentation-only closeout
 record for this safety-score shadow atom evidence chain. It may not run replay,
 train CAMP, promote the atom, enable online selection, use formal seeds, attach
 new labels, claim safety benefit, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Safety-Score Non-Promotion Closeout Record
+
+Objective:
+
+Write only the final documentation-only non-promotion closeout record for the
+candidate-set consensus safety-score shadow atom evidence chain. This gate
+verifies the closeout-authorization artifact, artifact SHA/HEADS/exit code,
+CAMP/GitHub HEAD agreement, the fixed DP HEAD, and the default-off
+non-promotion boundary before recording that the atom remains
+shadow-only/default-off and not promoted. It does not run replay, attach labels,
+train CAMP, promote the atom, change online selection, use formal seeds, claim
+safety benefit, or modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD after implementation sync=f64e134a622fa3f83962bd6754983c49ea26de8a
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_closeout_authorization=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_authorization_af8c6d0
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+AutoDL sync used a local Git bundle because previous AutoDL GitHub fetches were unstable; refs/remotes/origin/main was updated to the same commit.
+```
+
+Implementation:
+
+```text
+scripts/integrations/record_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record.py
+```
+
+Verification:
+
+```text
+local:
+python -m py_compile scripts/integrations/record_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_plan.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_review.py -q
+git diff --check
+
+result:
+8 passed
+13 passed
+76 passed
+
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/record_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record.py -q
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_review.py -q
+
+result:
+8 passed
+76 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record_f64e134
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record.json` | `2a864ed225b9975712beb2b4718507ae8f7e1744a50c1bc2172b323eef23a59b` |
+| `candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record.md` | `7d91f326bb14c87b3c87e9db7fbd0cae982f522c5dc5dfec904a65dc68888ea0` |
+| `COMMAND.log` | `7c8319a8222cb8685d698db9138ea98e8c32a5e18d39b67f30bbc613a0e3dae0` |
+| `COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `5a2aad3986f70c01c13ce2c855bd427ff640d8f6da89759571fe722eb20f132c` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_review_only
+nonpromotion_closeout_record_ready=True
+nonpromotion_closeout_recorded=True
+nonpromotion_closeout_review_authorized=True
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+exit_code=0
+```
+
+Closeout record:
+
+```text
+record_decision=close_candidate_set_consensus_safety_score_shadow_atom_without_promotion
+final_atom_state=shadow_only_default_off_not_promoted
+evidence_class=real_mixed_nonpromotion_not_safety_benefit_proof
+record_scope=documentation-only closeout of the safety-score shadow atom evidence chain
+```
+
+Evidence evaluation:
+
+The record gate passed. It verified the closeout-authorization artifact,
+matched SHA256SUMS, zero exit code, nonempty HEADS, CAMP HEAD equal to
+origin/main, fixed DP HEAD, authorization readiness, and the default-off
+non-promotion boundary. The safety-score shadow atom evidence chain is now
+recorded as closed without promotion.
+
+Mathematical boundary:
+
+This record reads only the closeout-authorization artifact and fixed-head
+audit. It does not recompute outcomes, define atoms, choose lambda online,
+alter `score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, train
+CAMP, change online selection, run replay, run DP, modify DP, or claim a
+DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_record_only`
+as complete. This authorizes only
+`candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_review_only`.
+It does not authorize safety benefit claims, atom promotion, CAMP retraining,
+online selector changes, formal seeds, Full36, replay, new label attachment, or
+DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_shadow_atom_safety_score_nonpromotion_closeout_review_only`
+is now authorized. That gate may verify the final closeout-record artifact and
+confirm the chain is closed as non-promotion evidence. It may not run replay,
+train CAMP, promote the atom, enable online selection, use formal seeds, attach
+new labels, claim safety benefit, or modify DP.
