@@ -61601,3 +61601,122 @@ already completed broader nonformal `logging_enabled` logs, write JSON/markdown,
 SHA256, and HEADS artifacts, and then stop for result review. It may not run a
 new replay, train CAMP, promote the atom, use formal seeds, run Full36, change
 online selection, claim safety benefit, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Weight-Sensitivity Existing Broader Logs Execution
+
+Objective:
+
+Execute only the authorized read-only weight-sensitivity analyzer on the already
+completed broader nonformal `logging_enabled` logs. This gate does not run a new
+replay, train CAMP, promote the atom, run Full36, use formal seeds, change
+online selection, claim safety benefit, or modify DP.
+
+Execution:
+
+```text
+source plan=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_weight_sensitivity_plan_2fcaee6/candidate_set_consensus_shadow_atom_weight_sensitivity_plan.json
+candidate root=/root/autodl-tmp/camp_dp_candidate_set_consensus_broader_nonformal_materiality/logging_enabled
+expected_logs=6
+expected_records=60
+expected_candidates=8
+AutoDL CAMP HEAD=b373e0cdd8398cf16ca23c220f6f144b99a2c58f
+AutoDL CAMP origin/main=b373e0cdd8398cf16ca23c220f6f144b99a2c58f
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_weight_sensitivity_b373e0cdd
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_weight_sensitivity.json` | `2f255a66e5679c49004e055c2042dc5851c3a631997d3416895024e408274e02` |
+| `candidate_set_consensus_shadow_atom_weight_sensitivity.md` | `4c6b4a980e542b48555d9eb7aa70fd2c4ad0ae23737f63622b1aa5b776f14ff8` |
+| `HEADS.txt` | `2be0c5719d4bc69387ade6025ea308898e05aaaed1c72fcd29003818227aae3e` |
+
+Result:
+
+```text
+status=candidate_set_consensus_shadow_atom_weight_sensitivity_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_weight_sensitivity_result_review_only
+weight_sensitivity_ready=True
+failed_checks=[]
+log_count=6
+records=60
+valid_records=60
+available_records=60
+ranking_signal_records=46
+fallback_retained_records=12
+formal_seed_log_count=0
+record_error_counts={}
+critical_positive_lambda_records=39
+min_critical_positive_lambda=0.026845163286762983
+max_changed_records=11
+selected_index_transition_counts={1->5: 2, 2->5: 3, 3->0: 3, 4->0: 2, 5->2: 2, 5->4: 5, 6->0: 5, 6->2: 1}
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+camp_retraining_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+```
+
+Lambda-grid result:
+
+| Lambda | Changed records | Changed rate |
+| ---: | ---: | ---: |
+| 0.0 | 0 | 0.0 |
+| 0.005 | 0 | 0.0 |
+| 0.01 | 0 | 0.0 |
+| 0.025 | 0 | 0.0 |
+| 0.05 | 1 | 0.016666666666666666 |
+| 0.1 | 2 | 0.03333333333333333 |
+| 0.2 | 3 | 0.05 |
+| 0.5 | 6 | 0.1 |
+| 1.0 | 11 | 0.18333333333333332 |
+
+Route-level result:
+
+| Run | Records | Ranking signal | Fallback retained | Max changed |
+| --- | ---: | ---: | ---: | ---: |
+| `sample_tl59_seed1_npc0_tlon` | 10 | 9 | 0 | 2 |
+| `sample_tl59_seed2_npc4_tlon` | 10 | 9 | 0 | 0 |
+| `sample_tl59_seed3_npc4_tloff` | 10 | 9 | 1 | 2 |
+| `sample_normal2_seed1_npc0_tloff` | 10 | 10 | 0 | 5 |
+| `nishi_release_seed2_npc4_tlon` | 10 | 0 | 10 | 0 |
+| `nishi_lanechange_seed4_npc4_tloff` | 10 | 9 | 1 | 2 |
+
+Mathematical boundary:
+
+The execution used only existing logged nonformal finite candidate sets. For
+each predeclared nonnegative lambda, the diagnostic score remained affine:
+`score_prime_k(lambda) = selection_score_k + lambda * a_k`, where `a_k` is the
+fixed current-tick candidate-set consensus coefficient. Lambda zero preserved
+logged selection for all records. The analyzer retained fallback records and
+did not use closed-loop outcomes or safety-score summaries for selection. No
+simplex/CVaR/L2 master was modified, no nonzero atom weight was deployed, no DP
+side was changed, and no DP-side classical Benders construction was claimed.
+
+Decision:
+
+Accept the existing broader-log weight-sensitivity execution as ready for
+result review only. The artifact shows bounded offline sensitivity to the
+candidate-set consensus coefficient, with maximum 11/60 changed records at
+lambda 1.0 and no changes below lambda 0.05. It does not prove safety benefit,
+does not prove CAMP superiority over DP Top-1, and does not authorize atom
+promotion, CAMP retraining, online selector changes, new replay, formal seeds,
+Full36, or DP modification.
+
+Next admissible gate:
+
+Only `candidate_set_consensus_shadow_atom_weight_sensitivity_result_review_only`
+is now authorized. That review may interpret the sensitivity artifact, route
+heterogeneity, fallback-retained records, transition counts, and lambda
+thresholds. It may not train CAMP, promote the atom, run replay, use formal
+seeds, alter the online selector, claim safety benefit, or modify DP.
