@@ -66496,3 +66496,156 @@ for relative comfort blockers, hard feasibility blockers, and latency sources
 using only existing artifact evidence. It may not implement new candidate
 generation, rerun the screen, run replay, use formal seeds, train CAMP, promote
 atoms, change the online selector, expand to Full36, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Lane-Projected Jerk/Progress Remediation Design Plan
+
+Objective:
+
+Design only a bounded remediation path after the read-only attribution gate
+identified relative-comfort support as the primary blocker. This gate consumes
+the existing read-only analysis artifact and predeclares static contracts for
+relative comfort, hard-feasibility, and latency remediation. It does not
+implement candidate generation, rerun the screen, run replay, train CAMP,
+promote atoms, change online selection, use formal seeds, claim safety benefit,
+or modify DP.
+
+State audit:
+
+```text
+local/GitHub CAMP HEAD after implementation=cc3abd971cf86a001ea80dda36347225ca02fc7a
+AutoDL CAMP HEAD at artifact generation=cc3abd971cf86a001ea80dda36347225ca02fc7a
+AutoDL CAMP origin/main=cc3abd971cf86a001ea80dda36347225ca02fc7a
+AutoDL DP branch=tier4-main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_analysis_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_read_only_analysis_dbaf8c1
+plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_remediation_design_plan_cc3abd9
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py -q
+8 passed in 0.54s
+python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_analysis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py -q
+46 passed in 3.27s
+git diff --check -- scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py
+clean
+```
+
+AutoDL verification:
+
+```text
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_analysis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py -q
+46 passed in 0.43s
+SHA256SUMS=OK
+EXIT_CODE=0
+COMMAND.err bytes=0
+```
+
+Plan artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_lane_projected_jerk_progress_remediation_design_plan.json` | `343534eee42c6459691e7d4ac06329e9d92bcfadcdffaede5f4d948736cfe54d` |
+| `candidate_set_consensus_lane_projected_jerk_progress_remediation_design_plan.md` | `6d8693d3b559283855777ace21c74ac0ee985897decfc161c329f215481f33fb` |
+| `COMMAND.log` | `d60d1cb180b87918caee1974533740b79396068d5fc8c6090ee65bca4faad3a7` |
+| `COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `c0680a1bc107b9006009dea31c831f45d56cd9e87c60265d1025582d1fedb273` |
+
+Artifact decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_remediation_design_plan_ready
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_remediation_static_contract_review_only
+candidate_generation_execution_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+atom_promotion_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+checks_total=44
+checks_failed=0
+```
+
+Design summary:
+
+```text
+selected_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_remediation_static_contract_review_only
+priority_1=restore relative comfort support before any replay
+priority_1_evidence=route_topology_comfort_blocked_command_jerk
+priority_2=separate DP hard-feasibility blockers from CAMP policy blockers
+priority_2_evidence=dp_kinematic
+priority_3=bound candidate-build and total latency before screen rerun
+priority_3_evidence=total
+threads=relative_comfort_contract, hard_feasibility_contract, latency_contract
+```
+
+Required next-gate checks:
+
+```text
+read-only source inspection only
+no candidate generation or fixed-screen rerun
+no replay, Full36, or formal seeds
+no atom promotion, CAMP retraining, or online selector change
+no DP code, weights, config, or invocation changes
+explicit score_k(w)=a_k^T w and convex master preservation if atoms are discussed
+explicit default-off implementation target if later unit tests are proposed
+artifact HEADS and SHA256SUMS recorded before any later implementation gate
+```
+
+Evidence evaluation:
+
+The plan is a design artifact only. It uses the existing read-only attribution
+evidence to prioritize relative comfort first, then hard-feasibility separation,
+then latency. It deliberately keeps the next gate static and read-only because
+the fixed-screen artifact still has zero comfort-admissible rows and failing
+latency gates. This remains non-promotion evidence and does not prove CAMP
+improves over DP Top-1.
+
+Mathematical boundary:
+
+This plan reads only the existing read-only attribution artifact and fixed-head
+audit. It does not implement a new candidate generator, create candidates,
+rerun the screen, run DP, run replay, recompute outcomes, define runtime atoms,
+choose lambda online, alter `score_k(w)=a_k^T w`, mutate the convex
+simplex/CVaR/L2 master, train CAMP, change online selection, modify DP weights
+or code, or claim a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_remediation_design_plan_only`
+as complete. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_remediation_static_contract_review_only`.
+It does not authorize candidate generation, screen rerun, broader replay,
+Full36, formal seeds, atom promotion, online selector promotion, CAMP
+retraining, safety-benefit claims, or DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_remediation_static_contract_review_only`
+is now authorized. That gate may inspect existing source code and existing
+artifacts to verify whether the three remediation threads have a legal
+default-off implementation contract. It may not edit implementation code,
+create new candidates, rerun the screen, run replay, use formal seeds, train
+CAMP, promote atoms, change the online selector, expand to Full36, or modify
+DP.
