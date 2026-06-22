@@ -60096,7 +60096,18 @@ no DP-side classical Benders master/subproblem, dual, or valid cuts.
 
 Next admissible work:
 
-Complete GitHub push and AutoDL sync/HEAD/artifact verification for this plan
-artifact once the AutoDL SSH endpoint is reachable. Only after that succeeds
-may the next round consider whether to explicitly authorize the guarded
+GitHub checkpoint push for the implementation commit completed at
+`2524addad8c91446155e2d566b68765b660b8211` on `origin/main`. AutoDL
+sync/HEAD/artifact verification is still blocked because the old documented SSH
+endpoint accepts the TCP connection and then closes during SSH key exchange:
+
+```text
+kex_exchange_identification: Connection closed by remote host
+Connection closed by 198.18.0.88 port 20885
+```
+
+No AutoDL files were changed. Once the AutoDL endpoint or credentials are
+reachable, sync CAMP to `origin/main`, verify fixed DP HEAD, generate the remote
+plan artifact/SHA/HEADS files under the recorded template path, and then decide
+in a separate next-round gate whether to explicitly authorize the guarded
 broader nonformal materiality replay.
