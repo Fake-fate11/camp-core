@@ -65984,3 +65984,193 @@ Only
 is now authorized. That gate may execute only the guarded fixed nonformal
 snapshot screen runbook under the recorded guard and then classify the result
 against the predeclared accept/reject criteria.
+
+### 2026-06-22 - Candidate-Set Consensus Lane-Projected Jerk/Progress Guarded Fixed-Snapshot Screen
+
+Objective:
+
+Execute only the guarded fixed nonformal snapshot screen authorized by the
+fixed-snapshot execution plan. This gate runs the recorded runbook under
+`CANDIDATE_SET_CONSENSUS_LANE_PROJECTED_JERK_PROGRESS_FIXED_SNAPSHOT_APPROVED=yes`
+against the single existing nonformal snapshot corpus. It does not run
+closed-loop replay, train CAMP, promote atoms, change online selection, use
+formal seeds, claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD at execution=6a1cc125a625d54c750f694f7469d54c532f7c01
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution_plan_818c823
+execution_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_screen_818c823
+snapshot_dir=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon/snapshots_no_budget
+snapshot_count=57
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+```
+
+Execution:
+
+```bash
+PLAN=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution_plan_818c823/run_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_screen.sh
+export CANDIDATE_SET_CONSENSUS_LANE_PROJECTED_JERK_PROGRESS_FIXED_SNAPSHOT_APPROVED=yes
+bash "$PLAN"
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `route_topology_lane_projected_jerk_progress_screen.json` | `e58ad45e902850b24945e4b2b1cfcfa04b62a77b6c954d28bc74c789c599cf49` |
+| `route_topology_lane_projected_jerk_progress_screen.md` | `d19c83e5425f50ef4443f6c8ef1d6a83e65f876bc9f4eb8e43b022065d7578a1` |
+| `route_topology_lane_projected_jerk_progress_absolute_lateral_guard.json` | `65efa0566245d18647645deecb5e1a03279f7dd85e0027860b9d6ba7854161d4` |
+| `route_topology_lane_projected_jerk_progress_absolute_lateral_guard.md` | `cbd5d7207d477ce13fa058b15f4db14d4f57d961c55bfe40d70a67e385ba4833` |
+| `CANDIDATE_SCREEN.log` | `ecaa82bc51962e8060d26dff8e084d6bf9ad21e488d89fe070f5db1ec41189eb` |
+| `CANDIDATE_SCREEN.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `ABSOLUTE_GUARD.log` | `e4c9eab5f152aa8f011774477db84b6614d0c6d6168410aa1bc2cbcb51f1b015` |
+| `ABSOLUTE_GUARD.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `031472ce6a0afc2decef1ccfc805ba0ab7117ad52450b2645ad950fedb65a177` |
+
+Runbook result:
+
+```text
+exit_code=0
+SHA256SUMS=OK
+CANDIDATE_SCREEN.err bytes=0
+ABSOLUTE_GUARD.err bytes=0
+```
+
+Candidate screen final decision:
+
+```text
+status=route_topology_candidate_support_insufficient
+offline_selector_screen_authorized=False
+closed_loop_smoke_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+```
+
+Candidate screen support:
+
+```text
+snapshots=57
+snapshots_with_generated_candidates=21
+generated_candidate_rows=276
+lower_union_red_rows=276
+lower_union_red_hard_feasible_rows=67
+lower_union_red_progress_feasible_rows=64
+lower_union_red_comfort_admissible_rows=0
+hard_feasible_snapshot_support_rate=0.38095238095238093
+hard_feasible_snapshot_support_pass=True
+comfort_admissible_snapshot_support_rate=0.0
+comfort_admissible_snapshot_support_pass=False
+min_snapshot_support_rate=0.25
+```
+
+Absolute lateral guard final decision:
+
+```text
+status=route_topology_absolute_lateral_guard_support_present
+absolute_lateral_guard_rows=28
+lower_union_red_hard_progress_rows=64
+absolute_lateral_guard_snapshot_support_rate=0.3333333333333333
+absolute_lateral_guard_snapshot_support_pass=True
+min_snapshot_support_rate=0.25
+```
+
+Latency:
+
+```text
+candidate_build_p95_ms=35.61945259571073
+candidate_build_threshold_ms=10.0
+candidate_build_latency_gate_passed=False
+total_p95_ms=102.54559572786093
+total_threshold_ms=100.0
+total_latency_gate_passed=False
+```
+
+Failure attribution summary:
+
+```text
+screen_hard_reason_counts={
+  "dp_kinematic": 197,
+  "dp_lane_crossing": 114,
+  "dp_red_light": 51,
+  "dp_road_border": 108
+}
+
+screen_failure_class_counts={
+  "route_topology_comfort_blocked_command_jerk": 64,
+  "route_topology_comfort_blocked_command_lateral": 60,
+  "route_topology_comfort_blocked_progress_loss": 58,
+  "route_topology_comfort_blocked_rollout_distance": 12,
+  "route_topology_comfort_blocked_rollout_jerk": 60,
+  "route_topology_comfort_blocked_rollout_lateral": 63,
+  "route_topology_comfort_blocked_smoothness_loss": 14,
+  "route_topology_dp_kinematic": 197,
+  "route_topology_dp_road_border": 108,
+  "route_topology_hard_feasible_but_underprogress": 3,
+  "route_topology_lane_invalid": 114,
+  "route_topology_red_timing_invalid": 51
+}
+```
+
+Positive evidence:
+
+```text
+selected_to_candidate_reduction_mean=35.93659420289855
+selected_to_candidate_reduction_p50=39.5
+selected_to_candidate_reduction_p95=40.5
+hard support passed at 0.38095238095238093
+absolute lateral guard passed at 0.3333333333333333
+```
+
+Reject evaluation:
+
+Reject
+`candidate_set_consensus_lane_projected_jerk_progress_support_guarded_fixed_snapshot_screen_only`
+for replay, online selector use, atom promotion, safety-benefit claims, or
+scope expansion. The runbook executed cleanly and produced valid artifacts, but
+the predeclared accept criteria were not met:
+
+```text
+screen status != route_topology_candidate_support_present
+comfort-admissible snapshot support rate 0.0 < 0.25
+candidate-build p95 35.61945259571073 ms > 10 ms
+total p95 102.54559572786093 ms > 100 ms
+```
+
+This is not evidence that CAMP improves over DP Top-1. It is evidence that the
+new jerk/progress policy preserves the earlier red-light reduction and
+retains hard/absolute-lateral support on a subset, but still fails relative
+comfort and latency gates on the fixed nonformal snapshot corpus.
+
+Mathematical boundary:
+
+This gate runs only deterministic offline fixed-snapshot candidate augmentation
+and fixed-snapshot DP reward/PerfectTracker diagnostics. It does not run DP as a
+candidate generator, run closed-loop replay, use future outcome labels, define
+runtime atoms, choose lambda online, alter `score_k(w)=a_k^T w`, mutate the
+convex simplex/CVaR/L2 master, train CAMP, change online selection, modify DP
+weights or code, or claim a DP-side classical Benders decomposition.
+
+Decision:
+
+Reject the guarded fixed-snapshot screen as a promotion or replay input. This
+does not authorize broader replay, Full36, formal seeds, atom promotion, online
+selector promotion, CAMP retraining, safety-benefit claims, or DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_failure_attribution_plan_only`
+is now admissible. That gate may design a smaller read-only diagnosis of the
+fixed-screen artifact to separate comfort blockers, lane-invalid/hard blockers,
+and latency sources. It may not execute new candidate generation, run replay,
+train CAMP, promote atoms, use formal seeds, expand scope, or modify DP.
