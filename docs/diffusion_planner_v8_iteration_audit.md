@@ -60286,3 +60286,113 @@ The plan-only gate is now complete through local tests, GitHub push, AutoDL
 sync, fixed-DP verification, and remote artifact/SHA recording. A later,
 separate gate may consider whether to authorize the guarded broader nonformal
 materiality replay. This entry itself does not authorize that replay.
+
+### 2026-06-22 - Broader Materiality Replay-Consideration Gate Local Validation
+
+Objective:
+
+Implement the separate next-round authorization gate for
+`candidate_set_consensus_broader_nonformal_materiality_replay_consideration_next_round_only`.
+This gate only decides whether the already guarded broader nonformal replay may
+be run. It does not run replay, train CAMP, promote atoms, use formal seeds,
+modify DP, change the online selector, or claim safety benefit.
+
+State audit before implementation:
+
+```text
+CAMP local HEAD=b2c8695facdc2318575b1e27afde3a9f3b36954b
+CAMP origin/main=b2c8695facdc2318575b1e27afde3a9f3b36954b
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+AutoDL CAMP HEAD=b2c8695facdc2318575b1e27afde3a9f3b36954b
+AutoDL CAMP origin/main=b2c8695facdc2318575b1e27afde3a9f3b36954b
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+AutoDL artifact SHA256SUMS=OK
+```
+
+AutoDL plan artifact checked read-only:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_broader_nonformal_materiality_plan_e3b4a4f
+```
+
+Implementation:
+
+```text
+scripts/integrations/authorize_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_replay.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_replay_authorization.py
+```
+
+The gate checks:
+
+- plan JSON/markdown/runbook/SHA/HEADS are present and SHA entries match;
+- artifact `HEADS.txt` records CAMP synced at generation and fixed DP HEAD;
+- current CAMP HEAD equals origin/main and DP HEAD equals the fixed commit;
+- CAMP/DP worktrees have no tracked dirty lines, while unrelated untracked
+  files remain ignored;
+- runbook requires
+  `CANDIDATE_SET_CONSENSUS_BROADER_MATERIALITY_REPLAY_APPROVED=yes`;
+- source plan remains plan-only and did not already authorize replay;
+- route/seed matrix remains six paired nonformal runs, 10 steps, 8 candidates,
+  60 planned records, 480 planned candidate rows, and no formal seeds 11/12/13;
+- selector-equivalence, payload no-leak/default-off, latency, fallback,
+  progress, comfort, spread/rank/sensitivity diagnostics, safety-score boundary,
+  accept criteria, and reject criteria remain explicit.
+
+Local verification:
+
+```bash
+python -m py_compile \
+  scripts/integrations/authorize_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_replay.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_replay_authorization.py \
+  scripts/integrations/plan_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_plan.py
+
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_plan.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_replay_authorization.py \
+  -q
+```
+
+Result:
+
+```text
+13 passed in 1.03s
+```
+
+Local gate decision contract:
+
+```text
+status=candidate_set_consensus_broader_nonformal_materiality_replay_authorized
+authorized_next_work=candidate_set_consensus_guarded_broader_nonformal_materiality_replay_only
+broader_replay_authorized=True
+new_replay_authorized=True
+closed_loop_replay_authorized=True
+guard_env_var=CANDIDATE_SET_CONSENSUS_BROADER_MATERIALITY_REPLAY_APPROVED=yes
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Mathematical boundary:
+
+The gate remains a current-tick finite-candidate replay authorization. DP is
+only a fixed black-box candidate generator. Candidate-set consensus remains a
+diagnostic coefficient; if later atomized, a separate atom-design gate must
+prove the coefficient preserves `score_k(w)=a_k^T w` and the simplex/CVaR/L2
+convex master. This gate constructs no DP-side classical Benders
+master/subproblem, dual, or valid cuts.
+
+Next admissible work:
+
+Commit and push the replay-consideration gate, sync AutoDL CAMP to the new
+GitHub HEAD, run the gate on AutoDL against the recorded plan artifact and fixed
+DP checkout, then only if that remote gate passes, run the guarded broader
+nonformal replay with the explicit guard environment variable.
