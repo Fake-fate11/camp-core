@@ -6,8 +6,17 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, Callable
+
+
+ROOT = Path(__file__).resolve().parents[2]
+CAMP_CORE_SRC = ROOT / "camp_core"
+for path in (ROOT, CAMP_CORE_SRC):
+    path_str = str(path)
+    if path_str not in sys.path:
+        sys.path.insert(0, path_str)
 
 from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality import (
     EXPECTED_DP_HEAD,
