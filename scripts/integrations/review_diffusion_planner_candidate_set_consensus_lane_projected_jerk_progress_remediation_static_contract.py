@@ -320,9 +320,9 @@ def _static_contract_review(source_text: str) -> dict[str, Any]:
                 source_text,
                 (
                     "reward_hard_feasibility",
-                    "dp_kinematic",
-                    "dp_lane_crossing",
-                    "dp_red_light",
+                    "hard_reasons",
+                    "hard_reason_counts",
+                    "hard_feasible",
                     "route_topology_hard_feasible_but_underprogress",
                     "_validate_config",
                 ),

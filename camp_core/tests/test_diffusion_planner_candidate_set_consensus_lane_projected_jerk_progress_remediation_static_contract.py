@@ -80,9 +80,9 @@ def parse_args():
     default="lane_centerline_red_stop"
 
 def reward_hard_feasibility(): pass
-dp_kinematic = "dp_kinematic"
-dp_lane_crossing = "dp_lane_crossing"
-dp_red_light = "dp_red_light"
+hard_reasons = []
+hard_reason_counts = {}
+hard_feasible = True
 route_topology_hard_feasible_but_underprogress = "route_topology_hard_feasible_but_underprogress"
 
 def _comfort_admissible(): pass
