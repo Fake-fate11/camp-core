@@ -62440,3 +62440,145 @@ execute DP, train CAMP, promote the atom, use formal seeds, change online
 selection, claim safety benefit, or modify DP. If no compatible source exists,
 the next gate must be a guarded outcome-label pass consideration plan, not an
 execution.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Safety-Score Outcome-Label Existing Source Search
+
+Objective:
+
+Run only the authorized read-only search for existing
+`candidate_closed_loop_outcomes` sources compatible with the broader nonformal
+candidate-set consensus safety-score scope. This gate may scan existing local or
+AutoDL artifacts and record JSON/markdown/HEADS/SHA evidence. It does not
+generate labels, attach labels, run replay, execute DP, train CAMP, promote the
+atom, use formal seeds, change online selection, retry safety-score evaluation,
+claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD after sync=abc93d541736583010f7f3199ce71ef9e6659780
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_availability_plan_json=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_outcome_label_availability_plan_dc11f41/candidate_set_consensus_shadow_atom_safety_score_outcome_label_availability_plan.json
+search_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263
+search_root=/root/autodl-tmp/camp_dp_candidate_set_consensus_broader_nonformal_materiality
+search_root=/root/autodl-tmp/camp_dp_assets
+scanned_logs=426
+relevant_logs=12
+complete_outcome_logs=0
+formal_seed_log_count=0
+AutoDL unrelated untracked migration files left untouched
+```
+
+Implementation:
+
+```text
+scripts/integrations/search_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_sources.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_search.py
+```
+
+Verification:
+
+```text
+local:
+python -m py_compile scripts/integrations/search_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_sources.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_search.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_availability_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_execution_authorization.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity_plan.py -q
+git diff --check
+
+result:
+7 passed
+20 passed
+15 passed
+
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/search_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_sources.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_search.py -q
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_availability_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_execution_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity_plan.py -q
+
+result:
+7 passed
+35 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_outcome_label_existing_source_search_abc93d541
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_safety_score_outcome_label_existing_source_search.json` | `2e4e2133e4c7235ee99a813c6ba6429392342d505bfa9a5b41aa50807382ba95` |
+| `candidate_set_consensus_shadow_atom_safety_score_outcome_label_existing_source_search.md` | `714d44c63bf746622955875657fd385a02cc4a2b3559a46e585d80389d439d89` |
+| `HEADS.txt` | `03c9696156708ceef913dd2dabfac790e602900d60b5c79c875dd276a26ac910` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_safety_score_outcome_label_existing_source_search_no_compatible_source
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_consideration_plan_only
+compatible_source_found=False
+compatible_source_review_authorized=False
+guarded_outcome_label_pass_consideration_plan_authorized=True
+outcome_label_generation_authorized=False
+label_attachment_authorized=False
+safety_score_evaluation_retry_authorized=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+```
+
+Evidence evaluation:
+
+The search found no reusable compatible existing source for candidate-level
+closed-loop outcomes. It scanned the authorized existing AutoDL artifact roots,
+found no formal-seed log paths, and found 12 logs matching the six broader
+nonformal run IDs across duplicated artifact locations. None contained complete
+8-candidate `candidate_closed_loop_outcomes`, so there is still no evidence
+available to compute SafetyCost v1 or retry the safety-score evaluation.
+
+Mathematical boundary:
+
+This gate is metadata and artifact-schema search only. It does not compute
+SafetyCost v1, does not use posterior outcomes for atom definition, lambda
+selection, online scoring, or CAMP training, and does not alter fixed shadow
+selected indices, CAMP atoms, CAMP weights, online selector, DP code, DP
+weights, replay pipeline, or simplex/CVaR/L2 master. No DP-side classical
+Benders construction is claimed.
+
+Decision:
+
+Accept
+`candidate_set_consensus_shadow_atom_safety_score_outcome_label_existing_source_search_only`
+as complete. The gate found no compatible existing outcome-label source, so it
+does not authorize label attachment, safety-score evaluation retry, safety
+benefit claims, atom promotion, CAMP retraining, online selector changes,
+formal seeds, Full36, replay execution, or DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_consideration_plan_only`
+is now authorized. That gate may design and audit a guarded nonformal
+outcome-label acquisition plan, including exact route/seed scope, required
+candidate ordering invariants, replay/pass guards, artifact evidence, accept or
+reject criteria, and stop conditions. It may not execute the label pass, run
+replay, attach labels, retry safety-score evaluation, train CAMP, promote the
+atom, use formal seeds, change online selection, claim safety benefit, or modify
+DP.
