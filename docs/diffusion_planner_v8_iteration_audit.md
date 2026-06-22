@@ -66174,3 +66174,145 @@ is now admissible. That gate may design a smaller read-only diagnosis of the
 fixed-screen artifact to separate comfort blockers, lane-invalid/hard blockers,
 and latency sources. It may not execute new candidate generation, run replay,
 train CAMP, promote atoms, use formal seeds, expand scope, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Lane-Projected Jerk/Progress Failure Attribution Plan
+
+Objective:
+
+Design only the next read-only attribution gate after the guarded fixed-snapshot
+screen rejected. This gate validates the existing fixed-screen artifact and
+predeclares a diagnosis plan for comfort blockers, hard blockers, absolute
+lateral support, and latency sources. It does not rerun the screen, execute
+candidate generation, run replay, train CAMP, promote atoms, use formal seeds,
+claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local CAMP branch=main
+local/GitHub CAMP HEAD after implementation=8ec31a2690ab6ebc778aac4162fa0d27ec6eb487
+AutoDL CAMP HEAD at artifact generation=8ec31a2690ab6ebc778aac4162fa0d27ec6eb487
+AutoDL CAMP origin/main=8ec31a2690ab6ebc778aac4162fa0d27ec6eb487
+AutoDL DP branch=tier4-main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_screen_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_screen_818c823
+plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_plan_8ec31a2
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py
+```
+
+The plan validates the source screen artifact JSON/MD/log/error/HEADS/SHA files,
+requires the fixed-screen rejection state, requires DP to remain at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, requires CAMP HEAD to match
+`origin/main`, and only authorizes
+`candidate_set_consensus_lane_projected_jerk_progress_support_failure_attribution_read_only_analysis_only`.
+
+Local verification:
+
+```text
+python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py -q
+8 passed in 0.72s
+python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py -q
+30 passed in 1.99s
+git diff --check -- scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py
+clean
+```
+
+AutoDL verification:
+
+```text
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py -q
+30 passed in 0.41s
+SHA256SUMS=OK
+EXIT_CODE=0
+COMMAND.err bytes=0
+```
+
+Plan artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_plan.json` | `5bcdb73f3910a69ed2901385e76a500c87effa035d66ec5d5bee3292900281c5` |
+| `candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_plan.md` | `c64e20c49fa134fbc498fed78c7e918c6d07c4f1f3acf4c092fcc94356c9887e` |
+| `COMMAND.log` | `682ee55d800b176077dee3cf184f7a795e401116b5b24da909a1d017b2900f40` |
+| `COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `755d5fec896dccc9e7de75816e62764e99cf7250d690dda4f39a6a7ea66d0a80` |
+
+Artifact decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_failure_attribution_plan_ready
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_failure_attribution_read_only_analysis_only
+read_only_failure_attribution_authorized=True
+candidate_generation_execution_authorized=False
+fixed_snapshot_candidate_generation_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+atom_promotion_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+checks_total=40
+checks_failed=0
+```
+
+Evidence evaluation:
+
+```text
+source_screen_status=route_topology_candidate_support_insufficient
+hard_support_rate=0.38095238095238093
+comfort_support_rate=0.0
+comfort_rows=0
+candidate_build_p95_ms=35.61945259571073
+total_p95_ms=102.54559572786093
+absolute_status=route_topology_absolute_lateral_guard_support_present
+absolute_support_rate=0.3333333333333333
+```
+
+The evidence remains a support/failure-attribution signal only. It does not
+show CAMP improvement over DP Top-1 and does not satisfy any promotion,
+training, replay, or safety-benefit gate.
+
+Mathematical boundary:
+
+This plan reads only fixed-screen result artifacts and fixed-head audit. It
+does not execute candidate generation, run DP, run replay, recompute outcomes,
+define runtime atoms, choose lambda online, alter `score_k(w)=a_k^T w`, mutate
+the convex simplex/CVaR/L2 master, train CAMP, change online selection, modify
+DP weights or code, or claim a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_failure_attribution_plan_only`
+as complete. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_failure_attribution_read_only_analysis_only`.
+It does not authorize candidate generation, screen rerun, broader replay,
+Full36, formal seeds, atom promotion, online selector promotion, CAMP
+retraining, safety-benefit claims, or DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_failure_attribution_read_only_analysis_only`
+is now authorized. That gate may read the existing fixed-screen and plan
+artifacts to rank comfort, hard-blocker, absolute-lateral, and latency failure
+sources. It may not create new candidates, rerun the screen, run replay, use
+formal seeds, train CAMP, promote atoms, change the online selector, expand to
+Full36, or modify DP.
