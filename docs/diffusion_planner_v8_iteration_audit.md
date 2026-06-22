@@ -65630,3 +65630,166 @@ unit tests for the predeclared jerk/progress policy contract. It may not run
 candidate generation on fixed snapshots, run replay, train CAMP, promote atoms,
 enable online selection, use formal seeds, attach new labels, claim safety
 benefit, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Lane-Projected Jerk/Progress Implementation Unit Tests
+
+Objective:
+
+Implement only the default-off lane-projected jerk/progress support scaffold
+authorized by the design plan. This gate adds a synthetic-unit-testable
+candidate generator policy and verifies its contract without running fixed
+snapshot candidate generation, DP reward recomputation, replay, training,
+online selection, formal seeds, safety-benefit claims, or DP modification.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD after implementation sync=ed2a156e71fe73fb3f87cecd0977ab98ce666ac4
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_design_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_support_design_plan_a4e9b4f
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+AutoDL sync used a local Git bundle; refs/remotes/origin/main was updated to the same commit.
+```
+
+Implementation:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+```
+
+Implemented behavior:
+
+- New explicit policy: `lane_projected_jerk_progress_red_stop`.
+- Existing default policy remains `lane_centerline_red_stop`.
+- The policy keeps lane-projected red-stop geometry and uses a deterministic
+  acceleration/jerk-limited progress cap before lateral offset reconstruction.
+- Candidate arrays are copied from the selected candidate before mutation, so
+  the input candidate tensor and candidate0 caller contract remain unchanged.
+- Metadata records the policy variant, profile name, lateral offset scale,
+  red-stop margin, backup offset, stop distance, current speed, acceleration
+  bound, and jerk bound.
+- The policy returns no generated candidates when route/topology inputs or
+  red-stop geometry do not provide a valid red point ahead.
+
+Verification:
+
+```text
+local:
+python -m py_compile scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py camp_core/tests/test_diffusion_planner_prefix_lane_pruning_budget.py camp_core/tests/test_diffusion_planner_route_topology_failure_patterns.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_route_topology_comfort_support_preflight.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_candidate_generation_support_redesign.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_availability_diversity_synthesis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_post_nonpromotion_next_gate.py -q
+git diff --check
+
+result:
+14 passed
+23 passed
+62 passed
+
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_route_topology_absolute_comfort_guard.py camp_core/tests/test_diffusion_planner_prefix_lane_pruning_budget.py camp_core/tests/test_diffusion_planner_route_topology_failure_patterns.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_route_topology_comfort_support_preflight.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_candidate_generation_support_redesign.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_availability_diversity_synthesis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_post_nonpromotion_next_gate.py -q
+
+result:
+62 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests_ed2a156
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests.json` | `39825437ed5373967a07e0cce14f3e071df301eb644086cb179aae643975a2e9` |
+| `candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests.md` | `9e108762c21d231f2a9b62e7e7ca3e031cef4b523ebe8228b5e041e80f79801c` |
+| `COMMAND.log` | `3de9e0bba746218b03858a6017dc70f185141f85686f201741e73b6459d1799b` |
+| `COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `a4f2405a44e522c55cc25cf1116c83a254615db5cf11efdc6caab82558124b41` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests_ready
+passed=True
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_fixed_snapshot_execution_plan_only
+implementation_unit_tests_ready=True
+fixed_snapshot_execution_plan_authorized=True
+selected_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_fixed_snapshot_execution_plan_only
+candidate_generation_execution_authorized=False
+fixed_snapshot_candidate_generation_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+exit_code=0
+```
+
+Evidence evaluation:
+
+The implementation unit gate passed. Local and AutoDL tests verify explicit
+default-off selection, stable finite generated shape, candidate0/input tensor
+non-mutation, lane-projected policy metadata, red-stop cap respect, monotone
+nonnegative progress on a synthetic lane/red fixture, synthetic acceleration and
+jerk bounds, invalid red-stop fallback to no generated candidates, and invalid
+jerk-limit rejection. Related route/topology absolute comfort guard and prefix
+lane pruning tests also pass, so the added config field does not break current
+callers.
+
+Selected direction:
+
+```text
+selected_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_fixed_snapshot_execution_plan_only
+policy=lane_projected_jerk_progress_red_stop
+default_policy_remains=lane_centerline_red_stop
+candidate_generation_execution_authorized=False
+fixed_snapshot_candidate_generation_authorized=False
+new_replay_authorized=False
+```
+
+The next gate must be a plan-only fixed-snapshot execution plan. It may
+predeclare the nonformal snapshot scope, command guard, latency and safety
+diagnostic boundaries, artifact SHA/HEADS requirements, accept/reject criteria,
+and failure fallback. It must not run the new policy on fixed snapshots until a
+separate execution gate is authorized, and it must not run replay, train CAMP,
+promote atoms, enable online selection, use formal seeds, claim safety benefit,
+or modify DP.
+
+Mathematical boundary:
+
+This gate adds a default-off finite-candidate generator policy and tests it only
+on synthetic current-tick inputs. It does not run DP, run fixed-snapshot
+candidate generation, run replay, recompute outcomes, define runtime atoms,
+choose lambda online, alter `score_k(w)=a_k^T w`, mutate the convex
+simplex/CVaR/L2 master, train CAMP, change online selection, modify DP weights
+or code, or claim a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_implementation_unit_tests_only`
+as complete. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_fixed_snapshot_execution_plan_only`.
+It does not authorize candidate generation execution, replay, safety benefit
+claims, atom promotion, CAMP retraining, online selector changes, formal seeds,
+Full36, new label attachment, or DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_fixed_snapshot_execution_plan_only`
+is now authorized. That gate may design, but not execute, a guarded fixed
+nonformal snapshot screen for the new policy.
