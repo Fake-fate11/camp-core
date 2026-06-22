@@ -62582,3 +62582,163 @@ reject criteria, and stop conditions. It may not execute the label pass, run
 replay, attach labels, retry safety-score evaluation, train CAMP, promote the
 atom, use formal seeds, change online selection, claim safety benefit, or modify
 DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Safety-Score Guarded Outcome-Label Pass Consideration Plan
+
+Objective:
+
+Design only the guarded nonformal outcome-label acquisition plan after the
+existing-source search found no compatible `candidate_closed_loop_outcomes`
+source. This gate may write a plan artifact and guarded runbook. It does not
+execute the label pass, generate labels, attach labels, run replay, retry
+safety-score evaluation, train CAMP, promote the atom, use formal seeds, change
+online selection, claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD after sync=68241b67b450e121802bdff730a763445a598d77
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_search_json=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_outcome_label_existing_source_search_abc93d541/candidate_set_consensus_shadow_atom_safety_score_outcome_label_existing_source_search.json
+guard_env_assignment=CANDIDATE_SET_CONSENSUS_OUTCOME_LABEL_PASS_APPROVED=yes
+label_output_root=/root/autodl-tmp/camp_dp_candidate_set_consensus_shadow_atom_safety_score_outcome_labels
+planned_runs=6
+planned_records=60
+planned_candidates=8
+scenario_coverage=dense_scene,lane_change_or_merge,normal,npc_interaction,red_light_turn,sharp_turn,traffic_light
+AutoDL unrelated untracked migration files left untouched
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_plan.py
+```
+
+Verification:
+
+```text
+local:
+python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_plan.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_search.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_availability_plan.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_execution_authorization.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity_plan.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_outcome_label_pass_plan.py -q
+git diff --check
+
+result:
+6 passed
+14 passed
+13 passed
+22 passed
+4 passed
+
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_plan.py -q
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_search.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_availability_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_plan.py -q
+
+result:
+6 passed
+21 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_consideration_plan_68241b67b
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_consideration_plan.json` | `565a9aca96586b21c86c287a67e24ec0c317539c17649c275b8502b4fd734a14` |
+| `candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_consideration_plan.md` | `70bf07586c352544d91bb7b5378bd82a2dd7d3d3109749ecdde0a392b7c60104` |
+| `candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_runbook.sh` | `5ee8bfd16e4becb2d0e957e6507b1e664367b86b1e336cbb0956bf2eef1c507e` |
+| `HEADS.txt` | `283b1c7e213ff581f9f9215c4e49f4289984af616158ec6affb6ab5501753e7a` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_consideration_plan_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_authorization_only
+plan_artifact_ready=True
+guard_env_var=CANDIDATE_SET_CONSENSUS_OUTCOME_LABEL_PASS_APPROVED
+guard_env_assignment=CANDIDATE_SET_CONSENSUS_OUTCOME_LABEL_PASS_APPROVED=yes
+guarded_outcome_label_pass_authorization_only=True
+outcome_label_pass_execution_authorized=False
+outcome_label_generation_authorized=False
+label_attachment_authorized=False
+safety_score_evaluation_retry_authorized=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+```
+
+Planned scope and invariants:
+
+The plan covers the same six broader nonformal run IDs with seeds 1, 2, 3, 1,
+2, and 4 only. Scenario buckets cover traffic-light, turn, normal,
+lane-change/merge, NPC interaction, and dense-scene cases. The runbook requires
+`CANDIDATE_SET_CONSENSUS_OUTCOME_LABEL_PASS_APPROVED=yes`, preserves the
+broader materiality candidate-generation settings, enables
+`--camp_candidate_set_consensus_payload_logging`, and plans
+`--camp_collect_closed_loop_outcomes`. Candidate ordering must remain exact:
+same run ID, route, seed, NPC count, traffic-light mode, spawn probability,
+candidate count, candidate noise scale, candidate reference blend steps, tick
+order, and contiguous candidate indices 0..7 per record.
+
+Evidence evaluation:
+
+The plan is ready as an authorization input only. It does not produce outcome
+labels and does not make the safety-score evaluation retryable. The next gate
+must independently verify the plan artifact, HEADS, SHA, fixed DP HEAD, CAMP
+HEAD/origin alignment, runbook guard, asset availability, nonformal scope, and
+blocked-action flags before any execution can be considered.
+
+Mathematical boundary:
+
+This gate only plans guarded offline label acquisition. It does not compute
+SafetyCost v1, does not use posterior outcomes for atom definition, lambda
+selection, online scoring, or CAMP training, and does not alter fixed shadow
+selected indices, CAMP atoms, CAMP weights, online selector, DP code, DP
+weights, replay pipeline, or simplex/CVaR/L2 master. DP remains a fixed
+black-box finite candidate generator. No DP-side classical Benders construction
+is claimed.
+
+Decision:
+
+Accept
+`candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_consideration_plan_only`
+as complete. The artifact is suitable only for a later authorization check. It
+does not authorize outcome-label pass execution, label attachment, safety-score
+evaluation retry, safety benefit claims, atom promotion, CAMP retraining,
+online selector changes, formal seeds, Full36, replay execution, or DP
+modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_shadow_atom_safety_score_guarded_outcome_label_pass_authorization_only`
+is now authorized. That gate may verify the plan artifact JSON/MD/runbook,
+SHA/HEADS, AutoDL CAMP HEAD and origin/main, fixed DP HEAD, runbook guard,
+asset availability, six-run nonformal route/seed matrix, blocked-action flags,
+and accept/reject criteria. It may not execute the label pass, attach labels,
+retry safety-score evaluation, train CAMP, promote the atom, use formal seeds,
+change online selection, claim safety benefit, or modify DP.
