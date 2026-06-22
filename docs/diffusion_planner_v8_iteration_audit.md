@@ -61063,3 +61063,96 @@ locally and on AutoDL. The existing broader-log dry-run execution gate is
 authorized to restart with the fixed analyzer. This still does not authorize a
 new replay, atom promotion, CAMP retraining, formal seeds, Full36, online
 selector changes, safety-benefit claims, or DP modification.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Dry-Run Existing Broader Logs Execution
+
+Objective:
+
+Execute only the authorized read-only dry run on the already completed broader
+nonformal `logging_enabled` logs. This gate does not run a new replay, train
+CAMP, promote the atom, run Full36, use formal seeds, change online selection,
+claim safety benefit, or modify DP.
+
+Execution:
+
+```text
+source plan=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_dry_run_plan_98be8ec/candidate_set_consensus_shadow_atom_dry_run_plan.json
+candidate root=/root/autodl-tmp/camp_dp_candidate_set_consensus_broader_nonformal_materiality/logging_enabled
+expected_logs=6
+expected_records=60
+expected_candidates=8
+AutoDL CAMP HEAD=83619c33f5343eceaa4f0e2db2ef7aa3a0d68cf1
+AutoDL CAMP origin/main=83619c33f5343eceaa4f0e2db2ef7aa3a0d68cf1
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_dry_run_83619c33f
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_dry_run.json` | `9f2fc75ca9c52552dbbddb16549ed9d3f21cca90ad3b5286038fcea006fc7886` |
+| `candidate_set_consensus_shadow_atom_dry_run.md` | `4f4fd2ed15c8cd35e6f586ee1dc84850156d4a50f57657f147e6f1abc99f118a` |
+| `HEADS.txt` | `1f3d3e7c14b14add06459904e4ca86cdb1720df4ab986062110997ad1b596a25` |
+
+Result:
+
+```text
+status=candidate_set_consensus_shadow_atom_dry_run_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_dry_run_result_review_only
+shadow_atom_dry_run_ready=True
+failed_checks=[]
+log_count=6
+records=60
+valid_records=60
+available_records=60
+shadow_appended_records=60
+ranking_signal_records=60
+consensus_only_would_change_selected_index_records=39
+formal_seed_log_count=0
+record_error_counts={}
+max_shadow_zero_weight_score_abs_diff=0.0
+max_shadow_zero_weight_selection_score_abs_diff=0.0
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+camp_retraining_authorized=False
+online_selector_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+```
+
+Mathematical boundary:
+
+The dry run appended the fixed current-tick finite-candidate consensus
+coefficient only as a shadow atom with primary and selection weights equal to
+zero. The logged affine base scores were checked, and the shadow score deltas
+were exactly zero for both `scores` and `selection_scores`. This preserves
+`score_k(w)=a_k^T w` bookkeeping and does not change deployed selector outputs,
+fallback state, or feasible masks. No closed-loop outcomes or safety scores are
+used to define the coefficient, and no DP-side classical Benders construction is
+claimed.
+
+Decision:
+
+Accept the existing broader-log shadow dry run as executed and ready for result
+review only. The result shows the candidate-set consensus coefficient can be
+appended as a zero-weight shadow atom over these 60 nonformal records without
+changing selector-visible scores or selected indices. It does not prove safety
+benefit, does not prove CAMP superiority over DP Top-1, and does not authorize
+atom promotion, CAMP retraining, online selector changes, new replay, formal
+seeds, Full36, or DP modification.
+
+Next admissible gate:
+
+Only `candidate_set_consensus_shadow_atom_dry_run_result_review_only` is now
+authorized. That review may interpret spread/rank/change diagnostics from the
+dry-run artifact and decide whether a later, separately planned sensitivity gate
+is justified. It may not train CAMP, promote the atom, run replay, use formal
+seeds, alter the online selector, claim safety benefit, or modify DP.
