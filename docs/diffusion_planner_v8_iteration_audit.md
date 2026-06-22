@@ -60698,3 +60698,156 @@ That next gate may design a shadow-only dry run that appends the coefficient to
 an offline/shadow atom table and proves selector-visible outputs are unchanged.
 It still may not promote the atom, change online selector weights, train CAMP,
 run formal seeds 11/12/13, run Full36, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Dry-Run Plan
+
+Objective:
+
+Execute only the plan-only shadow atom dry-run design gate authorized by the
+candidate-set consensus atom design review. This gate predeclares how a future
+shadow-only dry run must append the candidate-set consensus coefficient with
+zero weight and prove selector-visible outputs are unchanged. It does not
+execute the dry run, run replay, promote the atom, train CAMP, run formal seeds,
+change online selection, or modify DP.
+
+State audit before gate:
+
+```text
+CAMP local HEAD=ecfbc084d8e0d6c6e99156ec325513a5ca21b4f2
+CAMP origin/main=ecfbc084d8e0d6c6e99156ec325513a5ca21b4f2
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+AutoDL CAMP HEAD=ecfbc084d8e0d6c6e99156ec325513a5ca21b4f2
+AutoDL CAMP origin/main=ecfbc084d8e0d6c6e99156ec325513a5ca21b4f2
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+candidate_set_consensus_atom_design_review_plan_14cad97 SHA256SUMS=OK
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run_plan.py
+```
+
+Local verification:
+
+```bash
+python -m py_compile \
+  scripts/integrations/plan_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run_plan.py
+
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_atom_design_review.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_dry_run_plan.py \
+  -q
+```
+
+Result:
+
+```text
+12 passed in 1.30s
+```
+
+GitHub/AutoDL sync:
+
+```text
+shadow atom dry-run plan commit=98be8ecb60c01ebc5f1d873a1cc35e8c00a3b8ad
+AutoDL CAMP HEAD=98be8ecb60c01ebc5f1d873a1cc35e8c00a3b8ad
+AutoDL CAMP origin/main=98be8ecb60c01ebc5f1d873a1cc35e8c00a3b8ad
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+AutoDL tests=12 passed in 0.22s
+AutoDL CAMP status=main...origin/main plus pre-existing untracked files only
+AutoDL DP status=tier4-main...origin/tier4-main
+```
+
+Shadow atom dry-run plan artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_dry_run_plan_98be8ec
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_dry_run_plan.json` | `ee7e58617401794a80e5589d72e3151e8a3f7c165362a415ae8e516c856b75b8` |
+| `candidate_set_consensus_shadow_atom_dry_run_plan.md` | `fc74dbd244a97ccf19935dec494235cbe999883256d77f28a8112d8ac9472cfa` |
+| `HEADS.txt` | `f97df238358cb9badb58f0319c985c6bf3a408df3af04b14be3ab77b6e3c8142` |
+
+Shadow atom dry-run plan decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_dry_run_plan_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_dry_run_implementation_unit_tests_only
+shadow_atom_dry_run_plan_ready=True
+dry_run_implementation_authorized=True
+dry_run_execution_authorized=False
+atom_promotion_authorized=False
+safety_benefit_evidence=False
+expected_logs=6
+expected_records=60
+expected_candidates=8
+candidate_root=/root/autodl-tmp/camp_dp_candidate_set_consensus_broader_nonformal_materiality/logging_enabled
+weight_append_value=0.0
+score_delta_tolerance=0.0
+write_runtime_logs=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+full36_authorized=False
+formal_seeds_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+```
+
+Required future dry-run checks:
+
+- read existing logging-enabled `camp_selection_log.json` files only;
+- require exactly 6 logs, 60 records, and 8 candidates per valid record;
+- reject any run id or artifact path containing formal seed 11, 12, or 13;
+- require `candidate_set_consensus_payload_logging.available=true` before append;
+- require coefficient field `candidate_set_consensus_center_rms_m` length equals
+  `candidate_count`;
+- require coefficient values are finite and nonnegative;
+- append `candidate_set_consensus_center_rms_cost_v1` as a shadow atom with
+  zero weight;
+- prove `scores` and `selection_scores` are exactly unchanged after zero-weight
+  append;
+- prove `selected_index`, `feasible_mask`, fallback mode, and infeasibility
+  reasons are unchanged;
+- keep closed-loop outcomes and safety-score summaries out of the coefficient;
+- write dry-run JSON/markdown/SHA/HEADS artifacts before any later execution
+  gate;
+- do not change deployed atom schema, CAMP weights, online selector, DP code, or
+  DP weights.
+
+Mathematical boundary:
+
+The planned dry run may read existing logging-enabled nonformal selection logs
+and append the fixed candidate-set consensus coefficient as a shadow atom with
+zero weight only. Because the added weight is zero, selector-visible affine
+scores must remain exactly unchanged: `score_k(w)=a_k^T w` before append equals
+the shadow score after append. This does not promote the atom, mutate runtime
+selection, train CAMP, rerun DP, or claim DP-side classical Benders cuts. The
+simplex/CVaR/L2 master remains convex because any later nonzero-weight review
+would still optimize only over fixed coefficients.
+
+Decision:
+
+Accept the shadow atom dry-run plan as a plan-only gate. It authorizes only
+implementation and unit tests for a shadow-only dry-run analyzer. It does not
+authorize executing that dry run on AutoDL yet, and it does not authorize replay,
+atom promotion, CAMP retraining, online selector changes, formal seeds, Full36,
+or DP modification.
+
+Next admissible work:
+
+Only `candidate_set_consensus_shadow_atom_dry_run_implementation_unit_tests_only`
+is now authorized. The next gate may implement a read-only analyzer that consumes
+existing broader nonformal logs and performs the zero-weight shadow append
+checks in tests. A separate later gate would still be required before running it
+on the AutoDL replay artifact.
