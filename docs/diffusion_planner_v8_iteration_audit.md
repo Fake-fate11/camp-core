@@ -63928,3 +63928,137 @@ is now authorized. That gate may verify plan artifact SHA/HEADS, result-review
 artifact SHA/HEADS, execution artifact SHA/HEADS, CAMP/AutoDL/GitHub alignment,
 fixed DP HEAD, and read-only diagnostic implementation readiness. It may not
 execute diagnosis until that authorization gate passes.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Safety-Score Mixed Result Non-Promotion Diagnosis Authorization
+
+Objective:
+
+Authorize only whether the mixed-result non-promotion diagnosis may run. This
+gate verifies the diagnosis plan artifact SHA/HEADS, result-review artifact
+SHA/HEADS, evaluation execution artifact SHA/HEADS, CAMP local/origin/AutoDL
+alignment, fixed DP HEAD, and read-only diagnosis implementation readiness. It
+does not execute diagnosis, recompute outcomes, train CAMP, promote the atom,
+use formal seeds, change online selection, run replay, claim safety benefit, or
+modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD after implementation sync=eb5371dc2ce0f5594636bd58c1ad5726850794ca
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+plan_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_plan_162cfe9
+result_review_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review_0a87b7b
+execution_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution_a28d089
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+```
+
+Implementation:
+
+```text
+scripts/integrations/diagnose_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion.py
+scripts/integrations/authorize_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.py
+```
+
+Verification:
+
+```text
+local:
+python -m py_compile scripts/integrations/diagnose_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion.py scripts/integrations/authorize_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_review.py -q
+git diff --check
+
+result:
+11 passed
+49 passed
+
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/diagnose_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion.py scripts/integrations/authorize_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.py -q
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_result_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py -q
+
+result:
+11 passed
+18 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization_eb5371d
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.json` | `e672d1ee8401ec8b2876944e2d3167a4599426e521bcfe36849b01b1a6f2e1ba` |
+| `candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization.md` | `3f7255e79ea27234c3838e5364f17f1cb0651d435e8003454d7cb999a1d43ada` |
+| `COMMAND.log` | `46668565c5b967a6917ed5503555cc407858271fd4440321e3d195f878afc8d1` |
+| `COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `dc05a58b0d01f3ee221ccad39ab6f20cbf085a0640a9b684d8750dca14ee1396` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_execution_only
+mixed_result_nonpromotion_diagnosis_authorization_ready=True
+mixed_result_nonpromotion_diagnosis_execution_authorized=True
+mixed_result_nonpromotion_diagnosis_executed=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+```
+
+Evidence evaluation:
+
+The authorization gate passed because all plan/result/execution artifacts were
+present with matching SHA256SUMS and HEADS, CAMP HEAD matched origin/main on
+AutoDL, DP remained fixed, and the read-only diagnosis implementation and unit
+test were present. This authorizes only the diagnosis execution gate.
+
+Mathematical boundary:
+
+This gate verified evidence and implementation readiness only. It did not
+execute diagnosis, recompute outcomes, define atoms, choose lambda online,
+alter `score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, train
+CAMP, change online selection, run replay, run DP, modify DP, or claim a
+DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_authorization_only`
+as complete. This authorizes only
+`candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_execution_only`.
+It does not authorize safety benefit claims, atom promotion, CAMP retraining,
+online selector changes, formal seeds, Full36, new replay, label attachment, or
+DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_shadow_atom_safety_score_mixed_result_nonpromotion_diagnosis_execution_only`
+is now authorized. That gate may run the read-only diagnosis script against the
+frozen plan/result-review/evaluation artifacts and record JSON, markdown,
+command log, exit code, HEADS, and SHA256SUMS. It may not promote the atom,
+train CAMP, enable online selection, use formal seeds, run replay, claim safety
+benefit, attach labels, or modify DP.
