@@ -59940,3 +59940,163 @@ route/seed scope, latency and selector-equivalence gates, spread/rank/sensitivit
 diagnostics, safety-score evaluation boundaries, and reject criteria. It still
 must not use formal seeds, promote the atom, train CAMP, enter Full36, or claim
 DP Top-1 improvement before evidence exists.
+
+### 2026-06-22 - Candidate-Set Consensus Broader Nonformal Materiality Plan
+
+Objective:
+
+Design the broader nonformal materiality plan for candidate-set consensus only.
+This gate emits a predeclared route/seed matrix, source checks, gating criteria,
+diagnostic contract, artifact/SHA recording rules, and a guarded future runbook.
+It does not run broader replay, promote an atom, train CAMP, use formal seeds,
+modify DP, or claim that CAMP improves over DP Top-1.
+
+Initial sync audit:
+
+```text
+CAMP local HEAD=f36a3a9aa362f09c7e5d1e49a52727330a2c70d3
+CAMP origin/main=f36a3a9aa362f09c7e5d1e49a52727330a2c70d3
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+requested repo-local session_exports/camp-dp-session-f36a3a9-20260622-074036-HANDOFF.md missing
+same handoff content found outside repo in the IDE-open WeChat export path
+AutoDL SSH old port currently closes immediately; remote HEAD/sync not yet verified in this gate
+```
+
+Implementation:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_plan.py
+```
+
+Predeclared route/seed matrix:
+
+| Run | Route | Seed | NPCs | Spawn | TL | Buckets |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| `sample_tl59_seed1_npc0_tlon` | `sample_map_tl_route_59_to_86` | 1 | 0 | 0.3 | on | traffic_light, red_light_turn, sharp_turn |
+| `sample_tl59_seed2_npc4_tlon` | `sample_map_tl_route_59_to_86` | 2 | 4 | 0.3 | on | traffic_light, red_light_turn, sharp_turn, npc_interaction |
+| `sample_tl59_seed3_npc4_tloff` | `sample_map_tl_route_59_to_86` | 3 | 4 | 0.3 | off | sharp_turn, npc_interaction |
+| `sample_normal2_seed1_npc0_tloff` | `sample_map_route_2_to_104` | 1 | 0 | 0.3 | off | normal |
+| `nishi_release_seed2_npc4_tlon` | `nishishinjuku_release_auto_route` | 2 | 4 | 0.3 | on | traffic_light, npc_interaction, dense_scene |
+| `nishi_lanechange_seed4_npc4_tloff` | `nishishinjuku_lane_change_route_7_via_8_to_1` | 4 | 4 | 0.3 | off | lane_change_or_merge, npc_interaction, dense_scene |
+
+Existing asset paths predeclared:
+
+```text
+/root/autodl-tmp/camp_dp_assets/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm
+/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+/root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl
+/root/autodl-tmp/camp_dp_assets/nishishinjuku_no_ros.osm
+/root/autodl-tmp/camp_dp_assets/nishishinjuku_release_auto_route.pkl
+/root/autodl-tmp/camp_dp_assets/nishishinjuku_lane_change_route_7_via_8_to_1.pkl
+/root/autodl-tmp/camp_dp_assets/diffusion_planner.pth
+/root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/atom_scales_dp_static.json
+/root/autodl-tmp/camp_dp_assets/camp_dp_robust_static_v10_progress2_redstopfloor05_j1_lat2_e70f263/offline_weights_dp_static.npy
+```
+
+Local verification:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+python -m py_compile `
+  scripts\integrations\plan_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_plan.py
+
+python -m pytest `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality_plan.py `
+  camp_core\tests\test_diffusion_planner_candidate_set_consensus_tiny_materiality.py `
+  -q
+```
+
+Result:
+
+```text
+py_compile passed
+13 passed in 3.97s
+```
+
+Local plan artifact command:
+
+```powershell
+$env:PYTHONPATH='F:\camp_core-main;F:\camp_core-main\camp_core'
+python scripts\integrations\plan_diffusion_planner_candidate_set_consensus_broader_nonformal_materiality.py `
+  --tiny_materiality_json results\diffusion_planner\candidate_set_consensus_broader_nonformal_materiality_plan_f36a3a9\candidate_set_consensus_tiny_materiality_from_audit.json `
+  --label local_f36a3a9_candidate_set_consensus_broader_nonformal_materiality_plan `
+  --output_root /root/autodl-tmp/camp_dp_candidate_set_consensus_broader_nonformal_materiality `
+  --output_json results\diffusion_planner\candidate_set_consensus_broader_nonformal_materiality_plan_f36a3a9\candidate_set_consensus_broader_nonformal_materiality_plan.json `
+  --output_md results\diffusion_planner\candidate_set_consensus_broader_nonformal_materiality_plan_f36a3a9\candidate_set_consensus_broader_nonformal_materiality_plan.md `
+  --output_bash results\diffusion_planner\candidate_set_consensus_broader_nonformal_materiality_plan_f36a3a9\run_candidate_set_consensus_broader_nonformal_materiality.sh
+```
+
+Local artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `results/diffusion_planner/candidate_set_consensus_broader_nonformal_materiality_plan_f36a3a9/candidate_set_consensus_broader_nonformal_materiality_plan.json` | `8bbb8d6567e42a35654729d7e2e57c7c277e58a24b09413738a3dd3a0ed98f85` |
+| `results/diffusion_planner/candidate_set_consensus_broader_nonformal_materiality_plan_f36a3a9/candidate_set_consensus_broader_nonformal_materiality_plan.md` | `e086f17ab7d339980bd377604bbbaa7331a1a3771f56a6a89753443f5a2fd557` |
+| `results/diffusion_planner/candidate_set_consensus_broader_nonformal_materiality_plan_f36a3a9/run_candidate_set_consensus_broader_nonformal_materiality.sh` | `77161a7ae22c42a7ca12ef7ede1da603aecda72d2b60f30b2a0c27fd68e5e04b` |
+
+Artifact recording rule for AutoDL, once SSH is available:
+
+```text
+remote root template:
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_broader_nonformal_materiality_plan_<camp_short_sha>
+
+record:
+- plan JSON
+- plan markdown
+- guarded runbook
+- SHA256SUMS
+- HEADS.txt containing CAMP HEAD, CAMP origin/main, and fixed DP HEAD
+```
+
+Final decision:
+
+```text
+status=candidate_set_consensus_broader_nonformal_materiality_plan_ready
+passed=True
+plan_only=True
+plan_artifact_ready=True
+authorized_next_work=candidate_set_consensus_broader_nonformal_materiality_replay_consideration_next_round_only
+broader_replay_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Decision:
+
+Accept the plan artifact locally as a plan-only gate. It predeclares a 6-run,
+60-record, 480-candidate nonformal matrix covering traffic-light, turn, normal,
+npc-interaction, dense, and nishishinjuku lane-change/release assets. The
+generated runbook is guarded by
+`CANDIDATE_SET_CONSENSUS_BROADER_MATERIALITY_REPLAY_APPROVED=yes`, so accidental
+execution exits before any replay. No broader replay is authorized by this
+entry.
+
+Mathematical boundary:
+
+The plan remains within fixed finite-candidate diagnostics. Candidate-set
+consensus is a current-tick nonnegative coefficient computed before selection;
+if a later, separate atom-design gate accepts it, it can preserve
+`score_k(w)=a_k^T w` and the simplex/CVaR/L2 convex master. The plan constructs
+no DP-side classical Benders master/subproblem, dual, or valid cuts.
+
+Next admissible work:
+
+Complete GitHub push and AutoDL sync/HEAD/artifact verification for this plan
+artifact once the AutoDL SSH endpoint is reachable. Only after that succeeds
+may the next round consider whether to explicitly authorize the guarded
+broader nonformal materiality replay.
