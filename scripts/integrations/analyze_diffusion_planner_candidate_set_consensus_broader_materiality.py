@@ -211,6 +211,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- valid records: `{summary['valid_records']}`",
         f"- valid record rate: `{summary['valid_record_rate']}`",
         f"- candidate rows: `{summary['candidate_rows']}`",
+        f"- valid candidate rows: `{summary['valid_candidate_rows']}`",
         f"- positive spread records: `{summary['positive_spread_records']}`",
         f"- positive spread rate: `{summary['positive_spread_rate']}`",
         f"- selected not consensus-best records: `{summary['selected_not_consensus_best_records']}`",
@@ -412,7 +413,10 @@ def _materiality_summary(
     ]
     valid_record_rate = _ratio(len(valid), len(records))
     positive_spread_rate = _ratio(len(positive), len(valid))
-    candidate_rows = int(sum(int(row.get("candidate_count") or 0) for row in valid))
+    valid_candidate_rows = int(
+        sum(int(row.get("candidate_count") or 0) for row in valid)
+    )
+    candidate_rows = int(len(records) * EXPECTED_CANDIDATES)
     signal_present = bool(
         len(positive) > 0 and len(selected_not_best) > 0 and len(lambdas) > 0
     )
@@ -434,6 +438,7 @@ def _materiality_summary(
         "valid_records": len(valid),
         "valid_record_rate": valid_record_rate,
         "candidate_rows": candidate_rows,
+        "valid_candidate_rows": valid_candidate_rows,
         "positive_spread_records": len(positive),
         "positive_spread_rate": positive_spread_rate,
         "selected_not_consensus_best_records": len(selected_not_best),
