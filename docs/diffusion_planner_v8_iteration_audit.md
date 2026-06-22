@@ -63349,3 +63349,151 @@ CAMP HEAD alignment, fixed DP HEAD, reviewed label-root availability,
 weight-sensitivity artifact stability, nonformal route/seed scope, and evaluator
 implementation readiness. It may not execute the retry until that authorization
 gate passes.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Safety-Score Evaluation Retry Authorization
+
+Objective:
+
+Authorize only whether a later read-only safety-score evaluation retry may run.
+This gate verifies the retry-plan artifact SHA/HEADS, source-review artifact
+SHA/HEADS, weight-sensitivity artifact SHA/HEADS, CAMP local/origin/AutoDL
+alignment, the fixed DP HEAD, label-root availability, nonformal route/seed
+scope, complete posterior outcomes, payload no-leak records, and evaluator
+implementation readiness. It does not execute the evaluator, attach labels,
+train CAMP, promote the atom, use formal seeds, change online selection, run
+new replay, claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local/GitHub/AutoDL CAMP HEAD after implementation sync=195a58c1ee0bad50c91a4d86178edcfe1e806537
+branch=main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+retry_plan_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_consideration_plan_cc6c43c
+source_review_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_review_17b9ee08f
+weight_sensitivity_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_weight_sensitivity_b373e0cdd
+label_root=/root/autodl-tmp/camp_dp_candidate_set_consensus_shadow_atom_safety_score_outcome_labels
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+```
+
+Implementation:
+
+```text
+scripts/integrations/authorize_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.py
+```
+
+Verification:
+
+```text
+local:
+python -m py_compile scripts/integrations/authorize_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.py -q
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py -q
+git diff --check
+
+result:
+7 passed
+26 passed
+
+AutoDL:
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/authorize_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.py -q
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_outcome_label_source_review.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_safety_score_evaluation.py -q
+
+result:
+7 passed
+19 passed
+```
+
+AutoDL artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization_195a58c
+```
+
+Artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.json` | `ef58f91444c35f0efc6285d44bbbd3d505761c66b9dac43e23dea454b0256d61` |
+| `candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization.md` | `9161e64039053f9c1cb7fda8d62497599d3af567547b10864c56e611a142ffd9` |
+| `COMMAND.log` | `780c0cdab2689ea3c6e2b81abfadaf3266f47d5e8af701ef5be5ad44aad6c7df` |
+| `HEADS.txt` | `4e2148d4b8fcab6a1a76287a45b7ab4b22c1d21bb04fe55399a4a457552b0b56` |
+
+Artifact final decision:
+
+```text
+status=candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization_ready
+passed=True
+authorized_next_work=candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution_only
+safety_score_evaluation_retry_authorization_ready=True
+safety_score_evaluation_retry_execution_authorized=True
+safety_score_evaluation_retry_executed=False
+label_attachment_authorized=False
+safety_benefit_evidence=False
+atom_promotion_authorized=False
+new_replay_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+```
+
+Authorization diagnostics:
+
+```text
+label_root_log_count=6
+label_root_records=60
+complete_outcome_records=60
+payload_no_leak_records=60
+formal_seed_log_count=0
+label_root_errors=[]
+```
+
+Evidence evaluation:
+
+The authorization gate passed because all required artifacts were present with
+matching SHA256SUMS and HEADS, CAMP HEAD matched origin/main on AutoDL, DP
+remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`, the label root
+contained the expected six nonformal logs and 60 complete posterior outcome
+records, and the evaluator implementation/test files were present. This
+authorizes only the read-only retry execution gate.
+
+Mathematical boundary:
+
+The authorization gate did not execute the evaluator and did not compute a
+safety benefit. The future retry may read posterior outcomes only as offline
+labels after the shadow selected indices are fixed. It remains forbidden to use
+posterior labels for atom definition, lambda selection, online scoring, CAMP
+training, DP changes, or any DP-side classical Benders claim. The affine score
+form `score_k(w)=a_k^T w` and the convex simplex/CVaR/L2 master remain
+unchanged.
+
+Decision:
+
+Accept
+`candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_authorization_only`
+as complete. This authorizes only
+`candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution_only`.
+It does not authorize label attachment, safety benefit claims, atom promotion,
+CAMP retraining, online selector changes, formal seeds, Full36, new replay, or
+DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_shadow_atom_safety_score_evaluation_retry_execution_only`
+is now authorized. That gate may run the existing read-only evaluator against
+the reviewed label root and fixed weight-sensitivity artifact, record JSON,
+markdown, command log, HEADS, SHA256SUMS, and then stop for a separate result
+review. It may not attach labels to prior artifacts, promote the atom, train
+CAMP, alter online selection, use formal seeds, run replay, claim safety
+benefit, or modify DP.
