@@ -66950,3 +66950,121 @@ existing contracts and for a later default-off remediation path. It may not
 edit production implementation code, create candidates, rerun the screen, run
 replay, use formal seeds, train CAMP, promote atoms, change the online
 selector, expand to Full36, or modify DP.
+
+### 2026-06-22 - Candidate-Set Consensus Lane-Projected Jerk/Progress Default-Off Remediation Unit Tests
+
+Objective:
+
+Execute only the unit-tests-only gate authorized by the default-off unit-tests
+plan. This gate adds synthetic/static tests that pin the existing relative
+comfort, hard-label, latency-reporting, policy default-off, and validation
+contracts. It does not edit production implementation code, create candidates,
+rerun the screen, run replay, train CAMP, promote atoms, change online
+selection, use formal seeds, claim safety benefit, or modify DP.
+
+State audit:
+
+```text
+local/GitHub CAMP HEAD after implementation=9b96e9617a49713a33ef7afefee4ed75106903d6
+AutoDL CAMP HEAD at verification=9b96e9617a49713a33ef7afefee4ed75106903d6
+AutoDL CAMP origin/main=9b96e9617a49713a33ef7afefee4ed75106903d6
+AutoDL DP branch=tier4-main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+test_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests_9b96e96
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration files left untouched
+```
+
+Implementation:
+
+```text
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py
+```
+
+The gate intentionally adds tests only. No production implementation file was
+modified.
+
+Local verification:
+
+```text
+python -m py_compile camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py -q
+7 passed in 0.80s
+python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_analysis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_static_contract.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py -q
+69 passed in 3.47s
+git diff --check -- camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py
+clean
+```
+
+AutoDL verification:
+
+```text
+/root/miniconda3/envs/camp/bin/python -m py_compile camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_analysis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_static_contract.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py -q
+69 passed in 0.45s
+PY_COMPILE_EXIT=0
+PYTEST_EXIT=0
+PY_COMPILE.err bytes=0
+PYTEST.err bytes=0
+```
+
+Test artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST.log` | `2bdfddfbfbfe64d5498d2a930449b99a566d308ee96ce822d7ad1ebdb788163c` |
+| `PYTEST.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `3a7240077ac5067b455f5d252aa6dd8ebbba6417bcc3f5580a5144133c2efe1b` |
+| `HEADS.txt` | `e0e5a209f0346ffc87d36bcde1a1e0355ce0ac6101168412e7da474ae930109a` |
+
+Tests pinned:
+
+```text
+default generator_policy remains lane_centerline_red_stop
+_comfort_admissible requires lower_union_red, hard_feasible, and progress_feasible
+_comfort_admissible blocks tracker budget regressions
+_comfort_failure_classes emits the expected budget-family labels
+route_failure_classes reports hard labels without DP changes
+_summarize_latency reports candidate_build and total fields
+_validate_config rejects invalid remediation budgets
+```
+
+Evidence evaluation:
+
+The tests pin the existing source contracts needed before a later default-off
+remediation implementation plan. They do not prove runtime improvement, do not
+alter candidate generation, do not run DP, and do not authorize screen rerun or
+replay.
+
+Mathematical boundary:
+
+This gate adds only synthetic/static tests against existing CAMP code. It does
+not edit production implementation code, implement a remediation, create
+candidates, rerun the screen, run DP, run replay, recompute outcomes, define
+runtime atoms, choose lambda online, alter `score_k(w)=a_k^T w`, mutate the
+convex simplex/CVaR/L2 master, train CAMP, change online selection, modify DP
+weights or code, or claim a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_unit_tests_only`
+as complete. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_implementation_plan_only`.
+It does not authorize production implementation edits yet, candidate
+generation, screen rerun, broader replay, Full36, formal seeds, atom promotion,
+online selector promotion, CAMP retraining, safety-benefit claims, or DP
+modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_implementation_plan_only`
+is now authorized. That gate may design a scoped default-off remediation
+implementation plan using the pinned tests and existing source contracts. It
+may not edit production implementation code, create candidates, rerun the
+screen, run replay, use formal seeds, train CAMP, promote atoms, change the
+online selector, expand to Full36, or modify DP.
