@@ -61442,3 +61442,117 @@ sync are complete at the final synchronized CAMP HEAD. This still does not
 execute the sensitivity sweep and does not authorize atom promotion, CAMP
 retraining, online selector changes, replay, formal seeds, Full36, safety-benefit
 claims, or DP modification.
+
+### 2026-06-22 - Candidate-Set Consensus Shadow Atom Weight-Sensitivity Implementation Unit Tests
+
+Objective:
+
+Execute only the implementation/unit-tests gate authorized by the weight
+sensitivity plan. This gate implements a read-only analyzer and synthetic tests
+for the predeclared lambda-grid sensitivity calculation. It does not run the
+analyzer on real AutoDL broader logs, run replay, train CAMP, promote the atom,
+run Full36, use formal seeds, change online selection, claim safety benefit, or
+modify DP.
+
+State audit before gate:
+
+```text
+CAMP local HEAD=12ca5b995f183900a764d91c19a16f88342939a1
+CAMP origin/main=12ca5b995f183900a764d91c19a16f88342939a1
+local branch=main...origin/main
+local unrelated untracked handoff/slides files left untouched
+AutoDL CAMP HEAD=12ca5b995f183900a764d91c19a16f88342939a1
+AutoDL CAMP origin/main=12ca5b995f183900a764d91c19a16f88342939a1
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+candidate_set_consensus_shadow_atom_weight_sensitivity_plan_2fcaee6 SHA256SUMS=OK
+```
+
+Implementation:
+
+```text
+scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py
+```
+
+Implemented checks:
+
+- require source plan status
+  `candidate_set_consensus_shadow_atom_weight_sensitivity_plan_ready`;
+- require source authorized next work
+  `candidate_set_consensus_shadow_atom_weight_sensitivity_implementation_unit_tests_only`;
+- require source implementation authorization true and execution authorization
+  false;
+- require expected log, record, and candidate counts to match the source plan;
+- require source lambda grid is finite, sorted, unique, nonnegative, includes
+  zero, and has at least one positive value;
+- reject any selection log path or run id containing formal seeds 11, 12, or 13;
+- require payload `candidate_set_consensus_payload_logging` to be available,
+  default-off, no-leak, no-selection-effect, and current-tick only;
+- require coefficient field `candidate_set_consensus_center_rms_m` length equals
+  candidate count and values are finite and nonnegative;
+- use only `selection_scores`, `feasible_mask`, `selected_index`, fallback
+  fields, and the current-tick coefficient for candidate selection;
+- retain all-infeasible fallback records and report them separately;
+- evaluate the source-plan lambda grid using
+  `score_prime_k(lambda) = selection_score_k + lambda * coefficient_k`;
+- require lambda zero preserves logged selection;
+- report per-lambda changed records, route-level changes, critical lambda, and
+  selected-index transitions;
+- keep closed-loop outcomes and safety-score fields out of selection.
+
+Local verification:
+
+```bash
+python -m py_compile \
+  scripts/integrations/analyze_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py
+
+python -m pytest \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity.py \
+  camp_core/tests/test_diffusion_planner_candidate_set_consensus_shadow_atom_weight_sensitivity_plan.py \
+  -q
+```
+
+Result:
+
+```text
+15 passed in 1.79s
+```
+
+Synthetic coverage:
+
+- ready source plan accepts the predeclared lambda grid;
+- lambda zero preserves selected index;
+- positive lambda can change selection by the affine formula;
+- all-infeasible fallback records are retained;
+- source plan not ready rejects;
+- formal seed path rejects;
+- negative coefficient rejects;
+- bad lambda-zero selected-score consistency rejects;
+- bad source lambda grid rejects;
+- CLI writes JSON/markdown outputs and enforces `--require_pass`.
+
+Mathematical boundary:
+
+The implementation uses fixed current-tick finite-candidate coefficients and
+logged selection scores only. For each predeclared nonnegative lambda, the
+offline diagnostic score remains affine:
+`score_prime_k(lambda) = selection_score_k + lambda * a_k`. The analyzer does
+not modify the simplex/CVaR/L2 master, deploy a nonzero atom weight, train CAMP,
+execute or modify DP, use formal seeds, read closed-loop outcomes or safety
+scores for selection, or claim a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept the local implementation/unit-tests evidence for the weight-sensitivity
+analyzer. This decision still does not authorize executing the analyzer on the
+AutoDL broader logs until GitHub/AutoDL sync and remote unit tests pass. It also
+does not authorize replay, atom promotion, CAMP retraining, online selector
+changes, formal seeds, Full36, safety-benefit claims, or DP modification.
+
+Next admissible work:
+
+Only GitHub push, AutoDL sync, and remote unit tests for
+`candidate_set_consensus_shadow_atom_weight_sensitivity_implementation_unit_tests_only`
+are authorized next. A separate later gate is still required before running the
+analyzer on `/root/autodl-tmp/camp_dp_candidate_set_consensus_broader_nonformal_materiality/logging_enabled`.
