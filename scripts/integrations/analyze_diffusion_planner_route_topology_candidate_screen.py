@@ -354,6 +354,10 @@ def build_route_topology_candidates(
         _current_tick_scalar_failure_reason(current_speed_mps, dt) is not None
     ):
         return np.empty((0, raw.shape[1], raw.shape[2]), dtype=np.float64), []
+    if _requires_finite_selected_candidate_evidence(config) and (
+        _selected_candidate_state_failure_reason(raw, selected_index) is not None
+    ):
+        return np.empty((0, raw.shape[1], raw.shape[2]), dtype=np.float64), []
     lane = _oriented_lane(
         _finite_xy(np.asarray(lane_centerline, dtype=np.float64)),
         _finite_xy(np.asarray(red_route_points, dtype=np.float64)),
@@ -599,6 +603,17 @@ def route_topology_candidate_construction_diagnostics(
     diagnostics["current_tick_scalar_evidence"] = scalar_failure is None
     if diagnostics["requires_current_tick_scalar_evidence"] and scalar_failure:
         diagnostics["failure_reason"] = scalar_failure
+        return diagnostics
+    selected_state_failure = _selected_candidate_state_failure_reason(
+        raw,
+        selected_index,
+    )
+    diagnostics["requires_finite_selected_candidate_evidence"] = (
+        _requires_finite_selected_candidate_evidence(config)
+    )
+    diagnostics["finite_selected_candidate_evidence"] = selected_state_failure is None
+    if diagnostics["requires_finite_selected_candidate_evidence"] and selected_state_failure:
+        diagnostics["failure_reason"] = selected_state_failure
         return diagnostics
     lane = _oriented_lane(
         _finite_xy(np.asarray(lane_centerline, dtype=np.float64)),
@@ -1273,6 +1288,12 @@ def _requires_current_tick_scalar_evidence(
     return config.generator_policy == "lane_projected_jerk_progress_red_stop"
 
 
+def _requires_finite_selected_candidate_evidence(
+    config: RouteTopologyCandidateConfig,
+) -> bool:
+    return config.generator_policy == "lane_projected_jerk_progress_red_stop"
+
+
 def _current_tick_scalar_failure_reason(
     current_speed_mps: float,
     dt: float,
@@ -1281,6 +1302,16 @@ def _current_tick_scalar_failure_reason(
         return "current_tick_scalar_invalid"
     if _positive_finite_number(dt) is None:
         return "current_tick_scalar_invalid"
+    return None
+
+
+def _selected_candidate_state_failure_reason(
+    candidates: np.ndarray,
+    selected_index: int,
+) -> str | None:
+    selected = np.asarray(candidates[selected_index], dtype=np.float64)
+    if not np.isfinite(selected).all():
+        return "selected_candidate_state_invalid"
     return None
 
 

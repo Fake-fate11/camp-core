@@ -426,6 +426,52 @@ def test_route_topology_jerk_progress_requires_current_tick_scalars() -> None:
     assert diagnostics["current_tick_scalar_evidence"] is False
 
 
+def test_route_topology_jerk_progress_fails_closed_on_nonfinite_selected_state() -> None:
+    horizon = 80
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.8, 80.0, horizon)
+    candidates[0, :, 2] = 1.0
+    candidates[0, 10, 1] = np.nan
+    lane_x = np.linspace(-5.0, 100.0, 106)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red_x = np.linspace(80.0, 84.0, 5)
+    red = np.column_stack([red_x, np.zeros_like(red_x)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=8.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+        ),
+    )
+    diagnostics = route_topology_candidate_construction_diagnostics(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=8.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+        ),
+    )
+
+    assert generated.shape == (0, horizon, 4)
+    assert meta == []
+    assert diagnostics["construction_status"] == "fail_closed"
+    assert diagnostics["failure_reason"] == "selected_candidate_state_invalid"
+    assert diagnostics["requires_finite_selected_candidate_evidence"] is True
+    assert diagnostics["finite_selected_candidate_evidence"] is False
+
+
 def test_route_topology_generator_returns_empty_without_red_ahead() -> None:
     candidates = np.zeros((1, 20, 4), dtype=float)
     candidates[:, :, 2] = 1.0
