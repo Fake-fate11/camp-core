@@ -73277,3 +73277,129 @@ Until then, product-code edits, candidate generation, fixed-snapshot screen
 rerun, replay, Full36, formal seeds, CAMP retraining, atom promotion, online
 selector promotion, safety-benefit claims, CAMP-over-DP-Top-1 claims, and DP
 modification remain unauthorized.
+
+## 2026-06-23 - Candidate-Set Consensus Lane-Projected Jerk/Progress Support Default-Off Product-Code Implementation Only
+
+Status:
+
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_product_code_implementation_only`
+is complete under the updated goal-prompt boundary. The previous plan-only
+artifact's `recommended_next_gate_requires_explicit_authorization=True` is
+treated as a legacy prompt boundary rather than a hard safety blocker because
+the current goal prompt explicitly authorizes `implementation_only` when the
+audit tail points to it and the edit remains default-off/opt-in CAMP product
+code only.
+
+CURRENT_CAMP_HEAD:
+
+```text
+local HEAD=edfbd74ebf235f408e3aff2728af52f625713275
+local origin/main=edfbd74ebf235f408e3aff2728af52f625713275
+GitHub main=edfbd74ebf235f408e3aff2728af52f625713275
+AutoDL CAMP HEAD=edfbd74ebf235f408e3aff2728af52f625713275
+AutoDL CAMP origin/main=edfbd74ebf235f408e3aff2728af52f625713275
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation commits:
+
+```text
+c2faaf7af6fd22f56acc7bfe3b34f74d922d71a2 Implement default-off diagnostic payloads
+edfbd74ebf235f408e3aff2728af52f625713275 Keep DP integration tests Python 3.9 compatible
+```
+
+Changed product/test scope:
+
+```text
+camp_core/camp_core/integrations/diffusion_planner.py
+camp_core/tests/test_diffusion_planner_integration.py
+```
+
+The implementation adds explicit opt-in diagnostic payload wiring to
+`CAMPSelector.select()` and extends `CAMPSelectionResult` with default
+`diagnostic_payloads=None`. The default path remains unchanged. When explicitly
+enabled, the selector can build the already-audited candidate-set consensus and
+progress-support payloads after computing the baseline selection. These
+payloads are diagnostic-only, default-off, no-leak, and selection-neutral: they
+do not change candidates, feasibility, atoms, weights, scores, selection
+scores, selected index, fallback behavior, atom schema, or online selector
+promotion state. Progress-support payload construction fails closed when route
+geometry is unavailable. The follow-up compatibility commit removes a Python
+3.10-only `zip(strict=True)` call so the same integration tests run in the
+AutoDL Python 3.9 CAMP environment.
+
+Local verification:
+
+```text
+python -m py_compile camp_core\camp_core\integrations\diffusion_planner.py camp_core\camp_core\integrations\diffusion_planner_candidate_set_consensus_payload.py camp_core\camp_core\integrations\diffusion_planner_progress_support.py camp_core\tests\test_diffusion_planner_integration.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload.py camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py
+exit=0
+PYTHONPATH=F:\camp_core-main;F:\camp_core-main\camp_core python -m pytest camp_core\tests\test_diffusion_planner_integration.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_payload.py camp_core\tests\test_diffusion_planner_progress_support_logging_payload.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan.py -q
+146 passed, 13 skipped
+git diff --check
+exit=0
+```
+
+AutoDL verification:
+
+```text
+OUTPUT_ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_only_edfbd74
+OVERALL_EXIT=0
+PY_COMPILE_EXIT=0
+PYTEST_IMPLEMENTATION_EXIT=0
+SHA256SUMS_CHECK_EXIT=0
+CAMP_HEAD=edfbd74ebf235f408e3aff2728af52f625713275
+CAMP_ORIGIN_MAIN=edfbd74ebf235f408e3aff2728af52f625713275
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+PYTEST_IMPLEMENTATION_LOG=159 passed in 1.78s
+```
+
+AutoDL artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `HEADS.txt` | `7827080f64d49e29df14ae1604cc138641dcb447dc733bf83a9992166e31d240` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_IMPLEMENTATION.log` | `770a5de463cde46d706e3d108169527de628f75d4fea954d5d04044dab21f868` |
+| `PYTEST_IMPLEMENTATION.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_IMPLEMENTATION_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `STATIC_REVIEW.txt` | `436c4bbbdb5c46e306861aee5f6b21cec4a5efbe29aa6c0bce9207653406f899` |
+| `IMPLEMENTATION_DECISION.txt` | `2d4505f12ee8d67fcb9e6e353ce43590f142f5e00a5c23045bc0aea443ae39c1` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+
+Evidence evaluation:
+
+The implementation-only gate is complete. The implementation is default-off,
+opt-in, no-leak, selection-neutral, and fail-closed. Tests cover disabled
+selector equivalence, opt-in payload generation without score or selected-index
+changes, missing-route progress-support fail-closed behavior, payload no-leak
+metadata, and the pre-existing product-code implementation plan boundary. No
+DP source, DP weights, DP config, replay execution, Full36 run, formal seed,
+CAMP retraining, atom promotion, online selector promotion, safety-benefit
+claim, CAMP-over-DP-Top-1 claim, or classical-Benders claim is introduced.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The new selector payloads are
+computed only from the current tick finite candidate set and current route
+geometry when explicitly requested. They do not enter the deployed atom vector,
+do not choose lambda online, do not change `score_k(w)=a_k^T w`, and do not
+alter the convex simplex/CVaR/L2 master.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_product_code_implementation_only`
+as complete.
+
+Next admissible gate:
+
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_post_implementation_static_review`.
+
+This next gate is mandatory before any fixed-snapshot screen rerun or broader
+materiality execution. It must re-audit default-off behavior, no DP
+modification, no future information leakage, no formal seed, no replay, no
+promotion, no safety-benefit claim, no CAMP-over-DP-Top-1 claim, and no
+classical-Benders claim.
