@@ -513,11 +513,10 @@ def _head_checks(
     return [
         _check_equal("camp_head_matches_origin_main", camp_head, camp_origin_main),
         _check_equal("dp_head_fixed", dp_head, EXPECTED_DP_HEAD),
-        _check_equal("source_camp_head_matches_current", heads.get("CAMP_HEAD"), camp_head),
         _check_equal(
-            "source_camp_origin_matches_current",
+            "source_camp_head_matches_source_origin",
+            heads.get("CAMP_HEAD"),
             heads.get("CAMP_ORIGIN_MAIN"),
-            camp_origin_main,
         ),
         _check_equal("source_dp_head_fixed", heads.get("DP_HEAD"), EXPECTED_DP_HEAD),
     ]

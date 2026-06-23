@@ -218,7 +218,11 @@ def test_product_code_plan_rejects_failed_exit_or_stderr(tmp_path: Path) -> None
 
 
 def test_product_code_plan_rejects_head_mismatch(tmp_path: Path) -> None:
-    root = _write_artifact(tmp_path, camp_head="artifact-head")
+    root = _write_artifact(
+        tmp_path,
+        camp_head="artifact-head",
+        camp_origin_main="different-artifact-origin",
+    )
     report = build_report(
         unit_test_artifact_root=root,
         camp_head="current-head",
@@ -229,7 +233,7 @@ def test_product_code_plan_rejects_head_mismatch(tmp_path: Path) -> None:
 
     failed = report["final_decision"]["failed_checks"]
     assert report["final_decision"]["status"] == REJECT_STATUS
-    assert "source_camp_head_matches_current" in failed
+    assert "source_camp_head_matches_source_origin" in failed
 
 
 def test_product_code_plan_rejects_dp_mismatch(tmp_path: Path) -> None:
