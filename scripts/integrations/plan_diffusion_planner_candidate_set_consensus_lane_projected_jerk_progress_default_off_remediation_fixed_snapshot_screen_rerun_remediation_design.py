@@ -47,9 +47,12 @@ DEFAULT_ANALYSIS_ROOT = (
     "failure_attribution_analysis_432c2cb"
 )
 ANALYSIS_JSON = "fixed_snapshot_screen_rerun_failure_attribution_analysis.json"
+ANALYSIS_JSON_COMPAT = "failure_attribution_read_only_analysis.json"
 SHA256SUMS = "SHA256SUMS"
 HEADS = "HEADS.txt"
 ANALYSIS_EXIT = "ANALYSIS_EXIT"
+ANALYSIS_COMMAND_EXIT = "ANALYSIS_COMMAND_EXIT"
+EXIT_CODE = "EXIT_CODE"
 
 BLOCKED_ACTIONS = (
     "candidate_generation_execution_authorized",
@@ -117,11 +120,14 @@ def build_report(
     dp_head: str,
     label: str | None = None,
 ) -> dict[str, Any]:
+    analysis_json_name = _analysis_json_name(analysis_root)
+    analysis_exit_name = _analysis_exit_name(analysis_root)
     artifact = _artifact_summary(
         analysis_root,
-        required_files=(ANALYSIS_JSON, ANALYSIS_EXIT, HEADS, SHA256SUMS),
+        required_files=(analysis_json_name, analysis_exit_name, HEADS, SHA256SUMS),
+        analysis_exit_name=analysis_exit_name,
     )
-    analysis_payload = _load_json_if_present(analysis_root / ANALYSIS_JSON)
+    analysis_payload = _load_json_if_present(analysis_root / analysis_json_name)
     source = _source_summary(analysis_payload)
     design = _remediation_design(source)
     checks = [
@@ -247,7 +253,12 @@ def render_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _artifact_summary(root: Path, *, required_files: tuple[str, ...]) -> dict[str, Any]:
+def _artifact_summary(
+    root: Path,
+    *,
+    required_files: tuple[str, ...],
+    analysis_exit_name: str,
+) -> dict[str, Any]:
     files = {name: (root / name).is_file() for name in required_files}
     sha_ok, sha_details = _sha256sum_check(root / SHA256SUMS)
     return {
@@ -257,9 +268,24 @@ def _artifact_summary(root: Path, *, required_files: tuple[str, ...]) -> dict[st
         "required_files_present": all(files.values()),
         "sha256sums_ok": sha_ok,
         "sha256sums_details": sha_details,
-        "analysis_exit": _read_text(root / ANALYSIS_EXIT).strip() or None,
+        "analysis_exit": _read_text(root / analysis_exit_name).strip() or None,
+        "analysis_exit_file": analysis_exit_name,
         "heads_text_present": bool(_read_text(root / HEADS).strip()),
     }
+
+
+def _analysis_json_name(analysis_root: Path) -> str:
+    if (analysis_root / ANALYSIS_JSON).is_file():
+        return ANALYSIS_JSON
+    return ANALYSIS_JSON_COMPAT
+
+
+def _analysis_exit_name(analysis_root: Path) -> str:
+    if (analysis_root / ANALYSIS_EXIT).is_file():
+        return ANALYSIS_EXIT
+    if (analysis_root / ANALYSIS_COMMAND_EXIT).is_file():
+        return ANALYSIS_COMMAND_EXIT
+    return EXIT_CODE
 
 
 def _source_summary(payload: dict[str, Any]) -> dict[str, Any]:

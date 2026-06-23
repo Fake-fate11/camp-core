@@ -14,9 +14,12 @@ from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_broader
     EXPECTED_DP_HEAD,
 )
 from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design import (
+    ANALYSIS_COMMAND_EXIT,
     ANALYSIS_EXIT,
     ANALYSIS_JSON,
+    ANALYSIS_JSON_COMPAT,
     AUTHORIZED_NEXT_WORK,
+    EXIT_CODE,
     HEADS,
     READY_STATUS,
     REJECT_STATUS,
@@ -128,19 +131,21 @@ def _write_analysis_root(
     *,
     payload: dict[str, object] | None = None,
     analysis_exit: str = "0",
+    analysis_json_name: str = ANALYSIS_JSON,
+    analysis_exit_name: str = ANALYSIS_EXIT,
 ) -> Path:
     root = tmp_path / "analysis"
     root.mkdir()
-    (root / ANALYSIS_JSON).write_text(
+    (root / analysis_json_name).write_text(
         json.dumps(payload or _analysis_payload(), indent=2) + "\n",
         encoding="utf-8",
     )
-    (root / ANALYSIS_EXIT).write_text(f"{analysis_exit}\n", encoding="utf-8")
+    (root / analysis_exit_name).write_text(f"{analysis_exit}\n", encoding="utf-8")
     (root / HEADS).write_text(
         f"CAMP_HEAD=head\nDP_HEAD={EXPECTED_DP_HEAD}\n",
         encoding="utf-8",
     )
-    _write_sha256sums(root, (ANALYSIS_JSON, ANALYSIS_EXIT, HEADS))
+    _write_sha256sums(root, (analysis_json_name, analysis_exit_name, HEADS))
     return root
 
 
@@ -169,6 +174,43 @@ def test_default_off_rerun_remediation_design_plan_ready(tmp_path: Path) -> None
     assert design["selected_next_work"] == AUTHORIZED_NEXT_WORK
     assert design["design_priorities"][0]["focus"].startswith("restore comfort")
     assert len(design["remediation_threads"]) == 4
+
+
+def test_default_off_rerun_remediation_design_accepts_current_analysis_artifact(
+    tmp_path: Path,
+) -> None:
+    report = build_report(
+        analysis_root=_write_analysis_root(
+            tmp_path,
+            analysis_json_name=ANALYSIS_JSON_COMPAT,
+            analysis_exit_name=ANALYSIS_COMMAND_EXIT,
+        ),
+        camp_head="abc",
+        camp_origin_main="abc",
+        dp_head=EXPECTED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["analysis_artifact"]["required_files"][ANALYSIS_JSON_COMPAT] is True
+    assert report["analysis_artifact"]["analysis_exit_file"] == ANALYSIS_COMMAND_EXIT
+
+
+def test_default_off_rerun_remediation_design_accepts_exit_code_fallback(
+    tmp_path: Path,
+) -> None:
+    report = build_report(
+        analysis_root=_write_analysis_root(
+            tmp_path,
+            analysis_json_name=ANALYSIS_JSON_COMPAT,
+            analysis_exit_name=EXIT_CODE,
+        ),
+        camp_head="abc",
+        camp_origin_main="abc",
+        dp_head=EXPECTED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["analysis_artifact"]["analysis_exit_file"] == EXIT_CODE
 
 
 def test_default_off_rerun_remediation_design_rejects_sha_mismatch(
