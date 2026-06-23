@@ -2196,7 +2196,6 @@ def compute_candidate_obstacle_clearance_diagnostics(
                             obb_rows,
                             step_indices,
                             clearances,
-                            strict=True,
                         ):
                             if float(clearance) > exact_trigger:
                                 continue
