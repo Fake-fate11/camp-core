@@ -71079,3 +71079,208 @@ reviewed static contracts. It must not edit product implementation code,
 generate candidates, rerun the screen, run replay, use formal seeds, run
 Full36, train CAMP, promote atoms, change online selection, claim safety
 benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+## Candidate-set consensus lane-projected jerk/progress default-off remediation fixed-snapshot rerun implementation plan
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan_only`.
+This gate may repair implementation-plan-only tooling, verify its tests, read
+the unit-tests artifact, and generate an implementation-plan artifact. It may
+not edit product implementation code, generate candidates, rerun the
+fixed-snapshot screen, run replay, use formal seeds 11/12/13, run Full36, train
+CAMP, promote atoms, change online selection, claim safety benefit, claim CAMP
+is better than DP Top-1, or modify DP.
+
+State audit:
+
+```text
+startup local CAMP HEAD=5c734139efabd874c8eda83a89708f1f2b72b48a
+startup local origin/main=5c734139efabd874c8eda83a89708f1f2b72b48a
+startup GitHub main=5c734139efabd874c8eda83a89708f1f2b72b48a
+startup AutoDL CAMP HEAD=5c734139efabd874c8eda83a89708f1f2b72b48a
+startup AutoDL CAMP origin/main=5c734139efabd874c8eda83a89708f1f2b72b48a
+startup AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+implementation-plan input-contract fix commit=a8bb3e63eb1f16a7254046a01619abef98e75fe2
+AutoDL sync used git bundle fallback after normal fetch did not advance HEAD
+AutoDL CAMP HEAD after sync=a8bb3e63eb1f16a7254046a01619abef98e75fe2
+AutoDL CAMP origin/main after sync=a8bb3e63eb1f16a7254046a01619abef98e75fe2
+AutoDL DP HEAD after sync=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_unit_tests_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_d2e19c4
+implementation_plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan_a8bb3e6
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Gap diagnosis and tooling repair:
+
+The implementation-plan script defaulted to the older
+`unit_tests_036433c_r1` artifact and expected the older unit-test summary
+schema with `scope`, `heads`, and `tests_pinned`. The current authoritative
+unit-tests artifact records `tests_only`, `production_code_modified`,
+`blocked_actions`, and `test_groups`. The plan tooling was repaired to point
+to the current artifact by default and to derive the expected scope and pinned
+test groups from either schema. This repair touches only plan-only tooling and
+tests.
+
+Scoped files:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan.py
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan.py
+passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan.py -q
+10 passed in 1.53s
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan.py -q
+29 passed in 3.06s
+git diff --check -- <implementation-plan script and test>
+clean
+```
+
+AutoDL verification:
+
+```text
+AutoDL CAMP HEAD=a8bb3e63eb1f16a7254046a01619abef98e75fe2
+AutoDL CAMP origin/main=a8bb3e63eb1f16a7254046a01619abef98e75fe2
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+sha256sum -c <source_unit_tests_artifact>/SHA256SUMS
+SOURCE_ARTIFACT_SHA_CHECK_EXIT=0
+/root/miniconda3/envs/camp/bin/python -m py_compile <implementation-plan script and test>
+PY_COMPILE_EXIT=0
+/root/miniconda3/envs/camp/bin/python -m pytest <implementation-plan test> -q
+PYTEST_PLAN_EXIT=0
+10 passed in 0.05s
+/root/miniconda3/envs/camp/bin/python -m pytest <implementation-plan, unit-tests, unit-tests-plan tests> -q
+PYTEST_RELATED_EXIT=0
+29 passed in 0.33s
+/root/miniconda3/envs/camp/bin/python scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan.py --test_artifact_root <source_unit_tests_artifact> --camp_head a8bb3e63eb1f16a7254046a01619abef98e75fe2 --camp_origin_main a8bb3e63eb1f16a7254046a01619abef98e75fe2 --dp_head 7a1d33da277a1992ec474b5383a0c963c72e04e4 --label autodl_implementation_plan_a8bb3e6 --output_json fixed_snapshot_screen_rerun_implementation_plan.json --output_md fixed_snapshot_screen_rerun_implementation_plan.md
+PLAN_COMMAND_EXIT=0
+sha256sum -c SHA256SUMS
+all listed files OK
+```
+
+Implementation plan result:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan_ready
+passed=True
+failed_checks=[]
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_implementation_only
+selected_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_implementation_only
+implementation_plan_ready=True
+implementation_only_gate_authorized=True
+implementation_code_edit_authorized=False
+production_implementation_edit_authorized=False
+next_gate_implementation_code_edit_authorized=True
+next_gate_allowed_files=scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py, camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+candidate_generation_execution_authorized=False
+fixed_snapshot_candidate_generation_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+fixed_snapshot_screen_rerun_execution_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Planned implementation components:
+
+```text
+policy_default_off_boundary
+current_tick_finite_candidate_contract
+comfort_progress_guard_contract
+hard_blocker_latency_contract
+math_boundary_preservation
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `HEADS.txt` | `bbc4f3f4ee4c24314cd732957cf2b8ea26c74c09bac60955678898a243ac815f` |
+| `plan_script.py` | `ccda8bad964d2fb17d759a9dc68c816a85435b02f3b4cd67471f3aea216d6971` |
+| `test_plan.py` | `f4d1c27f053840a0329ef3947d9d975ddc17f46a1a731f1f0eaec9f6960d7afc` |
+| `SOURCE_ARTIFACT_SHA_CHECK.log` | `55dd294d58efc570e5ef412fd7a2711f8965d1a1fe4e954d1fe581e5222f38b4` |
+| `SOURCE_ARTIFACT_SHA_CHECK.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `SOURCE_ARTIFACT_SHA_CHECK_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_PLAN.log` | `e8b981c8b9010bb633ad4e4d591190d80aad92cbe20d00915232255ce3e7fd94` |
+| `PYTEST_PLAN.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_PLAN_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_RELATED.log` | `a15b5f77ba6945a8501e875da4d83a197c920a9afa2530cd3f36cd7c5cbe71bb` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PLAN_COMMAND.log` | `4a2767a2fe06cdbba34e2ca8994f86e6a056976fadc8f4260ce4eb150d243d24` |
+| `PLAN_COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PLAN_COMMAND_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `fixed_snapshot_screen_rerun_implementation_plan.json` | `a25ea3ec086e5c8967b61026b9ff6accef0b64e86faecfe4ad16bfb32f31cf4a` |
+| `fixed_snapshot_screen_rerun_implementation_plan.md` | `fc0ce0215d0f931a991054ca02200397db1f102af56fbf1eef335d45408b1cc3` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+
+Evidence evaluation:
+
+The fixed-snapshot screen rerun implementation-plan-only gate is complete. The
+plan consumes the current unit-tests artifact, preserves the pinned default-off,
+current-tick, comfort/progress, hard-blocker, latency, and math-boundary
+contracts, and authorizes only a scoped `implementation_only` candidate gate.
+The current gate does not edit product implementation code.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. This plan reads only unit-test
+artifact evidence and existing source contracts. It does not edit product code,
+create candidates, rerun the screen, run DP, run replay, use formal seeds,
+recompute outcomes, define runtime atoms, choose lambda online, alter
+`score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, train CAMP,
+change online selection, modify DP weights or code, claim safety benefit,
+claim CAMP is better than DP Top-1, or claim a DP-side classical Benders
+decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_implementation_plan_only`
+as complete.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_implementation_only`
+is admissible next. Under the current goal objective, `implementation_only`
+may be advanced only because this audit tail explicitly authorizes it. The next
+gate may edit only:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+```
+
+It must keep the change minimal, default-off/opt-in, current-tick finite
+candidate only, and preserve `score_k(w)=a_k^T w` plus simplex/CVaR/L2 master
+convexity. It must not modify DP, run candidate generation, rerun the screen,
+run replay, use formal seeds, run Full36, train CAMP, promote atoms, change
+online selection, claim safety benefit, claim CAMP is better than DP Top-1, or
+claim a DP-side classical Benders decomposition.
