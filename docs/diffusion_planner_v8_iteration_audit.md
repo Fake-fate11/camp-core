@@ -71481,3 +71481,215 @@ the implementation diff/source and artifacts. It must not edit product code,
 generate candidates, rerun the screen, run replay, use formal seeds, run
 Full36, train CAMP, promote atoms, change online selection, claim safety
 benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+## Candidate-set consensus lane-projected jerk/progress default-off remediation post-implementation static contract review
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_post_implementation_static_contract_review_only`.
+This is a read-only static review over the latest implementation artifact,
+source contracts, and focused tests. It may not edit product code, generate
+candidates, rerun the fixed-snapshot screen, run replay, use formal seeds
+11/12/13, run Full36, train CAMP, promote atoms, change online selection,
+claim safety benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+State audit:
+
+```text
+startup local CAMP HEAD=528ca8d8c31b45da24019f86d368dbdaa2ae8285
+startup local origin/main=528ca8d8c31b45da24019f86d368dbdaa2ae8285
+startup GitHub main=528ca8d8c31b45da24019f86d368dbdaa2ae8285
+startup AutoDL CAMP HEAD=528ca8d8c31b45da24019f86d368dbdaa2ae8285
+startup AutoDL CAMP origin/main=528ca8d8c31b45da24019f86d368dbdaa2ae8285
+startup AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+tooling compatibility commit=10c8c5d2c759b569113adaa6d02e80ab50618f7e
+nested summary parser fix commit=84149381009230a0169c2e2d064bc48ec9b6b9a9
+GitHub main after push=84149381009230a0169c2e2d064bc48ec9b6b9a9
+AutoDL sync used git bundle fallback after HTTPS instability
+AutoDL CAMP HEAD after sync=84149381009230a0169c2e2d064bc48ec9b6b9a9
+AutoDL CAMP origin/main after sync=84149381009230a0169c2e2d064bc48ec9b6b9a9
+AutoDL DP HEAD after sync=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_implementation_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_fad18d6
+superseded_rejected_review_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract_review_10c8c5d
+final_review_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract_review_8414938
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Gap diagnosis:
+
+The initial post-implementation static review tooling still pointed to an old
+implementation artifact root and accepted only the older `PYTEST_UNIT` /
+`PYTEST_ROUTE` artifact shape. The current implementation artifact uses
+`PYTEST_ROUTE_TOPOLOGY`, includes source-artifact and diff-check exits, and
+stores implementation details under a nested `implementation_summary` object
+with blocked actions under `blocked_actions`. The first AutoDL review artifact
+therefore rejected the implementation even though its source artifact and tests
+were valid. That rejected artifact is recorded above and superseded by the
+`8414938` review artifact.
+
+Scoped files:
+
+```text
+scripts/integrations/review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py
+```
+
+Static-review implementation:
+
+The review now:
+
+```text
+accepts the current fixed-snapshot implementation artifact root
+recognizes PYTEST_ROUTE_TOPOLOGY logs and exits
+checks SOURCE_ARTIFACT_SHA_CHECK and DIFF_CHECK exits when present
+reads nested implementation_summary fields for default-off, opt-in, and finite selected-candidate guard evidence
+reads nested blocked_actions for no-rerun, no-replay, no-formal-seed, no-DP-modification, no-safety-claim, and no-CAMP-over-DP-Top-1 boundaries
+checks source contracts for _requires_finite_selected_candidate_evidence, _selected_candidate_state_failure_reason, selected_candidate_state_invalid, requires_finite_selected_candidate_evidence, and finite_selected_candidate_evidence
+checks tests for test_route_topology_jerk_progress_fails_closed_on_nonfinite_selected_state and its diagnostics assertions
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py
+passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py -q
+8 passed
+python -m pytest camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py -q
+27 passed
+git diff --check -- <scoped review files>
+clean
+```
+
+AutoDL verification:
+
+```text
+AutoDL CAMP HEAD=84149381009230a0169c2e2d064bc48ec9b6b9a9
+AutoDL CAMP origin/main=84149381009230a0169c2e2d064bc48ec9b6b9a9
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+SOURCE_ARTIFACT_SHA_CHECK_EXIT=0
+PY_COMPILE_EXIT=0
+PYTEST_REVIEW_EXIT=0
+PYTEST_RELATED_EXIT=0
+REVIEW_COMMAND_EXIT=0
+REVIEW_DECISION_CHECK_EXIT=0
+EXIT_CODE=0
+SHA256SUMS_CHECK_EXIT=0
+PYTEST_REVIEW=8 passed
+PYTEST_RELATED=27 passed
+review_status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_post_implementation_static_contract_review_complete
+review_passed=True
+failed_checks=[]
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_plan_only
+fixed_snapshot_screen_rerun_plan_authorized=True
+fixed_snapshot_screen_rerun_authorized=False
+candidate_generation_execution_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Contract evidence:
+
+```text
+source finite_selected_candidate_guard_present=True
+source finite_selected_candidate_guard_opt_in_only=True
+source current_tick_scalar_guard_present=True
+source config_budget_failure_labels_present=True
+source route_failure_classes_passes_config=True
+test finite_selected_candidate_guard_test_present=True
+test finite_selected_candidate_guard_diagnostics_asserted=True
+test current_tick_scalar_guard_test_present=True
+test config_budget_failure_label_test_present=True
+implementation summary passed=True
+implementation summary failed_checks_empty=True
+implementation summary default_policy_changed_false=True
+implementation summary opt_in_policy_only=True
+implementation summary finite_candidate_guard_added=True
+implementation summary screen_rerun_blocked=True
+implementation summary replay_blocked=True
+implementation summary formal_seeds_blocked=True
+implementation summary dp_modification_blocked=True
+implementation summary safety_claim_blocked=True
+implementation summary camp_over_dp_top1_blocked=True
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `6fb907b111472799b55dab63c14f4cfcd29a119d79acc206971bbbf0795d4d57` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED.log` | `7524c39d81049ca71b37a7511b4bd8de8bc5fdf4c9f62c6700762a2556565c32` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_REVIEW.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_REVIEW.log` | `58745d8011883213acd6d3ad00c73a2860f68e432f60fc956b8cb2a8bb6d8181` |
+| `PYTEST_REVIEW_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `REVIEW_COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `REVIEW_COMMAND.log` | `bb7b24ecfb612bc15f46234d8f1372a1cdeac247d59c794fa9dd56061494cf11` |
+| `REVIEW_COMMAND_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `REVIEW_DECISION_CHECK.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `REVIEW_DECISION_CHECK.log` | `bb7b24ecfb612bc15f46234d8f1372a1cdeac247d59c794fa9dd56061494cf11` |
+| `REVIEW_DECISION_CHECK_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `SOURCE_ARTIFACT_SHA_CHECK.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `SOURCE_ARTIFACT_SHA_CHECK.log` | `84ca39061fe5fdeaa219590d98fc2c6789a2f8a44466fca17fffceb21a33cd75` |
+| `SOURCE_ARTIFACT_SHA_CHECK_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `analyzer.py` | `769ed832f258831fb56d42c22e58e40c78c57ed9a54936449519dc6391ddb62c` |
+| `post_implementation_static_contract_review.json` | `ba7b00e5a1d8f5e8894fe9248a7fc23fdb867b3e376d4b2a35826f2fa6e295bc` |
+| `post_implementation_static_contract_review.md` | `7d69b1e769a3d5d88913c958d88bec273be30bc99a721702443fc5b8fcae22be` |
+| `review_post_implementation_static_contract.py` | `6a764d4011ce42a891aca73b179a52cba18d57cdf7fef2fa6b2afd6982d39fac` |
+| `test_post_implementation_static_contract.py` | `d2d35ba5893316a494b68edd81e56c4a0916d7d29801cc76188cba5d7316d99c` |
+| `test_route_topology.py` | `a48372b889652c3c2115b086e978870bb89e937e8493acb295b02f91b6f7d2b4` |
+
+Evidence evaluation:
+
+The post-implementation static contract review is complete. The accepted
+artifact verifies the current implementation artifact SHA, current
+`PYTEST_ROUTE_TOPOLOGY` evidence, nested implementation summary contracts,
+source contracts, and focused tests. It confirms that the finite
+selected-candidate fail-closed guard is opt-in-only, default-off preserving,
+and covered by diagnostics tests. This gate does not execute candidate
+generation, rerun the fixed-snapshot screen, run replay, use formal seeds,
+train CAMP, promote atoms, change the online selector, modify DP, or make a
+safety or CAMP-over-DP-Top-1 claim.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. This review reads only source,
+focused tests, and artifacts. It does not define runtime atoms, choose lambda
+online, alter `score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master,
+run candidate generation, rerun the screen, run replay, modify DP, or claim a
+DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_post_implementation_static_contract_review_only`
+as complete.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_plan_only`
+is admissible next. This next gate is plan-only. It may update the fixed
+snapshot screen rerun plan artifact and tests, but it does not authorize rerun
+execution, candidate generation execution, replay, formal seeds, Full36, CAMP
+retraining, online selector promotion, atom promotion, safety-benefit claims,
+CAMP-over-DP-Top-1 claims, or DP modification.
