@@ -19,6 +19,7 @@ from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_lane_pr
     ANALYSIS_JSON,
     ANALYSIS_JSON_COMPAT,
     AUTHORIZED_NEXT_WORK,
+    DEFAULT_ANALYSIS_ROOT,
     EXIT_CODE,
     HEADS,
     READY_STATUS,
@@ -156,6 +157,17 @@ def _build(tmp_path: Path, payload: dict[str, object] | None = None) -> dict[str
         camp_origin_main="abc",
         dp_head=EXPECTED_DP_HEAD,
         label="unit",
+    )
+
+
+def test_default_off_rerun_remediation_design_default_source_is_current_analysis() -> None:
+    assert DEFAULT_ANALYSIS_ROOT.endswith(
+        "candidate_set_consensus_lane_projected_"
+        "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
+        "failure_attribution_read_only_analysis_63e9cf2"
+    )
+    assert ANALYSIS_JSON == (
+        "fixed_snapshot_screen_rerun_failure_attribution_read_only_analysis.json"
     )
 
 

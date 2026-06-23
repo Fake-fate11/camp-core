@@ -44,9 +44,9 @@ AUTHORIZED_NEXT_WORK = (
 DEFAULT_ANALYSIS_ROOT = (
     f"{DEFAULT_DEVELOPMENT_ROOT}/candidate_set_consensus_lane_projected_"
     "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
-    "failure_attribution_analysis_432c2cb"
+    "failure_attribution_read_only_analysis_63e9cf2"
 )
-ANALYSIS_JSON = "fixed_snapshot_screen_rerun_failure_attribution_analysis.json"
+ANALYSIS_JSON = "fixed_snapshot_screen_rerun_failure_attribution_read_only_analysis.json"
 ANALYSIS_JSON_COMPAT = "failure_attribution_read_only_analysis.json"
 SHA256SUMS = "SHA256SUMS"
 HEADS = "HEADS.txt"
