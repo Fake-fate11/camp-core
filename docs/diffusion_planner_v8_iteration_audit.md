@@ -70339,3 +70339,184 @@ remediation direction based on the blocker attribution. It must not implement
 product code, generate candidates, rerun the screen, run replay, use formal
 seeds, run Full36, train CAMP, promote atoms, change online selection, claim
 safety benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+## Candidate-set consensus lane-projected jerk/progress default-off remediation fixed-snapshot rerun remediation design plan
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design_plan_only`.
+This gate may repair plan-only tooling, consume the read-only failure
+attribution artifact, and generate a remediation design plan. It may not
+implement product code, generate new candidates, rerun the fixed-snapshot
+screen, run replay, use formal seeds 11/12/13, run Full36, train CAMP, promote
+atoms, change online selection, claim safety benefit, claim CAMP is better than
+DP Top-1, or modify DP.
+
+State audit:
+
+```text
+startup local/GitHub/AutoDL CAMP HEAD=54cd370748c32686014b438653cdfeed08494a72
+remediation_design_plan_contract_fix_commit=0308a233c2c29a3be5b6c6f95f6951f0879f5949
+AutoDL CAMP HEAD after sync=0308a233c2c29a3be5b6c6f95f6951f0879f5949
+AutoDL CAMP origin/main after sync=0308a233c2c29a3be5b6c6f95f6951f0879f5949
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_analysis_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_read_only_analysis_2ac51e6
+remediation_design_plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design_plan_0308a23
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Gap diagnosis and tooling repair:
+
+The remediation design plan script expected an older analysis artifact contract:
+`fixed_snapshot_screen_rerun_failure_attribution_analysis.json` plus
+`ANALYSIS_EXIT`. The current authoritative analysis artifact records
+`failure_attribution_read_only_analysis.json`, `ANALYSIS_COMMAND_EXIT`, and
+`EXIT_CODE`. The plan tooling was repaired to accept the current analysis JSON
+name and to select `ANALYSIS_EXIT`, `ANALYSIS_COMMAND_EXIT`, or `EXIT_CODE` as
+the analysis exit marker in that order. This repair touches only plan-only
+tooling and tests.
+
+Scoped files:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design.py
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design.py
+passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design.py -q
+11 passed in 2.79s
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_analysis.py -q
+11 passed in 2.94s
+git diff --check -- <remediation design plan script and test>
+clean
+```
+
+AutoDL verification:
+
+```text
+AutoDL sync used git bundle fallback.
+AutoDL CAMP HEAD=0308a233c2c29a3be5b6c6f95f6951f0879f5949
+AutoDL CAMP origin/main=0308a233c2c29a3be5b6c6f95f6951f0879f5949
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+/root/miniconda3/envs/camp/bin/python -m py_compile <remediation plan script and test>
+PY_COMPILE_EXIT=0
+/root/miniconda3/envs/camp/bin/python -m pytest <remediation and analysis tests> -q
+PYTEST_RELATED_EXIT=0
+22 passed
+analysis source sha256sum -c SHA256SUMS: passed
+remediation design plan artifact sha256sum -c SHA256SUMS: passed
+```
+
+Plan result:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design_plan_ready
+passed=True
+failed_checks=[]
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_only
+static_contract_review_authorized=True
+implementation_authorized=False
+candidate_generation_execution_authorized=False
+fixed_snapshot_candidate_generation_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+fixed_snapshot_screen_rerun_execution_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Design priorities:
+
+```text
+priority_1=restore comfort support without relaxing no-leak boundaries evidence=route_topology_comfort_blocked_command_jerk
+priority_2=separate immutable DP hard blockers from CAMP-side proposal limits evidence=dp_kinematic
+priority_3=bound candidate-build and total p95 before any rerun evidence=total
+priority_4=keep absolute lateral guard as diagnostic subset only evidence=absolute_lateral_guard_retained
+```
+
+Plan-only remediation threads:
+
+```text
+relative_comfort_static_contract
+hard_blocker_separation_contract
+latency_static_contract
+absolute_guard_subset_contract
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `HEADS.txt` | `ed4b5a496002d21acc46f184ee717e7f15669a27d9b2b6b5ac7b7f39eb6a91c3` |
+| `ANALYSIS_SOURCE_SHA_CHECK.log` | `c48daccb2f7d9ab8f99032470647d5e424caeb7f6c87faf6150f5c04917f3b9e` |
+| `ANALYSIS_SOURCE_SHA_CHECK.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `ANALYSIS_SOURCE_SHA_CHECK_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_RELATED.log` | `31d7a7543f29b08db6836b2c8a4ca306d16fa414a038bd5b022f24e8f1ccdeec` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PLAN_COMMAND.log` | `91a054e6cad8b88d2cc768e6fc277c5762ecbd65bbc5604c5aee393cb3e4466c` |
+| `PLAN_COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PLAN_COMMAND_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `remediation_design_plan.json` | `d4f7b082511c6f7259a39b3353d4a0271bd14e1e7ab160e9a00bfa5cb772eb28` |
+| `remediation_design_plan.md` | `d0b14d1aacd03ed338677c751b4ba11f720081b63939b170f5c7a93e512034da` |
+| `plan_script.py` | `6913d1799db7c480b2ea3866bf0735f22b1ba4f26e5f9a70e2e28e1315bc7b88` |
+| `test_plan.py` | `7ac5471f15e9a79b8370140c4f01361ad5bfb72445d1fde1c70d43de46f81618` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+
+Evidence evaluation:
+
+The remediation design plan-only gate is complete. It consumes only the
+read-only attribution artifact and current HEAD evidence, proposes four
+plan-only remediation threads, and authorizes only a static-contract review.
+It does not implement product code, generate candidates, rerun the screen, run
+DP, run replay, use formal seeds, run Full36, train CAMP, promote atoms, change
+online selection, claim safety benefit, claim CAMP is better than DP Top-1, or
+modify DP.
+
+Mathematical boundary:
+
+This gate is plan-only over existing finite-candidate diagnostic artifacts. It
+does not recompute outcomes, define runtime atoms, choose lambda online, alter
+`score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, or claim a
+DP-side classical Benders decomposition. Any later static-contract review must
+preserve the same boundaries before any implementation can be considered.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design_plan_only`
+as complete.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_only`
+is admissible next. It may only review the remediation design plan and current
+source/static contracts. It must not implement product code, generate
+candidates, rerun the screen, run replay, use formal seeds, run Full36, train
+CAMP, promote atoms, change online selection, claim safety benefit, claim CAMP
+is better than DP Top-1, or modify DP.
