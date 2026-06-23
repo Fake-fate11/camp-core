@@ -67746,3 +67746,239 @@ Only
 `candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_guarded_fixed_snapshot_screen_rerun_only`
 is identified next, and it must stop for explicit user authorization before
 execution. It may not be self-iterated from this plan-only gate.
+
+### 2026-06-23 - Candidate-Set Consensus Lane-Projected Jerk/Progress Default-Off Remediation Guarded Fixed-Snapshot Screen Rerun
+
+Objective:
+
+Execute only the guarded fixed-snapshot screen rerun gate after explicit user
+authorization. The authorization remained bounded: no replay, no Full36, no
+formal seeds, no CAMP retraining, no online selector promotion, no atom
+promotion, no safety-benefit claim, no CAMP-over-DP-Top-1 claim, and no DP
+modification.
+
+State audit:
+
+```text
+startup audit source=docs/diffusion_planner_v8_iteration_audit.md tail
+startup selected completed gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_plan_only
+startup selected next gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_guarded_fixed_snapshot_screen_rerun_only
+user authorization=guarded fixed-snapshot screen rerun only
+local/GitHub CAMP HEAD before execution fix=9bd118aedc2322dc9eba2993d14d52d39e8d477f
+local CAMP origin/main=9bd118aedc2322dc9eba2993d14d52d39e8d477f
+GitHub refs/heads/main=9bd118aedc2322dc9eba2993d14d52d39e8d477f
+AutoDL CAMP HEAD at execution=9bd118aedc2322dc9eba2993d14d52d39e8d477f
+AutoDL CAMP origin/main=9bd118aedc2322dc9eba2993d14d52d39e8d477f
+AutoDL DP branch=tier4-main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_review_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract_review_562baba
+initial_plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan_7a8772a4
+initial_failed_execution_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_7a8772a4
+verified_plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan_9bd118ae_verified
+execution_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_9bd118ae
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Scoped files:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py
+```
+
+Execution fix:
+
+```text
+initial runbook attempt:
+  artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_7a8772a4
+  RUNBOOK_EXIT=1
+  failing phase=analyze_diffusion_planner_route_topology_candidate_screen.py import
+  reason=the plan runbook defaulted to /root/miniconda3/envs/camp/bin/python
+  observed Python version=3.9.25
+  failure=TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'
+  boundary=DP code was not modified
+runtime diagnosis:
+  /root/miniconda3/bin/python version=3.12.3
+  candidate screen --help exit=0
+  absolute comfort guard --help exit=0
+fix commit=9bd118aedc2322dc9eba2993d14d52d39e8d477f
+fix scope=runbook default Python changed to /root/miniconda3/bin/python
+```
+
+Verified plan artifact:
+
+```text
+PLAN_ARTIFACT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan_9bd118ae_verified
+PLANNED_EXECUTION_ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_9bd118ae
+PY_COMPILE_EXIT=0
+PYTEST_PLAN_EXIT=0
+PLAN_EXIT=0
+runbook default=PY="${PY:-/root/miniconda3/bin/python}"
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_plan_ready
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_guarded_fixed_snapshot_screen_rerun_only
+execution_authorized=False
+failed_checks=[]
+```
+
+Execution evidence:
+
+```text
+RUNBOOK_EXIT=0
+EXIT_CODE=0
+CAMP_HEAD=9bd118aedc2322dc9eba2993d14d52d39e8d477f
+CAMP_ORIGIN_MAIN=9bd118aedc2322dc9eba2993d14d52d39e8d477f
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+SNAPSHOT_COUNT=57
+snapshot_dir=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon/snapshots_no_budget
+CANDIDATE_SCREEN.err bytes=0
+ABSOLUTE_GUARD.err bytes=0
+RUNBOOK_WRAPPER.err bytes=0
+```
+
+Fixed-snapshot screen result:
+
+```text
+screen_status=route_topology_candidate_support_insufficient
+snapshots=57
+snapshots_with_generated_candidates=21
+generated_candidate_rows=276
+lower_union_red_hard_feasible_rows=67
+lower_union_red_progress_feasible_rows=64
+lower_union_red_comfort_admissible_rows=0
+hard_feasible_snapshot_support_rate=0.38095238095238093
+hard_feasible_snapshot_support_pass=True
+comfort_admissible_snapshot_support_rate=0.0
+comfort_admissible_snapshot_support_pass=False
+candidate_build_p95_latency_ms=36.274210177361965
+total_p95_latency_ms=106.16619233042002
+planned candidate_build_p95 limit=10.0
+planned total_p95 limit=100.0
+failure_class_counts include:
+  route_topology_comfort_blocked_command_jerk=64
+  route_topology_comfort_blocked_command_lateral=60
+  route_topology_comfort_blocked_progress_loss=58
+  route_topology_comfort_blocked_rollout_jerk=60
+  route_topology_comfort_blocked_rollout_lateral=63
+  route_topology_dp_kinematic=197
+  route_topology_dp_road_border=108
+  route_topology_lane_invalid=114
+  route_topology_red_timing_invalid=51
+```
+
+Absolute lateral guard result:
+
+```text
+absolute_guard_status=route_topology_absolute_lateral_guard_support_present
+candidate_rows=276
+lower_union_red_hard_progress_rows=64
+absolute_lateral_guard_rows=28
+absolute_lateral_guard_snapshot_support_rate=0.3333333333333333
+absolute_lateral_guard_snapshot_support_pass=True
+source_screen_status=route_topology_candidate_support_insufficient
+source_screen_comfort_admissible_snapshot_support_rate=0.0
+source_authorization_conflicts=[]
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py
+passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py -q
+9 passed in 0.93s
+python -m pytest camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_analysis.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests_plan.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_implementation_plan.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py -q
+95 passed in 7.31s
+git diff --check -- scripts\integrations\plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py
+clean
+```
+
+AutoDL verification:
+
+```text
+/root/miniconda3/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py
+PY_COMPILE_EXIT=0
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py -q
+PYTEST_PLAN_EXIT=0
+/root/miniconda3/envs/camp/bin/python -m pytest <related lane-projected jerk/progress remediation suite plus rerun plan test> -q
+PYTEST_RELATED_EXIT=0
+95 passed in 0.54s
+/root/miniconda3/bin/python scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun.py ...
+PLAN_EXIT=0
+guarded runbook with CANDIDATE_SET_CONSENSUS_LANE_PROJECTED_JERK_PROGRESS_DEFAULT_OFF_REMEDIATION_FIXED_SNAPSHOT_RERUN_APPROVED=yes
+RUNBOOK_EXIT=0
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun.py` | `e6d701b35593290385e95201d6669ccf28d86b5240eac92c26b64d406006fa1f` |
+| `camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py` | `17a7b335c82c8cb60e6861c4f6f09baf91eb942fdbbcf08cb59759e03333a148` |
+| `fixed_snapshot_screen_rerun_plan.json` | `7184d8da59764dbcf455047c4473669cf686eddba679b7c0c60cf7f03bd0c1d4` |
+| `fixed_snapshot_screen_rerun_plan.md` | `23edd7fd6407e1dd4f8a42bc4e9e93e4bd02bfa57b0eb2b88599ab95c30f812a` |
+| `fixed_snapshot_screen_rerun_guarded_runbook.sh` | `35dd316b36f1d727ee96ae0c479d13b1e2d616289592e8007f395b6d08643517` |
+| `verified plan HEADS.txt` | `e75102728b0896bc7fb4968e7ee992903dd1913633da176c6462675bc6401a15` |
+| `verified plan PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `verified plan PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `verified plan PYTEST_PLAN.log` | `edea1fe2e925f38d64cba1ee0f8ba3f25b2723ff28e7e65063c9b7b3e2414e63` |
+| `verified plan PYTEST_PLAN.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `verified plan PLAN_COMMAND.log` | `8b5742c80c68469a93335489c9b509b4fcd5562f40a79157c1e81686b861d6ee` |
+| `verified plan PLAN_COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `verified plan EXIT_CODE` | `9659867e1aac0fd021e81ceefe9a7a68d9e5713775a350d6bd151c616d1703d4` |
+| `route_topology_default_off_remediation_rerun_screen.json` | `7a0f883de21986a9e5f11c52b988269b5e0a7b3e12ba8564ce2b11e400e3e814` |
+| `route_topology_default_off_remediation_rerun_screen.md` | `d19c83e5425f50ef4443f6c8ef1d6a83e65f876bc9f4eb8e43b022065d7578a1` |
+| `route_topology_default_off_remediation_absolute_lateral_guard.json` | `6c97f4fc9f5ed4bdbd2141b0028622787c33d2136b6cdd26e01718c8c7ac6e11` |
+| `route_topology_default_off_remediation_absolute_lateral_guard.md` | `cbd5d7207d477ce13fa058b15f4db14d4f57d961c55bfe40d70a67e385ba4833` |
+| `CANDIDATE_SCREEN.log` | `f33408c22bb4920de8ed220cffede6f29141b8e2d83b028b4d13f10e6dcf8902` |
+| `CANDIDATE_SCREEN.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `ABSOLUTE_GUARD.log` | `c58e95d1a6c0cdcce7a10b21be4322f48ef610036133844ccf133f73feb6b259` |
+| `ABSOLUTE_GUARD.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `execution EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `execution HEADS.txt` | `6b1b1dca4e785ad343e3dfd4c5dba35852ca3c56251f89595ed56260815c481d` |
+| `remote related PYTEST_RELATED.log` | `9b762140748456008ab4cf1d9aa78bba7185dd60944a6c7949d75377f2e11cab` |
+| `remote related PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `remote related EXIT_CODE` | `383e3c38d1d7d064be087cb17cef7e4e2c147a87b2b6636ba168d414a9209cbd` |
+
+Evidence evaluation:
+
+The guarded fixed-snapshot screen rerun execution completed successfully as an
+execution gate, but the result does not pass support/promotion criteria. The
+screen found hard-feasible lower-union-red candidate support on the existing
+nonformal fixed snapshot corpus, and the absolute lateral guard post-check
+found support above the predeclared 0.25 threshold. However, comfort-admissible
+support is zero, candidate-build p95 latency exceeds the 10 ms plan threshold,
+and total p95 latency exceeds the 100 ms plan threshold. Therefore this
+evidence rejects atom promotion, online selector promotion, safety-benefit
+claims, CAMP-over-DP-Top-1 claims, CAMP retraining, and any expansion to replay,
+Full36, or formal seeds.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. This gate executes only the
+preauthorized fixed-snapshot candidate screen and absolute lateral guard on the
+existing nonformal snapshot corpus. It does not run replay, use formal seeds,
+define or promote runtime atoms, choose lambda online, alter `score_k(w)=a_k^T
+w`, mutate the convex simplex/CVaR/L2 master, train CAMP, change online
+selection, modify DP weights or code, claim safety benefit, claim CAMP is better
+than DP Top-1, or claim a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_guarded_fixed_snapshot_screen_rerun_only`
+as executed. Reject any promotion or safety-benefit interpretation of the
+result. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_only`.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_only`
+is now authorized. That gate may design a low-risk offline failure-attribution
+plan for the observed comfort-support and latency failures. It may not run
+replay, rerun the screen, use formal seeds, train CAMP, promote atoms, change
+the online selector, expand to Full36, claim safety benefit, claim CAMP is
+better than DP Top-1, or modify DP.
