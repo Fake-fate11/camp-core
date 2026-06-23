@@ -55,7 +55,7 @@ AUTHORIZED_NEXT_WORK = (
 DEFAULT_PLAN_ROOT = (
     f"{DEFAULT_DEVELOPMENT_ROOT}/candidate_set_consensus_lane_projected_"
     "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
-    "failure_attribution_plan_2e647f4f"
+    "failure_attribution_plan_94f4b24"
 )
 PLAN_JSON = "fixed_snapshot_screen_rerun_failure_attribution_plan.json"
 PLAN_JSON_COMPAT = "failure_attribution_plan.json"

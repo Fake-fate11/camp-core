@@ -8,6 +8,7 @@ import pytest
 
 from scripts.integrations.analyze_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution import (
     AUTHORIZED_NEXT_WORK,
+    DEFAULT_PLAN_ROOT,
     PLAN_JSON,
     PLAN_JSON_COMPAT,
     READY_STATUS,
@@ -286,6 +287,14 @@ def _build(tmp_path: Path, **kwargs: object) -> dict[str, object]:
         camp_origin_main="abc",
         dp_head=EXPECTED_DP_HEAD,
         label="unit",
+    )
+
+
+def test_default_off_rerun_read_only_analysis_default_plan_is_current() -> None:
+    assert DEFAULT_PLAN_ROOT.endswith(
+        "candidate_set_consensus_lane_projected_"
+        "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
+        "failure_attribution_plan_94f4b24"
     )
 
 
