@@ -72622,3 +72622,168 @@ the proposed remediation design and current code contracts. It may not modify
 product code, generate candidates, rerun the screen, run replay, use formal
 seeds, train CAMP, promote atoms, change the online selector, expand to
 Full36, claim safety benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+## Candidate-set consensus lane-projected jerk/progress default-off remediation fixed-snapshot screen rerun remediation static-contract review
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_only`.
+This gate is read-only static review of the remediation design artifact and
+existing CAMP source contracts. It may authorize only a unit-tests plan. It
+may not modify product code, generate candidates, rerun the screen, run
+replay, use formal seeds, train CAMP, promote atoms, change the online
+selector, expand to Full36, claim safety benefit, claim CAMP is better than DP
+Top-1, or modify DP.
+
+State audit:
+
+```text
+startup audit source=docs/diffusion_planner_v8_iteration_audit.md tail
+startup selected completed gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design_plan_only
+startup selected next gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_only
+pre-gate local CAMP HEAD=6cea9bd8fbc684c99faae6c4abb65815b98a250b
+pre-gate local CAMP origin/main=6cea9bd8fbc684c99faae6c4abb65815b98a250b
+pre-gate GitHub refs/heads/main=6cea9bd8fbc684c99faae6c4abb65815b98a250b
+pre-gate AutoDL CAMP HEAD=6cea9bd8fbc684c99faae6c4abb65815b98a250b
+pre-gate AutoDL CAMP origin/main=6cea9bd8fbc684c99faae6c4abb65815b98a250b
+pre-gate AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source pointer correction commit=d627ee2f1f2b60ad1999a04d42b637ad18d34d50
+source pointer correction=DEFAULT_DESIGN_ROOT now reads the current 963dc8b remediation design plan artifact instead of the stale 0126b27 path
+post-correction local CAMP HEAD=d627ee2f1f2b60ad1999a04d42b637ad18d34d50
+post-correction local CAMP origin/main=d627ee2f1f2b60ad1999a04d42b637ad18d34d50
+post-correction GitHub refs/heads/main=d627ee2f1f2b60ad1999a04d42b637ad18d34d50
+post-correction AutoDL CAMP HEAD=d627ee2f1f2b60ad1999a04d42b637ad18d34d50
+post-correction AutoDL CAMP origin/main=d627ee2f1f2b60ad1999a04d42b637ad18d34d50
+post-correction AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_design_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design_plan_963dc8b
+source_path=/root/autodl-tmp/camp_core/scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+review_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_d627ee2
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py
+exit=0
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py -q
+12 passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py -q
+24 passed
+git diff --check -- scripts\integrations\review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py
+exit=0
+```
+
+AutoDL verification and artifact generation:
+
+```text
+OUTPUT_ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_d627ee2
+OVERALL_EXIT=0
+PY_COMPILE_EXIT=0
+PYTEST_REVIEW_EXIT=0
+PYTEST_RELATED_EXIT=0
+REVIEW_COMMAND_EXIT=0
+REVIEW_DECISION_CHECK_EXIT=0
+SHA256SUMS_CHECK_EXIT=0
+CAMP_HEAD=d627ee2f1f2b60ad1999a04d42b637ad18d34d50
+CAMP_ORIGIN_MAIN=d627ee2f1f2b60ad1999a04d42b637ad18d34d50
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Static-contract review decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_complete
+passed=True
+failed_checks=[]
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_only
+unit_tests_plan_authorized=True
+implementation_authorized=False
+candidate_generation_execution_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Static contracts:
+
+```text
+relative_comfort_static_contract=True
+hard_blocker_separation_contract=True
+latency_static_contract=True
+absolute_guard_subset_contract=True
+policy_default_off_contract=True
+checks_failed=[]
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `5f7ef0e1266be8975cf0c298f2372309270228c9972e200957647756fd913da8` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED.log` | `cafad75a79093740238130e07207fe460b41db8a4f60deb3955765fccd7138fc` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_REVIEW.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_REVIEW.log` | `b33632f1430ce0b5613db6927aa9428be40f9ba4c14734049ef9438acb7ebe3a` |
+| `PYTEST_REVIEW_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `REVIEW_COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `REVIEW_COMMAND.log` | `32c472dcee0e1a48c1d50b550d0fe92f4f76a986f5d14dbcebc667c5bb5fb989` |
+| `REVIEW_COMMAND_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `REVIEW_DECISION_CHECK.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `REVIEW_DECISION_CHECK.log` | `6ea73e37063e8168f837e1f48a7269d50d6d95ee54c0bebfdba02cf12fc556cd` |
+| `REVIEW_DECISION_CHECK_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `fixed_snapshot_screen_rerun_remediation_static_contract_review.json` | `806a109c82bbb4e58a9b3308fa7f53529f29ef905b07a1d941d6c9ac9b6c0f59` |
+| `fixed_snapshot_screen_rerun_remediation_static_contract_review.md` | `d5c34c2b1dd2bc892d13ddf0d7cf41ab0fe735ef3f7e6078d6c826e7ceb6b927` |
+
+Evidence evaluation:
+
+The remediation static-contract review gate is complete. The review reads only
+the current design artifact and existing CAMP source, confirms all five
+static contracts, keeps implementation and all execution actions disabled, and
+authorizes only a unit-tests plan. This result does not authorize product-code
+changes, candidate generation, rerun execution, replay, Full36, formal seeds,
+CAMP retraining, atom promotion, online selector promotion, safety-benefit
+claims, CAMP-over-DP-Top-1 claims, or DP modification.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. This gate only reviews static
+contracts from existing source and design artifacts. It does not run DP,
+generate candidates, rerun the screen, run replay, compute new outcome labels,
+define or promote runtime atoms, choose lambda online, alter
+`score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, train CAMP,
+change online selection, modify DP weights or code, claim safety benefit,
+claim CAMP is better than DP Top-1, or claim a DP-side classical Benders
+decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_only`
+as complete.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_only`
+is now authorized. That gate may plan unit tests for the reviewed static
+contracts. It may not modify product code, generate candidates, rerun the
+screen, run replay, use formal seeds, train CAMP, promote atoms, change the
+online selector, expand to Full36, claim safety benefit, claim CAMP is better
+than DP Top-1, or modify DP.
