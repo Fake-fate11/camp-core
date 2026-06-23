@@ -13,6 +13,7 @@ from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_broader
 from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun import (
     AUTHORIZED_NEXT_WORK,
     BLOCKED_ACTIONS,
+    DEFAULT_REVIEW_ROOT,
     GUARD_ENV_ASSIGNMENT,
     GUARD_ENV_VAR,
     POLICY_NAME,
@@ -130,6 +131,10 @@ def test_fixed_snapshot_screen_rerun_plan_ready(tmp_path: Path) -> None:
     assert plan["candidate_config"]["generator_policy"] == POLICY_NAME
     assert plan["candidate_config"]["default_policy_preserved"] == "lane_centerline_red_stop"
     assert report["runbook"]["guard_env_assignment"] == GUARD_ENV_ASSIGNMENT
+    assert DEFAULT_REVIEW_ROOT.endswith(
+        "candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_"
+        "post_implementation_static_contract_review_8414938"
+    )
 
 
 def test_fixed_snapshot_screen_rerun_plan_rejects_review_sha_mismatch(
