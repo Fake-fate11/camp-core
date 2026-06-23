@@ -73403,3 +73403,105 @@ materiality execution. It must re-audit default-off behavior, no DP
 modification, no future information leakage, no formal seed, no replay, no
 promotion, no safety-benefit claim, no CAMP-over-DP-Top-1 claim, and no
 classical-Benders claim.
+
+## 2026-06-23 - Candidate-Set Consensus Lane-Projected Jerk/Progress Support Default-Off Post-Implementation Static Review
+
+Status:
+
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_post_implementation_static_review`
+is complete.
+
+CURRENT_CAMP_HEAD:
+
+```text
+local HEAD=b44e3f55b4bd247c00d570cf92eca6c3d274aeac
+local origin/main=b44e3f55b4bd247c00d570cf92eca6c3d274aeac
+AutoDL CAMP HEAD=b44e3f55b4bd247c00d570cf92eca6c3d274aeac
+AutoDL CAMP origin/main=b44e3f55b4bd247c00d570cf92eca6c3d274aeac
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Static-review artifact:
+
+```text
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_post_implementation_static_review_b44e3f5
+OVERALL_EXIT=0
+STATIC_REVIEW_EXIT=0
+STATIC_REVIEW_DECISION_EXIT=0
+SHA256SUMS_CHECK_EXIT=0
+CAMP_HEAD=b44e3f55b4bd247c00d570cf92eca6c3d274aeac
+CAMP_ORIGIN_MAIN=b44e3f55b4bd247c00d570cf92eca6c3d274aeac
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Decision artifact:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_post_implementation_static_review_passed
+passed=True
+post_implementation_static_review_complete=True
+default_off_reaudited=True
+no_dp_modification=True
+no_future_information_leakage=True
+no_formal_seed=True
+no_replay=True
+no_promotion=True
+no_safety_benefit_claim=True
+no_camp_over_dp_top1_claim=True
+no_classic_benders_claim=True
+recommended_next_gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_fixed_snapshot_screen_rerun_plan_only
+fixed_snapshot_screen_rerun_authorized=False
+```
+
+AutoDL artifact SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `HEADS.txt` | `bbf260356e67bf9db19131df56a53f8fa27d9a04c16308494a49ac23357641db` |
+| `STATIC_REVIEW.json` | `3becded6c6a300956f08d4d513d250b7e797f3aa66359ac570d4b5226c5b6040` |
+| `STATIC_REVIEW.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `STATIC_REVIEW_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `STATIC_REVIEW_DECISION.txt` | `1312479ad5f3b87e242de1822d2f20e7a98819c10b271682343925daa75c4e33` |
+| `STATIC_REVIEW_DECISION.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `STATIC_REVIEW_DECISION_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+
+Evidence evaluation:
+
+The post-implementation static review passed. The review confirms the new
+diagnostic payloads are default-off by signature, `diagnostic_payloads` defaults
+to `None`, the diagnostic payload call happens after the baseline
+`selected_index` is computed, and diagnostic payloads are not referenced before
+selection. It also confirms fail-closed metadata for missing route geometry,
+no-leak metadata (`selection_effect=False`, `future_outcome_leakage=False`,
+`closed_loop_outcome_fields_read=False`), no online selector change, no
+classical-Benders claim, payload-builder signatures without outcome inputs,
+test coverage for default-off selector equivalence, opt-in selection neutrality,
+and progress-support missing-route fail-closed behavior. The changed diff does
+not include DP paths or forbidden `True` authorization flags.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. CAMP still uses only current-tick
+finite-candidate features for the new diagnostic payloads. No deployed atom is
+promoted, no online lambda is selected, `score_k(w)=a_k^T w` is unchanged, and
+the convex simplex/CVaR/L2 master is unchanged.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_post_implementation_static_review`
+as complete.
+
+Next admissible gate:
+
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_fixed_snapshot_screen_rerun_plan_only`.
+
+This is a plan-only gate. It may only predeclare fixed-snapshot/nonformal asset
+use, selector-equivalence checks, payload no-leak/default-off checks, latency
+checks, fallback/progress/comfort boundaries, spread/rank/sensitivity
+diagnostics, safety-score evaluation boundaries, accept/reject criteria, and
+artifact/SHA recording. It does not authorize running replay, Full36, formal
+seeds, CAMP retraining, online selector promotion, atom promotion, safety
+benefit claims, CAMP-over-DP-Top-1 claims, or DP modification.
