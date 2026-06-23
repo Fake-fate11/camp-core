@@ -27,18 +27,34 @@ def _write_artifact(tmp_path: Path, *, pytest_related_exit: int = 0) -> Path:
     root = tmp_path / "artifact"
     root.mkdir()
     summary = {
-        "passed": True,
+        "blocked_actions": {
+            "atom_promotion_authorized": False,
+            "camp_over_dp_top1_claim_authorized": False,
+            "camp_retraining_authorized": False,
+            "candidate_generation_execution_authorized": False,
+            "classic_benders_claim_authorized": False,
+            "dp_modification_authorized": False,
+            "fixed_snapshot_screen_rerun_authorized": False,
+            "formal_seeds_authorized": False,
+            "full36_authorized": False,
+            "new_replay_authorized": False,
+            "online_selector_promotion_authorized": False,
+            "safety_benefit_evidence": False,
+        },
+        "failed_checks": [],
         "implementation_only": True,
+        "implementation_summary": {
+            "current_tick_finite_candidate_guard_added": True,
+            "default_policy_changed": False,
+            "diagnostics_added": [
+                "requires_finite_selected_candidate_evidence",
+                "finite_selected_candidate_evidence",
+                "selected_candidate_state_invalid",
+            ],
+            "opt_in_policy_only": True,
+        },
+        "passed": True,
         "production_code_modified": True,
-        "default_policy_changed": False,
-        "opt_in_policy_only": True,
-        "current_tick_finite_candidate_guard_added": True,
-        "fixed_snapshot_screen_rerun_authorized": False,
-        "new_replay_authorized": False,
-        "formal_seeds_authorized": False,
-        "dp_modification_authorized": False,
-        "safety_benefit_evidence": False,
-        "camp_over_dp_top1_claim_authorized": False,
     }
     files = {
         HEADS: "CAMP_HEAD=abc\nCAMP_ORIGIN_MAIN=abc\nDP_HEAD=expected\n",

@@ -270,25 +270,40 @@ def _implementation_summary_contracts(path: Path) -> dict[str, Any]:
         summary = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {"present": True, "valid_json": False}
+    implementation = summary.get("implementation_summary", {})
+    blocked_actions = summary.get("blocked_actions", {})
+
+    def _summary_value(name: str) -> Any:
+        if name in summary:
+            return summary.get(name)
+        return implementation.get(name)
+
+    def _blocked_value(name: str) -> Any:
+        if name in summary:
+            return summary.get(name)
+        return blocked_actions.get(name)
+
     return {
         "present": True,
         "valid_json": True,
         "passed": summary.get("passed") is True,
+        "failed_checks_empty": summary.get("failed_checks") == [],
         "implementation_only": summary.get("implementation_only") is True,
         "production_code_modified": summary.get("production_code_modified") is True,
-        "default_policy_changed_false": summary.get("default_policy_changed") is False,
-        "opt_in_policy_only": summary.get("opt_in_policy_only") is True,
-        "finite_candidate_guard_added": (
-            summary.get("current_tick_finite_candidate_guard_added") is True
-        ),
-        "screen_rerun_blocked": summary.get("fixed_snapshot_screen_rerun_authorized")
+        "default_policy_changed_false": _summary_value("default_policy_changed")
         is False,
-        "replay_blocked": summary.get("new_replay_authorized") is False,
-        "formal_seeds_blocked": summary.get("formal_seeds_authorized") is False,
-        "dp_modification_blocked": summary.get("dp_modification_authorized") is False,
-        "safety_claim_blocked": summary.get("safety_benefit_evidence") is False,
+        "opt_in_policy_only": _summary_value("opt_in_policy_only") is True,
+        "finite_candidate_guard_added": (
+            _summary_value("current_tick_finite_candidate_guard_added") is True
+        ),
+        "screen_rerun_blocked": _blocked_value("fixed_snapshot_screen_rerun_authorized")
+        is False,
+        "replay_blocked": _blocked_value("new_replay_authorized") is False,
+        "formal_seeds_blocked": _blocked_value("formal_seeds_authorized") is False,
+        "dp_modification_blocked": _blocked_value("dp_modification_authorized") is False,
+        "safety_claim_blocked": _blocked_value("safety_benefit_evidence") is False,
         "camp_over_dp_top1_blocked": (
-            summary.get("camp_over_dp_top1_claim_authorized") is False
+            _blocked_value("camp_over_dp_top1_claim_authorized") is False
         ),
     }
 
