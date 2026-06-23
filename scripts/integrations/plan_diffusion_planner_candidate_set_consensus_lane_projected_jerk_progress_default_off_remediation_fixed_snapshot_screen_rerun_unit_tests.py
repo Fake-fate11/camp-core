@@ -44,7 +44,7 @@ AUTHORIZED_NEXT_WORK = (
 DEFAULT_REVIEW_ROOT = (
     f"{DEFAULT_DEVELOPMENT_ROOT}/candidate_set_consensus_lane_projected_"
     "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
-    "remediation_static_contract_review_3a04d21"
+    "remediation_static_contract_review_d627ee2"
 )
 REVIEW_JSON = "fixed_snapshot_screen_rerun_remediation_static_contract_review.json"
 REVIEW_JSON_COMPAT = "remediation_static_contract_review.json"

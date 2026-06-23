@@ -12,6 +12,7 @@ from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_broader
 from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests import (
     AUTHORIZED_NEXT_WORK,
     CONTRACTS,
+    DEFAULT_REVIEW_ROOT,
     EXIT_CODE,
     HEADS,
     READY_STATUS,
@@ -117,6 +118,14 @@ def _build(tmp_path: Path, payload: dict[str, object] | None = None) -> dict[str
         camp_origin_main="abc",
         dp_head=EXPECTED_DP_HEAD,
         label="unit",
+    )
+
+
+def test_default_off_rerun_unit_tests_plan_default_review_is_current() -> None:
+    assert DEFAULT_REVIEW_ROOT.endswith(
+        "candidate_set_consensus_lane_projected_"
+        "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
+        "remediation_static_contract_review_d627ee2"
     )
 
 
