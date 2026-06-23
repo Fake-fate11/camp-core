@@ -78,8 +78,7 @@ def parse_args():
 def reward_hard_feasibility(): pass
 hard_reasons = []
 hard_reason_counts = {}
-route_topology_dp_kinematic = "route_topology_dp_kinematic"
-route_topology_dp_road_border = "route_topology_dp_road_border"
+hard_feasible = True
 route_topology_lane_invalid = "route_topology_lane_invalid"
 route_topology_red_timing_invalid = "route_topology_red_timing_invalid"
 
@@ -99,9 +98,11 @@ def timing():
 def _summarize_latency(): pass
 
 absolute_lateral_guard = True
-route_topology_default_off_remediation_absolute_lateral_guard = "route_topology_default_off_remediation_absolute_lateral_guard"
+route_topology_absolute_lateral_guard_support_present = "route_topology_absolute_lateral_guard_support_present"
 absolute_lateral_guard_rows = 28
 absolute_lateral_guard_snapshot_support_rate = 0.33
+absolute_lateral_guard_pass = True
+absolute_metric_summary = {}
 """
 
 

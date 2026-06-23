@@ -131,7 +131,7 @@ def build_report(
         required_files=(DESIGN_JSON, DESIGN_EXIT, HEADS, SHA256SUMS),
     )
     design_payload = _load_json_if_present(design_root / DESIGN_JSON)
-    source_text = source_path.read_text(encoding="utf-8") if source_path.is_file() else ""
+    source_text = _source_bundle(source_path)
     source = _source_summary(design_payload)
     review = _static_contract_review(source_text)
     checks = [
@@ -310,10 +310,9 @@ def _static_contract_review(source_text: str) -> dict[str, Any]:
                     "reward_hard_feasibility",
                     "hard_reasons",
                     "hard_reason_counts",
-                    "route_topology_dp_kinematic",
-                    "route_topology_dp_road_border",
                     "route_topology_lane_invalid",
                     "route_topology_red_timing_invalid",
+                    "hard_feasible",
                 ),
             ),
             "evidence": "hard blockers are evaluator labels over fixed DP candidates",
@@ -339,10 +338,11 @@ def _static_contract_review(source_text: str) -> dict[str, Any]:
             "status": _all_present(
                 source_text,
                 (
-                    "absolute_lateral_guard",
-                    "route_topology_default_off_remediation_absolute_lateral_guard",
+                    "route_topology_absolute_lateral_guard_support_present",
                     "absolute_lateral_guard_rows",
                     "absolute_lateral_guard_snapshot_support_rate",
+                    "absolute_lateral_guard_pass",
+                    "absolute_metric_summary",
                 ),
             ),
             "evidence": "absolute guard output is a separate diagnostic artifact",
@@ -433,6 +433,18 @@ def _source_file_checks(source_path: Path, source_text: str) -> list[dict[str, A
             "analyze_diffusion_planner_route_topology_candidate_screen.py",
         ),
     ]
+
+
+def _source_bundle(source_path: Path) -> str:
+    if not source_path.is_file():
+        return ""
+    parts = [source_path.read_text(encoding="utf-8")]
+    absolute_path = source_path.with_name(
+        "analyze_diffusion_planner_route_topology_absolute_comfort_guard.py"
+    )
+    if absolute_path.is_file():
+        parts.append(absolute_path.read_text(encoding="utf-8"))
+    return "\n".join(parts)
 
 
 def _contract_checks(review: dict[str, Any]) -> list[dict[str, Any]]:
