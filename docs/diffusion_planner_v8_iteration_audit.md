@@ -71902,3 +71902,190 @@ execution. The plan does not self-authorize fixed-snapshot screen rerun
 execution, candidate generation execution, replay, Full36, formal seeds, atom
 promotion, online selector promotion, CAMP retraining, safety-benefit claims,
 CAMP-over-DP-Top-1 claims, or DP modification.
+
+## Candidate-set consensus lane-projected jerk/progress default-off remediation guarded fixed-snapshot screen rerun
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_guarded_fixed_snapshot_screen_rerun_only`
+after explicit user authorization. The authorization remains bounded: no
+replay, no Full36, no formal seeds, no CAMP retraining, no online selector
+promotion, no atom promotion, no safety-benefit claim, no CAMP-over-DP-Top-1
+claim, and no DP modification.
+
+State audit:
+
+```text
+startup audit source=docs/diffusion_planner_v8_iteration_audit.md tail
+startup selected completed gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_plan_only
+startup selected next gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_guarded_fixed_snapshot_screen_rerun_only
+user authorization=guarded fixed-snapshot screen rerun only; replay/Full36/formal seeds/CAMP retraining/online selector promotion/atom promotion/safety claim/CAMP > DP Top-1 claim/DP modification still forbidden
+local CAMP HEAD=8439a9141a9da8b72a0a136b1b41d66e18831e69
+local CAMP origin/main=8439a9141a9da8b72a0a136b1b41d66e18831e69
+GitHub refs/heads/main=8439a9141a9da8b72a0a136b1b41d66e18831e69
+AutoDL CAMP HEAD=8439a9141a9da8b72a0a136b1b41d66e18831e69
+AutoDL CAMP origin/main=8439a9141a9da8b72a0a136b1b41d66e18831e69
+AutoDL DP branch=tier4-main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan_24c7760
+execution_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_24c7760
+planned execution directory pre-check=absent before run
+guard_env=CANDIDATE_SET_CONSENSUS_LANE_PROJECTED_JERK_PROGRESS_DEFAULT_OFF_REMEDIATION_FIXED_SNAPSHOT_RERUN_APPROVED=yes
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Local verification:
+
+```text
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py -q
+9 passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py -q
+17 passed
+```
+
+AutoDL execution:
+
+```text
+RUNBOOK_WRAPPER_EXIT=0
+EXIT_CODE=0
+SHA256SUMS_CHECK_EXIT=0
+CAMP_HEAD=8439a9141a9da8b72a0a136b1b41d66e18831e69
+CAMP_ORIGIN_MAIN=8439a9141a9da8b72a0a136b1b41d66e18831e69
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+SNAPSHOT_COUNT=57
+SNAPSHOT_DIR=/root/autodl-tmp/camp_dp_splice_transform_design_screen_347ae79_seed2_npc4_tlon/snapshots_no_budget
+CANDIDATE_SCREEN.err bytes=0
+ABSOLUTE_GUARD.err bytes=0
+RUNBOOK_WRAPPER.err bytes=0
+```
+
+Fixed-snapshot screen result:
+
+```text
+screen_status=route_topology_candidate_support_insufficient
+screen_next_step=Reject this route/topology candidate construction family for replay or online promotion; inspect failure classes before designing a materially different generator.
+offline_selector_screen_authorized=False
+closed_loop_smoke_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+snapshots=57
+snapshots_with_generated_candidates=21
+generated_candidate_rows=276
+lower_union_red_rows=276
+lower_union_red_hard_feasible_rows=67
+lower_union_red_progress_feasible_rows=64
+lower_union_red_comfort_admissible_rows=0
+hard_feasible_snapshot_support_rate=0.38095238095238093
+hard_feasible_snapshot_support_pass=True
+comfort_admissible_snapshot_support_rate=0.0
+comfort_admissible_snapshot_support_pass=False
+candidate_build_p95_latency_ms=35.82086283713579
+total_p95_latency_ms=103.4984964877367
+planned candidate_build_p95 limit=10.0
+planned total_p95 limit=100.0
+failure_class_counts:
+  route_topology_comfort_blocked_command_jerk=64
+  route_topology_comfort_blocked_command_lateral=60
+  route_topology_comfort_blocked_progress_loss=58
+  route_topology_comfort_blocked_rollout_distance=12
+  route_topology_comfort_blocked_rollout_jerk=60
+  route_topology_comfort_blocked_rollout_lateral=63
+  route_topology_comfort_blocked_smoothness_loss=14
+  route_topology_dp_kinematic=197
+  route_topology_dp_road_border=108
+  route_topology_hard_feasible_but_underprogress=3
+  route_topology_lane_invalid=114
+  route_topology_red_timing_invalid=51
+```
+
+Absolute lateral guard result:
+
+```text
+absolute_guard_status=route_topology_absolute_lateral_guard_support_present
+absolute_guard_next_step=Relative nonworse comfort is too strict for this slice under the documented absolute lateral guard. Next gate must still address jerk/progress with a documented guard or remain offline.
+candidate_rows=276
+lower_union_red_rows=276
+lower_union_red_hard_progress_rows=64
+absolute_lateral_guard_rows=28
+absolute_lateral_guard_snapshot_support_rate=0.3333333333333333
+absolute_lateral_guard_snapshot_support_pass=True
+source_screen_status=route_topology_candidate_support_insufficient
+source_screen_comfort_admissible_snapshot_support_rate=0.0
+source_authorization_conflicts=[]
+absolute_guard_failure_class_counts:
+  absolute_command_lateral_guard_failed=105
+  absolute_lateral_guard_support=28
+  absolute_rollout_lateral_guard_failed=107
+  hard_dp_kinematic=197
+  hard_dp_lane_crossing=114
+  hard_dp_red_light=51
+  hard_dp_road_border=108
+  underprogress=3
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `ABSOLUTE_GUARD.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `ABSOLUTE_GUARD.log` | `723d16d22c758cd9423a6c042e9e53e06a2033d2c846d78a3e1cf6777458d7c4` |
+| `CANDIDATE_SCREEN.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `CANDIDATE_SCREEN.log` | `b44997522c3dc6b3c437d54336afdee87b9b58267b9e018d79af0c344b4bdcdf` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `79298978a0a333fae037bad221873e6e129c262719036ed5b97b7fedaef3bb95` |
+| `RUNBOOK_WRAPPER.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `RUNBOOK_WRAPPER.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `RUNBOOK_WRAPPER_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `route_topology_default_off_remediation_absolute_lateral_guard.json` | `584f362567259471944a4b1f8ad65d1bb47dbbf5efa8981b6ad9731b974dd6a0` |
+| `route_topology_default_off_remediation_absolute_lateral_guard.md` | `cbd5d7207d477ce13fa058b15f4db14d4f57d961c55bfe40d70a67e385ba4833` |
+| `route_topology_default_off_remediation_rerun_screen.json` | `01be13a5fb48903348b044ddfce1c3445a6f956bb1e1a743fe1306ed2d8799b4` |
+| `route_topology_default_off_remediation_rerun_screen.md` | `d19c83e5425f50ef4443f6c8ef1d6a83e65f876bc9f4eb8e43b022065d7578a1` |
+
+Evidence evaluation:
+
+The guarded fixed-snapshot screen rerun executed successfully as an execution
+gate, but it again rejects promotion. The screen finds hard-feasible
+lower-union-red support on the existing nonformal fixed snapshot corpus, and
+the absolute lateral guard finds support above the predeclared 0.25 threshold.
+However, comfort-admissible support remains zero, candidate-build p95 latency
+exceeds the 10 ms plan threshold, and total p95 latency exceeds the 100 ms plan
+threshold. Therefore this evidence rejects replay expansion, Full36, formal
+seeds, atom promotion, online selector promotion, safety-benefit claims,
+CAMP-over-DP-Top-1 claims, CAMP retraining, and DP modification.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. This gate executes only the
+preauthorized fixed-snapshot candidate screen and absolute lateral guard on the
+existing nonformal fixed snapshot corpus. It does not run replay, use formal
+seeds, define or promote runtime atoms, choose lambda online, alter
+`score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, train CAMP,
+change online selection, modify DP weights or code, claim safety benefit,
+claim CAMP is better than DP Top-1, or claim a DP-side classical Benders
+decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_guarded_fixed_snapshot_screen_rerun_only`
+as executed. Reject any promotion, replay expansion, safety-benefit, or
+CAMP-over-DP-Top-1 interpretation of the result. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_only`.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_only`
+is now authorized. That gate may design a low-risk offline failure-attribution
+plan for the observed comfort-support and latency failures. It may not run
+replay, rerun the screen, use formal seeds, train CAMP, promote atoms, change
+the online selector, expand to Full36, claim safety benefit, claim CAMP is
+better than DP Top-1, or modify DP.
