@@ -58,6 +58,7 @@ DEFAULT_PLAN_ROOT = (
     "failure_attribution_plan_2e647f4f"
 )
 PLAN_JSON = "fixed_snapshot_screen_rerun_failure_attribution_plan.json"
+PLAN_JSON_COMPAT = "failure_attribution_plan.json"
 
 BLOCKED_ACTIONS = (
     "candidate_generation_execution_authorized",
@@ -141,13 +142,14 @@ def build_report(
             SHA256SUMS,
         ),
     )
+    plan_json_name = _plan_json_name(plan_root)
     plan_artifact = _artifact_summary(
         plan_root,
-        required_files=(PLAN_JSON, EXIT_CODE, HEADS, SHA256SUMS),
+        required_files=(plan_json_name, EXIT_CODE, HEADS, SHA256SUMS),
     )
     screen_payload = _load_json_if_present(screen_root / SCREEN_JSON)
     absolute_payload = _load_json_if_present(screen_root / ABSOLUTE_JSON)
-    plan_payload = _load_json_if_present(plan_root / PLAN_JSON)
+    plan_payload = _load_json_if_present(plan_root / plan_json_name)
     source = _source_summary(screen_payload, absolute_payload, plan_payload)
     attribution = _attribution_summary(screen_payload, absolute_payload)
     checks = [
@@ -314,6 +316,12 @@ def _artifact_summary(root: Path, *, required_files: tuple[str, ...]) -> dict[st
         "candidate_err_bytes": _file_size(root / CANDIDATE_ERR),
         "absolute_err_bytes": _file_size(root / ABSOLUTE_ERR),
     }
+
+
+def _plan_json_name(plan_root: Path) -> str:
+    if (plan_root / PLAN_JSON).is_file():
+        return PLAN_JSON
+    return PLAN_JSON_COMPAT
 
 
 def _source_summary(

@@ -9,6 +9,7 @@ import pytest
 from scripts.integrations.analyze_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution import (
     AUTHORIZED_NEXT_WORK,
     PLAN_JSON,
+    PLAN_JSON_COMPAT,
     READY_STATUS,
     REJECT_STATUS,
     build_report,
@@ -245,10 +246,11 @@ def _write_plan_root(
     tmp_path: Path,
     *,
     plan: dict[str, object] | None = None,
+    plan_json_name: str = PLAN_JSON,
 ) -> Path:
     root = tmp_path / "plan"
     root.mkdir()
-    (root / PLAN_JSON).write_text(
+    (root / plan_json_name).write_text(
         json.dumps(plan or _plan_payload(), indent=2) + "\n",
         encoding="utf-8",
     )
@@ -263,7 +265,7 @@ def _write_plan_root(
         f"CAMP_HEAD=head\nDP_HEAD={EXPECTED_DP_HEAD}\n",
         encoding="utf-8",
     )
-    _write_sha256sums(root, (PLAN_JSON, EXIT_CODE, HEADS))
+    _write_sha256sums(root, (plan_json_name, EXIT_CODE, HEADS))
     return root
 
 
@@ -326,6 +328,24 @@ def test_default_off_rerun_read_only_analysis_accepts_exit_code_only_screen(
     assert report["final_decision"]["status"] == READY_STATUS
     assert report["final_decision"]["failed_checks"] == []
     assert report["screen_artifact"]["runbook_exit"] is None
+
+
+def test_default_off_rerun_read_only_analysis_accepts_current_plan_filename(
+    tmp_path: Path,
+) -> None:
+    screen_root = _write_screen_root(tmp_path, include_runbook_exit=False)
+    plan_root = _write_plan_root(tmp_path, plan_json_name=PLAN_JSON_COMPAT)
+
+    report = build_report(
+        screen_root=screen_root,
+        plan_root=plan_root,
+        camp_head="abc",
+        camp_origin_main="abc",
+        dp_head=EXPECTED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["plan_artifact"]["required_files"][PLAN_JSON_COMPAT] is True
 
 
 def test_default_off_rerun_read_only_analysis_rejects_plan_sha_mismatch(
