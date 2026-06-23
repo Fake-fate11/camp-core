@@ -300,6 +300,7 @@ def render_markdown(report: dict[str, Any]) -> str:
 def _artifact_summary(root: Path, *, required_files: tuple[str, ...]) -> dict[str, Any]:
     files = {name: (root / name).is_file() for name in required_files}
     sha_ok, sha_details = _sha256sum_check(root / SHA256SUMS)
+    exit_code_text = _read_text(root / EXIT_CODE).strip()
     return {
         "root": str(root),
         "exists": root.is_dir(),
@@ -307,7 +308,8 @@ def _artifact_summary(root: Path, *, required_files: tuple[str, ...]) -> dict[st
         "required_files_present": all(files.values()),
         "sha256sums_ok": sha_ok,
         "sha256sums_details": sha_details,
-        "exit_code": _read_text(root / EXIT_CODE).strip() or None,
+        "exit_code": exit_code_text or None,
+        "exit_code_ok": _exit_code_ok(exit_code_text),
         "runbook_exit": _read_text(root / RUNBOOK_EXIT).strip() or None,
         "heads_text_present": bool(_read_text(root / HEADS).strip()),
         "candidate_err_bytes": _file_size(root / CANDIDATE_ERR),
@@ -548,7 +550,7 @@ def _artifact_checks(prefix: str, artifact: dict[str, Any]) -> list[dict[str, An
         _check_equal(f"{prefix}_artifact_exists", artifact["exists"], True),
         _check_equal(f"{prefix}_required_files_present", artifact["required_files_present"], True),
         _check_equal(f"{prefix}_sha256sums_ok", artifact["sha256sums_ok"], True),
-        _check_equal(f"{prefix}_exit_code_zero", artifact["exit_code"], "0"),
+        _check_equal(f"{prefix}_exit_code_zero", artifact["exit_code_ok"], True),
         _check_equal(f"{prefix}_heads_present", artifact["heads_text_present"], True),
     ]
 
@@ -735,6 +737,21 @@ def _file_size(path: Path) -> int | None:
     if not path.is_file():
         return None
     return path.stat().st_size
+
+
+def _exit_code_ok(text: str) -> bool:
+    if text == "0":
+        return True
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        return False
+    for line in lines:
+        if "=" not in line:
+            return False
+        key, value = line.split("=", 1)
+        if not key.endswith("_EXIT") or value.strip() != "0":
+            return False
+    return True
 
 
 def _check_equal(name: str, observed: Any, expected: Any) -> dict[str, Any]:

@@ -251,7 +251,13 @@ def _write_plan_root(
         json.dumps(plan or _plan_payload(), indent=2) + "\n",
         encoding="utf-8",
     )
-    (root / EXIT_CODE).write_text("0\n", encoding="utf-8")
+    (root / EXIT_CODE).write_text(
+        "PY_COMPILE_EXIT=0\n"
+        "PYTEST_PLAN_EXIT=0\n"
+        "PYTEST_RELATED_EXIT=0\n"
+        "PLAN_EXIT=0\n",
+        encoding="utf-8",
+    )
     (root / HEADS).write_text(
         f"CAMP_HEAD=head\nDP_HEAD={EXPECTED_DP_HEAD}\n",
         encoding="utf-8",
