@@ -46,7 +46,7 @@ AUTHORIZED_NEXT_WORK = (
 DEFAULT_DESIGN_ROOT = (
     f"{DEFAULT_DEVELOPMENT_ROOT}/candidate_set_consensus_lane_projected_"
     "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
-    "remediation_design_plan_0126b27"
+    "remediation_design_plan_963dc8b"
 )
 DESIGN_JSON = "fixed_snapshot_screen_rerun_remediation_design_plan.json"
 DESIGN_JSON_COMPAT = "remediation_design_plan.json"

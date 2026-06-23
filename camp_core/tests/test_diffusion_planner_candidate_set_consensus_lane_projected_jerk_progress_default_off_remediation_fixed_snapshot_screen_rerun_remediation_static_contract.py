@@ -15,6 +15,7 @@ from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_lane_pr
 )
 from scripts.integrations.review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract import (
     AUTHORIZED_NEXT_WORK,
+    DEFAULT_DESIGN_ROOT,
     DESIGN_EXIT,
     DESIGN_JSON,
     DESIGN_JSON_COMPAT,
@@ -159,6 +160,14 @@ def _build(
         camp_origin_main="abc",
         dp_head=EXPECTED_DP_HEAD,
         label="unit",
+    )
+
+
+def test_default_off_rerun_static_contract_default_design_is_current() -> None:
+    assert DEFAULT_DESIGN_ROOT.endswith(
+        "candidate_set_consensus_lane_projected_"
+        "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
+        "remediation_design_plan_963dc8b"
     )
 
 
