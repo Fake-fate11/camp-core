@@ -69334,3 +69334,183 @@ screen rerun planning or guarded rerun. It may not rerun the screen, create
 candidates, run replay, use formal seeds, train CAMP, promote atoms, change
 online selection, expand to Full36, claim safety benefit, claim CAMP is better
 than DP Top-1, or modify DP.
+
+### 2026-06-23 - Candidate-Set Consensus Lane-Projected Jerk/Progress Default-Off Remediation Post-Implementation Static Contract Review
+
+Objective:
+
+Execute only the post-implementation static contract review authorized by the
+fixed-snapshot screen rerun implementation audit. This gate updates and runs
+the static review against the new implementation artifact schema and the newly
+implemented contracts. It does not edit product implementation code, create
+candidates, rerun the screen, run replay, use formal seeds, train CAMP,
+promote atoms, change online selection, claim safety benefit, claim CAMP is
+better than DP Top-1, or modify DP.
+
+State audit:
+
+```text
+startup selected completed gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_implementation_only
+startup selected next gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_post_implementation_static_contract_review_only
+startup local CAMP HEAD=bb5d1e61ee1ebeeac43cc3d1e013ffe338e3d4e3
+startup local origin/main=bb5d1e61ee1ebeeac43cc3d1e013ffe338e3d4e3
+startup GitHub main=bb5d1e61ee1ebeeac43cc3d1e013ffe338e3d4e3
+startup AutoDL CAMP HEAD=bb5d1e61ee1ebeeac43cc3d1e013ffe338e3d4e3
+startup AutoDL CAMP origin/main=bb5d1e61ee1ebeeac43cc3d1e013ffe338e3d4e3
+static-review script/test commit=497ad3f3a4f5ad63ce97351fd6d4ec8d0130e28e
+AutoDL CAMP HEAD after sync=497ad3f3a4f5ad63ce97351fd6d4ec8d0130e28e
+AutoDL CAMP origin/main after sync=497ad3f3a4f5ad63ce97351fd6d4ec8d0130e28e
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_implementation_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_implementation_a0603b0
+static_review_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract_review_497ad3f
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Scoped files:
+
+```text
+scripts/integrations/review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py
+```
+
+Static-review result:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_post_implementation_static_contract_review_complete
+passed=True
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_plan_only
+failed_checks=[]
+post_implementation_static_contract_review_complete=True
+fixed_snapshot_screen_rerun_plan_authorized=True
+implementation_code_edit_authorized=False
+candidate_generation_execution_authorized=False
+fixed_snapshot_candidate_generation_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Static contracts reviewed:
+
+```text
+new implementation artifact schema with PYTEST_UNIT/PYTEST_RELATED direct exit files
+default policy remains lane_centerline_red_stop
+candidate construction diagnostics remain attached to zero-candidate rows
+opt-in lane_projected_jerk_progress_red_stop current-tick scalar fail-closed guard is present
+current-tick scalar guard is scoped to the opt-in jerk/progress policy
+comfort failure labels and aggregate counts use RouteTopologyCandidateConfig budgets
+route failure classes pass config into comfort failure classification
+focused tests cover current-tick scalar fail-closed, default policy unchanged, and config-budget failure labels
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py
+passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py -q
+8 passed in 1.05s
+python -m pytest <route topology, absolute guard, lane-projected jerk/progress remediation, post-implementation static contract, fixed-snapshot rerun plan/failure-attribution/remediation/unit-tests/implementation-plan suite> -q
+140 passed in 15.58s
+git diff --check -- scripts\integrations\review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py
+clean
+git diff --cached --check
+clean
+```
+
+AutoDL verification:
+
+```text
+AutoDL sync method=git bundle fallback after GitHub HTTPS GnuTLS failure
+AutoDL CAMP HEAD=497ad3f3a4f5ad63ce97351fd6d4ec8d0130e28e
+AutoDL CAMP origin/main=497ad3f3a4f5ad63ce97351fd6d4ec8d0130e28e
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+/root/miniconda3/envs/camp/bin/python -m py_compile <static-review script and test>
+PY_COMPILE_EXIT=0
+/root/miniconda3/envs/camp/bin/python -m pytest <static-review test> -q
+PYTEST_REVIEW_EXIT=0
+8 passed in 0.04s
+/root/miniconda3/envs/camp/bin/python -m pytest <related suite> -q
+PYTEST_RELATED_EXIT=0
+140 passed in 0.47s
+/root/miniconda3/envs/camp/bin/python <static-review script> --implementation_artifact_root <a0603b0 implementation artifact> --source_path <candidate screen source> --test_path <candidate screen test>
+REVIEW_COMMAND_EXIT=0
+sha256sum -c SHA256SUMS
+all listed files OK
+PY_COMPILE.err bytes=0
+PYTEST_REVIEW.err bytes=0
+PYTEST_RELATED.err bytes=0
+REVIEW_COMMAND.err bytes=0
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `HEADS.txt` | `9f418f35c1276f06b142504bdb46618c7a12b5ced1c75253fb1e26b2dfc9fa51` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_REVIEW.log` | `54d62a0149f447ee2867b9e102287fade45e0a057ff3b969489678c98884e9ae` |
+| `PYTEST_REVIEW.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_REVIEW_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_RELATED.log` | `84e859f5f35f24fa7b506b8266fd83d0d0a7ffe64a981d880e9b6ea418308cc1` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `REVIEW_COMMAND.log` | `bb7b24ecfb612bc15f46234d8f1372a1cdeac247d59c794fa9dd56061494cf11` |
+| `REVIEW_COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `REVIEW_COMMAND_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `post_implementation_static_contract_review.json` | `3131122ce0e66afe4cf88790fd0ca0045889356cf3e1ef6012ed136220b4306c` |
+| `post_implementation_static_contract_review.md` | `0eb69248e98a0047b29d3033df96e9016e4b9a28ec9c465ad3f8443b2da54445` |
+| `scripts/integrations/review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py` | `850f36c7d63c9cec33d546d224fa62486a558800fff6af9de36973916e1c9ead` |
+| `camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_post_implementation_static_contract.py` | `d521b30bb665ee11dd4d4f101c326d46cb2cb6dd53b85576caa306467a0a1bfa` |
+
+Evidence evaluation:
+
+The post-implementation static contract review is complete. It verifies that
+the implementation artifact passed, that the default policy remains unchanged,
+that the opt-in jerk/progress path has a current-tick scalar fail-closed guard,
+that comfort failure labels and aggregate counts use the current config
+budgets, and that the focused tests pin those contracts. It does not run DP,
+create candidates, rerun the fixed-snapshot screen, run replay, use formal
+seeds, train CAMP, promote atoms, change online selection, claim safety
+benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+Mathematical boundary:
+
+This gate reads only source text, focused tests, and the implementation
+artifact. It does not execute candidate generation, rerun the fixed-snapshot
+screen, run DP, run replay, use formal seeds, define runtime atoms, choose
+lambda online, alter `score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2
+master, train CAMP, change online selection, modify DP weights or code, claim
+safety benefit, claim CAMP is better than DP Top-1, or claim a DP-side
+classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_post_implementation_static_contract_review_only`
+as complete. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_plan_only`.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_plan_only`
+is now authorized. That gate may produce a plan-only fixed-snapshot screen
+rerun artifact from the static-review artifact. It may not execute the rerun,
+create candidates, run replay, use formal seeds, train CAMP, promote atoms,
+change online selection, expand to Full36, claim safety benefit, claim CAMP is
+better than DP Top-1, or modify DP.
