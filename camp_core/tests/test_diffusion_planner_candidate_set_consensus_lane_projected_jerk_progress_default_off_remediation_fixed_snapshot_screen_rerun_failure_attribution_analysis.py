@@ -206,6 +206,7 @@ def _write_screen_root(
     absolute: dict[str, object] | None = None,
     exit_code: str = "0",
     runbook_exit: str = "0",
+    include_runbook_exit: bool = True,
 ) -> Path:
     root = tmp_path / "screen"
     root.mkdir()
@@ -220,23 +221,23 @@ def _write_screen_root(
     (root / CANDIDATE_ERR).write_text("", encoding="utf-8")
     (root / ABSOLUTE_ERR).write_text("", encoding="utf-8")
     (root / EXIT_CODE).write_text(f"{exit_code}\n", encoding="utf-8")
-    (root / RUNBOOK_EXIT).write_text(f"{runbook_exit}\n", encoding="utf-8")
+    if include_runbook_exit:
+        (root / RUNBOOK_EXIT).write_text(f"{runbook_exit}\n", encoding="utf-8")
     (root / HEADS).write_text(
         f"CAMP_HEAD=head\nDP_HEAD={EXPECTED_DP_HEAD}\n",
         encoding="utf-8",
     )
-    _write_sha256sums(
-        root,
-        (
-            SCREEN_JSON,
-            ABSOLUTE_JSON,
-            CANDIDATE_ERR,
-            ABSOLUTE_ERR,
-            EXIT_CODE,
-            RUNBOOK_EXIT,
-            HEADS,
-        ),
-    )
+    sha_files = [
+        SCREEN_JSON,
+        ABSOLUTE_JSON,
+        CANDIDATE_ERR,
+        ABSOLUTE_ERR,
+        EXIT_CODE,
+        HEADS,
+    ]
+    if include_runbook_exit:
+        sha_files.append(RUNBOOK_EXIT)
+    _write_sha256sums(root, tuple(sha_files))
     return root
 
 
@@ -306,6 +307,25 @@ def test_default_off_rerun_read_only_analysis_ready(tmp_path: Path) -> None:
     assert attribution["primary_latency_source"] == "total"
     assert attribution["absolute_lateral_guard_retained"] is True
     assert attribution["recommendation_category"] == "design-new-policy-plan-only"
+
+
+def test_default_off_rerun_read_only_analysis_accepts_exit_code_only_screen(
+    tmp_path: Path,
+) -> None:
+    screen_root = _write_screen_root(tmp_path, include_runbook_exit=False)
+    plan_root = _write_plan_root(tmp_path)
+
+    report = build_report(
+        screen_root=screen_root,
+        plan_root=plan_root,
+        camp_head="abc",
+        camp_origin_main="abc",
+        dp_head=EXPECTED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["failed_checks"] == []
+    assert report["screen_artifact"]["runbook_exit"] is None
 
 
 def test_default_off_rerun_read_only_analysis_rejects_plan_sha_mismatch(

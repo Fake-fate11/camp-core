@@ -137,7 +137,6 @@ def build_report(
             CANDIDATE_ERR,
             ABSOLUTE_ERR,
             EXIT_CODE,
-            RUNBOOK_EXIT,
             HEADS,
             SHA256SUMS,
         ),
@@ -557,7 +556,11 @@ def _artifact_checks(prefix: str, artifact: dict[str, Any]) -> list[dict[str, An
 
 def _screen_execution_checks(artifact: dict[str, Any]) -> list[dict[str, Any]]:
     return [
-        _check_equal("screen_runbook_exit_zero", artifact["runbook_exit"], "0"),
+        _check_equal(
+            "screen_runbook_exit_zero_if_present",
+            artifact["runbook_exit"] in (None, "0"),
+            True,
+        ),
         _check_equal("screen_candidate_err_empty", artifact["candidate_err_bytes"], 0),
         _check_equal("screen_absolute_err_empty", artifact["absolute_err_bytes"], 0),
     ]
