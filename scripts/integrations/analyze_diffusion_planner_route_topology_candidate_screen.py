@@ -549,6 +549,106 @@ def build_route_topology_candidates(
     return np.stack(generated), metadata
 
 
+def route_topology_candidate_construction_diagnostics(
+    candidates: np.ndarray,
+    *,
+    lane_centerline: np.ndarray,
+    red_route_points: np.ndarray,
+    selected_index: int,
+    current_speed_mps: float,
+    dt: float,
+    config: RouteTopologyCandidateConfig = RouteTopologyCandidateConfig(),
+) -> dict[str, Any]:
+    diagnostics: dict[str, Any] = {
+        "generator_policy": str(config.generator_policy),
+        "selected_index": int(selected_index),
+        "current_speed_mps": _json_number(current_speed_mps),
+        "dt_s": _json_number(dt),
+        "min_stop_distance_m": _json_number(config.min_stop_distance_m),
+        "construction_status": "fail_closed",
+        "failure_reason": None,
+    }
+    raw = np.asarray(candidates, dtype=np.float64)
+    if raw.ndim != 3 or raw.shape[0] <= 0 or raw.shape[2] < 2:
+        diagnostics.update(
+            {
+                "failure_reason": "candidate_tensor_invalid",
+                "candidate_count": int(raw.shape[0]) if raw.ndim >= 1 else 0,
+                "horizon": int(raw.shape[1]) if raw.ndim >= 2 else 0,
+            }
+        )
+        return diagnostics
+    diagnostics.update(
+        {
+            "candidate_count": int(raw.shape[0]),
+            "horizon": int(raw.shape[1]),
+            "state_dim": int(raw.shape[2]),
+        }
+    )
+    if selected_index < 0 or selected_index >= raw.shape[0]:
+        diagnostics["failure_reason"] = "selected_index_out_of_range"
+        return diagnostics
+    lane = _oriented_lane(
+        _finite_xy(np.asarray(lane_centerline, dtype=np.float64)),
+        _finite_xy(np.asarray(red_route_points, dtype=np.float64)),
+    )
+    red = _finite_xy(np.asarray(red_route_points, dtype=np.float64))
+    diagnostics.update(
+        {
+            "lane_point_count": int(len(lane)),
+            "red_route_point_count": int(len(red)),
+        }
+    )
+    if len(lane) < 2:
+        diagnostics["failure_reason"] = "lane_geometry_invalid"
+        return diagnostics
+    cumulative = _cumulative_distance(lane)
+    current_s = _nearest_s(lane, cumulative, np.zeros(2, dtype=np.float64))
+    red_s = _first_red_s_ahead(lane, cumulative, red, current_s)
+    diagnostics["current_s_m"] = _json_number(current_s)
+    if red_s is None:
+        diagnostics["failure_reason"] = "red_route_ahead_missing"
+        diagnostics["red_route_ahead"] = False
+        return diagnostics
+    red_distance = float(red_s - current_s)
+    max_forward = float(cumulative[-1] - current_s)
+    feasible_windows = 0
+    min_stop_distance = None
+    max_stop_distance = None
+    for margin in config.red_stop_margins_m:
+        for backup in config.backup_stop_offsets_m:
+            stop_distance = float(red_s - current_s - margin - backup)
+            if stop_distance < config.min_stop_distance_m:
+                continue
+            stop_distance = min(stop_distance, max_forward)
+            feasible_windows += 1
+            min_stop_distance = (
+                stop_distance
+                if min_stop_distance is None
+                else min(min_stop_distance, stop_distance)
+            )
+            max_stop_distance = (
+                stop_distance
+                if max_stop_distance is None
+                else max(max_stop_distance, stop_distance)
+            )
+    diagnostics.update(
+        {
+            "red_route_ahead": True,
+            "red_distance_m": _json_number(red_distance),
+            "max_forward_m": _json_number(max_forward),
+            "feasible_stop_windows": int(feasible_windows),
+            "min_feasible_stop_distance_m": _json_number(min_stop_distance),
+            "max_feasible_stop_distance_m": _json_number(max_stop_distance),
+        }
+    )
+    if feasible_windows <= 0:
+        diagnostics["failure_reason"] = "red_stop_distance_window"
+        return diagnostics
+    diagnostics["construction_status"] = "ready"
+    return diagnostics
+
+
 def _prefix_comfort_candidates(
     selected: np.ndarray,
     target_xy: np.ndarray,
@@ -663,6 +763,15 @@ def _analyze_snapshot(
     t1 = time.perf_counter()
     baseline_tracker = _tracker_diagnostics(candidates, arrays=arrays, metadata=metadata)
     t2 = time.perf_counter()
+    construction_diagnostics = route_topology_candidate_construction_diagnostics(
+        candidates,
+        lane_centerline=np.asarray(arrays["lane_centerline"], dtype=np.float64),
+        red_route_points=np.asarray(arrays["red_route_points"], dtype=np.float64),
+        selected_index=selected,
+        current_speed_mps=float(metadata.get("current_speed_mps", 0.0)),
+        dt=float(metadata.get("dt", 0.1)),
+        config=config,
+    )
     generated, generated_meta = build_route_topology_candidates(
         candidates,
         lane_centerline=np.asarray(arrays["lane_centerline"], dtype=np.float64),
@@ -711,6 +820,7 @@ def _analyze_snapshot(
             "generated_tracker": (t5 - t4) * 1000.0,
             "total": (t5 - t0) * 1000.0,
         },
+        construction_diagnostics=construction_diagnostics,
     )
 
 
@@ -726,6 +836,7 @@ def _snapshot_report_row(
     generated_tracker: dict[str, Any] | None,
     config: RouteTopologyCandidateConfig,
     timings_ms: dict[str, float],
+    construction_diagnostics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     selected = int(metadata["selected_index"])
     selected_union = float(baseline_scores["union_red_cost"][selected])
@@ -747,6 +858,7 @@ def _snapshot_report_row(
             "selected_index": selected,
             "generated_count": 0,
             "selected_union_red": selected_union,
+            "candidate_construction_diagnostics": construction_diagnostics or {},
             "candidate_rows": [],
             "timings_ms": timings_ms,
         }
@@ -809,6 +921,7 @@ def _snapshot_report_row(
         "selected_index": selected,
         "generated_count": len(rows),
         "selected_union_red": selected_union,
+        "candidate_construction_diagnostics": construction_diagnostics or {},
         "candidate_rows": rows,
         "timings_ms": timings_ms,
     }
@@ -1432,6 +1545,16 @@ def _fmt(value: Any) -> str:
     if isinstance(value, float):
         return f"`{value:.6f}`"
     return f"`{value}`"
+
+
+def _json_number(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if np.isfinite(number) else None
 
 
 def _load_json(path: Path) -> dict[str, Any]:

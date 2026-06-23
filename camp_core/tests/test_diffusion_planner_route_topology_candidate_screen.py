@@ -7,9 +7,11 @@ from scripts.integrations.analyze_diffusion_planner_route_topology_candidate_scr
     REJECT_STATUS,
     SOURCE_CONFLICT_STATUS,
     RouteTopologyCandidateConfig,
+    _snapshot_report_row,
     build_report_from_rows,
     build_route_topology_candidates,
     render_markdown,
+    route_topology_candidate_construction_diagnostics,
 )
 
 
@@ -504,3 +506,91 @@ def test_route_topology_report_fails_closed_on_readiness_conflict() -> None:
     assert decision["source_authorization_conflicts"] == [
         "route_topology_gate:online_selector_authorized"
     ]
+
+
+def test_route_topology_construction_diagnostics_fail_closed_without_red_ahead() -> None:
+    candidates = np.zeros((1, 20, 4), dtype=float)
+    candidates[:, :, 2] = 1.0
+    lane_x = np.linspace(0.0, 30.0, 31)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([[-5.0, 0.0]])
+
+    diagnostics = route_topology_candidate_construction_diagnostics(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=3.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop"
+        ),
+    )
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=3.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop"
+        ),
+    )
+
+    assert diagnostics["construction_status"] == "fail_closed"
+    assert diagnostics["failure_reason"] == "red_route_ahead_missing"
+    assert diagnostics["red_route_ahead"] is False
+    assert diagnostics["candidate_count"] == 1
+    assert diagnostics["horizon"] == 20
+    assert generated.shape == (0, 20, 4)
+    assert meta == []
+    for value in diagnostics.values():
+        assert value is None or isinstance(value, (str, bool, int, float))
+
+
+def test_route_topology_zero_candidate_row_carries_construction_diagnostics() -> None:
+    diagnostics = {
+        "generator_policy": "lane_projected_jerk_progress_red_stop",
+        "construction_status": "fail_closed",
+        "failure_reason": "red_stop_distance_window",
+        "candidate_count": 1,
+        "horizon": 20,
+        "red_route_ahead": True,
+        "feasible_stop_windows": 0,
+    }
+    row = _snapshot_report_row(
+        snapshot_path=__file__,
+        arrays={},
+        metadata={"selected_index": 0, "selection_step": 1},
+        generated_meta=[],
+        baseline_scores={
+            "union_red_cost": np.asarray([10.0]),
+            "reward_breakdowns": [{"progress": 1.0, "smoothness": 0.0}],
+        },
+        generated_scores=None,
+        baseline_tracker={
+            "command": {
+                "jerk_magnitude_mps3": np.asarray([0.0]),
+                "lateral_acceleration_magnitude_mps2": np.asarray([0.0]),
+            },
+            "open_loop": {
+                "horizons": {
+                    "3": {
+                        "distance_m": np.asarray([1.0]),
+                        "max_vector_jerk_mps3": np.asarray([0.0]),
+                        "max_lateral_acceleration_mps2": np.asarray([0.0]),
+                    }
+                }
+            },
+        },
+        generated_tracker=None,
+        config=RouteTopologyCandidateConfig(),
+        timings_ms={"candidate_build": 0.1, "total": 0.2},
+        construction_diagnostics=diagnostics,
+    )
+
+    assert row["generated_count"] == 0
+    assert row["candidate_rows"] == []
+    assert row["candidate_construction_diagnostics"] == diagnostics
+    assert "generated_scores" not in row
