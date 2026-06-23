@@ -44,12 +44,15 @@ AUTHORIZED_NEXT_WORK = (
 DEFAULT_REVIEW_ROOT = (
     f"{DEFAULT_DEVELOPMENT_ROOT}/candidate_set_consensus_lane_projected_"
     "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
-    "remediation_static_contract_review_af85d57"
+    "remediation_static_contract_review_3a04d21"
 )
 REVIEW_JSON = "fixed_snapshot_screen_rerun_remediation_static_contract_review.json"
+REVIEW_JSON_COMPAT = "remediation_static_contract_review.json"
 SHA256SUMS = "SHA256SUMS"
 HEADS = "HEADS.txt"
 REVIEW_EXIT = "REVIEW_EXIT"
+REVIEW_COMMAND_EXIT = "REVIEW_COMMAND_EXIT"
+EXIT_CODE = "EXIT_CODE"
 
 CONTRACTS = (
     "relative_comfort_static_contract",
@@ -127,11 +130,15 @@ def build_report(
     dp_head: str,
     label: str | None = None,
 ) -> dict[str, Any]:
+    review_json_name = _review_json_name(review_root)
+    review_exit_name = _review_exit_name(review_root)
     artifact = _artifact_summary(
         review_root,
-        required_files=(REVIEW_JSON, REVIEW_EXIT, HEADS, SHA256SUMS),
+        required_files=(review_json_name, review_exit_name, HEADS, SHA256SUMS),
+        review_json_name=review_json_name,
+        review_exit_name=review_exit_name,
     )
-    review_payload = _load_json_if_present(review_root / REVIEW_JSON)
+    review_payload = _load_json_if_present(review_root / review_json_name)
     source = _source_summary(review_payload)
     plan = _unit_test_plan(source)
     checks = [
@@ -251,19 +258,41 @@ def render_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _artifact_summary(root: Path, *, required_files: tuple[str, ...]) -> dict[str, Any]:
+def _artifact_summary(
+    root: Path,
+    *,
+    required_files: tuple[str, ...],
+    review_json_name: str,
+    review_exit_name: str,
+) -> dict[str, Any]:
     files = {name: (root / name).is_file() for name in required_files}
     sha_ok, sha_details = _sha256sum_check(root / SHA256SUMS)
     return {
         "root": str(root),
         "exists": root.is_dir(),
+        "review_json_file": review_json_name,
+        "review_exit_file": review_exit_name,
         "required_files": files,
         "required_files_present": all(files.values()),
         "sha256sums_ok": sha_ok,
         "sha256sums_details": sha_details,
-        "review_exit": _read_text(root / REVIEW_EXIT).strip() or None,
+        "review_exit": _read_text(root / review_exit_name).strip() or None,
         "heads_text_present": bool(_read_text(root / HEADS).strip()),
     }
+
+
+def _review_json_name(review_root: Path) -> str:
+    if (review_root / REVIEW_JSON).is_file():
+        return REVIEW_JSON
+    return REVIEW_JSON_COMPAT
+
+
+def _review_exit_name(review_root: Path) -> str:
+    if (review_root / REVIEW_EXIT).is_file():
+        return REVIEW_EXIT
+    if (review_root / REVIEW_COMMAND_EXIT).is_file():
+        return REVIEW_COMMAND_EXIT
+    return EXIT_CODE
 
 
 def _source_summary(payload: dict[str, Any]) -> dict[str, Any]:

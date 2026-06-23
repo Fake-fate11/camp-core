@@ -12,11 +12,14 @@ from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_broader
 from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests import (
     AUTHORIZED_NEXT_WORK,
     CONTRACTS,
+    EXIT_CODE,
     HEADS,
     READY_STATUS,
     REJECT_STATUS,
+    REVIEW_COMMAND_EXIT,
     REVIEW_EXIT,
     REVIEW_JSON,
+    REVIEW_JSON_COMPAT,
     SHA256SUMS,
     build_report,
     main,
@@ -86,19 +89,24 @@ def _write_review_root(
     *,
     payload: dict[str, object] | None = None,
     review_exit: str = "0",
+    current_artifact_names: bool = False,
 ) -> Path:
     root = tmp_path / "review"
     root.mkdir()
-    (root / REVIEW_JSON).write_text(
+    review_json = REVIEW_JSON_COMPAT if current_artifact_names else REVIEW_JSON
+    review_exit_name = REVIEW_COMMAND_EXIT if current_artifact_names else REVIEW_EXIT
+    (root / review_json).write_text(
         json.dumps(payload or _review_payload(), indent=2) + "\n",
         encoding="utf-8",
     )
-    (root / REVIEW_EXIT).write_text(f"{review_exit}\n", encoding="utf-8")
+    (root / review_exit_name).write_text(f"{review_exit}\n", encoding="utf-8")
     (root / HEADS).write_text(
         f"CAMP_HEAD=head\nDP_HEAD={EXPECTED_DP_HEAD}\n",
         encoding="utf-8",
     )
-    _write_sha256sums(root, (REVIEW_JSON, REVIEW_EXIT, HEADS))
+    if current_artifact_names:
+        (root / EXIT_CODE).write_text(f"{review_exit}\n", encoding="utf-8")
+    _write_sha256sums(root, (review_json, review_exit_name, HEADS))
     return root
 
 
@@ -127,6 +135,22 @@ def test_default_off_rerun_unit_tests_plan_ready(tmp_path: Path) -> None:
     assert decision["safety_benefit_evidence"] is False
     assert plan["selected_next_work"] == AUTHORIZED_NEXT_WORK
     assert len(plan["test_groups"]) == 6
+
+
+def test_default_off_rerun_unit_tests_plan_accepts_current_artifact_names(
+    tmp_path: Path,
+) -> None:
+    report = build_report(
+        review_root=_write_review_root(tmp_path, current_artifact_names=True),
+        camp_head="abc",
+        camp_origin_main="abc",
+        dp_head=EXPECTED_DP_HEAD,
+        label="current",
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["review_artifact"]["review_json_file"] == REVIEW_JSON_COMPAT
+    assert report["review_artifact"]["review_exit_file"] == REVIEW_COMMAND_EXIT
 
 
 def test_default_off_rerun_unit_tests_plan_rejects_sha_mismatch(
