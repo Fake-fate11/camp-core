@@ -72955,3 +72955,137 @@ It may not modify product code, generate candidates, rerun the screen, run
 replay, use formal seeds, train CAMP, promote atoms, change the online
 selector, expand to Full36, claim safety benefit, claim CAMP is better than DP
 Top-1, or modify DP.
+
+## Candidate-set consensus lane-projected jerk/progress default-off remediation fixed-snapshot screen rerun unit-tests-only
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_only`.
+This gate may implement and run synthetic unit tests only. In this pass, the
+target synthetic unit-test file was already present in HEAD, so no test or
+product-code edits were required. The gate ran the target tests and related
+plan tests locally and on AutoDL. It did not modify product code, generate
+candidates, rerun the screen, run replay, use formal seeds, train CAMP,
+promote atoms, change the online selector, expand to Full36, claim safety
+benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+State audit:
+
+```text
+startup audit source=docs/diffusion_planner_v8_iteration_audit.md tail
+startup selected completed gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_only
+startup selected next gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_only
+local CAMP HEAD=ffd5cb12630dec67de04bc3e9aef0b402d88e2ff
+local CAMP origin/main=ffd5cb12630dec67de04bc3e9aef0b402d88e2ff
+GitHub refs/heads/main=ffd5cb12630dec67de04bc3e9aef0b402d88e2ff
+AutoDL CAMP HEAD=ffd5cb12630dec67de04bc3e9aef0b402d88e2ff
+AutoDL CAMP origin/main=ffd5cb12630dec67de04bc3e9aef0b402d88e2ff
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_unit_test_plan_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_f12bc6c
+unit_tests_only_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_only_ffd5cb1
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Local verification:
+
+```text
+python -m py_compile camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests.py
+exit=0
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests.py -q
+9 passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests.py -q
+20 passed
+```
+
+AutoDL verification:
+
+```text
+OUTPUT_ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_only_ffd5cb1
+OVERALL_EXIT=0
+PY_COMPILE_EXIT=0
+PYTEST_UNIT_TESTS_EXIT=0
+PYTEST_RELATED_EXIT=0
+SHA256SUMS_CHECK_EXIT=0
+CAMP_HEAD=ffd5cb12630dec67de04bc3e9aef0b402d88e2ff
+CAMP_ORIGIN_MAIN=ffd5cb12630dec67de04bc3e9aef0b402d88e2ff
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Unit-tests-only decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_complete
+unit_tests_only_complete=True
+implementation_code_edit_authorized=False
+candidate_generation_execution_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+test_groups=relative_comfort_static_contract_unit_tests,hard_blocker_separation_unit_tests,latency_static_contract_unit_tests,absolute_guard_subset_unit_tests,policy_default_off_unit_tests,math_boundary_unit_tests
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `32fd98eeb8d3ede760f7d1204628fad691248a624eb4453df4e639ca4ed49ba3` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED.log` | `25d5abcc974d3e81f05218e764e268bde4765ee2cc3e71481e181e53bf189e43` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_UNIT_TESTS.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_UNIT_TESTS.log` | `f27130d6020e68802a370537b0d3f9a9bbbfdc8f4a6b63e9239adbe73bc04ec5` |
+| `PYTEST_UNIT_TESTS_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `UNIT_TESTS_DECISION.txt` | `05fca5910cdbc37978a64c5ef062b61da92bacda6aa29e7cdbdec40059bafa11` |
+
+Evidence evaluation:
+
+The unit-tests-only gate is complete. The target synthetic unit tests already
+existed in HEAD and passed locally and on AutoDL. The tests cover relative
+comfort prerequisites and blocker labels, hard-blocker separation,
+candidate-build/total latency diagnostics, absolute-guard subset semantics,
+default-off opt-in policy behavior, and math-boundary preservation. This
+result does not authorize product-code changes, candidate generation, rerun
+execution, replay, Full36, formal seeds, CAMP retraining, atom promotion,
+online selector promotion, safety-benefit claims, CAMP-over-DP-Top-1 claims,
+or DP modification.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. This gate only executes synthetic
+unit tests. It does not edit product code, run DP, generate candidates, rerun
+the screen, run replay, compute new outcome labels, define or promote runtime
+atoms, choose lambda online, alter `score_k(w)=a_k^T w`, mutate the convex
+simplex/CVaR/L2 master, train CAMP, change online selection, modify DP weights
+or code, claim safety benefit, claim CAMP is better than DP Top-1, or claim a
+DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_only`
+as complete.
+
+Next admissible gate:
+
+No further gate is automatically authorized by this unit-tests-only result.
+The current evidence closes the synthetic unit-tests gate but does not
+authorize product-code implementation, candidate generation, fixed-snapshot
+screen rerun, replay, Full36, formal seeds, CAMP retraining, atom promotion,
+online selector promotion, safety-benefit claims, CAMP-over-DP-Top-1 claims,
+or DP modification. The next round must start from a fresh audit-tail review
+and an explicit next-gate design or authorization.
