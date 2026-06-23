@@ -43,7 +43,8 @@ DEFAULT_DEVELOPMENT_ROOT = (
 )
 DEFAULT_IMPLEMENTATION_ARTIFACT_ROOT = (
     f"{DEFAULT_DEVELOPMENT_ROOT}/candidate_set_consensus_lane_projected_"
-    "jerk_progress_default_off_remediation_implementation_aaffbbe"
+    "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
+    "implementation_fad18d6"
 )
 DEFAULT_SOURCE = (
     ROOT
@@ -240,17 +241,55 @@ def _artifact_summary(root: Path) -> dict[str, Any]:
         "required_files_present": all(files.values()),
         "py_compile_exit_ok": _exit_ok(root, "PY_COMPILE_EXIT"),
         "pytest_route_exit_ok": (
-            _exit_ok(root, "PYTEST_ROUTE_EXIT")
+            _exit_ok(root, "PYTEST_ROUTE_TOPOLOGY_EXIT")
+            or _exit_ok(root, "PYTEST_ROUTE_EXIT")
             or _exit_ok(root, "PYTEST_UNIT_EXIT")
         ),
         "pytest_related_exit_ok": _exit_ok(root, "PYTEST_RELATED_EXIT"),
+        "source_artifact_sha_exit_ok": _optional_exit_ok(
+            root, "SOURCE_ARTIFACT_SHA_CHECK_EXIT"
+        ),
+        "diff_check_exit_ok": _optional_exit_ok(root, "DIFF_CHECK_EXIT"),
+        "summary_json_contracts": _implementation_summary_contracts(
+            root / "fixed_snapshot_screen_rerun_implementation_summary.json"
+        ),
         "py_compile_err_bytes": _file_size(root / "PY_COMPILE.err"),
         "pytest_route_err_bytes": _first_file_size(
             root,
-            ("PYTEST_ROUTE.err", "PYTEST_UNIT.err"),
+            ("PYTEST_ROUTE_TOPOLOGY.err", "PYTEST_ROUTE.err", "PYTEST_UNIT.err"),
         ),
         "pytest_related_err_bytes": _file_size(root / "PYTEST_RELATED.err"),
         "sha256sums_ok": _sha256sum_check(root / SHA256SUMS),
+    }
+
+
+def _implementation_summary_contracts(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {"present": False}
+    try:
+        summary = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {"present": True, "valid_json": False}
+    return {
+        "present": True,
+        "valid_json": True,
+        "passed": summary.get("passed") is True,
+        "implementation_only": summary.get("implementation_only") is True,
+        "production_code_modified": summary.get("production_code_modified") is True,
+        "default_policy_changed_false": summary.get("default_policy_changed") is False,
+        "opt_in_policy_only": summary.get("opt_in_policy_only") is True,
+        "finite_candidate_guard_added": (
+            summary.get("current_tick_finite_candidate_guard_added") is True
+        ),
+        "screen_rerun_blocked": summary.get("fixed_snapshot_screen_rerun_authorized")
+        is False,
+        "replay_blocked": summary.get("new_replay_authorized") is False,
+        "formal_seeds_blocked": summary.get("formal_seeds_authorized") is False,
+        "dp_modification_blocked": summary.get("dp_modification_authorized") is False,
+        "safety_claim_blocked": summary.get("safety_benefit_evidence") is False,
+        "camp_over_dp_top1_blocked": (
+            summary.get("camp_over_dp_top1_claim_authorized") is False
+        ),
     }
 
 
@@ -309,6 +348,22 @@ def _source_summary(path: Path) -> dict[str, Any]:
             "route_failure_classes(row, config=config)" in text
             and "_comfort_failure_classes(row, config=config)" in text
         ),
+        "finite_selected_candidate_guard_present": all(
+            token in text
+            for token in (
+                "def _requires_finite_selected_candidate_evidence",
+                "def _selected_candidate_state_failure_reason",
+                "_selected_candidate_state_failure_reason(raw, selected_index)",
+                "selected_candidate_state_invalid",
+                "requires_finite_selected_candidate_evidence",
+                "finite_selected_candidate_evidence",
+            )
+        ),
+        "finite_selected_candidate_guard_opt_in_only": (
+            "def _requires_finite_selected_candidate_evidence" in text
+            and 'return config.generator_policy == "lane_projected_jerk_progress_red_stop"'
+            in text
+        ),
     }
     return {
         "path": str(path),
@@ -352,6 +407,18 @@ def _test_summary(path: Path) -> dict[str, Any]:
             and 'report["by_snapshot"][0]["failure_class_counts"][failure_class]'
             in text
         ),
+        "finite_selected_candidate_guard_test_present": (
+            "test_route_topology_jerk_progress_fails_closed_on_nonfinite_selected_state"
+            in text
+        ),
+        "finite_selected_candidate_guard_diagnostics_asserted": all(
+            token in text
+            for token in (
+                '"selected_candidate_state_invalid"',
+                '"requires_finite_selected_candidate_evidence"',
+                '"finite_selected_candidate_evidence"',
+            )
+        ),
     }
     return {
         "path": str(path),
@@ -373,9 +440,26 @@ def _artifact_checks(artifact: dict[str, Any]) -> list[dict[str, Any]]:
         _check_equal("implementation_py_compile_exit_ok", artifact["py_compile_exit_ok"], True),
         _check_equal("implementation_pytest_route_exit_ok", artifact["pytest_route_exit_ok"], True),
         _check_equal("implementation_pytest_related_exit_ok", artifact["pytest_related_exit_ok"], True),
+        _check_equal(
+            "implementation_source_artifact_sha_exit_ok",
+            artifact["source_artifact_sha_exit_ok"],
+            True,
+        ),
+        _check_equal("implementation_diff_check_exit_ok", artifact["diff_check_exit_ok"], True),
         _check_equal("implementation_py_compile_err_empty", artifact["py_compile_err_bytes"], 0),
         _check_equal("implementation_pytest_route_err_empty", artifact["pytest_route_err_bytes"], 0),
         _check_equal("implementation_pytest_related_err_empty", artifact["pytest_related_err_bytes"], 0),
+        *_implementation_summary_checks(artifact["summary_json_contracts"]),
+    ]
+
+
+def _implementation_summary_checks(summary: dict[str, Any]) -> list[dict[str, Any]]:
+    if not summary.get("present"):
+        return []
+    return [
+        _check_equal(f"implementation_summary_{name}", observed, True)
+        for name, observed in summary.items()
+        if name != "present"
     ]
 
 
@@ -472,6 +556,34 @@ def _sha256sum_check(path: Path) -> bool:
 
 
 def _artifact_required_files(root: Path) -> tuple[str, ...]:
+    if (
+        (root / "PYTEST_ROUTE_TOPOLOGY.log").is_file()
+        or (root / "PYTEST_ROUTE_TOPOLOGY_EXIT").is_file()
+    ):
+        return (
+            HEADS,
+            "analyzer.py",
+            "test_route_topology.py",
+            "SOURCE_ARTIFACT_SHA_CHECK.log",
+            "SOURCE_ARTIFACT_SHA_CHECK.err",
+            "SOURCE_ARTIFACT_SHA_CHECK_EXIT",
+            "DIFF_CHECK.log",
+            "DIFF_CHECK.err",
+            "DIFF_CHECK_EXIT",
+            "PY_COMPILE.log",
+            "PY_COMPILE.err",
+            "PY_COMPILE_EXIT",
+            "PYTEST_ROUTE_TOPOLOGY.log",
+            "PYTEST_ROUTE_TOPOLOGY.err",
+            "PYTEST_ROUTE_TOPOLOGY_EXIT",
+            "PYTEST_RELATED.log",
+            "PYTEST_RELATED.err",
+            "PYTEST_RELATED_EXIT",
+            "fixed_snapshot_screen_rerun_implementation_summary.json",
+            "fixed_snapshot_screen_rerun_implementation_summary.md",
+            EXIT_CODE,
+            SHA256SUMS,
+        )
     if (root / "PYTEST_UNIT.log").is_file() or (root / "PYTEST_UNIT_EXIT").is_file():
         return (
             HEADS,
@@ -505,6 +617,13 @@ def _exit_ok(root: Path, name: str) -> bool:
         return _read_text(direct).strip() == "0"
     legacy = _read_text(root / EXIT_CODE)
     return f"{name}=0" in legacy
+
+
+def _optional_exit_ok(root: Path, name: str) -> bool:
+    path = root / name
+    if not path.is_file():
+        return True
+    return _exit_ok(root, name)
 
 
 def _first_file_size(root: Path, names: tuple[str, ...]) -> int | None:

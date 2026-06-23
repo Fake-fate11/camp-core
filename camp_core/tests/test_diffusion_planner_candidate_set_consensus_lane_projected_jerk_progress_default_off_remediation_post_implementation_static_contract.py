@@ -26,17 +26,44 @@ from scripts.integrations.review_diffusion_planner_candidate_set_consensus_lane_
 def _write_artifact(tmp_path: Path, *, pytest_related_exit: int = 0) -> Path:
     root = tmp_path / "artifact"
     root.mkdir()
+    summary = {
+        "passed": True,
+        "implementation_only": True,
+        "production_code_modified": True,
+        "default_policy_changed": False,
+        "opt_in_policy_only": True,
+        "current_tick_finite_candidate_guard_added": True,
+        "fixed_snapshot_screen_rerun_authorized": False,
+        "new_replay_authorized": False,
+        "formal_seeds_authorized": False,
+        "dp_modification_authorized": False,
+        "safety_benefit_evidence": False,
+        "camp_over_dp_top1_claim_authorized": False,
+    }
     files = {
         HEADS: "CAMP_HEAD=abc\nCAMP_ORIGIN_MAIN=abc\nDP_HEAD=expected\n",
+        "analyzer.py": "source copy\n",
+        "test_route_topology.py": "test copy\n",
+        "SOURCE_ARTIFACT_SHA_CHECK.log": "all ok\n",
+        "SOURCE_ARTIFACT_SHA_CHECK.err": "",
+        "SOURCE_ARTIFACT_SHA_CHECK_EXIT": "0\n",
+        "DIFF_CHECK.log": "",
+        "DIFF_CHECK.err": "",
+        "DIFF_CHECK_EXIT": "0\n",
         "PY_COMPILE.log": "",
         "PY_COMPILE.err": "",
         "PY_COMPILE_EXIT": "0\n",
-        "PYTEST_UNIT.log": "18 passed in 0.34s\n",
-        "PYTEST_UNIT.err": "",
-        "PYTEST_UNIT_EXIT": "0\n",
+        "PYTEST_ROUTE_TOPOLOGY.log": "19 passed in 0.34s\n",
+        "PYTEST_ROUTE_TOPOLOGY.err": "",
+        "PYTEST_ROUTE_TOPOLOGY_EXIT": "0\n",
         "PYTEST_RELATED.log": "78 passed in 0.46s\n",
         "PYTEST_RELATED.err": "",
         "PYTEST_RELATED_EXIT": f"{pytest_related_exit}\n",
+        "fixed_snapshot_screen_rerun_implementation_summary.json": (
+            json.dumps(summary, indent=2, sort_keys=True) + "\n"
+        ),
+        "fixed_snapshot_screen_rerun_implementation_summary.md": "# summary\n",
+        "EXIT_CODE": "0\n",
     }
     for name, text in files.items():
         (root / name).write_text(text, encoding="utf-8")
@@ -71,13 +98,21 @@ def test_post_implementation_static_contract_ready(tmp_path: Path) -> None:
     assert decision["fixed_snapshot_screen_rerun_authorized"] is False
     assert decision["fixed_snapshot_screen_rerun_plan_authorized"] is True
     assert decision["dp_modification_authorized"] is False
-    assert report["implementation_artifact"]["required_files"]["PYTEST_UNIT.log"]
+    assert report["implementation_artifact"]["required_files"]["PYTEST_ROUTE_TOPOLOGY.log"]
+    assert report["implementation_artifact"]["source_artifact_sha_exit_ok"] is True
+    assert report["implementation_artifact"]["diff_check_exit_ok"] is True
+    assert all(report["implementation_artifact"]["summary_json_contracts"].values())
     assert all(report["source_contract"]["contracts"].values())
     assert all(report["test_contract"]["contracts"].values())
     assert report["source_contract"]["contracts"]["current_tick_scalar_guard_present"]
     assert report["source_contract"]["contracts"]["config_budget_failure_labels_present"]
+    assert report["source_contract"]["contracts"]["finite_selected_candidate_guard_present"]
     assert report["test_contract"]["contracts"]["current_tick_scalar_guard_test_present"]
     assert report["test_contract"]["contracts"]["config_budget_failure_label_test_present"]
+    assert report["test_contract"]["contracts"]["finite_selected_candidate_guard_test_present"]
+    assert report["test_contract"]["contracts"][
+        "finite_selected_candidate_guard_diagnostics_asserted"
+    ]
 
 
 def test_post_implementation_static_contract_rejects_artifact_failure(
