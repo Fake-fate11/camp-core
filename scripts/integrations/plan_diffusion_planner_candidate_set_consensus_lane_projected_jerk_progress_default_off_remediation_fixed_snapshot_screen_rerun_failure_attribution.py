@@ -47,7 +47,7 @@ DEFAULT_DEVELOPMENT_ROOT = (
 )
 DEFAULT_SCREEN_ROOT = (
     f"{DEFAULT_DEVELOPMENT_ROOT}/candidate_set_consensus_lane_projected_"
-    "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_9bd118ae"
+    "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_24c7760"
 )
 
 SCREEN_JSON = "route_topology_default_off_remediation_rerun_screen.json"

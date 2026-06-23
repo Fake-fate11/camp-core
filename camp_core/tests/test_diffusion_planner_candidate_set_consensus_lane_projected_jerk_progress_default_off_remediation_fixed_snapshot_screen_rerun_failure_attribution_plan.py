@@ -14,6 +14,7 @@ from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_lane_pr
     ABSOLUTE_MD,
     ABSOLUTE_READY_STATUS,
     AUTHORIZED_NEXT_WORK,
+    DEFAULT_SCREEN_ROOT,
     READY_STATUS,
     REJECT_STATUS,
     SCREEN_JSON,
@@ -190,6 +191,13 @@ def _build(tmp_path: Path, **source_kwargs) -> dict:
         camp_origin_main="abc",
         dp_head=EXPECTED_DP_HEAD,
         label="unit",
+    )
+
+
+def test_default_off_rerun_failure_attribution_default_source_is_current_rerun() -> None:
+    assert DEFAULT_SCREEN_ROOT.endswith(
+        "candidate_set_consensus_lane_projected_"
+        "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_24c7760"
     )
 
 
