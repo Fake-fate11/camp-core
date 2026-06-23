@@ -35,6 +35,7 @@ def _write_artifact(
     *,
     summary_updates: dict | None = None,
     scope_updates: dict | None = None,
+    current_summary_shape: bool = False,
     camp_head: str = "abc",
     camp_origin_main: str = "abc",
     dp_head: str = EXPECTED_DP_HEAD,
@@ -92,6 +93,39 @@ def _write_artifact(
     }
     if summary_updates:
         summary.update(summary_updates)
+    if current_summary_shape:
+        blocked_actions = {
+            "candidate_generation_execution_authorized": False,
+            "classic_benders_claim_authorized": False,
+            "dp_modification_authorized": False,
+            "fixed_snapshot_screen_rerun_authorized": False,
+            "formal_seeds_authorized": False,
+            "full36_authorized": False,
+            "new_replay_authorized": False,
+            "online_selector_promotion_authorized": False,
+            "atom_promotion_authorized": False,
+            "camp_retraining_authorized": False,
+            "safety_benefit_evidence": False,
+            "camp_over_dp_top1_claim_authorized": False,
+        }
+        summary = {
+            "status": summary["status"],
+            "passed": summary["passed"],
+            "authorized_next_work": summary["authorized_next_work"],
+            "selected_next_work": summary["selected_next_work"],
+            "failed_checks": summary["failed_checks"],
+            "tests_only": True,
+            "production_code_modified": False,
+            "blocked_actions": blocked_actions,
+            "test_groups": [
+                "relative_comfort_static_contract_unit_tests",
+                "hard_blocker_separation_unit_tests",
+                "latency_static_contract_unit_tests",
+                "absolute_guard_subset_unit_tests",
+                "policy_default_off_unit_tests",
+                "math_boundary_unit_tests",
+            ],
+        }
 
     files = {
         SUMMARY_JSON: json.dumps(summary, indent=2, sort_keys=True) + "\n",
@@ -151,6 +185,20 @@ def test_implementation_plan_accepts_completed_unit_test_artifact(tmp_path: Path
     assert decision["dp_modification_authorized"] is False
     assert plan["allowed_next_files"] == list(ALLOWED_NEXT_FILES)
     assert len(plan["components"]) == 5
+
+
+def test_implementation_plan_accepts_current_unit_test_summary_shape(
+    tmp_path: Path,
+) -> None:
+    report = _build(tmp_path, current_summary_shape=True)
+
+    decision = report["final_decision"]
+    source = report["source_summary"]
+    assert decision["status"] == READY_STATUS
+    assert source["scope"]["tests_only"] is True
+    assert source["scope"]["production_code_modified"] is False
+    assert len(source["tests_pinned"]) == 6
+    assert decision["authorized_next_work"] == AUTHORIZED_NEXT_WORK
 
 
 def test_implementation_plan_rejects_missing_artifact(tmp_path: Path) -> None:

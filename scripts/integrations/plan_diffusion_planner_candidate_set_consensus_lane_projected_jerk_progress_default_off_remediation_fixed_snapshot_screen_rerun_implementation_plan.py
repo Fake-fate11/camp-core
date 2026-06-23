@@ -48,7 +48,7 @@ SOURCE_AUTHORIZED_NEXT_WORK = (
 DEFAULT_TEST_ARTIFACT_ROOT = (
     f"{DEFAULT_DEVELOPMENT_ROOT}/candidate_set_consensus_lane_projected_"
     "jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_"
-    "unit_tests_036433c_r1"
+    "unit_tests_d2e19c4"
 )
 SUMMARY_JSON = "fixed_snapshot_screen_rerun_unit_tests_summary.json"
 SUMMARY_MD = "fixed_snapshot_screen_rerun_unit_tests_summary.md"
@@ -418,16 +418,17 @@ def _artifact_summary(root: Path) -> dict[str, Any]:
 
 
 def _summary_source(payload: dict[str, Any]) -> dict[str, Any]:
-    scope = _dict(payload.get("scope"))
+    scope = _scope_summary(payload)
     heads = _dict(payload.get("heads"))
+    tests_pinned = _list(payload.get("tests_pinned")) or _list(payload.get("test_groups"))
     return {
         "status": payload.get("status"),
         "passed": bool(payload.get("passed")),
         "authorized_next_work": payload.get("authorized_next_work"),
         "selected_next_work": payload.get("selected_next_work"),
         "failed_checks": _list(payload.get("failed_checks")),
-        "tests_pinned": _list(payload.get("tests_pinned")),
-        "scope": {key: bool(scope.get(key)) for key in ("tests_only", *BLOCKED_SCOPE_KEYS)},
+        "tests_pinned": tests_pinned,
+        "scope": scope,
         "heads": {
             "camp_head": heads.get("camp_head"),
             "camp_origin_main": heads.get("camp_origin_main"),
@@ -435,6 +436,47 @@ def _summary_source(payload: dict[str, Any]) -> dict[str, Any]:
             "expected_dp_head": heads.get("expected_dp_head"),
         },
     }
+
+
+def _scope_summary(payload: dict[str, Any]) -> dict[str, bool]:
+    raw_scope = _dict(payload.get("scope"))
+    blocked_actions = _dict(payload.get("blocked_actions"))
+    fallback_action_keys = {
+        "screen_rerun_executed": ("fixed_snapshot_screen_rerun_authorized",),
+        "candidate_generation_executed": ("candidate_generation_execution_authorized",),
+        "replay_executed": ("new_replay_authorized", "closed_loop_replay_authorized"),
+        "formal_seeds_used": ("formal_seeds_authorized",),
+        "full36_used": ("full36_authorized",),
+        "camp_retraining": ("camp_retraining_authorized",),
+        "online_selector_promotion": ("online_selector_promotion_authorized",),
+        "atom_promotion": ("atom_promotion_authorized",),
+        "dp_modification": ("dp_modification_authorized",),
+        "safety_benefit_claim": ("safety_benefit_evidence",),
+        "camp_over_dp_top1_claim": ("camp_over_dp_top1_claim_authorized",),
+        "classic_benders_claim": ("classic_benders_claim_authorized",),
+    }
+
+    result: dict[str, bool] = {
+        "tests_only": bool(payload.get("tests_only", raw_scope.get("tests_only"))),
+        "production_code_modified": bool(
+            payload.get(
+                "production_code_modified",
+                raw_scope.get("production_code_modified", False),
+            )
+        ),
+    }
+    for key in BLOCKED_SCOPE_KEYS:
+        if key in result:
+            continue
+        if key in raw_scope:
+            result[key] = bool(raw_scope.get(key))
+            continue
+        if key in payload:
+            result[key] = bool(payload.get(key))
+            continue
+        action_keys = fallback_action_keys.get(key, ())
+        result[key] = any(bool(blocked_actions.get(action_key)) for action_key in action_keys)
+    return result
 
 
 def _artifact_checks(artifact: dict[str, Any]) -> list[dict[str, Any]]:
