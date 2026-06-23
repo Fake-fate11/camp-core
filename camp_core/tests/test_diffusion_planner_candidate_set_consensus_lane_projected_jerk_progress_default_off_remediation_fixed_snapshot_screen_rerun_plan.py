@@ -257,6 +257,7 @@ def test_fixed_snapshot_screen_rerun_plan_markdown_and_runbook_boundaries(
     assert "exit 2" in runbook
     assert "git pull" not in runbook.lower()
     assert EXPECTED_DP_HEAD in runbook
+    assert 'PY="${PY:-/root/miniconda3/bin/python}"' in runbook
     assert POLICY_NAME in runbook
     assert "SNAPSHOT_COUNT" in runbook
     assert "HEADS.txt" in runbook

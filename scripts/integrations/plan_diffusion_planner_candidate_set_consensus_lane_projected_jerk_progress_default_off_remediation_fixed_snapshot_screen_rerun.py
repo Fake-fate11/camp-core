@@ -75,6 +75,7 @@ DEFAULT_REWARD_CONFIG = (
 DEFAULT_DIFFUSION_REPO = "/root/autodl-tmp/Diffusion-Planner"
 DEFAULT_EXPECTED_SNAPSHOT_COUNT = 57
 DEFAULT_ASSET_ROOT = "/root/autodl-tmp/camp_dp_assets"
+DEFAULT_REMOTE_PYTHON = "/root/miniconda3/bin/python"
 
 SOURCE_JSON = "post_implementation_static_contract_review.json"
 SOURCE_MD = "post_implementation_static_contract_review.md"
@@ -310,7 +311,7 @@ def render_runbook(plan: dict[str, Any]) -> str:
             "fi",
             "",
             "cd /root/autodl-tmp/camp_core",
-            'PY="${PY:-/root/miniconda3/envs/camp/bin/python}"',
+            f'PY="${{PY:-{DEFAULT_REMOTE_PYTHON}}}"',
             f'OUT="{output_root}"',
             f'SNAPSHOT_DIR="{corpus["snapshot_dir"]}"',
             f'ROUTE_TOPOLOGY_GATE_JSON="{corpus["route_topology_gate_json"]}"',
