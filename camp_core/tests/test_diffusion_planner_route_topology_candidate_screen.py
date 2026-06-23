@@ -7,6 +7,7 @@ from scripts.integrations.analyze_diffusion_planner_route_topology_candidate_scr
     REJECT_STATUS,
     SOURCE_CONFLICT_STATUS,
     RouteTopologyCandidateConfig,
+    _comfort_failure_classes,
     _snapshot_report_row,
     build_report_from_rows,
     build_route_topology_candidates,
@@ -366,6 +367,65 @@ def test_route_topology_generator_jerk_progress_synthetic_bounds() -> None:
     assert np.max(np.abs(jerk)) <= 6.0 + 1e-6
 
 
+def test_route_topology_jerk_progress_requires_current_tick_scalars() -> None:
+    horizon = 80
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.8, 80.0, horizon)
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 100.0, 106)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red_x = np.linspace(80.0, 84.0, 5)
+    red = np.column_stack([red_x, np.zeros_like(red_x)])
+
+    default_generated, default_meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=np.nan,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+        ),
+    )
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=np.nan,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+        ),
+    )
+    diagnostics = route_topology_candidate_construction_diagnostics(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=np.nan,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+        ),
+    )
+
+    assert default_generated.shape == (1, horizon, 4)
+    assert default_meta[0]["variant"] == "lane_centerline_red_stop"
+    assert generated.shape == (0, horizon, 4)
+    assert meta == []
+    assert diagnostics["construction_status"] == "fail_closed"
+    assert diagnostics["failure_reason"] == "current_tick_scalar_invalid"
+    assert diagnostics["requires_current_tick_scalar_evidence"] is True
+    assert diagnostics["current_tick_scalar_evidence"] is False
+
+
 def test_route_topology_generator_returns_empty_without_red_ahead() -> None:
     candidates = np.zeros((1, 20, 4), dtype=float)
     candidates[:, :, 2] = 1.0
@@ -437,6 +497,63 @@ def test_route_topology_report_rejects_invalid_jerk_progress_jerk_limit() -> Non
                 jerk_progress_max_jerk_mps3=0.0,
             ),
         )
+
+
+def test_route_topology_comfort_failure_labels_follow_config_budgets() -> None:
+    config = RouteTopologyCandidateConfig(
+        progress_loss_budgets_m=(0.25,),
+        smoothness_loss_budgets=(0.10,),
+        command_jerk_worse_budget_mps3=0.30,
+        command_lateral_worse_budget_mps2=0.20,
+        rollout_distance_loss_budget_m=0.30,
+        rollout_jerk_worse_budget_mps3=0.25,
+        rollout_lateral_worse_budget_mps2=0.15,
+    )
+    tracker_delta = {
+        "command_jerk_worse_mps3": 0.31,
+        "command_lateral_worse_mps2": 0.21,
+        "rollout_distance_loss_m": 0.31,
+        "rollout_jerk_worse_mps3": 0.26,
+        "rollout_lateral_worse_mps2": 0.16,
+    }
+    row = {
+        "progress_loss_m": 0.30,
+        "smoothness_loss": 0.11,
+        "tracker_delta": tracker_delta,
+    }
+    expected = [
+        "route_topology_comfort_blocked_progress_loss",
+        "route_topology_comfort_blocked_smoothness_loss",
+        "route_topology_comfort_blocked_command_jerk",
+        "route_topology_comfort_blocked_command_lateral",
+        "route_topology_comfort_blocked_rollout_distance",
+        "route_topology_comfort_blocked_rollout_jerk",
+        "route_topology_comfort_blocked_rollout_lateral",
+    ]
+
+    assert _comfort_failure_classes(row, config=config) == expected
+    report_row = _candidate_row(comfort=False)
+    report_row["progress_loss_m"] = 0.30
+    report_row["smoothness_loss"] = 0.11
+    report_row["tracker_delta"] = tracker_delta
+
+    report = build_report_from_rows(
+        [
+            {
+                "snapshot_path": "/fake/camp_microbenchmark_step_0001.npz",
+                "selection_step": 1,
+                "generated_count": 1,
+                "timings_ms": {"total": 1.0},
+                "candidate_rows": [report_row],
+            }
+        ],
+        readiness=_readiness_report(),
+        config=config,
+    )
+
+    for failure_class in expected:
+        assert report["failure_class_counts"][failure_class] == 1
+        assert report["by_snapshot"][0]["failure_class_counts"][failure_class] == 1
 
 
 def test_route_topology_report_accepts_supported_offline_screen() -> None:

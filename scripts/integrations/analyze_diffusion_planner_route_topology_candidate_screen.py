@@ -264,13 +264,13 @@ def build_report_from_rows(
     hard = [row for row in lower if row["hard_feasible"]]
     progress = [row for row in lower if row["progress_feasible"]]
     comfort = [row for row in lower if row["comfort_admissible"]]
-    by_snapshot = _by_snapshot(candidate_rows)
+    by_snapshot = _by_snapshot(candidate_rows, config=config)
     support = _support_summary(by_snapshot, config)
     hard_reasons = Counter(
         reason for row in lower if not row["hard_feasible"] for reason in row["hard_reasons"]
     )
     failure_classes = Counter(
-        klass for row in lower for klass in route_failure_classes(row)
+        klass for row in lower for klass in route_failure_classes(row, config=config)
     )
     decision = _decision(
         readiness_summary=readiness_summary,
@@ -350,6 +350,10 @@ def build_route_topology_candidates(
         raise ValueError("candidates must be [K,T,D>=2].")
     if selected_index < 0 or selected_index >= raw.shape[0]:
         raise ValueError("selected_index is out of range.")
+    if _requires_current_tick_scalar_evidence(config) and (
+        _current_tick_scalar_failure_reason(current_speed_mps, dt) is not None
+    ):
+        return np.empty((0, raw.shape[1], raw.shape[2]), dtype=np.float64), []
     lane = _oriented_lane(
         _finite_xy(np.asarray(lane_centerline, dtype=np.float64)),
         _finite_xy(np.asarray(red_route_points, dtype=np.float64)),
@@ -587,6 +591,14 @@ def route_topology_candidate_construction_diagnostics(
     )
     if selected_index < 0 or selected_index >= raw.shape[0]:
         diagnostics["failure_reason"] = "selected_index_out_of_range"
+        return diagnostics
+    scalar_failure = _current_tick_scalar_failure_reason(current_speed_mps, dt)
+    diagnostics["requires_current_tick_scalar_evidence"] = (
+        _requires_current_tick_scalar_evidence(config)
+    )
+    diagnostics["current_tick_scalar_evidence"] = scalar_failure is None
+    if diagnostics["requires_current_tick_scalar_evidence"] and scalar_failure:
+        diagnostics["failure_reason"] = scalar_failure
         return diagnostics
     lane = _oriented_lane(
         _finite_xy(np.asarray(lane_centerline, dtype=np.float64)),
@@ -913,7 +925,7 @@ def _snapshot_report_row(
                 config=config,
             ),
         }
-        row["failure_classes"] = route_failure_classes(row)
+        row["failure_classes"] = route_failure_classes(row, config=config)
         rows.append(row)
     return {
         "snapshot_path": str(snapshot_path),
@@ -927,7 +939,11 @@ def _snapshot_report_row(
     }
 
 
-def route_failure_classes(row: dict[str, Any]) -> list[str]:
+def route_failure_classes(
+    row: dict[str, Any],
+    *,
+    config: RouteTopologyCandidateConfig = RouteTopologyCandidateConfig(),
+) -> list[str]:
     if not row["lower_union_red"]:
         return ["not_lower_red"]
     classes: list[str] = []
@@ -941,7 +957,7 @@ def route_failure_classes(row: dict[str, Any]) -> list[str]:
     if row["hard_feasible"] and not row["progress_feasible"]:
         classes.append("route_topology_hard_feasible_but_underprogress")
     if row["progress_feasible"] and not row["comfort_admissible"]:
-        classes.extend(_comfort_failure_classes(row))
+        classes.extend(_comfort_failure_classes(row, config=config))
     if row["comfort_admissible"]:
         classes.append("route_topology_comfort_admissible_support")
     return classes or ["route_topology_unclassified_lower_red_failure"]
@@ -981,22 +997,49 @@ def _comfort_admissible(
     )
 
 
-def _comfort_failure_classes(row: dict[str, Any]) -> list[str]:
+def _comfort_failure_classes(
+    row: dict[str, Any],
+    *,
+    config: RouteTopologyCandidateConfig = RouteTopologyCandidateConfig(),
+) -> list[str]:
     delta = row["tracker_delta"]
     classes: list[str] = []
-    if row["progress_loss_m"] > 1.5 + TOL:
+    progress_budget = _max_finite_budget(config.progress_loss_budgets_m)
+    smoothness_budget = _max_finite_budget(config.smoothness_loss_budgets)
+    if (
+        progress_budget is not None
+        and row["progress_loss_m"] > progress_budget + TOL
+    ):
         classes.append("route_topology_comfort_blocked_progress_loss")
-    if row["smoothness_loss"] > 1.0 + TOL:
+    if (
+        smoothness_budget is not None
+        and row["smoothness_loss"] > smoothness_budget + TOL
+    ):
         classes.append("route_topology_comfort_blocked_smoothness_loss")
-    if delta["command_jerk_worse_mps3"] > TOL:
+    if (
+        delta["command_jerk_worse_mps3"]
+        > config.command_jerk_worse_budget_mps3 + TOL
+    ):
         classes.append("route_topology_comfort_blocked_command_jerk")
-    if delta["command_lateral_worse_mps2"] > TOL:
+    if (
+        delta["command_lateral_worse_mps2"]
+        > config.command_lateral_worse_budget_mps2 + TOL
+    ):
         classes.append("route_topology_comfort_blocked_command_lateral")
-    if delta["rollout_distance_loss_m"] > 0.10 + TOL:
+    if (
+        delta["rollout_distance_loss_m"]
+        > config.rollout_distance_loss_budget_m + TOL
+    ):
         classes.append("route_topology_comfort_blocked_rollout_distance")
-    if delta["rollout_jerk_worse_mps3"] > TOL:
+    if (
+        delta["rollout_jerk_worse_mps3"]
+        > config.rollout_jerk_worse_budget_mps3 + TOL
+    ):
         classes.append("route_topology_comfort_blocked_rollout_jerk")
-    if delta["rollout_lateral_worse_mps2"] > TOL:
+    if (
+        delta["rollout_lateral_worse_mps2"]
+        > config.rollout_lateral_worse_budget_mps2 + TOL
+    ):
         classes.append("route_topology_comfort_blocked_rollout_lateral")
     return classes or ["route_topology_comfort_blocked_unknown_budget"]
 
@@ -1224,7 +1267,50 @@ def _current_speed(value: float, default: float) -> float:
     return speed
 
 
-def _by_snapshot(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _requires_current_tick_scalar_evidence(
+    config: RouteTopologyCandidateConfig,
+) -> bool:
+    return config.generator_policy == "lane_projected_jerk_progress_red_stop"
+
+
+def _current_tick_scalar_failure_reason(
+    current_speed_mps: float,
+    dt: float,
+) -> str | None:
+    if _positive_finite_number(current_speed_mps) is None:
+        return "current_tick_scalar_invalid"
+    if _positive_finite_number(dt) is None:
+        return "current_tick_scalar_invalid"
+    return None
+
+
+def _positive_finite_number(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(number) or number <= 0.0:
+        return None
+    return number
+
+
+def _max_finite_budget(values: tuple[float, ...]) -> float | None:
+    finite = []
+    for value in values:
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            continue
+        if np.isfinite(number):
+            finite.append(number)
+    return max(finite) if finite else None
+
+
+def _by_snapshot(
+    rows: list[dict[str, Any]],
+    *,
+    config: RouteTopologyCandidateConfig = RouteTopologyCandidateConfig(),
+) -> list[dict[str, Any]]:
     grouped: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         grouped.setdefault(row["snapshot_path"], []).append(row)
@@ -1251,7 +1337,7 @@ def _by_snapshot(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                         Counter(
                             klass
                             for row in lower
-                            for klass in row["failure_classes"]
+                            for klass in route_failure_classes(row, config=config)
                         ).items()
                     )
                 ),
