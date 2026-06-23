@@ -70520,3 +70520,175 @@ source/static contracts. It must not implement product code, generate
 candidates, rerun the screen, run replay, use formal seeds, run Full36, train
 CAMP, promote atoms, change online selection, claim safety benefit, claim CAMP
 is better than DP Top-1, or modify DP.
+
+## Candidate-set consensus lane-projected jerk/progress default-off remediation fixed-snapshot rerun remediation static-contract review
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_only`.
+This gate may repair review-only tooling, inspect the remediation design plan,
+inspect existing CAMP source, and generate a static-contract review artifact.
+It may not implement product code or tests, generate candidates, rerun the
+fixed-snapshot screen, run replay, use formal seeds 11/12/13, run Full36, train
+CAMP, promote atoms, change online selection, claim safety benefit, claim CAMP
+is better than DP Top-1, or modify DP.
+
+State audit:
+
+```text
+startup local/GitHub/AutoDL CAMP HEAD=05e6f7807a49cf6033e26460d832f683dfb65949
+static_contract_review_contract_fix_commit=3a04d210b4dd91b313a0c0db5e8265307dc510e8
+AutoDL CAMP HEAD after sync=3a04d210b4dd91b313a0c0db5e8265307dc510e8
+AutoDL CAMP origin/main after sync=3a04d210b4dd91b313a0c0db5e8265307dc510e8
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_design_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design_plan_0308a23
+source_path=/root/autodl-tmp/camp_core/scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+static_review_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_3a04d21
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Gap diagnosis and tooling repair:
+
+The static-contract review script expected older design artifact names:
+`fixed_snapshot_screen_rerun_remediation_design_plan.json` and `DESIGN_EXIT`.
+The current authoritative design artifact records `remediation_design_plan.json`,
+`PLAN_COMMAND_EXIT`, and `EXIT_CODE`. The review tooling was repaired to accept
+the current design JSON name and to select `DESIGN_EXIT`, `PLAN_COMMAND_EXIT`,
+or `EXIT_CODE` as the design exit marker in that order. This repair touches
+only review-only tooling and tests.
+
+Scoped files:
+
+```text
+scripts/integrations/review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\review_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py
+passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py -q
+11 passed in 1.48s
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_design.py -q
+11 passed in 1.47s
+git diff --check -- <static review script and test>
+clean
+```
+
+AutoDL verification:
+
+```text
+AutoDL sync used git bundle fallback.
+AutoDL CAMP HEAD=3a04d210b4dd91b313a0c0db5e8265307dc510e8
+AutoDL CAMP origin/main=3a04d210b4dd91b313a0c0db5e8265307dc510e8
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+/root/miniconda3/envs/camp/bin/python -m py_compile <static review script and test>
+PY_COMPILE_EXIT=0
+/root/miniconda3/envs/camp/bin/python -m pytest <static review and remediation design tests> -q
+PYTEST_RELATED_EXIT=0
+22 passed
+design source sha256sum -c SHA256SUMS: passed
+static review artifact sha256sum -c SHA256SUMS: passed
+```
+
+Review result:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_complete
+passed=True
+failed_checks=[]
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_only
+unit_tests_plan_authorized=True
+implementation_authorized=False
+candidate_generation_execution_authorized=False
+fixed_snapshot_candidate_generation_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+fixed_snapshot_screen_rerun_execution_authorized=False
+new_replay_authorized=False
+closed_loop_smoke_authorized=False
+closed_loop_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+online_selector_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+classic_benders_claim_authorized=False
+```
+
+Static contracts:
+
+```text
+relative_comfort_static_contract=True
+hard_blocker_separation_contract=True
+latency_static_contract=True
+absolute_guard_subset_contract=True
+policy_default_off_contract=True
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `HEADS.txt` | `2ad8b3d41d8e5430a67c5e606bebb812344276a9f1eed1d4b407200b5ee66913` |
+| `DESIGN_SOURCE_SHA_CHECK.log` | `952153b200360ea6c6fff5fd0e650b1cd6e6df166f144996f81ca6852b6a4243` |
+| `DESIGN_SOURCE_SHA_CHECK.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `DESIGN_SOURCE_SHA_CHECK_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_RELATED.log` | `80835bdb45883c76f018f47936b9403c94dd1fd419748fb201f47d67dad9a20e` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `REVIEW_COMMAND.log` | `32c472dcee0e1a48c1d50b550d0fe92f4f76a986f5d14dbcebc667c5bb5fb989` |
+| `REVIEW_COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `REVIEW_COMMAND_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `remediation_static_contract_review.json` | `d153423f9e97ab910795d4220c32d77261dcbd414163f24bd407a659a0c4d565` |
+| `remediation_static_contract_review.md` | `d5c34c2b1dd2bc892d13ddf0d7cf41ab0fe735ef3f7e6078d6c826e7ceb6b927` |
+| `review_script.py` | `ce2d4d769e5039acec271597016dba695cc75262cf6753bfdd64908972df1e11` |
+| `test_review.py` | `ecde5743f3948d5199dcf3e1aacb92a62bc290154c5f9754489456bfa2083014` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+
+Evidence evaluation:
+
+The remediation static-contract review gate is complete. It consumes only the
+remediation design artifact and existing CAMP source, confirms the static
+contracts needed before unit-test planning, and authorizes only
+`unit_tests_plan_only`. It does not implement code or tests, generate
+candidates, rerun the screen, run DP, run replay, use formal seeds, run Full36,
+train CAMP, promote atoms, change online selection, claim safety benefit, claim
+CAMP is better than DP Top-1, or modify DP.
+
+Mathematical boundary:
+
+This gate is read-only over existing source and finite-candidate diagnostic
+artifacts. It does not define runtime atoms, choose lambda online, alter
+`score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, or claim a
+DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_only`
+as complete.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_only`
+is admissible next. It may only plan unit tests and fixtures for the reviewed
+static contracts. It must not implement tests or product code, generate
+candidates, rerun the screen, run replay, use formal seeds, run Full36, train
+CAMP, promote atoms, change online selection, claim safety benefit, claim CAMP
+is better than DP Top-1, or modify DP.
