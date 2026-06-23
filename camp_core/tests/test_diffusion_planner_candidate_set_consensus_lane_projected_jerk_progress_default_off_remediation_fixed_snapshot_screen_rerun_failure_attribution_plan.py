@@ -144,6 +144,7 @@ def _write_source_root(
     absolute: dict[str, object] | None = None,
     exit_code: str = "0",
     runbook_exit: str = "0",
+    include_runbook_exit: bool = True,
 ) -> Path:
     root = tmp_path / "screen"
     root.mkdir()
@@ -163,9 +164,10 @@ def _write_source_root(
         "ABSOLUTE_GUARD.log": "absolute\n",
         "ABSOLUTE_GUARD.err": "",
         "EXIT_CODE": f"{exit_code}\n",
-        "RUNBOOK_EXIT": f"{runbook_exit}\n",
         "HEADS.txt": f"CAMP_HEAD=head\nDP_HEAD={EXPECTED_DP_HEAD}\n",
     }
+    if include_runbook_exit:
+        files["RUNBOOK_EXIT"] = f"{runbook_exit}\n"
     for name, text in files.items():
         (root / name).write_text(text, encoding="utf-8")
     _write_sha256sums(
@@ -206,6 +208,17 @@ def test_default_off_rerun_failure_attribution_plan_ready(tmp_path: Path) -> Non
     assert plan["selection_type"] == "read_only_failure_attribution_plan_only"
     assert report["screen_summary"]["comfort_rows"] == 0
     assert report["absolute_summary"]["absolute_rows"] == 28
+
+
+def test_default_off_rerun_failure_attribution_accepts_exit_code_only_artifact(
+    tmp_path: Path,
+) -> None:
+    report = _build(tmp_path, include_runbook_exit=False)
+    decision = report["final_decision"]
+
+    assert decision["status"] == READY_STATUS
+    assert decision["failed_checks"] == []
+    assert report["screen_artifact"]["optional_files_present"]["RUNBOOK_EXIT"] is False
 
 
 def test_default_off_rerun_failure_attribution_rejects_sha_mismatch(

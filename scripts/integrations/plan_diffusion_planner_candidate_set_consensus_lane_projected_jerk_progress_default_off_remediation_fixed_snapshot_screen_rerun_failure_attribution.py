@@ -257,12 +257,13 @@ def _artifact_summary(root: Path) -> dict[str, Any]:
         ABSOLUTE_LOG,
         ABSOLUTE_ERR,
         EXIT_CODE,
-        RUNBOOK_EXIT,
         HEADS,
         SHA256SUMS,
     )
-    files = {name: root / name for name in required}
+    optional = (RUNBOOK_EXIT,)
+    files = {name: root / name for name in (*required, *optional)}
     exists = {name: path.is_file() for name, path in files.items()}
+    required_exists = {name: exists[name] for name in required}
     sha_ok, sha_details = _sha256sum_check(root / SHA256SUMS)
     screen_payload: dict[str, Any] = {}
     absolute_payload: dict[str, Any] = {}
@@ -275,7 +276,8 @@ def _artifact_summary(root: Path) -> dict[str, Any]:
     return {
         "root": str(root),
         "exists": root.is_dir(),
-        "required_files_present": exists,
+        "required_files_present": required_exists,
+        "optional_files_present": {name: exists[name] for name in optional},
         "sha256sums_ok": sha_ok,
         "sha256sums": sha_details,
         "exit_code": _read_text(root / EXIT_CODE).strip() or None,
@@ -366,7 +368,7 @@ def _failure_attribution_plan(
             "candidate-construction diagnostics summary without emitting generated_scores or outcome labels",
         ],
         "required_output_contract": [
-            "read only the fixed screen JSON, absolute guard JSON, HEADS, EXIT_CODE, RUNBOOK_EXIT, and SHA256SUMS",
+            "read only the fixed screen JSON, absolute guard JSON, HEADS, EXIT_CODE, optional RUNBOOK_EXIT, and SHA256SUMS",
             "record source artifact SHA256SUMS and CAMP/DP heads",
             "produce blocker count tables, p95 latency source summary, and snapshot-level overlap tables",
             "classify recommendation as reject-family, implementation-latency-diagnosis-only, or design-new-policy-plan-only",
@@ -406,7 +408,11 @@ def _artifact_checks(artifact: dict[str, Any]) -> list[dict[str, Any]]:
         ),
         _check_equal("source_sha256sums_ok", artifact["sha256sums_ok"], True),
         _check_equal("source_exit_code_zero", artifact["exit_code"], "0"),
-        _check_equal("source_runbook_exit_zero", artifact["runbook_exit"], "0"),
+        _check_equal(
+            "source_runbook_exit_zero_if_present",
+            artifact["runbook_exit"] in (None, "0"),
+            True,
+        ),
         _check_equal("source_candidate_err_empty", artifact["candidate_err_bytes"], 0),
         _check_equal("source_absolute_err_empty", artifact["absolute_err_bytes"], 0),
         _check_equal(
