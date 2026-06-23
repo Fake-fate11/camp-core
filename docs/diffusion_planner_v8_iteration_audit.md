@@ -72787,3 +72787,171 @@ contracts. It may not modify product code, generate candidates, rerun the
 screen, run replay, use formal seeds, train CAMP, promote atoms, change the
 online selector, expand to Full36, claim safety benefit, claim CAMP is better
 than DP Top-1, or modify DP.
+
+## Candidate-set consensus lane-projected jerk/progress default-off remediation fixed-snapshot screen rerun unit-tests plan
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_only`.
+This gate is plan-only for later unit-test implementation. It may read the
+current static-contract review artifact and design synthetic unit-test groups.
+It may not implement tests, modify product code, generate candidates, rerun
+the screen, run replay, use formal seeds, train CAMP, promote atoms, change
+the online selector, expand to Full36, claim safety benefit, claim CAMP is
+better than DP Top-1, or modify DP.
+
+State audit:
+
+```text
+startup audit source=docs/diffusion_planner_v8_iteration_audit.md tail
+startup selected completed gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_only
+startup selected next gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_only
+pre-gate local CAMP HEAD=de27dae5269a0bd1d4f9d7c655206de9e4da54a5
+pre-gate local CAMP origin/main=de27dae5269a0bd1d4f9d7c655206de9e4da54a5
+pre-gate GitHub refs/heads/main=de27dae5269a0bd1d4f9d7c655206de9e4da54a5
+pre-gate AutoDL CAMP HEAD=de27dae5269a0bd1d4f9d7c655206de9e4da54a5
+pre-gate AutoDL CAMP origin/main=de27dae5269a0bd1d4f9d7c655206de9e4da54a5
+pre-gate AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source pointer correction commit=f12bc6c2d63903fcd4ad9a370692bf1ea93d819e
+source pointer correction=DEFAULT_REVIEW_ROOT now reads the current d627ee2 static-contract review artifact instead of the stale 3a04d21 path
+post-correction local CAMP HEAD=f12bc6c2d63903fcd4ad9a370692bf1ea93d819e
+post-correction local CAMP origin/main=f12bc6c2d63903fcd4ad9a370692bf1ea93d819e
+post-correction GitHub refs/heads/main=f12bc6c2d63903fcd4ad9a370692bf1ea93d819e
+post-correction AutoDL CAMP HEAD=f12bc6c2d63903fcd4ad9a370692bf1ea93d819e
+post-correction AutoDL CAMP origin/main=f12bc6c2d63903fcd4ad9a370692bf1ea93d819e
+post-correction AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_review_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract_review_d627ee2
+unit_tests_plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_f12bc6c
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan.py
+exit=0
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan.py -q
+11 passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_remediation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan.py -q
+23 passed
+git diff --check -- scripts\integrations\plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan.py
+exit=0
+```
+
+AutoDL verification and artifact generation:
+
+```text
+OUTPUT_ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_f12bc6c
+OVERALL_EXIT=0
+PY_COMPILE_EXIT=0
+PYTEST_PLAN_EXIT=0
+PYTEST_RELATED_EXIT=0
+PLAN_COMMAND_EXIT=0
+PLAN_DECISION_CHECK_EXIT=0
+SHA256SUMS_CHECK_EXIT=0
+CAMP_HEAD=f12bc6c2d63903fcd4ad9a370692bf1ea93d819e
+CAMP_ORIGIN_MAIN=f12bc6c2d63903fcd4ad9a370692bf1ea93d819e
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Unit-tests plan decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_ready
+passed=True
+failed_checks=[]
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_only
+unit_tests_only_authorized=True
+unit_test_implementation_authorized=False
+implementation_code_edit_authorized=False
+candidate_generation_execution_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Planned test groups:
+
+```text
+relative_comfort_static_contract_unit_tests
+hard_blocker_separation_unit_tests
+latency_static_contract_unit_tests
+absolute_guard_subset_unit_tests
+policy_default_off_unit_tests
+math_boundary_unit_tests
+checks_failed=[]
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `483c0a288d514d6d3ebe2173fc4ea79e7a94659475e3caf2f6c6c03ca9d59a5c` |
+| `PLAN_COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PLAN_COMMAND.log` | `72cab42813bf7801411167d89fd2224676ce374239f67dca1c7af2979b5cd6a5` |
+| `PLAN_COMMAND_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PLAN_DECISION_CHECK.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PLAN_DECISION_CHECK.log` | `5320b66878eccfb8129d9800c17b12c8029f3d93e02c431192d9b3d9e401ac86` |
+| `PLAN_DECISION_CHECK_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_PLAN.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_PLAN.log` | `9b11cb2f3356aba2b6bea79c5002067b83ed8c2e96bb42b301fec1fe49fd2c79` |
+| `PYTEST_PLAN_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED.log` | `8efc32be4600f610c83709c309a90e8a1695e6e506345e6ff1c7d78e3792dccc` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `fixed_snapshot_screen_rerun_unit_tests_plan.json` | `5b23a486810df2d82e57b7ffb49a567540d7c467af7a53da412baaac18ddfac6` |
+| `fixed_snapshot_screen_rerun_unit_tests_plan.md` | `e521f6471e5ac98b7e1fb63e375f9c49b7ac4d0ea5a5128ca25fc98b2385e06f` |
+
+Evidence evaluation:
+
+The unit-tests plan-only gate is complete. The plan consumes the current
+static-contract review artifact, keeps unit-test implementation and all
+execution actions disabled, and predeclares six synthetic test groups covering
+relative comfort, hard-blocker separation, latency, absolute-guard subset
+semantics, default-off policy behavior, and math boundaries. This result does
+not authorize product-code changes, candidate generation, rerun execution,
+replay, Full36, formal seeds, CAMP retraining, atom promotion, online selector
+promotion, safety-benefit claims, CAMP-over-DP-Top-1 claims, or DP
+modification.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. This gate only plans unit tests
+from existing static-review evidence. It does not implement tests, edit
+product code, run DP, generate candidates, rerun the screen, run replay,
+compute new outcome labels, define or promote runtime atoms, choose lambda
+online, alter `score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master,
+train CAMP, change online selection, modify DP weights or code, claim safety
+benefit, claim CAMP is better than DP Top-1, or claim a DP-side classical
+Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_plan_only`
+as complete.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_only`
+is now authorized. That gate may implement and run synthetic unit tests only.
+It may not modify product code, generate candidates, rerun the screen, run
+replay, use formal seeds, train CAMP, promote atoms, change the online
+selector, expand to Full36, claim safety benefit, claim CAMP is better than DP
+Top-1, or modify DP.
