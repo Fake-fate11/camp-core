@@ -78,18 +78,16 @@ def _write_review_root(
         "HEADS.txt": f"CAMP_HEAD=abc\nCAMP_ORIGIN_MAIN=abc\nDP_HEAD={EXPECTED_DP_HEAD}\n",
         "PY_COMPILE.log": "",
         "PY_COMPILE.err": "",
+        "PY_COMPILE_EXIT": "0\n",
         "PYTEST_REVIEW.log": "8 passed in 0.04s\n",
         "PYTEST_REVIEW.err": "",
+        "PYTEST_REVIEW_EXIT": "0\n",
         "PYTEST_RELATED.log": "86 passed in 0.46s\n",
         "PYTEST_RELATED.err": "",
+        "PYTEST_RELATED_EXIT": f"{pytest_related_exit}\n",
         "REVIEW_COMMAND.log": "review command\n",
         "REVIEW_COMMAND.err": "",
-        "EXIT_CODE": (
-            "PY_COMPILE_EXIT=0\n"
-            "PYTEST_REVIEW_EXIT=0\n"
-            f"PYTEST_RELATED_EXIT={pytest_related_exit}\n"
-            f"REVIEW_EXIT={review_exit}\n"
-        ),
+        "REVIEW_COMMAND_EXIT": f"{review_exit}\n",
     }
     for name, text in files.items():
         (root / name).write_text(text, encoding="utf-8")

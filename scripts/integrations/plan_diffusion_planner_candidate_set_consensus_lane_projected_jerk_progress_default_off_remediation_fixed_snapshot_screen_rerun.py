@@ -387,21 +387,7 @@ def render_runbook(plan: dict[str, Any]) -> str:
 
 
 def _artifact_summary(root: Path) -> dict[str, Any]:
-    required = (
-        SOURCE_JSON,
-        SOURCE_MD,
-        HEADS,
-        "PY_COMPILE.log",
-        "PY_COMPILE.err",
-        "PYTEST_REVIEW.log",
-        "PYTEST_REVIEW.err",
-        "PYTEST_RELATED.log",
-        "PYTEST_RELATED.err",
-        "REVIEW_COMMAND.log",
-        "REVIEW_COMMAND.err",
-        EXIT_CODE,
-        SHA256SUMS,
-    )
+    required = _artifact_required_files(root)
     files = {name: root / name for name in required}
     exists = {name: path.is_file() for name, path in files.items()}
     sha_ok, sha_details = _sha256sum_check(root / SHA256SUMS)
@@ -419,10 +405,13 @@ def _artifact_summary(root: Path) -> dict[str, Any]:
         "sha256sums": sha_details,
         "heads_text": heads_text,
         "exit_text": exit_text,
-        "py_compile_exit_ok": _exit_flag(exit_text, "PY_COMPILE_EXIT", "0"),
-        "pytest_review_exit_ok": _exit_flag(exit_text, "PYTEST_REVIEW_EXIT", "0"),
-        "pytest_related_exit_ok": _exit_flag(exit_text, "PYTEST_RELATED_EXIT", "0"),
-        "review_command_exit_ok": _exit_flag(exit_text, "REVIEW_EXIT", "0"),
+        "py_compile_exit_ok": _exit_ok(root, exit_text, "PY_COMPILE_EXIT"),
+        "pytest_review_exit_ok": _exit_ok(root, exit_text, "PYTEST_REVIEW_EXIT"),
+        "pytest_related_exit_ok": _exit_ok(root, exit_text, "PYTEST_RELATED_EXIT"),
+        "review_command_exit_ok": (
+            _exit_ok(root, exit_text, "REVIEW_EXIT")
+            or _exit_ok(root, exit_text, "REVIEW_COMMAND_EXIT")
+        ),
         "py_compile_err_bytes": _file_size(root / "PY_COMPILE.err"),
         "pytest_review_err_bytes": _file_size(root / "PYTEST_REVIEW.err"),
         "pytest_related_err_bytes": _file_size(root / "PYTEST_RELATED.err"),
@@ -1049,6 +1038,50 @@ def _file_size(path: Path) -> int | None:
 
 def _exit_flag(text: str, key: str, expected: str) -> bool:
     return any(line.strip() == f"{key}={expected}" for line in text.splitlines())
+
+
+def _artifact_required_files(root: Path) -> tuple[str, ...]:
+    if (root / "REVIEW_COMMAND_EXIT").is_file():
+        return (
+            SOURCE_JSON,
+            SOURCE_MD,
+            HEADS,
+            "PY_COMPILE.log",
+            "PY_COMPILE.err",
+            "PY_COMPILE_EXIT",
+            "PYTEST_REVIEW.log",
+            "PYTEST_REVIEW.err",
+            "PYTEST_REVIEW_EXIT",
+            "PYTEST_RELATED.log",
+            "PYTEST_RELATED.err",
+            "PYTEST_RELATED_EXIT",
+            "REVIEW_COMMAND.log",
+            "REVIEW_COMMAND.err",
+            "REVIEW_COMMAND_EXIT",
+            SHA256SUMS,
+        )
+    return (
+        SOURCE_JSON,
+        SOURCE_MD,
+        HEADS,
+        "PY_COMPILE.log",
+        "PY_COMPILE.err",
+        "PYTEST_REVIEW.log",
+        "PYTEST_REVIEW.err",
+        "PYTEST_RELATED.log",
+        "PYTEST_RELATED.err",
+        "REVIEW_COMMAND.log",
+        "REVIEW_COMMAND.err",
+        EXIT_CODE,
+        SHA256SUMS,
+    )
+
+
+def _exit_ok(root: Path, legacy_text: str, key: str) -> bool:
+    direct = root / key
+    if direct.is_file():
+        return _read_text(direct).strip() == "0"
+    return _exit_flag(legacy_text, key, "0")
 
 
 def _check_equal(name: str, observed: Any, expected: Any) -> dict[str, Any]:
