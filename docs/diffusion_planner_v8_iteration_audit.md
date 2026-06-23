@@ -67237,3 +67237,139 @@ diagnostic contract. It may not execute candidate generation on fixed
 snapshots, rerun the fixed-snapshot screen, run replay, use formal seeds,
 train CAMP, promote atoms, change the online selector, expand to Full36, claim
 safety benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+### 2026-06-23 - Candidate-Set Consensus Lane-Projected Jerk/Progress Default-Off Remediation Implementation
+
+Objective:
+
+Execute only the implementation-only gate authorized by the implementation
+plan. This gate implements a current-tick, fail-closed, report-only candidate
+construction diagnostic payload in the scoped route-topology analyzer and
+focused tests. It does not rerun the fixed-snapshot candidate screen, run
+replay, use formal seeds, train CAMP, promote atoms, change online selection,
+claim safety benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+State audit:
+
+```text
+startup audit source=docs/diffusion_planner_v8_iteration_audit.md tail
+startup selected completed gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_implementation_plan_only
+startup selected next gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_implementation_only
+local/GitHub CAMP HEAD after implementation=aaffbbebc39239cf2851b9659cf01dbcfbd411aa
+local CAMP origin/main=aaffbbebc39239cf2851b9659cf01dbcfbd411aa
+GitHub refs/heads/main=aaffbbebc39239cf2851b9659cf01dbcfbd411aa
+AutoDL CAMP HEAD at verification=aaffbbebc39239cf2851b9659cf01dbcfbd411aa
+AutoDL CAMP origin/main=aaffbbebc39239cf2851b9659cf01dbcfbd411aa
+AutoDL DP branch=tier4-main
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+implementation_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_implementation_aaffbbe
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt/review files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Scoped files:
+
+```text
+scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py
+camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+```
+
+Implementation evidence:
+
+```text
+added route_topology_candidate_construction_diagnostics(...)
+added candidate_construction_diagnostics snapshot payload
+added _json_number(...) finite scalar cleaner
+build_route_topology_candidates return signature unchanged
+RouteTopologyCandidateConfig default generator_policy remains lane_centerline_red_stop
+diagnostics source fields=current candidate tensor, lane centerline, red route points, selected index, current speed, dt, config
+diagnostics status values=ready or fail_closed
+fail_closed reasons include candidate_tensor_invalid, selected_index_out_of_range, lane_geometry_invalid, red_route_ahead_missing, red_stop_distance_window
+diagnostics are snapshot-level report payload only
+diagnostics are not candidate rows
+diagnostics are not generated_scores
+diagnostics are not online selector input
+diagnostics are not runtime atoms
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\analyze_diffusion_planner_route_topology_candidate_screen.py camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py
+passed
+python -m pytest camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py -q
+16 passed in 2.40s
+python -m pytest camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_analysis.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_static_contract.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests_plan.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_implementation_plan.py -q
+78 passed in 7.43s
+git diff --check -- scripts\integrations\analyze_diffusion_planner_route_topology_candidate_screen.py camp_core\tests\test_diffusion_planner_route_topology_candidate_screen.py
+clean
+```
+
+AutoDL verification:
+
+```text
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py
+PY_COMPILE_EXIT=0
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py -q
+16 passed in 0.34s
+PYTEST_ROUTE_EXIT=0
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_fixed_snapshot_execution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution_analysis.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_design.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_remediation_static_contract.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests_plan.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_unit_tests.py camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_implementation_plan.py -q
+78 passed in 0.44s
+PYTEST_RELATED_EXIT=0
+PY_COMPILE.err bytes=0
+PYTEST_ROUTE.err bytes=0
+PYTEST_RELATED.err bytes=0
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `scripts/integrations/analyze_diffusion_planner_route_topology_candidate_screen.py` | `05dbf7672737a26ddb3f31b6c5788afa1494ea0bc9cff5486461c9cee8e61717` |
+| `camp_core/tests/test_diffusion_planner_route_topology_candidate_screen.py` | `1f7342357d6ab8fa28bad8fcb78bb4f83549435f87690c257f93a6d02195ec1d` |
+| `HEADS.txt` | `17dbc1be20332b20cc47f68882b3a3706211b28e9127a51289b74da0e3f319e4` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_ROUTE.log` | `82b57a32cf2a6790a70040cb9eb52b4e2571a7b283c95c69a982acd880870d84` |
+| `PYTEST_ROUTE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED.log` | `4f48d1e42d453cae539467ed3cb2e0477865eccc79e1c5e78aabeb5f7adc2e9b` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `EXIT_CODE` | `f41b5e552cf11c45cef0bbca45320b7f437b9bd256503f049dde00d167d85c1c` |
+
+Evidence evaluation:
+
+The implementation-only gate is complete. The added diagnostics are
+default-off, current-tick, fail-closed, snapshot-level, and report-only. They
+do not change `build_route_topology_candidates` output, do not alter DP reward
+or tracker scoring, do not feed the online selector, do not promote an atom,
+and do not prove safety benefit or CAMP superiority over DP Top-1.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. CAMP changes are limited to
+report-only construction diagnostics and focused synthetic tests. No new atom
+is promoted; no online lambda is chosen; `score_k(w)=a_k^T w` and the convex
+simplex/CVaR/L2 master remain unchanged. The implementation does not claim a
+DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_implementation_only`
+as complete. This authorizes only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_post_implementation_static_contract_review_only`.
+It does not authorize fixed-snapshot screen rerun, replay, Full36, formal
+seeds, atom promotion, online selector promotion, CAMP retraining,
+safety-benefit claims, CAMP-over-DP-Top-1 claims, or DP modification.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_post_implementation_static_contract_review_only`
+is now authorized. That gate may statically review the scoped implementation
+and focused tests against the implementation plan. It may not execute
+candidate generation, rerun the fixed-snapshot screen, run replay, use formal
+seeds, train CAMP, promote atoms, change the online selector, expand to Full36,
+claim safety benefit, claim CAMP is better than DP Top-1, or modify DP.
