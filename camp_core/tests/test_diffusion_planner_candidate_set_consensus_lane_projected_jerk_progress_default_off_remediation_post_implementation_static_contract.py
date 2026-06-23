@@ -8,7 +8,6 @@ from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_broader
     EXPECTED_DP_HEAD,
 )
 from scripts.integrations.plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_failure_attribution import (
-    EXIT_CODE,
     HEADS,
     SHA256SUMS,
 )
@@ -31,15 +30,13 @@ def _write_artifact(tmp_path: Path, *, pytest_related_exit: int = 0) -> Path:
         HEADS: "CAMP_HEAD=abc\nCAMP_ORIGIN_MAIN=abc\nDP_HEAD=expected\n",
         "PY_COMPILE.log": "",
         "PY_COMPILE.err": "",
-        "PYTEST_ROUTE.log": "16 passed in 0.34s\n",
-        "PYTEST_ROUTE.err": "",
+        "PY_COMPILE_EXIT": "0\n",
+        "PYTEST_UNIT.log": "18 passed in 0.34s\n",
+        "PYTEST_UNIT.err": "",
+        "PYTEST_UNIT_EXIT": "0\n",
         "PYTEST_RELATED.log": "78 passed in 0.46s\n",
         "PYTEST_RELATED.err": "",
-        EXIT_CODE: (
-            "PY_COMPILE_EXIT=0\n"
-            "PYTEST_ROUTE_EXIT=0\n"
-            f"PYTEST_RELATED_EXIT={pytest_related_exit}\n"
-        ),
+        "PYTEST_RELATED_EXIT": f"{pytest_related_exit}\n",
     }
     for name, text in files.items():
         (root / name).write_text(text, encoding="utf-8")
@@ -74,8 +71,13 @@ def test_post_implementation_static_contract_ready(tmp_path: Path) -> None:
     assert decision["fixed_snapshot_screen_rerun_authorized"] is False
     assert decision["fixed_snapshot_screen_rerun_plan_authorized"] is True
     assert decision["dp_modification_authorized"] is False
+    assert report["implementation_artifact"]["required_files"]["PYTEST_UNIT.log"]
     assert all(report["source_contract"]["contracts"].values())
     assert all(report["test_contract"]["contracts"].values())
+    assert report["source_contract"]["contracts"]["current_tick_scalar_guard_present"]
+    assert report["source_contract"]["contracts"]["config_budget_failure_labels_present"]
+    assert report["test_contract"]["contracts"]["current_tick_scalar_guard_test_present"]
+    assert report["test_contract"]["contracts"]["config_budget_failure_label_test_present"]
 
 
 def test_post_implementation_static_contract_rejects_artifact_failure(

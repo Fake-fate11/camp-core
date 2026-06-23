@@ -231,29 +231,24 @@ def render_markdown(report: dict[str, Any]) -> str:
 
 
 def _artifact_summary(root: Path) -> dict[str, Any]:
-    required = (
-        HEADS,
-        "PY_COMPILE.log",
-        "PY_COMPILE.err",
-        "PYTEST_ROUTE.log",
-        "PYTEST_ROUTE.err",
-        "PYTEST_RELATED.log",
-        "PYTEST_RELATED.err",
-        EXIT_CODE,
-        SHA256SUMS,
-    )
+    required = _artifact_required_files(root)
     files = {name: (root / name).is_file() for name in required}
-    exit_text = _read_text(root / EXIT_CODE)
     return {
         "root": str(root),
         "exists": root.is_dir(),
         "required_files": files,
         "required_files_present": all(files.values()),
-        "py_compile_exit_ok": "PY_COMPILE_EXIT=0" in exit_text,
-        "pytest_route_exit_ok": "PYTEST_ROUTE_EXIT=0" in exit_text,
-        "pytest_related_exit_ok": "PYTEST_RELATED_EXIT=0" in exit_text,
+        "py_compile_exit_ok": _exit_ok(root, "PY_COMPILE_EXIT"),
+        "pytest_route_exit_ok": (
+            _exit_ok(root, "PYTEST_ROUTE_EXIT")
+            or _exit_ok(root, "PYTEST_UNIT_EXIT")
+        ),
+        "pytest_related_exit_ok": _exit_ok(root, "PYTEST_RELATED_EXIT"),
         "py_compile_err_bytes": _file_size(root / "PY_COMPILE.err"),
-        "pytest_route_err_bytes": _file_size(root / "PYTEST_ROUTE.err"),
+        "pytest_route_err_bytes": _first_file_size(
+            root,
+            ("PYTEST_ROUTE.err", "PYTEST_UNIT.err"),
+        ),
         "pytest_related_err_bytes": _file_size(root / "PYTEST_RELATED.err"),
         "sha256sums_ok": _sha256sum_check(root / SHA256SUMS),
     }
@@ -288,6 +283,32 @@ def _source_summary(path: Path) -> dict[str, Any]:
             and '"candidate_construction_diagnostics": construction_diagnostics or {}'
             in text
         ),
+        "current_tick_scalar_guard_present": all(
+            token in text
+            for token in (
+                "def _requires_current_tick_scalar_evidence",
+                "def _current_tick_scalar_failure_reason",
+                "current_tick_scalar_invalid",
+                "_current_tick_scalar_failure_reason(current_speed_mps, dt)",
+            )
+        ),
+        "opt_in_scalar_guard_only": (
+            'return config.generator_policy == "lane_projected_jerk_progress_red_stop"'
+            in text
+        ),
+        "config_budget_failure_labels_present": all(
+            token in text
+            for token in (
+                "progress_budget = _max_finite_budget(config.progress_loss_budgets_m)",
+                "smoothness_budget = _max_finite_budget(config.smoothness_loss_budgets)",
+                "> config.command_jerk_worse_budget_mps3 + TOL",
+                "> config.rollout_distance_loss_budget_m + TOL",
+            )
+        ),
+        "route_failure_classes_passes_config": (
+            "route_failure_classes(row, config=config)" in text
+            and "_comfort_failure_classes(row, config=config)" in text
+        ),
     }
     return {
         "path": str(path),
@@ -314,6 +335,22 @@ def _test_summary(path: Path) -> dict[str, Any]:
         "generated_scores_absence_asserted": '"generated_scores" not in row' in text,
         "existing_jerk_progress_tests_preserved": (
             "test_route_topology_generator_jerk_progress_synthetic_bounds" in text
+        ),
+        "current_tick_scalar_guard_test_present": (
+            "test_route_topology_jerk_progress_requires_current_tick_scalars"
+            in text
+        ),
+        "default_policy_unchanged_test_present": (
+            'default_meta[0]["variant"] == "lane_centerline_red_stop"' in text
+        ),
+        "config_budget_failure_label_test_present": (
+            "test_route_topology_comfort_failure_labels_follow_config_budgets"
+            in text
+        ),
+        "config_budget_report_counts_asserted": (
+            'report["failure_class_counts"][failure_class]' in text
+            and 'report["by_snapshot"][0]["failure_class_counts"][failure_class]'
+            in text
         ),
     }
     return {
@@ -432,6 +469,50 @@ def _sha256sum_check(path: Path) -> bool:
             return False
         ok = ok and _sha256(item) == expected
     return ok
+
+
+def _artifact_required_files(root: Path) -> tuple[str, ...]:
+    if (root / "PYTEST_UNIT.log").is_file() or (root / "PYTEST_UNIT_EXIT").is_file():
+        return (
+            HEADS,
+            "PY_COMPILE.log",
+            "PY_COMPILE.err",
+            "PY_COMPILE_EXIT",
+            "PYTEST_UNIT.log",
+            "PYTEST_UNIT.err",
+            "PYTEST_UNIT_EXIT",
+            "PYTEST_RELATED.log",
+            "PYTEST_RELATED.err",
+            "PYTEST_RELATED_EXIT",
+            SHA256SUMS,
+        )
+    return (
+        HEADS,
+        "PY_COMPILE.log",
+        "PY_COMPILE.err",
+        "PYTEST_ROUTE.log",
+        "PYTEST_ROUTE.err",
+        "PYTEST_RELATED.log",
+        "PYTEST_RELATED.err",
+        EXIT_CODE,
+        SHA256SUMS,
+    )
+
+
+def _exit_ok(root: Path, name: str) -> bool:
+    direct = root / name
+    if direct.is_file():
+        return _read_text(direct).strip() == "0"
+    legacy = _read_text(root / EXIT_CODE)
+    return f"{name}=0" in legacy
+
+
+def _first_file_size(root: Path, names: tuple[str, ...]) -> int | None:
+    for name in names:
+        size = _file_size(root / name)
+        if size is not None:
+            return size
+    return None
 
 
 def _read_text(path: Path) -> str:
