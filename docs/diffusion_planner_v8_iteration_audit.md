@@ -73089,3 +73089,191 @@ screen rerun, replay, Full36, formal seeds, CAMP retraining, atom promotion,
 online selector promotion, safety-benefit claims, CAMP-over-DP-Top-1 claims,
 or DP modification. The next round must start from a fresh audit-tail review
 and an explicit next-gate design or authorization.
+
+## Candidate-set consensus lane-projected jerk/progress support default-off product-code implementation plan-only
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_product_code_implementation_plan_only`
+after explicit user authorization. This gate designs the minimum CAMP-side
+product-code implementation plan, static contracts, risk boundaries,
+verification requirements, and follow-on gate boundary. It does not modify
+product code, generate candidates, rerun the fixed-snapshot screen, run
+replay, use Full36, use formal seeds, retrain CAMP, promote atoms, promote the
+online selector, modify DP, claim safety benefit, or claim CAMP is better than
+DP Top-1.
+
+State audit:
+
+```text
+startup audit source=docs/diffusion_planner_v8_iteration_audit.md tail
+startup selected completed gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_only
+startup user-authorized gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_product_code_implementation_plan_only
+local CAMP HEAD before gate=a5c7afe3da73e2c9c98895c576e0741401b1bb9a
+local CAMP origin/main before gate=a5c7afe3da73e2c9c98895c576e0741401b1bb9a
+GitHub refs/heads/main before gate=a5c7afe3da73e2c9c98895c576e0741401b1bb9a
+AutoDL CAMP HEAD after script sync=a5c7afe3da73e2c9c98895c576e0741401b1bb9a
+AutoDL CAMP origin/main after script sync=a5c7afe3da73e2c9c98895c576e0741401b1bb9a
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_unit_tests_only_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_only_ffd5cb1
+product_code_implementation_plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan_a5c7afe
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Implementation:
+
+Added a plan-only generator and tests:
+
+```text
+scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan.py
+camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan.py
+```
+
+The generator consumes the completed unit-tests-only artifact, verifies its
+exit logs, SHA256SUMS, source decision, source CAMP/DP heads, and current
+CAMP/DP heads, then emits a JSON/Markdown product-code implementation plan.
+The plan identifies only CAMP-side candidate product files:
+
+```text
+camp_core/camp_core/integrations/diffusion_planner.py
+camp_core/camp_core/integrations/diffusion_planner_candidate_set_consensus_payload.py
+camp_core/camp_core/integrations/diffusion_planner_progress_support.py
+```
+
+It also records supporting integration/test requirements while keeping the
+current gate plan-only. The final decision intentionally leaves
+`authorized_next_work=null`; the recommended implementation gate requires a
+separate explicit authorization.
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan.py
+exit=0
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan.py -q
+10 passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan.py -q
+19 passed
+git diff --check
+exit=0
+```
+
+AutoDL verification:
+
+```text
+OUTPUT_ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan_a5c7afe
+OVERALL_EXIT=0
+PY_COMPILE_EXIT=0
+PYTEST_PRODUCT_PLAN_EXIT=0
+PYTEST_RELATED_EXIT=0
+PLAN_EXIT=0
+SHA256SUMS_CHECK_EXIT=0
+CAMP_HEAD=a5c7afe3da73e2c9c98895c576e0741401b1bb9a
+CAMP_ORIGIN_MAIN=a5c7afe3da73e2c9c98895c576e0741401b1bb9a
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+PYTEST_PRODUCT_PLAN_LOG=10 passed in 0.06s
+PYTEST_RELATED_LOG=19 passed in 0.20s
+```
+
+Plan decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_product_code_implementation_plan_ready
+passed=True
+implementation_plan_ready=True
+authorized_next_work=null
+selected_next_work=null
+recommended_next_gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_product_code_implementation_only
+recommended_next_gate_requires_explicit_authorization=True
+implementation_code_edit_authorized=False
+production_implementation_edit_authorized=False
+candidate_generation_execution_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+classic_benders_claim_authorized=False
+failed_checks=[]
+```
+
+Source decision consumed:
+
+```text
+source_status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_unit_tests_complete
+source_unit_tests_only_complete=True
+source_test_groups=relative_comfort_static_contract_unit_tests,hard_blocker_separation_unit_tests,latency_static_contract_unit_tests,absolute_guard_subset_unit_tests,policy_default_off_unit_tests,math_boundary_unit_tests
+source_forbidden_flags_clear=True
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `scripts/integrations/plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan.py` | `8e300b2b0f16ec64117a2a93acfd280cbaa76aae8e5e05cb64729ced34ea7d88` |
+| `camp_core/tests/test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_product_code_implementation_plan.py` | `4362dabfbafd9b115733cd338e3860272bd5ce414daf975e1af6a2c308c9d7f5` |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `6ee260d60c737c512c472766ed3548b6f404c3a68762e4a2f9217dc8e8677cb9` |
+| `PLAN.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PLAN.log` | `085c647d2a09bda5030c60789c2a3762a0a6cc97846e60898b39084ae1321313` |
+| `PLAN_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_PRODUCT_PLAN.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_PRODUCT_PLAN.log` | `a837324a2f5c0d804ee26513e45c3e17425242b25aba8e53fe57a7379e8a79a5` |
+| `PYTEST_PRODUCT_PLAN_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED.log` | `825b6727fceaedd7feedac51e0d0c095b7ccde29fe9cf165ccb025cb0b6672ac` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `product_code_implementation_plan.json` | `cd16ce263ed1b0551e90d1b983fc48d53dfb73d49689704d072901aad0e302d8` |
+| `product_code_implementation_plan.md` | `3c73702ef5b7e630a5ef47c956b8f77deae97315e5200b5b0bb86d5877b0771f` |
+
+Evidence evaluation:
+
+The product-code implementation plan-only gate is complete. It converts the
+closed unit-tests-only evidence into a constrained future implementation plan
+covering default-off/opt-in behavior, payload no-leak metadata, current-tick
+finite-candidate feature boundaries, `score_k(w)=a_k^T w`,
+simplex/CVaR/L2 convexity, latency budgets, fallback/progress/comfort
+contracts, hard-blocker separation, absolute lateral guard diagnostic-only
+status, and unit/static/AutoDL verification requirements. The current gate
+does not authorize product-code edits or any execution gate. The recommended
+future implementation-only gate requires explicit separate authorization.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. This gate only designs a future
+CAMP-side implementation path. It does not edit product code, run DP, generate
+candidates, rerun the screen, run replay, compute new outcome labels, define
+or promote runtime atoms, choose lambda online, alter `score_k(w)=a_k^T w`,
+mutate the convex simplex/CVaR/L2 master, train CAMP, change online
+selection, modify DP weights or code, claim safety benefit, claim CAMP is
+better than DP Top-1, or claim a DP-side classical Benders decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_product_code_implementation_plan_only`
+as complete.
+
+Next admissible gate:
+
+No further gate is automatically authorized by this plan-only result. The plan
+recommends
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_product_code_implementation_only`
+as the next possible gate, but it requires explicit separate authorization.
+Until then, product-code edits, candidate generation, fixed-snapshot screen
+rerun, replay, Full36, formal seeds, CAMP retraining, atom promotion, online
+selector promotion, safety-benefit claims, CAMP-over-DP-Top-1 claims, and DP
+modification remain unauthorized.
