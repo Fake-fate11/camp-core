@@ -17,7 +17,10 @@ from scripts.integrations.review_diffusion_planner_candidate_set_consensus_lane_
     AUTHORIZED_NEXT_WORK,
     DESIGN_EXIT,
     DESIGN_JSON,
+    DESIGN_JSON_COMPAT,
+    EXIT_CODE,
     HEADS,
+    PLAN_COMMAND_EXIT,
     READY_STATUS,
     REJECT_STATUS,
     SHA256SUMS,
@@ -119,19 +122,21 @@ def _write_design_root(
     *,
     payload: dict[str, object] | None = None,
     design_exit: str = "0",
+    design_json_name: str = DESIGN_JSON,
+    design_exit_name: str = DESIGN_EXIT,
 ) -> Path:
     root = tmp_path / "design"
     root.mkdir()
-    (root / DESIGN_JSON).write_text(
+    (root / design_json_name).write_text(
         json.dumps(payload or _design_payload(), indent=2) + "\n",
         encoding="utf-8",
     )
-    (root / DESIGN_EXIT).write_text(f"{design_exit}\n", encoding="utf-8")
+    (root / design_exit_name).write_text(f"{design_exit}\n", encoding="utf-8")
     (root / HEADS).write_text(
         f"CAMP_HEAD=head\nDP_HEAD={EXPECTED_DP_HEAD}\n",
         encoding="utf-8",
     )
-    _write_sha256sums(root, (DESIGN_JSON, DESIGN_EXIT, HEADS))
+    _write_sha256sums(root, (design_json_name, design_exit_name, HEADS))
     return root
 
 
@@ -175,6 +180,45 @@ def test_default_off_rerun_static_contract_review_complete(tmp_path: Path) -> No
         "absolute_guard_subset_contract",
         "policy_default_off_contract",
     ]
+
+
+def test_default_off_rerun_static_contract_accepts_current_design_artifact(
+    tmp_path: Path,
+) -> None:
+    report = build_report(
+        design_root=_write_design_root(
+            tmp_path,
+            design_json_name=DESIGN_JSON_COMPAT,
+            design_exit_name=PLAN_COMMAND_EXIT,
+        ),
+        source_path=_write_source(tmp_path),
+        camp_head="abc",
+        camp_origin_main="abc",
+        dp_head=EXPECTED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["design_artifact"]["required_files"][DESIGN_JSON_COMPAT] is True
+    assert report["design_artifact"]["design_exit_file"] == PLAN_COMMAND_EXIT
+
+
+def test_default_off_rerun_static_contract_accepts_exit_code_fallback(
+    tmp_path: Path,
+) -> None:
+    report = build_report(
+        design_root=_write_design_root(
+            tmp_path,
+            design_json_name=DESIGN_JSON_COMPAT,
+            design_exit_name=EXIT_CODE,
+        ),
+        source_path=_write_source(tmp_path),
+        camp_head="abc",
+        camp_origin_main="abc",
+        dp_head=EXPECTED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["design_artifact"]["design_exit_file"] == EXIT_CODE
 
 
 def test_default_off_rerun_static_contract_rejects_sha_mismatch(

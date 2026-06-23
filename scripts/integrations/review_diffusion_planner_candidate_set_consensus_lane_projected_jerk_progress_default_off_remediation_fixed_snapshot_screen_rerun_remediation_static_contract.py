@@ -49,9 +49,12 @@ DEFAULT_DESIGN_ROOT = (
     "remediation_design_plan_0126b27"
 )
 DESIGN_JSON = "fixed_snapshot_screen_rerun_remediation_design_plan.json"
+DESIGN_JSON_COMPAT = "remediation_design_plan.json"
 SHA256SUMS = "SHA256SUMS"
 HEADS = "HEADS.txt"
 DESIGN_EXIT = "DESIGN_EXIT"
+PLAN_COMMAND_EXIT = "PLAN_COMMAND_EXIT"
+EXIT_CODE = "EXIT_CODE"
 DEFAULT_SOURCE_PATH = (
     ROOT / "scripts" / "integrations" / "analyze_diffusion_planner_route_topology_candidate_screen.py"
 )
@@ -126,11 +129,14 @@ def build_report(
     dp_head: str,
     label: str | None = None,
 ) -> dict[str, Any]:
+    design_json_name = _design_json_name(design_root)
+    design_exit_name = _design_exit_name(design_root)
     artifact = _artifact_summary(
         design_root,
-        required_files=(DESIGN_JSON, DESIGN_EXIT, HEADS, SHA256SUMS),
+        required_files=(design_json_name, design_exit_name, HEADS, SHA256SUMS),
+        design_exit_name=design_exit_name,
     )
-    design_payload = _load_json_if_present(design_root / DESIGN_JSON)
+    design_payload = _load_json_if_present(design_root / design_json_name)
     source_text = _source_bundle(source_path)
     source = _source_summary(design_payload)
     review = _static_contract_review(source_text)
@@ -250,7 +256,12 @@ def render_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _artifact_summary(root: Path, *, required_files: tuple[str, ...]) -> dict[str, Any]:
+def _artifact_summary(
+    root: Path,
+    *,
+    required_files: tuple[str, ...],
+    design_exit_name: str,
+) -> dict[str, Any]:
     files = {name: (root / name).is_file() for name in required_files}
     sha_ok, sha_details = _sha256sum_check(root / SHA256SUMS)
     return {
@@ -260,9 +271,24 @@ def _artifact_summary(root: Path, *, required_files: tuple[str, ...]) -> dict[st
         "required_files_present": all(files.values()),
         "sha256sums_ok": sha_ok,
         "sha256sums_details": sha_details,
-        "design_exit": _read_text(root / DESIGN_EXIT).strip() or None,
+        "design_exit": _read_text(root / design_exit_name).strip() or None,
+        "design_exit_file": design_exit_name,
         "heads_text_present": bool(_read_text(root / HEADS).strip()),
     }
+
+
+def _design_json_name(design_root: Path) -> str:
+    if (design_root / DESIGN_JSON).is_file():
+        return DESIGN_JSON
+    return DESIGN_JSON_COMPAT
+
+
+def _design_exit_name(design_root: Path) -> str:
+    if (design_root / DESIGN_EXIT).is_file():
+        return DESIGN_EXIT
+    if (design_root / PLAN_COMMAND_EXIT).is_file():
+        return PLAN_COMMAND_EXIT
+    return EXIT_CODE
 
 
 def _source_summary(payload: dict[str, Any]) -> dict[str, Any]:
