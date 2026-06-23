@@ -67984,6 +67984,7 @@ replay, rerun the screen, use formal seeds, train CAMP, promote atoms, change
 the online selector, expand to Full36, claim safety benefit, claim CAMP is
 better than DP Top-1, or modify DP.
 
+
 ### 2026-06-23 - Candidate-Set Consensus Lane-Projected Jerk/Progress Default-Off Remediation Fixed-Snapshot Screen Rerun Failure-Attribution Plan
 
 Objective:
@@ -72089,3 +72090,180 @@ plan for the observed comfort-support and latency failures. It may not run
 replay, rerun the screen, use formal seeds, train CAMP, promote atoms, change
 the online selector, expand to Full36, claim safety benefit, claim CAMP is
 better than DP Top-1, or modify DP.
+
+## Candidate-set consensus lane-projected jerk/progress default-off remediation fixed-snapshot screen rerun failure-attribution plan
+
+Date: 2026-06-23
+
+Scope:
+
+Execute only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_only`.
+This gate is plan-only. It may read the existing guarded fixed-snapshot screen
+rerun artifact and design low-risk offline failure attribution for the observed
+comfort-support and latency failures. It may not run replay, rerun the screen,
+generate new candidates, use formal seeds, train CAMP, promote atoms, change
+the online selector, expand to Full36, claim safety benefit, claim CAMP is
+better than DP Top-1, or modify DP.
+
+State audit:
+
+```text
+startup audit source=docs/diffusion_planner_v8_iteration_audit.md tail
+startup selected completed gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_guarded_fixed_snapshot_screen_rerun_only
+startup selected next gate=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_only
+pre-gate GitHub refs/heads/main=a67a4e2134ace8987268d73f22a88d07e74a2e82
+pre-gate local CAMP HEAD=a67a4e2134ace8987268d73f22a88d07e74a2e82
+pre-gate local CAMP origin/main=a67a4e2134ace8987268d73f22a88d07e74a2e82
+pre-gate AutoDL CAMP HEAD=a67a4e2134ace8987268d73f22a88d07e74a2e82
+pre-gate AutoDL CAMP origin/main=a67a4e2134ace8987268d73f22a88d07e74a2e82
+pre-gate AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source pointer correction commit=94f4b24c307baaabbb0685c10fccc037648c3931
+source pointer correction=DEFAULT_SCREEN_ROOT now reads the current 24c7760 guarded rerun artifact instead of the stale 9bd118ae path
+post-correction GitHub refs/heads/main=94f4b24c307baaabbb0685c10fccc037648c3931
+post-correction local CAMP HEAD=94f4b24c307baaabbb0685c10fccc037648c3931
+post-correction local CAMP origin/main=94f4b24c307baaabbb0685c10fccc037648c3931
+post-correction AutoDL CAMP HEAD=94f4b24c307baaabbb0685c10fccc037648c3931
+post-correction AutoDL CAMP origin/main=94f4b24c307baaabbb0685c10fccc037648c3931
+post-correction AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_screen_root=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_24c7760
+plan_artifact=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_94f4b24
+formal seeds 11/12/13 not used
+local unrelated untracked handoff/prompt files left untouched
+AutoDL unrelated untracked migration/files left untouched
+```
+
+Local verification:
+
+```text
+python -m py_compile scripts\integrations\plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan.py
+exit=0
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan.py -q
+11 passed
+python -m pytest camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_plan.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_analysis.py -q
+31 passed
+git diff --check -- scripts\integrations\plan_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution.py camp_core\tests\test_diffusion_planner_candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan.py
+exit=0
+```
+
+AutoDL verification and artifact generation:
+
+```text
+OUTPUT_ROOT=/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/candidate_set_consensus_lane_projected_jerk_progress_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_94f4b24
+OVERALL_EXIT=0
+PY_COMPILE_EXIT=0
+PYTEST_PLAN_EXIT=0
+PYTEST_RELATED_EXIT=0
+PLAN_COMMAND_EXIT=0
+PLAN_DECISION_CHECK_EXIT=0
+SHA256SUMS_CHECK_EXIT=0
+CAMP_HEAD=94f4b24c307baaabbb0685c10fccc037648c3931
+CAMP_ORIGIN_MAIN=94f4b24c307baaabbb0685c10fccc037648c3931
+DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Failure-attribution plan decision:
+
+```text
+status=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_ready
+passed=True
+failed_checks=[]
+authorized_next_work=candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_read_only_analysis_only
+read_only_failure_attribution_authorized=True
+candidate_generation_execution_authorized=False
+fixed_snapshot_screen_rerun_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_evidence=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Source evidence summary:
+
+```text
+source_sha256sums_ok=True
+screen_status=route_topology_candidate_support_insufficient
+comfort_rows=0
+candidate_build_p95_ms=35.82086283713579
+total_p95_ms=103.4984964877367
+absolute_status=route_topology_absolute_lateral_guard_support_present
+absolute_rows=28
+absolute_support_rate=0.3333333333333333
+```
+
+Planned read-only diagnostic axes:
+
+```text
+comfort blocker attribution across command jerk, command lateral, rollout jerk, rollout lateral, progress loss, rollout distance, and smoothness loss
+latency attribution for candidate_build p95 and total p95 using existing latency_ms only
+hard blocker attribution across dp_kinematic, lane crossing, road border, red timing, and underprogress
+absolute lateral guard survivor characterization for the 28 passing rows and 7 support snapshots
+snapshot-level overlap table for generated/no-generated, hard, progress, absolute, and comfort subsets
+candidate-construction diagnostics summary without emitting generated_scores or outcome labels
+```
+
+SHA256:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `EXIT_CODE` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `HEADS.txt` | `e1444d13abc487aeb8710d5d972a641dda0ac16014abc833415951a12326bd1a` |
+| `PLAN_COMMAND.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PLAN_COMMAND.log` | `4c2d94917fbc3a612687e3eae5ea0dbaf1e39696a67b99853165f2d83e1477c8` |
+| `PLAN_COMMAND_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PLAN_DECISION_CHECK.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PLAN_DECISION_CHECK.log` | `248aafd46235d806e4a031a13f6c5057f8e554b2ed289ec5f43bf9adb6cc5767` |
+| `PLAN_DECISION_CHECK_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_PLAN.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_PLAN.log` | `9b11cb2f3356aba2b6bea79c5002067b83ed8c2e96bb42b301fec1fe49fd2c79` |
+| `PYTEST_PLAN_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PYTEST_RELATED.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PYTEST_RELATED.log` | `159a8b4d5719d8e5fe807db4953227bfb7ea511931459e6d2d594f6e96fc5f3b` |
+| `PYTEST_RELATED_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `PY_COMPILE.err` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `PY_COMPILE_EXIT` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `fixed_snapshot_screen_rerun_failure_attribution_plan.json` | `5342c05629a1a0e8d2155c9eca7e1b8fd3dfe5ee7aadaba81630b549fbe40ff5` |
+| `fixed_snapshot_screen_rerun_failure_attribution_plan.md` | `26efda65800f4371cc98ad5d0854698e78d87ce439bf56aa6619f3877d527550` |
+
+Evidence evaluation:
+
+The fixed-snapshot screen rerun failure-attribution plan-only gate is
+complete. The plan reads the current `24c7760` guarded rerun artifact, verifies
+its SHA256SUMS, confirms the screen remains rejected by zero comfort rows and
+latency overruns, confirms the absolute lateral guard source is available, and
+authorizes only read-only failure attribution analysis. This result does not
+authorize candidate generation, rerun execution, replay, Full36, formal seeds,
+CAMP retraining, atom promotion, online selector promotion, safety-benefit
+claims, CAMP-over-DP-Top-1 claims, or DP modification.
+
+Mathematical boundary:
+
+DP remains a fixed black-box candidate trajectory generator at commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. This gate only plans read-only
+failure attribution from existing fixed-snapshot screen artifacts. It does not
+run DP, generate candidates, rerun the screen, run replay, compute new outcome
+labels, define or promote runtime atoms, choose lambda online, alter
+`score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, train CAMP,
+change online selection, modify DP weights or code, claim safety benefit,
+claim CAMP is better than DP Top-1, or claim a DP-side classical Benders
+decomposition.
+
+Decision:
+
+Accept
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_plan_only`
+as complete.
+
+Next admissible gate:
+
+Only
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_remediation_fixed_snapshot_screen_rerun_failure_attribution_read_only_analysis_only`
+is now authorized. That gate may run read-only analysis over the existing
+`24c7760` screen/guard artifacts and emit attribution tables. It may not
+generate candidates, rerun the screen, run replay, use formal seeds, train
+CAMP, promote atoms, change the online selector, expand to Full36, claim
+safety benefit, claim CAMP is better than DP Top-1, or modify DP.
