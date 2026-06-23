@@ -45,6 +45,12 @@ from camp_core.integrations.diffusion_planner import (
     summarize_replay_artifacts,
     summarize_selection_records,
 )
+from camp_core.integrations.diffusion_planner_candidate_set_consensus_payload import (
+    CANDIDATE_SET_CONSENSUS_PAYLOAD_LATENCY_KEYS,
+)
+from camp_core.integrations.diffusion_planner_progress_support import (
+    PROGRESS_SUPPORT_LATENCY_KEYS,
+)
 from camp_core.outer_master.robust_margin_master import (
     RobustMarginConfig,
     candidate_ranking_violations,
@@ -2361,6 +2367,148 @@ def test_static_selector_prefers_smoother_feasible_candidate() -> None:
     assert result.feasible_mask.tolist() == [True, True]
     assert result.infeasibility_reasons == ((), ())
     assert not result.used_fallback
+
+
+def test_selector_diagnostic_payloads_are_default_off() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=3.0,
+        speed_limit=30.0,
+        desired_speed=5.0,
+    )
+    x = np.linspace(0.5, 4.0, 8)
+    candidates = np.stack(
+        [
+            np.column_stack([x, np.zeros_like(x)]),
+            np.column_stack([x, np.full_like(x, 0.1)]),
+        ]
+    )
+    selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=np.eye(9)[0],
+        mode="static",
+    )
+
+    baseline = selector.select(candidates, context)
+    disabled = selector.select(
+        candidates,
+        context,
+        candidate_set_consensus_payload_logging=False,
+        progress_support_logging=False,
+    )
+
+    assert baseline.diagnostic_payloads is None
+    assert disabled.diagnostic_payloads is None
+    assert disabled.selected_index == baseline.selected_index
+    np.testing.assert_allclose(disabled.scores, baseline.scores)
+    np.testing.assert_allclose(disabled.selection_scores, baseline.selection_scores)
+    np.testing.assert_allclose(disabled.atoms, baseline.atoms)
+
+
+def test_selector_opt_in_diagnostic_payloads_do_not_change_selection() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=3.0,
+        speed_limit=30.0,
+        desired_speed=5.0,
+    )
+    route = np.array([[0.0, 0.0], [20.0, 0.0]])
+    x = np.linspace(0.5, 4.0, 8)
+    candidates = np.stack(
+        [
+            np.column_stack([x, np.zeros_like(x)]),
+            np.column_stack([x, np.full_like(x, 0.2)]),
+            np.column_stack([x, np.full_like(x, 0.4)]),
+        ]
+    )
+    selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=np.eye(9)[0],
+        mode="static",
+    )
+
+    baseline = selector.select(candidates, context)
+    with_payloads = selector.select(
+        candidates,
+        context,
+        candidate_set_consensus_payload_logging=True,
+        candidate_set_consensus_payload_steps=5,
+        progress_support_logging=True,
+        progress_support_route_centerline_ego=route,
+        progress_support_steps=5,
+        progress_support_dt_s=0.1,
+    )
+
+    assert with_payloads.selected_index == baseline.selected_index
+    np.testing.assert_allclose(with_payloads.scores, baseline.scores)
+    np.testing.assert_allclose(
+        with_payloads.selection_scores,
+        baseline.selection_scores,
+    )
+    np.testing.assert_allclose(with_payloads.atoms, baseline.atoms)
+    payloads = with_payloads.diagnostic_payloads
+    assert payloads is not None
+    consensus = payloads["candidate_set_consensus_payload_logging"]
+    progress = payloads["progress_support_logging"]
+    assert consensus["default_off"] is True
+    assert consensus["selection_effect"] is False
+    assert consensus["future_outcome_leakage"] is False
+    assert consensus["closed_loop_outcome_fields_read"] is False
+    assert consensus["available"] is True
+    assert progress["default_off"] is True
+    assert progress["selection_effect"] is False
+    assert progress["future_outcome_leakage"] is False
+    assert progress["closed_loop_outcome_fields_read"] is False
+    assert "score_k(w)=a_k^T w" in progress["math_boundary"]
+    for key in CANDIDATE_SET_CONSENSUS_PAYLOAD_LATENCY_KEYS:
+        assert key in with_payloads.timings_ms
+    for key in PROGRESS_SUPPORT_LATENCY_KEYS:
+        assert key in with_payloads.timings_ms
+
+
+def test_selector_progress_payload_missing_route_fails_closed() -> None:
+    context = DriverAtomContext(
+        dt=0.1,
+        lane_centerline=np.array([[0.0, 0.0], [20.0, 0.0]]),
+        lane_half_width=3.0,
+        speed_limit=30.0,
+        desired_speed=5.0,
+    )
+    x = np.linspace(0.5, 4.0, 8)
+    candidates = np.stack(
+        [
+            np.column_stack([x, np.zeros_like(x)]),
+            np.column_stack([x, np.full_like(x, 0.2)]),
+        ]
+    )
+    selector = CAMPSelector(
+        atom_scales=np.ones(9),
+        static_weights=np.eye(9)[0],
+        mode="static",
+    )
+
+    baseline = selector.select(candidates, context)
+    with_missing_route = selector.select(
+        candidates,
+        context,
+        progress_support_logging=True,
+        progress_support_route_centerline_ego=None,
+        progress_support_steps=5,
+    )
+
+    assert with_missing_route.selected_index == baseline.selected_index
+    np.testing.assert_allclose(with_missing_route.scores, baseline.scores)
+    progress = with_missing_route.diagnostic_payloads["progress_support_logging"]
+    assert progress["default_off"] is True
+    assert progress["available"] is False
+    assert progress["fail_closed"] is True
+    assert progress["availability_reason"] == "route_centerline_ego_missing"
+    assert progress["selection_effect"] is False
+    assert progress["online_selector_change"] is False
+    assert progress["closed_loop_outcome_fields_read"] is False
+    assert progress["classical_benders_claim"] is False
 
 
 def test_dp_selector_appends_progress_shortfall_atom() -> None:

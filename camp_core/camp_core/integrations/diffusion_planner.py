@@ -18,6 +18,16 @@ from camp_core.atoms.driver_atoms import (
     compute_feasibility_mask,
     exact_centerline_slice_for_candidates,
 )
+from camp_core.integrations.diffusion_planner_candidate_set_consensus_payload import (
+    CANDIDATE_SET_CONSENSUS_PAYLOAD_LATENCY_KEYS,
+    CANDIDATE_SET_CONSENSUS_PAYLOAD_SCHEMA_VERSION,
+    build_candidate_set_consensus_payload,
+)
+from camp_core.integrations.diffusion_planner_progress_support import (
+    PROGRESS_SUPPORT_LATENCY_KEYS,
+    PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
+    build_progress_support_logging_payload,
+)
 
 
 AUTOWARE_UNSUPPORTED_REGULATORY_SUBTYPES = frozenset(
@@ -2307,6 +2317,7 @@ class CAMPSelectionResult:
     selection_normalized_atoms: np.ndarray
     used_fallback: bool
     timings_ms: dict[str, float]
+    diagnostic_payloads: Optional[dict[str, Any]] = None
 
 
 def summarize_selection_records(
@@ -2452,6 +2463,151 @@ def summarize_selection_records(
             }
         )
     return summary
+
+
+def _default_off_diagnostic_payloads(
+    *,
+    candidates: np.ndarray,
+    candidate_set_consensus_payload_logging: bool,
+    candidate_set_consensus_payload_steps: int,
+    progress_support_logging: bool,
+    progress_support_route_centerline_ego: Optional[np.ndarray],
+    progress_support_steps: int,
+    progress_support_dt_s: float,
+) -> tuple[Optional[dict[str, Any]], dict[str, float]]:
+    payloads: dict[str, Any] = {}
+    latency_ms: dict[str, float] = {}
+
+    if candidate_set_consensus_payload_logging:
+        start = time.perf_counter()
+        try:
+            payload = build_candidate_set_consensus_payload(
+                candidates=candidates,
+                support_steps=candidate_set_consensus_payload_steps,
+            )
+        except ValueError as exc:
+            payload = _unavailable_candidate_set_consensus_payload(
+                reason="candidate_set_consensus_payload_invalid_input",
+                error=str(exc),
+                elapsed_ms=(time.perf_counter() - start) * 1000.0,
+            )
+        payloads["candidate_set_consensus_payload_logging"] = payload
+        latency_ms.update(
+            {
+                key: float(value)
+                for key, value in payload.get("latency_ms", {}).items()
+            }
+        )
+
+    if progress_support_logging:
+        start = time.perf_counter()
+        if progress_support_route_centerline_ego is None:
+            payload = _unavailable_progress_support_payload(
+                reason="route_centerline_ego_missing",
+                error=None,
+                elapsed_ms=(time.perf_counter() - start) * 1000.0,
+            )
+        else:
+            try:
+                payload = build_progress_support_logging_payload(
+                    candidates=candidates,
+                    route_centerline_ego=progress_support_route_centerline_ego,
+                    support_steps=progress_support_steps,
+                    dt_s=progress_support_dt_s,
+                )
+            except ValueError as exc:
+                payload = _unavailable_progress_support_payload(
+                    reason="progress_support_payload_invalid_input",
+                    error=str(exc),
+                    elapsed_ms=(time.perf_counter() - start) * 1000.0,
+                )
+        payloads["progress_support_logging"] = payload
+        latency_ms.update(
+            {
+                key: float(value)
+                for key, value in payload.get("latency_ms", {}).items()
+            }
+        )
+
+    if not payloads:
+        return None, {}
+    return payloads, latency_ms
+
+
+def _unavailable_candidate_set_consensus_payload(
+    *,
+    reason: str,
+    error: Optional[str],
+    elapsed_ms: float,
+) -> dict[str, Any]:
+    return _unavailable_default_off_payload(
+        schema_version=CANDIDATE_SET_CONSENSUS_PAYLOAD_SCHEMA_VERSION,
+        reason=reason,
+        error=error,
+        latency_keys=CANDIDATE_SET_CONSENSUS_PAYLOAD_LATENCY_KEYS,
+        elapsed_ms=elapsed_ms,
+        definition=(
+            "default-off current-tick candidate-set consensus diagnostics "
+            "failed closed before affecting selection"
+        ),
+    )
+
+
+def _unavailable_progress_support_payload(
+    *,
+    reason: str,
+    error: Optional[str],
+    elapsed_ms: float,
+) -> dict[str, Any]:
+    return _unavailable_default_off_payload(
+        schema_version=PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
+        reason=reason,
+        error=error,
+        latency_keys=PROGRESS_SUPPORT_LATENCY_KEYS,
+        elapsed_ms=elapsed_ms,
+        definition=(
+            "default-off current-tick progress-support diagnostics failed "
+            "closed before affecting selection"
+        ),
+    )
+
+
+def _unavailable_default_off_payload(
+    *,
+    schema_version: str,
+    reason: str,
+    error: Optional[str],
+    latency_keys: Sequence[str],
+    elapsed_ms: float,
+    definition: str,
+) -> dict[str, Any]:
+    latency = {key: 0.0 for key in latency_keys}
+    if latency_keys:
+        latency[latency_keys[0]] = float(max(elapsed_ms, 0.0))
+    payload = {
+        "schema_version": schema_version,
+        "enabled": True,
+        "default_off": True,
+        "available": False,
+        "availability_reason": reason,
+        "selection_effect": False,
+        "future_outcome_leakage": False,
+        "closed_loop_outcome_fields_read": False,
+        "online_selector_change": False,
+        "deployed_atom_vector_change": False,
+        "definition": definition,
+        "latency_ms": latency,
+        "fail_closed": True,
+        "math_boundary": (
+            "Unavailable diagnostic payloads do not alter candidates, "
+            "feasibility, atoms, weights, scores, or selection. CAMP scoring "
+            "remains affine in weights: score_k(w)=a_k^T w."
+        ),
+        "classical_benders_claim": False,
+    }
+    if error is not None:
+        payload["error"] = error
+    return payload
 
 
 class CAMPSelector:
@@ -2682,6 +2838,12 @@ class CAMPSelector:
         external_feasible_mask: Optional[np.ndarray] = None,
         external_infeasibility_reasons: Optional[Sequence[Sequence[str]]] = None,
         apply_context_feasibility: bool = True,
+        candidate_set_consensus_payload_logging: bool = False,
+        candidate_set_consensus_payload_steps: int = 10,
+        progress_support_logging: bool = False,
+        progress_support_route_centerline_ego: Optional[np.ndarray] = None,
+        progress_support_steps: int = 10,
+        progress_support_dt_s: Optional[float] = None,
         ego_length: float = 4.5,
         ego_width: float = 1.9,
         ego_wheelbase: float = 2.925,
@@ -3018,6 +3180,21 @@ class CAMPSelector:
 
         selected_index = int(np.argmin(selection_scores))
         select_done = time.perf_counter()
+        diagnostic_payloads, diagnostic_latency_ms = _default_off_diagnostic_payloads(
+            candidates=candidates,
+            candidate_set_consensus_payload_logging=(
+                candidate_set_consensus_payload_logging
+            ),
+            candidate_set_consensus_payload_steps=(
+                candidate_set_consensus_payload_steps
+            ),
+            progress_support_logging=progress_support_logging,
+            progress_support_route_centerline_ego=progress_support_route_centerline_ego,
+            progress_support_steps=progress_support_steps,
+            progress_support_dt_s=(
+                context.dt if progress_support_dt_s is None else progress_support_dt_s
+            ),
+        )
         scoring_seconds = max(
             (select_done - select_start)
             - atom_computation_seconds
@@ -3025,6 +3202,13 @@ class CAMPSelector:
             - collision_seconds,
             0.0,
         )
+        timings_ms = {
+            "atom_computation": atom_computation_seconds * 1000.0,
+            "feasibility": feasibility_seconds * 1000.0,
+            "collision_checks": collision_seconds * 1000.0,
+            "scoring": scoring_seconds * 1000.0,
+        }
+        timings_ms.update(diagnostic_latency_ms)
         return CAMPSelectionResult(
             selected_index=selected_index,
             selected_trajectory=candidates[selected_index].copy(),
@@ -3038,12 +3222,8 @@ class CAMPSelector:
             selection_weights=selection_weights,
             selection_normalized_atoms=selection_normalized,
             used_fallback=used_fallback,
-            timings_ms={
-                "atom_computation": atom_computation_seconds * 1000.0,
-                "feasibility": feasibility_seconds * 1000.0,
-                "collision_checks": collision_seconds * 1000.0,
-                "scoring": scoring_seconds * 1000.0,
-            },
+            timings_ms=timings_ms,
+            diagnostic_payloads=diagnostic_payloads,
         )
 
     @staticmethod
