@@ -90576,3 +90576,115 @@ with a smaller lane-crossing tail in `nishishinjuku_lane_change`.
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fallback_feasibility_remediation_plan_only`
+
+---
+
+### 2026-06-24 - Broader Nonformal Static DP Reward Fallback Feasibility Remediation Plan
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fallback_feasibility_remediation_plan_only`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fallback_feasibility_remediation_plan.md
+```
+
+Fixed inputs:
+
+```text
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+evaluation_summary_sha256=c39fa6278431e08ee16b7b45f6645e43fa46f9951981c1fff8fa1809778aea07
+training_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_training_e15feaa_20260624T084652Z/training
+```
+
+Heads:
+
+```text
+local_HEAD_before_plan_commit=76340fce4c1d84fe48267d55714bed6e8aab1206
+origin_main_before_plan_commit=76340fce4c1d84fe48267d55714bed6e8aab1206
+github_refs_heads_main_before_plan_commit=76340fce4c1d84fe48267d55714bed6e8aab1206
+autodl_CAMP_HEAD_before_plan_commit=76340fce4c1d84fe48267d55714bed6e8aab1206
+autodl_CAMP_origin_main_before_plan_commit=76340fce4c1d84fe48267d55714bed6e8aab1206
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Observed blocker summary:
+
+```text
+records_total=60
+records_with_feasible_total=45
+records_without_feasible_total=15
+sample_tl_on_no_feasible_records=10/10
+sample_tl_on_all_candidate_blocker=dp_red_light
+nishishinjuku_lane_change_no_feasible_records=4/20
+nishishinjuku_lane_change_all_candidate_blocker=dp_lane_crossing
+sample_normal_no_feasible_records=0/20
+```
+
+Mathematical boundary:
+
+```text
+dp_red_light_is_hard_reason=True
+dp_lane_crossing_is_hard_reason=True
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_admissible_for_current_feasible_ranking_master=False
+fallback_records_may_not_be_relabelled_feasible=True
+candidate_trajectory_rewrite_authorized=False
+postprocess_postselection_authorized=False
+dp_modification_authorized=False
+```
+
+Plan:
+
+```text
+primary_remediation_strategy=fixed_artifact_fallback_risk_ranking_audit_first
+next_read_only_audit_scope=records_without_feasible_candidate_only
+compare_selected_index_to_min_dp_red_light_cost=True
+compare_selected_index_to_min_lane_related_cost=True
+compare_selected_index_to_min_dp_reward_cost=True
+fallback_risk_training_authorized_now=False
+feasible_ranking_master_change_authorized=False
+```
+
+Verification:
+
+```text
+local_git_diff_check_exit=0
+local_py_compile_exit=0
+direct_windows_repo_pytest_blocked_by_preexisting_unavailable_long_path_node=True
+local_target_pytest=4 passed
+```
+
+Decision:
+
+```text
+status=fallback_feasibility_remediation_plan_ready_read_only_next_gate
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This is a plan-only gate. It keeps all-infeasible records out of the current
+feasible-ranking robust-margin master and does not relax DP red-light or
+lane-crossing hard feasibility. It only defines the next read-only fixed
+artifact audit needed to determine whether the existing fallback selection
+already picks the least-bad fixed candidate under logged DP-reward diagnostics.
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only`
