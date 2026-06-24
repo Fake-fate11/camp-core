@@ -91197,3 +91197,107 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization_only`
+
+---
+
+### 2026-06-24 - Fixed-Artifact Fallback Risk Ranking Default-Off Extractor Implementation Authorization
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization_only`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization.md
+camp_core/tests/test_dp_native_fallback_risk_ranking_extractor_implementation_authorization.py
+```
+
+Heads before this authorization commit:
+
+```text
+local_HEAD=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+origin_main=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+github_refs_heads_main=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+autodl_CAMP_HEAD=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+autodl_CAMP_origin_main=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Reviewed evidence:
+
+```text
+fixed_artifact_audit_passed=True
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+remediation_design_plan_passed=True
+static_contract_review_passed=True
+blocking_contract_findings=0
+unit_tests_plan_ready=True
+default_off_contract_tests_pinned=True
+local_default_off_contract_pytest=5 passed
+autodl_default_off_contract_pytest=5 passed
+dp_fixed_commit_verified=True
+```
+
+Authorized next-work boundary:
+
+```text
+implementation_authorized=True
+fallback_risk_extractor_implementation_authorized=True
+default_off_required=True
+read_only_selection_log_input_only=True
+records_scope=records_without_feasible_candidate_only
+synthetic_unit_tests_required=True
+existing_contract_tests_must_continue_to_pass=True
+output_json_or_markdown_only=True
+production_selector_change_authorized=False
+training_authorized=False
+replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+```
+
+Forbidden remains:
+
+```text
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=4 passed
+local_git_diff_check_exit=0
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_extractor_implementation_authorized
+passed=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_only`

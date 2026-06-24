@@ -1,0 +1,131 @@
+# DP Native Fixed-Artifact Fallback Risk Ranking Default-Off Extractor Implementation Authorization
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization_only
+```
+
+This authorization-only artifact decides whether the next gate may implement a
+minimal default-off, read-only fallback-risk extractor. It does not implement
+the extractor, run replay, generate candidates, train CAMP, retrain CAMP, modify
+Diffusion Planner, promote a selector or atom, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+## Reviewed Evidence
+
+```text
+fixed_artifact_audit=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_audit.md
+remediation_design_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan.md
+static_contract_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review.md
+unit_tests_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan.md
+unit_tests_contract=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_contract.py
+camp_head_at_authorization=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+camp_origin_main_at_authorization=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+github_refs_heads_main_at_authorization=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+autodl_CAMP_HEAD_at_authorization=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+autodl_CAMP_origin_main_at_authorization=4cc0fa7655b9bed022655fba89c4ceca88a4e843
+autodl_DP_HEAD_at_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Preconditions
+
+```text
+fixed_artifact_audit_passed=True
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+remediation_design_plan_passed=True
+static_contract_review_passed=True
+blocking_contract_findings=0
+unit_tests_plan_ready=True
+default_off_contract_tests_pinned=True
+local_default_off_contract_pytest=5 passed
+autodl_default_off_contract_pytest=5 passed
+dp_fixed_commit_verified=True
+```
+
+## Authorized Next Work
+
+The next gate may implement a minimal extractor only under this boundary:
+
+```text
+implementation_authorized=True
+fallback_risk_extractor_implementation_authorized=True
+default_off_required=True
+read_only_selection_log_input_only=True
+records_scope=records_without_feasible_candidate_only
+synthetic_unit_tests_required=True
+existing_contract_tests_must_continue_to_pass=True
+output_json_or_markdown_only=True
+production_selector_change_authorized=False
+training_authorized=False
+replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+```
+
+Allowed implementation shape:
+
+```text
+may_add_read_only_script_or_helper=True
+may_add_targeted_synthetic_tests=True
+may_write_output_artifacts_only_when_user_supplies_output_path=True
+may_reuse_existing_fallback_risk_audit_cost_helpers=True
+must_fail_closed_on_missing_required_fields=True
+must_preserve_score_k_equals_a_k_transpose_w_boundary=True
+```
+
+The implementation must not become an online selector and must not add
+all-infeasible records to the feasible-ranking master.
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_ranking_default_off_extractor_implementation_authorized
+passed=True
+implementation_authorized=True
+fallback_risk_extractor_implementation_authorized=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_only
+```
+
+The next gate may only implement the minimal default-off read-only extractor and
+its targeted synthetic tests. It must not run replay, generate candidates, train
+CAMP, retrain CAMP, modify DP, use formal seeds, promote a selector or atom, or
+claim safety/CAMP-over-DP benefit.
