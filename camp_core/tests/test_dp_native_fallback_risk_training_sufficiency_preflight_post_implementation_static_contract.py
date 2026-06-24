@@ -45,7 +45,11 @@ def test_review_doc_records_preflight_post_implementation_contract() -> None:
         "approved_atom_names_match_dp_camp_v10_14d=True",
         "atom_schema_name_hardening_completed=True",
         "implementation_hardening_completed=True",
+        "current_head_revalidation_passed=True",
+        "camp_head_at_review_start=6d2ccc4349c3253d383c719f555e845a74d2febd",
         "blocking_contract_findings=0",
+        "user_camp_retraining_permission_available=True",
+        "training_execution_authorized_now=False",
         "fallback_risk_training_authorized_now=False",
     ]:
         assert needle in text
