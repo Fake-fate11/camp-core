@@ -97656,15 +97656,39 @@ safety_benefit_claim_authorized=False
 camp_over_dp_top1_claim_authorized=False
 ```
 
+Holdout metrics:
+
+```text
+validation_records=2
+static_oracle_match_rate=0.5
+recorded_oracle_match_rate=1.0
+uniform_oracle_match_rate=1.0
+candidate0_oracle_match_rate=0.0
+static_mean_margin_violation=0.03760588354777358
+static_selected_min_red_match_rate=0.0
+static_selected_min_lane_match_rate=0.5
+static_selected_min_quality_match_rate=0.0
+source_hashes_present=True
+pre_post_candidate_provenance_pairs_present=False
+pre_post_candidate_provenance_hashes_equal_if_present=True
+```
+
 Verification:
 
 ```text
 local_py_compile_exit=0
 local_target_pytest=5 passed
 local_diff_check=0 findings
-autodl_py_compile_exit=pending
-autodl_target_pytest=pending
-remote_artifact_audit_exit=pending
+autodl_CAMP_HEAD=79d5f1e669556fb3a3d72d3294ad79603a874a88
+autodl_CAMP_origin_main=79d5f1e669556fb3a3d72d3294ad79603a874a88
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=5 passed
+remote_artifact_audit_exit=0
+remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_79d5f1e_20260624T184624Z
+remote_audit_json_sha256=0b1edf9828a53ce1a8eaafdba664eca7daaf881bf89ab6dc8175a5fa07c5f13e
+remote_audit_md_sha256=fa05930f3320c052e94f168131fce5cafedf7d45b0be51db1b430f981669d7e4
 ```
 
 Decision:
