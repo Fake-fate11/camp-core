@@ -88371,3 +88371,115 @@ safety benefit or CAMP-over-DP Top-1 improvement.
 Next admissible gate:
 
 `dp_native_static_dp_reward_training_smoke_artifact_nonpromotion_static_audit_only`
+
+## DP native static DP reward training smoke artifact nonpromotion audit
+
+Gate:
+
+`dp_native_static_dp_reward_training_smoke_artifact_nonpromotion_static_audit_only`
+
+Artifact:
+
+```text
+docs/dp_native_static_dp_reward_training_smoke_artifact_nonpromotion_audit.md
+```
+
+Current heads:
+
+```text
+local_HEAD=7470a60ee502d01dbf1d24703fd2960cfa655f27
+origin_main=7470a60ee502d01dbf1d24703fd2960cfa655f27
+github_refs_heads_main=7470a60ee502d01dbf1d24703fd2960cfa655f27
+autodl_CAMP_HEAD=7470a60ee502d01dbf1d24703fd2960cfa655f27
+autodl_CAMP_origin_main=7470a60ee502d01dbf1d24703fd2960cfa655f27
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Fixed smoke artifact:
+
+```text
+run_root=/root/autodl-tmp/camp_dp_native_clean_training_log_minimal_static_dp_reward_training_smoke_b46626b4_20260624T062215Z
+selection_log_count=12
+training_exit=0
+smoke_passed=True
+training_type=diffusion_planner_static_candidate_preference
+label_source=dp_reward
+reward_key=quality_without_progress
+reward_progress_weight=2.0
+num_records=31
+num_candidates=4
+num_atoms=14
+atom_schema_version=dp_camp_v10_14d
+```
+
+Remote artifact SHA evidence:
+
+```text
+preflight.json=bb416195e42b2c2d37553c3676b76760dd98acb35e3d9524a39d8228096175e0
+training_command.json=e37803f839fb067ef548b72e3950d14fe5c467c7d0f165c83a5bde52579fc63c
+training_stdout_stderr.log=d532b0878d4ef01ad5fb931d9d7cb1dca2fbecb85cdf5ed1d1f81cc187cb2732
+training_exit.txt=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+smoke_summary.json=54f15b657eec406b4f4f8d42f598c8f7527b881142c6a1e6b4206f6ff8983faa
+smoke_summary.md=f97786567f9604808e6b9f231d9a6fc822ba438e32ed9d488eb005172939fcbd
+training_output/training_summary.json=1a4019901ed93cc3a89d41984e552b9c263ea51c59d8fd60193b8fadd2acec1a
+training_output/offline_weights_dp_static.npy=77c0276b0cebc9f6ed3c88865c1930097a5ce48e266e60b6cbaf65a9ebe849bb
+training_output/atom_scales_dp_static.json=8046cac7b1aa43c7c0bcb83136828a813297e598084ff4924c66526b9bb0453c
+```
+
+Nonpromotion evidence:
+
+```text
+nondeployable_training_smoke_only=True
+deployable_checkpoint_claimed=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+replay_executed=False
+candidate_generation_executed=False
+full36_run=False
+formal_seeds_11_12_13_run=False
+repo_tracked_runtime_artifact_present=False
+runtime_selector_hardcodes_smoke_artifact=False
+```
+
+Verification:
+
+```text
+Paramiko/SFTP fixed artifact reread=passed
+remote_sha_match=passed
+rg_repo_runtime_artifact_match=none
+static_contract_test=camp_core/tests/test_diffusion_planner_static_dp_reward_smoke_nonpromotion_audit.py
+git_diff_check_exit=0
+local_py_compile_exit=0
+local_pytest_default_root_exit=1
+local_pytest_default_root_blocker=existing Windows long-path collection error before target tests ran
+local_short_path_target_pytest=3 passed in 0.28s
+```
+
+Decision:
+
+```text
+status=static_dp_reward_training_smoke_artifact_nonpromotion_audit_passed
+artifact_nonpromotion_confirmed=True
+smoke_artifact_fixed=True
+smoke_artifact_sha_verified=True
+deployable_checkpoint_claimed=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+replay_executed=False
+candidate_generation_executed=False
+camp_retraining_executed=False
+```
+
+This closes the static DP-reward smoke branch as a nonpromotion training-pipe
+smoke only. The generated static weights and scales remain remote artifact
+outputs, not promoted CAMP selector assets.
+
+Next admissible gate:
+
+`dp_native_candidate_tensor_provenance_payload_implementation_authorization_only`
