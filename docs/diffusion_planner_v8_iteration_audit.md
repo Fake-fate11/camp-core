@@ -98887,6 +98887,10 @@ Verification:
 local_python=py -3.12
 local_py_compile_exit=0
 local_target_pytest=7 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=7 passed
+autodl_git_diff_check_exit=0
 ```
 
 Decision:

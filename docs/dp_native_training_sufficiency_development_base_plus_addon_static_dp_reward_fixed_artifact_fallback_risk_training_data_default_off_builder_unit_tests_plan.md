@@ -186,6 +186,10 @@ autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
 prior_design_static_contract_status=fallback_risk_training_data_design_static_contract_current_head_revalidated
 local_py_compile_exit=0
 local_target_pytest=7 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=7 passed
+autodl_git_diff_check_exit=0
 ```
 
 User-level CAMP retraining permission is now available for a later training
