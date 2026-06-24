@@ -97815,3 +97815,118 @@ no_camp_over_dp_top1_claim=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Broader Nonformal Fixed Artifact Fallback Risk Ranking Audit Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only
+```
+
+Revalidated the existing broader-nonformal fixed evaluation artifact from the
+current synchronized CAMP HEAD. This gate read only existing
+`camp_selection_log.json` and summary files for records without any feasible
+candidate, and compared logged `selected_index` against fixed candidate
+red-light, lane-related, and DP-reward quality costs.
+
+```text
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+evaluation_summary_sha256=c39fa6278431e08ee16b7b45f6645e43fa46f9951981c1fff8fa1809778aea07
+review_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_audit.md
+script=scripts/integrations/audit_diffusion_planner_dp_native_fallback_risk_ranking.py
+remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_36b9319_20260624T190348Z
+remote_audit_json_sha256=4b3e26efa139be5c7e13536663bde6a60a043bf8f6eeeae764948cb11a1a2172
+remote_audit_md_sha256=ca5dde38ec3278cf41575360b33b986b2ad6f41e9c4d1ca0216b28bb1d984fca
+```
+
+Ranking evidence:
+
+```text
+records_total=60
+records_with_feasible_candidate=45
+records_without_feasible_candidate=15
+dp_red_light_cost_selected_min=14
+dp_red_light_cost_lower_cost_fixed_candidate_available=1
+lane_related_cost_selected_min=4
+lane_related_cost_lower_cost_fixed_candidate_available=11
+dp_reward_quality_cost_selected_min=15
+dp_reward_quality_cost_lower_cost_fixed_candidate_available=0
+```
+
+Boundary evidence:
+
+```text
+selected_index_in_range_all_no_feasible_records=True
+candidate_count_unchanged_all_no_feasible_records=True
+pre_post_tensor_hash_equal_all_no_feasible_records=True
+payload_valid_all_no_feasible_records=True
+no_candidate_row_append_all_no_feasible_records=True
+no_coordinate_heading_speed_rewrite_by_camp_all_no_feasible_records=True
+candidate_tensor_mutation_effect_all_no_feasible_records=False
+candidate_generation_effect_all_no_feasible_records=False
+reference_blend_present_all_no_feasible_records=False
+closed_loop_outcome_fields_read_all_no_feasible_records=False
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=8 passed
+autodl_CAMP_HEAD=36b9319c71c394f3a21115d8684f703a7d0355dc
+autodl_CAMP_origin_main=36b9319c71c394f3a21115d8684f703a7d0355dc
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=8 passed
+remote_artifact_audit_exit=0
+```
+
+Decision:
+
+```text
+status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+passed=True
+failed_checks=[]
+existing_fallback_uniformly_least_bad_red=False
+existing_fallback_uniformly_least_bad_lane=False
+existing_fallback_uniformly_least_bad_quality=True
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+no_replay=True
+no_candidate_generation=True
+no_camp_retraining=True
+no_dp_modification=True
+no_selector_or_atom_promotion=True
+no_deployment=True
+no_safety_benefit_claim=True
+no_camp_over_dp_top1_claim=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only`

@@ -161,3 +161,43 @@ fixed-candidate fallback-risk ranking diagnostics. It must not run replay,
 generate candidates, train CAMP, retrain CAMP, change DP, relax hard feasibility,
 add all-infeasible records to the feasible-ranking master, promote a selector or
 atom, or claim safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The same fixed broader-nonformal evaluation artifact was re-audited from the
+current synchronized CAMP HEAD after the static CAMP development-holdout
+acceptance gates:
+
+```text
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+evaluation_summary_sha256=c39fa6278431e08ee16b7b45f6645e43fa46f9951981c1fff8fa1809778aea07
+camp_head_at_revalidation=36b9319c71c394f3a21115d8684f703a7d0355dc
+camp_origin_main_at_revalidation=36b9319c71c394f3a21115d8684f703a7d0355dc
+dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+required_dp_fixed_commit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_36b9319_20260624T190348Z
+remote_audit_json_sha256=4b3e26efa139be5c7e13536663bde6a60a043bf8f6eeeae764948cb11a1a2172
+remote_audit_md_sha256=ca5dde38ec3278cf41575360b33b986b2ad6f41e9c4d1ca0216b28bb1d984fca
+```
+
+Revalidation result:
+
+```text
+remote_py_compile_exit=0
+remote_target_pytest=8 passed
+remote_artifact_audit_exit=0
+status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+passed=True
+failed_checks=[]
+records_without_feasible_candidate=15
+existing_fallback_uniformly_least_bad_red=False
+existing_fallback_uniformly_least_bad_lane=False
+existing_fallback_uniformly_least_bad_quality=True
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+```
+
+The revalidation remains audit-only: no replay, no candidate generation, no CAMP
+retraining, no DP modification, no selector or atom promotion, no deployment,
+and no safety or CAMP-over-DP claim.
