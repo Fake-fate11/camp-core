@@ -196,3 +196,35 @@ dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixe
 The next gate may only add focused default-off contract tests and synthetic
 fixtures. It must not edit production implementation, train CAMP, run replay,
 generate candidates, modify DP, use formal seeds, or promote a selector or atom.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The unit-test plan remains valid after current-head static contract
+revalidation:
+
+```text
+camp_head_at_revalidation=87e728b2271e4573edacc344896c11a9e2226c52
+camp_origin_main_at_revalidation=87e728b2271e4573edacc344896c11a9e2226c52
+github_refs_heads_main_at_revalidation=87e728b2271e4573edacc344896c11a9e2226c52
+autodl_CAMP_HEAD_at_revalidation=87e728b2271e4573edacc344896c11a9e2226c52
+autodl_CAMP_origin_main_at_revalidation=87e728b2271e4573edacc344896c11a9e2226c52
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_current_head_revalidated
+blocking_contract_findings=0
+```
+
+This revalidation remains tests-plan-only:
+
+```text
+implementation_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+production_implementation_edit_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+```

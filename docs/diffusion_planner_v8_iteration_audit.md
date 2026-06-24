@@ -98124,3 +98124,97 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Ranking Default-Off Unit Tests Plan Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan_only
+```
+
+Revalidated the default-off unit-test plan after the current-head static
+contract review.
+
+```text
+plan_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan.md
+static_contract_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review.md
+camp_head=87e728b2271e4573edacc344896c11a9e2226c52
+camp_origin_main=87e728b2271e4573edacc344896c11a9e2226c52
+github_refs_heads_main=87e728b2271e4573edacc344896c11a9e2226c52
+autodl_CAMP_HEAD=87e728b2271e4573edacc344896c11a9e2226c52
+autodl_CAMP_origin_main=87e728b2271e4573edacc344896c11a9e2226c52
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Planned test coverage remains:
+
+```text
+planned_default_off_tests=4
+planned_scope_filtering_tests=4
+planned_candidate_validation_tests=6
+planned_cost_extraction_tests=11
+planned_provenance_no_mutation_tests=8
+planned_forbidden_side_effect_tests=7
+planned_future_label_tests=4
+require_default_off_flag=True
+require_read_only_extractor_unit_tests=True
+require_missing_field_fail_closed_tests=True
+require_no_training_or_deployment_side_effect_tests=True
+```
+
+Forbidden remains for this gate:
+
+```text
+implementation_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+production_implementation_edit_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=6 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=6 passed
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_unit_tests_plan_current_head_revalidated
+passed=True
+tests_plan_only=True
+implementation_not_changed=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only`
