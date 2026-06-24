@@ -168,3 +168,40 @@ replay, generate candidates, train CAMP, retrain CAMP, modify Diffusion
 Planner, use formal seeds, relax hard feasibility, add all-infeasible records
 to the feasible-ranking master, promote a selector or atom, or claim
 safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The unit-tests plan remains valid after current-head training-data design
+static contract revalidation:
+
+```text
+camp_head_at_revalidation=ef94eb144e7043d60e2ab9a86fa85105d93df6fd
+camp_origin_main_at_revalidation=ef94eb144e7043d60e2ab9a86fa85105d93df6fd
+github_refs_heads_main_at_revalidation=ef94eb144e7043d60e2ab9a86fa85105d93df6fd
+autodl_CAMP_HEAD_at_revalidation=ef94eb144e7043d60e2ab9a86fa85105d93df6fd
+autodl_CAMP_origin_main_at_revalidation=ef94eb144e7043d60e2ab9a86fa85105d93df6fd
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_design_static_contract_status=fallback_risk_training_data_design_static_contract_current_head_revalidated
+local_py_compile_exit=0
+local_target_pytest=7 passed
+```
+
+User-level CAMP retraining permission is now available for a later training
+execution gate, but this gate still only authorizes default-off unit tests:
+
+```text
+user_camp_retraining_permission_available=True
+dataset_builder_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+```
