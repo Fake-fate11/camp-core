@@ -96724,3 +96724,115 @@ Next admissible gate:
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_validated_dataset_summary_materializer_implementation_only`
 
 The next gate may only implement the minimal default-off read-only summary materializer and targeted synthetic tests. It must not run preflight, train CAMP, run replay, generate candidates, modify Diffusion Planner, use formal seeds, relax hard feasibility, add all-infeasible records to the feasible-ranking master, promote a selector or atom, or claim safety/CAMP-over-DP benefit.
+
+---
+
+### 2026-06-25 - Fixed-Artifact Fallback Risk Training Validated Dataset Summary Materializer Implementation
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_validated_dataset_summary_materializer_implementation_only`
+
+Implemented artifacts:
+
+```text
+materializer=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_validated_dataset_summary.py
+materializer_tests=camp_core/tests/test_dp_native_fallback_risk_training_validated_dataset_summary_materializer.py
+```
+
+Implementation boundary:
+
+```text
+schema_version=dp_native_fallback_risk_validated_dataset_summary_materializer_report_v1
+summary_schema_version=dp_native_fallback_risk_validated_dataset_summary_v1
+default_off=True
+read_only_existing_artifacts_only=True
+reads_dataset_json_only=True
+reads_validator_output_json_only=True
+output_summary_json_only_when_complete=True
+training_sufficiency_preflight_executed=False
+training_sufficiency_preflight_execution_authorized=False
+training_authorized=False
+camp_retraining_authorized_now=False
+```
+
+Fail-closed checks:
+
+```text
+dataset_sha_mismatch_rejected=True
+validator_output_sha_mismatch_rejected=True
+dataset_record_count_mismatch_rejected=True
+validator_records_checked_mismatch_rejected=True
+validator_failed_records_nonzero_rejected=True
+validator_status_not_complete_rejected=True
+validator_not_passed_rejected=True
+training_or_dp_flag_leaks_rejected=True
+selector_or_atom_promotion_leaks_rejected=True
+safety_or_camp_over_dp_claim_leaks_rejected=True
+training_sufficiency_or_deployable_claim_leaks_rejected=True
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+local_fallback_risk_related_pytest=329 passed
+local_git_diff_check_exit=0
+autodl_target_pytest=5 passed
+autodl_fallback_risk_related_pytest=329 passed
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_validated_dataset_summary_materializer_implemented
+passed=True
+implementation_complete=True
+validated_dataset_summary_materializer_implemented=True
+fixed_artifact_summary_materialization_authorized=False
+training_sufficiency_preflight_execution_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_validated_dataset_summary_materializer_post_implementation_static_contract_only`
