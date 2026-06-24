@@ -119,7 +119,9 @@ fixed_artifact_acceptance_passed=True
 blocking_acceptance_findings=0
 fallback_master_config_ready=True
 training_command_plan_ready=True
-training_sufficiency_preflight_input_set_ready=True
+validated_dataset_summary_json_ready=False
+validated_dataset_summary_json_found=False
+training_sufficiency_preflight_input_set_ready=False
 training_sufficiency_preflight_executed=False
 training_sufficiency_preflight_ready=False
 training_sufficiency_preflight_execution_authorized=False
@@ -131,7 +133,9 @@ fixed_15_record_artifact_training_sufficiency_claim=False
 
 This acceptance only proves that the builder can produce preflight-shaped
 fallback master config and dry-run command plan artifacts from the existing
-fixed artifacts. It does not claim the 15-record artifact is sufficient for
+fixed artifacts. A separate validated dataset summary JSON is still missing for
+the preflight input set; the existing validator `validation.json` is not that
+schema shape. This audit does not claim the 15-record artifact is sufficient for
 training and does not authorize CAMP retraining.
 
 ## Verification
@@ -182,7 +186,9 @@ fixed_artifact_acceptance_passed=True
 blocking_acceptance_findings=0
 fallback_master_config_ready=True
 training_command_plan_ready=True
-training_sufficiency_preflight_input_set_ready=True
+validated_dataset_summary_json_ready=False
+validated_dataset_summary_json_found=False
+training_sufficiency_preflight_input_set_ready=False
 training_sufficiency_preflight_executed=False
 training_sufficiency_preflight_execution_authorized=False
 fallback_risk_training_authorized_now=False
@@ -201,10 +207,11 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 ```text
-dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_fixed_artifact_acceptance_audit_only
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_validated_dataset_summary_materialization_authorization_only
 ```
 
-The next gate may only run the already implemented default-off read-only preflight
-on the accepted fixed artifact input set and record the result.
+The next gate may only decide whether to authorize a minimal validated dataset summary materializer for the already accepted fixed dataset and validator output.
+
+It must preserve the exact accepted dataset SHA and validator status and must fail closed unless the summary contains no training sufficiency or deployable checkpoint claim.
 
 It must not train CAMP, run replay, generate candidates, modify Diffusion Planner, use formal seeds, relax hard feasibility, add all-infeasible records to the feasible-ranking master, promote a selector or atom, or claim safety/CAMP-over-DP benefit.
