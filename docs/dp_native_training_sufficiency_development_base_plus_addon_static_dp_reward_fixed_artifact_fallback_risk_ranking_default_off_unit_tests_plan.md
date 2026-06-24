@@ -1,0 +1,198 @@
+# DP Native Fixed-Artifact Fallback Risk Ranking Default-Off Unit Tests Plan
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan_only
+```
+
+This plan defines the unit-test matrix for a future default-off, read-only
+fallback-risk extractor and nondeployable diagnostic path. It does not implement
+the extractor, run replay, generate candidates, train CAMP, retrain CAMP, modify
+Diffusion Planner, promote a selector or atom, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+## Inputs
+
+```text
+static_contract_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review.md
+camp_head_at_plan=a7aba50cb465b0a9ad04d3e8ae2498bfaa06a6fa
+camp_origin_main_at_plan=a7aba50cb465b0a9ad04d3e8ae2498bfaa06a6fa
+github_refs_heads_main_at_plan=a7aba50cb465b0a9ad04d3e8ae2498bfaa06a6fa
+autodl_CAMP_HEAD_at_plan=a7aba50cb465b0a9ad04d3e8ae2498bfaa06a6fa
+autodl_CAMP_origin_main_at_plan=a7aba50cb465b0a9ad04d3e8ae2498bfaa06a6fa
+autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+The static review retained these requirements:
+
+```text
+require_default_off_flag=True
+require_read_only_extractor_unit_tests=True
+require_missing_field_fail_closed_tests=True
+require_no_training_or_deployment_side_effect_tests=True
+fixed_candidate_boundary_passed=True
+affine_score_boundary_passed=True
+nonnegative_cost_boundary_passed=True
+convex_master_boundary_passed=True
+feasible_master_separation_passed=True
+```
+
+## Planned Test Matrix
+
+### Default-Off Behavior
+
+```text
+test_default_off_does_not_emit_fallback_risk_records=True
+test_default_off_does_not_change_training_records=True
+test_default_off_does_not_change_selected_index=True
+test_default_off_does_not_change_scores_or_atoms=True
+```
+
+These tests must use synthetic in-memory selection-log records and must not read
+or write production replay artifacts.
+
+### Scope Filtering
+
+```text
+test_extracts_records_without_feasible_candidate_only=True
+test_skips_records_with_any_feasible_candidate=True
+test_preserves_all_infeasible_records_as_infeasible=True
+test_does_not_add_all_infeasible_records_to_feasible_master=True
+```
+
+### Candidate Count and Selection Validation
+
+```text
+test_rejects_selected_index_out_of_range=True
+test_rejects_num_candidates_missing_or_nonpositive=True
+test_rejects_feasible_mask_candidate_count_mismatch=True
+test_rejects_dp_candidate_rewards_candidate_count_mismatch=True
+test_rejects_atoms_candidate_count_mismatch=True
+test_rejects_scores_candidate_count_mismatch=True
+```
+
+### Cost Extraction
+
+```text
+test_red_light_cost_uses_max_negative_reward_hinge=True
+test_lane_related_cost_uses_logged_lane_fields=True
+test_quality_cost_uses_max_negative_total_reward_hinge=True
+test_cost_vectors_are_nonnegative_and_finite=True
+test_ties_return_all_min_indices=True
+test_lower_cost_candidate_indices_are_reported=True
+```
+
+Required missing-field failure tests:
+
+```text
+test_missing_red_light_field_fails_closed=True
+test_missing_total_field_fails_closed=True
+test_missing_lane_crossing_field_fails_closed=True
+test_missing_centerline_field_fails_closed=True
+test_nonfinite_cost_field_fails_closed=True
+```
+
+### Provenance and No-Mutation Evidence
+
+```text
+test_requires_candidate_tensor_provenance_payload=True
+test_rejects_pre_post_tensor_hash_mismatch=True
+test_rejects_candidate_count_changed=True
+test_rejects_candidate_row_append=True
+test_rejects_coordinate_heading_speed_rewrite=True
+test_rejects_candidate_tensor_mutation_effect=True
+test_rejects_reference_blend_present=True
+test_rejects_closed_loop_outcome_fields_read=True
+```
+
+### Nondeployment and Forbidden Side Effects
+
+```text
+test_no_replay_execution_path=True
+test_no_candidate_generation_path=True
+test_no_camp_training_path=True
+test_no_dp_modification_path=True
+test_no_selector_promotion_path=True
+test_no_atom_promotion_path=True
+test_no_safety_or_camp_over_dp_claim_path=True
+```
+
+### Optional Future Diagnostic Label Tests
+
+These tests are only planning targets. They must not be implemented until a
+later gate authorizes the corresponding default-off label mode:
+
+```text
+test_red_first_lexicographic_label_requires_authorization_later=True
+test_lane_first_lexicographic_label_requires_authorization_later=True
+test_weighted_sum_label_requires_fixed_nonnegative_alpha_later=True
+test_joint_alpha_and_w_optimization_remains_forbidden=True
+```
+
+## Test File Boundary
+
+A later unit-tests-only gate may add one focused test module, for example:
+
+```text
+camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_contract.py
+```
+
+That future gate may only add tests and synthetic fixtures. It must not edit
+production implementation, run replay, read formal seeds, create candidates,
+train CAMP, modify DP, or promote selector behavior.
+
+## Forbidden
+
+```text
+implementation_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate
+passed=True
+planned_default_off_tests=4
+planned_scope_filtering_tests=4
+planned_candidate_validation_tests=6
+planned_cost_extraction_tests=11
+planned_provenance_no_mutation_tests=8
+planned_forbidden_side_effect_tests=7
+planned_future_label_tests=4
+implementation_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only
+```
+
+The next gate may only add focused default-off contract tests and synthetic
+fixtures. It must not edit production implementation, train CAMP, run replay,
+generate candidates, modify DP, use formal seeds, or promote a selector or atom.
