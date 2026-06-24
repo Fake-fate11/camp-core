@@ -1,0 +1,173 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Design Static Contract Review
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review_only
+```
+
+This review statically checks the fallback-risk training data design plan. It
+does not implement a dataset builder, run replay, generate candidates, train
+CAMP, retrain CAMP, modify Diffusion Planner, change the online selector,
+promote a selector or atom, or claim safety benefit or CAMP-over-DP Top-1.
+
+## Reviewed Artifact
+
+```text
+design_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan.md
+camp_head_at_review=360db88a30f030462c0c13cd5682336f4e4f1617
+camp_origin_main_at_review=360db88a30f030462c0c13cd5682336f4e4f1617
+github_refs_heads_main_at_review=360db88a30f030462c0c13cd5682336f4e4f1617
+autodl_CAMP_HEAD_at_review=360db88a30f030462c0c13cd5682336f4e4f1617
+autodl_CAMP_origin_main_at_review=360db88a30f030462c0c13cd5682336f4e4f1617
+autodl_DP_HEAD_at_review=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Contract Checks
+
+### Source Isolation
+
+```text
+source_isolation_passed=True
+records_scope=records_without_feasible_candidate_only
+source_logs=existing_camp_selection_log_json_only
+source_extractor_records=default_off_fallback_risk_extractor_output_only
+fixed_candidate_set_only=True
+feasible_branch_records_allowed=False
+all_infeasible_records_relabelled_feasible=False
+all_infeasible_records_added_to_feasible_training=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+```
+
+### Label Legality
+
+The design uses only current-tick fixed candidate constants from the log. The
+diagnostic costs are nonnegative by hinge, boolean `0/1`, or finite
+nonnegative fraction construction:
+
+```text
+label_legality_passed=True
+closed_loop_outcome_label_source_authorized=False
+future_replanning_label_source_authorized=False
+replay_label_generation_authorized=False
+hand_authored_label_fill_authorized=False
+red_cost_nonnegative=True
+lane_cost_nonnegative=True
+quality_cost_nonnegative=True
+oracle_policy_predeclared=True
+oracle_tie_breaker_deterministic=True
+selected_index_used_as_feature=False
+candidate_rank_used_as_feature=False
+```
+
+### Convex Master Boundary
+
+The reviewed plan preserves the finite-candidate affine score and keeps labels
+out of the deployed atom vector:
+
+```text
+score_k(w)=a_k^T w
+convex_master_boundary_passed=True
+a_k_fixed_before_weight_optimization=True
+a_k_nonnegative_benders_compatible_atoms_only=True
+new_atom_authorized_now=False
+fallback_label_is_not_a_deployed_atom=True
+margin_ik_nonnegative=True
+simplex_master_convex_if_later_authorized=True
+cvar_master_convex_if_later_authorized=True
+l2_regularized_master_convex_if_later_authorized=True
+```
+
+### Training Sufficiency Boundary
+
+The design correctly refuses to treat the 15-record fixed artifact as training
+sufficiency evidence:
+
+```text
+training_sufficiency_boundary_passed=True
+fixed_artifact_training_sufficiency_claim=False
+default_off_dataset_builder_implemented=False
+dataset_builder_unit_tests_required=True
+clean_training_data_validator_extension_required=True
+fallback_dataset_static_contract_review_required=True
+training_validation_split_predeclaration_required=True
+formal_seeds_11_12_13_excluded_required=True
+scale_fit_training_groups_only_required=True
+fallback_master_isolated_from_feasible_master_required=True
+nonpromotion_boundary_required=True
+```
+
+## Findings
+
+```text
+blocking_contract_findings=0
+nonblocking_requirements=4
+```
+
+Nonblocking requirements for any later builder gate:
+
+```text
+require_default_off_builder=True
+require_synthetic_unit_tests=True
+require_missing_field_fail_closed_tests=True
+require_validator_extension_plan=True
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+dataset_builder_implementation_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_design_static_contract_review_passed_default_off_builder_unit_tests_plan_next
+passed=True
+blocking_contract_findings=0
+dataset_builder_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_plan_only
+```
+
+The next gate may only plan unit tests for a default-off fallback-risk training
+data builder and validator extension. It must not implement the builder, run
+replay, generate candidates, train CAMP, retrain CAMP, modify Diffusion
+Planner, use formal seeds, relax hard feasibility, add all-infeasible records
+to the feasible-ranking master, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.

@@ -91577,3 +91577,89 @@ passed=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review_only`
+
+---
+
+### 2026-06-24 - Fixed-Artifact Fallback Risk Training Data Design Static Contract Review
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review_only`
+
+Artifacts:
+
+```text
+docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review.md
+camp_core/tests/test_dp_native_fallback_risk_training_data_design_static_contract_review.py
+```
+
+Heads before this review commit:
+
+```text
+local_HEAD=360db88a30f030462c0c13cd5682336f4e4f1617
+origin_main=360db88a30f030462c0c13cd5682336f4e4f1617
+github_refs_heads_main=360db88a30f030462c0c13cd5682336f4e4f1617
+autodl_CAMP_HEAD=360db88a30f030462c0c13cd5682336f4e4f1617
+autodl_CAMP_origin_main=360db88a30f030462c0c13cd5682336f4e4f1617
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Static review result:
+
+```text
+source_isolation_passed=True
+label_legality_passed=True
+convex_master_boundary_passed=True
+training_sufficiency_boundary_passed=True
+blocking_contract_findings=0
+dataset_builder_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+```
+
+Local verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=6 passed
+local_fallback_risk_pytest=60 passed
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+dataset_builder_implementation_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_design_static_contract_review_passed_default_off_builder_unit_tests_plan_next
+passed=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_plan_only`
