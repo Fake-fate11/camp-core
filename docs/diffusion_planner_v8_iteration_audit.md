@@ -88483,3 +88483,86 @@ outputs, not promoted CAMP selector assets.
 Next admissible gate:
 
 `dp_native_candidate_tensor_provenance_payload_implementation_authorization_only`
+
+## DP native candidate tensor provenance payload authorization current-head revalidation
+
+Gate:
+
+`dp_native_candidate_tensor_provenance_payload_implementation_authorization_only`
+
+Artifact:
+
+```text
+docs/dp_native_candidate_tensor_provenance_payload_authorization_current_head_revalidation.md
+```
+
+Current heads:
+
+```text
+local_HEAD=2726c5948d3d1c5bf6483ef2316b2bf0b2c15555
+origin_main=2726c5948d3d1c5bf6483ef2316b2bf0b2c15555
+github_refs_heads_main=2726c5948d3d1c5bf6483ef2316b2bf0b2c15555
+autodl_CAMP_HEAD=2726c5948d3d1c5bf6483ef2316b2bf0b2c15555
+autodl_CAMP_origin_main=2726c5948d3d1c5bf6483ef2316b2bf0b2c15555
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Existing implementation evidence:
+
+```text
+052c326 Authorize DP candidate tensor provenance payload
+303b91f Add DP candidate tensor provenance payload
+8b863d7 Audit DP candidate tensor provenance contract
+flag=--camp_candidate_tensor_provenance_logging
+schema_version=dp_native_candidate_tensor_provenance_payload_v1
+default_off=True
+evidence_only=True
+selection_effect=False
+candidate_generation_effect=False
+candidate_tensor_mutation_effect=False
+candidate_generation_authorized=False
+trajectory_rewrite_authorized=False
+dp_modification_authorized=False
+```
+
+Required invariant coverage:
+
+```text
+pre_camp_scoring_tensor_hash_exists=True
+post_camp_selector_tensor_hash_exists=True
+pre_post_tensor_hash_equal_recorded=True
+selected_index_in_range_recorded=True
+candidate_count_recorded=True
+post_selector_candidate_count_recorded=True
+no_candidate_row_append_recorded=True
+no_coordinate_heading_speed_rewrite_by_camp_recorded=True
+outcome_label_input_false_recorded=True
+closed_loop_outcome_fields_read_false_recorded=True
+```
+
+Decision:
+
+```text
+status=implementation_authorization_revalidated_current_head
+implementation_authorized_now=True
+implementation_already_present=True
+new_code_required=False
+duplicate_implementation_authorized=False
+authorized_next_work=dp_native_candidate_tensor_provenance_payload_current_head_static_contract_revalidation_only
+replay_executed=False
+candidate_generation_executed=False
+camp_retraining_executed=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+The minimal default-off implementation already exists in the current repo, so
+this gate authorizes current-head static contract revalidation rather than a
+duplicate code change.
+
+Next admissible gate:
+
+`dp_native_candidate_tensor_provenance_payload_current_head_static_contract_revalidation_only`
