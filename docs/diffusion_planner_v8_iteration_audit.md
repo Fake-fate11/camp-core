@@ -101111,3 +101111,100 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Sufficiency Preflight Post-Implementation Static Contract Tail Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_only
+```
+
+Tail revalidation records the current authority after detecting that earlier
+revalidation blocks were not the final audit section. This gate remains static
+contract only: no CAMP training or retraining, replay, candidate generation,
+Diffusion Planner modification, online selector change, selector/atom
+promotion, deployable checkpoint claim, safety claim, or CAMP-over-DP Top-1
+claim was performed.
+
+```text
+review_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_review.md
+review_test=camp_core/tests/test_dp_native_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract.py
+preflight_script=scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py
+validated_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2
+camp_head=c4585d98dab616bb7b7f017dd7cf6c3b38cfa2ba
+camp_origin_main=c4585d98dab616bb7b7f017dd7cf6c3b38cfa2ba
+github_refs_heads_main=c4585d98dab616bb7b7f017dd7cf6c3b38cfa2ba
+autodl_CAMP_HEAD=c4585d98dab616bb7b7f017dd7cf6c3b38cfa2ba
+autodl_CAMP_origin_main=c4585d98dab616bb7b7f017dd7cf6c3b38cfa2ba
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Contract boundary:
+
+```text
+default_off_boundary_passed=True
+read_only_manifest_boundary_passed=True
+training_sufficiency_boundary_passed=True
+affine_score_boundary_preserved=True
+approved_atom_schema=dp_camp_v10_14d
+approved_atom_names_match_dp_camp_v10_14d=True
+blocking_contract_findings=0
+current_tail_revalidation_passed=True
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=23 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=23 passed
+autodl_git_diff_check_exit=0
+```
+
+Forbidden remains:
+
+```text
+user_camp_retraining_permission_available=True
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_tail_revalidated
+passed=True
+post_implementation_static_contract_review_complete=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only`

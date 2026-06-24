@@ -180,3 +180,17 @@ def test_review_next_gate_is_training_split_manifest_plan_only() -> None:
         "promote a selector or atom",
     ]:
         assert needle in text
+
+
+def test_audit_tail_records_split_manifest_plan_as_next_gate() -> None:
+    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
+
+    assert (
+        "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_tail_revalidated"
+        in tail
+    )
+    assert "current_tail_revalidation_passed=True" in tail
+    assert "training_execution_authorized_now=False" in tail
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only`"
+    )
