@@ -18,12 +18,13 @@ from scripts.integrations.validate_dp_native_fallback_risk_training_sufficiency_
 
 
 SCHEMA_VERSION = "dp_native_fallback_risk_training_split_manifest_v1"
-DATASET_SHA = "1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf"
-VALIDATOR_SHA = "572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b"
+DATASET_SHA = "0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2"
+VALIDATOR_SHA = "276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078"
 SPLIT_POLICY = "sha256(record_identity_hash + split_salt)"
 SPLIT_SALT = "fallback_risk_training_split_v1"
 GROUP_KEY_FIELDS = ("source_log", "run_id", "record_index")
 FORMAL_SEEDS = {11, 12, 13}
+AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 FORBIDDEN_SPLIT_FEATURES = {
     "selected_index",
     "candidate_rank",
@@ -627,3 +628,14 @@ def test_manifest_pins_deterministic_policy_and_forbids_random_inputs() -> None:
     assert report["analysis"]["candidate_generation_executed"] is False
     assert report["analysis"]["camp_training_executed"] is False
     assert report["analysis"]["diffusion_planner_modified"] is False
+
+
+def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> None:
+    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
+
+    assert "status=fallback_risk_training_split_manifest_unit_tests_current_head_revalidated" in tail
+    assert "local_target_pytest=8 passed" in tail
+    assert "training_execution_authorized_now=False" in tail
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only`"
+    )
