@@ -88711,3 +88711,72 @@ readiness, safety benefit, or CAMP-over-DP Top-1 improvement.
 Next admissible gate:
 
 `clean_dp_native_training_data_collection_authorization_only`
+
+## Clean DP native training data collection authorization current-head revalidation
+
+Gate:
+
+`clean_dp_native_training_data_collection_authorization_only`
+
+Artifact:
+
+```text
+docs/clean_dp_native_training_data_collection_authorization_current_head_revalidation.md
+```
+
+Current heads:
+
+```text
+local_HEAD=eade333eab7f953ba914030e394d2f647c468e2e
+origin_main=eade333eab7f953ba914030e394d2f647c468e2e
+github_refs_heads_main=eade333eab7f953ba914030e394d2f647c468e2e
+autodl_CAMP_HEAD=eade333eab7f953ba914030e394d2f647c468e2e
+autodl_CAMP_origin_main=eade333eab7f953ba914030e394d2f647c468e2e
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Existing fixed collection evidence:
+
+```text
+artifact_root=/root/autodl-tmp/camp_dp_native_clean_training_log_broader_nonformal_4967c531_20260624T054110Z
+collection_passed=True
+run_count=12
+selection_log_count=12
+total_records=36
+validator_passed=True
+validator_records=36
+validator_failed_records=[]
+future_training_input_contract_satisfied=True
+payload_failure_count=0
+all_payloads_valid=True
+all_pre_post_tensor_hash_equal=True
+all_no_coordinate_heading_speed_rewrite_by_camp=True
+reference_blend_present=False
+guidance_enabled=False
+```
+
+Decision:
+
+```text
+status=clean_collection_authorization_revalidated_existing_artifact_satisfied
+clean_collection_already_satisfied_by_fixed_broader_nonformal_artifact=True
+new_collection_authorized_now=False
+collection_replay_authorized_now=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+deployable_checkpoint_claim_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+authorized_next_work=dp_native_clean_training_log_training_sufficiency_current_head_audit_only
+```
+
+The fixed broader nonformal clean-log artifact is sufficient for clean
+data-path evidence and pipeline-smoke reasoning, but remains too narrow for an
+industrial/deployable retraining claim.
+
+Next admissible gate:
+
+`dp_native_clean_training_log_training_sufficiency_current_head_audit_only`
