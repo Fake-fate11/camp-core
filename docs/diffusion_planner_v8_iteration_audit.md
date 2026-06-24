@@ -98493,3 +98493,104 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Ranking Default-Off Extractor Post-Implementation Static Contract Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only
+```
+
+Revalidated the post-implementation static contract for the default-off
+fallback-risk extractor.
+
+```text
+review_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_review.md
+extractor=scripts/integrations/extract_diffusion_planner_dp_native_fallback_risk_records.py
+extractor_tests=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_extractor.py
+static_review_tests=camp_core/tests/test_dp_native_fallback_risk_ranking_extractor_post_implementation_static_contract_review.py
+camp_head=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+camp_origin_main=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+github_refs_heads_main=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+autodl_CAMP_HEAD=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+autodl_CAMP_origin_main=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Static contract:
+
+```text
+default_off_boundary_passed=True
+build_extraction_report_enabled_default=False
+enable_flag_required_before_reading_selection_logs=True
+disabled_mode_returns_before_build_audit_report=True
+disabled_mode_reads_selection_logs=False
+read_only_fixed_artifact_boundary_passed=True
+evaluation_root_write_path_found=False
+diffusion_planner_execution_path_found=False
+candidate_generation_path_found=False
+candidate_mutation_path_found=False
+output_boundary_passed=True
+writes_only_explicit_output_json_and_output_md=True
+affine_score_boundary_preserved=True
+score_expression=score_k(w)=a_k^T w
+feasible_master_separation_passed=True
+all_infeasible_records_added_to_feasible_training=False
+```
+
+Forbidden remains:
+
+```text
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=6 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=6 passed
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_current_head_revalidated
+passed=True
+blocking_contract_findings=0
+post_implementation_static_contract_review_complete=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan_only`

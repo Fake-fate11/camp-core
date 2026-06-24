@@ -166,3 +166,35 @@ fallback-risk training path. It must not implement training, run replay,
 generate candidates, modify Diffusion Planner, use formal seeds, relax hard
 feasibility, add all-infeasible records to the feasible-ranking master, promote
 a selector or atom, or claim safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The post-implementation static contract remains valid after current-head
+extractor implementation revalidation:
+
+```text
+camp_head_at_revalidation=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+camp_origin_main_at_revalidation=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+github_refs_heads_main_at_revalidation=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+autodl_CAMP_HEAD_at_revalidation=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+autodl_CAMP_origin_main_at_revalidation=fef3d68d1d8da39feb7f9665da76fdfd94c757f2
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_implementation_status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated
+blocking_contract_findings=0
+```
+
+The next gate remains data-design-only. User-level permission to retrain CAMP is
+recorded for future training gates, but this static contract does not execute or
+authorize training:
+
+```text
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+```
