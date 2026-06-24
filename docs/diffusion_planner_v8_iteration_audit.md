@@ -95933,3 +95933,121 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_plan_only`
+
+---
+
+### 2026-06-25 - Fixed-Artifact Fallback Risk Training Fallback Master Config And Command Plan
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_plan_only`
+
+Inputs:
+
+```text
+validated_fallback_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+accepted_split_manifest_sha256=a4b33c1c14b2ea96f1994e89245cfd27209e98049808fdfd3fbe6c8a732d34fd
+accepted_train_only_scale_manifest_sha256=9e76915d544a04bcea31380323027511293419ea98f3b24406f951e52982570b
+fallback_master_config_ready=False
+training_command_plan_ready=False
+training_sufficiency_preflight_ready=False
+```
+
+Fallback-only master config plan:
+
+```text
+fallback_master_config_plan_complete=True
+fallback_only=True
+feasible_branch_records_allowed=False
+all_infeasible_records_added_to_feasible_training=False
+all_infeasible_records_relabelled_feasible=False
+hard_feasibility_relaxation_authorized=False
+feasible_ranking_master_change_authorized=False
+score_expression=score_k(w)=a_k^T w
+atoms_fixed_nonnegative=True
+fallback_label_is_deployed_atom=False
+margins_nonnegative=True
+simplex_cvar_l2_convex=True
+new_atom_authorized_now=False
+```
+
+Dry-run command plan:
+
+```text
+dry_run_training_command_plan_complete=True
+training_command_authorization=False
+training_execution_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+formal_seeds_11_12_13_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+post_training_nonpromotion_plan_required=True
+development_holdout_acceptance_gate_required=True
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=6 passed
+local_fallback_risk_related_pytest=292 passed
+local_git_diff_check_exit=0
+autodl_target_pytest=6 passed
+autodl_fallback_risk_related_pytest=292 passed
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_fallback_master_config_and_command_plan_plan_ready
+passed=True
+fallback_master_config_and_command_plan_plan_complete=True
+fallback_master_config_ready=False
+training_command_plan_ready=False
+training_sufficiency_preflight_ready=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_static_contract_review_only`
