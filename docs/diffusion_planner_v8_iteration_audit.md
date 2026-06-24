@@ -93443,3 +93443,98 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only`
+
+---
+
+### 2026-06-24 - Fixed-Artifact Fallback Risk Training Data Training Sufficiency Unit Tests
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only`
+
+Artifacts:
+
+```text
+camp_core/tests/test_dp_native_fallback_risk_training_data_training_sufficiency_contract.py
+```
+
+Heads before this unit-test commit:
+
+```text
+local_HEAD=0795f1aecdc51cde10d2e249533bfd283a26ea28
+origin_main=0795f1aecdc51cde10d2e249533bfd283a26ea28
+github_refs_heads_main=0795f1aecdc51cde10d2e249533bfd283a26ea28
+autodl_CAMP_HEAD=0795f1aecdc51cde10d2e249533bfd283a26ea28
+autodl_CAMP_origin_main=0795f1aecdc51cde10d2e249533bfd283a26ea28
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Pinned synthetic contract behavior:
+
+```text
+clean_synthetic_preconditions_pass_without_training_authorization=True
+reject_dataset_sufficiency_and_checkpoint_claim_leaks=True
+reject_split_overlap_formal_seed_and_formal_eval_leakage=True
+reject_scale_fit_leakage_and_bad_atom_scale_contract=True
+reject_fallback_master_leaking_into_feasible_master=True
+reject_training_command_execution_dp_changes_and_promotions=True
+reject_missing_post_training_nonpromotion_and_holdout_gates=True
+```
+
+Local verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=7 passed
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_training_sufficiency_contract_tests_pinned
+passed=True
+training_sufficiency_contract_tests_complete=True
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_authorization_only`
