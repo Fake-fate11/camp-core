@@ -87513,3 +87513,72 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_clean_training_log_collection_smoke_authorization_only_user_approval_required`
+
+## DP native clean training log collection smoke authorization
+
+Gate:
+
+`dp_native_clean_training_log_collection_smoke_authorization_only_user_approval_required`
+
+Artifact:
+
+```text
+docs/dp_native_clean_training_log_collection_smoke_authorization.md
+```
+
+Ref evidence:
+
+```text
+git status --short --branch
+## main...origin/main
+untracked unrelated session/slide artifacts remain ignored
+
+git fetch --prune origin
+exit=0
+
+git rev-parse HEAD origin/main
+0e0dc0cafef3eb9719e606314f8d670e4ef7f793
+0e0dc0cafef3eb9719e606314f8d670e4ef7f793
+
+git ls-remote origin refs/heads/main
+0e0dc0cafef3eb9719e606314f8d670e4ef7f793 refs/heads/main
+```
+
+Boundary evidence:
+
+```text
+provenance logging exists: --camp_candidate_tensor_provenance_logging
+clean-log validator exists: validate_dp_native_training_data_contract.py
+trainer preflight exists: --require_dp_native_training_data_contract
+existing tracked clean DP-native training logs: 0
+```
+
+Creating a new clean log would require running the replay integration, which
+enters the DP candidate-generation path. That action remains outside the
+default prohibition unless the audit and the user explicitly authorize the
+exact scope.
+
+Decision:
+
+```text
+status=user_authorization_required
+implementation_authorized_now=False
+execution_authorized_now=False
+user_explicit_collection_smoke_authorization_present=False
+reason=collection smoke would run replay/candidate generation and no separate user approval for the exact scope is present
+collection_smoke_execution_authorized_now=False
+replay_executed=False
+candidate_generation_executed=False
+outcome_label_generation_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_clean_training_log_collection_smoke_user_authorization_pending`
