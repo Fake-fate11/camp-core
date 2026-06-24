@@ -26,6 +26,14 @@ def test_unit_tests_plan_records_preconditions_and_no_training_authorization() -
         "fallback_dataset_training_sufficiency_claim=False",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
+        "current_training_sufficiency_plan_ready=True",
+        "current_training_sufficiency_static_contract_review_passed=True",
+        "current_blocking_contract_findings=0",
+        "current_validated_fallback_records=15",
+        "current_validated_fallback_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
+        "current_fallback_dataset_training_sufficiency_claim=False",
+        "current_fallback_risk_training_authorized_now=False",
+        "current_camp_retraining_authorized_now=False",
     ]:
         assert needle in text
 
@@ -43,6 +51,16 @@ def test_unit_tests_plan_covers_evidence_split_and_scale_fail_closed_cases() -> 
         "test_requires_train_only_scale_manifest=True",
         "test_rejects_scale_fit_on_validation_groups=True",
         "test_rejects_nonpositive_atom_scales=True",
+        "current_test_validated_fallback_dataset_is_required=True",
+        "current_test_15_record_artifact_does_not_authorize_training=True",
+        "current_test_rejects_training_sufficiency_claim_without_split=True",
+        "current_test_rejects_deployable_checkpoint_claim=True",
+        "current_test_requires_training_validation_split_manifest=True",
+        "current_test_rejects_train_validation_group_overlap=True",
+        "current_test_rejects_formal_seeds_11_12_13_in_train_or_validation=True",
+        "current_test_requires_train_only_scale_manifest=True",
+        "current_test_rejects_scale_fit_on_validation_groups=True",
+        "current_test_rejects_nonpositive_atom_scales=True",
     ]:
         assert needle in text
 
@@ -59,6 +77,14 @@ def test_unit_tests_plan_covers_fallback_master_and_convex_contract() -> None:
         "test_requires_nonnegative_fixed_atoms=True",
         "test_requires_fallback_label_not_deployed_atom=True",
         "test_requires_simplex_cvar_l2_convex_boundary=True",
+        "current_test_requires_fallback_only_master_config=True",
+        "current_test_rejects_feasible_branch_records_in_fallback_master=True",
+        "current_test_rejects_all_infeasible_records_added_to_feasible_training=True",
+        "current_test_rejects_hard_feasibility_relaxation=True",
+        "current_test_requires_score_equals_a_transpose_w=True",
+        "current_test_requires_nonnegative_fixed_atoms=True",
+        "current_test_requires_fallback_label_not_deployed_atom=True",
+        "current_test_requires_simplex_cvar_l2_convex_boundary=True",
     ]:
         assert needle in text
 
@@ -74,6 +100,13 @@ def test_unit_tests_plan_covers_training_command_and_nonpromotion_rejections() -
         "test_rejects_online_selector_or_atom_promotion=True",
         "test_requires_post_training_nonpromotion_plan=True",
         "test_requires_development_holdout_acceptance_gate=True",
+        "current_test_rejects_training_command_without_prior_authorization=True",
+        "current_test_rejects_replay_or_candidate_generation_commands=True",
+        "current_test_rejects_dp_weight_or_config_changes=True",
+        "current_test_rejects_reference_blend_guidance_or_postselection=True",
+        "current_test_rejects_online_selector_or_atom_promotion=True",
+        "current_test_requires_post_training_nonpromotion_plan=True",
+        "current_test_requires_development_holdout_acceptance_gate=True",
     ]:
         assert needle in text
 
@@ -90,6 +123,14 @@ def test_unit_tests_plan_uses_synthetic_fixtures_only() -> None:
         "candidate_generation_required_for_unit_tests=False",
         "training_required_for_unit_tests=False",
         "dp_required_for_unit_tests=False",
+        "current_synthetic_manifest_fixtures_only=True",
+        "current_synthetic_dataset_summary_fixtures_only=True",
+        "current_fixed_autodl_artifact_required_for_unit_tests=False",
+        "current_formal_seeds_11_12_13_used=False",
+        "current_replay_required_for_unit_tests=False",
+        "current_candidate_generation_required_for_unit_tests=False",
+        "current_training_required_for_unit_tests=False",
+        "current_dp_required_for_unit_tests=False",
     ]:
         assert needle in text
 
@@ -109,6 +150,12 @@ def test_unit_tests_plan_forbids_execution_and_sets_unit_tests_next() -> None:
         "status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_ready",
         "training_sufficiency_unit_tests_authorized=True",
         "fallback_risk_training_authorized_now=False",
+        "current_status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_ready",
+        "current_training_sufficiency_unit_tests_plan_complete=True",
+        "current_training_sufficiency_unit_tests_authorized=True",
+        "current_fallback_risk_training_authorized_now=False",
+        "current_camp_retraining_authorized_now=False",
+        "current_fallback_dataset_training_sufficiency_claim=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only",
         "may only add synthetic/static unit tests",
         "must not implement training execution",
