@@ -1,0 +1,130 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+AUTH_DOC = (
+    REPO_ROOT
+    / "docs"
+    / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization.md"
+)
+
+
+def _auth() -> str:
+    return AUTH_DOC.read_text(encoding="utf-8")
+
+
+def test_split_builder_authorization_records_preconditions_and_verified_tests() -> None:
+    text = _auth()
+
+    for needle in [
+        "split_manifest_plan_ready=True",
+        "split_manifest_static_contract_review_passed=True",
+        "split_manifest_unit_tests_plan_ready=True",
+        "split_manifest_contract_tests_pinned=True",
+        "blocking_contract_findings=0",
+        "validated_fallback_records=15",
+        "local_split_manifest_contract_pytest=7 passed",
+        "local_fallback_risk_pytest=202 passed",
+        "autodl_split_manifest_contract_pytest=7 passed",
+        "autodl_fallback_risk_pytest=202 passed",
+        "dp_fixed_commit_verified=True",
+    ]:
+        assert needle in text
+
+
+def test_split_builder_authorization_only_allows_default_off_read_only_builder() -> None:
+    text = _auth()
+
+    for needle in [
+        "implementation_authorized=True",
+        "training_split_manifest_builder_implementation_authorized=True",
+        "default_off_required=True",
+        "read_only_dataset_input_only=True",
+        "existing_validated_fallback_dataset_json_only=True",
+        "records_scope=records_without_feasible_candidate_only",
+        "output_json_or_markdown_only=True",
+        "synthetic_unit_tests_required=True",
+        "fixed_artifact_manifest_generation_authorized=False",
+        "training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+    ]:
+        assert needle in text
+
+
+def test_split_builder_authorization_requires_fail_closed_contracts() -> None:
+    text = _auth()
+
+    for needle in [
+        "must_return_before_reading_dataset_when_disabled=True",
+        "must_fail_closed_on_missing_or_invalid_dataset_sha256=True",
+        "must_fail_closed_on_missing_or_invalid_validator_output_sha256=True",
+        "must_fail_closed_on_records_not_without_feasible_candidate=True",
+        "must_fail_closed_on_missing_group_key_or_identity_hash=True",
+        "must_fail_closed_on_group_key_collision_or_duplicate_identity=True",
+        "must_fail_closed_on_formal_seeds_or_formal_eval_leakage=True",
+        "must_not_use_selected_index_candidate_rank_closed_loop_outcome_or_learned_weights_as_split_features=True",
+        "must_use_sha256_record_identity_hash_plus_split_salt=True",
+        "must_use_split_salt_fallback_risk_training_split_v1=True",
+        "must_require_nonempty_training_and_validation_groups=True",
+        "must_emit_preflight_compatible_top_level_fields=True",
+        "must_keep_final_decision_training_authorized_false=True",
+    ]:
+        assert needle in text
+
+
+def test_split_builder_authorization_keeps_generation_training_dp_and_claims_forbidden() -> None:
+    text = _auth()
+
+    for needle in [
+        "fixed_artifact_manifest_generation_authorized=False",
+        "training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+        "replay_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "production_selector_change_authorized=False",
+        "camp_training_authorized=False",
+        "formal_seeds_11_12_13_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    for forbidden in [
+        "camp_training_authorized=True",
+        "camp_retraining_authorized=True",
+        "candidate_generation_authorized=True",
+        "dp_modification_authorized=True",
+        "fixed_artifact_manifest_generation_authorized=True",
+        "training_split_manifest_builder_execution_on_fixed_artifact_authorized=True",
+        "selector_promotion_authorized=True",
+        "atom_promotion_authorized=True",
+        "safety_benefit_claim_authorized=True",
+        "camp_over_dp_top1_claim_authorized=True",
+        "fallback_risk_training_authorized_now=True",
+    ]:
+        assert forbidden not in text
+
+
+def test_split_builder_authorization_next_gate_is_implementation_only() -> None:
+    text = _auth()
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorized",
+        "passed=True",
+        "implementation_authorized=True",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only",
+        "may only implement the minimal default-off read-only split",
+        "must not generate a",
+        "fixed-artifact manifest",
+        "train CAMP",
+        "run replay",
+        "generate candidates",
+        "modify Diffusion Planner",
+        "promote",
+    ]:
+        assert needle in text
