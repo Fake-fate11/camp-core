@@ -99108,3 +99108,112 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Data Default-Off Builder Implementation Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_only
+```
+
+Revalidated the existing default-off fallback-risk training-data builder
+implementation against the current head without editing production code.
+
+```text
+builder_script=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py
+builder_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder.py
+builder_contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py
+authorization_test=camp_core/tests/test_dp_native_fallback_risk_training_data_builder_implementation_authorization.py
+camp_head=d4da64be5a89584ee4641aaa037cc79849b797d1
+camp_origin_main=d4da64be5a89584ee4641aaa037cc79849b797d1
+github_refs_heads_main=d4da64be5a89584ee4641aaa037cc79849b797d1
+autodl_CAMP_HEAD=d4da64be5a89584ee4641aaa037cc79849b797d1
+autodl_CAMP_origin_main=d4da64be5a89584ee4641aaa037cc79849b797d1
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation boundary:
+
+```text
+default_off_required=True
+default_off_disabled_does_not_read_missing_log=True
+read_only_selection_log_input_only=True
+read_only_extractor_output_input_only=True
+records_scope=records_without_feasible_candidate_only
+feasible_branch_records_skipped=True
+candidate_generation_not_executed=True
+replay_not_executed=True
+diffusion_planner_not_executed=True
+diffusion_planner_not_modified=True
+candidate_tensor_provenance_required=True
+pre_post_tensor_hash_equal_required=True
+no_candidate_row_append_required=True
+no_coordinate_heading_speed_rewrite_by_camp_required=True
+reference_blend_rejected=True
+guidance_rejected=True
+dp_weight_change_rejected=True
+atoms_nonnegative_finite_required=True
+score_k_equals_a_k_transpose_w_boundary_preserved=True
+fallback_dataset_separate_from_feasible_master=True
+training_authorized_flag_false=True
+production_builder_edited_in_this_gate=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=15 passed
+local_git_diff_check_exit=0
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=15 passed
+autodl_git_diff_check_exit=0
+```
+
+Forbidden remains:
+
+```text
+user_camp_retraining_permission_available=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_default_off_builder_implementation_current_head_revalidated
+passed=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+production_builder_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_post_implementation_static_contract_only`
