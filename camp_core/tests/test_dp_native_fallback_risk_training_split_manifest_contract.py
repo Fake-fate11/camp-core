@@ -13,12 +13,13 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.integrations.validate_dp_native_fallback_risk_training_sufficiency_preflight import (  # noqa: E402
     COMPLETE_STATUS,
+    EXPECTED_VALIDATED_DATASET_SHA256,
     validate_training_sufficiency_preflight,
 )
 
 
 SCHEMA_VERSION = "dp_native_fallback_risk_training_split_manifest_v1"
-DATASET_SHA = "0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2"
+DATASET_SHA = EXPECTED_VALIDATED_DATASET_SHA256
 VALIDATOR_SHA = "276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078"
 SPLIT_POLICY = "sha256(record_identity_hash + split_salt)"
 SPLIT_SALT = "fallback_risk_training_split_v1"
@@ -640,7 +641,7 @@ def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> 
     assert "status=fallback_risk_training_data_record_identity_hash_remediation_authorized" in audit
     assert "status=fallback_risk_training_data_record_identity_hash_remediation_implemented" in audit
     assert (
-        "status=fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed"
+        "status=fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_implemented"
         in tail
     )
     assert tail.rstrip().endswith(

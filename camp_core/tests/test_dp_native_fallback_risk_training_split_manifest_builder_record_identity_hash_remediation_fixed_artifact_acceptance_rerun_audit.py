@@ -144,9 +144,9 @@ def test_iteration_audit_tail_records_split_manifest_rerun_next_gate() -> None:
         assert needle in audit
 
     for needle in [
-        "status=fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed",
-        "fallback_master_config_ready=True",
-        "training_command_plan_ready=True",
+        "status=fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_implemented",
+        "old_expected_validated_dataset_sha_rejected=True",
+        "new_expected_validated_dataset_sha_accepted_by_unit_contract=True",
     ]:
         assert needle in tail
 

@@ -13,13 +13,14 @@ if str(REPO_ROOT) not in sys.path:
 from scripts.integrations.validate_dp_native_fallback_risk_training_sufficiency_preflight import (  # noqa: E402
     COMPLETE_STATUS,
     DISABLED_STATUS,
+    EXPECTED_VALIDATED_DATASET_SHA256,
     REJECT_STATUS,
     main,
     validate_training_sufficiency_preflight,
 )
 
 
-VALIDATED_DATASET_SHA = "0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2"
+VALIDATED_DATASET_SHA = EXPECTED_VALIDATED_DATASET_SHA256
 APPROVED_SCHEMA = "dp_camp_v10_14d"
 APPROVED_ATOMS = (
     "jerk_early",

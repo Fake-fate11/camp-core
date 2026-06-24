@@ -165,7 +165,7 @@ def test_iteration_audit_tail_records_record_identity_authorization_next_gate() 
         assert needle in audit
 
     assert (
-        "status=fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed"
+        "status=fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_implemented"
         in tail
     )
 

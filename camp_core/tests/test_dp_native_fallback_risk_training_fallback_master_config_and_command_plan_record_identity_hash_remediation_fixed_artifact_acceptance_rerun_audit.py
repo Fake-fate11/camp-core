@@ -130,10 +130,10 @@ def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
     tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed",
-        "fallback_master_config_ready=True",
-        "training_command_plan_ready=True",
-        "validated_dataset_summary_ready_for_preflight=False",
+        "status=fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_implemented",
+        "old_expected_validated_dataset_sha_rejected=True",
+        "new_expected_validated_dataset_sha_accepted_by_unit_contract=True",
+        "training_authorized=False",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
