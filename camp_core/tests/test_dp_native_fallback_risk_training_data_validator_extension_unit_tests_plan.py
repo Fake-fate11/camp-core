@@ -27,6 +27,9 @@ def test_unit_tests_plan_records_preconditions() -> None:
         "validator_extension_implementation_authorized=False",
         "fallback_risk_training_authorized_now=False",
         "autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_current_head_revalidated",
+        "current_accepted_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
