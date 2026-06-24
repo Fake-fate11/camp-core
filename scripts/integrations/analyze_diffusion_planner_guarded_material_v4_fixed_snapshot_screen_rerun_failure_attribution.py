@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Any, Optional
 
 
-EXPECTED_ANALYSIS_CAMP_HEAD = "10676d9b92a456f43a15010520ceeccd172b1362"
+ANALYSIS_GATE_START_CAMP_HEAD = "10676d9b92a456f43a15010520ceeccd172b1362"
 EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD = "bff8f8bf99a6b90a3ab5190b0d83b47eb1ed686a"
-EXPECTED_CAMP_HEAD = EXPECTED_ANALYSIS_CAMP_HEAD
+EXPECTED_CAMP_HEAD = ANALYSIS_GATE_START_CAMP_HEAD
 EXPECTED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 SCREEN_REJECT_STATUS = "route_topology_candidate_support_insufficient"
 REMEDIATION_PROFILE = "lane_red_hard_feasible_comfort_first_materialized_support_v4"
@@ -179,7 +179,7 @@ def build_report(
         "head_audit": {
             "camp_head": camp_head,
             "camp_origin_main": camp_origin_main,
-            "expected_analysis_camp_head": EXPECTED_ANALYSIS_CAMP_HEAD,
+            "analysis_gate_start_camp_head": ANALYSIS_GATE_START_CAMP_HEAD,
             "expected_source_artifact_camp_head": EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD,
             "dp_head": dp_head,
             "expected_dp_head": EXPECTED_DP_HEAD,
@@ -526,9 +526,14 @@ def _head_checks(
 ) -> list[dict[str, Any]]:
     heads = artifact["heads"]
     return [
-        _check("camp_head_matches_expected", camp_head == EXPECTED_ANALYSIS_CAMP_HEAD),
-        _check("camp_origin_main_matches_expected", camp_origin_main == EXPECTED_ANALYSIS_CAMP_HEAD),
+        _check("camp_head_present", bool(camp_head)),
+        _check("camp_origin_main_present", bool(camp_origin_main)),
         _check("camp_head_matches_origin_main", camp_head == camp_origin_main),
+        _check("camp_head_is_not_source_artifact_head", camp_head != EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD),
+        _check(
+            "camp_origin_main_is_not_source_artifact_head",
+            camp_origin_main != EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD,
+        ),
         _check("dp_head_fixed", dp_head == EXPECTED_DP_HEAD),
         _check(
             "artifact_camp_head_matches_source",

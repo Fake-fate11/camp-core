@@ -269,7 +269,17 @@ def test_guarded_material_v4_failure_attribution_rejects_camp_mismatch(
     report = _build(tmp_path, camp_head="wrong")
 
     assert report["final_decision"]["status"] == target.REJECT_STATUS
-    assert "camp_head_matches_expected" in report["final_decision"]["failed_checks"]
+    assert "camp_head_matches_origin_main" in report["final_decision"]["failed_checks"]
+
+
+def test_guarded_material_v4_failure_attribution_accepts_synced_successor_head(
+    tmp_path: Path,
+) -> None:
+    successor = "c58afe3b0be4ffe604c8d589dbfca02c08a04b90"
+    report = _build(tmp_path, camp_head=successor, camp_origin_main=successor)
+
+    assert report["final_decision"]["status"] == target.READY_STATUS
+    assert report["head_audit"]["analysis_gate_start_camp_head"] == EXPECTED_CAMP_HEAD
 
 
 def test_guarded_material_v4_failure_attribution_rejects_source_artifact_mismatch(
