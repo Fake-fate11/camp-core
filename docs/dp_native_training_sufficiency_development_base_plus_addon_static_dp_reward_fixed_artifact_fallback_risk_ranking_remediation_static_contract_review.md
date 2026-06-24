@@ -209,3 +209,35 @@ The next gate may only plan default-off unit tests for a read-only
 fallback-risk extractor and nondeployable diagnostic path. It must not implement
 the extractor, train CAMP, run replay, generate candidates, modify DP, use
 formal seeds, or promote a selector or atom.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The static contract remains valid after current-head design-plan revalidation:
+
+```text
+camp_head_at_revalidation=8e55e8039c21cc7507c4af3d580a6b8a902a7132
+camp_origin_main_at_revalidation=8e55e8039c21cc7507c4af3d580a6b8a902a7132
+github_refs_heads_main_at_revalidation=8e55e8039c21cc7507c4af3d580a6b8a902a7132
+autodl_CAMP_HEAD_at_revalidation=8e55e8039c21cc7507c4af3d580a6b8a902a7132
+autodl_CAMP_origin_main_at_revalidation=8e55e8039c21cc7507c4af3d580a6b8a902a7132
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_design_status=fallback_risk_ranking_remediation_design_plan_current_head_revalidated
+blocking_contract_findings=0
+```
+
+This review still authorizes only the next default-off unit-test planning gate:
+
+```text
+implementation_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+```
