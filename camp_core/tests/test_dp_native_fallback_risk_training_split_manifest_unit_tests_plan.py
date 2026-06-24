@@ -9,6 +9,7 @@ PLAN_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_plan.md"
 )
+AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _plan() -> str:
@@ -24,10 +25,15 @@ def test_split_unit_tests_plan_records_preconditions_and_no_builder_authorizatio
         "blocking_contract_findings=0",
         "manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1",
         "records_scope=records_without_feasible_candidate_only",
+        "validated_fallback_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
         "validated_fallback_records=15",
+        "split_manifest_static_contract_tail_status=fallback_risk_training_split_manifest_static_contract_review_current_head_revalidated",
         "training_split_manifest_builder_authorized=False",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
+        "user_camp_retraining_permission_available=True",
+        "training_command_authorization_required_before_training=True",
+        "camp_head_at_plan=6ea1a40de4fe895825d2f87e1bec851fa222994b",
     ]:
         assert needle in text
 
@@ -143,3 +149,14 @@ def test_split_unit_tests_plan_forbids_execution_and_sets_unit_tests_next() -> N
         "modify Diffusion Planner",
     ]:
         assert needle in text
+
+
+def test_audit_tail_records_split_manifest_unit_tests_only_next_gate() -> None:
+    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
+
+    assert "status=fallback_risk_training_split_manifest_unit_tests_plan_current_head_revalidated" in tail
+    assert "local_target_pytest=8 passed" in tail
+    assert "training_execution_authorized_now=False" in tail
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only`"
+    )

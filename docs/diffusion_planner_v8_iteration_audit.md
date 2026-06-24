@@ -101416,3 +101416,102 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_plan_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Split Manifest Unit Tests Plan Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_plan_only
+```
+
+Revalidated the synthetic/static unit-tests plan for a future default-off split
+manifest builder against the current split manifest static-contract review
+tail authority. This gate did not implement the builder, generate the manifest,
+train or retrain CAMP, run replay, generate candidates, modify Diffusion
+Planner, change the online selector, promote a selector or atom, or claim
+safety benefit or CAMP-over-DP Top-1.
+
+```text
+unit_tests_plan_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_plan.md
+unit_tests_plan_test=camp_core/tests/test_dp_native_fallback_risk_training_split_manifest_unit_tests_plan.py
+validated_fallback_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2
+split_manifest_static_contract_tail_status=fallback_risk_training_split_manifest_static_contract_review_current_head_revalidated
+camp_head=6ea1a40de4fe895825d2f87e1bec851fa222994b
+camp_origin_main=6ea1a40de4fe895825d2f87e1bec851fa222994b
+github_refs_heads_main=6ea1a40de4fe895825d2f87e1bec851fa222994b
+autodl_CAMP_HEAD=6ea1a40de4fe895825d2f87e1bec851fa222994b
+autodl_CAMP_origin_main=6ea1a40de4fe895825d2f87e1bec851fa222994b
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Planned unit-test boundary:
+
+```text
+synthetic_dataset_fixtures_only=True
+synthetic_split_manifest_fixtures_only=True
+fixed_autodl_artifact_required_for_unit_tests=False
+formal_seeds_11_12_13_used=False
+replay_required_for_unit_tests=False
+candidate_generation_required_for_unit_tests=False
+training_required_for_unit_tests=False
+dp_required_for_unit_tests=False
+split_manifest_unit_tests_authorized=True
+training_split_manifest_builder_authorized=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_target_pytest=8 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_target_pytest=pending_remote_sync
+```
+
+Forbidden remains:
+
+```text
+user_camp_retraining_permission_available=True
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_split_manifest_unit_tests_plan_current_head_revalidated
+passed=True
+split_manifest_unit_tests_plan_complete=True
+split_manifest_unit_tests_authorized=True
+training_split_manifest_builder_authorized=False
+manifest_not_generated=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only`
