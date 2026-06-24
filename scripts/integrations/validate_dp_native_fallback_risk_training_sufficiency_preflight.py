@@ -20,7 +20,22 @@ EXPECTED_VALIDATED_DATASET_SHA256 = (
 EXPECTED_VALIDATED_FALLBACK_RECORDS = 15
 EXPECTED_VALIDATOR_STATUS = "dp_native_fallback_risk_training_data_validator_complete"
 APPROVED_ATOM_SCHEMA = "dp_camp_v10_14d"
-APPROVED_ATOM_NAMES = ("jerk_early", "jerk_late", "jerk_full")
+APPROVED_ATOM_NAMES = (
+    "jerk_early",
+    "jerk_late",
+    "jerk_full",
+    "rms_acceleration",
+    "speed_limit_margin_0_0",
+    "speed_limit_margin_0_5",
+    "speed_limit_margin_1_0",
+    "lane_deviation",
+    "clearance",
+    "progress_shortfall",
+    "planned_red_light_cost",
+    "planned_lateral_acceleration_cost",
+    "red_stopping_margin_cost",
+    "dp_prior_jerk_excess_cost",
+)
 FORMAL_SEEDS = {11, 12, 13}
 
 FORBIDDEN_FLAGS = (

@@ -21,7 +21,22 @@ from scripts.integrations.validate_dp_native_fallback_risk_training_sufficiency_
 
 VALIDATED_DATASET_SHA = "1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf"
 APPROVED_SCHEMA = "dp_camp_v10_14d"
-APPROVED_ATOMS = ("jerk_early", "jerk_late", "jerk_full")
+APPROVED_ATOMS = (
+    "jerk_early",
+    "jerk_late",
+    "jerk_full",
+    "rms_acceleration",
+    "speed_limit_margin_0_0",
+    "speed_limit_margin_0_5",
+    "speed_limit_margin_1_0",
+    "lane_deviation",
+    "clearance",
+    "progress_shortfall",
+    "planned_red_light_cost",
+    "planned_lateral_acceleration_cost",
+    "red_stopping_margin_cost",
+    "dp_prior_jerk_excess_cost",
+)
 
 
 def _write(path: Path, payload: dict[str, Any]) -> Path:

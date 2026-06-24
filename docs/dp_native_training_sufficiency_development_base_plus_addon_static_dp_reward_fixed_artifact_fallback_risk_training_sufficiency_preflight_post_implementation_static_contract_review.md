@@ -1,0 +1,189 @@
+# DP Native Fixed-Artifact Fallback Risk Training Sufficiency Preflight Post-Implementation Static Contract Review
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_only
+```
+
+This review statically checks the implemented fallback-risk training
+sufficiency preflight validator. It does not train CAMP, retrain CAMP, run
+replay, generate candidates, modify Diffusion Planner, change the online
+selector, promote a selector or atom, or claim safety benefit or CAMP-over-DP
+Top-1.
+
+## Reviewed Artifacts
+
+```text
+preflight=scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py
+preflight_tests=camp_core/tests/test_dp_native_fallback_risk_training_sufficiency_preflight.py
+contract_tests=camp_core/tests/test_dp_native_fallback_risk_training_data_training_sufficiency_contract.py
+implementation_audit=docs/diffusion_planner_v8_iteration_audit.md
+mathematical_contract=docs/dp_camp_mathematical_contract.md
+benders_formalization=docs/dp_camp_benders_formalization.md
+atom_audit=docs/dp_camp_benders_compatible_atom_audit.md
+camp_head_at_review_start=8343d4fcf14f3bbfd50de7ae1e0327dd220707e5
+camp_origin_main_at_review_start=8343d4fcf14f3bbfd50de7ae1e0327dd220707e5
+github_refs_heads_main_at_review_start=8343d4fcf14f3bbfd50de7ae1e0327dd220707e5
+autodl_CAMP_HEAD_at_review_start=8343d4fcf14f3bbfd50de7ae1e0327dd220707e5
+autodl_CAMP_origin_main_at_review_start=8343d4fcf14f3bbfd50de7ae1e0327dd220707e5
+autodl_DP_HEAD_at_review_start=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Static Contract Checks
+
+### Default-Off Boundary
+
+```text
+default_off_boundary_passed=True
+validate_training_sufficiency_preflight_enabled_default=False
+enable_flag_required_before_reading_any_manifest=True
+disabled_mode_returns_before_manifest_read=True
+disabled_mode_reads_inputs=False
+disabled_mode_writes_no_training_artifact=True
+```
+
+### Read-Only Manifest Boundary
+
+```text
+read_only_manifest_boundary_passed=True
+enabled_input_source=existing_json_manifests_only
+reads_validated_dataset_summary_json_only=True
+reads_training_split_manifest_json_only=True
+reads_train_only_scale_manifest_json_only=True
+reads_fallback_master_config_json_only=True
+reads_training_command_plan_json_only=True
+output_json_or_markdown_only=True
+writes_only_explicit_output_json_and_output_md=True
+creates_only_explicit_output_json_and_output_md_parent_dirs=True
+subprocess_usage_found=False
+training_command_execution_path_found=False
+diffusion_planner_execution_path_found=False
+candidate_generation_path_found=False
+```
+
+### Fail-Closed Hardening
+
+The review found one schema/name precision issue in the first implementation:
+the preflight used the `dp_camp_v10_14d` schema label but synthetic fixtures
+only listed three atom names. The same gate hardens this to the exact deployed
+14D atom-name order.
+
+```text
+review_identified_hardening_findings=1
+approved_atom_schema=dp_camp_v10_14d
+approved_atom_names_match_dp_camp_v10_14d=True
+approved_atom_name_count=14
+atom_schema_name_hardening_completed=True
+implementation_hardening_completed=True
+unresolved_blocking_contract_findings=0
+```
+
+### Training Sufficiency Boundary
+
+```text
+training_sufficiency_boundary_passed=True
+preflight_implementation_is_not_training=True
+preflight_implementation_is_not_training_sufficiency_claim=True
+ready_for_future_training_authorization_is_not_training_authorization=True
+fallback_dataset_training_sufficiency_claim=False
+camp_retraining_authorized_now=False
+validated_dataset_summary_required=True
+training_split_manifest_required=True
+train_only_scale_manifest_required=True
+fallback_master_config_required=True
+training_command_plan_required=True
+```
+
+### Mathematical Boundary
+
+```text
+score_k(w)=a_k^T w
+affine_score_boundary_preserved=True
+a_k_fixed_before_weight_optimization=True
+a_k_nonnegative_benders_compatible_atoms_only=True
+new_atom_authorized_now=False
+fallback_label_is_not_a_deployed_atom=True
+feasible_master_separation_passed=True
+all_infeasible_records_added_to_feasible_training=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+simplex_master_unchanged=True
+cvar_master_unchanged=True
+l2_regularized_master_unchanged=True
+```
+
+## Findings
+
+```text
+blocking_contract_findings=0
+implementation_hardening_completed=True
+nonblocking_requirements=3
+```
+
+Nonblocking requirements for later gates:
+
+```text
+require_training_split_manifest_plan=True
+require_train_only_scale_manifest_plan=True
+require_training_command_authorization_before_any_training=True
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_passed
+passed=True
+post_implementation_static_contract_review_complete=True
+implementation_hardening_completed=True
+blocking_contract_findings=0
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only
+```
+
+The next gate may only plan the fallback-risk training split manifest. It must not train CAMP, run replay, generate candidates, modify Diffusion Planner, use formal seeds, relax hard feasibility, add all-infeasible records to the feasible-ranking master, promote a selector or atom, or claim safety/CAMP-over-DP benefit.
