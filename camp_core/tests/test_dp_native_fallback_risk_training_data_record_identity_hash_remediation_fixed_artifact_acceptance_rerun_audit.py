@@ -153,5 +153,5 @@ def test_iteration_audit_tail_records_acceptance_rerun_next_gate() -> None:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_holdout_acceptance_static_contract_review`"
     )
