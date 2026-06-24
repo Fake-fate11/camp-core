@@ -90127,3 +90127,164 @@ authorize runtime selector promotion.
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_nonformal_replay_evaluation_user_authorization_pending`
+
+---
+
+### 2026-06-24 - Base Plus Add-On Static DP Reward Nonformal Replay Evaluation Smoke
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_nonformal_replay_evaluation_user_authorized_execution`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_nonformal_replay_evaluation_result.md
+```
+
+Fixed remote artifacts:
+
+```text
+training_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_training_e15feaa_20260624T084652Z
+training_dir=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_training_e15feaa_20260624T084652Z/training
+offline_weights=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_training_e15feaa_20260624T084652Z/training/offline_weights_dp_static.npy
+atom_scales=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_training_e15feaa_20260624T084652Z/training/atom_scales_dp_static.json
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_nonformal_eval_2f9656f_20260624T090404Z
+```
+
+Heads:
+
+```text
+local_HEAD_before_result_commit=2f9656f188d027643573511fb4f8853857af122d
+origin_main_before_result_commit=2f9656f188d027643573511fb4f8853857af122d
+github_refs_heads_main_before_result_commit=2f9656f188d027643573511fb4f8853857af122d
+autodl_CAMP_HEAD=2f9656f188d027643573511fb4f8853857af122d
+autodl_CAMP_origin_main=2f9656f188d027643573511fb4f8853857af122d
+autodl_CAMP_github_main=2f9656f188d027643573511fb4f8853857af122d
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+required_DP_fixed_commit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Authorized evaluation scope actually run:
+
+```text
+script=scripts/integrations/run_diffusion_planner_camp_replay.py
+run_count=2
+runs=sample_normal_seed109_tl_off_static,sample_tl_seed109_tl_on_static
+seeds=109
+steps=3
+num_candidates=4
+candidate_noise_strategy=iid
+candidate_noise_scale=1.0
+selector_mode=static
+feasibility_source=dp_reward
+provenance_logging=True
+weights=offline_weights_dp_static.npy
+atom_scales=atom_scales_dp_static.json
+advance_mode=perfect
+max_npcs=0
+```
+
+Remote result:
+
+```text
+remote_nonformal_eval_summary_passed=True
+remote_all_replay_exits_zero=True
+remote_replay_exit_counts={"0": 2}
+remote_total_selection_records=6
+remote_total_provenance_records=6
+remote_total_prepost_equal_records=6
+remote_total_records_with_feasible_candidate=3
+remote_sample_normal_candidate_feasible_rate=1.0
+remote_sample_normal_fallback_rate=0.0
+remote_sample_tl_candidate_feasible_rate=0.0
+remote_sample_tl_fallback_rate=1.0
+```
+
+Clean-boundary checks:
+
+```text
+nonformal_replay_evaluation_smoke_only=True
+full36_executed=False
+formal_seeds_executed=False
+dp_modified=False
+reference_blend_enabled=False
+guidance_enabled=False
+postprocess_postselection_enabled=False
+closed_loop_outcome_online_input_used=False
+selector_promotion_executed=False
+atom_promotion_executed=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+new_candidate_generator_executed=False
+dp_native_replay_candidate_sampling_executed=True
+```
+
+Remote SHA-256 evidence:
+
+```text
+preflight.json=685f09432e78da2b233dd63c9d65c93c34122bac5370e01c27e7d5538f7c639e
+run_nonformal_eval_smoke.py=38432b930aba817adeadd186eb18197ed006808be63a8cd0a87441cf083f95be
+nonformal_eval_summary.json=3e37c620ae9c545be15f2e62c13c8f1c43687990d5e9a4e84770956b6a8d647f
+nonformal_eval_summary.md=84bc54bfd4f1360079f96c1baa6334e8bfd856549dcfc6416adfb2c77a1f5cdd
+sample_normal_seed109_tl_off_static/replay_exit.txt=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+sample_normal_seed109_tl_off_static/replay_stdout_stderr.log=f5dc4c1d2952921ba4658f6141f63fe49763742eec0370f53543c9966d9e400b
+sample_normal_seed109_tl_off_static/camp_selection_log.json=1fb2cce83d2a9bb08366d16e0d0d9cc8daae81b49169c26f0eeaebe940ab0ab4
+sample_tl_seed109_tl_on_static/replay_exit.txt=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+sample_tl_seed109_tl_on_static/replay_stdout_stderr.log=53c08e9198a1b7b9afe347b087e00e5a796dc46aa7d63849239eec0508ac74a3
+sample_tl_seed109_tl_on_static/camp_selection_log.json=3f6cf3a1d2b02ed0bc4e9a1d9f0bf3971826f837e0c13d229b35e2d34b31b978
+```
+
+Verification:
+
+```text
+remote_nonformal_eval_summary_passed=True
+remote_all_replay_exits_zero=True
+remote_total_provenance_records=6
+remote_total_prepost_equal_records=6
+local_git_diff_check_exit=0
+local_py_compile_exit=0
+direct_windows_repo_pytest_blocked_by_preexisting_unavailable_long_path_node=True
+local_target_pytest=3 passed
+```
+
+Decision:
+
+```text
+status=base_plus_addon_static_dp_reward_nonformal_replay_evaluation_smoke_passed_nonpromotion
+nonformal_replay_evaluation_authorized=True
+nonformal_replay_evaluation_smoke_passed=True
+static_dp_reward_weights_loaded=True
+static_dp_reward_atom_scales_loaded=True
+candidate_tensor_provenance_logging_verified=True
+candidate_tensor_prepost_hash_equal_all_records=True
+sample_tl_zero_feasible_candidate_records_observed=True
+camp_retraining_for_deployment_authorized=False
+camp_retraining_for_deployment_executed=False
+full36_authorized=False
+formal_seed_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This is a nondeployable nonformal smoke. It proves only that the fixed static
+DP-reward training artifact can be exercised in a minimal DP-native replay
+path while preserving candidate tensor provenance. It does not prove
+closed-loop safety, does not prove CAMP beats DP Top-1, does not authorize
+CAMP retraining for deployment, and does not authorize runtime selector or
+atom promotion. The traffic-light smoke still has zero feasible candidates
+under the DP-reward feasibility mask, so broader development evaluation must
+diagnose fallback/feasibility before any later promotion question.
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_user_authorization_pending`
