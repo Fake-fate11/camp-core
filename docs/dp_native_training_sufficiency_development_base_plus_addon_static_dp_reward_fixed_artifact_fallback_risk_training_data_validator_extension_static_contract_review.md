@@ -197,3 +197,42 @@ candidates, train CAMP, retrain CAMP, modify Diffusion Planner, use formal
 seeds, relax hard feasibility, add all-infeasible records to the
 feasible-ranking master, promote a selector or atom, or claim
 safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The validator extension static contract review remains valid after
+current-head validator extension plan revalidation:
+
+```text
+camp_head_at_revalidation=c1474becef3bbccf8b868e575a6d407c6d9091cc
+camp_origin_main_at_revalidation=c1474becef3bbccf8b868e575a6d407c6d9091cc
+github_refs_heads_main_at_revalidation=c1474becef3bbccf8b868e575a6d407c6d9091cc
+autodl_CAMP_HEAD_at_revalidation=c1474becef3bbccf8b868e575a6d407c6d9091cc
+autodl_CAMP_origin_main_at_revalidation=c1474becef3bbccf8b868e575a6d407c6d9091cc
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_current_head_revalidated
+current_accepted_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2
+local_py_compile_exit=0
+local_target_pytest=13 passed
+local_git_diff_check_exit=0
+```
+
+This remains a static-review-only gate:
+
+```text
+user_camp_retraining_permission_available=True
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+```

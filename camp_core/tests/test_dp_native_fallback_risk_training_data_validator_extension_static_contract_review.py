@@ -46,6 +46,13 @@ def test_static_review_passes_source_isolation_contract() -> None:
         assert needle in text
         assert needle in plan
 
+    for needle in [
+        "current_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_current_head_revalidated",
+        "current_accepted_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+    ]:
+        assert needle in text
+
 
 def test_static_review_passes_dataset_and_record_contract() -> None:
     text = _review()
