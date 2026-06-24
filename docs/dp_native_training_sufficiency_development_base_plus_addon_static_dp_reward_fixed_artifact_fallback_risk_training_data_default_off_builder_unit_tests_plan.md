@@ -1,0 +1,170 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Default-Off Builder Unit Tests Plan
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_plan_only
+```
+
+This plan specifies unit tests for a possible future default-off
+fallback-risk training data builder and validator extension. It does not
+implement the builder, run replay, generate candidates, train CAMP, retrain
+CAMP, modify Diffusion Planner, change the online selector, promote a selector
+or atom, or claim safety benefit or CAMP-over-DP Top-1.
+
+## Preconditions
+
+```text
+training_data_design_plan_passed=True
+training_data_design_static_contract_review_passed=True
+blocking_contract_findings=0
+dataset_builder_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+```
+
+## Planned Unit Test Groups
+
+### Default-Off And Read-Only Tests
+
+```text
+test_builder_disabled_does_not_read_missing_root=True
+test_builder_requires_enable_flag_before_reading_logs=True
+test_builder_reports_default_off_status=True
+test_builder_writes_only_explicit_output_paths=True
+test_builder_does_not_run_replay_or_candidate_generation=True
+test_builder_does_not_train_or_modify_dp=True
+```
+
+### Source And Scope Tests
+
+```text
+test_builder_accepts_existing_selection_logs_only=True
+test_builder_accepts_extractor_output_only_as_diagnostic_input=True
+test_builder_filters_records_without_feasible_candidate_only=True
+test_builder_rejects_feasible_branch_records=True
+test_builder_preserves_candidate_count_and_selected_index=True
+test_builder_requires_source_artifact_hash_run_id_record_index=True
+```
+
+### Provenance And Atom Contract Tests
+
+```text
+test_builder_requires_candidate_tensor_provenance=True
+test_builder_rejects_pre_post_tensor_hash_mismatch=True
+test_builder_rejects_candidate_row_append=True
+test_builder_rejects_coordinate_heading_speed_rewrite=True
+test_builder_requires_candidate_generation_contract=True
+test_builder_rejects_reference_blend_guidance_or_dp_weight_changes=True
+test_builder_requires_approved_atom_schema_and_names=True
+test_builder_rejects_negative_or_nonfinite_atoms=True
+```
+
+### Label And Margin Tests
+
+```text
+test_red_light_reason_uses_red_lane_quality_index_order=True
+test_lane_reason_uses_lane_red_quality_index_order=True
+test_other_reason_uses_quality_red_lane_index_order=True
+test_ties_break_by_candidate_index=True
+test_margin_is_fixed_nonnegative_and_clipped=True
+test_selected_index_not_used_as_feature=True
+test_candidate_rank_not_used_as_feature=True
+test_closed_loop_or_future_replanning_labels_rejected=True
+test_missing_required_cost_field_fails_closed=True
+```
+
+### Dataset Output Contract Tests
+
+```text
+test_dataset_schema_version_is_dp_native_fallback_risk_training_data_v1=True
+test_dataset_records_store_atoms_and_normalized_atoms=True
+test_dataset_records_store_oracle_index_and_margin_vector=True
+test_dataset_records_store_nonpromotion_flags=True
+test_dataset_summary_reports_training_not_authorized=True
+test_dataset_summary_reports_feasible_master_unchanged=True
+test_dataset_summary_reports_formal_seeds_excluded=True
+```
+
+### Validator Extension Tests
+
+```text
+test_validator_extension_accepts_clean_fallback_dataset=True
+test_validator_extension_rejects_missing_source_identity=True
+test_validator_extension_rejects_feasible_record_leakage=True
+test_validator_extension_rejects_training_execution_flags=True
+test_validator_extension_rejects_online_selector_promotion_flags=True
+```
+
+## Narrow Test Fixture Requirements
+
+All tests must use synthetic fixed candidate records. They must not read the
+formal seeds, run replay, generate new candidates, call Diffusion Planner, or
+depend on the fixed AutoDL artifact.
+
+```text
+synthetic_records_only=True
+formal_seeds_11_12_13_used=False
+fixed_autodl_artifact_required_for_unit_tests=False
+replay_required_for_unit_tests=False
+candidate_generation_required_for_unit_tests=False
+training_required_for_unit_tests=False
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+dataset_builder_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_default_off_builder_unit_tests_plan_ready
+passed=True
+default_off_builder_unit_tests_plan_complete=True
+dataset_builder_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_only
+```
+
+The next gate may only add default-off unit tests that pin the planned builder
+and validator-extension contracts. It must not implement the builder, run
+replay, generate candidates, train CAMP, retrain CAMP, modify Diffusion
+Planner, use formal seeds, relax hard feasibility, add all-infeasible records
+to the feasible-ranking master, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.
