@@ -88566,3 +88566,71 @@ duplicate code change.
 Next admissible gate:
 
 `dp_native_candidate_tensor_provenance_payload_current_head_static_contract_revalidation_only`
+
+## DP native candidate tensor provenance payload current-head static contract revalidation
+
+Gate:
+
+`dp_native_candidate_tensor_provenance_payload_current_head_static_contract_revalidation_only`
+
+Artifact:
+
+```text
+docs/dp_native_candidate_tensor_provenance_payload_current_head_static_contract_revalidation.md
+```
+
+Current heads:
+
+```text
+local_HEAD=b76b90b4aa335e34be501a5fc100c5fd5d53ca21
+origin_main=b76b90b4aa335e34be501a5fc100c5fd5d53ca21
+github_refs_heads_main=b76b90b4aa335e34be501a5fc100c5fd5d53ca21
+autodl_CAMP_HEAD=b76b90b4aa335e34be501a5fc100c5fd5d53ca21
+autodl_CAMP_origin_main=b76b90b4aa335e34be501a5fc100c5fd5d53ca21
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Static contract checks:
+
+```text
+flag=--camp_candidate_tensor_provenance_logging
+default_off=True
+schema_version=dp_native_candidate_tensor_provenance_payload_v1
+pre_camp_scoring_tensor_hash_required=True
+post_camp_selector_tensor_hash_required=True
+pre_post_tensor_hash_equal_required=True
+selected_index_in_range_required=True
+candidate_count_unchanged_required=True
+no_candidate_row_append_required=True
+no_coordinate_heading_speed_rewrite_by_camp_required=True
+online_selector_outcome_label_input_forbidden=True
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_pytest_default_root_exit=1
+local_pytest_default_root_blocker=existing Windows long-path collection error before target tests ran
+local_short_path_target_pytest=48 passed in 1.81s
+```
+
+Decision:
+
+```text
+status=current_head_static_contract_revalidation_passed
+default_off_provenance_payload_present=True
+immutable_candidate_tensor_contract_revalidated=True
+replay_executed=False
+candidate_generation_executed=False
+camp_retraining_executed=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_candidate_tensor_provenance_payload_artifact_audit_only`
