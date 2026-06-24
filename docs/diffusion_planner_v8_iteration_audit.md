@@ -102785,7 +102785,10 @@ local_py_compile_exit=0
 local_target_pytest=6 passed
 local_master_command_builder_pytest=6 passed
 local_related_target_pytest=89 passed
-autodl_verification_pending=True
+autodl_verified_camp_head=e2d8afffffdf0594d20c48b506d9651b2d585d37
+autodl_py_compile_exit=0
+autodl_target_pytest=89 passed
+autodl_git_diff_check_exit=0
 ```
 
 Forbidden remains:
