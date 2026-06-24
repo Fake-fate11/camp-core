@@ -30,6 +30,9 @@ def test_authorization_records_reviewed_evidence_and_preconditions() -> None:
         "autodl_fallback_risk_pytest=118 passed",
         "dp_fixed_commit_verified=True",
         "autodl_DP_HEAD_at_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_current_head_revalidated",
+        "autodl_target_pytest=10 passed",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 

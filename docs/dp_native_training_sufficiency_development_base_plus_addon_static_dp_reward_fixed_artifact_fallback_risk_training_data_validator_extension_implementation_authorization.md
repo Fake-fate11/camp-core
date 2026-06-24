@@ -143,3 +143,48 @@ candidates, train CAMP, retrain CAMP, modify Diffusion Planner, use formal
 seeds, relax hard feasibility, add all-infeasible records to the
 feasible-ranking master, promote a selector or atom, or claim
 safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+This authorization-only artifact remains valid after current-head validator
+extension unit-test contract revalidation:
+
+```text
+camp_head_at_revalidation=88d71e1888ab02f0be3feb072bbfb62514a15751
+camp_origin_main_at_revalidation=88d71e1888ab02f0be3feb072bbfb62514a15751
+github_refs_heads_main_at_revalidation=88d71e1888ab02f0be3feb072bbfb62514a15751
+autodl_CAMP_HEAD_at_revalidation=88d71e1888ab02f0be3feb072bbfb62514a15751
+autodl_CAMP_origin_main_at_revalidation=88d71e1888ab02f0be3feb072bbfb62514a15751
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_current_head_revalidated
+local_py_compile_exit=0
+local_target_pytest=10 passed
+local_git_diff_check_exit=0
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=10 passed
+autodl_git_diff_check_exit=0
+```
+
+User-level CAMP retraining permission is available for a later training
+execution gate, but this authorization still only permits the next
+default-off/read-only validator implementation gate:
+
+```text
+user_camp_retraining_permission_available=True
+implementation_authorized=True
+fallback_risk_training_data_validator_extension_implementation_authorized=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+```
