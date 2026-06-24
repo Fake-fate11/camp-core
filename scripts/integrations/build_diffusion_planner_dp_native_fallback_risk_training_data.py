@@ -274,13 +274,21 @@ def _build_record(
     ]
     if errors:
         return {}, errors
+    run_id = record.get("run_id") or source_log.parent.name
+    output_record_index = record.get("record_index", record_index)
     return {
         "schema_version": DATASET_SCHEMA_VERSION,
         "source_log": str(source_log),
         "source_log_sha256": source_log_sha256,
         "source_artifact_sha256": record.get("source_artifact_sha256", source_log_sha256),
-        "run_id": record.get("run_id") or source_log.parent.name,
-        "record_index": record.get("record_index", record_index),
+        "run_id": run_id,
+        "record_index": output_record_index,
+        "record_identity_hash": _record_identity_hash(
+            source_log=str(source_log),
+            source_log_sha256=source_log_sha256,
+            run_id=run_id,
+            record_index=output_record_index,
+        ),
         "selection_step": record.get("selection_step"),
         "candidate_count": candidate_count,
         "selected_index": selected_index,
@@ -563,6 +571,26 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _record_identity_hash(
+    *,
+    source_log: str,
+    source_log_sha256: str,
+    run_id: Any,
+    record_index: Any,
+) -> str:
+    identity = {
+        "source_log": source_log,
+        "source_log_sha256": source_log_sha256,
+        "run_id": run_id,
+        "record_index": record_index,
+    }
+    return _sha256_text(json.dumps(identity, sort_keys=True, separators=(",", ":")))
+
+
+def _sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def render_markdown(report: dict[str, Any]) -> str:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -134,6 +135,18 @@ def _write_log(tmp_path: Path, records: list[dict[str, object]]) -> Path:
     return log_path
 
 
+def _record_identity_hash(record: dict[str, object]) -> str:
+    identity = {
+        "source_log": record.get("source_log"),
+        "source_log_sha256": record.get("source_log_sha256"),
+        "run_id": record.get("run_id"),
+        "record_index": record.get("record_index"),
+    }
+    return hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
 def test_builder_is_default_off_and_does_not_read_missing_log(tmp_path: Path) -> None:
     report = build_training_data_report(
         selection_logs=[tmp_path / "missing.json"],
@@ -168,6 +181,7 @@ def test_builder_enabled_builds_all_infeasible_records_and_skips_feasible(
     assert report["record_counts"]["records_with_feasible_candidate"] == 1
     assert report["record_counts"]["records_without_feasible_candidate"] == 1
     assert report["record_counts"]["records_built"] == 1
+    assert built["record_identity_hash"] == _record_identity_hash(built)
     assert built["oracle_index"] == 1
     assert built["oracle_policy"] == ["red", "lane", "quality"]
     assert built["training_authorized"] is False

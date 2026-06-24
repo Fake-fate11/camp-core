@@ -55,6 +55,18 @@ def _hex(char: str = "a") -> str:
     return char * 64
 
 
+def _record_identity_hash(record: dict[str, Any]) -> str:
+    identity = {
+        "source_log": record.get("source_log"),
+        "source_log_sha256": record.get("source_log_sha256"),
+        "run_id": record.get("run_id"),
+        "record_index": record.get("record_index"),
+    }
+    return hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
 def _nonnegative_matrix(candidate_count: int, atom_dim: int) -> list[list[float]]:
     return [
         [0.1 * float(candidate_index + atom_index + 1) for atom_index in range(atom_dim)]
@@ -164,6 +176,7 @@ def _dataset(tmp_path: Path) -> dict[str, Any]:
         "candidate_rank_used_as_feature": False,
         "fallback_label_is_not_a_deployed_atom": True,
     }
+    record["record_identity_hash"] = _record_identity_hash(record)
     decision = {
         "status": COMPLETE_STATUS,
         "passed": True,
@@ -256,6 +269,10 @@ def _validate_dataset_record(
     errors.extend(_validate_costs(record.get("costs"), candidate_count))
     errors.extend(_validate_numbers(record.get("margins"), candidate_count, "margins"))
     errors.extend(_validate_atoms(record, candidate_count))
+    if "record_identity_hash" not in record:
+        errors.append("record_identity_hash_missing")
+    elif record.get("record_identity_hash") != _record_identity_hash(record):
+        errors.append("record_identity_hash_mismatch")
     for field, expected in (
         ("training_authorized", False),
         ("selected_index_used_as_feature", False),
@@ -517,6 +534,20 @@ def test_reference_contract_rejects_source_log_readback_failures(tmp_path: Path)
     dataset["source_hashes"][str(source_log)] = sha
     errors = _validate_dataset_contract(dataset)
     assert "source_feasible_mask_non_bool" in errors
+
+
+def test_reference_contract_rejects_missing_or_mismatched_record_identity_hash(
+    tmp_path: Path,
+) -> None:
+    dataset = _dataset(tmp_path)
+    dataset["records"][0].pop("record_identity_hash")
+    errors = _validate_dataset_contract(dataset)
+    assert "record_identity_hash_missing" in errors
+
+    dataset = _dataset(tmp_path)
+    dataset["records"][0]["record_identity_hash"] = _hex("f")
+    errors = _validate_dataset_contract(dataset)
+    assert "record_identity_hash_mismatch" in errors
 
 
 def test_reference_contract_rejects_record_margin_index_and_atom_failures(tmp_path: Path) -> None:

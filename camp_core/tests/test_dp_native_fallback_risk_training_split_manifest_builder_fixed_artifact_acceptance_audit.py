@@ -147,10 +147,16 @@ def test_iteration_audit_tail_records_current_acceptance_audit_next_gate() -> No
     for needle in [
         "status=fallback_risk_training_data_record_identity_hash_remediation_authorized",
         "record_identity_hash_remediation_authorized=True",
+    ]:
+        assert needle in audit
+
+    for needle in [
+        "status=fallback_risk_training_data_record_identity_hash_remediation_implemented",
+        "record_identity_hash_remediation_implemented=True",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_implementation_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_only`"
     )

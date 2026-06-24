@@ -66,8 +66,8 @@ def test_authorization_is_grounded_in_current_static_contract_gap() -> None:
 
     assert '"record_identity_hash",' in split_builder
     assert "def _record_identity_hash(record: dict[str, Any]) -> str:" in split_builder
-    assert '"record_identity_hash"' not in data_builder
-    assert "record_identity_hash" not in validator
+    assert '"record_identity_hash": _record_identity_hash(' in data_builder
+    assert "def _record_identity_hash(record: dict[str, Any]) -> str:" in validator
 
 
 def test_authorization_allows_only_minimal_builder_and_validator_remediation() -> None:
@@ -144,7 +144,8 @@ def test_authorization_decision_and_next_gate_are_implementation_only() -> None:
 
 
 def test_iteration_audit_tail_records_record_identity_authorization_next_gate() -> None:
-    tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-140:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-160:])
 
     for needle in [
         "status=fallback_risk_training_data_record_identity_hash_remediation_authorized",
@@ -154,8 +155,15 @@ def test_iteration_audit_tail_records_record_identity_authorization_next_gate() 
         "autodl_target_pytest=29 passed",
         "camp_retraining_authorized_now=False",
     ]:
+        assert needle in audit
+
+    for needle in [
+        "status=fallback_risk_training_data_record_identity_hash_remediation_implemented",
+        "record_identity_hash_remediation_implemented=True",
+        "fixed_artifact_rebuild_authorized_now=False",
+    ]:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_implementation_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_only`"
     )

@@ -264,6 +264,12 @@ def _validate_record(
     errors.extend(_validate_atoms(record, candidate_count, prefix="record"))
     if not _is_hex_sha(record.get("source_artifact_sha256")):
         errors.append("source_artifact_sha256_invalid")
+    if "record_identity_hash" not in record:
+        errors.append("record_identity_hash_missing")
+    elif not _is_hex_sha(record.get("record_identity_hash")):
+        errors.append("record_identity_hash_invalid")
+    elif record.get("record_identity_hash") != _record_identity_hash(record):
+        errors.append("record_identity_hash_mismatch")
     for field, expected in (
         ("training_authorized", False),
         ("selected_index_used_as_feature", False),
@@ -525,6 +531,20 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _record_identity_hash(record: dict[str, Any]) -> str:
+    identity = {
+        "source_log": record.get("source_log"),
+        "source_log_sha256": record.get("source_log_sha256"),
+        "run_id": record.get("run_id"),
+        "record_index": record.get("record_index"),
+    }
+    return _sha256_text(json.dumps(identity, sort_keys=True, separators=(",", ":")))
+
+
+def _sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def render_markdown(report: dict[str, Any]) -> str:

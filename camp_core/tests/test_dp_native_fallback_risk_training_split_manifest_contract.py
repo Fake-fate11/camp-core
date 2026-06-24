@@ -631,11 +631,14 @@ def test_manifest_pins_deterministic_policy_and_forbids_random_inputs() -> None:
 
 
 def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> None:
-    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-160:])
 
-    assert "status=fallback_risk_training_split_manifest_unit_tests_current_head_revalidated" in tail
-    assert "local_target_pytest=8 passed" in tail
-    assert "training_execution_authorized_now=False" in tail
+    assert "status=fallback_risk_training_split_manifest_unit_tests_current_head_revalidated" in audit
+    assert "local_target_pytest=8 passed" in audit
+    assert "training_execution_authorized_now=False" in audit
+    assert "status=fallback_risk_training_data_record_identity_hash_remediation_authorized" in audit
+    assert "status=fallback_risk_training_data_record_identity_hash_remediation_implemented" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_only`"
     )

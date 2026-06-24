@@ -37,6 +37,18 @@ def _hex(char: str = "a") -> str:
     return char * 64
 
 
+def _record_identity_hash(record: dict[str, Any]) -> str:
+    identity = {
+        "source_log": record.get("source_log"),
+        "source_log_sha256": record.get("source_log_sha256"),
+        "run_id": record.get("run_id"),
+        "record_index": record.get("record_index"),
+    }
+    return hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
 def _source_record(
     *,
     feasible_mask: list[Any] | None = None,
@@ -122,6 +134,7 @@ def _dataset(tmp_path: Path) -> Path:
         "candidate_rank_used_as_feature": False,
         "fallback_label_is_not_a_deployed_atom": True,
     }
+    record["record_identity_hash"] = _record_identity_hash(record)
     decision = {
         "status": BUILDER_COMPLETE_STATUS,
         "passed": True,
@@ -255,6 +268,30 @@ def test_validator_rejects_source_log_readback_failures(tmp_path: Path) -> None:
 
     report = validate_fallback_risk_training_data(dataset_json=dataset, enabled=True)
     assert any("source_feasible_mask_any_true" in item for item in report["final_decision"]["errors"])
+
+
+def test_validator_rejects_missing_or_mismatched_record_identity_hash(tmp_path: Path) -> None:
+    dataset = _dataset(tmp_path)
+    payload = _load(dataset)
+    payload["records"][0].pop("record_identity_hash")
+    dataset.write_text(json.dumps(payload), encoding="utf-8")
+
+    report = validate_fallback_risk_training_data(dataset_json=dataset, enabled=True)
+    assert any(
+        "record_identity_hash_missing" in item
+        for item in report["final_decision"]["errors"]
+    )
+
+    dataset = _dataset(tmp_path)
+    payload = _load(dataset)
+    payload["records"][0]["record_identity_hash"] = _hex("f")
+    dataset.write_text(json.dumps(payload), encoding="utf-8")
+
+    report = validate_fallback_risk_training_data(dataset_json=dataset, enabled=True)
+    assert any(
+        "record_identity_hash_mismatch" in item
+        for item in report["final_decision"]["errors"]
+    )
 
 
 def test_validator_rejects_record_margin_atom_index_and_promotion_flags(tmp_path: Path) -> None:
