@@ -86199,3 +86199,149 @@ fixed attribution evidence above. It may not execute candidate generation, run
 another screen, run replay, use formal seeds, expand to Full36, train CAMP,
 promote atoms, change the online selector, claim safety benefit, claim CAMP is
 better than DP Top-1, or modify DP.
+
+## 2026-06-24 - DP-native candidate reranking design plan after materialized generator rejection
+
+Gate:
+
+`dp_native_candidate_reranking_design_plan_only_after_materialized_generator_rejection`.
+
+Read-only synchronization at gate start:
+
+```text
+local HEAD=b330901dbaae6a96bcc98ee7f3e42b4202b40d78
+local origin/main=b330901dbaae6a96bcc98ee7f3e42b4202b40d78
+github refs/heads/main=b330901dbaae6a96bcc98ee7f3e42b4202b40d78
+autodl CAMP HEAD=b330901dbaae6a96bcc98ee7f3e42b4202b40d78
+autodl CAMP origin/main=b330901dbaae6a96bcc98ee7f3e42b4202b40d78
+autodl DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl DP status=clean
+```
+
+Scope:
+
+This gate corrected the next work direction after rejecting the v4 materialized
+generator route. CAMP's deployable integration objective is DP-native candidate
+reranking: the selected output must be one of the original fixed DP candidate
+indices. CAMP-side generated, materialized, spliced, lane-projected, red-rewrite,
+or otherwise trajectory-mutated candidates may only be used as offline diagnostic
+or negative evidence, not as positive CAMP-over-DP evidence.
+
+Existing evidence anchors consumed by the plan:
+
+```text
+materialized_generator_rejected_line=86015
+candidate_tensor_available_line=59223
+candidate_tensor_dp_native_boundary_line=59233
+fixed_dp_candidate_pool_opportunity_line=48036
+selector_equivalence_exact_line=46672
+selector_equivalence_numeric_line=46673
+dp_fixed_tail_line=84491
+```
+
+Local verification:
+
+```text
+local HEAD=b330901dbaae6a96bcc98ee7f3e42b4202b40d78
+local origin/main=b330901dbaae6a96bcc98ee7f3e42b4202b40d78
+python -m py_compile scripts/integrations/plan_diffusion_planner_dp_native_candidate_reranking_after_materialized_generator_rejection.py camp_core/tests/test_diffusion_planner_dp_native_candidate_reranking_design_plan.py
+PYTHONPATH=F:\camp_core-main python -m pytest Y:\test_diffusion_planner_dp_native_candidate_reranking_design_plan.py -q --rootdir=Y:\
+6 passed in 0.58s
+local_analysis_root=F:\camp_core-main\analysis_bundles\dp_native_candidate_reranking_design_plan_b330901
+local_analysis_EXIT_CODE=0
+```
+
+Local analysis artifact hashes:
+
+```text
+dp_native_candidate_reranking_design_plan.json=2c86888b356666971f9751a057945f0dc8198a08c8ed3081c937088399f6dc14
+dp_native_candidate_reranking_design_plan.md=e3991d3cff04b1582a1077ac17ae6c7cb0f42a4f7ae48924743a68d777f9f3a8
+DP_NATIVE_RERANKING_DESIGN_PLAN.log=2c7c0af67fda652fb76da7fab8dbc7681b9a1cfb1594cd917584c0a248ad7fc7
+DP_NATIVE_RERANKING_DESIGN_PLAN.err=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+EXIT_CODE=59329e6e34621dcc1dbc8c625c61774c7c88912bdccb43d75ab48244e555382f
+HEADS.txt=e76487fc85d5a17f3a8bacb326f89e7c117976dc999843a25556d5e854531845
+```
+
+AutoDL verification:
+
+```text
+autodl CAMP HEAD=b330901dbaae6a96bcc98ee7f3e42b4202b40d78
+autodl CAMP origin/main=b330901dbaae6a96bcc98ee7f3e42b4202b40d78
+autodl DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_dp_native_candidate_reranking_after_materialized_generator_rejection.py camp_core/tests/test_diffusion_planner_dp_native_candidate_reranking_design_plan.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_dp_native_candidate_reranking_design_plan.py -q
+6 passed in 0.02s
+autodl_analysis_root=/root/autodl-tmp/camp_dp_dp_native_candidate_reranking_design_plan_b330901
+autodl_analysis_EXIT_CODE=0
+```
+
+AutoDL analysis artifact hashes:
+
+```text
+dp_native_candidate_reranking_design_plan.json=430ece97464d02cdf069f7ab20cc30199504ee8f9a4f7dc17e9c001bbe18d673
+dp_native_candidate_reranking_design_plan.md=f6819310f5ecdc9c0f8ef95de64f7ec4633892f49abb765d004cafa5da57ff40
+DP_NATIVE_RERANKING_DESIGN_PLAN.log=85c79db8165e22a8d329b6c2a9cb4b8dd76541de77331803ad7bedc5b9affddd
+DP_NATIVE_RERANKING_DESIGN_PLAN.err=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+EXIT_CODE=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+HEADS.txt=8f39119a6d247316efb663c9d67e7b4157d223810075a551eaa70de8dfd417a1
+```
+
+Design-plan result:
+
+```text
+status=dp_native_candidate_reranking_design_plan_ready
+passed=True
+authorized_next_work=dp_native_candidate_reranking_fixed_artifact_evidence_audit_only
+candidate_generation_execution_authorized=False
+trajectory_rewrite_authorized=False
+candidate_tensor_mutation_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+atom_promotion_authorized=False
+online_selector_promotion_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+failed_checks=[]
+```
+
+DP-native reranking success criteria for the next evidence gate:
+
+```text
+1. selected output is an index k from the original DP candidate tensor: 0 <= k < candidate_count
+2. candidate tensor shape, hash, and candidate_count are unchanged before and after CAMP evaluation
+3. no candidate row is added and no trajectory coordinate, heading, speed, or postprocess output is mutated
+4. CAMP reads only DP-native current/logged candidate features, atoms, scores, selection_scores, feasible_mask, and infeasibility_reasons
+5. selected_index mutation is false and selector-equivalence fields remain exact for selected_index, feasible_mask, scores, selection_scores, atoms, and normalized_atoms when the gate is diagnostic-only
+6. DP code, config, weights, and HEAD remain fixed at 7a1d33da277a1992ec474b5383a0c963c72e04e4
+7. any later benefit claim must be based only on DP-native candidate re-selection, not CAMP-side generated or rewritten trajectories
+```
+
+Mathematical boundary:
+
+This design gate read only the completed materialized-generator failure
+attribution and audit evidence. It did not create or rewrite trajectories,
+append candidates, rerun screens, run DP, run replay, use formal seeds, train
+CAMP, define or promote atoms, choose lambda online, change online selection,
+alter `score_k(w)=a_k^T w`, mutate the convex simplex/CVaR/L2 master, modify DP
+weights/code/config, claim safety benefit, or claim CAMP over DP Top-1.
+
+Decision:
+
+Accept the DP-native candidate reranking design plan. The v4 materialized
+generator rejection is now explicitly a negative diagnostic result, not a route
+for deployable CAMP evidence. The admissible CAMP/DP integration path is fixed
+DP candidate-set reranking only: CAMP may select among existing DP candidate
+indices, but may not add or rewrite trajectories for positive evidence.
+
+Next admissible gate:
+
+`dp_native_candidate_reranking_fixed_artifact_evidence_audit_only`.
+
+This next gate may only audit fixed DP-native candidate artifacts and produce a
+read-only evidence report. It may not execute candidate generation, rewrite
+trajectories, run another screen, run replay, use formal seeds, expand to Full36,
+train CAMP, promote atoms, change the online selector, claim safety benefit,
+claim CAMP is better than DP Top-1, or modify DP.
