@@ -89014,3 +89014,90 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_preflight_artifact_audit_only`
+
+## DP native training sufficiency preflight artifact audit
+
+Gate:
+
+`dp_native_training_sufficiency_preflight_artifact_audit_only`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_preflight_artifact_audit.md
+```
+
+Fixed input:
+
+```text
+source_artifact=/root/autodl-tmp/camp_dp_native_clean_training_log_broader_nonformal_4967c531_20260624T054110Z
+selection_log_count=12
+label_source=dp_reward
+reward_key=quality_without_progress
+reward_progress_weight=2.0
+```
+
+Heads:
+
+```text
+local_HEAD=4dec4d270bcbb7144f3b60ae999f3d05b37a0921
+origin_main=4dec4d270bcbb7144f3b60ae999f3d05b37a0921
+github_refs_heads_main=4dec4d270bcbb7144f3b60ae999f3d05b37a0921
+autodl_CAMP_HEAD=4dec4d270bcbb7144f3b60ae999f3d05b37a0921
+autodl_CAMP_origin_main=4dec4d270bcbb7144f3b60ae999f3d05b37a0921
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Remote artifact:
+
+```text
+run_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_preflight_artifact_audit_4dec4d2_20260624T072311Z
+validator_exit=1
+validator_exit_expected=True
+report_passed=False
+records=36
+routes={"sample_normal": 18, "sample_tl": 18}
+seeds={"101": 12, "102": 12, "103": 12}
+traffic_lights={"off": 18, "on": 18}
+candidate_count_values={"4": 36}
+formal_seed_records=0
+failed_checks=["records_at_least_min", "routes_at_least_min", "seeds_at_least_min"]
+clean_contract_passed=True
+label_source_records_present=True
+```
+
+Remote SHA-256 evidence:
+
+```text
+heads.json=1f8e43ff9c19c6d4cb3d39a18ef12e13f8cb0a3f6d1838d6179d3750ade274c0
+preflight_command.json=bea8d134588f54e53b1878f0a5a395a35a2534feb6bacc2b1161ff0c6636ca9f
+preflight_exit.txt=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865
+preflight_report.json=7fb3328894a080ab6012ead5a3847bbb3742a4e6cfac1159e4fc9307fa875c9d
+preflight_report.md=0812d28939e79d343dc1e4a7202a54652032abe244cdc345d6e7d4c1cdc303f2
+preflight_stdout_stderr.log=0b110e06da69a89156b5576ad4748e819d457df4a6e59ea580c694367dab42ca
+```
+
+Decision:
+
+```text
+status=training_sufficiency_preflight_artifact_audit_passed_fail_closed
+preflight_artifact_fixed=True
+preflight_artifact_sha_verified=True
+current_artifact_fails_development_minimal_profile=True
+failure_class=coverage_gap
+hard_blocking_reasons=["records_at_least_min", "routes_at_least_min", "seeds_at_least_min"]
+training_execution_authorized=False
+camp_retraining_authorized=False
+collection_replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_profile_plan_only`
