@@ -129,3 +129,35 @@ The next gate may only implement the minimal default-off read-only extractor and
 its targeted synthetic tests. It must not run replay, generate candidates, train
 CAMP, retrain CAMP, modify DP, use formal seeds, promote a selector or atom, or
 claim safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The authorization remains valid after current-head default-off contract test
+revalidation:
+
+```text
+camp_head_at_revalidation=c6ac107f18f911fe183765ab09e7c5698a801e7b
+camp_origin_main_at_revalidation=c6ac107f18f911fe183765ab09e7c5698a801e7b
+github_refs_heads_main_at_revalidation=c6ac107f18f911fe183765ab09e7c5698a801e7b
+autodl_CAMP_HEAD_at_revalidation=c6ac107f18f911fe183765ab09e7c5698a801e7b
+autodl_CAMP_origin_main_at_revalidation=c6ac107f18f911fe183765ab09e7c5698a801e7b
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_unit_tests_status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated
+default_off_contract_tests_pinned=True
+```
+
+This revalidation authorizes only the already scoped implementation gate:
+
+```text
+implementation_authorized=True
+fallback_risk_extractor_implementation_authorized=True
+default_off_required=True
+read_only_selection_log_input_only=True
+training_authorized=False
+fallback_risk_training_authorized_now=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+production_selector_change_authorized=False
+```
