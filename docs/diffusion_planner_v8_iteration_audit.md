@@ -101274,7 +101274,9 @@ Verification:
 local_python=py -3.12
 local_target_pytest=7 passed
 autodl_python=/root/miniconda3/envs/camp/bin/python
-autodl_target_pytest=pending_remote_sync
+autodl_verified_camp_head=49a9439edffc7abf610097a71df6cefdd6bcceac
+autodl_target_pytest=7 passed
+autodl_git_diff_check_exit=0
 ```
 
 Forbidden remains:
