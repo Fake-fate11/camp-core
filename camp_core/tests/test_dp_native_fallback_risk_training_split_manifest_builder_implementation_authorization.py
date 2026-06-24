@@ -9,6 +9,7 @@ AUTH_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization.md"
 )
+AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _auth() -> str:
@@ -25,10 +26,13 @@ def test_split_builder_authorization_records_preconditions_and_verified_tests() 
         "split_manifest_contract_tests_pinned=True",
         "blocking_contract_findings=0",
         "validated_fallback_records=15",
-        "local_split_manifest_contract_pytest=7 passed",
-        "local_fallback_risk_pytest=202 passed",
-        "autodl_split_manifest_contract_pytest=7 passed",
-        "autodl_fallback_risk_pytest=202 passed",
+        "validated_fallback_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
+        "validator_output_sha256=276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078",
+        "split_manifest_unit_tests_tail_status=fallback_risk_training_split_manifest_unit_tests_current_head_revalidated",
+        "camp_head_at_authorization=08d133344f6937e61d0a629bdf56cb998f15fa6f",
+        "local_split_manifest_contract_pytest=8 passed",
+        "autodl_split_manifest_contract_pytest=8 passed",
+        "broad_fallback_risk_pytest_not_claimed=True",
         "dp_fixed_commit_verified=True",
     ]:
         assert needle in text
@@ -80,6 +84,7 @@ def test_split_builder_authorization_keeps_generation_training_dp_and_claims_for
         "fixed_artifact_manifest_generation_authorized=False",
         "training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
         "fallback_risk_training_authorized_now=False",
+        "training_execution_authorized_now=False",
         "camp_retraining_authorized_now=False",
         "replay_authorized=False",
         "candidate_generation_authorized=False",
@@ -128,3 +133,17 @@ def test_split_builder_authorization_next_gate_is_implementation_only() -> None:
         "promote",
     ]:
         assert needle in text
+
+
+def test_audit_tail_records_split_manifest_builder_implementation_next_gate() -> None:
+    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
+
+    assert (
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_revalidated"
+        in tail
+    )
+    assert "local_target_pytest=6 passed" in tail
+    assert "training_execution_authorized_now=False" in tail
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only`"
+    )
