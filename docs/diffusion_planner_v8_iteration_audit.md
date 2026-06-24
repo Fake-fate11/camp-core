@@ -101208,3 +101208,109 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Split Manifest Plan Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only
+```
+
+Revalidated the fallback-risk training split manifest plan against the current
+accepted dataset sha and the current preflight static-contract tail authority.
+This gate is plan-only: it did not generate a split manifest, train or retrain
+CAMP, run replay, generate candidates, modify Diffusion Planner, change the
+online selector, promote a selector or atom, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+```text
+plan_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan.md
+plan_test=camp_core/tests/test_dp_native_fallback_risk_training_split_manifest_plan.py
+validated_fallback_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2
+validated_fallback_records=15
+preflight_tail_authority_status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_tail_revalidated
+camp_head=b80f5e55b5d6e2124905bacef5ee554c47419954
+camp_origin_main=b80f5e55b5d6e2124905bacef5ee554c47419954
+github_refs_heads_main=b80f5e55b5d6e2124905bacef5ee554c47419954
+autodl_CAMP_HEAD=b80f5e55b5d6e2124905bacef5ee554c47419954
+autodl_CAMP_origin_main=b80f5e55b5d6e2124905bacef5ee554c47419954
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Plan boundary:
+
+```text
+manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1
+manifest_input=existing_validated_fallback_risk_training_dataset_json_only
+records_scope=records_without_feasible_candidate_only
+group_key_fields=source_log,run_id,record_index
+split_units=record_identity_groups
+training_groups_disjoint_from_validation_groups=True
+formal_seeds_11_12_13_excluded=True
+formal_eval_artifact_excluded=True
+split_policy=sha256(record_identity_hash + split_salt)
+split_salt=fallback_risk_training_split_v1
+validation_fraction_target=0.2
+```
+
+Training authorization boundary:
+
+```text
+user_camp_retraining_permission_available=True
+training_command_authorization_required_before_training=True
+training_split_manifest_builder_authorized=False
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized_now=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_target_pytest=7 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_target_pytest=pending_remote_sync
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_split_manifest_plan_current_head_revalidated
+passed=True
+training_split_manifest_plan_complete=True
+manifest_not_generated=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_static_contract_review_only`

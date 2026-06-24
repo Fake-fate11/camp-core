@@ -9,6 +9,7 @@ PLAN_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan.md"
 )
+AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _plan() -> str:
@@ -19,8 +20,10 @@ def test_split_manifest_plan_records_validated_dataset_and_no_generation() -> No
     text = _plan()
 
     for needle in [
-        "validated_fallback_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf",
+        "validated_fallback_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
         "validated_fallback_records=15",
+        "preflight_tail_authority_status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_tail_revalidated",
+        "camp_head_at_plan=b80f5e55b5d6e2124905bacef5ee554c47419954",
         "manifest_input=existing_validated_fallback_risk_training_dataset_json_only",
         "records_scope=records_without_feasible_candidate_only",
         "candidate_generation_authorized=False",
@@ -72,6 +75,8 @@ def test_split_manifest_plan_requires_default_off_builder_and_preflight_fields()
         "output_json_or_markdown_only=True",
         "training_split_manifest_json_required=True",
         "preflight_compatible_fields_required=True",
+        "user_camp_retraining_permission_available=True",
+        "training_command_authorization_required_before_training=True",
         "top_level_fields=schema_version,dataset_sha256,validator_output_sha256,split_policy,split_salt,group_key_fields,training_groups,validation_groups,record_assignments,record_counts,final_decision",
     ]:
         assert needle in text
@@ -111,3 +116,14 @@ def test_split_manifest_plan_next_gate_is_static_review_only() -> None:
         "modify Diffusion Planner",
     ]:
         assert needle in text
+
+
+def test_audit_tail_records_split_manifest_static_review_next_gate() -> None:
+    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
+
+    assert "status=fallback_risk_training_split_manifest_plan_current_head_revalidated" in tail
+    assert "local_target_pytest=7 passed" in tail
+    assert "training_execution_authorized_now=False" in tail
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_static_contract_review_only`"
+    )
