@@ -1,0 +1,211 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Validator Extension Plan
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only
+```
+
+This plan defines a future read-only validator extension for fallback-risk
+training dataset artifacts. It does not implement the validator, run replay,
+generate candidates, train CAMP, retrain CAMP, modify Diffusion Planner, change
+the online selector, promote a selector or atom, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+## Preconditions
+
+```text
+builder_post_implementation_static_contract_passed=True
+fixed_artifact_acceptance_audit_passed=True
+accepted_fallback_records=15
+accepted_dataset_schema_version=dp_native_fallback_risk_training_data_v1
+accepted_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+formal_seeds_11_12_13_used=False
+camp_head_at_plan=86a9d19bdd9375d216eddb69ee820ee46e37bca4
+camp_origin_main_at_plan=86a9d19bdd9375d216eddb69ee820ee46e37bca4
+autodl_CAMP_HEAD_at_plan=86a9d19bdd9375d216eddb69ee820ee46e37bca4
+autodl_CAMP_origin_main_at_plan=86a9d19bdd9375d216eddb69ee820ee46e37bca4
+autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Planned Validator Scope
+
+The validator extension should be a read-only artifact checker. It may be a
+new script or a narrow extension to the existing clean DP-native training-data
+validator, but it must keep fallback-risk datasets separate from feasible
+ranking training logs.
+
+```text
+validator_input=existing_fallback_risk_training_dataset_json_only
+optional_source_log_readback=True
+source_log_readback_required_for_acceptance=True
+source_log_readback_mode=read_only_source_log_sha256_and_record_index_check
+output_json_or_markdown_only=True
+replay_execution_authorized=False
+candidate_generation_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+```
+
+## Top-Level Dataset Checks
+
+```text
+require_schema_version=dp_native_fallback_risk_training_data_v1
+require_final_decision_status=dp_native_fallback_risk_training_data_builder_complete
+require_final_decision_passed=True
+require_final_decision_enabled=True
+require_record_counts_consistent=True
+require_records_built_equals_records_length=True
+require_records_built_equals_records_without_feasible_candidate=True
+require_failed_records_zero=True
+require_source_hashes_for_every_source_log=True
+require_no_final_decision_errors=True
+```
+
+## Per-Record Dataset Checks
+
+```text
+require_source_log=True
+require_source_log_sha256_hex=True
+require_source_log_sha256_matches_file_when_available=True
+require_source_artifact_sha256_hex=True
+require_run_id=True
+require_record_index_int=True
+require_candidate_count_positive_int=True
+require_selected_index_in_range=True
+require_oracle_index_in_range=True
+require_oracle_policy_allowed=True
+allowed_oracle_policies=red/lane/quality,lane/red/quality,quality/red/lane
+require_cost_rows_count_equals_candidate_count=True
+require_cost_values_finite_nonnegative=True
+require_margins_count_equals_candidate_count=True
+require_margins_finite_nonnegative=True
+require_atom_schema_version_approved=True
+require_atom_names_exact_for_schema=True
+require_atoms_shape_candidate_by_schema_dim=True
+require_atoms_finite_nonnegative=True
+require_normalized_atoms_shape_matches_atoms=True
+require_normalized_atoms_finite_nonnegative=True
+require_training_authorized_false=True
+require_selected_index_used_as_feature_false=True
+require_candidate_rank_used_as_feature_false=True
+require_fallback_label_is_not_a_deployed_atom_true=True
+```
+
+## Source-Log Readback Checks
+
+For acceptance audits where the original selection logs are still available,
+the validator must not rely only on dataset summaries. It must re-read each
+referenced source log, verify the log hash, load `record_index`, and confirm
+the source record is truly all-infeasible under strict boolean semantics.
+
+```text
+source_log_hash_mismatch_fails_closed=True
+source_record_missing_fails_closed=True
+source_feasible_mask_non_bool_fails_closed=True
+source_feasible_mask_any_true_fails_closed=True
+source_candidate_count_mismatch_fails_closed=True
+source_selected_index_mismatch_fails_closed=True
+source_candidate_generation_contract_rechecked=True
+source_candidate_tensor_provenance_rechecked=True
+source_atom_schema_and_names_rechecked=True
+source_atoms_and_normalized_atoms_rechecked=True
+```
+
+## Nonpromotion And Master Boundary
+
+```text
+score_k(w)=a_k^T w
+fallback_dataset_validator_does_not_add_atoms=True
+fallback_dataset_validator_does_not_change_weights=True
+fallback_dataset_validator_does_not_change_feasible_master=True
+fallback_dataset_validator_does_not_relax_hard_feasibility=True
+fallback_dataset_validator_does_not_train=True
+fallback_dataset_training_sufficiency_claim=False
+all_infeasible_records_added_to_feasible_training=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+simplex_master_unchanged=True
+cvar_master_unchanged=True
+l2_regularized_master_unchanged=True
+```
+
+## Planned Negative Tests
+
+```text
+test_rejects_schema_mismatch=True
+test_rejects_failed_or_disabled_builder_decision=True
+test_rejects_record_count_mismatch=True
+test_rejects_missing_source_identity=True
+test_rejects_source_hash_mismatch=True
+test_rejects_source_record_with_any_feasible_candidate=True
+test_rejects_non_bool_source_feasible_mask=True
+test_rejects_selected_index_or_oracle_index_out_of_range=True
+test_rejects_bad_oracle_policy=True
+test_rejects_negative_or_nonfinite_margin=True
+test_rejects_bad_atom_schema_or_names=True
+test_rejects_negative_or_nonfinite_atoms=True
+test_rejects_training_or_promotion_flags=True
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+validator_extension_implementation_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_validator_extension_plan_ready
+passed=True
+validator_extension_plan_complete=True
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_static_contract_review_only
+```
+
+The next gate may only perform a static contract review of this validator
+extension plan. It must not implement the validator, run replay, generate
+candidates, train CAMP, retrain CAMP, modify Diffusion Planner, use formal
+seeds, relax hard feasibility, add all-infeasible records to the
+feasible-ranking master, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.
