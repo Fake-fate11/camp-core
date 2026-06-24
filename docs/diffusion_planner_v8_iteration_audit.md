@@ -101858,7 +101858,11 @@ local_py_compile_exit=0
 local_post_static_target_pytest=7 passed
 local_builder_target_pytest=9 passed
 local_combined_target_pytest=16 passed
-autodl_revalidation_pending_until_sync=True
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_verified_camp_head=7084d69a66893d313d3e9a35f30f9446f830b2a5
+autodl_py_compile_exit=0
+autodl_combined_target_pytest=16 passed
+autodl_git_diff_check_exit=0
 ```
 
 Forbidden remains:
