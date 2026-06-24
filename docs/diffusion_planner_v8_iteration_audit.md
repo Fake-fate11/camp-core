@@ -87740,3 +87740,141 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_clean_training_log_collection_smoke_credential_channel_user_action_required`
+
+## DP native clean training log collection smoke result
+
+Gate:
+
+`dp_native_clean_training_log_collection_smoke_credential_channel_user_action_required`
+
+Artifact:
+
+```text
+docs/dp_native_clean_training_log_collection_smoke_result.md
+```
+
+Ref evidence:
+
+```text
+git status --short --branch
+## main...origin/main
+untracked unrelated session/slide artifacts remain ignored
+
+git fetch --prune origin
+exit=0
+
+git rev-parse HEAD origin/main
+f98bc5abd7cf1d6552e49cfa9d3e3228f75999ce
+f98bc5abd7cf1d6552e49cfa9d3e3228f75999ce
+
+git ls-remote origin refs/heads/main
+f98bc5abd7cf1d6552e49cfa9d3e3228f75999ce refs/heads/main
+```
+
+AutoDL sync and fixed DP evidence:
+
+```text
+git -C /root/autodl-tmp/camp_core merge --ff-only origin/main
+exit=0
+
+CAMP HEAD / origin/main:
+f98bc5abd7cf1d6552e49cfa9d3e3228f75999ce
+f98bc5abd7cf1d6552e49cfa9d3e3228f75999ce
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+DP status:
+## tier4-main...origin/tier4-main
+```
+
+Execution:
+
+```text
+failed_precheck_root=/root/autodl-tmp/camp_dp_native_clean_training_log_smoke_f98bc5a_seed101_steps1_k2
+failed_precheck_replay_exit=1
+failed_precheck_reason=v10 atom scales require candidate_planned_red_light_cost
+
+success_root=/root/autodl-tmp/camp_dp_native_clean_training_log_smoke_f98bc5a_seed101_steps1_k2_dp_reward
+replay_exit=0
+validator_exit=0
+records=1
+atom_schema_version=dp_camp_v10_14d
+candidate_count=2
+selected_index=0
+candidate_closed_loop_outcomes=None
+```
+
+Successful artifact SHA:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `camp_selection_log.json` | `2effb6dcd31caa2fae1b4a82f73150ec943e983d8e9c4fa16272bc6d5c51102d` |
+| `camp_replay_summary.json` | `e9332b9540fef8feaebbaca2d12b079679e0532d70c9c471aae14a4756905670` |
+| `camp_validation_summary.json` | `2fc6d4e039e8f7026684a7f809dd80d637516f5e3b5939daec0a6cb101d8f229` |
+| `clean_dp_native_training_data_contract_validation.json` | `8eaff01898c5b2cf6dfdca25e16de27624d940aefa9cc5260354decf569381d7` |
+| `clean_dp_native_training_data_contract_validation.md` | `b6f9ca90641dabf70fb36ef91daa0e090eb8fdc592d0c541efd044c330bca564` |
+| `replay_stdout.log` | `94203c632e930b8295bb7090331cd1fc484997846dd6852048efbb379878b968` |
+| `replay_stderr.log` | `b45b6516d6e65b6029bf1ed3d8a985ef9546be6079f71da16a9db5a5e944b298` |
+| `validator_stdout.log` | `8eaff01898c5b2cf6dfdca25e16de27624d940aefa9cc5260354decf569381d7` |
+| `validator_stderr.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `command_manifest.txt` | `d343e8bb19e354fe93a3097a8fd352ac6fb62bae866af84cd2f8042986deeb22` |
+| `replay_exit.txt` | `41c1bfa88b437d3381f1fbb36a8f017bc5ddccda141821cf2e6de1b64febe929` |
+| `validator_exit.txt` | `f5b319bd273bd497761f7a2f6213d5329a4d8d7a751ff08aaaed515d0aa5704d` |
+
+Validator result:
+
+```text
+schema_version=clean_dp_native_training_data_contract_validator_v1
+passed=True
+records=1
+failed_records=0
+future_training_input_contract_satisfied=True
+```
+
+Boundary evidence:
+
+```text
+candidate_generation_contract.noise_strategy=iid
+candidate_generation_contract.reference_blend_steps=None
+candidate_generation_contract.guidance_enabled=False
+candidate_generation_contract.changes_diffusion_planner_weights=False
+camp_collect_closed_loop_outcomes=False
+candidate_reference_blend=None
+camp_candidate_tensor_provenance.enabled=True
+camp_candidate_tensor_provenance.all_payloads_valid=True
+camp_candidate_tensor_provenance.all_pre_post_tensor_hash_equal=True
+camp_candidate_tensor_provenance.all_candidate_count_unchanged=True
+camp_candidate_tensor_provenance.all_no_coordinate_heading_speed_rewrite_by_camp=True
+camp_candidate_tensor_provenance.outcome_label_input=False
+camp_candidate_tensor_provenance.closed_loop_outcome_fields_read=False
+```
+
+Decision:
+
+```text
+status=smoke_passed
+clean_dp_native_training_log_created=True
+clean_log_validator_passed=True
+scope=minimal_nonformal_smoke_only
+replay_executed=True
+dp_native_candidate_generation_executed=True
+new_candidate_generation_family_promoted=False
+outcome_label_generation_executed=False
+camp_collect_closed_loop_outcomes_enabled=False
+reference_blend_enabled=False
+guidance_enabled=False
+formal_seeds_11_12_13_run=False
+Full36_run=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_clean_training_log_collection_broader_nonformal_authorization_only_user_approval_required`
