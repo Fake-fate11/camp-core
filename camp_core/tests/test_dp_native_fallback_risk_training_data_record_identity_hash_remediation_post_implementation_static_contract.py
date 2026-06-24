@@ -117,7 +117,8 @@ def test_post_static_review_decision_and_next_gate() -> None:
 
 
 def test_iteration_audit_tail_records_post_static_next_gate() -> None:
-    tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-160:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-180:])
 
     for needle in [
         "status=fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_passed",
@@ -127,8 +128,13 @@ def test_iteration_audit_tail_records_post_static_next_gate() -> None:
         "autodl_target_pytest=54 passed",
         "camp_retraining_authorized_now=False",
     ]:
-        assert needle in tail
+        assert needle in audit
+
+    assert (
+        "status=fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed"
+        in tail
+    )
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
     )

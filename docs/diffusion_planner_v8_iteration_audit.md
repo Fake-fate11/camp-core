@@ -102389,3 +102389,108 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Data Record Identity Hash Remediation Fixed-Artifact Acceptance Rerun Audit
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only
+```
+
+Reran the default-off fallback-risk training data builder and validator on the
+existing broader nonformal fixed evaluation artifact after the record identity
+hash remediation. This gate did not run replay, generate new candidates, train
+or retrain CAMP, modify Diffusion Planner, change the online selector, promote
+a selector or atom, or claim safety benefit or CAMP-over-DP Top-1.
+
+Artifacts and outputs:
+
+```text
+source_artifact_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+selection_logs=12
+formal_seed_path_matches=0
+selection_log_seed_set=109,110
+builder_commit=7ef98c9f2db624eac3d220882ce1c9a4b8161ea2
+autodl_CAMP_HEAD=7ef98c9f2db624eac3d220882ce1c9a4b8161ea2
+autodl_CAMP_origin_main=7ef98c9f2db624eac3d220882ce1c9a4b8161ea2
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_record_identity_acceptance_7ef98c9_20260624T215739Z
+dataset_json_sha256=8e7d42e2d1319dc2a479903d7b1be5a463f2d74fe733b523fdbac09bf90bd9b9
+dataset_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823
+validation_json_sha256=c5eb4c618476342efee3d3c4f64fd8c2aba918e22d209c004aea7e256a83e073
+validation_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a
+builder_exit=0
+validator_exit=0
+```
+
+Observed result:
+
+```text
+builder_status=dp_native_fallback_risk_training_data_builder_complete
+builder_passed=True
+records_total=60
+records_with_feasible_candidate=45
+records_without_feasible_candidate=15
+records_built=15
+records_with_identity_hash=15
+validator_status=dp_native_fallback_risk_training_data_validator_complete
+validator_passed=True
+validator_records_checked=15
+validator_failed_records=0
+source_log_readback_enabled=True
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=6 passed
+local_related_target_pytest=60 passed
+autodl_verification_pending=True
+```
+
+Forbidden remains:
+
+```text
+user_camp_retraining_permission_available=True
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+camp_retraining_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed
+passed=True
+fixed_artifact_acceptance_rerun_complete=True
+fixed_artifact_acceptance_rerun_passed=True
+blocking_acceptance_findings=0
+record_identity_hash_remediation_accepted=True
+all_records_with_record_identity_hash=True
+validator_recomputed_record_identity_hashes=True
+training_data_fixed_artifact_ready_for_split_manifest_rerun=True
+training_split_manifest_ready_for_preflight=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`

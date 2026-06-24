@@ -1,0 +1,161 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Record Identity Hash Remediation Fixed-Artifact Acceptance Rerun Audit
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only
+```
+
+This audit reran the default-off fallback-risk training data builder and
+validator on the existing broader nonformal fixed evaluation artifact after the
+record identity hash remediation. It did not run replay, generate new
+candidates, train CAMP, retrain CAMP, modify Diffusion Planner, change the
+online selector, promote a selector or atom, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+## Fixed Artifact Inputs
+
+```text
+source_artifact_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+source_artifact_scope=broader_nonformal_fixed_evaluation_artifact
+selection_logs=12
+formal_seed_path_matches=0
+selection_log_seed_set=109,110
+builder_commit=7ef98c9f2db624eac3d220882ce1c9a4b8161ea2
+autodl_CAMP_HEAD=7ef98c9f2db624eac3d220882ce1c9a4b8161ea2
+autodl_CAMP_origin_main=7ef98c9f2db624eac3d220882ce1c9a4b8161ea2
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+post_static_contract_status=fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_passed
+record_identity_hash_remediation_implemented=True
+```
+
+## Output Artifacts
+
+```text
+output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_record_identity_acceptance_7ef98c9_20260624T215739Z
+dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_record_identity_acceptance_7ef98c9_20260624T215739Z/dataset.json
+dataset_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_record_identity_acceptance_7ef98c9_20260624T215739Z/dataset.md
+validation_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_record_identity_acceptance_7ef98c9_20260624T215739Z/validation.json
+validation_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_record_identity_acceptance_7ef98c9_20260624T215739Z/validation.md
+dataset_json_sha256=8e7d42e2d1319dc2a479903d7b1be5a463f2d74fe733b523fdbac09bf90bd9b9
+dataset_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823
+validation_json_sha256=c5eb4c618476342efee3d3c4f64fd8c2aba918e22d209c004aea7e256a83e073
+validation_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a
+builder_exit=0
+validator_exit=0
+```
+
+## Observed Result
+
+```text
+builder_status=dp_native_fallback_risk_training_data_builder_complete
+builder_passed=True
+records_total=60
+records_with_feasible_candidate=45
+records_without_feasible_candidate=15
+records_built=15
+failed_records=0
+records_with_identity_hash=15
+records_total_with_identity_check=15
+unique_source_logs_for_built_records=7
+validator_status=dp_native_fallback_risk_training_data_validator_complete
+validator_passed=True
+validator_records_checked=15
+validator_failed_records=0
+source_log_readback_enabled=True
+source_log_readback_required_for_acceptance=True
+```
+
+## Acceptance Finding
+
+```text
+fixed_artifact_acceptance_rerun_passed=True
+blocking_acceptance_findings=0
+record_identity_hash_remediation_accepted=True
+all_records_with_record_identity_hash=True
+validator_recomputed_record_identity_hashes=True
+training_data_fixed_artifact_ready_for_split_manifest_rerun=True
+training_split_manifest_ready_for_preflight=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+The remediated builder and validator now accept the fixed nonformal evaluation
+inputs and preserve the required `record_identity_hash` contract. This does not
+yet make the dataset ready for training: the split manifest builder must rerun
+on this remediated dataset and pass its own fixed-artifact acceptance gate.
+
+## Verification
+
+```text
+autodl_builder_exit=0
+autodl_validator_exit=0
+local_py_compile_exit=0
+local_target_pytest=6 passed
+local_related_target_pytest=60 passed
+autodl_verification_pending=True
+```
+
+## Forbidden
+
+```text
+user_camp_retraining_permission_available=True
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+camp_retraining_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed
+passed=True
+fixed_artifact_acceptance_rerun_complete=True
+fixed_artifact_acceptance_rerun_passed=True
+blocking_acceptance_findings=0
+record_identity_hash_remediation_accepted=True
+training_data_fixed_artifact_ready_for_split_manifest_rerun=True
+training_split_manifest_ready_for_preflight=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only
+```
+
+The next gate may only rerun the default-off split manifest builder on the
+remediated fixed fallback-risk training dataset. It must not run replay,
+generate candidates, train CAMP, modify Diffusion Planner, use formal seeds,
+relax hard feasibility, add all-infeasible records to the feasible-ranking
+master, promote a selector or atom, or claim safety/CAMP-over-DP benefit.
