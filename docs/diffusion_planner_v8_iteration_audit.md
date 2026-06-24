@@ -93640,3 +93640,113 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_only`
+
+---
+
+### 2026-06-24 - Fixed-Artifact Fallback Risk Training Sufficiency Preflight Implementation
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_only`
+
+Artifacts:
+
+```text
+scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py
+camp_core/tests/test_dp_native_fallback_risk_training_sufficiency_preflight.py
+```
+
+Heads before this implementation commit:
+
+```text
+local_HEAD=672bdea54b7104e72b06de96d50f69bc5a7f211b
+origin_main=672bdea54b7104e72b06de96d50f69bc5a7f211b
+github_refs_heads_main=672bdea54b7104e72b06de96d50f69bc5a7f211b
+autodl_CAMP_HEAD=672bdea54b7104e72b06de96d50f69bc5a7f211b
+autodl_CAMP_origin_main=672bdea54b7104e72b06de96d50f69bc5a7f211b
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation boundary:
+
+```text
+default_off=True
+enable_flag=--enable_default_off_fallback_risk_training_sufficiency_preflight
+disabled_mode_reads_inputs=False
+enabled_input_source=existing_json_manifests_only
+reads_validated_dataset_summary_json_only=True
+reads_training_split_manifest_json_only=True
+reads_train_only_scale_manifest_json_only=True
+reads_fallback_master_config_json_only=True
+reads_training_command_plan_json_only=True
+output_json_or_markdown_only=True
+training_execution_authorized=False
+```
+
+Pinned implementation behavior:
+
+```text
+clean_synthetic_manifests_accepted_without_training_authorization=True
+dataset_claim_leaks_rejected=True
+split_formal_seed_and_formal_eval_leaks_rejected=True
+scale_master_and_affine_contract_violations_rejected=True
+training_commands_dp_changes_promotions_and_claims_rejected=True
+```
+
+Local verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_sufficiency_preflight_implemented
+passed=True
+preflight_implementation_complete=True
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_only`
