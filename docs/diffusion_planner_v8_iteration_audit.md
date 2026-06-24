@@ -87668,3 +87668,75 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_clean_training_log_collection_smoke_autodl_noninteractive_execution_required`
+
+## DP native clean training log collection smoke AutoDL credential channel audit
+
+Gate:
+
+`dp_native_clean_training_log_collection_smoke_autodl_noninteractive_execution_required`
+
+Artifact:
+
+```text
+docs/dp_native_clean_training_log_collection_smoke_autodl_credential_channel_audit.md
+```
+
+Ref evidence:
+
+```text
+git status --short --branch
+## main...origin/main
+untracked unrelated session/slide artifacts remain ignored
+
+git fetch --prune origin
+exit=0
+
+git rev-parse HEAD origin/main
+3dec12c18935a21e4c70fa69fa33ae772d1724ab
+3dec12c18935a21e4c70fa69fa33ae772d1724ab
+
+git ls-remote origin refs/heads/main
+3dec12c18935a21e4c70fa69fa33ae772d1724ab refs/heads/main
+```
+
+Credential-channel evidence:
+
+```text
+OpenSSH client tools available: ssh.exe, scp.exe, sftp.exe, ssh-agent.exe, ssh-add.exe
+password CLI helpers available: none found for sshpass/plink/pscp
+
+ssh-add -l
+exit=1
+Error connecting to agent: No such file or directory
+
+environment names matching SSH|AUTODL|PASS|TOKEN|KEY: none
+
+python import check:
+paramiko=True
+pexpect=True
+fabric=False
+```
+
+Decision:
+
+```text
+status=credential_channel_required
+user_authorization_satisfied=True
+reason=the local process has no SSH key/agent, no password helper, and no non-logged environment secret channel for AutoDL password auth
+camp_selection_log_produced=False
+clean_log_validator_run=False
+replay_executed=False
+candidate_generation_executed=False
+outcome_label_generation_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_clean_training_log_collection_smoke_credential_channel_user_action_required`
