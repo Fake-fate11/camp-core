@@ -171,3 +171,34 @@ replay, generate candidates, train CAMP, retrain CAMP, modify Diffusion
 Planner, use formal seeds, relax hard feasibility, add all-infeasible records
 to the feasible-ranking master, promote a selector or atom, or claim
 safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The static contract remains valid after current-head training-data design plan
+revalidation:
+
+```text
+camp_head_at_revalidation=6bad370198fc56c466fbb42b617a8743f4962384
+camp_origin_main_at_revalidation=6bad370198fc56c466fbb42b617a8743f4962384
+github_refs_heads_main_at_revalidation=6bad370198fc56c466fbb42b617a8743f4962384
+autodl_CAMP_HEAD_at_revalidation=6bad370198fc56c466fbb42b617a8743f4962384
+autodl_CAMP_origin_main_at_revalidation=6bad370198fc56c466fbb42b617a8743f4962384
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_design_status=fallback_risk_training_data_design_plan_current_head_revalidated
+blocking_contract_findings=0
+```
+
+This gate still only authorizes the next unit-test planning gate:
+
+```text
+dataset_builder_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+```
