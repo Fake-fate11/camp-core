@@ -88634,3 +88634,80 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_candidate_tensor_provenance_payload_artifact_audit_only`
+
+## DP native candidate tensor provenance payload artifact audit
+
+Gate:
+
+`dp_native_candidate_tensor_provenance_payload_artifact_audit_only`
+
+Artifact:
+
+```text
+docs/dp_native_candidate_tensor_provenance_payload_artifact_audit.md
+```
+
+Current heads:
+
+```text
+local_HEAD=7b0ec22d7720b1d4e3f92e38677fc433f14cc48b
+origin_main=7b0ec22d7720b1d4e3f92e38677fc433f14cc48b
+github_refs_heads_main=7b0ec22d7720b1d4e3f92e38677fc433f14cc48b
+autodl_CAMP_HEAD=7b0ec22d7720b1d4e3f92e38677fc433f14cc48b
+autodl_CAMP_origin_main=7b0ec22d7720b1d4e3f92e38677fc433f14cc48b
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Fixed artifact inspected:
+
+```text
+artifact_root=/root/autodl-tmp/camp_dp_native_clean_training_log_broader_nonformal_4967c531_20260624T054110Z
+collection_summary.json_sha256=05c8c7056dbe7460cfac422b0f1081179021a9df80324a4378cec3bf6dc693f0
+clean_dp_native_training_data_contract_validation.json_sha256=c2f8f1b10e9d1a8925886255e8ffa3af151ef1ceaab278027a50a9087f39a7f4
+selection_log_sha256_list_digest=4cbc032191fa62bd6c9e3e0f03646ae618aee8678f85bbafd096ccbf3139188b
+selection_log_count=12
+record_count=36
+validator_passed=True
+validator_failed_records=[]
+payload_failure_count=0
+schema_versions={"dp_native_candidate_tensor_provenance_payload_v1": 36}
+candidate_count_values={"4": 36}
+```
+
+Provenance checks:
+
+```text
+all_payloads_present=True
+all_payloads_valid=True
+all_pre_post_tensor_hash_equal=True
+all_candidate_count_unchanged=True
+all_no_candidate_row_append=True
+all_no_coordinate_heading_speed_rewrite_by_camp=True
+all_outcome_label_input_false=True
+all_closed_loop_outcome_fields_read_false=True
+reference_blend_present=False
+guidance_enabled=False
+```
+
+Decision:
+
+```text
+status=provenance_payload_artifact_audit_passed
+fixed_artifact_inspected=True
+replay_executed_by_this_gate=False
+candidate_generation_executed_by_this_gate=False
+camp_retraining_executed=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This proves only provenance cleanliness for the fixed broader nonformal logs.
+It does not prove industrial training sufficiency, deployable selector
+readiness, safety benefit, or CAMP-over-DP Top-1 improvement.
+
+Next admissible gate:
+
+`clean_dp_native_training_data_collection_authorization_only`
