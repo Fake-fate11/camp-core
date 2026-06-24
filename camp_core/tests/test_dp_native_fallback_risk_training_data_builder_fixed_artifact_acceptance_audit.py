@@ -25,6 +25,13 @@ def test_acceptance_audit_records_fixed_nonformal_artifact_identity() -> None:
         "builder_output_json_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf",
         "builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823",
         "autodl_DP_HEAD_at_acceptance=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_artifact_scope=broader_nonformal_fixed_evaluation_artifact",
+        "current_selection_logs=12",
+        "current_formal_seed_path_matches=0",
+        "current_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_52f8d20_20260624T195018Z",
+        "current_builder_output_json_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
+        "current_builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -46,6 +53,18 @@ def test_acceptance_audit_records_dataset_counts_and_status() -> None:
         "errors=0",
         "record_candidate_counts=4",
         "oracle_policies=lane/red/quality,red/lane/quality",
+        "current_schema_version=dp_native_fallback_risk_training_data_v1",
+        "current_status=dp_native_fallback_risk_training_data_builder_complete",
+        "current_passed=True",
+        "current_enabled=True",
+        "current_records_total=60",
+        "current_records_without_feasible_candidate=15",
+        "current_records_with_feasible_candidate=45",
+        "current_records_built=15",
+        "current_failed_records=0",
+        "current_errors=0",
+        "current_record_candidate_counts=4",
+        "current_oracle_policies=lane/red/quality,red/lane/quality",
     ]:
         assert needle in text
 
@@ -93,6 +112,17 @@ def test_acceptance_audit_forbids_training_replay_dp_and_claims() -> None:
         "all_infeasible_records_added_to_feasible_training=False",
         "production_selector_change_authorized=False",
         "online_selector_change_authorized=False",
+        "current_replay_execution_authorized=False",
+        "current_candidate_generation_authorized=False",
+        "current_camp_training_authorized=False",
+        "current_camp_retraining_authorized=False",
+        "current_formal_seeds_11_12_13_authorized=False",
+        "current_dp_modification_authorized=False",
+        "current_selector_promotion_authorized=False",
+        "current_atom_promotion_authorized=False",
+        "current_safety_benefit_claim_authorized=False",
+        "current_camp_over_dp_top1_claim_authorized=False",
+        "current_fallback_risk_training_authorized_now=False",
     ]:
         assert needle in text
 

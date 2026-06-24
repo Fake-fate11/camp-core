@@ -99319,3 +99319,131 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_audit_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Data Default-Off Builder Fixed-Artifact Acceptance Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_audit_only
+```
+
+Re-ran the default-off fallback-risk training-data builder, with its explicit
+enable flag, against the existing non-formal broader fixed-artifact selection
+logs. This did not run replay, generate candidates, train CAMP, retrain CAMP,
+modify Diffusion Planner, or change/promote the online selector or atoms.
+
+```text
+acceptance_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_audit.md
+acceptance_test=camp_core/tests/test_dp_native_fallback_risk_training_data_builder_fixed_artifact_acceptance_audit.py
+builder_script=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py
+artifact_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+artifact_scope=broader_nonformal_fixed_evaluation_artifact
+formal_seed_path_matches=0
+builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_52f8d20_20260624T195018Z
+builder_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_52f8d20_20260624T195018Z/dataset.json
+builder_output_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_52f8d20_20260624T195018Z/dataset.md
+builder_output_json_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2
+builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823
+camp_head=52f8d200cbf26523676b6c7fe69527613d07277d
+camp_origin_main=52f8d200cbf26523676b6c7fe69527613d07277d
+github_refs_heads_main=52f8d200cbf26523676b6c7fe69527613d07277d
+autodl_CAMP_HEAD=52f8d200cbf26523676b6c7fe69527613d07277d
+autodl_CAMP_origin_main=52f8d200cbf26523676b6c7fe69527613d07277d
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Acceptance summary:
+
+```text
+schema_version=dp_native_fallback_risk_training_data_v1
+status=dp_native_fallback_risk_training_data_builder_complete
+passed=True
+enabled=True
+selection_logs=12
+records_total=60
+records_without_feasible_candidate=15
+records_with_feasible_candidate=45
+records_built=15
+failed_records=0
+errors=0
+record_candidate_counts=4
+oracle_policies=lane/red/quality,red/lane/quality
+```
+
+Fixed-candidate and Benders boundary:
+
+```text
+selected_index_range_validated_by_builder=True
+candidate_count_unchanged_validated_by_builder=True
+pre_post_tensor_hash_equal_validated_by_builder=True
+no_candidate_row_append_validated_by_builder=True
+no_coordinate_heading_speed_rewrite_by_camp_validated_by_builder=True
+candidate_generation_contract_validated_by_builder=True
+atom_schema_and_nonnegative_atoms_validated_by_builder=True
+normalized_atoms_validated_by_builder=True
+margin_ik_nonnegative_and_clipped=True
+fallback_dataset_training_sufficiency_claim=False
+score_k(w)=a_k^T w
+a_k_nonnegative_benders_compatible_atoms_only=True
+fallback_label_is_not_a_deployed_atom=True
+```
+
+Verification:
+
+```text
+autodl_python=/root/miniconda3/envs/camp/bin/python
+builder_execution_exit=0
+builder_acceptance_passed=True
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=11 passed
+local_git_diff_check_exit=0
+```
+
+Forbidden remains:
+
+```text
+user_camp_retraining_permission_available=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_revalidated
+passed=True
+accepted_fallback_records=15
+fallback_dataset_artifact_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+production_builder_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only`

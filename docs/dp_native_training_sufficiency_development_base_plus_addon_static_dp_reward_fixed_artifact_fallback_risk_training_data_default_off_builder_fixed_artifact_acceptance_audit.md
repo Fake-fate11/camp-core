@@ -138,3 +138,62 @@ training dataset artifact. It must not implement training, run replay, generate
 candidates, modify Diffusion Planner, use formal seeds, relax hard feasibility,
 add all-infeasible records to the feasible-ranking master, promote a selector
 or atom, or claim safety/CAMP-over-DP benefit.
+
+## Current-Head Acceptance Revalidation
+
+Date: 2026-06-25
+
+Re-ran the default-off builder against the same existing non-formal fixed
+artifact selection logs at the current head.
+
+```text
+current_artifact_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+current_artifact_scope=broader_nonformal_fixed_evaluation_artifact
+current_selection_logs=12
+current_formal_seed_path_matches=0
+current_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_52f8d20_20260624T195018Z
+current_builder_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_52f8d20_20260624T195018Z/dataset.json
+current_builder_output_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_52f8d20_20260624T195018Z/dataset.md
+current_builder_output_json_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2
+current_builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823
+camp_head_at_revalidation=52f8d200cbf26523676b6c7fe69527613d07277d
+camp_origin_main_at_revalidation=52f8d200cbf26523676b6c7fe69527613d07277d
+autodl_CAMP_HEAD_at_revalidation=52f8d200cbf26523676b6c7fe69527613d07277d
+autodl_CAMP_origin_main_at_revalidation=52f8d200cbf26523676b6c7fe69527613d07277d
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Current-head acceptance summary:
+
+```text
+current_schema_version=dp_native_fallback_risk_training_data_v1
+current_status=dp_native_fallback_risk_training_data_builder_complete
+current_passed=True
+current_enabled=True
+current_records_total=60
+current_records_without_feasible_candidate=15
+current_records_with_feasible_candidate=45
+current_records_built=15
+current_failed_records=0
+current_errors=0
+current_record_candidate_counts=4
+current_oracle_policies=lane/red/quality,red/lane/quality
+```
+
+Current-head forbidden flags remained false:
+
+```text
+user_camp_retraining_permission_available=True
+current_replay_execution_authorized=False
+current_candidate_generation_authorized=False
+current_camp_training_authorized=False
+current_camp_retraining_authorized=False
+current_formal_seeds_11_12_13_authorized=False
+current_dp_modification_authorized=False
+current_selector_promotion_authorized=False
+current_atom_promotion_authorized=False
+current_safety_benefit_claim_authorized=False
+current_camp_over_dp_top1_claim_authorized=False
+current_fallback_risk_training_authorized_now=False
+current_fallback_dataset_training_sufficiency_claim=False
+```
