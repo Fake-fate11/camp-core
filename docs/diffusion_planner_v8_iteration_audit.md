@@ -89101,3 +89101,111 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_profile_plan_only`
+
+## DP native training sufficiency development profile plan
+
+Gate:
+
+`dp_native_training_sufficiency_development_profile_plan_only`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_development_profile_plan.md
+```
+
+Authority:
+
+```text
+docs/dp_camp_mathematical_contract.md=d52cec8159b0ff46f0abde2c6c492806fbc3db25a2f3b89e1886c0828b1cafd2
+docs/dp_camp_benders_formalization.md=5fe5e6830af84ac9dd1477c44a4db8be317c6f807b226be4af851de24dbbdf12
+docs/dp_camp_benders_compatible_atom_audit.md=2b42e35f2199603589f7df074c40e627858051bd23190ff0c42002df817a5f0b
+docs/dp_native_training_sufficiency_preflight_artifact_audit.md=d9ac2c1cc6850e5f19ce4a596af29bebcf912e6afeef48f26400c30dc363f88f
+```
+
+Profile:
+
+```text
+profile_name=dp_native_feasible_ranking_development_minimal_v1
+mode=static
+training_scope=feasible_ranking
+label_source=dp_reward
+reward_key=quality_without_progress
+reward_progress_weight=2.0
+profile_default_off=True
+```
+
+Required boundary:
+
+```text
+require_dp_native_training_data_contract=True
+require_candidate_tensor_provenance=True
+require_pre_post_tensor_hash_equal=True
+require_selected_index_in_range=True
+require_candidate_count_unchanged=True
+require_no_candidate_row_append=True
+require_no_coordinate_heading_speed_rewrite_by_camp=True
+require_no_online_outcome_label_input=True
+require_atom_schema=True
+allowed_atom_schemas=["camp_legacy_v1_9d", "dp_camp_v7_10d", "dp_camp_v8_12d", "dp_camp_v9_13d", "dp_camp_v10_14d"]
+```
+
+Minimum coverage:
+
+```text
+min_raw_records=100
+min_usable_feasible_records=100
+min_routes=3
+min_seeds=4
+required_traffic_light_states=["off", "on"]
+min_candidate_count=4
+allow_formal_seeds=False
+allow_full36=False
+require_heldout_split=True
+heldout_split_axis=route_or_seed
+```
+
+Current fixed artifact gap:
+
+```text
+raw_records=36
+usable_static_smoke_records=31
+routes=2
+seeds=3
+traffic_light_states=2
+candidate_count_values={"4": 36}
+raw_record_gap=64
+usable_feasible_record_gap=69
+route_gap=1
+seed_gap=1
+traffic_light_state_gap=0
+candidate_count_gap=0
+clean_contract_gap=False
+dp_reward_label_gap=False
+candidate_tensor_provenance_gap=False
+```
+
+Decision:
+
+```text
+status=development_profile_plan_ready
+profile_name=dp_native_feasible_ranking_development_minimal_v1
+current_artifact_passes_profile=False
+failure_class=coverage_and_split_profile_gap
+direct_camp_retraining_blocked=True
+training_execution_authorized=False
+camp_retraining_authorized=False
+collection_replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+authorized_next_work=dp_native_training_sufficiency_development_profile_default_off_implementation
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_profile_default_off_implementation`
