@@ -88859,3 +88859,71 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_gap_remediation_plan_only`
+
+## DP native training sufficiency gap remediation plan
+
+Gate:
+
+`dp_native_training_sufficiency_gap_remediation_plan_only`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_gap_remediation_plan.md
+```
+
+Current heads:
+
+```text
+local_HEAD=d4091b090ef92aeaac9b6bff2273ffe065147d1c
+origin_main=d4091b090ef92aeaac9b6bff2273ffe065147d1c
+github_refs_heads_main=d4091b090ef92aeaac9b6bff2273ffe065147d1c
+autodl_CAMP_HEAD=d4091b090ef92aeaac9b6bff2273ffe065147d1c
+autodl_CAMP_origin_main=d4091b090ef92aeaac9b6bff2273ffe065147d1c
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Gap classification:
+
+```text
+clean_data_path_gap=False
+candidate_tensor_provenance_gap=False
+static_trainer_pipeline_smoke_gap=False
+coverage_gap=True
+label_objective_gap=True
+split_and_heldout_gap=True
+development_baseline_gap=True
+deployment_claim_gap=True
+```
+
+Remediation plan:
+
+```text
+next_step=read_only_default_off_training_sufficiency_preflight_validator
+validator_must_fail_closed_on_current_36_record_artifact=True
+validator_must_require_fixed_candidate_provenance=True
+validator_must_require_approved_atom_schema=True
+validator_must_report_route_seed_tl_candidate_count_coverage=True
+validator_must_report_label_source_and_online_label_leakage=True
+validator_must_report_split_and_heldout_plan=True
+```
+
+Decision:
+
+```text
+status=training_sufficiency_gap_remediation_plan_ready
+direct_camp_retraining_blocked=True
+training_execution_authorized=False
+collection_replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+authorized_next_work=dp_native_training_sufficiency_preflight_validator_default_off_implementation
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_preflight_validator_default_off_implementation`
