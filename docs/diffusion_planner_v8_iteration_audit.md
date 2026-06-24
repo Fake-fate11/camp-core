@@ -97600,3 +97600,90 @@ no_camp_over_dp_top1_claim=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_audit_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Static CAMP Training Development Holdout Acceptance Audit
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_audit_only
+```
+
+Added a default-off, read-only development holdout acceptance audit:
+
+```text
+script=scripts/integrations/audit_diffusion_planner_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance.py
+result_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_audit.md
+schema_version=dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_v1
+audit_only=True
+records_scope=validation_groups_only
+fallback_branch_only=True
+records_without_feasible_candidate_only=True
+fixed_dp_candidate_reranking_only=True
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+score_expression=score_k(w)=a_k^T w
+selection_rule=argmin_k score_k(w)
+```
+
+The audit may only read the existing dataset, split manifest, train-only scale
+manifest, fallback master config, preflight output, training summary, static
+weights JSON/NPY, and atom scale JSON. It recomputes fixed-candidate scores
+over development validation groups and reports nonformal internal holdout
+metrics.
+
+Contract result:
+
+```text
+status=dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_complete
+passed=True
+development_holdout_acceptance_audit_passed=True
+selected_index_in_range=True
+candidate_count_unchanged=True
+candidate_tensor_unchanged=True
+pre_post_candidate_provenance_hashes_equal_if_present=True
+training_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployment_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+local_diff_check=0 findings
+autodl_py_compile_exit=pending
+autodl_target_pytest=pending
+remote_artifact_audit_exit=pending
+```
+
+Decision:
+
+```text
+status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_passed
+passed=True
+audit_only=True
+development_holdout_acceptance_audit_complete=True
+no_replay=True
+no_candidate_generation=True
+no_camp_retraining=True
+no_dp_modification=True
+no_selector_or_atom_promotion=True
+no_deployment=True
+no_safety_benefit_claim=True
+no_camp_over_dp_top1_claim=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_holdout_acceptance_static_contract_review`

@@ -1,0 +1,156 @@
+# DP Native Fixed-Artifact Fallback Risk Static CAMP Training Development Holdout Acceptance Audit
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_audit_only
+```
+
+This is a read-only audit-only gate for the existing fallback-risk static CAMP
+reranker. It reads the fixed training artifacts and the existing development
+validation split, recomputes `score_k(w)=a_k^T w` over fixed candidate atom
+tensors, and records development-holdout consistency metrics. It does not run
+replay, generate candidates, retrain CAMP, modify Diffusion Planner, promote a
+selector or atom, deploy a checkpoint, or claim safety benefit.
+
+## Fixed Inputs
+
+```text
+script=scripts/integrations/audit_diffusion_planner_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance.py
+schema_version=dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_v1
+current_camp_head=5398c33a1d5082610892f5b09f34754e716ea071
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+training_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z
+training_summary_json_sha256=826b378434d82623cb8f0c620ae37e253cb8c8b98f7c7352382ec7707c7ffbf1
+offline_weights_json_sha256=d6b3df205a41a60ac1bb40d6d2dea62db98344f719225be9c27458976d0ddb42
+offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40
+atom_scales_json_sha256=cb84b008e19d25910f12f0855c0cdbc733fce732fa9dc2
+dataset_json_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+training_split_manifest_json_sha256=a4b33c1c14b2ea96f1994e89245cfd27209e98049808fdfd3fbe6c8a732d34fd
+train_only_scale_manifest_json_sha256=9e76915d544a04bcea31380323027511293419ea98f3b24406f951e52982570b
+fallback_master_config_json_sha256=92f8273b814fd120be2d3cac5eca94dbd6be5403cf5045c3aa73eabb2e1e49c1
+preflight_json_sha256=04ada84f0bfe97108049c491016a62718152f2ce8cd94f92734732d6c1a2e568
+```
+
+## Contract
+
+```text
+audit_only=True
+default_off=True
+records_scope=validation_groups_only
+fallback_branch_only=True
+records_without_feasible_candidate_only=True
+fixed_dp_candidate_reranking_only=True
+require_atom_schema_version=dp_camp_v10_14d
+require_num_atoms=14
+require_weights_simplex_nonnegative=True
+require_atom_scales_strictly_positive=True
+score_expression=score_k(w)=a_k^T w
+selection_rule=argmin_k score_k(w)
+selected_index_in_range=True
+candidate_count_unchanged=True
+candidate_tensor_unchanged=True
+pre_post_candidate_provenance_hashes_equal_if_present=True
+```
+
+The audit may report development-holdout oracle, margin, and red/lane/quality
+agreement metrics as nonformal internal diagnostics only. These metrics do
+not authorize deployment, selector promotion, atom promotion, safety-benefit
+claims, or CAMP-over-DP Top-1 claims.
+
+## Result
+
+```text
+status=dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_complete
+passed=True
+development_holdout_acceptance_audit_passed=True
+audit_only=True
+fixed_dp_candidate_reranking_only=True
+records_scope=validation_groups_only
+records_without_feasible_candidate_only=True
+fallback_branch_only=True
+score_expression=score_k(w)=a_k^T w
+selection_rule=argmin_k score_k(w)
+selected_index_in_range=True
+candidate_count_unchanged=True
+candidate_tensor_unchanged=True
+pre_post_candidate_provenance_hashes_equal_if_present=True
+```
+
+Holdout metrics:
+
+```text
+validation_records=pending
+static_oracle_match_rate=pending
+recorded_oracle_match_rate=pending
+uniform_oracle_match_rate=pending
+candidate0_oracle_match_rate=pending
+static_mean_margin_violation=pending
+static_selected_min_red_match_rate=pending
+static_selected_min_lane_match_rate=pending
+static_selected_min_quality_match_rate=pending
+source_hashes_present=pending
+pre_post_candidate_provenance_pairs_present=pending
+```
+
+Forbidden remains:
+
+```text
+training_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized_now=False
+fallback_risk_training_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+deployment_authorized=False
+```
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+local_diff_check=0 findings
+autodl_py_compile_exit=pending
+autodl_target_pytest=pending
+remote_artifact_audit_exit=pending
+```
+
+## Decision
+
+```text
+status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_passed
+passed=True
+audit_only=True
+development_holdout_acceptance_audit_complete=True
+no_replay=True
+no_candidate_generation=True
+no_camp_retraining=True
+no_dp_modification=True
+no_selector_or_atom_promotion=True
+no_deployment=True
+no_safety_benefit_claim=True
+no_camp_over_dp_top1_claim=True
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_holdout_acceptance_static_contract_review
+```
