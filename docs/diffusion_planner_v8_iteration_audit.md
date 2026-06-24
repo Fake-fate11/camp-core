@@ -88977,6 +88977,22 @@ fixed_artifact_clean_contract_passed=True
 fixed_artifact_label_source_records_present=True
 ```
 
+AutoDL post-push verification:
+
+```text
+autodl_CAMP_HEAD=865d681ab157011979654087c2cfa6bcd4390bb5
+autodl_CAMP_origin_main=865d681ab157011979654087c2cfa6bcd4390bb5
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+remote_py_compile_exit=0
+remote_target_pytest=5 passed in 0.15s
+remote_fixed_artifact_preflight_exit=1
+remote_fixed_artifact_records=36
+remote_fixed_artifact_failed_checks=["records_at_least_min", "routes_at_least_min", "seeds_at_least_min"]
+remote_fixed_artifact_clean_contract_passed=True
+remote_fixed_artifact_label_source_records_present=True
+remote_training_execution_authorized=False
+```
+
 Decision:
 
 ```text
