@@ -87007,3 +87007,71 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `clean_dp_native_training_data_collection_authorization_only`
+
+## Clean DP native training data collection authorization
+
+Gate:
+
+`clean_dp_native_training_data_collection_authorization_only`
+
+Artifact:
+
+```text
+docs/clean_dp_native_training_data_collection_authorization.md
+```
+
+Ref evidence:
+
+```text
+git status --short --branch
+## main...origin/main
+untracked unrelated session/slide artifacts remain ignored
+
+git rev-parse HEAD origin/main
+8b863d77f3f2d8b2fe6b901956e44e8173ec5873
+8b863d77f3f2d8b2fe6b901956e44e8173ec5873
+
+git ls-remote origin refs/heads/main
+8b863d77f3f2d8b2fe6b901956e44e8173ec5873 refs/heads/main
+```
+
+Evidence:
+
+```text
+docs/dp_camp_mathematical_contract.md:
+  DP candidate set Y_i fixed before CAMP atom extraction
+  atoms are fixed finite nonnegative candidate constants
+  score=a_ik^T w remains affine
+  closed-loop outcome labels are forbidden as online inputs
+
+scripts/integrations/train_diffusion_planner_robust_camp.py:
+  already uses finite-candidate robust-margin oracle/margins and cutting-plane master
+  does not yet require candidate tensor provenance before loading training records
+
+scripts/integrations/train_diffusion_planner_static_camp.py:
+  load_training_records currently requires atoms and feasible_mask
+  outcome loaders require candidate_closed_loop_outcomes only as offline labels
+```
+
+Decision:
+
+```text
+status=validator_implementation_authorized
+implementation_authorized_now=True
+authorized_next_work=clean_dp_native_training_data_contract_validator_default_off_implementation
+training_data_collection_execution_authorized=False
+replay_executed=False
+candidate_generation_executed=False
+outcome_label_generation_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`clean_dp_native_training_data_contract_validator_default_off_implementation`
