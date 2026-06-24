@@ -231,7 +231,7 @@ def _validate_dataset_payload(
     if decision.get("errors") not in ([], None):
         errors.append("final_decision_errors_nonempty")
     for flag in FORBIDDEN_FLAGS + ("training_authorized",):
-        if decision.get(flag) is not False:
+        if flag in decision and decision.get(flag) is not False:
             errors.append(f"final_decision_{flag}_not_false")
 
     source_hashes = payload.get("source_hashes")

@@ -362,3 +362,32 @@ def test_split_builder_final_decision_keeps_training_and_claims_false(tmp_path: 
     assert decision["atom_promotion_authorized"] is False
     assert decision["safety_benefit_claim_authorized"] is False
     assert decision["camp_over_dp_top1_claim_authorized"] is False
+
+
+def test_split_builder_accepts_missing_legacy_final_decision_forbidden_flag(
+    tmp_path: Path,
+) -> None:
+    payload = _dataset()
+    payload["final_decision"].pop("fallback_risk_training_authorized_now")
+
+    report = _build(tmp_path, payload)
+
+    assert report["final_decision"]["status"] == COMPLETE_STATUS
+    assert report["final_decision"]["fallback_risk_training_authorized_now"] is False
+
+
+def test_split_builder_rejects_explicit_true_or_nonfalse_forbidden_flags(
+    tmp_path: Path,
+) -> None:
+    true_payload = _dataset()
+    true_payload["final_decision"]["fallback_risk_training_authorized_now"] = True
+    nonfalse_payload = _dataset()
+    nonfalse_payload["final_decision"]["candidate_generation_authorized"] = "false"
+
+    true_errors = _build(tmp_path / "true", true_payload)["final_decision"]["errors"]
+    nonfalse_errors = _build(tmp_path / "nonfalse", nonfalse_payload)["final_decision"][
+        "errors"
+    ]
+
+    assert "final_decision_fallback_risk_training_authorized_now_not_false" in true_errors
+    assert "final_decision_candidate_generation_authorized_not_false" in nonfalse_errors
