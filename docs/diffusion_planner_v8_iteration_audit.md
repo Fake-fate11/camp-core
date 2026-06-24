@@ -94151,3 +94151,102 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only`
+
+---
+
+### 2026-06-24 - Fixed-Artifact Fallback Risk Training Split Manifest Unit Tests Only
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only`
+
+Artifacts:
+
+```text
+camp_core/tests/test_dp_native_fallback_risk_training_split_manifest_contract.py
+```
+
+Heads before this unit-tests commit:
+
+```text
+local_HEAD=309827c58751f678cd87b6be88b517e8e99b585b
+origin_main=309827c58751f678cd87b6be88b517e8e99b585b
+github_refs_heads_main=309827c58751f678cd87b6be88b517e8e99b585b
+autodl_CAMP_HEAD=309827c58751f678cd87b6be88b517e8e99b585b
+autodl_CAMP_origin_main=309827c58751f678cd87b6be88b517e8e99b585b
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Synthetic/static contract coverage:
+
+```text
+default_off_builder_boundary_pinned=True
+validated_dataset_scope_pinned=True
+record_identity_hash_grouping_pinned=True
+deterministic_sha256_split_policy_pinned=True
+preflight_compatibility_pinned=True
+forbidden_split_feature_rejections_pinned=True
+forbidden_execution_and_claim_rejections_pinned=True
+production_builder_implemented=False
+manifest_generated=False
+```
+
+Local verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=7 passed
+local_fallback_risk_related_pytest=202 passed
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_split_manifest_unit_tests_pinned
+passed=True
+split_manifest_unit_tests_complete=True
+training_split_manifest_builder_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only`
