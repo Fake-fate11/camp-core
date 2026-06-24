@@ -1,0 +1,169 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Training Sufficiency Unit Tests Plan
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_plan_only
+```
+
+This plan specifies static and synthetic unit tests for fallback-risk training
+sufficiency preconditions. It does not implement a training preflight, train
+CAMP, retrain CAMP, run replay, generate candidates, modify Diffusion Planner,
+change the online selector, promote a selector or atom, or claim safety benefit
+or CAMP-over-DP Top-1.
+
+## Preconditions
+
+```text
+training_sufficiency_plan_ready=True
+training_sufficiency_static_contract_review_passed=True
+blocking_contract_findings=0
+validated_fallback_records=15
+fallback_dataset_training_sufficiency_claim=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+camp_head_at_plan=4eddc0d4b79df769d29bed28ead6eb78a883c084
+camp_origin_main_at_plan=4eddc0d4b79df769d29bed28ead6eb78a883c084
+autodl_CAMP_HEAD_at_plan=4eddc0d4b79df769d29bed28ead6eb78a883c084
+autodl_CAMP_origin_main_at_plan=4eddc0d4b79df769d29bed28ead6eb78a883c084
+autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Planned Unit Test Groups
+
+### Evidence And Non-Sufficiency Tests
+
+```text
+test_validated_fallback_dataset_is_required=True
+test_15_record_artifact_does_not_authorize_training=True
+test_rejects_training_sufficiency_claim_without_split=True
+test_rejects_deployable_checkpoint_claim=True
+test_rejects_safety_or_camp_over_dp_claim=True
+```
+
+### Split Manifest Tests
+
+```text
+test_requires_training_validation_split_manifest=True
+test_rejects_missing_group_key=True
+test_rejects_train_validation_group_overlap=True
+test_rejects_formal_seeds_11_12_13_in_train_or_validation=True
+test_rejects_formal_eval_artifact_in_development_split=True
+```
+
+### Scale Manifest Tests
+
+```text
+test_requires_train_only_scale_manifest=True
+test_rejects_scale_fit_on_validation_groups=True
+test_rejects_scale_fit_on_formal_or_eval_groups=True
+test_rejects_nonpositive_atom_scales=True
+test_rejects_atom_schema_or_names_mismatch=True
+```
+
+### Fallback Master Isolation Tests
+
+```text
+test_requires_fallback_only_master_config=True
+test_rejects_feasible_branch_records_in_fallback_master=True
+test_rejects_all_infeasible_records_added_to_feasible_training=True
+test_rejects_hard_feasibility_relaxation=True
+test_rejects_feasible_ranking_master_change=True
+```
+
+### Convex Fixed-Candidate Contract Tests
+
+```text
+test_requires_score_equals_a_transpose_w=True
+test_requires_nonnegative_fixed_atoms=True
+test_requires_fallback_label_not_deployed_atom=True
+test_requires_nonnegative_margins=True
+test_requires_simplex_cvar_l2_convex_boundary=True
+```
+
+### Training Command Authorization Tests
+
+```text
+test_rejects_training_command_without_prior_authorization=True
+test_rejects_replay_or_candidate_generation_commands=True
+test_rejects_dp_weight_or_config_changes=True
+test_rejects_reference_blend_guidance_or_postselection=True
+test_rejects_online_selector_or_atom_promotion=True
+test_requires_post_training_nonpromotion_plan=True
+test_requires_development_holdout_acceptance_gate=True
+```
+
+## Synthetic Fixture Requirements
+
+```text
+synthetic_manifest_fixtures_only=True
+synthetic_dataset_summary_fixtures_only=True
+fixed_autodl_artifact_required_for_unit_tests=False
+formal_seeds_11_12_13_used=False
+replay_required_for_unit_tests=False
+candidate_generation_required_for_unit_tests=False
+training_required_for_unit_tests=False
+dp_required_for_unit_tests=False
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_ready
+passed=True
+training_sufficiency_unit_tests_plan_complete=True
+training_sufficiency_unit_tests_authorized=True
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only
+```
+
+The next gate may only add synthetic/static unit tests that pin this training
+sufficiency precondition contract. It must not implement training execution,
+run replay, generate candidates, modify Diffusion Planner, use formal seeds,
+relax hard feasibility, add all-infeasible records to the feasible-ranking
+master, promote a selector or atom, or claim safety/CAMP-over-DP benefit.

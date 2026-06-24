@@ -1,0 +1,119 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PLAN_DOC = (
+    REPO_ROOT
+    / "docs"
+    / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_plan.md"
+)
+
+
+def _plan() -> str:
+    return PLAN_DOC.read_text(encoding="utf-8")
+
+
+def test_unit_tests_plan_records_preconditions_and_no_training_authorization() -> None:
+    text = _plan()
+
+    for needle in [
+        "training_sufficiency_plan_ready=True",
+        "training_sufficiency_static_contract_review_passed=True",
+        "blocking_contract_findings=0",
+        "validated_fallback_records=15",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+    ]:
+        assert needle in text
+
+
+def test_unit_tests_plan_covers_evidence_split_and_scale_fail_closed_cases() -> None:
+    text = _plan()
+
+    for needle in [
+        "test_validated_fallback_dataset_is_required=True",
+        "test_15_record_artifact_does_not_authorize_training=True",
+        "test_rejects_training_sufficiency_claim_without_split=True",
+        "test_requires_training_validation_split_manifest=True",
+        "test_rejects_train_validation_group_overlap=True",
+        "test_rejects_formal_seeds_11_12_13_in_train_or_validation=True",
+        "test_requires_train_only_scale_manifest=True",
+        "test_rejects_scale_fit_on_validation_groups=True",
+        "test_rejects_nonpositive_atom_scales=True",
+    ]:
+        assert needle in text
+
+
+def test_unit_tests_plan_covers_fallback_master_and_convex_contract() -> None:
+    text = _plan()
+
+    for needle in [
+        "test_requires_fallback_only_master_config=True",
+        "test_rejects_feasible_branch_records_in_fallback_master=True",
+        "test_rejects_all_infeasible_records_added_to_feasible_training=True",
+        "test_rejects_hard_feasibility_relaxation=True",
+        "test_requires_score_equals_a_transpose_w=True",
+        "test_requires_nonnegative_fixed_atoms=True",
+        "test_requires_fallback_label_not_deployed_atom=True",
+        "test_requires_simplex_cvar_l2_convex_boundary=True",
+    ]:
+        assert needle in text
+
+
+def test_unit_tests_plan_covers_training_command_and_nonpromotion_rejections() -> None:
+    text = _plan()
+
+    for needle in [
+        "test_rejects_training_command_without_prior_authorization=True",
+        "test_rejects_replay_or_candidate_generation_commands=True",
+        "test_rejects_dp_weight_or_config_changes=True",
+        "test_rejects_reference_blend_guidance_or_postselection=True",
+        "test_rejects_online_selector_or_atom_promotion=True",
+        "test_requires_post_training_nonpromotion_plan=True",
+        "test_requires_development_holdout_acceptance_gate=True",
+    ]:
+        assert needle in text
+
+
+def test_unit_tests_plan_uses_synthetic_fixtures_only() -> None:
+    text = _plan()
+
+    for needle in [
+        "synthetic_manifest_fixtures_only=True",
+        "synthetic_dataset_summary_fixtures_only=True",
+        "fixed_autodl_artifact_required_for_unit_tests=False",
+        "formal_seeds_11_12_13_used=False",
+        "replay_required_for_unit_tests=False",
+        "candidate_generation_required_for_unit_tests=False",
+        "training_required_for_unit_tests=False",
+        "dp_required_for_unit_tests=False",
+    ]:
+        assert needle in text
+
+
+def test_unit_tests_plan_forbids_execution_and_sets_unit_tests_next() -> None:
+    text = _plan()
+
+    for needle in [
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "formal_seeds_11_12_13_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_ready",
+        "training_sufficiency_unit_tests_authorized=True",
+        "fallback_risk_training_authorized_now=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only",
+        "may only add synthetic/static unit tests",
+        "must not implement training execution",
+        "run replay",
+        "generate candidates",
+        "modify Diffusion Planner",
+    ]:
+        assert needle in text
