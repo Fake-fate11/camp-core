@@ -101750,8 +101750,10 @@ local_python=py -3.12
 local_py_compile_exit=0
 local_target_pytest=9 passed
 autodl_python=/root/miniconda3/envs/camp/bin/python
-autodl_py_compile_exit=pending_remote_sync
-autodl_target_pytest=pending_remote_sync
+autodl_verified_camp_head=a1d82aeb09c9a2f866d1cdf56f6c15ab0e58a8a3
+autodl_py_compile_exit=0
+autodl_target_pytest=9 passed
+autodl_git_diff_check_exit=0
 ```
 
 Forbidden remains:
