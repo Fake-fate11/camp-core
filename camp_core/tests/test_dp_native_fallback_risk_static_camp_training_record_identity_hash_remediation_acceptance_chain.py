@@ -145,7 +145,8 @@ def test_training_chain_records_verification_and_forbidden_boundaries() -> None:
 
 
 def test_iteration_audit_tail_records_training_chain_next_gate() -> None:
-    tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-190:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
         "status=fallback_risk_static_camp_training_record_identity_hash_remediation_acceptance_chain_passed",
@@ -155,8 +156,8 @@ def test_iteration_audit_tail_records_training_chain_next_gate() -> None:
         "deployment_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
-        assert needle in tail
+        assert needle in audit
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan_only`"
     )

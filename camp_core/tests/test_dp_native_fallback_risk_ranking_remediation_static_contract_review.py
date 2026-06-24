@@ -9,6 +9,11 @@ REVIEW_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+NEXT_UNIT_TESTS_PLAN_GATE = (
+    "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_"
+    "fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan_only"
+)
 
 
 def test_static_contract_review_passes_fixed_candidate_boundary() -> None:
@@ -122,3 +127,47 @@ def test_static_contract_review_next_gate_unit_tests_plan_only() -> None:
         "the extractor, train CAMP",
     ]:
         assert needle in text
+
+
+def test_static_contract_review_current_head_revalidation() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "camp_head_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55",
+        "camp_origin_main_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55",
+        "github_refs_heads_main_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55",
+        "autodl_CAMP_HEAD_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_design_status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
+        "prior_design_current_head_revalidated=True",
+        "blocking_contract_findings=0",
+        NEXT_UNIT_TESTS_PLAN_GATE,
+    ]:
+        assert needle in text
+
+
+def test_iteration_audit_tail_records_static_contract_review_next_gate() -> None:
+    tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-120:])
+
+    for needle in [
+        "status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
+        "current_head_static_contract_revalidated=True",
+        "camp_head_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "blocking_contract_findings=0",
+        "fixed_candidate_boundary_passed=True",
+        "affine_score_boundary_passed=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "nonnegative_cost_boundary_passed=True",
+        "fallback_cost_targets_nonnegative=True",
+        "convex_master_boundary_passed=True",
+        "feasible_master_separation_passed=True",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "dp_modification_authorized=False",
+        NEXT_UNIT_TESTS_PLAN_GATE,
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_UNIT_TESTS_PLAN_GATE}`")

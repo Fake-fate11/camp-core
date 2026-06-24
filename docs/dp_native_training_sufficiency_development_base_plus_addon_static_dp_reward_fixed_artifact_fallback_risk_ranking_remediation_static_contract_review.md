@@ -241,3 +241,33 @@ dp_modification_authorized=False
 selector_promotion_authorized=False
 atom_promotion_authorized=False
 ```
+
+## Current-Head Revalidation After Design Plan Revalidation
+
+Date: 2026-06-25
+
+The static contract review remains valid after the fallback-risk ranking
+remediation design plan was revalidated on the current synchronized CAMP HEAD:
+
+```text
+camp_head_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55
+camp_origin_main_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55
+github_refs_heads_main_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55
+autodl_CAMP_HEAD_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55
+autodl_CAMP_origin_main_at_revalidation=a45006a0ff8be6239d8f14742708e46553c9ae55
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_design_status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review
+prior_design_current_head_revalidated=True
+blocking_contract_findings=0
+```
+
+The review still authorizes only the next default-off unit-test planning gate.
+It does not implement the extractor, train CAMP, retrain CAMP, run replay,
+generate candidates, modify DP, use formal seeds, promote selector or atom
+logic, deploy, or claim safety/CAMP-over-DP benefit.
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan_only
+```

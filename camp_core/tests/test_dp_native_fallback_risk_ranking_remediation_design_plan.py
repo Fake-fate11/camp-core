@@ -14,6 +14,10 @@ NEXT_STATIC_REVIEW_GATE = (
     "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_"
     "fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only"
 )
+NEXT_UNIT_TESTS_PLAN_GATE = (
+    "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_"
+    "fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan_only"
+)
 
 
 def test_fallback_risk_remediation_design_uses_fixed_artifact_evidence() -> None:
@@ -166,4 +170,4 @@ def test_iteration_audit_tail_records_remediation_design_plan_next_gate() -> Non
     ]:
         assert needle in tail
 
-    assert tail.rstrip().endswith(f"`{NEXT_STATIC_REVIEW_GATE}`")
+    assert tail.rstrip().endswith(f"`{NEXT_UNIT_TESTS_PLAN_GATE}`")
