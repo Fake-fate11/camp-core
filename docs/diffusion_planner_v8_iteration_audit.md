@@ -100680,3 +100680,97 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Data Training Sufficiency Unit Tests Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only
+```
+
+Revalidated the synthetic/static fallback-risk training sufficiency contract
+tests at the current head. No training preflight implementation, training
+execution, replay, candidate generation, Diffusion Planner modification, or
+selector/atom promotion was performed.
+
+```text
+contract_tests=camp_core/tests/test_dp_native_fallback_risk_training_data_training_sufficiency_contract.py
+validated_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2
+camp_head=a9f628585be3dda7e21d8e5c51f3e43bd886dee2
+camp_origin_main=a9f628585be3dda7e21d8e5c51f3e43bd886dee2
+github_refs_heads_main=a9f628585be3dda7e21d8e5c51f3e43bd886dee2
+autodl_CAMP_HEAD=a9f628585be3dda7e21d8e5c51f3e43bd886dee2
+autodl_CAMP_origin_main=a9f628585be3dda7e21d8e5c51f3e43bd886dee2
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Pinned synthetic contract behavior:
+
+```text
+clean_synthetic_preconditions_pass_without_training_authorization=True
+reject_dataset_sufficiency_and_checkpoint_claim_leaks=True
+reject_split_overlap_formal_seed_and_formal_eval_leakage=True
+reject_scale_fit_leakage_and_bad_atom_scale_contract=True
+reject_fallback_master_leaking_into_feasible_master=True
+reject_training_command_execution_dp_changes_and_promotions=True
+reject_missing_post_training_nonpromotion_and_holdout_gates=True
+ready_for_future_training_authorization_is_not_training_authorization=True
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=7 passed
+local_git_diff_check_exit=0
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=7 passed
+autodl_git_diff_check_exit=0
+```
+
+Forbidden remains:
+
+```text
+user_camp_retraining_permission_available=True
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_training_sufficiency_contract_tests_current_head_revalidated
+passed=True
+training_sufficiency_contract_tests_complete=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_authorization_only`
