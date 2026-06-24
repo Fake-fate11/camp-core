@@ -1,0 +1,193 @@
+# DP Native Fixed-Artifact Fallback Risk Training Train-Only Scale Manifest Unit Tests Plan
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_unit_tests_plan_only
+```
+
+This plan specifies synthetic and static unit tests for a future default-off
+train-only scale manifest builder. It does not implement the builder, fit
+scales, train CAMP, retrain CAMP, run replay, generate candidates, modify
+Diffusion Planner, change the online selector, promote a selector or atom, or
+claim safety benefit or CAMP-over-DP Top-1.
+
+## Preconditions
+
+```text
+train_only_scale_manifest_plan_ready=True
+train_only_scale_manifest_static_contract_review_passed=True
+blocking_contract_findings=0
+accepted_split_manifest_ready=True
+accepted_split_training_records=13
+accepted_split_validation_records=2
+training_groups_disjoint_validation=True
+train_only_scale_manifest_builder_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+camp_head_at_plan=ac95fc1ce23f6f54e417e862eb14e40beb312766
+camp_origin_main_at_plan=ac95fc1ce23f6f54e417e862eb14e40beb312766
+github_refs_heads_main_at_plan=ac95fc1ce23f6f54e417e862eb14e40beb312766
+autodl_CAMP_HEAD_at_plan=ac95fc1ce23f6f54e417e862eb14e40beb312766
+autodl_CAMP_origin_main_at_plan=ac95fc1ce23f6f54e417e862eb14e40beb312766
+autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Planned Unit Test Groups
+
+### Default-Off And IO Boundary Tests
+
+```text
+test_default_off_scale_builder_requires_enable_flag=True
+test_disabled_mode_does_not_read_dataset_or_split_manifest=True
+test_disabled_mode_writes_default_off_decision_only=True
+test_enabled_mode_reads_existing_dataset_and_split_manifest_json_only=True
+test_output_is_json_and_markdown_only=True
+```
+
+### Split And Fit Group Tests
+
+```text
+test_requires_accepted_split_manifest_sha256=True
+test_requires_source_dataset_sha256=True
+test_requires_validator_output_sha256=True
+test_fit_groups_equal_split_training_groups=True
+test_excluded_validation_groups_equal_split_validation_groups=True
+test_rejects_training_validation_group_overlap=True
+test_rejects_missing_training_or_validation_groups=True
+test_rejects_dataset_record_not_in_split_manifest=True
+```
+
+### Leakage And Formal Seed Tests
+
+```text
+test_rejects_fit_on_validation_groups=True
+test_rejects_fit_on_formal_seeds_11_12_13=True
+test_rejects_formal_eval_artifact_included=True
+test_rejects_selected_index_scale_feature=True
+test_rejects_candidate_rank_scale_feature=True
+test_rejects_closed_loop_outcome_scale_feature=True
+test_rejects_learned_weights_scale_feature=True
+```
+
+### Atom Scale Policy Tests
+
+```text
+test_requires_dp_camp_v10_14d_atom_schema=True
+test_requires_exact_14d_atom_names=True
+test_computes_positive_finite_training_only_p95_or_one_scales=True
+test_all_zero_or_missing_training_atom_scale_is_one=True
+test_rejects_nonpositive_scale=True
+test_rejects_nonfinite_scale=True
+test_rejects_missing_or_extra_atom_scale_key=True
+test_rejects_bool_atom_scale=True
+```
+
+### Preflight Compatibility Tests
+
+```text
+test_manifest_contains_preflight_required_fields=True
+test_preflight_accepts_clean_synthetic_scale_manifest_with_clean_split=True
+test_preflight_rejects_scale_fit_group_not_training_only=True
+test_preflight_rejects_scale_validation_leak=True
+test_preflight_rejects_scale_formal_seed_leak=True
+test_final_decision_never_authorizes_training=True
+test_final_decision_never_claims_training_sufficiency=True
+```
+
+### Forbidden Execution Tests
+
+```text
+test_rejects_replay_or_candidate_generation=True
+test_rejects_camp_training_or_retraining=True
+test_rejects_dp_weight_or_config_changes=True
+test_rejects_reference_blend_guidance_or_postselection=True
+test_rejects_closed_loop_outcome_online_input=True
+test_rejects_selector_or_atom_promotion=True
+test_rejects_safety_or_camp_over_dp_claim=True
+```
+
+## Synthetic Fixture Requirements
+
+```text
+synthetic_dataset_fixtures_only=True
+synthetic_split_manifest_fixtures_only=True
+fixed_autodl_artifact_required_for_unit_tests=False
+formal_seeds_11_12_13_used=False
+replay_required_for_unit_tests=False
+candidate_generation_required_for_unit_tests=False
+training_required_for_unit_tests=False
+dp_required_for_unit_tests=False
+```
+
+## Local Verification
+
+```text
+git_diff_check=passed
+local_target_pytest=7 passed
+local_fallback_risk_related_pytest=259 passed
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_train_only_scale_manifest_unit_tests_plan_ready
+passed=True
+train_only_scale_manifest_unit_tests_plan_complete=True
+train_only_scale_manifest_unit_tests_authorized=True
+train_only_scale_manifest_builder_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_unit_tests_only
+```
+
+The next gate may only add synthetic/static unit tests that pin this
+train-only scale manifest builder contract. It must not implement a scale builder,
+fit scales, train CAMP, run replay, generate candidates, modify Diffusion Planner,
+use formal seeds, relax hard feasibility, add
+all-infeasible records to the feasible-ranking master, promote a selector or
+atom, or claim safety/CAMP-over-DP benefit.
