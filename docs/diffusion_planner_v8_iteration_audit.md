@@ -88927,3 +88927,74 @@ authorized_next_work=dp_native_training_sufficiency_preflight_validator_default_
 Next admissible gate:
 
 `dp_native_training_sufficiency_preflight_validator_default_off_implementation`
+
+## DP native training sufficiency preflight validator implementation
+
+Gate:
+
+`dp_native_training_sufficiency_preflight_validator_default_off_implementation`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_preflight_validator_implementation.md
+```
+
+Implemented files:
+
+```text
+script=scripts/integrations/validate_dp_native_training_sufficiency_preflight.py
+test=camp_core/tests/test_dp_native_training_sufficiency_preflight.py
+script_sha256=0153a8dbde51f6167047222490c5974b1bfe425c88d2d175f920b6c3098255d9
+test_sha256=3afea74af9c1852a733f7c695f32a9e7616181acbf69eb27959748f045c72e34
+```
+
+Validator properties:
+
+```text
+schema_version=dp_native_training_sufficiency_preflight_v1
+profile=development_minimal_v1
+read_only=True
+default_off_preflight=True
+replay_executed=False
+candidate_generation_executed=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+```
+
+Verification:
+
+```text
+git_diff_check_exit=0
+py_compile_exit=0
+default_root_pytest_exit=1
+default_root_pytest_blocker=existing Windows long-path collection error before target tests ran
+short_path_target_pytest=5 passed in 1.35s
+fixed_artifact_downloaded_logs=12
+fixed_artifact_preflight_exit=1
+fixed_artifact_failed_checks=["records_at_least_min", "routes_at_least_min", "seeds_at_least_min"]
+fixed_artifact_clean_contract_passed=True
+fixed_artifact_label_source_records_present=True
+```
+
+Decision:
+
+```text
+status=training_sufficiency_preflight_validator_implemented
+current_artifact_fails_closed=True
+implementation_default_off=True
+read_only=True
+training_execution_authorized=False
+camp_retraining_authorized=False
+collection_replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_preflight_artifact_audit_only`
