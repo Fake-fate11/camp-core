@@ -1,0 +1,181 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Validator Extension Unit Tests Plan
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only
+```
+
+This plan specifies synthetic unit tests for a future read-only fallback-risk
+training dataset validator extension. It does not implement the validator, run
+replay, generate candidates, train CAMP, retrain CAMP, modify Diffusion
+Planner, change the online selector, promote a selector or atom, or claim
+safety benefit or CAMP-over-DP Top-1.
+
+## Preconditions
+
+```text
+validator_extension_plan_ready=True
+validator_extension_static_contract_review_passed=True
+blocking_contract_findings=0
+accepted_fallback_records=15
+fallback_dataset_artifact_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+camp_head_at_plan=917662cdf21861a0c1f02c7abf37d68a6e5e1297
+camp_origin_main_at_plan=917662cdf21861a0c1f02c7abf37d68a6e5e1297
+autodl_CAMP_HEAD_at_plan=917662cdf21861a0c1f02c7abf37d68a6e5e1297
+autodl_CAMP_origin_main_at_plan=917662cdf21861a0c1f02c7abf37d68a6e5e1297
+autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Planned Unit Test Groups
+
+### Read-Only And Output Tests
+
+```text
+test_validator_reads_existing_dataset_json_only=True
+test_validator_writes_only_explicit_output_json_and_md=True
+test_validator_does_not_run_replay_or_candidate_generation=True
+test_validator_does_not_train_or_modify_dp=True
+test_validator_reports_training_not_authorized=True
+```
+
+### Dataset Summary Tests
+
+```text
+test_accepts_clean_builder_complete_dataset=True
+test_rejects_schema_version_mismatch=True
+test_rejects_disabled_or_failed_builder_decision=True
+test_rejects_records_built_count_mismatch=True
+test_rejects_records_built_not_equal_records_without_feasible_candidate=True
+test_rejects_failed_records_nonzero=True
+test_rejects_final_decision_errors=True
+test_requires_source_hashes_for_every_source_log=True
+```
+
+### Source-Log Readback Tests
+
+```text
+test_accepts_matching_source_log_sha_and_all_false_feasible_mask=True
+test_rejects_source_log_hash_mismatch=True
+test_rejects_missing_source_log_when_acceptance_readback_required=True
+test_rejects_missing_source_record_index=True
+test_rejects_non_bool_source_feasible_mask=True
+test_rejects_any_true_source_feasible_mask=True
+test_rejects_source_candidate_count_mismatch=True
+test_rejects_source_selected_index_mismatch=True
+test_rechecks_source_candidate_generation_contract=True
+test_rechecks_source_candidate_tensor_provenance=True
+test_rechecks_source_atom_schema_names_atoms_and_normalized_atoms=True
+```
+
+### Per-Record Dataset Tests
+
+```text
+test_requires_source_log_and_source_sha=True
+test_requires_source_artifact_sha=True
+test_requires_run_id_and_record_index=True
+test_rejects_candidate_count_non_int_or_empty=True
+test_rejects_selected_or_oracle_index_out_of_range=True
+test_rejects_unknown_oracle_policy=True
+test_rejects_cost_row_count_mismatch=True
+test_rejects_negative_or_nonfinite_costs=True
+test_rejects_margin_count_mismatch=True
+test_rejects_negative_or_nonfinite_margins=True
+test_rejects_atom_schema_or_names_mismatch=True
+test_rejects_atom_shape_mismatch=True
+test_rejects_negative_or_nonfinite_atoms=True
+test_rejects_normalized_atom_shape_mismatch=True
+test_rejects_negative_or_nonfinite_normalized_atoms=True
+```
+
+### Nonpromotion Tests
+
+```text
+test_rejects_training_authorized_true=True
+test_rejects_selected_index_used_as_feature_true=True
+test_rejects_candidate_rank_used_as_feature_true=True
+test_rejects_fallback_label_promoted_as_deployed_atom=True
+test_rejects_feasible_master_change_flag=True
+test_rejects_selector_or_atom_promotion_flags=True
+test_rejects_safety_or_camp_over_dp_claim_flags=True
+```
+
+## Fixture Requirements
+
+All unit tests must use synthetic tiny dataset JSON and synthetic source logs.
+They must not read formal seeds, run replay, generate candidates, call
+Diffusion Planner, or depend on the fixed AutoDL artifact.
+
+```text
+synthetic_dataset_fixtures_only=True
+synthetic_source_logs_only=True
+formal_seeds_11_12_13_used=False
+fixed_autodl_artifact_required_for_unit_tests=False
+replay_required_for_unit_tests=False
+candidate_generation_required_for_unit_tests=False
+training_required_for_unit_tests=False
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_validator_extension_unit_tests_plan_ready
+passed=True
+validator_extension_unit_tests_plan_complete=True
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only
+```
+
+The next gate may only add synthetic unit tests that pin the planned validator
+extension contract. It must not implement the validator, run replay, generate
+candidates, train CAMP, retrain CAMP, modify Diffusion Planner, use formal
+seeds, relax hard feasibility, add all-infeasible records to the
+feasible-ranking master, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.
