@@ -18,6 +18,11 @@ TRAFFIC_LIGHT_HYBRID_POSTSELECTION_MODES = (
     "state_redroute_top1_red_or_proxy_jerk_floor_unconditional",
     "state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse",
 )
+PAPER_FAITHFUL_BOUNDARY_ERROR = (
+    "Paper-faithful CAMP only permits Benders-compatible atom values over "
+    "immutable predictor candidates plus feasibility mask, affine score, and "
+    "argmin selected_index; {flag} is non-atom and must remain disabled."
+)
 
 
 def _parse_named_path(value: str) -> tuple[str, Path]:
@@ -531,7 +536,67 @@ def _compare_command(
     return compare_cmd
 
 
+def _validate_paper_faithful_boundary(args: argparse.Namespace) -> None:
+    non_atom_flags = [
+        (
+            "--camp_log_raw_candidate_prefix_steps",
+            args.camp_log_raw_candidate_prefix_steps > 0,
+        ),
+        ("--camp_splice_shadow_rule", args.camp_splice_shadow_rule),
+        (
+            "--candidate_reference_blend_steps",
+            args.candidate_reference_blend_steps is not None,
+        ),
+        (
+            "--camp_min_candidate0_progress_ratio",
+            args.camp_min_candidate0_progress_ratio is not None,
+        ),
+        (
+            "--camp_min_candidate0_route_progress_ratio",
+            args.camp_min_candidate0_route_progress_ratio is not None,
+        ),
+        ("--camp_shadow_route_progress", args.camp_shadow_route_progress),
+        ("--camp_shadow_obstacle_clearance", args.camp_shadow_obstacle_clearance),
+        (
+            "--camp_shadow_obstacle_clearance_exact_obb",
+            args.camp_shadow_obstacle_clearance_exact_obb,
+        ),
+        (
+            "--camp_min_candidate0_step_reach_ratio",
+            args.camp_min_candidate0_step_reach_ratio is not None,
+        ),
+        (
+            "--camp_candidate0_step_reach_preserve_feasible",
+            args.camp_candidate0_step_reach_preserve_feasible,
+        ),
+        (
+            "--camp_lexicographic_progress_epsilon_m",
+            args.camp_lexicographic_progress_epsilon_m is not None,
+        ),
+        ("--camp_lexicographic_red_epsilon", args.camp_lexicographic_red_epsilon != 0.0),
+        ("--camp_lexicographic_jerk_epsilon", args.camp_lexicographic_jerk_epsilon != 0.0),
+        (
+            "--camp_lexicographic_lateral_epsilon",
+            args.camp_lexicographic_lateral_epsilon != 0.0,
+        ),
+        (
+            "--camp_perfect_tracker_command_postselection",
+            args.camp_perfect_tracker_command_postselection,
+        ),
+        (
+            "--camp_traffic_light_hybrid_postselection",
+            args.camp_traffic_light_hybrid_postselection != "off",
+        ),
+        ("--camp_underprogress_relaxation", args.camp_underprogress_relaxation),
+        ("--camp_collect_closed_loop_outcomes", args.camp_collect_closed_loop_outcomes),
+    ]
+    for flag, enabled in non_atom_flags:
+        if enabled:
+            raise ValueError(PAPER_FAITHFUL_BOUNDARY_ERROR.format(flag=flag))
+
+
 def _validate_args(args: argparse.Namespace) -> None:
+    _validate_paper_faithful_boundary(args)
     if args.camp_feasibility_source == "dp_reward" and args.reward_config is None:
         raise ValueError(
             "--camp_feasibility_source dp_reward requires --reward_config."

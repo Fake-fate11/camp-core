@@ -153,6 +153,11 @@ STATE_REDROUTE_TOP1_FLOOR_MODES = (
     STATE_REDROUTE_TOP1_FLOOR_MODE,
     STATE_REDROUTE_TOP1_FLOOR_LATERAL_NONWORSE_MODE,
 )
+PAPER_FAITHFUL_BOUNDARY_ERROR = (
+    "Paper-faithful CAMP only permits Benders-compatible atom values over "
+    "immutable predictor candidates plus feasibility mask, affine score, and "
+    "argmin selected_index; {flag} is non-atom and must remain disabled."
+)
 OBSERVABLE_STATE_LOGGING_SCHEMA_VERSION = "dp_camp_observable_state_logging_v1"
 OBSERVABLE_STATE_LATENCY_KEYS = (
     "latency_ms_observable_state_route_topology",
@@ -811,7 +816,105 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _validate_paper_faithful_boundary(args: argparse.Namespace) -> None:
+    non_atom_flags = [
+        (
+            "--candidate_noise_strategy",
+            args.candidate_noise_strategy != "iid",
+        ),
+        (
+            "--candidate_reference_blend_steps",
+            args.candidate_reference_blend_steps is not None,
+        ),
+        ("--candidate_guidance_config", args.candidate_guidance_config is not None),
+        ("--candidate_guidance_scale", args.candidate_guidance_scale is not None),
+        (
+            "--camp_microbenchmark_snapshot_dir",
+            args.camp_microbenchmark_snapshot_dir is not None,
+        ),
+        (
+            "--camp_log_raw_candidate_prefix_steps",
+            args.camp_log_raw_candidate_prefix_steps > 0,
+        ),
+        ("--camp_observable_state_logging", args.camp_observable_state_logging),
+        ("--camp_red_route_vector_logging", args.camp_red_route_vector_logging),
+        ("--camp_progress_support_logging", args.camp_progress_support_logging),
+        (
+            "--camp_lane_hard_violation_support_logging",
+            args.camp_lane_hard_violation_support_logging,
+        ),
+        (
+            "--camp_progress_lane_hard_context_logging",
+            args.camp_progress_lane_hard_context_logging,
+        ),
+        ("--camp_turn_logit_payload_logging", args.camp_turn_logit_payload_logging),
+        (
+            "--camp_non_turn_logit_interaction_payload_logging",
+            args.camp_non_turn_logit_interaction_payload_logging,
+        ),
+        (
+            "--camp_external_context_payload_logging",
+            args.camp_external_context_payload_logging,
+        ),
+        (
+            "--camp_temporal_consistency_payload_logging",
+            args.camp_temporal_consistency_payload_logging,
+        ),
+        (
+            "--camp_candidate_set_consensus_payload_logging",
+            args.camp_candidate_set_consensus_payload_logging,
+        ),
+        (
+            "--camp_min_candidate0_progress_ratio",
+            args.camp_min_candidate0_progress_ratio is not None,
+        ),
+        (
+            "--camp_min_candidate0_route_progress_ratio",
+            args.camp_min_candidate0_route_progress_ratio is not None,
+        ),
+        ("--camp_shadow_route_progress", args.camp_shadow_route_progress),
+        ("--camp_shadow_obstacle_clearance", args.camp_shadow_obstacle_clearance),
+        (
+            "--camp_shadow_obstacle_clearance_exact_obb",
+            args.camp_shadow_obstacle_clearance_exact_obb,
+        ),
+        (
+            "--camp_min_candidate0_step_reach_ratio",
+            args.camp_min_candidate0_step_reach_ratio is not None,
+        ),
+        (
+            "--camp_candidate0_step_reach_preserve_feasible",
+            args.camp_candidate0_step_reach_preserve_feasible,
+        ),
+        (
+            "--camp_lexicographic_progress_epsilon_m",
+            args.camp_lexicographic_progress_epsilon_m is not None,
+        ),
+        ("--camp_lexicographic_red_epsilon", args.camp_lexicographic_red_epsilon != 0.0),
+        ("--camp_lexicographic_jerk_epsilon", args.camp_lexicographic_jerk_epsilon != 0.0),
+        (
+            "--camp_lexicographic_lateral_epsilon",
+            args.camp_lexicographic_lateral_epsilon != 0.0,
+        ),
+        (
+            "--camp_perfect_tracker_command_postselection",
+            args.camp_perfect_tracker_command_postselection,
+        ),
+        (
+            "--camp_traffic_light_hybrid_postselection",
+            args.camp_traffic_light_hybrid_postselection != "off",
+        ),
+        ("--camp_underprogress_relaxation", args.camp_underprogress_relaxation),
+        ("--camp_collect_closed_loop_outcomes", args.camp_collect_closed_loop_outcomes),
+        ("--camp_splice_shadow_rule", args.camp_splice_shadow_rule),
+    ]
+    for flag, enabled in non_atom_flags:
+        if enabled:
+            raise ValueError(PAPER_FAITHFUL_BOUNDARY_ERROR.format(flag=flag))
+
+
 def _validate_args(args: argparse.Namespace) -> None:
+    _validate_paper_faithful_boundary(args)
     if args.camp_selector_mode != "top1" and args.camp_atom_scales is None:
         raise ValueError(
             "--camp_atom_scales is required for uniform/static/linear CAMP modes."
