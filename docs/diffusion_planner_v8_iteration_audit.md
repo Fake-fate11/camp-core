@@ -97487,3 +97487,111 @@ no_camp_over_dp_top1_claim=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Static CAMP Training Development Holdout Acceptance Plan
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan_only
+```
+
+Added a plan-only artifact for the next read-only development holdout
+acceptance audit:
+
+```text
+result_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan.md
+plan_only=True
+audit_only_next=True
+plan_start_head=3f3a33a1976a0e062500896e30db051edd663dae
+training_commit=0e3b7f3397adecdac559027856efcdb918269496
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+records_scope=validation_groups_only
+fallback_branch_only=True
+records_without_feasible_candidate_only=True
+formal_seeds_11_12_13_used=False
+Full36_used=False
+```
+
+The planned next audit is restricted to existing fixed artifacts: the
+training summary, static fallback weights JSON/NPY, atom scales, dataset,
+split manifest, train-only scale manifest, fallback master config, and
+preflight output. It may recompute only fixed-candidate scores over validation
+records:
+
+```text
+require_atom_schema_version=dp_camp_v10_14d
+require_num_atoms=14
+require_weights_simplex_nonnegative=True
+require_atom_scales_strictly_positive=True
+score_expression=score_k(w)=a_k^T w
+selection_rule=argmin_k score_k(w)
+selected_index_in_range=True
+candidate_count_unchanged=True
+candidate_tensor_unchanged=True
+pre_post_candidate_provenance_hashes_equal_if_present=True
+recomputed_selected_index_matches_argmin=True
+```
+
+The plan explicitly disallows using absent provenance hashes as positive proof
+of candidate immutability. If older artifacts lack pre/post provenance hashes,
+the next audit must record the absence and rely only on candidate count, atom
+tensor shape, schema, and source artifact hashes for a limited
+development-holdout consistency check.
+
+Forbidden remains:
+
+```text
+training_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+deployment_authorized=False
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+local_diff_check=0 findings
+autodl_target_pytest=pending
+```
+
+Decision:
+
+```text
+status=fallback_risk_static_camp_training_development_holdout_acceptance_plan_only_passed
+passed=True
+plan_only=True
+development_holdout_acceptance_audit_authorized_next=True
+no_replay=True
+no_candidate_generation=True
+no_camp_retraining=True
+no_dp_modification=True
+no_selector_or_atom_promotion=True
+no_deployment=True
+no_safety_benefit_claim=True
+no_camp_over_dp_top1_claim=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_audit_only`

@@ -1,0 +1,191 @@
+# DP Native Fixed-Artifact Fallback Risk Static CAMP Training Development Holdout Acceptance Plan
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan_only
+```
+
+This is a plan-only gate. It defines the next read-only development holdout
+acceptance audit for the already-created fallback-risk static CAMP reranker.
+It does not execute the audit, rerun replay, generate candidates, retrain
+CAMP, modify Diffusion Planner, promote a selector or atom, deploy a
+checkpoint, or claim safety benefit.
+
+## Fixed Inputs For The Next Audit
+
+The next audit may only read the existing fixed artifacts below:
+
+```text
+training_commit=0e3b7f3397adecdac559027856efcdb918269496
+plan_start_head=3f3a33a1976a0e062500896e30db051edd663dae
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+training_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z
+training_summary_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z/training_summary.json
+training_summary_json_sha256=826b378434d82623cb8f0c620ae37e253cb8c8b98f7c7352382ec7707c7ffbf1
+offline_weights_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z/training/offline_weights_dp_fallback_risk_static.json
+offline_weights_json_sha256=d6b3df205a41a60ac1bb40d6d2dea62db98344f719225be9c27458976d0ddb42
+offline_weights_npy=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z/training/offline_weights_dp_fallback_risk_static.npy
+offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40
+atom_scales_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z/training/atom_scales_dp_fallback_risk_static.json
+atom_scales_json_sha256=cb84b008e19d25910f12f0855c0c1e4a89b0caa295c00cdbc733fce732fa9dc2
+dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f632c44_20260624T133402Z/dataset.json
+dataset_json_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+training_split_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_384c2b7_20260624T154419Z/split_manifest.json
+training_split_manifest_json_sha256=a4b33c1c14b2ea96f1994e89245cfd27209e98049808fdfd3fbe6c8a732d34fd
+train_only_scale_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_train_only_scale_manifest_builder_acceptance_6a069dd_20260625T000000Z/scale_manifest.json
+train_only_scale_manifest_json_sha256=9e76915d544a04bcea31380323027511293419ea98f3b24406f951e52982570b
+fallback_master_config_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_fallback_master_config_and_command_plan_builder_acceptance_3b919f1_20260624T170753Z/fallback_master_config.json
+fallback_master_config_json_sha256=92f8273b814fd120be2d3cac5eca94dbd6be5403cf5045c3aa73eabb2e1e49c1
+preflight_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_sufficiency_preflight_acceptance_d0ae79c_20260624T173944Z/preflight.json
+preflight_json_sha256=04ada84f0bfe97108049c491016a62718152f2ce8cd94f92734732d6c1a2e568
+```
+
+## Planned Audit Scope
+
+The next audit is a read-only fixed-artifact audit over development validation
+groups from the existing split manifest.
+
+```text
+plan_only=True
+audit_only_next=True
+records_scope=validation_groups_only
+fallback_branch_only=True
+records_without_feasible_candidate_only=True
+formal_seeds_11_12_13_used=False
+Full36_used=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_retraining_authorized_now=False
+dp_modification_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+deployment_authorized=False
+```
+
+For each validation record, the next audit must:
+
+```text
+load_fixed_candidate_atoms=True
+require_atom_schema_version=dp_camp_v10_14d
+require_num_atoms=14
+require_weights_simplex_nonnegative=True
+require_atom_scales_strictly_positive=True
+score_expression=score_k(w)=a_k^T w
+selection_rule=argmin_k score_k(w)
+selected_index_in_range=True
+candidate_count_unchanged=True
+candidate_tensor_unchanged=True
+pre_post_candidate_provenance_hashes_equal_if_present=True
+trajectory_generation_executed=False
+trajectory_rewrite_executed=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+```
+
+The audit may report development holdout metrics only as nonformal internal
+evidence:
+
+```text
+report_validation_records=True
+report_oracle_match_rate=True
+report_mean_margin_violation=True
+report_uniform_fallback_ablation=True
+report_dp_top1_or_candidate0_ablation=True
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+deployable_checkpoint_claim_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+```
+
+## Acceptance Criteria For The Next Audit
+
+The next audit may pass only if all of the following are true:
+
+```text
+all_input_hashes_match=True
+dp_head_matches_fixed_commit=True
+split_validation_groups_nonempty=True
+split_training_validation_overlap=False
+split_formal_seed_leak=False
+scale_fit_groups_training_only=True
+scale_validation_leak=False
+training_summary_status=dp_native_fallback_risk_static_camp_training_complete
+training_artifacts_nonpromotion=True
+weights_json_matches_npy=True
+weights_simplex_nonnegative=True
+atom_schema_version=dp_camp_v10_14d
+score_expression=score_k(w)=a_k^T w
+recomputed_selected_index_matches_argmin=True
+selected_index_in_range=True
+candidate_count_unchanged=True
+candidate_tensor_unchanged=True
+pre_post_candidate_provenance_hashes_equal_if_present=True
+no_replay=True
+no_candidate_generation=True
+no_camp_retraining=True
+no_dp_modification=True
+no_reference_blend=True
+no_guidance=True
+no_postprocess_postselection=True
+no_closed_loop_outcome_online_input=True
+no_selector_or_atom_promotion=True
+no_deployment=True
+no_safety_benefit_claim=True
+no_camp_over_dp_top1_claim=True
+```
+
+If provenance hashes are absent from an older artifact, the next audit must
+record them as absent and must not use their absence as positive proof of
+candidate immutability. The audit can still pass only when candidate count,
+atom tensor shape, schema, and source artifact hashes provide enough
+fixed-artifact evidence for a development-holdout consistency check.
+
+## Decision
+
+```text
+status=fallback_risk_static_camp_training_development_holdout_acceptance_plan_only_passed
+passed=True
+plan_only=True
+development_holdout_acceptance_audit_authorized_next=True
+training_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+deployment_authorized=False
+```
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+local_diff_check=0 findings
+autodl_target_pytest=pending
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_audit_only
+```
