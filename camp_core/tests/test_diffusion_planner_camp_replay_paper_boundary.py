@@ -43,12 +43,20 @@ def _make_args() -> SimpleNamespace:
         camp_traffic_light_hybrid_postselection="off",
         camp_underprogress_relaxation=False,
         camp_collect_closed_loop_outcomes=False,
+        camp_candidate_tensor_provenance_logging=False,
         camp_splice_shadow_rule=False,
     )
 
 
 def test_replay_paper_boundary_accepts_default_off_options() -> None:
     _validate_paper_faithful_boundary(_make_args())
+
+
+def test_replay_paper_boundary_accepts_evidence_only_provenance_logging() -> None:
+    args = _make_args()
+    args.camp_candidate_tensor_provenance_logging = True
+
+    _validate_paper_faithful_boundary(args)
 
 
 @pytest.mark.parametrize(

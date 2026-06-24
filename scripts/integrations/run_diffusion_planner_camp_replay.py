@@ -124,6 +124,18 @@ TRAFFIC_LIGHT_HYBRID_POSTSELECTION_MODES = (
     "state_redroute_top1_red_or_proxy_jerk_floor_unconditional",
     "state_redroute_top1_red_or_proxy_jerk_floor_lateral_nonworse",
 )
+CANDIDATE_TENSOR_PROVENANCE_SCHEMA_VERSION = (
+    "dp_native_candidate_tensor_provenance_payload_v1"
+)
+CANDIDATE_TENSOR_PROVENANCE_RAW_DP_STAGE = (
+    "dp_sampler_output_before_reference_blend_or_any_camp_side_transform"
+)
+CANDIDATE_TENSOR_PROVENANCE_PRE_SCORING_STAGE = (
+    "camp_scoring_input_after_dp_postprocess_before_camp_scoring"
+)
+CANDIDATE_TENSOR_PROVENANCE_POST_SELECTOR_STAGE = (
+    "post_camp_selector_candidate_tensor_reference"
+)
 TRAFFIC_LIGHT_HYBRID_POSTSELECTION_BUDGETS = {
     "step_h10_guard_005": {
         "first_step_loss_m": 0.10,
@@ -468,6 +480,15 @@ def parse_args() -> argparse.Namespace:
             "Log short-horizon candidate outcome labels computed from perfect "
             "tracking, predicted NPC futures, route progress, red lights, and "
             "comfort. Used for v5 closed_loop_outcome training."
+        ),
+    )
+    parser.add_argument(
+        "--camp_candidate_tensor_provenance_logging",
+        action="store_true",
+        help=(
+            "Default-off evidence-only logging of candidate tensor shape, dtype, "
+            "and byte hashes before CAMP scoring and after selector return. "
+            "This must not change candidate generation, scoring, or selection."
         ),
     )
     parser.add_argument("--camp_outcome_horizon_steps", type=int, default=30)
@@ -3980,6 +4001,162 @@ def _sum_reason_counts(rows: Any) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def _candidate_tensor_hash_payload(candidates: np.ndarray, *, stage: str) -> dict[str, Any]:
+    array = np.asarray(candidates)
+    if not np.issubdtype(array.dtype, np.number):
+        raise ValueError("candidate tensor provenance requires a numeric tensor.")
+    contiguous = np.ascontiguousarray(array)
+    bytes_view = contiguous.view(np.uint8)
+    return {
+        "stage": stage,
+        "sha256": hashlib.sha256(bytes_view).hexdigest(),
+        "shape": [int(dim) for dim in contiguous.shape],
+        "dtype": str(contiguous.dtype),
+        "contiguous": True,
+        "byte_count": int(bytes_view.nbytes),
+        "hash_input": "contiguous_candidate_tensor_bytes",
+        "nan_policy": "preserve_tensor_bytes",
+    }
+
+
+def _same_tensor_hash_contract(lhs: dict[str, Any], rhs: dict[str, Any]) -> bool:
+    return (
+        lhs.get("sha256") == rhs.get("sha256")
+        and lhs.get("shape") == rhs.get("shape")
+        and lhs.get("dtype") == rhs.get("dtype")
+    )
+
+
+def _build_candidate_tensor_provenance_payload(
+    pre_camp_scoring_candidates: np.ndarray,
+    post_camp_selector_candidates: np.ndarray,
+    *,
+    selected_index: int,
+    raw_dp_candidates: np.ndarray | None = None,
+    reference_blend_steps: int | None = None,
+    outcome_label_input: bool = False,
+) -> dict[str, Any]:
+    pre = _candidate_tensor_hash_payload(
+        pre_camp_scoring_candidates,
+        stage=CANDIDATE_TENSOR_PROVENANCE_PRE_SCORING_STAGE,
+    )
+    post = _candidate_tensor_hash_payload(
+        post_camp_selector_candidates,
+        stage=CANDIDATE_TENSOR_PROVENANCE_POST_SELECTOR_STAGE,
+    )
+    raw = (
+        _candidate_tensor_hash_payload(
+            raw_dp_candidates,
+            stage=CANDIDATE_TENSOR_PROVENANCE_RAW_DP_STAGE,
+        )
+        if raw_dp_candidates is not None
+        else None
+    )
+    pre_shape = pre["shape"]
+    post_shape = post["shape"]
+    candidate_count = int(pre_shape[0]) if pre_shape else 0
+    post_candidate_count = int(post_shape[0]) if post_shape else 0
+    selected_index_int = int(selected_index)
+    selected_index_in_range = 0 <= selected_index_int < candidate_count
+    pre_post_tensor_hash_equal = _same_tensor_hash_contract(pre, post)
+    no_candidate_row_append = candidate_count == post_candidate_count
+    reference_blend_stage_hash_separated = (
+        reference_blend_steps is None or raw is not None
+    )
+    no_coordinate_heading_speed_rewrite_by_camp = pre_post_tensor_hash_equal
+    payload_valid = (
+        selected_index_in_range
+        and pre_post_tensor_hash_equal
+        and no_candidate_row_append
+        and no_coordinate_heading_speed_rewrite_by_camp
+        and reference_blend_stage_hash_separated
+        and not bool(outcome_label_input)
+    )
+    return {
+        "schema_version": CANDIDATE_TENSOR_PROVENANCE_SCHEMA_VERSION,
+        "enabled": True,
+        "selection_effect": False,
+        "candidate_generation_effect": False,
+        "candidate_tensor_mutation_effect": False,
+        "candidate_generation_authorized": False,
+        "trajectory_rewrite_authorized": False,
+        "dp_modification_authorized": False,
+        "pre_camp_scoring_tensor": pre,
+        "post_camp_selector_tensor": post,
+        "raw_dp_tensor_before_reference_blend": raw,
+        "candidate_count": candidate_count,
+        "post_selector_candidate_count": post_candidate_count,
+        "selected_index": selected_index_int,
+        "selected_index_in_range": selected_index_in_range,
+        "pre_post_tensor_hash_equal": pre_post_tensor_hash_equal,
+        "no_candidate_row_append": no_candidate_row_append,
+        "no_coordinate_heading_speed_rewrite_by_camp": (
+            no_coordinate_heading_speed_rewrite_by_camp
+        ),
+        "reference_blend_present": reference_blend_steps is not None,
+        "reference_blend_steps": (
+            int(reference_blend_steps) if reference_blend_steps is not None else None
+        ),
+        "reference_blend_stage_hash_separated": (
+            reference_blend_stage_hash_separated
+        ),
+        "outcome_label_input": bool(outcome_label_input),
+        "closed_loop_outcome_fields_read": bool(outcome_label_input),
+        "payload_valid": payload_valid,
+    }
+
+
+def _summarize_candidate_tensor_provenance_records(
+    records: list[dict[str, Any]] | None,
+    *,
+    enabled: bool,
+) -> dict[str, Any] | None:
+    if records is None:
+        return None
+    payloads = [
+        record.get("camp_candidate_tensor_provenance")
+        for record in records
+        if record.get("camp_candidate_tensor_provenance") is not None
+    ]
+    return {
+        "schema_version": CANDIDATE_TENSOR_PROVENANCE_SCHEMA_VERSION,
+        "enabled": bool(enabled),
+        "selection_effect": False,
+        "candidate_generation_effect": False,
+        "candidate_tensor_mutation_effect": False,
+        "records": int(len(records)),
+        "payload_records": int(len(payloads)),
+        "all_payloads_present": (not enabled) or len(payloads) == len(records),
+        "all_payloads_valid": all(
+            bool(payload.get("payload_valid")) for payload in payloads
+        ),
+        "all_selected_index_in_range": all(
+            bool(payload.get("selected_index_in_range")) for payload in payloads
+        ),
+        "all_pre_post_tensor_hash_equal": all(
+            bool(payload.get("pre_post_tensor_hash_equal")) for payload in payloads
+        ),
+        "all_candidate_count_unchanged": all(
+            bool(payload.get("no_candidate_row_append")) for payload in payloads
+        ),
+        "all_no_coordinate_heading_speed_rewrite_by_camp": all(
+            bool(payload.get("no_coordinate_heading_speed_rewrite_by_camp"))
+            for payload in payloads
+        ),
+        "all_reference_blend_stage_hash_separated": all(
+            bool(payload.get("reference_blend_stage_hash_separated"))
+            for payload in payloads
+        ),
+        "outcome_label_input": any(
+            bool(payload.get("outcome_label_input")) for payload in payloads
+        ),
+        "closed_loop_outcome_fields_read": any(
+            bool(payload.get("closed_loop_outcome_fields_read"))
+            for payload in payloads
+        ),
+    }
+
+
 def _install_camp_predictor(
     replay_module: Any,
     tensor_converter_module: Any,
@@ -4052,6 +4229,7 @@ def _install_camp_predictor(
     temporal_consistency_payload_min_overlap_steps: int,
     candidate_set_consensus_payload_logging: bool,
     candidate_set_consensus_payload_steps: int,
+    candidate_tensor_provenance_logging: bool,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -4132,6 +4310,11 @@ def _install_camp_predictor(
             noise_strategy=str(candidate_generation_contract["noise_strategy"]),
         )
         candidate_generation_done = time.perf_counter()
+        pre_camp_scoring_candidates = (
+            np.array(candidates, copy=True)
+            if candidate_tensor_provenance_logging
+            else None
+        )
         dp_prior_deviation_start = time.perf_counter()
         candidate_dp_prior_deviation_cost = compute_dp_prior_deviation_costs(
             candidates
@@ -4823,6 +5006,17 @@ def _install_camp_predictor(
                 ),
             )
         selection_done = time.perf_counter()
+        candidate_tensor_provenance_payload = None
+        if pre_camp_scoring_candidates is not None:
+            candidate_tensor_provenance_payload = (
+                _build_candidate_tensor_provenance_payload(
+                    pre_camp_scoring_candidates,
+                    candidates,
+                    selected_index=selected_index,
+                    reference_blend_steps=reference_blend_steps,
+                    outcome_label_input=False,
+                )
+            )
         elapsed_ms = (selection_done - start) * 1000.0
         phase_latencies_ms = {
             "latency_ms_candidate_generation": (
@@ -5007,6 +5201,9 @@ def _install_camp_predictor(
                 "candidate_noise_scale": float(noise_scale),
                 "candidate_reference_blend_steps": reference_blend_steps,
                 "candidate_generation_contract": candidate_generation_contract,
+                "camp_candidate_tensor_provenance": (
+                    candidate_tensor_provenance_payload
+                ),
                 "candidate_trajectory_horizon_steps": int(candidates.shape[1]),
                 "candidate_first_reference_xy": (
                     candidates[:, 0, :2].tolist()
@@ -5472,6 +5669,9 @@ def main() -> None:
             candidate_set_consensus_payload_steps=(
                 args.camp_candidate_set_consensus_payload_steps
             ),
+            candidate_tensor_provenance_logging=bool(
+                args.camp_candidate_tensor_provenance_logging
+            ),
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
             ),
@@ -5693,6 +5893,10 @@ def main() -> None:
         }
         if records is not None
         else None
+    )
+    camp_candidate_tensor_provenance = _summarize_candidate_tensor_provenance_records(
+        records,
+        enabled=bool(args.camp_candidate_tensor_provenance_logging),
     )
     camp_observable_state_logging = (
         {
@@ -6586,6 +6790,7 @@ def main() -> None:
             else None
         ),
         "camp_raw_candidate_prefix_logging": camp_raw_candidate_prefix_logging,
+        "camp_candidate_tensor_provenance": camp_candidate_tensor_provenance,
         "camp_observable_state_logging": camp_observable_state_logging,
         "camp_red_route_vector_logging": camp_red_route_vector_logging,
         "camp_progress_support_logging": camp_progress_support_logging,
@@ -6897,6 +7102,9 @@ def main() -> None:
     ]
     validation["camp_raw_candidate_prefix_logging"] = (
         camp_raw_candidate_prefix_logging
+    )
+    validation["camp_candidate_tensor_provenance"] = (
+        camp_candidate_tensor_provenance
     )
     validation["camp_observable_state_logging"] = camp_observable_state_logging
     validation["camp_red_route_vector_logging"] = camp_red_route_vector_logging

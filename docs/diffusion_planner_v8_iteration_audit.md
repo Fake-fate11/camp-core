@@ -86822,3 +86822,106 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_candidate_tensor_provenance_payload_minimal_default_off_implementation`
+
+## DP native candidate tensor provenance payload minimal default-off implementation
+
+Gate:
+
+`dp_native_candidate_tensor_provenance_payload_minimal_default_off_implementation`
+
+Pre-implementation refs:
+
+```text
+git rev-parse HEAD origin/main
+052c3260801902607742edd6e1a7bc3e2a548b55
+052c3260801902607742edd6e1a7bc3e2a548b55
+```
+
+Implementation artifacts:
+
+```text
+scripts/integrations/run_diffusion_planner_camp_replay.py
+sha256=B6979DA506CDB8C124B5147651E93FD626EE73CED887A9D1BFDCC085837CD26C
+
+camp_core/tests/test_diffusion_planner_candidate_tensor_provenance_payload.py
+sha256=1EA27693085D36A7CF70AEA08512B4CB59DB019232E087B117895EF9190DB9D3
+
+camp_core/tests/test_diffusion_planner_camp_replay_paper_boundary.py
+sha256=F96A6C1ABBFC407202EA366046852A7CAA9BAEA02830BB8A42DF626E840BFF16
+```
+
+Implemented payload:
+
+```text
+flag=--camp_candidate_tensor_provenance_logging
+default=False
+schema_version=dp_native_candidate_tensor_provenance_payload_v1
+selection_effect=False
+candidate_generation_effect=False
+candidate_tensor_mutation_effect=False
+candidate_generation_authorized=False
+trajectory_rewrite_authorized=False
+dp_modification_authorized=False
+hash_input=contiguous_candidate_tensor_bytes
+nan_policy=preserve_tensor_bytes
+stages=
+  camp_scoring_input_after_dp_postprocess_before_camp_scoring
+  post_camp_selector_candidate_tensor_reference
+  dp_sampler_output_before_reference_blend_or_any_camp_side_transform when supplied
+```
+
+Static contract covered:
+
+```text
+pre_camp_scoring_tensor_sha256 present
+post_camp_selector_tensor_sha256 present
+pre_post_tensor_hash_equal recorded
+selected_index_in_range recorded
+candidate_count recorded
+post_selector_candidate_count recorded
+no_candidate_row_append recorded
+no_coordinate_heading_speed_rewrite_by_camp recorded from full tensor hash equality
+reference_blend_stage_hash_separated recorded and fails closed when blend is present without raw DP hash
+outcome_label_input recorded and fails closed when true
+online selector call statically checked not to receive candidate_outcomes
+```
+
+Verification:
+
+```text
+python -m py_compile scripts/integrations/run_diffusion_planner_camp_replay.py camp_core/tests/test_diffusion_planner_candidate_tensor_provenance_payload.py camp_core/tests/test_diffusion_planner_camp_replay_paper_boundary.py
+exit=0
+
+git diff --check
+exit=0
+
+python -m pytest camp_core/tests/test_diffusion_planner_candidate_tensor_provenance_payload.py camp_core/tests/test_diffusion_planner_camp_replay_paper_boundary.py -q
+exit=1
+reason=existing Windows collection blocker on missing/too-long residual-comfort test path before target tests ran
+
+temporary rootdir target pytest with copied target tests and PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main
+40 passed in 0.54s
+```
+
+Decision:
+
+```text
+status=implemented_default_off_static_contract_passed
+replay_executed=False
+candidate_generation_executed=False
+trajectory_rewrite_authorized=False
+candidate_tensor_mutation_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+atom_promotion_authorized=False
+online_selector_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_candidate_tensor_provenance_payload_static_contract_audit_only`
