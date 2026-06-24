@@ -131,10 +131,10 @@ def test_iteration_audit_tail_records_post_static_next_gate() -> None:
         assert needle in audit
 
     assert (
-        "status=fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed"
+        "status=fallback_risk_training_split_manifest_builder_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed"
         in tail
     )
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
     )
