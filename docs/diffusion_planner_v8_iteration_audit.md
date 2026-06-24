@@ -102671,7 +102671,10 @@ local_py_compile_exit=0
 local_target_pytest=6 passed
 local_scale_builder_pytest=5 passed
 local_related_target_pytest=77 passed
-autodl_verification_pending=True
+autodl_verified_camp_head=48a17ed37b2808284d248c5628aa004d005afda1
+autodl_py_compile_exit=0
+autodl_target_pytest=77 passed
+autodl_git_diff_check_exit=0
 ```
 
 Forbidden remains:
