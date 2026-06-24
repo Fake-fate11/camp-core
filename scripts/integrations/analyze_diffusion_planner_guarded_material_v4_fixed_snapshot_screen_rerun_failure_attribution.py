@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import Any, Optional
 
 
-EXPECTED_CAMP_HEAD = "bff8f8bf99a6b90a3ab5190b0d83b47eb1ed686a"
+EXPECTED_ANALYSIS_CAMP_HEAD = "10676d9b92a456f43a15010520ceeccd172b1362"
+EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD = "bff8f8bf99a6b90a3ab5190b0d83b47eb1ed686a"
+EXPECTED_CAMP_HEAD = EXPECTED_ANALYSIS_CAMP_HEAD
 EXPECTED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 SCREEN_REJECT_STATUS = "route_topology_candidate_support_insufficient"
 REMEDIATION_PROFILE = "lane_red_hard_feasible_comfort_first_materialized_support_v4"
@@ -54,6 +56,7 @@ SCREEN_JSON = "default_off_v4_fixed_snapshot_screen.json"
 SCREEN_MD = "default_off_v4_fixed_snapshot_screen.md"
 CANDIDATE_LOG = "CANDIDATE_SCREEN.log"
 CANDIDATE_ERR = "CANDIDATE_SCREEN.err"
+EXIT_CODE = "EXIT_CODE"
 HEADS = "HEADS.txt"
 SHA256SUMS = "SHA256SUMS"
 
@@ -176,7 +179,8 @@ def build_report(
         "head_audit": {
             "camp_head": camp_head,
             "camp_origin_main": camp_origin_main,
-            "expected_camp_head": EXPECTED_CAMP_HEAD,
+            "expected_analysis_camp_head": EXPECTED_ANALYSIS_CAMP_HEAD,
+            "expected_source_artifact_camp_head": EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD,
             "dp_head": dp_head,
             "expected_dp_head": EXPECTED_DP_HEAD,
         },
@@ -218,10 +222,13 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Hard support rate: `{source['hard_support_rate']}`",
         f"- Comfort support rate: `{source['comfort_support_rate']}`",
         "",
-        "## Hard Blockers",
+        "## Failure Classes",
         "",
     ]
-    for item in attribution["hard_blocker_ranking"]:
+    for item in attribution["failure_class_ranking"]:
+        lines.append(f"- `{item['name']}`: count=`{item['count']}`")
+    lines.extend(["", "## Hard Reasons", ""])
+    for item in attribution["hard_reason_ranking"]:
         lines.append(f"- `{item['name']}`: count=`{item['count']}`")
     lines.extend(["", "## Comfort Blockers", ""])
     for item in attribution["comfort_blocker_ranking"]:
@@ -278,6 +285,7 @@ def _artifact_summary(root: Path) -> dict[str, Any]:
         "screen_md_sha256": _sha256(root / SCREEN_MD),
         "candidate_log_sha256": _sha256(root / CANDIDATE_LOG),
         "candidate_err_sha256": _sha256(root / CANDIDATE_ERR),
+        "exit_code": _read_text(root / EXIT_CODE).strip() or None,
         "heads_sha256": _sha256(root / HEADS),
         "sha256sums_sha256": _sha256(root / SHA256SUMS),
         "heads": _read_heads(root / HEADS),
@@ -291,6 +299,7 @@ def _source_summary(payload: dict[str, Any]) -> dict[str, Any]:
     decision = payload.get("final_decision", {})
     support_gate = payload.get("support_gate", {})
     analysis = payload.get("analysis", {})
+    records = _dict(payload.get("records"))
     hard_counter: Counter[str] = Counter()
     failure_counter: Counter[str] = Counter()
     comfort_counter: Counter[str] = Counter()
@@ -315,16 +324,36 @@ def _source_summary(payload: dict[str, Any]) -> dict[str, Any]:
                     value = descriptor.get(key)
                     if value:
                         comfort_counter[str(value)] += 1
-    hard_rows = sum(1 for candidate in candidate_rows if candidate.get("hard_feasible") is True)
-    progress_rows = sum(
-        1 for candidate in candidate_rows if candidate.get("progress_feasible") is True
-    )
-    comfort_rows = sum(
-        1 for candidate in candidate_rows if candidate.get("comfort_admissible") is True
+    if not failure_counter:
+        failure_counter.update(_int_dict(payload.get("failure_class_counts")))
+    if not hard_counter:
+        hard_counter.update(_int_dict(payload.get("hard_reason_counts")))
+    generated_candidate_rows = len(candidate_rows) or _int(
+        records.get("generated_candidate_rows")
     )
     lower_union_rows = sum(
         1 for candidate in candidate_rows if candidate.get("lower_union_red") is True
     )
+    if lower_union_rows == 0:
+        lower_union_rows = _int(records.get("lower_union_red_rows"))
+    hard_rows = sum(1 for candidate in candidate_rows if candidate.get("hard_feasible") is True)
+    if hard_rows == 0:
+        hard_rows = _int(records.get("lower_union_red_hard_feasible_rows"))
+    progress_rows = sum(
+        1 for candidate in candidate_rows if candidate.get("progress_feasible") is True
+    )
+    if progress_rows == 0:
+        progress_rows = _int(records.get("lower_union_red_progress_feasible_rows"))
+    comfort_rows = sum(
+        1 for candidate in candidate_rows if candidate.get("comfort_admissible") is True
+    )
+    if comfort_rows == 0:
+        comfort_rows = _int(records.get("lower_union_red_comfort_admissible_rows"))
+    snapshot_count = len(rows) if isinstance(rows, list) else 0
+    if snapshot_count == 0:
+        snapshot_count = _int(records.get("snapshots"))
+    if snapshots_with_generated == 0:
+        snapshots_with_generated = _int(records.get("snapshots_with_generated_candidates"))
     blocked = {
         key: bool(decision.get(key))
         for key in BLOCKED_ACTIONS
@@ -333,10 +362,10 @@ def _source_summary(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "status": decision.get("status"),
         "next_step": decision.get("next_step"),
-        "snapshots": len(rows) if isinstance(rows, list) else 0,
+        "snapshots": snapshot_count,
         "snapshots_with_generated_candidates": snapshots_with_generated,
-        "generated_candidate_rows": len(candidate_rows),
-        "row_generated_count_sum": generated_sum,
+        "generated_candidate_rows": generated_candidate_rows,
+        "row_generated_count_sum": generated_sum or generated_candidate_rows,
         "lower_union_red_rows": lower_union_rows,
         "hard_feasible_rows": hard_rows,
         "progress_feasible_rows": progress_rows,
@@ -416,7 +445,8 @@ def _failure_attribution(
     source: dict[str, Any],
     materialization: dict[str, Any],
 ) -> dict[str, Any]:
-    hard_ranking = _ranking(source["failure_class_counts"])
+    failure_class_ranking = _ranking(source["failure_class_counts"])
+    hard_reason_ranking = _ranking(source["hard_reason_counts"])
     comfort_ranking = _ranking(source["comfort_blocker_counts"])
     positive_support = bool(
         source["hard_feasible_rows"] > 0 and source["comfort_admissible_rows"] > 0
@@ -458,7 +488,9 @@ def _failure_attribution(
     return {
         "primary_blocker_family": primary,
         "secondary_blocker_family": secondary,
-        "hard_blocker_ranking": hard_ranking,
+        "failure_class_ranking": failure_class_ranking,
+        "hard_reason_ranking": hard_reason_ranking,
+        "hard_blocker_ranking": hard_reason_ranking,
         "comfort_blocker_ranking": comfort_ranking,
         "positive_support_evidence": positive_support,
         "materialization_contract_ok": material_contract_ok,
@@ -479,6 +511,10 @@ def _artifact_checks(artifact: dict[str, Any]) -> list[dict[str, Any]]:
         ],
         _check("sha256sums_match", artifact["sha256sums_ok"]),
         _check("screen_json_parseable", bool(artifact["screen_payload"])),
+        _check(
+            "screen_exit_code_zero_or_absent",
+            artifact["exit_code"] in (None, "", "0"),
+        ),
     ]
 
 
@@ -490,12 +526,22 @@ def _head_checks(
 ) -> list[dict[str, Any]]:
     heads = artifact["heads"]
     return [
-        _check("camp_head_matches_expected", camp_head == EXPECTED_CAMP_HEAD),
-        _check("camp_origin_main_matches_expected", camp_origin_main == EXPECTED_CAMP_HEAD),
+        _check("camp_head_matches_expected", camp_head == EXPECTED_ANALYSIS_CAMP_HEAD),
+        _check("camp_origin_main_matches_expected", camp_origin_main == EXPECTED_ANALYSIS_CAMP_HEAD),
         _check("camp_head_matches_origin_main", camp_head == camp_origin_main),
         _check("dp_head_fixed", dp_head == EXPECTED_DP_HEAD),
-        _check("artifact_camp_head_matches", heads.get("CAMP_HEAD") == camp_head),
-        _check("artifact_camp_origin_main_matches", heads.get("CAMP_ORIGIN_MAIN") == camp_origin_main),
+        _check(
+            "artifact_camp_head_matches_source",
+            heads.get("CAMP_HEAD") == EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD,
+        ),
+        _check(
+            "artifact_camp_origin_main_matches_source",
+            heads.get("CAMP_ORIGIN_MAIN") == EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD,
+        ),
+        _check(
+            "artifact_camp_head_synced_at_generation",
+            heads.get("CAMP_HEAD") == heads.get("CAMP_ORIGIN_MAIN"),
+        ),
         _check("artifact_dp_head_fixed", heads.get("DP_HEAD") == EXPECTED_DP_HEAD),
         _check("artifact_snapshot_count_57", heads.get("SNAPSHOT_COUNT") == "57"),
     ]
@@ -610,6 +656,24 @@ def _ranking(counts: dict[str, int]) -> list[dict[str, Any]]:
     ]
 
 
+def _dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _int_dict(value: Any) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for key, raw in _dict(value).items():
+        out[str(key)] = _int(raw)
+    return out
+
+
 def _strip_payload(artifact: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in artifact.items() if key != "screen_payload"}
 
@@ -622,6 +686,15 @@ def _read_json(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def _read_text(path: Path) -> str:
+    if not path.is_file():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
 
 
 def _read_heads(path: Path) -> dict[str, str]:
@@ -655,7 +728,11 @@ def _sha256sums_ok(path: Path, root: Path) -> bool:
         expected = parts[0]
         raw_name = parts[-1]
         candidate_path = Path(raw_name)
-        if not candidate_path.is_absolute():
+        if raw_name.startswith("/") and not candidate_path.is_file():
+            candidate_path = root / candidate_path.name
+        elif candidate_path.is_absolute() and not candidate_path.is_file():
+            candidate_path = root / candidate_path.name
+        elif not candidate_path.is_absolute():
             candidate_path = root / raw_name
         name = candidate_path.name
         if name == SHA256SUMS:

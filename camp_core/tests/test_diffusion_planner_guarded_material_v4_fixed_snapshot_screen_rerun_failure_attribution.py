@@ -11,6 +11,7 @@ from scripts.integrations.analyze_diffusion_planner_guarded_material_v4_fixed_sn
     BLOCKED_ACTIONS,
     EXPECTED_CAMP_HEAD,
     EXPECTED_DP_HEAD,
+    EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD,
     REMEDIATION_PROFILE,
     SCREEN_REJECT_STATUS,
     build_report,
@@ -125,11 +126,21 @@ def _payload(
     }
 
 
-def _write_sha256sums(root: Path, names: tuple[str, ...]) -> None:
+def _write_sha256sums(
+    root: Path,
+    names: tuple[str, ...],
+    *,
+    remote_absolute_paths: bool = False,
+) -> None:
     lines = []
     for name in names:
         digest = hashlib.sha256((root / name).read_bytes()).hexdigest()
-        lines.append(f"{digest}  {root / name}")
+        artifact_path = (
+            f"/root/autodl-tmp/fixed_screen_artifact/{name}"
+            if remote_absolute_paths
+            else str(root / name)
+        )
+        lines.append(f"{digest}  {artifact_path}")
     (root / target.SHA256SUMS).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -137,6 +148,8 @@ def _write_screen_root(
     tmp_path: Path,
     *,
     payload: Optional[dict[str, object]] = None,
+    artifact_camp_head: str = EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD,
+    remote_absolute_sha_paths: bool = False,
 ) -> Path:
     root = tmp_path / "screen"
     root.mkdir()
@@ -153,8 +166,8 @@ def _write_screen_root(
     (root / target.HEADS).write_text(
         "\n".join(
             [
-                f"CAMP_HEAD={EXPECTED_CAMP_HEAD}",
-                f"CAMP_ORIGIN_MAIN={EXPECTED_CAMP_HEAD}",
+                f"CAMP_HEAD={artifact_camp_head}",
+                f"CAMP_ORIGIN_MAIN={artifact_camp_head}",
                 f"DP_HEAD={EXPECTED_DP_HEAD}",
                 "SNAPSHOT_COUNT=57",
             ]
@@ -171,6 +184,7 @@ def _write_screen_root(
             target.CANDIDATE_ERR,
             target.HEADS,
         ),
+        remote_absolute_paths=remote_absolute_sha_paths,
     )
     return root
 
@@ -182,9 +196,16 @@ def _build(
     camp_head: str = EXPECTED_CAMP_HEAD,
     camp_origin_main: str = EXPECTED_CAMP_HEAD,
     dp_head: str = EXPECTED_DP_HEAD,
+    artifact_camp_head: str = EXPECTED_SOURCE_ARTIFACT_CAMP_HEAD,
+    remote_absolute_sha_paths: bool = False,
 ) -> dict[str, object]:
     return build_report(
-        screen_root=_write_screen_root(tmp_path, payload=payload),
+        screen_root=_write_screen_root(
+            tmp_path,
+            payload=payload,
+            artifact_camp_head=artifact_camp_head,
+            remote_absolute_sha_paths=remote_absolute_sha_paths,
+        ),
         camp_head=camp_head,
         camp_origin_main=camp_origin_main,
         dp_head=dp_head,
@@ -212,6 +233,11 @@ def test_guarded_material_v4_failure_attribution_complete(tmp_path: Path) -> Non
     assert source["lower_union_red_rows"] == 73
     assert source["hard_feasible_rows"] == 0
     assert source["comfort_admissible_rows"] == 0
+    assert source["hard_reason_counts"] == {
+        "dp_kinematic": 73,
+        "dp_lane_crossing": 73,
+        "dp_road_border": 73,
+    }
     assert materialization["materialized_rows"] == 73
     assert materialization["report_only_rows"] == 73
     assert materialization["uses_outcome_labels_rows"] == 0
@@ -224,6 +250,8 @@ def test_guarded_material_v4_failure_attribution_complete(tmp_path: Path) -> Non
     assert attribution["positive_support_evidence"] is False
     assert attribution["materialization_contract_ok"] is True
     assert attribution["training_ready"] is False
+    assert attribution["failure_class_ranking"][0]["name"] == "route_topology_dp_kinematic"
+    assert attribution["hard_reason_ranking"][0]["name"] == "dp_kinematic"
 
 
 def test_guarded_material_v4_failure_attribution_rejects_dp_mismatch(
@@ -242,6 +270,26 @@ def test_guarded_material_v4_failure_attribution_rejects_camp_mismatch(
 
     assert report["final_decision"]["status"] == target.REJECT_STATUS
     assert "camp_head_matches_expected" in report["final_decision"]["failed_checks"]
+
+
+def test_guarded_material_v4_failure_attribution_rejects_source_artifact_mismatch(
+    tmp_path: Path,
+) -> None:
+    report = _build(tmp_path, artifact_camp_head=EXPECTED_CAMP_HEAD)
+
+    assert report["final_decision"]["status"] == target.REJECT_STATUS
+    assert "artifact_camp_head_matches_source" in report["final_decision"][
+        "failed_checks"
+    ]
+
+
+def test_guarded_material_v4_failure_attribution_accepts_copied_remote_sha_manifest(
+    tmp_path: Path,
+) -> None:
+    report = _build(tmp_path, remote_absolute_sha_paths=True)
+
+    assert report["final_decision"]["status"] == target.READY_STATUS
+    assert report["screen_artifact"]["sha256sums_ok"] is True
 
 
 def test_guarded_material_v4_failure_attribution_rejects_blocked_authorization(
