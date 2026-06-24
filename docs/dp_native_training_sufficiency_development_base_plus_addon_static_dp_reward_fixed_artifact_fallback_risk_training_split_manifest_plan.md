@@ -1,0 +1,169 @@
+# DP Native Fixed-Artifact Fallback Risk Training Split Manifest Plan
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only
+```
+
+This plan defines the fallback-risk training split manifest contract required
+by the default-off training sufficiency preflight. It does not generate the
+manifest, train CAMP, retrain CAMP, run replay, generate candidates, modify
+Diffusion Planner, change the online selector, promote a selector or atom, or
+claim safety benefit or CAMP-over-DP Top-1.
+
+## Inputs
+
+```text
+validated_fallback_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+validated_fallback_records=15
+preflight_validator=scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py
+preflight_post_implementation_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_review.md
+mathematical_contract=docs/dp_camp_mathematical_contract.md
+camp_head_at_plan=0ccc72de8171ddac122fec5c5a45e82a8917a611
+camp_origin_main_at_plan=0ccc72de8171ddac122fec5c5a45e82a8917a611
+github_refs_heads_main_at_plan=0ccc72de8171ddac122fec5c5a45e82a8917a611
+autodl_CAMP_HEAD_at_plan=0ccc72de8171ddac122fec5c5a45e82a8917a611
+autodl_CAMP_origin_main_at_plan=0ccc72de8171ddac122fec5c5a45e82a8917a611
+autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Manifest Scope
+
+```text
+manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1
+manifest_input=existing_validated_fallback_risk_training_dataset_json_only
+records_scope=records_without_feasible_candidate_only
+group_key_fields=source_log,run_id,record_index
+split_units=record_identity_groups
+training_groups_disjoint_from_validation_groups=True
+formal_seeds_11_12_13_excluded=True
+formal_eval_artifact_excluded=True
+candidate_generation_authorized=False
+replay_execution_authorized=False
+training_execution_authorized=False
+```
+
+The manifest must identify every accepted fallback-risk record by stable
+source identity and must not rely on candidate rank, selected index, learned
+weights, closed-loop outcomes, or future replanning.
+
+```text
+required_record_fields=source_log,source_log_sha256,run_id,record_index,candidate_count,oracle_index
+record_identity_hash_required=True
+dataset_sha256_required=True
+validator_output_sha256_required=True
+selected_index_used_as_split_feature=False
+candidate_rank_used_as_split_feature=False
+closed_loop_outcome_used_as_split_feature=False
+```
+
+## Deterministic Split Policy
+
+The implementation must predeclare the split policy before any scale fitting
+or training. For the current 15-record fixed artifact, the planned policy is a
+deterministic hash split over record identity groups:
+
+```text
+split_policy=sha256(record_identity_hash + split_salt)
+split_salt=fallback_risk_training_split_v1
+validation_fraction_target=0.2
+min_validation_groups=1
+min_training_groups=1
+group_collision_fails_closed=True
+empty_train_or_validation_fails_closed=True
+```
+
+The split manifest may support development smoke training only after later
+authorization. It is not a proof of deployment readiness:
+
+```text
+fixed_15_record_artifact_training_sufficiency_claim=False
+development_holdout_acceptance_required_after_training=True
+formal_evaluation_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+## Output Contract For Later Builder
+
+A later default-off split manifest builder, if authorized, may write only JSON
+and Markdown reports:
+
+```text
+default_off_builder_required=True
+enable_flag_required=True
+disabled_mode_reads_dataset=False
+output_json_or_markdown_only=True
+training_split_manifest_json_required=True
+split_summary_md_required=True
+preflight_compatible_fields_required=True
+```
+
+The JSON must include:
+
+```text
+top_level_fields=schema_version,dataset_sha256,validator_output_sha256,split_policy,split_salt,group_key_fields,training_groups,validation_groups,record_assignments,record_counts,final_decision
+final_decision_training_authorized=False
+final_decision_camp_retraining_authorized_now=False
+final_decision_fallback_dataset_training_sufficiency_claim=False
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_split_manifest_plan_ready
+passed=True
+training_split_manifest_plan_complete=True
+training_split_manifest_builder_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_static_contract_review_only
+```
+
+The next gate may only statically review this split manifest plan. It must not generate the manifest, train CAMP, run replay, generate candidates, modify Diffusion Planner, use formal seeds, relax hard feasibility, add all-infeasible records to the feasible-ranking master, promote a selector or atom, or claim safety/CAMP-over-DP benefit.
