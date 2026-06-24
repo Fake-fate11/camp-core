@@ -97787,7 +97787,11 @@ Verification:
 local_py_compile_exit=0
 local_target_pytest=6 passed
 local_diff_check=0 findings
-autodl_target_pytest=pending
+autodl_CAMP_HEAD=f36167cf03bb8d12abc0b97a000fc36949f63557
+autodl_CAMP_origin_main=f36167cf03bb8d12abc0b97a000fc36949f63557
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_target_pytest=6 passed
 ```
 
 Decision:
