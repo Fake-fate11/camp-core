@@ -1,0 +1,163 @@
+# DP Native Fixed-Artifact Fallback Risk Ranking Audit
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only
+```
+
+This audit reads the existing broader nonformal evaluation artifact only. It
+does not run replay, generate candidates, train CAMP, modify Diffusion Planner,
+enable reference_blend/guidance/postprocess/postselection, promote a selector or
+atom, or claim safety benefit or CAMP-over-DP Top-1.
+
+## Fixed Source
+
+```text
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+evaluation_summary_sha256=c39fa6278431e08ee16b7b45f6645e43fa46f9951981c1fff8fa1809778aea07
+camp_head_at_audit=b4087c9efe364e43ec1b917a38145fd5ce46974a
+camp_origin_main_at_audit=b4087c9efe364e43ec1b917a38145fd5ce46974a
+dp_head_at_audit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+required_dp_fixed_commit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+The audit script was smoke-run on AutoDL against the fixed artifact from a
+temporary path before the commit, to avoid dirtying the AutoDL CAMP repo before
+GitHub synchronization:
+
+```text
+remote_smoke_audit_json_sha256=bc26a44ccf1b756c25d5b4e6f55c056a07cc29b09ed102f85ecaddbcc5c5af6c
+remote_smoke_audit_md_sha256=22825fb4f48debe928e494dc51b2ff3e72627a10e609af85204b0cfe8fa58fcc
+remote_smoke_failed_checks=[]
+```
+
+## Scope
+
+```text
+records_scope=records_without_feasible_candidate_only
+records_total=60
+records_with_feasible_candidate=45
+records_without_feasible_candidate=15
+route_records_without_feasible_candidate={"nishishinjuku_lane_change": 4, "sample_tl": 11}
+```
+
+The audit compares the logged `selected_index` against fixed candidate costs
+derived from existing `dp_candidate_rewards`:
+
+```text
+dp_red_light_cost=max(-dp_candidate_rewards[k].red_light, 0)
+lane_related_cost=lane_crossing + static_crossing + off_road_fraction + lane_near_frac + lane_wide_frac + max(-centerline, 0)
+dp_reward_quality_cost=max(-dp_candidate_rewards[k].total, 0)
+```
+
+These are read-only diagnostics over logged fixed candidates. They are not new
+atoms, do not change `score_k(w)=a_k^T w`, and do not enter the feasible-ranking
+master.
+
+## Ranking Results
+
+| Metric | Records | Selected at min | Lower-cost fixed candidate available |
+| --- | ---: | ---: | ---: |
+| `dp_red_light_cost` | 15 | 14 | 1 |
+| `lane_related_cost` | 15 | 4 | 11 |
+| `dp_reward_quality_cost` | 15 | 15 | 0 |
+
+By union reason:
+
+```text
+dp_lane_crossing_records=5
+dp_lane_crossing_red_selected_min=5
+dp_lane_crossing_lane_selected_min=0
+dp_lane_crossing_quality_selected_min=5
+
+dp_lane_crossing_plus_dp_red_light_records=2
+dp_lane_crossing_plus_dp_red_light_red_selected_min=1
+dp_lane_crossing_plus_dp_red_light_lane_selected_min=0
+dp_lane_crossing_plus_dp_red_light_quality_selected_min=2
+
+dp_red_light_records=8
+dp_red_light_red_selected_min=8
+dp_red_light_lane_selected_min=4
+dp_red_light_quality_selected_min=8
+```
+
+The existing fallback path is therefore not uniformly least-bad under the logged
+red-light and lane-related fixed-candidate costs. A lower-cost fixed candidate
+exists in 1/15 records under `dp_red_light_cost` and 11/15 records under
+`lane_related_cost`. The logged `total` reward quality cost is tied at the
+minimum for all 15 records and does not distinguish these all-infeasible
+fallback choices.
+
+## Provenance Checks
+
+```text
+selected_index_in_range_all_no_feasible_records=True
+candidate_count_unchanged_all_no_feasible_records=True
+pre_post_tensor_hash_equal_all_no_feasible_records=True
+payload_valid_all_no_feasible_records=True
+no_candidate_row_append_all_no_feasible_records=True
+no_coordinate_heading_speed_rewrite_by_camp_all_no_feasible_records=True
+candidate_tensor_mutation_effect_all_no_feasible_records=False
+candidate_generation_effect_all_no_feasible_records=False
+reference_blend_present_all_no_feasible_records=False
+closed_loop_outcome_fields_read_all_no_feasible_records=False
+```
+
+The fixed artifact contains no evidence that this audit rewrote candidates,
+changed candidate count, read closed-loop outcomes online, or changed DP.
+
+## Decision
+
+```text
+status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+passed=True
+existing_fallback_uniformly_least_bad_red=False
+existing_fallback_uniformly_least_bad_lane=False
+existing_fallback_uniformly_least_bad_quality=True
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+fallback_risk_training_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+candidate_trajectory_rewrite_authorized=False
+postprocess_postselection_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Forbidden operations remain forbidden:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only
+```
+
+The next gate may only decide a default-off, nondeployable remediation design for
+fixed-candidate fallback-risk ranking diagnostics. It must not run replay,
+generate candidates, train CAMP, retrain CAMP, change DP, relax hard feasibility,
+add all-infeasible records to the feasible-ranking master, promote a selector or
+atom, or claim safety/CAMP-over-DP benefit.

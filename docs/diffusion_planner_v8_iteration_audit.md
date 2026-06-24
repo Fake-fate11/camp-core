@@ -90688,3 +90688,128 @@ already picks the least-bad fixed candidate under logged DP-reward diagnostics.
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only`
+
+---
+
+### 2026-06-24 - Fixed-Artifact Fallback Risk Ranking Audit
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_audit.md
+scripts/integrations/audit_diffusion_planner_dp_native_fallback_risk_ranking.py
+camp_core/tests/test_dp_native_fallback_risk_ranking_audit.py
+```
+
+Fixed inputs:
+
+```text
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+evaluation_summary_sha256=c39fa6278431e08ee16b7b45f6645e43fa46f9951981c1fff8fa1809778aea07
+```
+
+Heads before this audit commit:
+
+```text
+local_HEAD=b4087c9efe364e43ec1b917a38145fd5ce46974a
+origin_main=b4087c9efe364e43ec1b917a38145fd5ce46974a
+github_refs_heads_main=b4087c9efe364e43ec1b917a38145fd5ce46974a
+autodl_CAMP_HEAD=b4087c9efe364e43ec1b917a38145fd5ce46974a
+autodl_CAMP_origin_main=b4087c9efe364e43ec1b917a38145fd5ce46974a
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Read-only audit result:
+
+```text
+status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+passed=True
+failed_checks=[]
+records_total=60
+records_with_feasible_candidate=45
+records_without_feasible_candidate=15
+route_records_without_feasible_candidate={"nishishinjuku_lane_change": 4, "sample_tl": 11}
+selected_index_in_range_all_no_feasible_records=True
+candidate_count_unchanged_all_no_feasible_records=True
+pre_post_tensor_hash_equal_all_no_feasible_records=True
+no_candidate_row_append_all_no_feasible_records=True
+no_coordinate_heading_speed_rewrite_by_camp_all_no_feasible_records=True
+candidate_tensor_mutation_effect_all_no_feasible_records=False
+candidate_generation_effect_all_no_feasible_records=False
+reference_blend_present_all_no_feasible_records=False
+closed_loop_outcome_fields_read_all_no_feasible_records=False
+```
+
+Fallback risk ranking:
+
+```text
+dp_red_light_cost_selected_min_count=14/15
+dp_red_light_cost_lower_cost_fixed_candidate_available_count=1/15
+lane_related_cost_selected_min_count=4/15
+lane_related_cost_lower_cost_fixed_candidate_available_count=11/15
+dp_reward_quality_cost_selected_min_count=15/15
+dp_reward_quality_cost_lower_cost_fixed_candidate_available_count=0/15
+existing_fallback_uniformly_least_bad_red=False
+existing_fallback_uniformly_least_bad_lane=False
+existing_fallback_uniformly_least_bad_quality=True
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+```
+
+The existing fallback path is not uniformly least-bad for the logged red-light
+or lane-related fixed-candidate costs. The `total` DP reward quality cost is
+tied at the minimum for all 15 all-infeasible records and does not distinguish
+the fallback choices.
+
+Remote smoke artifact:
+
+```text
+remote_smoke_audit_json_sha256=bc26a44ccf1b756c25d5b4e6f55c056a07cc29b09ed102f85ecaddbcc5c5af6c
+remote_smoke_audit_md_sha256=22825fb4f48debe928e494dc51b2ff3e72627a10e609af85204b0cfe8fa58fcc
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=8 passed
+remote_fixed_artifact_smoke_exit=0
+local_git_diff_check_exit=0
+```
+
+Decision:
+
+```text
+status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+fallback_risk_training_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This is an audit-only gate. It does not alter the feasible-ranking master and
+does not authorize training. It only proves that lower-risk fixed candidates are
+present under logged fallback diagnostics for some all-infeasible records.
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only`
