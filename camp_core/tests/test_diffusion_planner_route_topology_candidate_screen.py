@@ -3,8 +3,10 @@ from __future__ import annotations
 import numpy as np
 
 from scripts.integrations.analyze_diffusion_planner_route_topology_candidate_screen import (
+    GENERATOR_POLICY_MATERIAL_SUPPORT_V3,
     READY_STATUS,
     REJECT_STATUS,
+    REMEDIATION_PROFILE_MATERIAL_SUPPORT_V3,
     SOURCE_CONFLICT_STATUS,
     RouteTopologyCandidateConfig,
     _comfort_failure_classes,
@@ -367,6 +369,391 @@ def test_route_topology_generator_jerk_progress_synthetic_bounds() -> None:
     assert np.max(np.abs(jerk)) <= 6.0 + 1e-6
 
 
+def test_route_topology_generator_builds_comfort_first_remediation_policy() -> None:
+    horizon = 40
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.5, 16.0, horizon)
+    candidates[0, :, 1] = 0.4
+    candidates[0, :, 2] = 1.0
+    original = candidates.copy()
+    lane_x = np.linspace(-5.0, 25.0, 31)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([np.linspace(3.0, 3.5, 3), np.zeros(3)])
+
+    baseline, baseline_meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=2.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="lane_projected_jerk_progress_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            min_stop_distance_m=2.0,
+        ),
+    )
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=2.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="comfort_first_lane_projected_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            prefix_steps=(1,),
+            bridge_steps=(3,),
+            lane_projected_offset_scales=(0.0,),
+            min_stop_distance_m=2.0,
+            max_remediation_candidates=4,
+        ),
+    )
+    diagnostics = route_topology_candidate_construction_diagnostics(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=2.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="comfort_first_lane_projected_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            prefix_steps=(1,),
+            bridge_steps=(3,),
+            lane_projected_offset_scales=(0.0,),
+            min_stop_distance_m=2.0,
+            max_remediation_candidates=4,
+        ),
+    )
+
+    assert baseline.shape == (0, horizon, 4)
+    assert baseline_meta == []
+    assert generated.shape == (1, horizon, 4)
+    assert meta[0]["variant"] == "comfort_first_lane_projected_red_stop"
+    assert meta[0]["profile"] == "comfort_first_jerk_limited_lane_station"
+    assert meta[0]["red_stop_distance_partition"] == "close_red_current_tick_fallback"
+    assert meta[0]["current_tick_features_only"] is True
+    assert meta[0]["candidate_budget_cap"] == 4
+    assert meta[0]["prefix_steps"] == 1
+    assert meta[0]["bridge_steps"] == 3
+    np.testing.assert_allclose(candidates, original)
+    assert np.all(np.isfinite(generated))
+    assert np.all(np.diff(generated[0, :, 0]) >= -1e-9)
+    assert diagnostics["construction_status"] == "ready"
+    assert diagnostics["failure_reason"] is None
+    assert diagnostics["feasible_stop_windows"] == 0
+    assert diagnostics["fallback_stop_windows"] == 1
+    assert diagnostics["red_stop_distance_partition"] == "close_red_current_tick_fallback"
+    assert diagnostics["current_tick_features_only"] is True
+
+
+def test_route_topology_comfort_first_remediation_candidate_budget_cap() -> None:
+    horizon = 40
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.5, 16.0, horizon)
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 25.0, 31)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([np.linspace(10.0, 12.0, 3), np.zeros(3)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=3.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="comfort_first_lane_projected_red_stop",
+            red_stop_margins_m=(1.0, 2.0),
+            backup_stop_offsets_m=(0.0, 1.0),
+            prefix_steps=(1, 3),
+            bridge_steps=(2, 4),
+            lane_projected_offset_scales=(1.0, 0.5, 0.0),
+            max_remediation_candidates=3,
+        ),
+    )
+
+    assert generated.shape == (3, horizon, 4)
+    assert len(meta) == 3
+    assert all(row["candidate_budget_cap"] == 3 for row in meta)
+    assert {row["variant"] for row in meta} == {
+        "comfort_first_lane_projected_red_stop"
+    }
+
+
+def test_route_topology_generator_builds_negative_support_followup_policy() -> None:
+    horizon = 40
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.5, 16.0, horizon)
+    candidates[0, :, 1] = 0.6
+    candidates[0, :, 2] = 1.0
+    original = candidates.copy()
+    lane_x = np.linspace(-5.0, 25.0, 31)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([np.linspace(3.0, 3.5, 3), np.zeros(3)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=2.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="negative_support_coverage_first_lane_projected_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            lane_projected_offset_scales=(1.0, 0.0),
+            min_stop_distance_m=2.0,
+            max_remediation_candidates=2,
+        ),
+    )
+    diagnostics = route_topology_candidate_construction_diagnostics(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=2.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="negative_support_coverage_first_lane_projected_red_stop",
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            lane_projected_offset_scales=(1.0, 0.0),
+            min_stop_distance_m=2.0,
+            max_remediation_candidates=2,
+        ),
+    )
+
+    assert generated.shape == (2, horizon, 4)
+    assert len(meta) == 2
+    assert meta[0]["variant"] == "negative_support_coverage_first_lane_projected_red_stop"
+    assert meta[0]["profile"] == (
+        "coverage_first_hard_comfort_jerk_limited_lane_station"
+    )
+    assert meta[0]["red_stop_distance_partition"] == (
+        "coverage_first_close_red_current_tick_fallback"
+    )
+    assert meta[0]["fail_closed_partition"] == "fallback_ready"
+    assert meta[0]["hard_feasibility_floor_current_tick"] is True
+    assert meta[0]["comfort_after_hard_progress"] is True
+    assert meta[0]["current_tick_features_only"] is True
+    assert meta[0]["candidate_budget_cap"] == 2
+    assert meta[0]["lateral_offset_scale"] == 0.0
+    np.testing.assert_allclose(candidates, original)
+    assert np.all(np.isfinite(generated))
+    assert np.all(np.diff(generated[0, :, 0]) >= -1e-9)
+    assert diagnostics["construction_status"] == "ready"
+    assert diagnostics["failure_reason"] is None
+    assert diagnostics["fallback_stop_windows"] == 1
+    assert diagnostics["fail_closed_partition"] == "fallback_ready"
+    assert diagnostics["current_tick_features_only"] is True
+
+
+def test_route_topology_negative_support_followup_preserves_default_policy() -> None:
+    horizon = 30
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.0, 20.0, horizon)
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 35.0, 41)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([np.linspace(18.0, 20.0, 3), np.zeros(3)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=3.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(),
+    )
+
+    assert generated.shape[1:] == (horizon, 4)
+    assert len(meta) == generated.shape[0]
+    assert {row["variant"] for row in meta} == {"lane_centerline_red_stop"}
+    assert all("fail_closed_partition" not in row for row in meta)
+    assert all("hard_feasibility_floor_current_tick" not in row for row in meta)
+
+
+def test_route_topology_negative_support_followup_partitions_fail_closed_snapshots() -> None:
+    horizon = 20
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[:, :, 2] = 1.0
+    lane_x = np.linspace(0.0, 30.0, 31)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([[-5.0, 0.0]])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=3.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="negative_support_coverage_first_lane_projected_red_stop"
+        ),
+    )
+    diagnostics = route_topology_candidate_construction_diagnostics(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=3.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="negative_support_coverage_first_lane_projected_red_stop"
+        ),
+    )
+
+    assert generated.shape == (0, horizon, 4)
+    assert meta == []
+    assert diagnostics["construction_status"] == "fail_closed"
+    assert diagnostics["failure_reason"] == "red_route_ahead_missing"
+    assert diagnostics["fail_closed_partition"] == "red_route_ahead_missing"
+    assert diagnostics["current_tick_features_only"] is True
+
+
+def test_route_topology_negative_support_followup_rejects_nonfinite_current_tick_inputs() -> None:
+    horizon = 30
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.0, 20.0, horizon)
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 35.0, 41)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([np.linspace(18.0, 20.0, 3), np.zeros(3)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=np.nan,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="negative_support_coverage_first_lane_projected_red_stop"
+        ),
+    )
+    diagnostics = route_topology_candidate_construction_diagnostics(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=np.nan,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="negative_support_coverage_first_lane_projected_red_stop"
+        ),
+    )
+
+    assert generated.shape == (0, horizon, 4)
+    assert meta == []
+    assert diagnostics["construction_status"] == "fail_closed"
+    assert diagnostics["failure_reason"] == "current_tick_scalar_invalid"
+    assert diagnostics["fail_closed_partition"] == "current_tick_scalar_invalid"
+    assert diagnostics["current_tick_features_only"] is True
+
+
+def test_route_topology_negative_support_followup_candidate_budget_cap() -> None:
+    horizon = 40
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.5, 16.0, horizon)
+    candidates[0, :, 1] = 0.5
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 25.0, 31)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([np.linspace(10.0, 12.0, 3), np.zeros(3)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=3.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="negative_support_coverage_first_lane_projected_red_stop",
+            red_stop_margins_m=(1.0, 2.0),
+            backup_stop_offsets_m=(0.0, 1.0),
+            lane_projected_offset_scales=(1.0, 0.5, 0.0),
+            max_remediation_candidates=2,
+        ),
+    )
+
+    assert generated.shape == (2, horizon, 4)
+    assert len(meta) == 2
+    assert all(row["candidate_budget_cap"] == 2 for row in meta)
+    assert {row["variant"] for row in meta} == {
+        "negative_support_coverage_first_lane_projected_red_stop"
+    }
+
+
+def test_route_topology_material_v3_builds_explicit_comfort_first_support() -> None:
+    horizon = 40
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.0, 8.0, horizon)
+    candidates[0, :, 2] = 1.0
+    original = candidates.copy()
+    lane_x = np.linspace(-5.0, 25.0, 31)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([np.linspace(14.0, 15.0, 3), np.zeros(3)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=2.0,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy=GENERATOR_POLICY_MATERIAL_SUPPORT_V3,
+            default_off_remediation_profile=REMEDIATION_PROFILE_MATERIAL_SUPPORT_V3,
+            red_stop_margins_m=(2.0,),
+            backup_stop_offsets_m=(0.0,),
+            prefix_steps=(1,),
+            bridge_steps=(0,),
+            lane_projected_offset_scales=(0.0,),
+            max_remediation_candidates=2,
+            command_jerk_worse_budget_mps3=1e6,
+            rollout_jerk_worse_budget_mps3=1e6,
+            rollout_lateral_worse_budget_mps2=1e6,
+            progress_loss_budgets_m=(1000.0,),
+            smoothness_loss_budgets=(1000.0,),
+        ),
+    )
+
+    assert generated.shape == (1, horizon, 4)
+    assert len(meta) == 1
+    np.testing.assert_allclose(candidates, original)
+    assert meta[0]["variant"] == GENERATOR_POLICY_MATERIAL_SUPPORT_V3
+    assert meta[0]["profile"] == REMEDIATION_PROFILE_MATERIAL_SUPPORT_V3
+    assert meta[0]["candidate0_preserved"] is True
+    assert meta[0]["dp_rows_preserved"] is True
+    assert meta[0]["append_after_existing_candidate_count"] == 1
+    assert meta[0]["comfort_first_profile_precheck"] is True
+    assert meta[0]["comfort_first_precheck_passed"] is True
+    descriptor = meta[0]["remediation_descriptor_payload"]
+    assert descriptor["diagnostic_descriptor_payload_v3"] is True
+    assert descriptor["diagnostic_descriptor_payload_v3_report_only"] is True
+    assert descriptor["nonnegative_descriptor_channels"] is True
+    assert descriptor["hinge_signed_split_channels"] is True
+    assert descriptor["affine_score_compatible"] is True
+    assert descriptor["score_contract"] == "score_k(w)=a_k^T w"
+    assert descriptor["convex_master_contract"] == "simplex/CVaR/L2 unchanged"
+    assert descriptor["score_mutation"] is False
+    assert descriptor["selected_index_mutation"] is False
+    assert descriptor["fallback_mutation"] is False
+    assert descriptor["online_selector_feature"] is False
+    assert descriptor["future_outcome_leakage"] is False
+
+
 def test_route_topology_jerk_progress_requires_current_tick_scalars() -> None:
     horizon = 80
     candidates = np.zeros((1, horizon, 4), dtype=float)
@@ -418,6 +805,46 @@ def test_route_topology_jerk_progress_requires_current_tick_scalars() -> None:
 
     assert default_generated.shape == (1, horizon, 4)
     assert default_meta[0]["variant"] == "lane_centerline_red_stop"
+    assert generated.shape == (0, horizon, 4)
+    assert meta == []
+    assert diagnostics["construction_status"] == "fail_closed"
+    assert diagnostics["failure_reason"] == "current_tick_scalar_invalid"
+    assert diagnostics["requires_current_tick_scalar_evidence"] is True
+    assert diagnostics["current_tick_scalar_evidence"] is False
+
+
+def test_route_topology_comfort_first_requires_current_tick_scalars() -> None:
+    horizon = 40
+    candidates = np.zeros((1, horizon, 4), dtype=float)
+    candidates[0, :, 0] = np.linspace(0.5, 16.0, horizon)
+    candidates[0, :, 2] = 1.0
+    lane_x = np.linspace(-5.0, 25.0, 31)
+    lane = np.column_stack([lane_x, np.zeros_like(lane_x)])
+    red = np.column_stack([np.linspace(10.0, 12.0, 3), np.zeros(3)])
+
+    generated, meta = build_route_topology_candidates(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=np.nan,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="comfort_first_lane_projected_red_stop"
+        ),
+    )
+    diagnostics = route_topology_candidate_construction_diagnostics(
+        candidates,
+        lane_centerline=lane,
+        red_route_points=red,
+        selected_index=0,
+        current_speed_mps=np.nan,
+        dt=0.1,
+        config=RouteTopologyCandidateConfig(
+            generator_policy="comfort_first_lane_projected_red_stop"
+        ),
+    )
+
     assert generated.shape == (0, horizon, 4)
     assert meta == []
     assert diagnostics["construction_status"] == "fail_closed"
@@ -541,6 +968,21 @@ def test_route_topology_report_rejects_invalid_jerk_progress_jerk_limit() -> Non
             config=RouteTopologyCandidateConfig(
                 generator_policy="lane_projected_jerk_progress_red_stop",
                 jerk_progress_max_jerk_mps3=0.0,
+            ),
+        )
+
+
+def test_route_topology_report_rejects_invalid_remediation_candidate_cap() -> None:
+    with np.testing.assert_raises_regex(
+        ValueError,
+        "max_remediation_candidates must be positive",
+    ):
+        build_report_from_rows(
+            [],
+            readiness=_readiness_report(),
+            config=RouteTopologyCandidateConfig(
+                generator_policy="comfort_first_lane_projected_red_stop",
+                max_remediation_candidates=0,
             ),
         )
 
