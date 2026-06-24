@@ -86742,3 +86742,83 @@ modification, safety benefit claims, or CAMP-over-DP Top-1 claims.
 Next admissible gate remains:
 
 `dp_native_candidate_tensor_provenance_payload_implementation_authorization_only`.
+
+## DP native candidate tensor provenance payload authorization
+
+Gate:
+
+`dp_native_candidate_tensor_provenance_payload_implementation_authorization_only`
+
+Artifact:
+
+```text
+docs/dp_native_candidate_tensor_provenance_payload_authorization.md
+```
+
+Status evidence:
+
+```text
+git status --short --branch
+## main...origin/main
+untracked unrelated session/slide artifacts remain ignored
+
+git fetch --prune origin
+exit=1
+reason=GitHub HTTPS/TLS handshake failure before any repo mutation
+
+git rev-parse HEAD origin/main
+43167e72a928ecab74d2b60b08b78259b67cebae
+43167e72a928ecab74d2b60b08b78259b67cebae
+
+git ls-remote origin refs/heads/main
+exit=1
+reason=GitHub HTTPS/TLS handshake failure
+```
+
+Code evidence:
+
+```text
+scripts/integrations/run_diffusion_planner_camp_replay.py
+  generate_candidate_trajectories(...) returns candidates
+  selector.select(candidates, ...) consumes the same candidate tensor
+  selected_trajectory = candidates[selected_index]
+  records.append(...) writes per-tick selector evidence
+
+camp_core/camp_core/integrations/diffusion_planner.py
+  generate_candidate_trajectories(...) returns ego_candidates [K,T,4]
+  CAMPSelector.select(...) returns CAMPSelectionResult
+```
+
+Mathematical boundary:
+
+The authorized payload is evidence-only. It may hash contiguous candidate tensor
+bytes plus shape and dtype before CAMP scoring and after selector return, then
+record candidate count, selected-index range validity, and pre/post hash
+equality. It does not change `Y_k`, atom values, weights, scores, feasibility,
+or selected-index semantics. It therefore preserves the paper-faithful reranker
+contract `Y_k -> a_k -> score=a_k^T w -> argmin selected_index`.
+
+Decision:
+
+```text
+status=implementation_authorized
+implementation_authorized_now=True
+authorized_next_work=dp_native_candidate_tensor_provenance_payload_minimal_default_off_implementation
+candidate_generation_execution_authorized=False
+trajectory_rewrite_authorized=False
+candidate_tensor_mutation_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+atom_promotion_authorized=False
+online_selector_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_candidate_tensor_provenance_payload_minimal_default_off_implementation`
