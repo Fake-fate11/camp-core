@@ -87301,3 +87301,79 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `clean_dp_native_training_data_contract_trainer_preflight_default_off_implementation`
+
+## Clean DP native training data contract trainer preflight default-off implementation
+
+Gate:
+
+`clean_dp_native_training_data_contract_trainer_preflight_default_off_implementation`
+
+Pre-implementation refs:
+
+```text
+git rev-parse HEAD origin/main
+ff089c5065d65ac9a5eb1a2b6ae529aa9fd99ec6
+ff089c5065d65ac9a5eb1a2b6ae529aa9fd99ec6
+```
+
+Implementation artifacts:
+
+```text
+scripts/integrations/train_diffusion_planner_robust_camp.py
+sha256=D1C021E0C40EACB5DABDFB1BAC7BFD8E31F869CE03D3BE0790390053715773DE
+
+camp_core/tests/test_diffusion_planner_robust_camp_training_contract_preflight.py
+sha256=3902346BA01952F3BFFA4ED8CFC922CD0B7C7D22DDC7034697DCD2228F4AF764
+```
+
+Implemented preflight:
+
+```text
+flag=--require_dp_native_training_data_contract
+default=False
+default_behavior_change=False
+required_behavior=validate selection logs before outcome weight loading, atom loading, label loading, optimizer setup, or artifact writing
+failure_behavior=raise ValueError before training
+summary_behavior=include dp_native_training_data_contract report only when required and passed
+```
+
+Verification:
+
+```text
+python -m py_compile scripts/integrations/train_diffusion_planner_robust_camp.py camp_core/tests/test_diffusion_planner_robust_camp_training_contract_preflight.py
+exit=0
+
+git diff --check
+exit=0
+
+python -m pytest camp_core/tests/test_diffusion_planner_robust_camp_training_contract_preflight.py -q
+exit=1
+reason=existing Windows collection blocker on missing/too-long residual-comfort test path before target tests ran
+
+temporary rootdir target pytest with copied target test and PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main
+3 passed in 0.64s
+
+temporary rootdir combined validator/preflight pytest
+11 passed in 0.82s
+```
+
+Decision:
+
+```text
+status=implemented_default_off_trainer_preflight_tests_passed
+training_data_collection_execution_authorized=False
+replay_executed=False
+candidate_generation_executed=False
+outcome_label_generation_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`clean_dp_native_training_data_contract_trainer_preflight_static_audit_only`

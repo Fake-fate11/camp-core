@@ -45,6 +45,9 @@ from scripts.integrations.train_diffusion_planner_theta import (  # noqa: E402
     normalize_features,
     robust_feature_normalization,
 )
+from scripts.integrations.validate_dp_native_training_data_contract import (  # noqa: E402
+    validate_logs as validate_dp_native_training_data_contract,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -106,6 +109,14 @@ def parse_args() -> argparse.Namespace:
         "--require_atom_schema",
         action="store_true",
         help="Reject selection records without the exact ordered atom schema.",
+    )
+    parser.add_argument(
+        "--require_dp_native_training_data_contract",
+        action="store_true",
+        help=(
+            "Fail closed before training unless every selection log passes the "
+            "read-only DP-native candidate provenance training-data contract."
+        ),
     )
     return parser.parse_args()
 
@@ -252,10 +263,31 @@ def _verify_selector_artifact(
         raise RuntimeError("Saved CAMP artifact does not produce simplex weights.")
 
 
+def _run_dp_native_training_data_contract_preflight(
+    selection_logs: list[Path],
+    *,
+    required: bool,
+) -> dict[str, Any] | None:
+    if not required:
+        return None
+    report = validate_dp_native_training_data_contract(selection_logs)
+    if not bool(report.get("passed")):
+        failed_count = len(report.get("failed_records", []))
+        raise ValueError(
+            "DP-native training data contract validation failed before "
+            f"training; failed_records={failed_count}."
+        )
+    return report
+
+
 def main() -> None:
     args = parse_args()
     if args.training_scope == "all_infeasible_fallback" and args.mode != "static":
         raise ValueError("All-infeasible fallback training currently requires static mode.")
+    dp_native_training_data_contract = _run_dp_native_training_data_contract_preflight(
+        args.selection_log,
+        required=bool(args.require_dp_native_training_data_contract),
+    )
     outcome_weights = load_outcome_weights(args.outcome_weights)
     if outcome_weights is not None and args.label_source != "closed_loop_outcome":
         raise ValueError("--outcome_weights requires --label_source closed_loop_outcome.")
@@ -540,6 +572,7 @@ def main() -> None:
             if minimum_atom_weights[idx] > 0.0
         },
         "atom_schema": atom_schema,
+        "dp_native_training_data_contract": dp_native_training_data_contract,
         "scale_percentile": float(args.scale_percentile),
         "feature_dim": None if features is None else int(features.shape[1]),
         "feature_clip": None if features is None else float(args.feature_clip),
