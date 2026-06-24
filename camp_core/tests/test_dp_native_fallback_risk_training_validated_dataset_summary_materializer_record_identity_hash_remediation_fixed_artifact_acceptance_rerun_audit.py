@@ -141,14 +141,14 @@ def test_iteration_audit_tail_records_summary_rerun_next_gate() -> None:
     tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_validated_dataset_summary_materializer_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed",
-        "validated_dataset_summary_ready_for_preflight=True",
-        "training_sufficiency_preflight_input_set_ready=True",
+        "status=fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed",
+        "training_sufficiency_preflight_passed=True",
+        "ready_for_future_training_authorization=True",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
     )
