@@ -1,0 +1,172 @@
+# DP Native Fixed-Artifact Fallback Risk Training Validated Dataset Summary Materializer Record Identity Hash Remediation Fixed-Artifact Acceptance Rerun Audit
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_validated_dataset_summary_materializer_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only
+```
+
+Reran the default-off validated dataset summary materializer on the
+record-identity-hash-remediated fallback-risk training dataset and validator
+output. This gate did not run the training sufficiency preflight, execute
+training, retrain CAMP, run replay, generate candidates, modify Diffusion
+Planner, change the online selector, promote a selector or atom, or claim
+safety benefit or CAMP-over-DP Top-1.
+
+## Fixed Artifact Inputs
+
+```text
+source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_record_identity_acceptance_7ef98c9_20260624T215739Z/dataset.json
+expected_dataset_sha256=8e7d42e2d1319dc2a479903d7b1be5a463f2d74fe733b523fdbac09bf90bd9b9
+source_validator_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_record_identity_acceptance_7ef98c9_20260624T215739Z/validation.json
+expected_validator_output_sha256=c5eb4c618476342efee3d3c4f64fd8c2aba918e22d209c004aea7e256a83e073
+source_dataset_acceptance_status=fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed
+builder_commit=e9ae8421503b9a5d57984e0dbe601bbc1f4e664e
+autodl_CAMP_HEAD=e9ae8421503b9a5d57984e0dbe601bbc1f4e664e
+autodl_CAMP_origin_main=e9ae8421503b9a5d57984e0dbe601bbc1f4e664e
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Output Artifacts
+
+```text
+builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_validated_dataset_summary_record_identity_acceptance_e9ae842_20260624T222659Z
+validated_dataset_summary_json_sha256=320304655bb1433076d6269333ce7ec728ce74a04f5f04fc9e63fff5158c2188
+validated_dataset_summary_md_sha256=e1c75b4c6bc0b9626f44fd1cbdee29be8418d4660b8acf7e0430bbc7b0a05426
+builder_exit=0
+```
+
+## Observed Result
+
+```text
+status=dp_native_fallback_risk_validated_dataset_summary_materializer_complete
+passed=True
+enabled=True
+errors=[]
+summary_output_written=True
+training_sufficiency_preflight_executed=False
+training_sufficiency_preflight_execution_authorized=False
+training_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+```
+
+## Summary Artifact
+
+```text
+summary_schema_version=dp_native_fallback_risk_validated_dataset_summary_v1
+summary_sha256=8e7d42e2d1319dc2a479903d7b1be5a463f2d74fe733b523fdbac09bf90bd9b9
+summary_records=15
+summary_validator_status=dp_native_fallback_risk_training_data_validator_complete
+summary_validator_passed=True
+summary_training_sufficiency_claim=False
+summary_deployable_checkpoint_claim=False
+summary_source_validator_output_sha256=c5eb4c618476342efee3d3c4f64fd8c2aba918e22d209c004aea7e256a83e073
+```
+
+## Acceptance Finding
+
+```text
+fixed_artifact_acceptance_rerun_passed=True
+blocking_acceptance_findings=0
+validated_dataset_summary_ready_for_preflight=True
+training_sufficiency_preflight_input_set_ready=True
+training_sufficiency_preflight_executed=False
+training_sufficiency_preflight_ready=False
+training_sufficiency_preflight_execution_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+fixed_15_record_artifact_training_sufficiency_claim=False
+```
+
+This acceptance rerun only proves that the materializer can produce the
+preflight summary input from the record-identity-hash-remediated fixed
+artifacts. It does not claim the 15-record artifact is sufficient for training
+and does not authorize CAMP retraining.
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_acceptance_rerun_pytest=6 passed
+local_materializer_pytest=5 passed
+local_related_target_pytest=95 passed
+autodl_py_compile_exit=0
+autodl_acceptance_rerun_pytest=6 passed
+autodl_materializer_pytest=5 passed
+autodl_related_target_pytest=95 passed
+autodl_git_diff_check_exit=0
+```
+
+## Forbidden
+
+```text
+user_camp_retraining_permission_available=True
+training_execution_authorized_now=False
+training_execution_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_validated_dataset_summary_materializer_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed
+passed=True
+fixed_artifact_acceptance_rerun_complete=True
+fixed_artifact_acceptance_rerun_passed=True
+blocking_acceptance_findings=0
+validated_dataset_summary_ready_for_preflight=True
+training_sufficiency_preflight_input_set_ready=True
+training_sufficiency_preflight_executed=False
+training_sufficiency_preflight_execution_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only
+```
+
+The next gate may only run the already implemented default-off read-only
+preflight on the accepted record-identity-hash-remediated fixed artifact input
+set and record the result. User permission to retrain CAMP is available for
+the first gate that explicitly authorizes training, but this materializer gate
+does not authorize training by itself.
