@@ -103621,3 +103621,55 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan_only`
+
+## Current Tail Confirmation After Fallback Risk Ranking Default-Off Unit Tests Plan
+
+Date: 2026-06-25
+
+The fallback-risk ranking default-off unit-test plan remains valid after the
+current-head static contract review revalidation. This gate remains tests-plan
+only: it does not implement the extractor, edit production implementation, run
+replay, generate candidates, train or retrain CAMP, modify DP, use formal
+seeds, promote selector or atom logic, deploy, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+```text
+status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate
+passed=True
+current_head_unit_tests_plan_revalidated=True
+camp_head_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+camp_origin_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+github_refs_heads_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+autodl_CAMP_HEAD_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+autodl_CAMP_origin_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next
+blocking_contract_findings=0
+planned_default_off_tests=4
+planned_scope_filtering_tests=4
+planned_candidate_validation_tests=6
+planned_cost_extraction_tests=11
+planned_provenance_no_mutation_tests=8
+planned_forbidden_side_effect_tests=7
+planned_future_label_tests=4
+implementation_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+production_implementation_edit_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only`

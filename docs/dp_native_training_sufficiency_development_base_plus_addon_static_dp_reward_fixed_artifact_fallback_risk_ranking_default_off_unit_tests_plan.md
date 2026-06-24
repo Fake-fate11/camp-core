@@ -228,3 +228,32 @@ camp_training_authorized=False
 camp_retraining_authorized=False
 dp_modification_authorized=False
 ```
+
+## Current-Head Revalidation After Static Contract Review
+
+Date: 2026-06-25
+
+The unit-test plan remains valid after the current-head static contract review
+revalidation:
+
+```text
+camp_head_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+camp_origin_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+github_refs_heads_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+autodl_CAMP_HEAD_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+autodl_CAMP_origin_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next
+blocking_contract_findings=0
+```
+
+This revalidation remains tests-plan-only. It does not implement the extractor,
+edit production implementation, train CAMP, retrain CAMP, run replay, generate
+candidates, modify DP, use formal seeds, promote a selector or atom, deploy, or
+claim safety/CAMP-over-DP benefit.
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only
+```

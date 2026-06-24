@@ -9,6 +9,11 @@ PLAN_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+NEXT_UNIT_TESTS_GATE = (
+    "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_"
+    "fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only"
+)
 
 
 def test_default_off_unit_tests_plan_uses_static_review_requirements() -> None:
@@ -136,3 +141,45 @@ def test_default_off_unit_tests_plan_next_gate_tests_only() -> None:
         "The next gate may only add focused default-off contract tests",
     ]:
         assert needle in text
+
+
+def test_default_off_unit_tests_plan_current_head_revalidation() -> None:
+    text = PLAN_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "camp_head_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
+        "camp_origin_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
+        "github_refs_heads_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
+        "autodl_CAMP_HEAD_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
+        "blocking_contract_findings=0",
+        "This revalidation remains tests-plan-only",
+        NEXT_UNIT_TESTS_GATE,
+    ]:
+        assert needle in text
+
+
+def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() -> None:
+    tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-120:])
+
+    for needle in [
+        "status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate",
+        "current_head_unit_tests_plan_revalidated=True",
+        "camp_head_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
+        "planned_default_off_tests=4",
+        "planned_cost_extraction_tests=11",
+        "planned_provenance_no_mutation_tests=8",
+        "implementation_authorized=False",
+        "production_implementation_edit_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "dp_modification_authorized=False",
+        NEXT_UNIT_TESTS_GATE,
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_UNIT_TESTS_GATE}`")

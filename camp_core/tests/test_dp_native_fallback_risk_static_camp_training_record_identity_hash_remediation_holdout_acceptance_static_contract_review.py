@@ -151,7 +151,8 @@ def test_record_identity_training_chain_remains_nonpromotion_without_claims() ->
 
 
 def test_iteration_audit_records_record_identity_static_review_next_gate() -> None:
-    tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-190:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
         "status=fallback_risk_static_camp_training_record_identity_hash_remediation_holdout_acceptance_static_contract_review_passed",
@@ -160,8 +161,8 @@ def test_iteration_audit_records_record_identity_static_review_next_gate() -> No
         "record_identity_training_chain_remains_nonpromotion=True",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only",
     ]:
-        assert needle in tail
+        assert needle in audit
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only`"
     )
