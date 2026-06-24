@@ -1,0 +1,140 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Builder Fixed-Artifact Acceptance Audit
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_audit_only
+```
+
+This audit runs the already implemented default-off builder, with its explicit
+enable flag, against existing non-formal fixed-artifact selection logs. It does
+not run replay, generate candidates, train CAMP, retrain CAMP, modify
+Diffusion Planner, change the online selector, promote a selector or atom, or
+claim safety benefit or CAMP-over-DP Top-1.
+
+## Reviewed Fixed Artifact
+
+```text
+artifact_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+artifact_scope=broader_nonformal_fixed_evaluation_artifact
+formal_seeds_11_12_13_used=False
+builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f632c44_20260624T133402Z
+builder_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f632c44_20260624T133402Z/dataset.json
+builder_output_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f632c44_20260624T133402Z/dataset.md
+builder_output_json_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823
+camp_head_at_acceptance=f632c440efaa423d2f7a9e91c1a6a0ec086ceecd
+camp_origin_main_at_acceptance=f632c440efaa423d2f7a9e91c1a6a0ec086ceecd
+autodl_CAMP_HEAD_at_acceptance=f632c440efaa423d2f7a9e91c1a6a0ec086ceecd
+autodl_CAMP_origin_main_at_acceptance=f632c440efaa423d2f7a9e91c1a6a0ec086ceecd
+autodl_DP_HEAD_at_acceptance=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Builder Invocation Boundary
+
+```text
+builder_enable_flag_used=True
+input_source=existing_camp_selection_log_json_only
+selection_logs=12
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+output_json_or_markdown_only=True
+```
+
+## Acceptance Summary
+
+```text
+schema_version=dp_native_fallback_risk_training_data_v1
+status=dp_native_fallback_risk_training_data_builder_complete
+passed=True
+enabled=True
+records_total=60
+records_without_feasible_candidate=15
+records_with_feasible_candidate=45
+records_built=15
+failed_records=0
+errors=0
+record_candidate_counts=4
+oracle_policies=lane/red/quality,red/lane/quality
+```
+
+The accepted records remain an offline fallback-risk dataset for the
+all-infeasible branch only. They are not added to the feasible-ranking master,
+not promoted as deployed atoms, and not treated as training sufficiency.
+
+```text
+selected_index_range_validated_by_builder=True
+candidate_count_unchanged_validated_by_builder=True
+pre_post_tensor_hash_equal_validated_by_builder=True
+no_candidate_row_append_validated_by_builder=True
+no_coordinate_heading_speed_rewrite_by_camp_validated_by_builder=True
+candidate_generation_contract_validated_by_builder=True
+atom_schema_and_nonnegative_atoms_validated_by_builder=True
+normalized_atoms_validated_by_builder=True
+margin_ik_nonnegative_and_clipped=True
+fallback_dataset_training_sufficiency_claim=False
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_passed
+passed=True
+fixed_artifact_acceptance_audit_complete=True
+accepted_fallback_records=15
+fallback_dataset_artifact_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only
+```
+
+The next gate may only plan a validator extension for the fallback-risk
+training dataset artifact. It must not implement training, run replay, generate
+candidates, modify Diffusion Planner, use formal seeds, relax hard feasibility,
+add all-infeasible records to the feasible-ranking master, promote a selector
+or atom, or claim safety/CAMP-over-DP benefit.
