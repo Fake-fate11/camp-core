@@ -26,6 +26,9 @@ from scripts.integrations.compare_diffusion_planner_camp_replays import (  # noq
     SAFETY_COST_V1_NORMALIZATION,
     SAFETY_COST_V1_WEIGHTS,
 )
+from scripts.integrations.validate_dp_native_training_data_contract import (  # noqa: E402
+    validate_logs as validate_dp_native_training_data_contract,
+)
 
 
 DEFAULT_PROXY_WEIGHTS = np.array(
@@ -412,6 +415,23 @@ def validate_atom_schema(
     }
 
 
+def _run_dp_native_training_data_contract_preflight(
+    selection_logs: list[Path],
+    *,
+    required: bool,
+) -> dict[str, Any] | None:
+    if not required:
+        return None
+    report = validate_dp_native_training_data_contract(selection_logs)
+    if not bool(report.get("passed")):
+        failed_count = len(report.get("failed_records", []))
+        raise ValueError(
+            "DP-native training data contract validation failed before "
+            f"training; failed_records={failed_count}."
+        )
+    return report
+
+
 def oracle_indices(
     normalized_atoms: np.ndarray,
     feasible_mask: np.ndarray,
@@ -564,13 +584,35 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Optional JSON list of 9 proxy weights before simplex projection.",
     )
+    parser.add_argument(
+        "--require_atom_schema",
+        action="store_true",
+        help="Reject selection records without the exact ordered atom schema.",
+    )
+    parser.add_argument(
+        "--require_dp_native_training_data_contract",
+        action="store_true",
+        help=(
+            "Fail closed before training unless every selection log passes the "
+            "read-only DP-native candidate provenance training-data contract."
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    dp_native_training_data_contract = _run_dp_native_training_data_contract_preflight(
+        args.selection_log,
+        required=bool(args.require_dp_native_training_data_contract),
+    )
     atoms, feasible = load_training_records(args.selection_log)
     atom_names = atom_names_for_dimension(atoms.shape[-1])
+    atom_schema = validate_atom_schema(
+        args.selection_log,
+        atom_names,
+        require=args.require_atom_schema,
+    )
 
     proxy_weights = None
     candidate_rewards = None
@@ -740,6 +782,8 @@ def main() -> None:
         "num_atoms": int(normalized.shape[2]),
         "atom_schema_version": atom_schema_version,
         "atom_names": list(atom_names),
+        "atom_schema": atom_schema,
+        "dp_native_training_data_contract": dp_native_training_data_contract,
         "scale_percentile": float(args.scale_percentile),
         "proxy_weights_normalized": (
             normalize_nonnegative(proxy_weights).tolist()
