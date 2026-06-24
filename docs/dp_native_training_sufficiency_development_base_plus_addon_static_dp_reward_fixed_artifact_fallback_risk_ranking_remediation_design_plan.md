@@ -221,3 +221,33 @@ design preserves the fixed-candidate affine scoring, nonnegative cost, and
 convex master boundaries. It must not implement the extractor, run replay,
 generate candidates, train CAMP, retrain CAMP, modify DP, use formal seeds, or
 promote a selector or atom.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The plan remains valid after current-head fixed-artifact ranking revalidation:
+
+```text
+camp_head_at_revalidation=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+camp_origin_main_at_revalidation=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+github_refs_heads_main_at_revalidation=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+autodl_CAMP_HEAD_at_revalidation=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+autodl_CAMP_origin_main_at_revalidation=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_ranking_revalidation_status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+prior_ranking_revalidation_failed_checks=[]
+```
+
+This revalidation does not newly authorize training. The user-level procedural
+blocker for future CAMP retraining is lifted, but this gate remains plan-only:
+
+```text
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+camp_training_executed=False
+camp_retraining_executed=False
+candidate_generation_executed=False
+dp_modification_executed=False
+```

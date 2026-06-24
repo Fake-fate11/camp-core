@@ -97930,3 +97930,100 @@ no_camp_over_dp_top1_claim=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Ranking Remediation Design Plan Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only
+```
+
+Revalidated the existing default-off remediation design after the current-head
+fixed-artifact fallback-risk ranking audit. The design remains a plan-only,
+nondeployable diagnostic track for records without any feasible candidate.
+
+```text
+plan_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan.md
+prior_audit_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_audit.md
+prior_audit_status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+prior_audit_failed_checks=[]
+records_without_feasible_candidate=15
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+camp_head=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+camp_origin_main=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+github_refs_heads_main=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+autodl_CAMP_HEAD=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+autodl_CAMP_origin_main=2b7fcc4f2d10c925c8afdb1d86a11601b276a0b9
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Design boundary:
+
+```text
+default_off=True
+nondeployable_diagnostic_only=True
+fixed_candidate_set_only=True
+records_scope=records_without_feasible_candidate_only
+score_expression=score_k(w)=a_k^T w
+candidate_features_fixed_before_weight_optimization=True
+candidate_features_independent_of_w_rank_and_selected_index=True
+fallback_cost_targets_nonnegative=True
+simplex_master_convex_if_later_authorized=True
+cvar_master_convex_if_later_authorized=True
+l2_regularized_master_convex_if_later_authorized=True
+```
+
+Forbidden remains for this gate:
+
+```text
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=5 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=5 passed
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_remediation_design_plan_current_head_revalidated
+passed=True
+plan_only=True
+blocking_design_findings=0
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only`
