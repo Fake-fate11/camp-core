@@ -86345,3 +86345,174 @@ read-only evidence report. It may not execute candidate generation, rewrite
 trajectories, run another screen, run replay, use formal seeds, expand to Full36,
 train CAMP, promote atoms, change the online selector, claim safety benefit,
 claim CAMP is better than DP Top-1, or modify DP.
+
+## 2026-06-24 - DP-native candidate reranking fixed-artifact evidence audit
+
+Gate:
+
+`dp_native_candidate_reranking_fixed_artifact_evidence_audit_only`.
+
+Read-only synchronization at gate start:
+
+```text
+local HEAD=e9f474a755c9589d280236893046fea178bda412
+local origin/main=e9f474a755c9589d280236893046fea178bda412
+github refs/heads/main=e9f474a755c9589d280236893046fea178bda412
+autodl CAMP HEAD=e9f474a755c9589d280236893046fea178bda412
+autodl CAMP origin/main=e9f474a755c9589d280236893046fea178bda412
+autodl DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl DP status=clean
+```
+
+Implementation commits:
+
+```text
+56ecf34843049f5ab475bba31b17878d76d53064 Add DP-native fixed artifact evidence audit
+692bacc6e45964e734a37ec7c43e0f590c93cf07 Fix DP-native evidence oracle leakage audit
+5467a3f64a37f10148b0b52a712cbee3ffd183d0 Tighten DP-native tensor provenance detection
+```
+
+Scope:
+
+This gate read only existing fixed artifacts from the completed
+candidate-set-consensus payload smoke, selector-equivalence audit, dataset
+audit, safety-cost oracle, and the previous DP-native reranking design plan. It
+did not run candidate generation, rewrite trajectories, append candidates, rerun
+screens, run replay, use formal seeds, train CAMP, promote atoms, change online
+selection, modify DP, claim safety benefit, or claim CAMP over DP Top-1.
+
+Source artifacts audited:
+
+```text
+/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke/audit/selector_equivalence.json
+/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke/audit/candidate_set_consensus_payload_smoke.json
+/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke/audit/dataset_audit.json
+/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke/baseline/camp_selection_log.json
+/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke/logging_enabled/camp_selection_log.json
+/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke/baseline/camp_replay_summary.json
+/root/autodl-tmp/camp_dp_candidate_set_consensus_payload_smoke/logging_enabled/camp_replay_summary.json
+/root/autodl-tmp/camp_dp_development_perfect_v10_redstopfloor05_e70f263/safety_cost_oracle_d2899e6/safety_cost_oracle.json
+/root/autodl-tmp/camp_dp_dp_native_candidate_reranking_design_plan_b330901/dp_native_candidate_reranking_design_plan.json
+```
+
+Local verification at final analysis code HEAD:
+
+```text
+local HEAD=5467a3f64a37f10148b0b52a712cbee3ffd183d0
+local origin/main=5467a3f64a37f10148b0b52a712cbee3ffd183d0
+python -m py_compile scripts/integrations/analyze_diffusion_planner_dp_native_candidate_reranking_fixed_artifact_evidence.py camp_core/tests/test_diffusion_planner_dp_native_candidate_reranking_fixed_artifact_evidence.py
+PYTHONPATH=F:\camp_core-main python -m pytest Y:\test_diffusion_planner_dp_native_candidate_reranking_fixed_artifact_evidence.py -q --rootdir=Y:\
+6 passed in 0.45s
+local_analysis_root=F:\camp_core-main\analysis_bundles\dp_native_candidate_reranking_fixed_artifact_evidence_audit_5467a3f
+local_analysis_EXIT_CODE=0
+```
+
+Local analysis artifact hashes:
+
+```text
+dp_native_candidate_reranking_fixed_artifact_evidence_audit.json=86ed4448d1479c3c335bc1a903d35660f52296bd3221eefcfd3a193d04d66b27
+dp_native_candidate_reranking_fixed_artifact_evidence_audit.md=8dc134d6ef2a2343b1433402818778eecd79c7d0a72f6719974aa72370d74bb2
+DP_NATIVE_FIXED_ARTIFACT_EVIDENCE_AUDIT.log=685605dac9654ce3487a04ef5c02e8fa04c59df8c1bf1564ad28d919fab8e1a9
+DP_NATIVE_FIXED_ARTIFACT_EVIDENCE_AUDIT.err=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+EXIT_CODE=59329e6e34621dcc1dbc8c625c61774c7c88912bdccb43d75ab48244e555382f
+HEADS.txt=86e01c1414be6980da2166128b647e70267c7b6c28417fd5058b5625ceabbd44
+```
+
+AutoDL verification at final analysis code HEAD:
+
+```text
+autodl CAMP HEAD=5467a3f64a37f10148b0b52a712cbee3ffd183d0
+autodl CAMP origin/main=5467a3f64a37f10148b0b52a712cbee3ffd183d0
+autodl DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/analyze_diffusion_planner_dp_native_candidate_reranking_fixed_artifact_evidence.py camp_core/tests/test_diffusion_planner_dp_native_candidate_reranking_fixed_artifact_evidence.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_dp_native_candidate_reranking_fixed_artifact_evidence.py -q
+6 passed in 0.02s
+autodl_analysis_root=/root/autodl-tmp/camp_dp_dp_native_candidate_reranking_fixed_artifact_evidence_audit_5467a3f
+autodl_analysis_EXIT_CODE=0
+```
+
+AutoDL analysis artifact hashes:
+
+```text
+dp_native_candidate_reranking_fixed_artifact_evidence_audit.json=28afe6af2366c9279eff9caa6962715e4f02e51bc0cd2685fbc6257f5e366c03
+dp_native_candidate_reranking_fixed_artifact_evidence_audit.md=843b83278a8a717a93a8f1ab38488803ae0f6115da9f01681abe9b7cf1a3d60a
+DP_NATIVE_FIXED_ARTIFACT_EVIDENCE_AUDIT.log=9360fe9acdd343d4eb873dc23d1cdb507fe4fcbdf34d4e42960d362d4c086e09
+DP_NATIVE_FIXED_ARTIFACT_EVIDENCE_AUDIT.err=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+EXIT_CODE=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3ab86aa
+HEADS.txt=9285161f3881b56aa7ae1d54154c4204ccb290e5d478b6ff7d38f05625f6bcf2
+```
+
+Proven DP-native boundary evidence from fixed artifacts:
+
+```text
+evidence_audit_complete=True
+failed_checks=[]
+candidate_count_values baseline=[8] candidate=[8]
+selected_index_values baseline=[2, 2, 2] candidate=[2, 2, 2]
+selected_index_all_in_range=True
+required_candidate_fields_present=True for feasible_mask, infeasibility_reasons, scores, selection_scores, atoms, normalized_atoms
+field_length_mismatches=[]
+selector_equivalence.equivalent=True
+selector_required_exact_mismatch_total=0 for selected_index, feasible_mask, infeasibility_reasons
+selector_required_numeric_mismatch_total=0 for scores, selection_scores, atoms, normalized_atoms
+dataset_finite_candidate_contract_verified=True
+dataset_closed_loop_outcomes_forbidden=True
+dataset_closed_loop_outcome_records=0
+dataset_forbidden_seed_check=True
+payload_passed=True
+payload_available_payload_records=3
+payload_invalid_payload_records=0
+oracle_opportunity_gate_passed=True
+```
+
+Evidence gaps that prevent reranking/promotion/training readiness:
+
+```text
+dp_native_reranking_evidence_ready=False
+candidate_tensor_provenance_gap=True
+candidate_tensor_hash_missing
+full_candidate_coordinate_tensor_artifact_missing
+raw_dp_pre_camp_candidate_set_immutability_not_proven
+reference_blend_selection_effect_requires_provenance_separation
+full_candidate_tensor_mutation_absence_not_proven
+weak_evidence=finite_candidate_contract_names_the_boundary_but_is_not_a_tensor_hash
+weak_evidence=proxy_coordinate_fields_match_but_do_not_cover_full_candidate_tensor
+```
+
+Interpretation:
+
+The existing fixed artifacts prove that the three audited diagnostic smoke
+records stay inside an eight-candidate finite set, that `selected_index=2` is in
+range on every baseline and logging-enabled record, and that diagnostic logging
+does not change selected index, feasibility, scores, selection scores, atoms, or
+normalized atoms. They do not prove full raw DP candidate tensor immutability:
+no candidate tensor hash or full coordinate tensor artifact is present, and the
+replay summaries still report candidate-generation/reference-blend effects that
+must be separated from CAMP-side reranking evidence.
+
+Mathematical boundary:
+
+This audit reads existing fixed artifacts only. It does not generate candidates,
+rewrite trajectories, append candidate rows, rerun screens, run replay, use
+formal seeds, train CAMP, promote atoms, change online selection, modify DP,
+claim safety benefit, or claim CAMP over DP Top-1. The fixed candidate-set
+contract and proxy-coordinate equality are evidence anchors, not substitutes for
+a full candidate tensor hash.
+
+Decision:
+
+Accept the fixed-artifact evidence audit as complete, but reject DP-native
+reranking evidence readiness for replay, CAMP retraining, atom promotion, online
+selector promotion, safety-benefit claims, or CAMP-over-DP-Top-1 claims. The
+next work must close the candidate tensor provenance gap before any selector
+contract, replay, training, promotion, or claim gate.
+
+Next admissible gate:
+
+`dp_native_candidate_tensor_provenance_gap_design_plan_only`.
+
+This next gate may only design how to prove candidate tensor provenance and
+immutability using fixed DP-native artifacts or default-off, no-selection-effect
+instrumentation. It may not run replay, generate candidates, rewrite
+trajectories, train CAMP, promote atoms, change the online selector, claim safety
+benefit, claim CAMP is better than DP Top-1, or modify DP.
