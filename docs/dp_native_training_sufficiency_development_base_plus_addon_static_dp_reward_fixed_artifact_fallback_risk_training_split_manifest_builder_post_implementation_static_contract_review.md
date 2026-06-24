@@ -1,6 +1,6 @@
 # DP Native Fixed-Artifact Fallback Risk Training Split Manifest Builder Post-Implementation Static Contract Review
 
-Date: 2026-06-24
+Date: 2026-06-25
 
 Gate:
 
@@ -8,11 +8,12 @@ Gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only
 ```
 
-This static review checks the default-off split manifest builder implementation.
-It does not run the builder on the fixed AutoDL artifact, generate a
-fixed-artifact manifest, train CAMP, retrain CAMP, run replay, generate
-candidates, modify Diffusion Planner, change the online selector, promote a
-selector or atom, or claim safety benefit or CAMP-over-DP Top-1.
+This static review checks the current default-off split manifest builder
+implementation after the record identity hardening gate. It does not run the
+builder on the fixed AutoDL artifact, generate a fixed-artifact manifest, train
+CAMP, retrain CAMP, run replay, generate candidates, modify Diffusion Planner,
+change the online selector, promote a selector or atom, or claim safety benefit
+or CAMP-over-DP Top-1.
 
 ## Reviewed Artifacts
 
@@ -20,11 +21,11 @@ selector or atom, or claim safety benefit or CAMP-over-DP Top-1.
 implementation=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_split_manifest.py
 implementation_tests=camp_core/tests/test_dp_native_fallback_risk_training_split_manifest_builder.py
 implementation_authorization=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization.md
-camp_head_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
-camp_origin_main_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
-github_refs_heads_main_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
-autodl_CAMP_HEAD_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
-autodl_CAMP_origin_main_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
+camp_head_at_review=32cde4b8fe9de9bcaf83a581e5e79ce5a9af91c8
+camp_origin_main_at_review=32cde4b8fe9de9bcaf83a581e5e79ce5a9af91c8
+github_refs_heads_main_at_review=32cde4b8fe9de9bcaf83a581e5e79ce5a9af91c8
+autodl_CAMP_HEAD_at_review=32cde4b8fe9de9bcaf83a581e5e79ce5a9af91c8
+autodl_CAMP_origin_main_at_review=32cde4b8fe9de9bcaf83a581e5e79ce5a9af91c8
 autodl_DP_HEAD_at_review=7a1d33da277a1992ec474b5383a0c963c72e04e4
 ```
 
@@ -59,7 +60,9 @@ fixed_artifact_manifest_generation_authorized=False
 split_identity_policy_passed=True
 manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1
 group_key_fields=source_log,run_id,record_index
+record_identity_hash_required_input_field=True
 record_identity_hash_derived_from_source_log_sha256_run_id_record_index=True
+missing_record_identity_hash_fails_closed=True
 source_log_sha256_mismatch_fails_closed=True
 group_key_collision_fails_closed=True
 duplicate_record_identity_fails_closed=True
@@ -112,10 +115,10 @@ require_preflight_acceptance_after_fixed_artifact_manifest_generation=True
 
 ```text
 local_py_compile_exit=0
-local_target_pytest=6 passed
-local_fallback_risk_related_pytest=219 passed
-autodl_target_pytest=6 passed
-autodl_fallback_risk_related_pytest=219 passed
+local_post_static_target_pytest=7 passed
+local_builder_target_pytest=9 passed
+local_combined_target_pytest=16 passed
+autodl_revalidation_pending_until_sync=True
 ```
 
 ## Forbidden
@@ -153,6 +156,7 @@ status=fallback_risk_training_split_manifest_builder_post_implementation_static_
 passed=True
 static_contract_review_complete=True
 blocking_contract_findings=0
+record_identity_hash_missing_fails_closed=True
 fixed_artifact_manifest_generation_authorized=False
 training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
 fallback_risk_training_authorized_now=False

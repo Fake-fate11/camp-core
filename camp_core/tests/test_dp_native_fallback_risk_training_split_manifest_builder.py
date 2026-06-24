@@ -412,12 +412,14 @@ def test_split_builder_rejects_explicit_true_or_nonfalse_forbidden_flags(
     assert "final_decision_candidate_generation_authorized_not_false" in nonfalse_errors
 
 
-def test_audit_tail_records_split_manifest_builder_static_contract_next_gate() -> None:
-    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
+def test_audit_records_split_manifest_builder_static_contract_and_current_next_gate() -> None:
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-160:])
 
-    assert "status=fallback_risk_training_split_manifest_builder_implementation_current_head_revalidated" in tail
-    assert "local_target_pytest=9 passed" in tail
-    assert "training_execution_authorized_now=False" in tail
+    assert "status=fallback_risk_training_split_manifest_builder_implementation_current_head_revalidated" in audit
+    assert "local_target_pytest=9 passed" in audit
+    assert "training_execution_authorized_now=False" in audit
+    assert "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
     )

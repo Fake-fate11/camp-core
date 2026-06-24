@@ -9,6 +9,7 @@ REVIEW_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_review.md"
 )
+AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 SCRIPT = (
     REPO_ROOT
     / "scripts"
@@ -86,7 +87,9 @@ def test_post_static_review_records_identity_and_deterministic_split_policy() ->
         "split_identity_policy_passed=True",
         "manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1",
         "group_key_fields=source_log,run_id,record_index",
+        "record_identity_hash_required_input_field=True",
         "record_identity_hash_derived_from_source_log_sha256_run_id_record_index=True",
+        "missing_record_identity_hash_fails_closed=True",
         "source_log_sha256_mismatch_fails_closed=True",
         "group_key_collision_fails_closed=True",
         "duplicate_record_identity_fails_closed=True",
@@ -102,6 +105,8 @@ def test_post_static_review_records_identity_and_deterministic_split_policy() ->
         "SPLIT_SALT = \"fallback_risk_training_split_v1\"",
         "VALIDATION_FRACTION_TARGET = 0.2",
         "GROUP_KEY_FIELDS = (\"source_log\", \"run_id\", \"record_index\")",
+        "\"record_identity_hash\",",
+        "errors.append(f\"{field}_missing\")",
         "errors.append(\"group_key_collision\")",
         "errors.append(\"duplicate_record_identity\")",
         "errors.append(\"split_train_or_validation_empty\")",
@@ -159,10 +164,10 @@ def test_post_static_review_records_output_preflight_boundary_and_verification()
         "final_decision_training_authorized=False",
         "final_decision_fallback_dataset_training_sufficiency_claim=False",
         "final_decision_camp_retraining_authorized_now=False",
-        "local_target_pytest=6 passed",
-        "local_fallback_risk_related_pytest=219 passed",
-        "autodl_target_pytest=6 passed",
-        "autodl_fallback_risk_related_pytest=219 passed",
+        "local_post_static_target_pytest=7 passed",
+        "local_builder_target_pytest=9 passed",
+        "local_combined_target_pytest=16 passed",
+        "autodl_revalidation_pending_until_sync=True",
     ]:
         assert needle in review
 
@@ -183,6 +188,7 @@ def test_post_static_review_next_gate_is_fixed_artifact_acceptance_audit_only() 
         "passed=True",
         "static_contract_review_complete=True",
         "blocking_contract_findings=0",
+        "record_identity_hash_missing_fails_closed=True",
         "fixed_artifact_manifest_generation_authorized=False",
         "training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only",
@@ -194,3 +200,21 @@ def test_post_static_review_next_gate_is_fixed_artifact_acceptance_audit_only() 
         "modify Diffusion Planner",
     ]:
         assert needle in review
+
+
+def test_audit_tail_records_post_static_contract_next_gate() -> None:
+    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-140:])
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed",
+        "record_identity_hash_missing_fails_closed=True",
+        "local_post_static_target_pytest=7 passed",
+        "local_builder_target_pytest=9 passed",
+        "training_execution_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
+    )
