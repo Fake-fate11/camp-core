@@ -27,6 +27,16 @@ def test_validator_acceptance_records_fixed_nonformal_dataset_identity() -> None
         "validator_output_json_sha256=572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b",
         "validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
         "autodl_DP_HEAD_at_acceptance=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_source_artifact_scope=broader_nonformal_fixed_evaluation_artifact",
+        "current_source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_52f8d20_20260624T195018Z/dataset.json",
+        "current_source_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
+        "current_unique_source_logs=7",
+        "current_strict_formal_seed_path_matches=0",
+        "current_formal_seeds_11_12_13_used=False",
+        "current_validator_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_validator_acceptance_0ed8c92_20260624T201719Z",
+        "current_validator_output_json_sha256=276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078",
+        "current_validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -46,6 +56,21 @@ def test_validator_acceptance_records_status_counts_and_readback() -> None:
         "source_log_readback_required_for_acceptance=True",
         "source_log_readback_enabled=True",
         "read_only_source_log_readback_only=True",
+        "current_schema_version=dp_native_fallback_risk_training_data_validator_v1",
+        "current_status=dp_native_fallback_risk_training_data_validator_complete",
+        "current_passed=True",
+        "current_enabled=True",
+        "current_records_checked=15",
+        "current_failed_records=0",
+        "current_errors=0",
+        "current_source_log_readback_enabled=True",
+        "current_dataset_records_total=60",
+        "current_dataset_records_without_feasible_candidate=15",
+        "current_dataset_records_with_feasible_candidate=45",
+        "current_dataset_records_built=15",
+        "current_dataset_failed_records=0",
+        "current_dataset_candidate_counts=4",
+        "current_dataset_oracle_policies=lane/red/quality,red/lane/quality",
     ]:
         assert needle in text
 
@@ -94,6 +119,18 @@ def test_validator_acceptance_forbids_training_replay_dp_and_claims() -> None:
         "all_infeasible_records_added_to_feasible_training=False",
         "production_selector_change_authorized=False",
         "online_selector_change_authorized=False",
+        "current_replay_execution_authorized=False",
+        "current_candidate_generation_authorized=False",
+        "current_camp_training_authorized=False",
+        "current_camp_retraining_authorized=False",
+        "current_formal_seeds_11_12_13_authorized=False",
+        "current_dp_modification_authorized=False",
+        "current_selector_promotion_authorized=False",
+        "current_atom_promotion_authorized=False",
+        "current_safety_benefit_claim_authorized=False",
+        "current_camp_over_dp_top1_claim_authorized=False",
+        "current_fallback_risk_training_authorized_now=False",
+        "current_fallback_dataset_training_sufficiency_claim=False",
     ]:
         assert needle in text
 
