@@ -26,6 +26,12 @@ def test_validator_extension_plan_records_preconditions() -> None:
         "accepted_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf",
         "formal_seeds_11_12_13_used=False",
         "autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_fixed_artifact_acceptance_status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_revalidated",
+        "current_accepted_fallback_records=15",
+        "current_accepted_dataset_schema_version=dp_native_fallback_risk_training_data_v1",
+        "current_accepted_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
+        "current_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_52f8d20_20260624T195018Z/dataset.json",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
