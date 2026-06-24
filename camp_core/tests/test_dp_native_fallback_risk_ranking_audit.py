@@ -21,6 +21,7 @@ AUDIT_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_audit.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _reward(
@@ -259,6 +260,13 @@ def test_fallback_risk_audit_doc_pins_real_artifact_result() -> None:
         "candidate_tensor_mutation_effect_all_no_feasible_records=False",
         "candidate_generation_effect_all_no_feasible_records=False",
         "fallback_risk_training_authorized_now=False",
+        "camp_head_at_revalidation=7a2d4903699a2266160d3206a00f4d6801028049",
+        "camp_origin_main_at_revalidation=7a2d4903699a2266160d3206a00f4d6801028049",
+        "dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_7a2d490_20260624T231111Z",
+        "remote_audit_json_sha256=fe57dc19a8f0371fe3f4f5ea469e39c0934a9bc8e76f205a046f2a29cfdaaa33",
+        "remote_audit_md_sha256=34fd32059d306725931cce948c4146c83d14d34555293b1c87cb58916c7352af",
+        "remote_target_pytest=13 passed",
         NEXT_DESIGN_GATE,
     ]:
         assert needle in text
@@ -300,3 +308,30 @@ def test_fallback_risk_audit_doc_forbids_nonpaper_routes() -> None:
         "camp_over_dp_top1_claim_authorized=True",
     ]:
         assert forbidden not in text
+
+
+def test_iteration_audit_tail_records_current_head_ranking_audit_next_gate() -> None:
+    tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-120:])
+
+    for needle in [
+        "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete",
+        "passed=True",
+        "camp_head_at_revalidation=7a2d4903699a2266160d3206a00f4d6801028049",
+        "dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "remote_audit_json_sha256=fe57dc19a8f0371fe3f4f5ea469e39c0934a9bc8e76f205a046f2a29cfdaaa33",
+        "records_without_feasible_candidate=15",
+        "lower_risk_fixed_candidate_exists_under_logged_costs=True",
+        "fallback_risk_training_authorized_now=False",
+        "candidate_generation_authorized=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_DESIGN_GATE,
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only`"
+    )

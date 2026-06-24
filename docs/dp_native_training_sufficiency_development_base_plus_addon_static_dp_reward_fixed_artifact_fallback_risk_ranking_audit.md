@@ -201,3 +201,49 @@ lower_risk_fixed_candidate_exists_under_logged_costs=True
 The revalidation remains audit-only: no replay, no candidate generation, no CAMP
 retraining, no DP modification, no selector or atom promotion, no deployment,
 and no safety or CAMP-over-DP claim.
+
+## Current-Head Revalidation After Record Identity Holdout Static Review
+
+Date: 2026-06-25
+
+The same fixed broader-nonformal evaluation artifact was re-audited from the
+current synchronized CAMP HEAD after the record-identity static CAMP
+development-holdout static contract review:
+
+```text
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+evaluation_summary_sha256=c39fa6278431e08ee16b7b45f6645e43fa46f9951981c1fff8fa1809778aea07
+camp_head_at_revalidation=7a2d4903699a2266160d3206a00f4d6801028049
+camp_origin_main_at_revalidation=7a2d4903699a2266160d3206a00f4d6801028049
+dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+required_dp_fixed_commit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_7a2d490_20260624T231111Z
+remote_audit_json_sha256=fe57dc19a8f0371fe3f4f5ea469e39c0934a9bc8e76f205a046f2a29cfdaaa33
+remote_audit_md_sha256=34fd32059d306725931cce948c4146c83d14d34555293b1c87cb58916c7352af
+```
+
+Revalidation result:
+
+```text
+remote_py_compile_exit=0
+remote_target_pytest=13 passed
+remote_artifact_audit_exit=0
+status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+passed=True
+failed_checks=[]
+records_without_feasible_candidate=15
+existing_fallback_uniformly_least_bad_red=False
+existing_fallback_uniformly_least_bad_lane=False
+existing_fallback_uniformly_least_bad_quality=True
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+```
+
+This revalidation remains audit-only: no replay, no candidate generation, no
+CAMP retraining, no DP modification, no selector or atom promotion, no
+deployment, and no safety or CAMP-over-DP claim.
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only
+```
