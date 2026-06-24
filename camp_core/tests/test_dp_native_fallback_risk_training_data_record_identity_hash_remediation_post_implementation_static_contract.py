@@ -71,6 +71,10 @@ def test_post_static_review_records_local_verification() -> None:
         "local_py_compile_exit=0",
         "local_post_static_target_pytest=6 passed",
         "local_related_target_pytest=54 passed",
+        "autodl_verified_camp_head=fdbbdc622c349b452747491eaf685cd008e1e11e",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=54 passed",
+        "autodl_git_diff_check_exit=0",
     ]:
         assert needle in text
 
@@ -120,6 +124,7 @@ def test_iteration_audit_tail_records_post_static_next_gate() -> None:
         "static_contract_review_complete=True",
         "local_post_static_target_pytest=6 passed",
         "local_related_target_pytest=54 passed",
+        "autodl_target_pytest=54 passed",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
