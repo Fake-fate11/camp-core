@@ -305,13 +305,20 @@ def _validate_generation_contract(contract: Any, candidate_count: int) -> list[s
     errors: list[str] = []
     if contract.get("schema_version") != CANDIDATE_GENERATION_SCHEMA_VERSION:
         errors.append("candidate_generation_contract_schema_mismatch")
-    if int(contract.get("num_candidates", -1)) != candidate_count:
+    contract_candidates = _strict_int(
+        contract.get("num_candidates"),
+        "candidate_generation_contract_num_candidates",
+        errors,
+    )
+    if contract_candidates != candidate_count:
         errors.append("candidate_generation_contract_candidate_count_mismatch")
+    if "reference_blend_steps" not in contract:
+        errors.append("candidate_generation_contract_reference_blend_missing")
     if contract.get("reference_blend_steps") is not None:
         errors.append("candidate_generation_contract_reference_blend_enabled")
-    if bool(contract.get("guidance_enabled")):
+    if contract.get("guidance_enabled") is not False:
         errors.append("candidate_generation_contract_guidance_enabled")
-    if bool(contract.get("changes_diffusion_planner_weights")):
+    if contract.get("changes_diffusion_planner_weights") is not False:
         errors.append("candidate_generation_contract_changes_dp_weights")
     return errors
 
@@ -343,36 +350,37 @@ def _validate_provenance(payload: Any, candidate_count: int, selected_index: int
     ):
         if payload.get(field) is not True:
             errors.append(f"provenance_{field}_not_true")
-    if int(payload.get("candidate_count", -1)) != candidate_count:
+    payload_candidates = _strict_int(
+        payload.get("candidate_count"),
+        "provenance_candidate_count",
+        errors,
+    )
+    if payload_candidates != candidate_count:
         errors.append("provenance_candidate_count_mismatch")
-    if int(payload.get("post_selector_candidate_count", -1)) != candidate_count:
+    post_selector_candidates = _strict_int(
+        payload.get("post_selector_candidate_count"),
+        "provenance_post_selector_candidate_count",
+        errors,
+    )
+    if post_selector_candidates != candidate_count:
         errors.append("provenance_post_selector_candidate_count_mismatch")
-    if int(payload.get("selected_index", -1)) != selected_index:
+    payload_selected = _strict_int(
+        payload.get("selected_index"),
+        "provenance_selected_index",
+        errors,
+    )
+    if payload_selected != selected_index:
         errors.append("provenance_selected_index_mismatch")
     return errors
 
 
 def _validate_atoms(record: dict[str, Any], candidate_count: int, errors: list[str]) -> list[list[float]]:
-    atoms = record.get("atoms")
-    if not isinstance(atoms, list) or len(atoms) != candidate_count:
-        errors.append("atoms_candidate_count_mismatch")
-        return []
-    rows: list[list[float]] = []
-    for row_index, row in enumerate(atoms):
-        if not isinstance(row, list) or not row:
-            errors.append(f"atoms_{row_index}_row_invalid")
-            continue
-        values: list[float] = []
-        for value in row:
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
-                errors.append(f"atoms_{row_index}_not_numeric")
-                continue
-            number = float(value)
-            if not math.isfinite(number) or number < 0.0:
-                errors.append(f"atoms_{row_index}_not_finite_nonnegative")
-                continue
-            values.append(number)
-        rows.append(values)
+    rows = _validate_nonnegative_matrix(
+        record.get("atoms"),
+        candidate_count,
+        "atoms",
+        errors,
+    )
     atom_dim = len(rows[0]) if rows else 0
     try:
         expected_version, expected_names = atom_schema_for_dimension(atom_dim)
@@ -383,9 +391,14 @@ def _validate_atoms(record: dict[str, Any], candidate_count: int, errors: list[s
         errors.append("atom_schema_version_mismatch")
     if tuple(record.get("atom_names") or ()) != tuple(expected_names):
         errors.append("atom_names_mismatch")
-    normalized = record.get("normalized_atoms")
-    if not isinstance(normalized, list) or len(normalized) != candidate_count:
-        errors.append("normalized_atoms_candidate_count_mismatch")
+    normalized_rows = _validate_nonnegative_matrix(
+        record.get("normalized_atoms"),
+        candidate_count,
+        "normalized_atoms",
+        errors,
+    )
+    if normalized_rows and atom_dim and len(normalized_rows[0]) != atom_dim:
+        errors.append("normalized_atoms_atom_dimension_mismatch")
     return rows
 
 
@@ -450,18 +463,58 @@ def _reason_policy(reasons: list[Any]) -> tuple[str, str, str]:
 def _as_bool_list(value: Any) -> list[bool] | None:
     if not isinstance(value, list):
         return None
-    return [bool(item) for item in value]
+    if not all(isinstance(item, bool) for item in value):
+        return None
+    return list(value)
 
 
 def _as_index(value: Any, candidate_count: int, errors: list[str]) -> int:
-    try:
-        index = int(value)
-    except (TypeError, ValueError):
-        errors.append("selected_index_not_int")
+    index = _strict_int(value, "selected_index", errors)
+    if index is None:
         return -1
     if index < 0 or index >= candidate_count:
         errors.append("selected_index_out_of_range")
     return index
+
+
+def _strict_int(value: Any, field: str, errors: list[str]) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int):
+        errors.append(f"{field}_not_int")
+        return None
+    return int(value)
+
+
+def _validate_nonnegative_matrix(
+    value: Any,
+    candidate_count: int,
+    field: str,
+    errors: list[str],
+) -> list[list[float]]:
+    if not isinstance(value, list) or len(value) != candidate_count:
+        errors.append(f"{field}_candidate_count_mismatch")
+        return []
+    rows: list[list[float]] = []
+    atom_dim: int | None = None
+    for row_index, row in enumerate(value):
+        if not isinstance(row, list) or not row:
+            errors.append(f"{field}_{row_index}_row_invalid")
+            continue
+        if atom_dim is None:
+            atom_dim = len(row)
+        elif len(row) != atom_dim:
+            errors.append(f"{field}_{row_index}_row_dimension_mismatch")
+        values: list[float] = []
+        for item in row:
+            if isinstance(item, bool) or not isinstance(item, (int, float)):
+                errors.append(f"{field}_{row_index}_not_numeric")
+                continue
+            number = float(item)
+            if not math.isfinite(number) or number < 0.0:
+                errors.append(f"{field}_{row_index}_not_finite_nonnegative")
+                continue
+            values.append(number)
+        rows.append(values)
+    return rows
 
 
 def _add_failed(

@@ -1,0 +1,197 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Default-Off Builder Post-Implementation Static Contract Review
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_post_implementation_static_contract_only
+```
+
+This review statically checks the implemented fallback-risk training data
+builder. It does not run replay, generate candidates, train CAMP, retrain CAMP,
+modify Diffusion Planner, change the online selector, promote a selector or
+atom, or claim safety benefit or CAMP-over-DP Top-1.
+
+## Reviewed Artifacts
+
+```text
+builder=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py
+builder_tests=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder.py
+implementation_audit=docs/diffusion_planner_v8_iteration_audit.md
+mathematical_contract=docs/dp_camp_mathematical_contract.md
+benders_formalization=docs/dp_camp_benders_formalization.md
+atom_audit=docs/dp_camp_benders_compatible_atom_audit.md
+camp_head_at_review_start=cce0dc33a7234744defa77aa58ff34bf285cefd3
+camp_origin_main_at_review_start=cce0dc33a7234744defa77aa58ff34bf285cefd3
+github_refs_heads_main_at_review_start=cce0dc33a7234744defa77aa58ff34bf285cefd3
+autodl_CAMP_HEAD_at_review_start=cce0dc33a7234744defa77aa58ff34bf285cefd3
+autodl_CAMP_origin_main_at_review_start=cce0dc33a7234744defa77aa58ff34bf285cefd3
+autodl_DP_HEAD_at_review_start=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Static Contract Checks
+
+### Default-Off Boundary
+
+```text
+default_off_boundary_passed=True
+build_training_data_report_enabled_default=False
+enable_flag_required_before_reading_selection_logs=True
+disabled_mode_returns_before_loading_extractor_or_selection_logs=True
+disabled_mode_reads_selection_logs=False
+disabled_mode_emits_records=False
+```
+
+### Read-Only Fixed-Artifact Boundary
+
+```text
+read_only_fixed_artifact_boundary_passed=True
+enabled_input_source=existing_camp_selection_log_json_only
+optional_extractor_input=existing_default_off_extractor_json_only
+records_scope=records_without_feasible_candidate_only
+output_json_or_markdown_only=True
+writes_only_explicit_output_json_and_output_md=True
+creates_only_explicit_output_json_and_output_md_parent_dirs=True
+subprocess_usage_found=False
+diffusion_planner_execution_path_found=False
+candidate_generation_path_found=False
+candidate_mutation_path_found=False
+```
+
+### Fail-Closed Hardening
+
+The review found narrow type-coercion gaps in the implementation. The same
+gate hardens them because they are contract-preserving fail-closed checks, not
+new behavior:
+
+```text
+review_identified_hardening_findings=4
+strict_feasible_mask_bool_items_required=True
+strict_selected_index_int_required=True
+strict_candidate_count_int_required=True
+strict_provenance_count_int_required=True
+strict_guidance_and_dp_weight_flags_false_required=True
+reference_blend_field_required=True
+atoms_matrix_shape_and_nonnegative_check_required=True
+normalized_atoms_matrix_shape_and_nonnegative_check_required=True
+implementation_hardening_completed=True
+unresolved_blocking_contract_findings=0
+```
+
+### Mathematical Boundary
+
+The builder emits offline fallback training records only for the all-infeasible
+branch. The fallback labels and margins remain separate from deployed atoms and
+do not change the feasible-branch master.
+
+```text
+score_k(w)=a_k^T w
+affine_score_boundary_preserved=True
+a_k_fixed_before_weight_optimization=True
+a_k_nonnegative_benders_compatible_atoms_only=True
+new_atom_authorized_now=False
+fallback_label_is_not_a_deployed_atom=True
+margin_ik_nonnegative=True
+margin_ik_clipped=True
+selected_index_used_as_feature=False
+candidate_rank_used_as_feature=False
+feasible_master_separation_passed=True
+all_infeasible_records_relabelled_feasible=False
+all_infeasible_records_added_to_feasible_training=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+simplex_master_unchanged=True
+cvar_master_unchanged=True
+l2_regularized_master_unchanged=True
+```
+
+### Training Sufficiency Boundary
+
+```text
+training_sufficiency_boundary_passed=True
+builder_implementation_is_not_training_sufficiency=True
+fixed_artifact_acceptance_audit_required=True
+fallback_dataset_validator_extension_required=True
+training_validation_split_predeclaration_required=True
+scale_fit_training_groups_only_required=True
+formal_seeds_11_12_13_excluded_required=True
+fallback_master_isolated_from_feasible_master_required=True
+nonpromotion_boundary_required=True
+```
+
+## Findings
+
+```text
+blocking_contract_findings=0
+implementation_hardening_completed=True
+nonblocking_requirements=3
+```
+
+Nonblocking requirements for later gates:
+
+```text
+require_fixed_artifact_acceptance_audit=True
+require_fallback_dataset_validator_extension=True
+require_training_authorization_before_any_training=True
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_default_off_builder_post_implementation_static_contract_passed
+passed=True
+post_implementation_static_contract_review_complete=True
+implementation_hardening_completed=True
+blocking_contract_findings=0
+fallback_risk_training_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_audit_only
+```
+
+The next gate may only run the default-off builder, with its explicit enable
+flag, against existing non-formal fixed-artifact selection logs and audit the
+resulting JSON/Markdown dataset contract. It must not run replay, generate
+candidates, train CAMP, retrain CAMP, modify Diffusion Planner, use formal
+seeds, relax hard feasibility, add all-infeasible records to the
+feasible-ranking master, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.

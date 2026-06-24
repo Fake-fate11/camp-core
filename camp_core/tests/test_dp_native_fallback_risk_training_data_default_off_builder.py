@@ -228,6 +228,42 @@ def test_builder_fails_closed_on_bad_fields(tmp_path: Path) -> None:
     assert report["final_decision"]["dp_modification_authorized"] is False
 
 
+def test_builder_fails_closed_on_loose_types_and_atom_shape_mismatch(
+    tmp_path: Path,
+) -> None:
+    bad = _record(
+        feasible_mask=["false", False],
+        atoms=[[0.1 for _ in range(9)], [0.1 for _ in range(8)]],
+        generation_overrides={"num_candidates": "2"},
+    )
+    bad["selected_index"] = True
+    bad["camp_candidate_tensor_provenance"]["candidate_count"] = "2"
+    bad["camp_candidate_tensor_provenance"]["selected_index"] = True
+    bad["normalized_atoms"] = [[-0.1 for _ in range(9)], [0.1 for _ in range(9)]]
+    log_path = _write_log(tmp_path, [bad])
+
+    report = build_training_data_report(selection_logs=[log_path], enabled=True)
+    errors = report["final_decision"]["errors"]
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert any("feasible_mask_invalid" in item for item in errors)
+
+    bad["feasible_mask"] = [False, False]
+    log_path = _write_log(tmp_path, [bad])
+    report = build_training_data_report(selection_logs=[log_path], enabled=True)
+    errors = report["final_decision"]["errors"]
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    for needle in [
+        "selected_index_not_int",
+        "candidate_generation_contract_num_candidates_not_int",
+        "provenance_candidate_count_not_int",
+        "atoms_1_row_dimension_mismatch",
+        "normalized_atoms_0_not_finite_nonnegative",
+    ]:
+        assert any(needle in item for item in errors)
+
+
 def test_builder_cli_writes_reports_when_enabled(tmp_path: Path) -> None:
     log_path = _write_log(tmp_path, [_record()])
     output_json = tmp_path / "out" / "dataset.json"
