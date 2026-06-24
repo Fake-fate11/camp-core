@@ -91942,3 +91942,93 @@ passed=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_only`
+
+---
+
+### 2026-06-24 - Fixed-Artifact Fallback Risk Training Data Default-Off Builder Implementation
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_only`
+
+Artifacts:
+
+```text
+scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py
+camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder.py
+```
+
+Heads before this implementation commit:
+
+```text
+local_HEAD=aa82e01a2667fe8ae2e77cbb45b43338acffcc7b
+origin_main=aa82e01a2667fe8ae2e77cbb45b43338acffcc7b
+github_refs_heads_main=aa82e01a2667fe8ae2e77cbb45b43338acffcc7b
+autodl_CAMP_HEAD=aa82e01a2667fe8ae2e77cbb45b43338acffcc7b
+autodl_CAMP_origin_main=aa82e01a2667fe8ae2e77cbb45b43338acffcc7b
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation boundary:
+
+```text
+default_off=True
+enable_flag=--enable_default_off_fallback_risk_training_data_builder
+disabled_mode_reads_selection_logs=False
+enabled_input_source=existing_camp_selection_log_json_only
+optional_extractor_input=existing_default_off_extractor_json_only
+records_scope=records_without_feasible_candidate_only
+dataset_schema_version=dp_native_fallback_risk_training_data_v1
+output_json_or_markdown_only=True
+status_disabled=dp_native_fallback_risk_training_data_builder_default_off_disabled
+status_complete=dp_native_fallback_risk_training_data_builder_complete
+status_rejected=dp_native_fallback_risk_training_data_builder_rejected
+```
+
+Local verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+local_fallback_risk_pytest=81 passed
+local_git_diff_check_exit=0
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_default_off_builder_implemented
+passed=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_post_implementation_static_contract_only`
