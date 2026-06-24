@@ -87582,3 +87582,89 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_clean_training_log_collection_smoke_user_authorization_pending`
+
+## DP native clean training log collection smoke execution preflight
+
+Gate:
+
+`dp_native_clean_training_log_collection_smoke_user_authorization_pending`
+
+Artifact:
+
+```text
+docs/dp_native_clean_training_log_collection_smoke_execution_preflight.md
+```
+
+Ref evidence:
+
+```text
+git status --short --branch
+## main...origin/main
+untracked unrelated session/slide artifacts remain ignored
+
+git fetch --prune origin
+exit=0
+
+git rev-parse HEAD origin/main
+33e7e84122a0c0e37becd873ad31af76760fb460
+33e7e84122a0c0e37becd873ad31af76760fb460
+
+git ls-remote origin refs/heads/main
+33e7e84122a0c0e37becd873ad31af76760fb460 refs/heads/main
+```
+
+User authorization:
+
+```text
+minimal_nonformal_dp_native_clean_training_log_collection_smoke=True
+must_enable=--camp_candidate_tensor_provenance_logging
+must_not_enable=--camp_collect_closed_loop_outcomes
+must_not_enable=reference_blend
+must_not_enable=guidance
+must_not_run=Full36
+must_not_run=formal seeds 11/12/13
+must_not_train=CAMP
+must_not_modify=Diffusion-Planner
+must_not_promote=selector/atom
+must_not_claim=safety or CAMP-over-DP
+```
+
+Execution preflight evidence:
+
+```text
+local Diffusion-Planner checkout search: none found
+local camp_dp_assets search: none found
+local replay asset search: none found
+
+ssh -o BatchMode=yes -o ConnectTimeout=10 -p 39841 root@connect.bjb2.seetacloud.com "hostname"
+exit=1
+result=Permission denied (publickey,password).
+
+git ls-files | rg "(^|/)camp_selection_log\.json$"
+exit=1
+result=no tracked camp_selection_log.json files
+```
+
+Decision:
+
+```text
+status=execution_not_performed
+user_authorization_satisfied=True
+reason=local replay assets are absent and noninteractive AutoDL SSH is unavailable without writing a password into command/log text
+camp_selection_log_produced=False
+clean_log_validator_run=False
+replay_executed=False
+candidate_generation_executed=False
+outcome_label_generation_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_clean_training_log_collection_smoke_autodl_noninteractive_execution_required`
