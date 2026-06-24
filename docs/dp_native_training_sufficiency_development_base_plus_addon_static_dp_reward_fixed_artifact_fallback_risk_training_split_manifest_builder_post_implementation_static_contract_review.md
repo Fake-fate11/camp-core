@@ -1,0 +1,182 @@
+# DP Native Fixed-Artifact Fallback Risk Training Split Manifest Builder Post-Implementation Static Contract Review
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only
+```
+
+This static review checks the default-off split manifest builder implementation.
+It does not run the builder on the fixed AutoDL artifact, generate a
+fixed-artifact manifest, train CAMP, retrain CAMP, run replay, generate
+candidates, modify Diffusion Planner, change the online selector, promote a
+selector or atom, or claim safety benefit or CAMP-over-DP Top-1.
+
+## Reviewed Artifacts
+
+```text
+implementation=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_split_manifest.py
+implementation_tests=camp_core/tests/test_dp_native_fallback_risk_training_split_manifest_builder.py
+implementation_authorization=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization.md
+camp_head_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
+camp_origin_main_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
+github_refs_heads_main_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
+autodl_CAMP_HEAD_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
+autodl_CAMP_origin_main_at_review=de4dc9b24bd14c6caa7c91407e9a6a7561ba3194
+autodl_DP_HEAD_at_review=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Contract Checks
+
+### Default-Off Boundary
+
+```text
+default_off_boundary_passed=True
+disabled_status=dp_native_fallback_risk_training_split_manifest_builder_default_off_disabled
+enable_flag=--enable_default_off_fallback_risk_training_split_manifest_builder
+disabled_mode_returns_before_dataset_read=True
+output_json_or_markdown_only=True
+```
+
+### Dataset Source Boundary
+
+```text
+dataset_source_boundary_passed=True
+enabled_input_source=existing_validated_fallback_risk_training_dataset_json_only
+requires_expected_dataset_sha256=True
+requires_validator_output_sha256=True
+dataset_sha256_mismatch_fails_closed=True
+validator_output_sha256_invalid_fails_closed=True
+records_scope=records_without_feasible_candidate_only
+fixed_artifact_manifest_generation_authorized=False
+```
+
+### Split Identity And Policy Boundary
+
+```text
+split_identity_policy_passed=True
+manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1
+group_key_fields=source_log,run_id,record_index
+record_identity_hash_derived_from_source_log_sha256_run_id_record_index=True
+source_log_sha256_mismatch_fails_closed=True
+group_key_collision_fails_closed=True
+duplicate_record_identity_fails_closed=True
+split_policy=sha256(record_identity_hash + split_salt)
+split_salt=fallback_risk_training_split_v1
+validation_fraction_target=0.2
+empty_train_or_validation_fails_closed=True
+```
+
+### Forbidden Feature And Formal Boundary
+
+```text
+forbidden_feature_formal_boundary_passed=True
+selected_index_used_as_feature_rejected=True
+candidate_rank_used_as_feature_rejected=True
+closed_loop_outcome_used_as_feature_rejected=True
+learned_weights_used_as_feature_rejected=True
+formal_seeds_11_12_13_rejected=True
+formal_eval_artifact_rejected=True
+training_authorized_leak_rejected=True
+```
+
+### Output And Preflight Compatibility Boundary
+
+```text
+output_preflight_boundary_passed=True
+top_level_fields=schema_version,dataset_sha256,validator_output_sha256,split_policy,split_salt,group_key_fields,training_groups,validation_groups,record_assignments,record_counts,final_decision
+preflight_shape_compatible=True
+synthetic_preflight_rejection_limited_to_expected_dataset_sha_mismatch=True
+final_decision_training_authorized=False
+final_decision_fallback_dataset_training_sufficiency_claim=False
+final_decision_camp_retraining_authorized_now=False
+```
+
+## Findings
+
+```text
+blocking_contract_findings=0
+nonblocking_requirements=2
+```
+
+Nonblocking requirements for later gates:
+
+```text
+require_fixed_artifact_acceptance_audit=True
+require_preflight_acceptance_after_fixed_artifact_manifest_generation=True
+```
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=6 passed
+local_fallback_risk_related_pytest=219 passed
+autodl_target_pytest=6 passed
+autodl_fallback_risk_related_pytest=219 passed
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed
+passed=True
+static_contract_review_complete=True
+blocking_contract_findings=0
+fixed_artifact_manifest_generation_authorized=False
+training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only
+```
+
+The next gate may only run the default-off split manifest builder on the
+existing validated fixed artifact for acceptance evidence and write audit
+outputs. It must not train CAMP, run replay, generate candidates, modify
+Diffusion Planner, use formal seeds, relax hard feasibility, add
+all-infeasible records to the feasible-ranking master, promote a selector or
+atom, or claim safety/CAMP-over-DP benefit.
