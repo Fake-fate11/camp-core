@@ -1,0 +1,145 @@
+# DP Native Fixed-Artifact Fallback Risk Training Split Manifest Builder Fixed-Artifact Acceptance Rerun Audit
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rerun_audit_only
+```
+
+This audit reran the default-off split manifest builder on the same existing
+validated fallback-risk training dataset artifact after the legacy decision
+flag compatibility remediation. It did not run replay, generate new
+candidates, train CAMP, retrain CAMP, modify Diffusion Planner, change the
+online selector, promote a selector or atom, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+## Fixed Artifact Inputs
+
+```text
+source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f632c44_20260624T133402Z/dataset.json
+expected_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+validator_output_json_sha256=572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b
+builder_commit=384c2b7998864594a97b900be3e687bfaf03a2a1
+autodl_CAMP_HEAD=384c2b7998864594a97b900be3e687bfaf03a2a1
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Output Artifact
+
+```text
+builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_384c2b7_20260624T154419Z
+split_manifest_json_sha256=a4b33c1c14b2ea96f1994e89245cfd27209e98049808fdfd3fbe6c8a732d34fd
+split_manifest_md_sha256=60ef091344704d9edeec48820d2d1888cb0110ba6b9a35e6de6ad49ee9fe2aeb
+```
+
+## Observed Result
+
+```text
+schema_version=dp_native_fallback_risk_training_split_manifest_v1
+dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+validator_output_sha256=572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b
+split_policy=sha256(record_identity_hash + split_salt)
+split_salt=fallback_risk_training_split_v1
+status=dp_native_fallback_risk_training_split_manifest_builder_complete
+passed=True
+accepted_records=15
+training_records=13
+validation_records=2
+training_groups_disjoint_validation=True
+record_assignments=15
+errors=[]
+training_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+```
+
+## Acceptance Finding
+
+```text
+fixed_artifact_acceptance_passed=True
+blocking_acceptance_findings=0
+legacy_final_decision_flag_compatibility_issue_resolved=True
+training_split_manifest_ready_for_preflight=True
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+fixed_15_record_artifact_training_sufficiency_claim=False
+```
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+local_fallback_risk_related_pytest=240 passed
+```
+
+This acceptance only proves the split manifest builder can produce a
+preflight-shaped split manifest from the existing fixed artifact. It does not
+claim the 15-record artifact is sufficient for training and does not authorize
+CAMP retraining.
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_passed_after_legacy_decision_flag_remediation
+passed=True
+fixed_artifact_acceptance_audit_complete=True
+fixed_artifact_acceptance_passed=True
+blocking_acceptance_findings=0
+training_split_manifest_ready_for_preflight=True
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_plan_only
+```
+
+The next gate may only plan the train-only atom scale manifest required by the
+fallback-risk training sufficiency preflight. It must not train CAMP, run
+replay, generate candidates, modify Diffusion Planner, use formal seeds, relax
+hard feasibility, add all-infeasible records to the feasible-ranking master,
+promote a selector or atom, or claim safety/CAMP-over-DP benefit.
