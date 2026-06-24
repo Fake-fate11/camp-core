@@ -1,0 +1,189 @@
+# DP Native Fixed-Artifact Fallback Risk Training Split Manifest Unit Tests Plan
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_plan_only
+```
+
+This plan specifies synthetic and static unit tests for a future default-off
+fallback-risk training split manifest builder. It does not implement the
+builder, generate the manifest, train CAMP, retrain CAMP, run replay, generate
+candidates, modify Diffusion Planner, change the online selector, promote a
+selector or atom, or claim safety benefit or CAMP-over-DP Top-1.
+
+## Preconditions
+
+```text
+split_manifest_plan_ready=True
+split_manifest_static_contract_review_passed=True
+blocking_contract_findings=0
+manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1
+records_scope=records_without_feasible_candidate_only
+validated_fallback_records=15
+training_split_manifest_builder_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+camp_head_at_plan=d764875cf251a9b9075feb0c223747c6be4df24c
+camp_origin_main_at_plan=d764875cf251a9b9075feb0c223747c6be4df24c
+github_refs_heads_main_at_plan=d764875cf251a9b9075feb0c223747c6be4df24c
+autodl_CAMP_HEAD_at_plan=d764875cf251a9b9075feb0c223747c6be4df24c
+autodl_CAMP_origin_main_at_plan=d764875cf251a9b9075feb0c223747c6be4df24c
+autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Planned Unit Test Groups
+
+### Default-Off And CLI Boundary Tests
+
+```text
+test_default_off_split_builder_requires_enable_flag=True
+test_disabled_mode_does_not_read_dataset=True
+test_disabled_mode_writes_default_off_decision_only=True
+test_enabled_mode_reads_existing_validated_dataset_json_only=True
+test_output_is_json_and_markdown_only=True
+```
+
+### Dataset Scope Tests
+
+```text
+test_requires_validated_fallback_dataset_sha256=True
+test_requires_validator_output_sha256=True
+test_requires_15_validated_fallback_records=True
+test_requires_records_without_feasible_candidate_only=True
+test_rejects_feasible_candidate_records=True
+test_rejects_formal_seeds_11_12_13=True
+test_rejects_formal_eval_artifact=True
+```
+
+### Record Identity And Grouping Tests
+
+```text
+test_requires_group_key_source_log_run_id_record_index=True
+test_requires_source_log_sha256=True
+test_requires_candidate_count_and_oracle_index=True
+test_requires_record_identity_hash=True
+test_rejects_missing_record_identity_hash=True
+test_rejects_group_key_collision=True
+test_rejects_duplicate_record_identity=True
+test_does_not_use_selected_index_as_split_feature=True
+test_does_not_use_candidate_rank_as_split_feature=True
+test_does_not_use_closed_loop_outcome_as_split_feature=True
+test_does_not_use_learned_weights_as_split_feature=True
+```
+
+### Deterministic Split Policy Tests
+
+```text
+test_uses_sha256_record_identity_hash_plus_split_salt=True
+test_uses_fixed_split_salt_fallback_risk_training_split_v1=True
+test_split_assignments_are_stable_across_input_order=True
+test_training_and_validation_groups_are_disjoint=True
+test_rejects_empty_training_or_validation_groups=True
+test_requires_minimum_one_training_group=True
+test_requires_minimum_one_validation_group=True
+test_validation_fraction_target_is_point_two=True
+test_does_not_use_random_seed_python_hash_or_wall_clock=True
+```
+
+### Preflight Compatibility Tests
+
+```text
+test_manifest_top_level_fields_match_preflight_contract=True
+test_record_assignments_cover_every_accepted_record_once=True
+test_record_counts_match_training_plus_validation=True
+test_final_decision_never_authorizes_training=True
+test_final_decision_never_claims_training_sufficiency=True
+test_final_decision_never_claims_deployable_checkpoint=True
+test_preflight_accepts_clean_synthetic_split_manifest=True
+```
+
+### Forbidden Execution Tests
+
+```text
+test_rejects_replay_or_candidate_generation=True
+test_rejects_camp_training_or_retraining=True
+test_rejects_dp_weight_or_config_changes=True
+test_rejects_reference_blend_guidance_or_postselection=True
+test_rejects_closed_loop_outcome_online_input=True
+test_rejects_selector_or_atom_promotion=True
+test_rejects_safety_or_camp_over_dp_claim=True
+```
+
+## Synthetic Fixture Requirements
+
+```text
+synthetic_dataset_fixtures_only=True
+synthetic_split_manifest_fixtures_only=True
+fixed_autodl_artifact_required_for_unit_tests=False
+formal_seeds_11_12_13_used=False
+replay_required_for_unit_tests=False
+candidate_generation_required_for_unit_tests=False
+training_required_for_unit_tests=False
+dp_required_for_unit_tests=False
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_split_manifest_unit_tests_plan_ready
+passed=True
+split_manifest_unit_tests_plan_complete=True
+split_manifest_unit_tests_authorized=True
+training_split_manifest_builder_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only
+```
+
+The next gate may only add synthetic/static unit tests that pin this split
+manifest builder contract. It must not implement the builder, generate the
+manifest, train CAMP, run replay, generate candidates, modify Diffusion
+Planner, use formal seeds, relax hard feasibility, add all-infeasible records
+to the feasible-ranking master, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.
