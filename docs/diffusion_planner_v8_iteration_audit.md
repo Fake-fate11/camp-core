@@ -87075,3 +87075,99 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `clean_dp_native_training_data_contract_validator_default_off_implementation`
+
+## Clean DP native training data contract validator default-off implementation
+
+Gate:
+
+`clean_dp_native_training_data_contract_validator_default_off_implementation`
+
+Pre-implementation refs:
+
+```text
+git rev-parse HEAD origin/main
+d3f99e58108d5b239e8872393bccdeffc6f15c88
+d3f99e58108d5b239e8872393bccdeffc6f15c88
+```
+
+Implementation artifacts:
+
+```text
+scripts/integrations/validate_dp_native_training_data_contract.py
+sha256=9741B410DA8723096412A832896E0ABF468BA8A9FA24F0ED157D1F8362BD8E5B
+
+camp_core/tests/test_dp_native_training_data_contract_validator.py
+sha256=3A9F48B894EC1492FD2A098933C7A3C11C8DD48EEE3E4C361696A1B88FEE9B02
+```
+
+Implemented validator:
+
+```text
+schema_version=clean_dp_native_training_data_contract_validator_v1
+read_only=True
+input=existing camp_selection_log.json files only
+outputs=stdout JSON plus optional --output_json/--output_md reports
+replay_executed=False
+candidate_generation_executed=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Contract checks:
+
+```text
+selected_index in range
+atoms finite nonnegative [K,R]
+feasible_mask shape [K]
+atom_schema_version and ordered atom_names match audited deployed schemas
+candidate_generation_contract schema and candidate count present
+candidate_generation_contract.noise_strategy == iid
+candidate_generation_contract.guidance_enabled == False
+candidate_generation_contract.reference_blend_steps is None
+candidate_generation_contract.changes_diffusion_planner_weights == False
+camp_candidate_tensor_provenance present and schema-matched
+provenance payload_valid/pre_post_hash/range/count/no-row-append/no-rewrite/reference-blend-separation all true
+provenance selection/generation/mutation/outcome-label effects all false
+candidate_closed_loop_outcomes, when present, have candidate-count and index consistency
+```
+
+Verification:
+
+```text
+python -m py_compile scripts/integrations/validate_dp_native_training_data_contract.py camp_core/tests/test_dp_native_training_data_contract_validator.py
+exit=0
+
+git diff --check
+exit=0
+
+python -m pytest camp_core/tests/test_dp_native_training_data_contract_validator.py -q
+exit=1
+reason=existing Windows collection blocker on missing/too-long residual-comfort test path before target tests ran
+
+temporary rootdir target pytest with copied target test and PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main
+8 passed in 0.69s
+```
+
+Decision:
+
+```text
+status=implemented_default_off_validator_static_tests_passed
+training_data_collection_execution_authorized=False
+replay_executed=False
+candidate_generation_executed=False
+outcome_label_generation_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`clean_dp_native_training_data_contract_validator_static_audit_only`
