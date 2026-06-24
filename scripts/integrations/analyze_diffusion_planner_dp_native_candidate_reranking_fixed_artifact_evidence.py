@@ -588,15 +588,17 @@ def _oracle_summary(report: dict[str, Any]) -> dict[str, Any]:
     gate = _dict(report.get("opportunity_gate"))
     overall = _dict(report.get("overall"))
     analysis = _dict(report.get("analysis"))
+    leakage_value = analysis.get("future_outcome_leakage")
     return {
         "opportunity_gate_passed": bool(gate.get("passed")),
         "records": _optional_int(_dict(report.get("records")).get("total")),
         "mean_eligible_candidates": _optional_float(
             overall.get("mean_eligible_candidates")
         ),
-        "future_outcome_leakage": bool(analysis.get("future_outcome_leakage")),
-        "training": bool(analysis.get("training")),
-        "online_selector_change": bool(analysis.get("online_selector_change")),
+        "future_outcome_leakage": leakage_value is True,
+        "future_outcome_leakage_note": leakage_value,
+        "training": analysis.get("training") is True,
+        "online_selector_change": analysis.get("online_selector_change") is True,
         "interpretation": gate.get("interpretation"),
     }
 
