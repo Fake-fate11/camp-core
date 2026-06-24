@@ -232,3 +232,34 @@ must not implement a dataset builder, run replay, generate candidates, train
 CAMP, retrain CAMP, modify Diffusion Planner, use formal seeds, relax hard
 feasibility, add all-infeasible records to the feasible-ranking master, promote
 a selector or atom, or claim safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation
+
+Date: 2026-06-25
+
+The training-data design remains valid after current-head extractor
+post-implementation static contract revalidation:
+
+```text
+camp_head_at_revalidation=116608baa082e778b8269d71a0c6e282b8c570aa
+camp_origin_main_at_revalidation=116608baa082e778b8269d71a0c6e282b8c570aa
+github_refs_heads_main_at_revalidation=116608baa082e778b8269d71a0c6e282b8c570aa
+autodl_CAMP_HEAD_at_revalidation=116608baa082e778b8269d71a0c6e282b8c570aa
+autodl_CAMP_origin_main_at_revalidation=116608baa082e778b8269d71a0c6e282b8c570aa
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_extractor_contract_status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_current_head_revalidated
+```
+
+The user-level procedural blocker for future CAMP retraining is lifted, but
+this design gate still does not authorize training execution. A later training
+gate must first pass the required builder, validator, split, scale, and
+nonpromotion contracts:
+
+```text
+user_camp_retraining_permission_available_for_future_training_gate=True
+camp_training_authorized=False
+camp_retraining_authorized=False
+fallback_risk_training_authorized_now=False
+dataset_builder_implementation_authorized=False
+training_execution_authorized_now=False
+```

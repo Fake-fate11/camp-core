@@ -98594,3 +98594,121 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Data Design Plan Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan_only
+```
+
+Revalidated the offline data contract design for a future separate
+all-infeasible fallback-risk training path.
+
+```text
+plan_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan.md
+extractor_static_contract=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_review.md
+camp_head=116608baa082e778b8269d71a0c6e282b8c570aa
+camp_origin_main=116608baa082e778b8269d71a0c6e282b8c570aa
+github_refs_heads_main=116608baa082e778b8269d71a0c6e282b8c570aa
+autodl_CAMP_HEAD=116608baa082e778b8269d71a0c6e282b8c570aa
+autodl_CAMP_origin_main=116608baa082e778b8269d71a0c6e282b8c570aa
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Design boundary:
+
+```text
+dataset_schema_version=dp_native_fallback_risk_training_data_v1
+records_scope=records_without_feasible_candidate_only
+source_logs=existing_camp_selection_log_json_only
+source_extractor_records=default_off_fallback_risk_extractor_output_only
+fixed_candidate_set_only=True
+feasible_branch_records_allowed=False
+all_infeasible_records_relabelled_feasible=False
+all_infeasible_records_added_to_feasible_training=False
+selected_index_used_as_feature=False
+candidate_rank_used_as_feature=False
+```
+
+Mathematical boundary:
+
+```text
+score_k(w)=a_k^T w
+a_k_fixed_before_weight_optimization=True
+a_k_nonnegative_benders_compatible_atoms_only=True
+new_atom_authorized_now=False
+fallback_label_is_not_a_deployed_atom=True
+q_i(w)=max(0, max_k m_ik + (a_i,o_i - a_i,k)^T w)
+margin_ik_nonnegative=True
+simplex_master_convex_if_later_authorized=True
+cvar_master_convex_if_later_authorized=True
+l2_regularized_master_convex_if_later_authorized=True
+```
+
+Training boundary:
+
+```text
+user_camp_retraining_permission_available_for_future_training_gate=True
+camp_training_authorized=False
+camp_retraining_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+dataset_builder_implementation_authorized=False
+training_execution_authorized_now=False
+formal_seeds_11_12_13_excluded_required=True
+scale_fit_training_groups_only_required=True
+fallback_master_isolated_from_feasible_master_required=True
+nonpromotion_boundary_required=True
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=6 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=6 passed
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_design_plan_current_head_revalidated
+passed=True
+fallback_training_data_design_complete=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review_only`
