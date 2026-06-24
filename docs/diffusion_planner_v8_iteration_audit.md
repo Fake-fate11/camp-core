@@ -89385,3 +89385,85 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_clean_collection_scope_plan_only`
+
+## DP native training sufficiency development clean collection scope plan
+
+Gate:
+
+`dp_native_training_sufficiency_development_clean_collection_scope_plan_only`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_development_clean_collection_scope_plan.md
+```
+
+Profile gap:
+
+```text
+raw_record_gap=64
+usable_feasible_record_gap=69
+route_gap=1
+seed_gap=1
+traffic_light_state_gap=0
+candidate_count_gap=0
+```
+
+Future scope requiring user authorization:
+
+```text
+routes=sample_normal,sample_tl,nishishinjuku_lane_change
+sample_normal=/root/autodl-tmp/camp_dp_assets/sample_map_route_2_to_104.pkl
+sample_tl=/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl
+nishishinjuku_lane_change=/root/autodl-tmp/camp_dp_assets/nishishinjuku_lane_change_route_7_via_8_to_1.pkl
+seeds=101,102,103,104
+traffic_lights=on,off
+steps=5
+num_candidates=4
+candidate_noise_strategy=iid
+candidate_noise_scale=1.0
+advance_mode=perfect
+max_npcs=0
+spawn_probability=0.3
+camp_selector_mode=uniform
+camp_feasibility_source=dp_reward
+must_enable=--camp_candidate_tensor_provenance_logging
+expected_run_count=24
+expected_max_selection_records=120
+```
+
+Profile requirements for any later result:
+
+```text
+must_pass_profile=dp_native_feasible_ranking_development_minimal_v1
+required_records_at_least=100
+required_usable_feasible_records_at_least=100
+required_routes_at_least=3
+required_seeds_at_least=4
+required_traffic_light_states=["off", "on"]
+required_candidate_count_at_least=4
+required_clean_contract=True
+required_candidate_tensor_provenance=True
+required_atom_schema=True
+```
+
+Decision:
+
+```text
+status=development_clean_collection_scope_plan_ready_user_authorization_required
+future_scope_profile_complete_if_validated=True
+collection_replay_authorized_now=False
+candidate_generation_authorized_now=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_collection_user_authorization_pending`
