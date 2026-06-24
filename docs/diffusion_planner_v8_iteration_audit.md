@@ -89588,3 +89588,112 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_collection_usable_feasible_shortfall_attribution_only`
+
+## DP native training sufficiency development collection usable-feasible shortfall attribution
+
+Gate:
+
+`dp_native_training_sufficiency_development_collection_usable_feasible_shortfall_attribution_only`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_development_collection_usable_feasible_shortfall_attribution.md
+```
+
+Heads:
+
+```text
+local_HEAD=b19452b44e4d3ee87c1ba086ac13c3e174c28d26
+origin_main=b19452b44e4d3ee87c1ba086ac13c3e174c28d26
+github_refs_heads_main=b19452b44e4d3ee87c1ba086ac13c3e174c28d26
+autodl_CAMP_HEAD=b19452b44e4d3ee87c1ba086ac13c3e174c28d26
+autodl_CAMP_origin_main=b19452b44e4d3ee87c1ba086ac13c3e174c28d26
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Fixed artifact:
+
+```text
+run_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_development_collection_73aec55_20260624T075109Z
+collection_summary.json=363dcc3a81cc737e6962c983d77425f59e56f4acccd56200bb15397edbe05dc8
+clean_dp_native_training_data_contract_validation.json=056262e969d4084e5ecd971c2c9bddafd0d9b63c0049744069aacffde5773014
+development_profile_validation.json=2f62ab3575f5264faed34d6110fbba9ff8d552ea1b76585b0b488f5c61ce0259
+development_profile_exit.txt=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865
+```
+
+Read-only attribution:
+
+```text
+remote_shortfall_attribution_analysis_exit=0
+records=120
+usable_feasible_records=72
+required_usable_feasible_records=100
+usable_feasible_record_gap=28
+unusable_records=48
+unusable_definition=feasible_mask_has_no_true_candidate
+mask_pattern_all_false_count=48
+```
+
+Route and reason attribution:
+
+```text
+nishishinjuku_lane_change_records=40
+nishishinjuku_lane_change_usable_records=0
+nishishinjuku_lane_change_unusable_records=40
+nishishinjuku_lane_change_false_candidates=160/160
+nishishinjuku_lane_change_record_reasons={"dp_road_border": 40, "dp_lane_crossing": 40}
+sample_normal_records=40
+sample_normal_usable_records=40
+sample_normal_unusable_records=0
+sample_tl_records=40
+sample_tl_usable_records=32
+sample_tl_unusable_records=8
+sample_tl_record_reasons={"dp_red_light": 5, "dp_lane_crossing": 4}
+candidate_reason_counts_false_candidates={"dp_lane_crossing": 180, "dp_road_border": 160, "dp_underprogress": 24, "dp_red_light": 20}
+dp_underprogress_record_level_shortfall_driver=False
+```
+
+Verification:
+
+```text
+git_diff_check_exit=0
+local_py_compile_exit=0
+local_target_pytest=4 passed in 0.03s
+direct_windows_repo_pytest_blocked_by_preexisting_unavailable_long_path_node=True
+remote_shortfall_attribution_analysis_exit=0
+remote_replay_executed_now=False
+remote_candidate_generation_executed_now=False
+remote_training_executed_now=False
+```
+
+Decision:
+
+```text
+status=usable_feasible_shortfall_attributed_fail_closed
+failure_class=dp_reward_hard_gate_route_support_shortfall
+primary_blocker=nishishinjuku_lane_change_all_candidates_dp_road_border_and_dp_lane_crossing
+secondary_blocker=sample_tl_red_light_and_lane_crossing_all_false_records
+clean_contract_failure=False
+label_source_failure=False
+raw_record_count_sufficient=True
+route_count_sufficient=True
+seed_count_sufficient=True
+traffic_light_state_count_sufficient=True
+candidate_count_sufficient=True
+usable_feasible_records_sufficient=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+replay_authorized_now=False
+candidate_generation_authorized_now=False
+dp_modification_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_collection_usable_feasible_shortfall_remediation_scope_plan_only`
