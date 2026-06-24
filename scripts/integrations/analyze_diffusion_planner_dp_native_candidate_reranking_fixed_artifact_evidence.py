@@ -638,13 +638,8 @@ def _candidate_tensor_provenance_summary(
         *_find_key_fragments(candidate_replay_summary, TENSOR_HASH_KEY_FRAGMENTS),
     ]
     coordinate_tensor_hits = [
-        *_find_key_fragments(baseline_selection_log, ("candidate_tensor", "raw_candidates")),
-        *_find_key_fragments(candidate_selection_log, ("candidate_tensor", "raw_candidates")),
-    ]
-    full_coordinate_hits = [
-        hit
-        for hit in coordinate_tensor_hits
-        if "sha" not in hit.lower() and "hash" not in hit.lower()
+        *_find_candidate_coordinate_tensor_paths(baseline_selection_log),
+        *_find_candidate_coordinate_tensor_paths(candidate_selection_log),
     ]
     return {
         "finite_candidate_contract_present": replay[
@@ -653,8 +648,8 @@ def _candidate_tensor_provenance_summary(
         "finite_candidate_contract_text": replay["finite_candidate_contract_text"],
         "candidate_tensor_hash_present": bool(hash_hits),
         "candidate_tensor_hash_key_paths": sorted(set(hash_hits)),
-        "full_candidate_coordinate_tensor_present": bool(full_coordinate_hits),
-        "full_candidate_coordinate_tensor_key_paths": sorted(set(full_coordinate_hits)),
+        "full_candidate_coordinate_tensor_present": bool(coordinate_tensor_hits),
+        "full_candidate_coordinate_tensor_key_paths": sorted(set(coordinate_tensor_hits)),
         "candidate_generation_num_candidates": replay[
             "candidate_generation_num_candidates"
         ],
@@ -907,6 +902,40 @@ def _find_key_fragment_values(value: Any, fragments: tuple[str, ...]) -> list[An
         for item in value:
             values.extend(_find_key_fragment_values(item, fragments))
     return values
+
+
+def _find_candidate_coordinate_tensor_paths(value: Any, prefix: str = "") -> list[str]:
+    key_names = {
+        "candidate_tensor",
+        "raw_candidate_tensor",
+        "raw_candidates",
+        "candidate_trajectories",
+        "raw_candidate_trajectories",
+    }
+    hits: list[str] = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            key_lower = str(key).lower()
+            if key_lower in key_names and _looks_like_nested_numeric_tensor(nested):
+                hits.append(path)
+            hits.extend(_find_candidate_coordinate_tensor_paths(nested, path))
+    elif isinstance(value, list):
+        for index, item in enumerate(value[:5]):
+            hits.extend(_find_candidate_coordinate_tensor_paths(item, f"{prefix}[{index}]"))
+    return hits
+
+
+def _looks_like_nested_numeric_tensor(value: Any) -> bool:
+    if not isinstance(value, list) or not value:
+        return False
+    first = value[0]
+    if not isinstance(first, list) or not first:
+        return False
+    second = first[0]
+    if isinstance(second, list):
+        return bool(second) and isinstance(second[0], (int, float))
+    return isinstance(second, (int, float))
 
 
 def _field_values(records: list[Any], field: str) -> list[Any]:
