@@ -86027,3 +86027,175 @@ v4 materialized generator produced zero hard-feasible/comfort-admissible support
 It may not run another candidate generation job, run replay, use formal seeds,
 expand to Full36, train CAMP, promote atoms, change the online selector, claim
 safety benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+## 2026-06-24 - Failure-attribution remediation guarded fixed-snapshot screen rerun failure attribution only
+
+Gate:
+
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_fixed_snapshot_screen_rerun_remediation_negative_support_followup_residual_comfort_failure_diagnostic_remediation_followup_materially_different_generator_guarded_fixed_snapshot_screen_rerun_failure_attribution_remediation_guarded_fixed_snapshot_screen_rerun_failure_attribution_remediation_guarded_fixed_snapshot_screen_rerun_failure_attribution_remediation_guarded_fixed_snapshot_screen_rerun_failure_attribution_only`.
+
+Read-only synchronization at gate start:
+
+```text
+local HEAD=10676d9b92a456f43a15010520ceeccd172b1362
+local origin/main=10676d9b92a456f43a15010520ceeccd172b1362
+github refs/heads/main=10676d9b92a456f43a15010520ceeccd172b1362
+autodl CAMP HEAD=10676d9b92a456f43a15010520ceeccd172b1362
+autodl CAMP origin/main=10676d9b92a456f43a15010520ceeccd172b1362
+autodl DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl DP status=clean
+```
+
+Scope:
+
+This gate performed read-only failure attribution over the fixed v4
+fixed-snapshot screen artifact. It did not run candidate generation, rerun the
+screen, run replay, use formal seeds, expand to Full36, train CAMP, promote
+atoms, change the online selector, claim safety benefit, claim CAMP is better
+than DP Top-1, or modify DP.
+
+Implementation note:
+
+The attribution checker now separates the analysis worktree HEAD from the fixed
+source artifact provenance. The source screen artifact remains pinned to CAMP
+`bff8f8bf99a6b90a3ab5190b0d83b47eb1ed686a`, while the analysis worktree only
+requires CAMP `HEAD` and `origin/main` to be synchronized. This avoids rejecting
+successor audit commits while preserving the fixed artifact boundary.
+
+Fixed source artifact:
+
+```text
+source_root=/root/autodl-tmp/camp_dp_material_generator_failure_attribution_remediation_guarded_rerun_failure_attribution_remediation_v4_fixed_snapshot_screen_rerun_bff8f8b
+source_artifact_CAMP_HEAD=bff8f8bf99a6b90a3ab5190b0d83b47eb1ed686a
+source_artifact_CAMP_ORIGIN_MAIN=bff8f8bf99a6b90a3ab5190b0d83b47eb1ed686a
+source_artifact_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_snapshot_count=57
+source_SHA256SUMS=OK
+default_off_v4_fixed_snapshot_screen.json=8ec5d2b9f2d8fb93e94da6246c542eff9eac0b28a0f78e586adae34ae0032c9b
+default_off_v4_fixed_snapshot_screen.md=22ecdc8bfde45f66df7e1040040e1bb7bee7462b610db2ff2c118d22fb4832bc
+CANDIDATE_SCREEN.log=4950bd4bbb8c76d8ba516966d2c10ce2453bdd36d782c2432df892c4019af5dd
+CANDIDATE_SCREEN.err=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+HEADS.txt=fc97550933722f8a33f82da62493202acdda0a8660a1714bf651af036a920f84
+SHA256SUMS=b903f7f2c76928fba297a349ab1f2da6401a3a43f54bcec3ab66947465dbe389
+```
+
+Local verification at final analysis code HEAD:
+
+```text
+local HEAD=3584269e257ee103c0eebc974c785133f8f37bb6
+local origin/main=3584269e257ee103c0eebc974c785133f8f37bb6
+python -m py_compile scripts/integrations/analyze_diffusion_planner_guarded_material_v4_fixed_snapshot_screen_rerun_failure_attribution.py camp_core/tests/test_diffusion_planner_guarded_material_v4_fixed_snapshot_screen_rerun_failure_attribution.py
+PYTHONPATH=F:\camp_core-main python -m pytest Y:\test_diffusion_planner_guarded_material_v4_fixed_snapshot_screen_rerun_failure_attribution.py -q --rootdir=Y:\
+10 passed in 1.28s
+local_analysis_root=F:\camp_core-main\analysis_bundles\v4_fixed_screen_failure_attribution_3584269
+local_analysis_EXIT_CODE=0
+```
+
+Local analysis artifact hashes:
+
+```text
+guarded_material_v4_fixed_snapshot_screen_failure_attribution.json=919add3daddd1f908e47895875359a54af370981630a230732b703939396628f
+guarded_material_v4_fixed_snapshot_screen_failure_attribution.md=0a650fd8bd4385f13797f6b2ece02d1baa139274accd7936d06b3b199f2a72f3
+FAILURE_ATTRIBUTION.log=b96b09a3729c25f4fa5f3f64dab26d1eeac31c7df96d7b3a4cba9448614c5da0
+FAILURE_ATTRIBUTION.err=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+EXIT_CODE=13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354
+HEADS.txt=76f6e3944c8d9e895b1f74bf768da9a00ff86c7d15dc5349cddd16814efa3c5d
+```
+
+AutoDL verification at final analysis code HEAD:
+
+```text
+autodl CAMP HEAD=3584269e257ee103c0eebc974c785133f8f37bb6
+autodl CAMP origin/main=3584269e257ee103c0eebc974c785133f8f37bb6
+autodl CAMP status=main...origin/main with pre-existing untracked files only
+autodl DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl DP status=clean
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/analyze_diffusion_planner_guarded_material_v4_fixed_snapshot_screen_rerun_failure_attribution.py camp_core/tests/test_diffusion_planner_guarded_material_v4_fixed_snapshot_screen_rerun_failure_attribution.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_guarded_material_v4_fixed_snapshot_screen_rerun_failure_attribution.py -q
+10 passed in 0.16s
+autodl_analysis_root=/root/autodl-tmp/camp_dp_guarded_material_v4_fixed_snapshot_screen_failure_attribution_3584269
+autodl_analysis_EXIT_CODE=0
+```
+
+AutoDL analysis artifact hashes:
+
+```text
+guarded_material_v4_fixed_snapshot_screen_failure_attribution.json=4e085c88a05efaf5090ed3ea9c29a2e6a051f8fb79e70fcb76bb7c06571f4f76
+guarded_material_v4_fixed_snapshot_screen_failure_attribution.md=abfb53a602e110d64bb1a7ba9b93ffd1df0f762fc4baa07aab14ede4701a8e5a
+FAILURE_ATTRIBUTION.log=8791d5a698b2db649bf5cbc554e7f70ba574dc3cd495c7b82e7456ae9d2d09da
+FAILURE_ATTRIBUTION.err=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+EXIT_CODE=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+HEADS.txt=860195fb8769d96a467fb425cfa06809e5629477975cfdac48d579afb586d040
+```
+
+Screen support shape:
+
+```text
+status=route_topology_candidate_support_insufficient
+snapshots=57
+snapshots_with_generated_candidates=21
+generated_candidate_rows=73
+lower_union_red_rows=73
+hard_feasible_rows=0
+progress_feasible_rows=0
+comfort_admissible_rows=0
+hard_feasible_snapshot_support_rate=0.0
+hard_feasible_snapshot_support_pass=False
+comfort_admissible_snapshot_support_rate=0.0
+comfort_admissible_snapshot_support_pass=False
+```
+
+Failure attribution:
+
+```text
+primary_blocker_family=route_topology_hard_constraint_failure_after_v4_materialization
+secondary_blocker_family=zero_comfort_support_after_hard_constraint_failure
+failure_class_counts={'route_topology_dp_kinematic': 73, 'route_topology_dp_road_border': 56, 'route_topology_lane_invalid': 73, 'route_topology_red_timing_invalid': 17}
+hard_reason_counts={'dp_kinematic': 73, 'dp_lane_crossing': 73, 'dp_red_light': 17, 'dp_road_border': 56}
+comfort_blocker_counts={'route_topology_comfort_blocked_command_jerk': 73, 'route_topology_comfort_blocked_rollout_lateral': 73}
+positive_support_evidence=False
+training_ready=False
+replay_evidence_ready=False
+```
+
+Non-causes from the fixed artifact:
+
+```text
+materialized_rows=73
+report_only_rows=73
+uses_outcome_labels_rows=0
+score_mutation_rows=0
+selector_mutation_rows=0
+profile_counts={'lane_red_hard_feasible_comfort_first_materialized_support_v4': 73}
+non_causes=['candidate_materialization_accounting', 'descriptor_score_or_selector_mutation', 'future_outcome_label_leakage', 'dp_modification', 'training_or_online_selector']
+```
+
+Mathematical boundary:
+
+DP remained fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. This gate
+read only the completed fixed-snapshot screen artifact and a copied local
+mirror of that artifact for verification. It did not create candidates, rerun
+the screen, run replay, use formal seeds, define or promote runtime atoms,
+choose lambda online, alter `score_k(w)=a_k^T w`, mutate the convex
+simplex/CVaR/L2 master, train CAMP, change online selection, modify DP
+weights/code/config, claim safety benefit, or claim CAMP over DP Top-1.
+
+Decision:
+
+Accept the read-only attribution as complete. The v4 materialized generator
+failed because the generated route/topology candidates did not survive fixed
+DP hard feasibility: all 73 rows fail DP kinematics and lane validity, 56 also
+fail road-border checks, and 17 fail red-timing validity. Comfort support is
+therefore also zero after hard-constraint failure. The fixed artifact does not
+support replay, online promotion, atom promotion, CAMP retraining, safety
+benefit claims, CAMP-over-DP-Top-1 claims, or DP modification.
+
+Next admissible gate:
+
+`candidate_set_consensus_lane_projected_jerk_progress_support_default_off_fixed_snapshot_screen_rerun_remediation_negative_support_followup_residual_comfort_failure_diagnostic_remediation_followup_materially_different_generator_guarded_fixed_snapshot_screen_rerun_failure_attribution_remediation_guarded_fixed_snapshot_screen_rerun_failure_attribution_remediation_guarded_fixed_snapshot_screen_rerun_failure_attribution_remediation_guarded_fixed_snapshot_screen_rerun_failure_attribution_remediation_design_plan_only`.
+
+This next gate may only plan a materially different remediation design from the
+fixed attribution evidence above. It may not execute candidate generation, run
+another screen, run replay, use formal seeds, expand to Full36, train CAMP,
+promote atoms, change the online selector, claim safety benefit, claim CAMP is
+better than DP Top-1, or modify DP.
