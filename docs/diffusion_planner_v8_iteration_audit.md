@@ -87878,3 +87878,106 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_clean_training_log_collection_broader_nonformal_authorization_only_user_approval_required`
+
+## DP native clean training log collection broader nonformal authorization
+
+Gate:
+
+`dp_native_clean_training_log_collection_broader_nonformal_authorization_only_user_approval_required`
+
+Artifact:
+
+```text
+docs/dp_native_clean_training_log_collection_broader_nonformal_authorization.md
+```
+
+Ref evidence:
+
+```text
+git status --short --branch
+## main...origin/main
+untracked unrelated session/slide artifacts remain ignored
+
+git fetch --prune origin
+exit=0
+
+git rev-parse HEAD origin/main
+69b32c4cbfd303caa4ea8dd630751aa970f1922f
+69b32c4cbfd303caa4ea8dd630751aa970f1922f
+
+git ls-remote origin refs/heads/main
+69b32c4cbfd303caa4ea8dd630751aa970f1922f refs/heads/main
+```
+
+AutoDL read-only evidence:
+
+```text
+CAMP HEAD / origin/main:
+69b32c4cbfd303caa4ea8dd630751aa970f1922f
+69b32c4cbfd303caa4ea8dd630751aa970f1922f
+
+DP HEAD:
+7a1d33da277a1992ec474b5383a0c963c72e04e4
+
+DP status:
+## tier4-main...origin/tier4-main
+
+successful_smoke_camp_selection_log_sha256=2effb6dcd31caa2fae1b4a82f73150ec943e983d8e9c4fa16272bc6d5c51102d
+successful_smoke_validator_json_sha256=8eaff01898c5b2cf6dfdca25e16de27624d940aefa9cc5260354decf569381d7
+```
+
+Authorization boundary:
+
+```text
+one_record_smoke_passed=True
+broader_nonformal_collection_requires_more_replay=True
+broader_nonformal_collection_authorized_now=False
+reason=additional replay/candidate generation exceeds the prior one-record smoke authorization
+```
+
+Proposed scope requiring explicit user approval:
+
+```text
+routes=sample_tl,sample_normal
+seeds=101,102,103
+traffic_lights=on,off
+steps=3
+num_candidates=4
+candidate_noise_strategy=iid
+advance_mode=perfect
+max_npcs=0
+spawn_probability=0.3
+camp_selector_mode=uniform
+camp_feasibility_source=dp_reward
+must_enable=--camp_candidate_tensor_provenance_logging
+must_not_enable=--camp_collect_closed_loop_outcomes
+must_not_enable=reference_blend
+must_not_enable=guidance
+must_not_run=Full36
+must_not_run=formal seeds 11/12/13
+must_not_train=CAMP
+must_not_modify=Diffusion-Planner
+must_not_promote=selector/atom
+must_not_claim=safety or CAMP-over-DP
+```
+
+Decision:
+
+```text
+status=user_authorization_required
+broader_nonformal_collection_authorized_now=False
+replay_executed=False
+candidate_generation_executed=False
+clean_log_validator_run=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_clean_training_log_collection_broader_nonformal_user_authorization_pending`
