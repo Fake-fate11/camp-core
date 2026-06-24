@@ -90457,3 +90457,122 @@ traffic-light-on runs, with a smaller Nishishinjuku tail.
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fallback_feasibility_attribution_only`
+
+---
+
+### 2026-06-24 - Broader Nonformal Static DP Reward Fallback Feasibility Attribution
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fallback_feasibility_attribution_only`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fallback_feasibility_attribution.md
+```
+
+Fixed source artifact:
+
+```text
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+source_summary_sha256=c39fa6278431e08ee16b7b45f6645e43fa46f9951981c1fff8fa1809778aea07
+```
+
+Heads:
+
+```text
+local_HEAD_before_result_commit=f9dc1da4b56aada60482f99a18adb800c49b4a7a
+origin_main_before_result_commit=f9dc1da4b56aada60482f99a18adb800c49b4a7a
+github_refs_heads_main_before_result_commit=f9dc1da4b56aada60482f99a18adb800c49b4a7a
+source_eval_autodl_CAMP_HEAD=1c235ebcad52143297852d4873d345710be31680
+source_eval_autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Read-only attribution result:
+
+```text
+records_total=60
+records_with_feasible_total=45
+records_without_feasible_total=15
+route_records_without_feasible={"nishishinjuku_lane_change": 4, "sample_tl": 11}
+route_tl_records_without_feasible={"nishishinjuku_lane_change|off": 2, "nishishinjuku_lane_change|on": 2, "sample_tl|off": 1, "sample_tl|on": 10}
+record_union_reason_counts={"['dp_lane_crossing', 'dp_red_light']": 2, "['dp_lane_crossing']": 5, "['dp_red_light']": 8}
+record_all_candidate_reason_counts={"['dp_lane_crossing']": 5, "['dp_red_light']": 10}
+candidate_reason_counts_in_no_feasible_records={"dp_lane_crossing": 25, "dp_red_light": 40}
+sample_tl_on_no_feasible_records=10/10
+sample_tl_on_all_candidate_blocker=dp_red_light
+sample_tl_on_red_cost_min_mean_max=20.5,41.2625,50.0
+sample_tl_off_no_feasible_records=1/10
+sample_tl_off_all_candidate_blocker=dp_lane_crossing
+nishishinjuku_lane_change_no_feasible_records=4/20
+nishishinjuku_lane_change_all_candidate_blocker=dp_lane_crossing
+sample_normal_no_feasible_records=0/20
+```
+
+Clean-boundary checks:
+
+```text
+attribution_only=True
+fixed_source_artifact_only=True
+replay_executed=False
+candidate_generation_executed=False
+camp_training_executed=False
+dp_modified=False
+reference_blend_enabled=False
+guidance_enabled=False
+postprocess_postselection_enabled=False
+closed_loop_outcome_online_input_used=False
+selector_promotion_executed=False
+atom_promotion_executed=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_git_diff_check_exit=0
+local_py_compile_exit=0
+direct_windows_repo_pytest_blocked_by_preexisting_unavailable_long_path_node=True
+local_target_pytest=4 passed
+```
+
+Decision:
+
+```text
+status=base_plus_addon_static_dp_reward_broader_nonformal_fallback_feasibility_attribution_passed_read_only
+primary_failure_class=sample_tl_traffic_light_on_all_candidates_dp_red_light
+secondary_failure_class=lane_crossing_all_candidate_no_feasible_tail
+sample_tl_on_no_feasible_records=10/10
+sample_tl_on_all_candidate_blocker=dp_red_light
+sample_tl_off_no_feasible_records=1/10
+sample_tl_off_all_candidate_blocker=dp_lane_crossing
+nishishinjuku_lane_change_no_feasible_records=4/20
+nishishinjuku_lane_change_all_candidate_blocker=dp_lane_crossing
+sample_normal_no_feasible_records=0/20
+attribution_replay_executed=False
+attribution_candidate_generation_executed=False
+attribution_training_executed=False
+dp_modification_authorized=False
+dp_modification_executed=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This attribution is read-only. It supports a fail-closed development
+conclusion: the static DP-reward fixed-candidate reranker preserves candidate
+provenance, but its current DP-reward hard feasibility mask still leaves
+zero-feasible fallback concentrated in `sample_tl` traffic-light-on records,
+with a smaller lane-crossing tail in `nishishinjuku_lane_change`.
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fallback_feasibility_remediation_plan_only`
