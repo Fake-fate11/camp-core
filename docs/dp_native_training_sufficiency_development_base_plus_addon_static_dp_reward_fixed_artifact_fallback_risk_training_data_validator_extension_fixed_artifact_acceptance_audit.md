@@ -1,0 +1,148 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Validator Extension Fixed-Artifact Acceptance Audit
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_audit_only
+```
+
+This audit runs the already implemented default-off fallback-risk training data
+validator, with its explicit enable flag, against the existing non-formal
+fallback-risk training dataset artifact. It does not run replay, generate
+candidates, train CAMP, retrain CAMP, modify Diffusion Planner, change the
+online selector, promote a selector or atom, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+## Reviewed Fixed Artifact
+
+```text
+source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f632c44_20260624T133402Z/dataset.json
+source_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+source_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f632c44_20260624T133402Z
+source_artifact_scope=broader_nonformal_fixed_evaluation_artifact
+formal_seeds_11_12_13_used=False
+validator_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_validator_acceptance_f4ea755_20260624T142300Z
+validator_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_validator_acceptance_f4ea755_20260624T142300Z/validation.json
+validator_output_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_validator_acceptance_f4ea755_20260624T142300Z/validation.md
+validator_output_json_sha256=572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b
+validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a
+camp_head_at_acceptance=f4ea7554fb3f6381b008bf49a7f34364093d702c
+camp_origin_main_at_acceptance=f4ea7554fb3f6381b008bf49a7f34364093d702c
+autodl_CAMP_HEAD_at_acceptance=f4ea7554fb3f6381b008bf49a7f34364093d702c
+autodl_CAMP_origin_main_at_acceptance=f4ea7554fb3f6381b008bf49a7f34364093d702c
+autodl_DP_HEAD_at_acceptance=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Validator Invocation Boundary
+
+```text
+validator_enable_flag_used=True
+input_source=existing_fallback_risk_training_dataset_json_only
+source_log_readback_required_for_acceptance=True
+source_log_readback_enabled=True
+read_only_source_log_readback_only=True
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+output_json_or_markdown_only=True
+```
+
+## Acceptance Summary
+
+```text
+schema_version=dp_native_fallback_risk_training_data_validator_v1
+status=dp_native_fallback_risk_training_data_validator_complete
+passed=True
+enabled=True
+records_checked=15
+failed_records=0
+errors=0
+source_log_readback_enabled=True
+training_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+```
+
+The validator accepted the fixed fallback-risk dataset only as an offline,
+all-infeasible-branch dataset contract. It did not declare training
+sufficiency, add fallback labels to deployed atoms, relax hard feasibility, or
+change the feasible-ranking master.
+
+```text
+dataset_schema_validated_by_validator=True
+builder_complete_status_validated_by_validator=True
+record_counts_validated_by_validator=True
+source_log_hashes_validated_by_validator=True
+source_feasible_mask_all_false_validated_by_validator=True
+source_candidate_generation_contract_validated_by_validator=True
+source_candidate_tensor_provenance_validated_by_validator=True
+atom_schema_and_nonnegative_atoms_validated_by_validator=True
+normalized_atoms_validated_by_validator=True
+fallback_dataset_training_sufficiency_claim=False
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_passed
+passed=True
+fixed_artifact_acceptance_audit_complete=True
+validated_fallback_records=15
+validated_fallback_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+validator_output_json_sha256=572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_plan_only
+```
+
+The next gate may only plan the training-sufficiency boundary for the validated
+fallback-risk dataset. It must predeclare any split, scale-fitting, fallback
+master isolation, formal-seed exclusion, and nonpromotion checks before any
+training is authorized. It must not train CAMP, run replay, generate
+candidates, modify Diffusion Planner, relax hard feasibility, add
+all-infeasible records to the feasible-ranking master, promote a selector or
+atom, or claim safety/CAMP-over-DP benefit.
