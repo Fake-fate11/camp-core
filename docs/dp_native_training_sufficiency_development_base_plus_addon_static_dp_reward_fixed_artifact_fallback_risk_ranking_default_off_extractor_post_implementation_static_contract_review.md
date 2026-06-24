@@ -1,0 +1,168 @@
+# DP Native Fixed-Artifact Fallback Risk Ranking Default-Off Extractor Post-Implementation Static Contract Review
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only
+```
+
+This review statically checks the implemented fallback-risk extractor. It does
+not run replay, generate candidates, train CAMP, retrain CAMP, modify Diffusion
+Planner, promote a selector or atom, or claim safety benefit or CAMP-over-DP
+Top-1.
+
+## Reviewed Artifacts
+
+```text
+extractor=scripts/integrations/extract_diffusion_planner_dp_native_fallback_risk_records.py
+extractor_tests=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_extractor.py
+implementation_audit=docs/diffusion_planner_v8_iteration_audit.md
+mathematical_contract=docs/dp_camp_mathematical_contract.md
+benders_formalization=docs/dp_camp_benders_formalization.md
+atom_audit=docs/dp_camp_benders_compatible_atom_audit.md
+camp_head_at_review=8ce0f5c02990551951f11510ceb8a05b2317bf00
+camp_origin_main_at_review=8ce0f5c02990551951f11510ceb8a05b2317bf00
+github_refs_heads_main_at_review=8ce0f5c02990551951f11510ceb8a05b2317bf00
+autodl_CAMP_HEAD_at_review=8ce0f5c02990551951f11510ceb8a05b2317bf00
+autodl_CAMP_origin_main_at_review=8ce0f5c02990551951f11510ceb8a05b2317bf00
+autodl_DP_HEAD_at_review=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Static Contract Checks
+
+### Default-Off Boundary
+
+```text
+default_off_boundary_passed=True
+build_extraction_report_enabled_default=False
+enable_flag_required_before_reading_selection_logs=True
+disabled_mode_returns_before_build_audit_report=True
+disabled_mode_reads_selection_logs=False
+disabled_mode_emits_records=False
+```
+
+### Read-Only Fixed-Artifact Boundary
+
+```text
+read_only_fixed_artifact_boundary_passed=True
+enabled_input_source=existing_fixed_artifact_selection_logs_only
+records_scope=records_without_feasible_candidate_only
+extractor_reuses_read_only_audit_helper=True
+subprocess_usage_limited_to_git_rev_parse_head=True
+evaluation_root_write_path_found=False
+diffusion_planner_execution_path_found=False
+candidate_generation_path_found=False
+candidate_mutation_path_found=False
+```
+
+### Output Boundary
+
+```text
+output_boundary_passed=True
+output_json_or_markdown_only=True
+writes_only_explicit_output_json_and_output_md=True
+creates_only_explicit_output_json_and_output_md_parent_dirs=True
+status_disabled=dp_native_fallback_risk_extractor_default_off_disabled
+status_complete=dp_native_fallback_risk_extractor_complete
+status_rejected=dp_native_fallback_risk_extractor_rejected
+missing_required_fields_fail_closed=True
+```
+
+### Mathematical Boundary
+
+The extractor emits diagnostic records and ranking summaries only. It does not
+add atoms, modify CAMP scoring, relax hard feasibility, or move all-infeasible
+records into the feasible-ranking master.
+
+```text
+score_k(w)=a_k^T w
+affine_score_boundary_preserved=True
+new_atom_authorized_now=False
+fallback_risk_records_used_as_diagnostics_not_deployed_atoms=True
+candidate_features_fixed_before_weight_optimization=True
+candidate_features_independent_of_w_rank_and_selected_index=True
+feasible_master_separation_passed=True
+records_scope=records_without_feasible_candidate_only
+all_infeasible_records_relabelled_feasible=False
+all_infeasible_records_added_to_feasible_training=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+simplex_master_unchanged=True
+cvar_master_unchanged=True
+l2_regularized_master_unchanged=True
+```
+
+## Findings
+
+```text
+blocking_contract_findings=0
+nonblocking_observations=1
+```
+
+Nonblocking observation:
+
+```text
+fallback_risk_records_are_ready_for_a_training_data_design_plan=True
+```
+
+That next plan must decide, before any implementation or training, whether the
+fallback-risk records remain a diagnostic-only artifact or become a separately
+scoped all-infeasible fallback training dataset with its own labels, scales,
+validation split, and nonpromotion boundary.
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_passed
+passed=True
+post_implementation_static_contract_review_complete=True
+implementation_change_required=False
+blocking_contract_findings=0
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan_only
+```
+
+The next gate may only design the offline data contract for any future
+fallback-risk training path. It must not implement training, run replay,
+generate candidates, modify Diffusion Planner, use formal seeds, relax hard
+feasibility, add all-infeasible records to the feasible-ranking master, promote
+a selector or atom, or claim safety/CAMP-over-DP benefit.

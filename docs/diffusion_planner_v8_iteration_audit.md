@@ -91402,3 +91402,89 @@ passed=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only`
+
+---
+
+### 2026-06-24 - Fixed-Artifact Fallback Risk Ranking Default-Off Extractor Post-Implementation Static Contract Review
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only`
+
+Artifacts:
+
+```text
+docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_review.md
+camp_core/tests/test_dp_native_fallback_risk_ranking_extractor_post_implementation_static_contract_review.py
+```
+
+Heads before this review commit:
+
+```text
+local_HEAD=8ce0f5c02990551951f11510ceb8a05b2317bf00
+origin_main=8ce0f5c02990551951f11510ceb8a05b2317bf00
+github_refs_heads_main=8ce0f5c02990551951f11510ceb8a05b2317bf00
+autodl_CAMP_HEAD=8ce0f5c02990551951f11510ceb8a05b2317bf00
+autodl_CAMP_origin_main=8ce0f5c02990551951f11510ceb8a05b2317bf00
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Static review result:
+
+```text
+default_off_boundary_passed=True
+read_only_fixed_artifact_boundary_passed=True
+output_boundary_passed=True
+affine_score_boundary_preserved=True
+feasible_master_separation_passed=True
+implementation_change_required=False
+blocking_contract_findings=0
+post_implementation_static_contract_review_complete=True
+```
+
+Local verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=6 passed
+local_fallback_risk_pytest=48 passed
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_passed
+passed=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan_only`
