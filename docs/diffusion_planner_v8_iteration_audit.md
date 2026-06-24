@@ -86925,3 +86925,85 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_candidate_tensor_provenance_payload_static_contract_audit_only`
+
+## DP native candidate tensor provenance payload static contract audit
+
+Gate:
+
+`dp_native_candidate_tensor_provenance_payload_static_contract_audit_only`
+
+Artifact:
+
+```text
+docs/dp_native_candidate_tensor_provenance_payload_static_contract_audit.md
+```
+
+Ref evidence:
+
+```text
+git status --short --branch
+## main...origin/main
+untracked unrelated session/slide artifacts remain ignored
+
+git rev-parse HEAD origin/main
+303b91f9fc6f9c07f692e3f68162d6b0888a6fde
+303b91f9fc6f9c07f692e3f68162d6b0888a6fde
+
+git ls-remote origin refs/heads/main
+303b91f9fc6f9c07f692e3f68162d6b0888a6fde refs/heads/main
+```
+
+Static contract audit:
+
+```text
+flag=--camp_candidate_tensor_provenance_logging
+default=False
+selection_effect=False
+candidate_generation_effect=False
+candidate_tensor_mutation_effect=False
+hash_input=contiguous_candidate_tensor_bytes
+nan_policy=preserve_tensor_bytes
+pre_post_tensor_hash_equal requires sha256, shape, and dtype equality
+selected_index_in_range covered
+candidate_count/post_selector_candidate_count covered
+no_candidate_row_append covered
+no_coordinate_heading_speed_rewrite_by_camp covered by full tensor hash equality
+reference_blend_stage_hash_separated fails closed when blend is present without raw DP hash
+outcome_label_input fails closed when true
+selector.select(...) statically checked not to receive candidate_outcomes
+```
+
+Verification:
+
+```text
+implementation gate py_compile exit=0
+implementation gate git diff --check exit=0
+direct repo pytest exit=1
+reason=existing Windows collection blocker on missing/too-long residual-comfort test path before target tests ran
+temporary rootdir target pytest passed: 40 passed in 0.54s
+```
+
+Decision:
+
+```text
+status=static_contract_audit_passed
+runtime_replay_artifact_present=False
+runtime_replay_artifact_required_for_this_gate=False
+replay_executed=False
+candidate_generation_executed=False
+trajectory_rewrite_authorized=False
+candidate_tensor_mutation_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+atom_promotion_authorized=False
+online_selector_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`clean_dp_native_training_data_collection_authorization_only`
