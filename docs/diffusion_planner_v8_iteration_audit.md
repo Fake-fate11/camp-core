@@ -88123,3 +88123,131 @@ safety/CAMP-over-DP claim.
 Next admissible gate:
 
 `dp_native_clean_training_log_dataset_sufficiency_and_trainer_preflight_authorization_only`
+
+## DP native clean training log dataset sufficiency and trainer preflight authorization
+
+Gate:
+
+`dp_native_clean_training_log_dataset_sufficiency_and_trainer_preflight_authorization_only`
+
+Artifact:
+
+```text
+docs/dp_native_clean_training_log_dataset_sufficiency_and_trainer_preflight_authorization.md
+```
+
+Fixed input artifact:
+
+```text
+run_root=/root/autodl-tmp/camp_dp_native_clean_training_log_broader_nonformal_4967c531_20260624T054110Z
+collection_summary.json_sha256=05c8c7056dbe7460cfac422b0f1081179021a9df80324a4378cec3bf6dc693f0
+clean_dp_native_training_data_contract_validation.json_sha256=c2f8f1b10e9d1a8925886255e8ffa3af151ef1ceaab278027a50a9087f39a7f4
+```
+
+Read-only dataset analysis:
+
+```text
+analysis_exit=0
+records=36
+selection_logs=12
+unique_groups_for_trainer=12
+records_per_group=3
+default_val_fraction=0.2
+default_split_train_groups=10
+default_split_val_groups=2
+candidate_counts={"4": 36}
+atom_dims={"14": 36}
+atom_schema_versions={"dp_camp_v10_14d": 36}
+records_with_dp_scene_features=36
+records_with_provenance_pre_post_hash_equal=36
+unique_pre_camp_candidate_tensor_hashes=27
+unique_selection_log_shas=12
+selected_index_counts={"0": 7, "1": 8, "2": 7, "3": 14}
+feasible_count_hist={"0": 5, "1": 4, "2": 3, "3": 1, "4": 23}
+records_with_at_least_one_selector_feasible_candidate=31
+all_infeasible_records=5
+```
+
+Label availability:
+
+```text
+records_with_candidate_closed_loop_outcomes_list=0
+records_with_candidate_closed_loop_outcomes_none=36
+label_source_closed_loop_outcome_ready=False
+label_source_safety_cost_v1_ready=False
+records_with_dp_candidate_rewards=36
+finite_reward_records=36
+quality_without_progress_ready_records=36
+label_source_dp_reward_ready=True
+```
+
+Trainer preflight:
+
+```text
+script=scripts/integrations/train_diffusion_planner_robust_camp.py
+flag=--require_dp_native_training_data_contract
+default=False
+enabled_behavior=fail closed before training if clean contract validation fails
+trainer_preflight_available=True
+```
+
+Verification:
+
+```text
+git_diff_check_exit=0
+local_py_compile_exit=0
+local_temp_rootdir_target_pytest=11 passed in 1.03s
+autodl_py_compile_exit=0
+autodl_target_pytest=11 passed in 0.54s
+```
+
+Decision:
+
+```text
+status=dataset_sufficiency_preflight_authorization_passed_with_training_blocked
+clean_contract_satisfied=True
+grouped_split_possible=True
+dp_reward_label_source_available=True
+closed_loop_outcome_label_source_available=False
+safety_cost_v1_label_source_available=False
+industrial_retraining_sufficient=False
+training_execution_authorized=False
+camp_retraining_authorized=False
+replay_executed=False
+candidate_generation_executed=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Industrial/deployable retraining remains blocked:
+
+```text
+only_36_records
+only_2_routes
+only_3_seeds
+max_npcs_0_only
+nonformal_seeds_only
+no_closed_loop_outcome_labels
+no_formal_eval
+```
+
+Authorized next work:
+
+```text
+authorized_next_work=dp_native_clean_training_log_minimal_nonformal_static_dp_reward_training_smoke_user_authorization_required
+training_execution_authorized_now=False
+camp_retraining_authorized_now=False
+```
+
+This authorizes only asking for the next user approval. It does not authorize
+running training. If explicitly approved later, the next run must be a minimal
+nonformal static DP-reward trainer-pipeline smoke with
+`--require_dp_native_training_data_contract` and `--require_atom_schema`, not a
+deployable checkpoint, selector promotion, safety claim, or CAMP-over-DP claim.
+
+Next admissible gate:
+
+`dp_native_clean_training_log_minimal_nonformal_static_dp_reward_training_smoke_user_authorization_required`
