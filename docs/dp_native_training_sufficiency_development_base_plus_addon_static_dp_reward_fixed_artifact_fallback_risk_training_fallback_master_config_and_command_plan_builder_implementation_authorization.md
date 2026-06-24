@@ -1,0 +1,176 @@
+# DP Native Fixed-Artifact Fallback Risk Training Fallback Master Config And Command Plan Builder Implementation Authorization
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_builder_implementation_authorization_only
+```
+
+This authorization-only artifact decides whether the next gate may implement a
+minimal default-off, read-only builder for fallback-only master config and
+dry-run training command plan artifacts. It does not implement the builder,
+write fixed-artifact manifests, run the sufficiency preflight, train CAMP,
+retrain CAMP, run replay, generate candidates, modify Diffusion Planner,
+change the online selector, promote a selector or atom, or claim safety
+benefit or CAMP-over-DP Top-1.
+
+## Reviewed Evidence
+
+```text
+fallback_master_config_and_command_plan_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_plan.md
+fallback_master_config_and_command_plan_static_contract_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_static_contract_review.md
+scale_manifest_acceptance=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_builder_fixed_artifact_acceptance_audit.md
+training_sufficiency_preflight=scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py
+validated_fallback_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+accepted_split_manifest_sha256=a4b33c1c14b2ea96f1994e89245cfd27209e98049808fdfd3fbe6c8a732d34fd
+accepted_train_only_scale_manifest_sha256=9e76915d544a04bcea31380323027511293419ea98f3b24406f951e52982570b
+camp_head_at_authorization=6945ac68207b024f8dc6259d2b7151e5cd1936b5
+camp_origin_main_at_authorization=6945ac68207b024f8dc6259d2b7151e5cd1936b5
+github_refs_heads_main_at_authorization=6945ac68207b024f8dc6259d2b7151e5cd1936b5
+autodl_CAMP_HEAD_at_authorization=6945ac68207b024f8dc6259d2b7151e5cd1936b5
+autodl_CAMP_origin_main_at_authorization=6945ac68207b024f8dc6259d2b7151e5cd1936b5
+autodl_DP_HEAD_at_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Preconditions
+
+```text
+fallback_master_config_and_command_plan_plan_ready=True
+fallback_master_config_and_command_plan_static_contract_review_passed=True
+scale_manifest_acceptance_passed=True
+blocking_contract_findings=0
+validated_dataset_split_and_scale_ready=True
+fallback_master_config_ready=False
+training_command_plan_ready=False
+training_sufficiency_preflight_ready=False
+local_static_contract_pytest=6 passed
+local_fallback_risk_related_pytest=298 passed
+autodl_static_contract_pytest=6 passed
+autodl_fallback_risk_related_pytest=298 passed
+dp_fixed_commit_verified=True
+```
+
+## Authorized Next Work
+
+The next gate may implement only a default-off, read-only builder that validates
+existing fallback-risk dataset, split, and train-only scale manifests by hash
+and contract, then writes a fallback-only master config JSON, a dry-run
+training command plan JSON, and a Markdown summary to explicit output paths.
+
+```text
+implementation_authorized=True
+fallback_master_config_and_command_plan_builder_implementation_authorized=True
+default_off_required=True
+read_only_manifest_inputs_only=True
+reads_validated_dataset_json_only=True
+reads_training_split_manifest_json_only=True
+reads_train_only_scale_manifest_json_only=True
+output_json_or_markdown_only=True
+synthetic_unit_tests_required=True
+existing_contract_tests_must_continue_to_pass=True
+fixed_artifact_master_command_manifest_generation_authorized=False
+master_command_builder_execution_on_fixed_artifact_authorized=False
+training_sufficiency_preflight_execution_authorized=False
+training_authorized=False
+training_execution_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Allowed implementation shape:
+
+```text
+may_add_default_off_master_command_builder_script=True
+may_add_targeted_synthetic_tests=True
+may_write_output_artifacts_only_when_user_supplies_output_paths=True
+must_return_before_reading_inputs_when_disabled=True
+must_fail_closed_on_missing_or_invalid_dataset_sha256=True
+must_fail_closed_on_missing_or_invalid_split_manifest_sha256=True
+must_fail_closed_on_missing_or_invalid_scale_manifest_sha256=True
+must_fail_closed_on_split_training_validation_overlap=True
+must_fail_closed_on_scale_fit_not_training_only=True
+must_fail_closed_on_formal_seed_or_formal_eval_leakage=True
+must_require_dp_camp_v10_14d_atom_schema=True
+must_require_exact_14d_atom_names=True
+must_require_strictly_positive_atom_scales=True
+must_emit_fallback_only_master_config=True
+must_emit_dry_run_training_command_plan=True
+must_preserve_score_k_equals_a_k_transpose_w_boundary=True
+must_keep_final_decision_training_authorized_false=True
+```
+
+The implementation must not run the builder on the fixed AutoDL artifact,
+execute the training sufficiency preflight, train CAMP, generate a checkpoint,
+validate training sufficiency as a broad claim, execute a training command,
+modify DP, or alter any online selector.
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_fallback_master_config_and_command_plan_builder_implementation_authorized
+passed=True
+implementation_authorized=True
+fallback_master_config_and_command_plan_builder_implementation_authorized=True
+fixed_artifact_master_command_manifest_generation_authorized=False
+master_command_builder_execution_on_fixed_artifact_authorized=False
+training_sufficiency_preflight_execution_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_builder_implementation_only
+```
+
+The next gate may only implement the minimal default-off read-only builder and
+targeted synthetic tests. It must not run the builder on the fixed AutoDL
+artifact, must not run the sufficiency preflight, must not train CAMP, run
+replay, generate candidates, modify Diffusion Planner, use formal seeds, relax
+hard feasibility, add all-infeasible records to the feasible-ranking master,
+promote a selector or atom, or claim safety/CAMP-over-DP benefit.
