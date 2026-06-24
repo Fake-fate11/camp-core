@@ -1,0 +1,163 @@
+# DP Native Fixed-Artifact Fallback Risk Training Train-Only Scale Manifest Record Identity Hash Remediation Fixed-Artifact Acceptance Rerun Audit
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only
+```
+
+This audit reran the default-off train-only scale manifest builder on the
+remediated fallback-risk training dataset and remediated split manifest. It did
+not run replay, generate new candidates, train CAMP, retrain CAMP, modify
+Diffusion Planner, change the online selector, promote a selector or atom, or
+claim safety benefit or CAMP-over-DP Top-1.
+
+## Fixed Artifact Inputs
+
+```text
+source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_record_identity_acceptance_7ef98c9_20260624T215739Z/dataset.json
+expected_dataset_sha256=8e7d42e2d1319dc2a479903d7b1be5a463f2d74fe733b523fdbac09bf90bd9b9
+training_split_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_record_identity_acceptance_7891f2e_20260624T220443Z/split_manifest.json
+expected_split_manifest_sha256=9eb6f64a392a8ba1c6037c9dc8389ad9459615c039ad2b3426747785b75e5a78
+validator_output_json_sha256=c5eb4c618476342efee3d3c4f64fd8c2aba918e22d209c004aea7e256a83e073
+source_split_manifest_acceptance_status=fallback_risk_training_split_manifest_builder_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed
+builder_commit=201c872762a10786e0d14e406ea29ef603ce9a37
+autodl_CAMP_HEAD=201c872762a10786e0d14e406ea29ef603ce9a37
+autodl_CAMP_origin_main=201c872762a10786e0d14e406ea29ef603ce9a37
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Output Artifact
+
+```text
+builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_train_only_scale_manifest_record_identity_acceptance_201c872_20260624T221156Z
+scale_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_train_only_scale_manifest_record_identity_acceptance_201c872_20260624T221156Z/scale_manifest.json
+scale_manifest_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_train_only_scale_manifest_record_identity_acceptance_201c872_20260624T221156Z/scale_manifest.md
+scale_manifest_json_sha256=d4205878c3af549ed86a778236500997df302272ab671bfcb60bc5f18b03b812
+scale_manifest_md_sha256=bafe15c581eb48e8a02908989f38a97cf1fa11db1a120e18c440338e76479ac7
+builder_exit=0
+```
+
+## Observed Result
+
+```text
+schema_version=dp_native_fallback_risk_training_train_only_scale_manifest_v1
+status=dp_native_fallback_risk_training_train_only_scale_manifest_builder_complete
+passed=True
+scale_policy=train_only_positive_finite_p95_or_one_v1
+fit_scope=split_manifest_training_groups_only
+validation_groups_excluded=True
+source_dataset_sha256=8e7d42e2d1319dc2a479903d7b1be5a463f2d74fe733b523fdbac09bf90bd9b9
+source_split_manifest_sha256=9eb6f64a392a8ba1c6037c9dc8389ad9459615c039ad2b3426747785b75e5a78
+validator_output_sha256=c5eb4c618476342efee3d3c4f64fd8c2aba918e22d209c004aea7e256a83e073
+atom_schema_version=dp_camp_v10_14d
+atom_count=14
+fit_records_used=13
+training_records_seen=13
+validation_records_seen=2
+fit_groups=13
+excluded_validation_groups=2
+fit_seeds=[]
+formal_eval_artifact_included=False
+errors=[]
+training_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+```
+
+## Acceptance Finding
+
+```text
+fixed_artifact_acceptance_rerun_passed=True
+blocking_acceptance_findings=0
+train_only_scale_manifest_ready_for_preflight=True
+fallback_master_config_ready=False
+training_command_plan_ready=False
+validated_dataset_summary_ready_for_preflight=False
+training_sufficiency_preflight_ready=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+fixed_15_record_artifact_training_sufficiency_claim=False
+```
+
+This acceptance proves that the remediated split can produce train-only atom
+scales without validation leakage. It does not claim the 15-record artifact is
+sufficient for training and does not authorize CAMP retraining.
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=6 passed
+local_scale_builder_pytest=5 passed
+local_related_target_pytest=77 passed
+autodl_verification_pending=True
+```
+
+## Forbidden
+
+```text
+user_camp_retraining_permission_available=True
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+camp_retraining_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed
+passed=True
+fixed_artifact_acceptance_rerun_complete=True
+fixed_artifact_acceptance_rerun_passed=True
+blocking_acceptance_findings=0
+train_only_scale_manifest_ready_for_preflight=True
+fallback_master_config_ready=False
+training_command_plan_ready=False
+validated_dataset_summary_ready_for_preflight=False
+training_sufficiency_preflight_ready=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only
+```
+
+The next gate may only rerun the default-off fallback master config and dry-run
+training command plan builder using the remediated train-only scale manifest.
+It must not execute training, run replay, generate candidates, modify Diffusion Planner,
+use formal seeds, relax hard feasibility, add all-infeasible records to the
+feasible-ranking master, promote a selector or atom, or claim safety/CAMP-over-DP
+benefit.

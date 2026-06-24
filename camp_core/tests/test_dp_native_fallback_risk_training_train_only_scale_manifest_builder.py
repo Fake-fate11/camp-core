@@ -23,13 +23,14 @@ from scripts.integrations.validate_dp_native_fallback_risk_training_sufficiency_
     APPROVED_ATOM_NAMES,
     APPROVED_ATOM_SCHEMA,
     COMPLETE_STATUS as PREFLIGHT_COMPLETE_STATUS,
+    EXPECTED_VALIDATED_DATASET_SHA256,
     validate_training_sufficiency_preflight,
 )
 
 
 DATASET_SCHEMA_VERSION = "dp_native_fallback_risk_training_data_v1"
 SPLIT_MANIFEST_SCHEMA_VERSION = "dp_native_fallback_risk_training_split_manifest_v1"
-VALIDATED_DATASET_SHA = "1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf"
+VALIDATED_DATASET_SHA = EXPECTED_VALIDATED_DATASET_SHA256
 VALIDATOR_SHA = "572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b"
 
 
