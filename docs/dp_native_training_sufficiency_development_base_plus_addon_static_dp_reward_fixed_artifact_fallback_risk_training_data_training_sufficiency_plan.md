@@ -1,0 +1,199 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Training Sufficiency Plan
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_plan_only
+```
+
+This plan defines the evidence and isolation boundary required before any
+future fallback-risk CAMP training gate can be considered. It does not train
+CAMP, retrain CAMP, run replay, generate candidates, modify Diffusion Planner,
+change the online selector, promote a selector or atom, or claim safety benefit
+or CAMP-over-DP Top-1.
+
+## Inputs
+
+```text
+validated_fallback_dataset=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_audit.md
+validator_post_implementation_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_post_implementation_static_contract_review.md
+training_data_design=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan.md
+mathematical_contract=docs/dp_camp_mathematical_contract.md
+benders_formalization=docs/dp_camp_benders_formalization.md
+atom_audit=docs/dp_camp_benders_compatible_atom_audit.md
+camp_head_at_plan=e446e7b8fd21bc0382e8540ac57c5cc2d0cd8211
+camp_origin_main_at_plan=e446e7b8fd21bc0382e8540ac57c5cc2d0cd8211
+github_refs_heads_main_at_plan=e446e7b8fd21bc0382e8540ac57c5cc2d0cd8211
+autodl_CAMP_HEAD_at_plan=e446e7b8fd21bc0382e8540ac57c5cc2d0cd8211
+autodl_CAMP_origin_main_at_plan=e446e7b8fd21bc0382e8540ac57c5cc2d0cd8211
+autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+The current validated fallback dataset is useful contract evidence, but is not
+itself training sufficiency:
+
+```text
+validated_fallback_records=15
+validated_fallback_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
+validator_output_json_sha256=572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b
+fixed_artifact_training_sufficiency_claim=False
+fallback_dataset_training_sufficiency_claim=False
+fallback_risk_training_authorized_now=False
+```
+
+## Required Training Boundary
+
+Any future fallback-risk training must be a separately scoped finite-candidate
+problem for the all-infeasible branch. It must not silently mix fallback labels
+into the feasible-ranking master.
+
+```text
+fallback_master_isolated_from_feasible_master_required=True
+feasible_branch_records_allowed_in_fallback_master=False
+all_infeasible_records_added_to_feasible_training=False
+all_infeasible_records_relabelled_feasible=False
+hard_feasibility_relaxation_authorized=False
+feasible_ranking_master_change_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+The fallback-only objective, if later authorized, must preserve the same
+finite-candidate robust-margin proof shape:
+
+```text
+score_k(w)=a_k^T w
+a_k_fixed_before_weight_optimization=True
+a_k_nonnegative_benders_compatible_atoms_only=True
+fallback_label_is_not_a_deployed_atom=True
+new_atom_authorized_now=False
+q_i(w)=max(0,max_k m_ik+(a_i,o_i-a_i,k)^T w)
+margin_ik_nonnegative=True
+simplex_master_convex_if_later_authorized=True
+cvar_master_convex_if_later_authorized=True
+l2_regularized_master_convex_if_later_authorized=True
+```
+
+## Required Data Split And Scaling
+
+Before any training execution is authorized, a later gate must predeclare the
+fallback-risk development split and normalization protocol:
+
+```text
+training_validation_split_predeclaration_required=True
+split_group_key_required=source_log,run_id,record_index
+validation_groups_disjoint_from_training_groups_required=True
+formal_seeds_11_12_13_excluded_required=True
+formal_eval_data_excluded_from_scale_fit_required=True
+scale_fit_training_groups_only_required=True
+atom_schema_version_and_names_must_match_checkpoint=True
+strict_positive_atom_scales_required=True
+```
+
+For the currently validated 15-record dataset, this plan does not choose a
+split or scale-fit policy. That choice requires a separate static review and
+authorization gate because the dataset is small and drawn from one existing
+non-formal fixed artifact.
+
+```text
+current_gate_predeclares_split=False
+current_gate_fits_scales=False
+current_gate_trains_weights=False
+current_gate_claims_deployable_checkpoint=False
+```
+
+## Required Pre-Training Checks
+
+The next training-related authorization cannot be based only on green unit
+tests. It must prove all of the following from explicit artifacts:
+
+```text
+validated_dataset_artifact_required=True
+validator_acceptance_required=True
+fallback_dataset_static_contract_required=True
+training_split_manifest_required=True
+train_only_scale_manifest_required=True
+fallback_only_master_config_required=True
+forbidden_flag_audit_required=True
+dry_run_training_command_plan_required=True
+expected_output_manifest_required=True
+post_training_nonpromotion_audit_required=True
+```
+
+The dry-run command plan must still be reviewed before execution. It may not
+use formal seeds, run replay, generate new candidates, modify DP, alter DP
+weights/configuration, or change the online selector.
+
+## What Is Still Missing Before CAMP Retraining
+
+```text
+missing_training_split_manifest=True
+missing_train_only_scale_manifest=True
+missing_fallback_only_master_config=True
+missing_training_command_authorization=True
+missing_checkpoint_nonpromotion_plan=True
+missing_development_holdout_acceptance_gate=True
+camp_retraining_authorized_now=False
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_training_sufficiency_plan_ready
+passed=True
+training_sufficiency_plan_complete=True
+validated_fallback_records=15
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only
+```
+
+The next gate may only statically review this fallback-risk training
+sufficiency plan. It must not train CAMP, run replay, generate candidates,
+modify Diffusion Planner, use formal seeds, relax hard feasibility, add
+all-infeasible records to the feasible-ranking master, promote a selector or
+atom, or claim safety/CAMP-over-DP benefit.
