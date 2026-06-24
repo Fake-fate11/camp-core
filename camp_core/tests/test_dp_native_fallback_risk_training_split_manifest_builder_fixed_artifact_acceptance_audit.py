@@ -74,6 +74,11 @@ def test_acceptance_audit_identifies_upstream_record_identity_remediation() -> N
         "training_split_manifest_ready_for_preflight=False",
         "upstream_training_data_record_identity_remediation_required=True",
         "local_target_pytest=6 passed",
+        "local_related_target_pytest=22 passed",
+        "autodl_verified_camp_head=22ccb10bbd8aeaf94e7c62c1a83c16ce4f633524",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=22 passed",
+        "autodl_git_diff_check_exit=0",
     ]:
         assert needle in text
 
@@ -133,6 +138,7 @@ def test_iteration_audit_tail_records_current_acceptance_audit_next_gate() -> No
         "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rejected_missing_record_identity_hash",
         "record_identity_hash_compatibility_issue=True",
         "missing_record_identity_hash_records=15",
+        "autodl_target_pytest=22 passed",
         "training_split_manifest_ready_for_preflight=False",
         "camp_retraining_authorized_now=False",
     ]:

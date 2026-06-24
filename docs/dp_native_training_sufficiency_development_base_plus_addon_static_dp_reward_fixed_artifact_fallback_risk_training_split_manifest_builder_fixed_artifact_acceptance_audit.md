@@ -94,6 +94,11 @@ autodl_output_json_sha256=35fc5a3d3f648177c9da0db24f6c9205ad9bfa0ecbe4fcd3dc5008
 autodl_output_md_sha256=3bd8c173c0745673aa6f3a6ce3a39524631450b9535c1904d919b38cbe5c82f9
 local_py_compile_exit=0
 local_target_pytest=6 passed
+local_related_target_pytest=22 passed
+autodl_verified_camp_head=22ccb10bbd8aeaf94e7c62c1a83c16ce4f633524
+autodl_py_compile_exit=0
+autodl_target_pytest=22 passed
+autodl_git_diff_check_exit=0
 ```
 
 The current split manifest builder is intentionally stricter than the older
