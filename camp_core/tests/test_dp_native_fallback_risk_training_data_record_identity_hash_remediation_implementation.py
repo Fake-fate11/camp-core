@@ -142,6 +142,10 @@ def test_implementation_decision_and_next_gate_are_static_contract_only() -> Non
         "implementation_complete=True",
         "record_identity_hash_remediation_implemented=True",
         "local_implementation_target_pytest=48 passed",
+        "autodl_verified_camp_head=f8547959257087e97605dbabfc4467dd394f88f4",
+        "autodl_py_compile_exit=0",
+        "autodl_implementation_target_pytest=48 passed",
+        "autodl_git_diff_check_exit=0",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_only",
         "may only perform a post-implementation static contract review",
         "must not rebuild fixed artifacts",
@@ -158,6 +162,7 @@ def test_iteration_audit_tail_records_record_identity_implementation_next_gate()
         "status=fallback_risk_training_data_record_identity_hash_remediation_implemented",
         "record_identity_hash_remediation_implemented=True",
         "local_implementation_target_pytest=48 passed",
+        "autodl_implementation_target_pytest=48 passed",
         "fixed_artifact_rebuild_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
