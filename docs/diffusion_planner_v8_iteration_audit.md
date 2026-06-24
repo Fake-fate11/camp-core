@@ -102122,6 +102122,10 @@ local_python=py -3.12
 local_py_compile_exit=0
 local_target_pytest=7 passed
 local_related_target_pytest=29 passed
+autodl_verified_camp_head=1e10ca1402ba4e2a28c5e3e67f3b6887bde177a3
+autodl_py_compile_exit=0
+autodl_target_pytest=29 passed
+autodl_git_diff_check_exit=0
 ```
 
 Forbidden remains:

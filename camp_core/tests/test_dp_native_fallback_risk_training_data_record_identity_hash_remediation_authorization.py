@@ -96,6 +96,10 @@ def test_authorization_records_local_verification() -> None:
         "local_py_compile_exit=0",
         "local_target_pytest=7 passed",
         "local_related_target_pytest=29 passed",
+        "autodl_verified_camp_head=1e10ca1402ba4e2a28c5e3e67f3b6887bde177a3",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=29 passed",
+        "autodl_git_diff_check_exit=0",
     ]:
         assert needle in text
 
@@ -147,6 +151,7 @@ def test_iteration_audit_tail_records_record_identity_authorization_next_gate() 
         "record_identity_hash_remediation_authorized=True",
         "fixed_artifact_rebuild_authorized_now=False",
         "training_execution_authorized_now=False",
+        "autodl_target_pytest=29 passed",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
