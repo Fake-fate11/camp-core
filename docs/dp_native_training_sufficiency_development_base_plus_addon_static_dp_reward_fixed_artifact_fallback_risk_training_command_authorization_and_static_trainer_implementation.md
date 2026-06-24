@@ -1,0 +1,176 @@
+# DP Native Fixed-Artifact Fallback Risk Training Command Authorization And Static Trainer Implementation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only
+```
+
+This artifact records the implementation boundary for user-authorized CAMP
+fallback-risk retraining. The authorization is accepted only for a
+non-promotion training run over fixed DP-native candidate artifacts. It does
+not authorize replay, candidate generation, Diffusion Planner changes, formal
+seeds 11/12/13, online selector changes, atom promotion, deployable-checkpoint
+claims, safety-benefit claims, or CAMP-over-DP Top-1 claims.
+
+## User Authorization
+
+```text
+user_camp_retraining_authorization_received=True
+authorization_scope=fallback_risk_static_camp_training_nonpromotion
+training_command_authorization_gate_complete=True
+training_execution_allowed_after_artifact_preflight=True
+```
+
+The authorization does not override the technical contract. The trainer remains
+default-off and rejects unless all fixed artifact hashes, split/scale manifests,
+fallback-only master config, dry-run command plan, and preflight report pass.
+
+## Implemented Command
+
+```text
+script=scripts/integrations/train_diffusion_planner_dp_native_fallback_risk_static_camp.py
+schema_version=dp_native_fallback_risk_static_camp_training_v1
+default_off=True
+requires_enable_flag=True
+requires_user_camp_retraining_authorized=True
+reads_fixed_artifacts_only=True
+training_output_nonpromotion=True
+```
+
+The script consumes the accepted fixed artifacts from prior gates:
+
+```text
+dataset_json_required=True
+training_split_manifest_json_required=True
+train_only_scale_manifest_json_required=True
+fallback_master_config_json_required=True
+training_command_plan_json_required=True
+preflight_json_required=True
+expected_sha256_for_each_input_required=True
+```
+
+Default-off behavior:
+
+```text
+default_off_reads_inputs=False
+default_off_writes_training_weights=False
+default_off_training_executed=False
+```
+
+Enabled behavior:
+
+```text
+training_authorized=True
+training_execution_authorized=True
+camp_retraining_authorized_now=True
+fallback_risk_training_authorized_now=True
+fixed_dp_candidate_reranking_only=True
+fallback_only_training=True
+```
+
+## Mathematical Boundary
+
+The implemented trainer is a static CAMP reranker over fixed DP candidate rows.
+It optimizes only a nonnegative simplex weight vector for the fallback-only
+branch.
+
+```text
+score_k(w)=a_k^T w
+a_k_fixed_before_weight_optimization=True
+a_k_nonnegative_benders_compatible_atoms_only=True
+weights_simplex_nonnegative=True
+fallback_label_is_not_a_deployed_atom=True
+fallback_branch_all_candidates_available=True
+feasible_branch_records_allowed=False
+all_infeasible_records_added_to_feasible_training=False
+all_infeasible_records_relabelled_feasible=False
+hard_feasibility_relaxation_authorized=False
+feasible_ranking_master_change_authorized=False
+```
+
+The objective is the existing robust-margin shape restricted to the fallback
+branch:
+
+```text
+q_i(w)=max(0,max_k m_ik+(a_i,o_i-a_i,k)^T w)
+m_ik_nonnegative=True
+risk_type=mean_or_cvar
+l2_regularized_master=True
+simplex_master_convex=True
+cvar_master_convex=True
+l2_regularized_master_convex=True
+```
+
+This is not a DP-side classical Benders decomposition claim. It is the CAMP
+finite-candidate robust-margin master over fixed candidate atom rows.
+
+## Isolation Boundary
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+The output artifacts are training artifacts only:
+
+```text
+offline_weights_dp_fallback_risk_static.npy
+offline_weights_dp_fallback_risk_static.json
+atom_scales_dp_fallback_risk_static.json
+training_summary_json
+training_summary_md
+```
+
+They are not promoted into runtime configuration by this gate.
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=4 passed
+local_command_authorization_contract_pytest=3 passed
+local_fallback_risk_related_pytest=351 passed
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_command_authorization_and_static_trainer_implementation_passed
+passed=True
+training_command_authorization_gate_complete=True
+user_camp_retraining_authorization_received=True
+static_fallback_risk_trainer_implemented=True
+ready_for_fixed_artifact_training_execution=True
+training_executed_by_this_gate=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_fixed_artifact_acceptance
+```

@@ -97171,3 +97171,97 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`
+
+---
+
+### 2026-06-25 - Fixed-Artifact Fallback Risk Training Command Authorization And Static Trainer Implementation
+
+Gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`
+
+Authorization:
+
+```text
+user_camp_retraining_authorization_received=True
+authorization_scope=fallback_risk_static_camp_training_nonpromotion
+training_command_authorization_gate_complete=True
+```
+
+Implementation:
+
+```text
+script=scripts/integrations/train_diffusion_planner_dp_native_fallback_risk_static_camp.py
+schema_version=dp_native_fallback_risk_static_camp_training_v1
+default_off=True
+requires_enable_flag=True
+requires_user_camp_retraining_authorized=True
+reads_fixed_artifacts_only=True
+fixed_dp_candidate_reranking_only=True
+fallback_only_training=True
+```
+
+Contract:
+
+```text
+score_k(w)=a_k^T w
+a_k_fixed_before_weight_optimization=True
+a_k_nonnegative_benders_compatible_atoms_only=True
+weights_simplex_nonnegative=True
+q_i(w)=max(0,max_k m_ik+(a_i,o_i-a_i,k)^T w)
+simplex_master_convex=True
+cvar_master_convex=True
+l2_regularized_master_convex=True
+feasible_branch_records_allowed=False
+all_infeasible_records_added_to_feasible_training=False
+all_infeasible_records_relabelled_feasible=False
+hard_feasibility_relaxation_authorized=False
+feasible_ranking_master_change_authorized=False
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=7 passed
+local_fallback_risk_related_pytest=351 passed
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_command_authorization_and_static_trainer_implementation_passed
+passed=True
+training_command_authorization_gate_complete=True
+static_fallback_risk_trainer_implemented=True
+ready_for_fixed_artifact_training_execution=True
+training_executed_by_this_gate=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_fixed_artifact_acceptance`
