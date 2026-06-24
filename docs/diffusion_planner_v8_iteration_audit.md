@@ -97397,3 +97397,86 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Static CAMP Training Post-Training Nonpromotion Artifact Audit
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit
+```
+
+Added a default-off, read-only post-training artifact audit for the already
+created fallback-risk static CAMP training outputs:
+
+```text
+script=scripts/integrations/audit_diffusion_planner_dp_native_fallback_risk_static_camp_training_nonpromotion_artifact.py
+result_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit.md
+schema_version=dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_v1
+training_commit=0e3b7f3397adecdac559027856efcdb918269496
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+fixed_dp_candidate_reranking_only=True
+fallback_only_training_artifact=True
+score_expression=score_k(w)=a_k^T w
+atom_schema_version=dp_camp_v10_14d
+num_atoms=14
+```
+
+The audit validates the training summary, offline weights JSON, offline weights
+NPY, and atom scales JSON against pinned SHA-256 values. It checks the source
+training result while keeping this gate non-promotional: the audit does not
+authorize new training, deploy a checkpoint, promote a selector or atom, run
+replay, generate candidates, modify Diffusion Planner, or claim safety benefit
+or CAMP-over-DP Top-1.
+
+Contract result:
+
+```text
+status=dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_complete
+passed=True
+post_training_nonpromotion_artifact_audit_passed=True
+training_artifacts_nonpromotion=True
+weights_json_simplex_nonnegative=True
+weights_npy_simplex_nonnegative=True
+weights_json_matches_npy=True
+atom_scales_strictly_positive=True
+training_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized_now=False
+fallback_risk_training_authorized_now=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployment_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+local_fallback_risk_static_camp_training_related_pytest=15 passed
+autodl_py_compile_exit=pending
+autodl_target_pytest=pending
+remote_artifact_audit_exit=pending
+```
+
+Decision:
+
+```text
+status=fallback_risk_static_camp_training_nonpromotion_artifact_audit_passed
+passed=True
+post_training_nonpromotion_artifact_audit_complete=True
+training_artifacts_nonpromotion=True
+no_selector_or_atom_promotion=True
+no_deployment=True
+no_safety_benefit_claim=True
+no_camp_over_dp_top1_claim=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan_only`

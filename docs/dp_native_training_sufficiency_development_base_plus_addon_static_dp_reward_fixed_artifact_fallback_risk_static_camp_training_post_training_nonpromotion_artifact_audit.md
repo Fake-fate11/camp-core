@@ -1,0 +1,135 @@
+# DP Native Fixed-Artifact Fallback Risk Static CAMP Training Post-Training Nonpromotion Artifact Audit
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit
+```
+
+This artifact audits the already-created fallback-risk static CAMP training
+outputs as non-promotion artifacts. The audit is default-off and read-only. It
+checks only the training summary, offline weights JSON/NPY, and atom scale JSON;
+it does not run Diffusion Planner, generate or rewrite trajectories, retrain
+CAMP, promote a selector or atom, deploy a checkpoint, or claim safety benefit.
+
+## Audited Training Artifacts
+
+```text
+training_commit=0e3b7f3397adecdac559027856efcdb918269496
+training_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z
+training_summary_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z/training_summary.json
+training_summary_json_sha256=826b378434d82623cb8f0c620ae37e253cb8c8b98f7c7352382ec7707c7ffbf1
+offline_weights_npy=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z/training/offline_weights_dp_fallback_risk_static.npy
+offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40
+offline_weights_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z/training/offline_weights_dp_fallback_risk_static.json
+offline_weights_json_sha256=d6b3df205a41a60ac1bb40d6d2dea62db98344f719225be9c27458976d0ddb42
+atom_scales_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_0e3b7f3_20260624T180109Z/training/atom_scales_dp_fallback_risk_static.json
+atom_scales_json_sha256=cb84b008e19d25910f12f0855c0c1e4a89b0caa295c00cdbc733fce732fa9dc2
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Contract
+
+```text
+script=scripts/integrations/audit_diffusion_planner_dp_native_fallback_risk_static_camp_training_nonpromotion_artifact.py
+schema_version=dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_v1
+default_off=True
+read_only_existing_training_artifacts=True
+fixed_dp_candidate_reranking_only=True
+fallback_only_training_artifact=True
+score_expression=score_k(w)=a_k^T w
+atom_schema_version=dp_camp_v10_14d
+num_atoms=14
+```
+
+The audit distinguishes source training authorization from audit
+authorization. The source summary is allowed to show that the prior training
+run was user-authorized and executed. This audit does not authorize new
+training, promotion, deployment, replay, candidate generation, DP modification,
+or safety claims.
+
+## Local Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=5 passed
+local_fallback_risk_static_camp_training_related_pytest=15 passed
+local_diff_check=0 findings
+```
+
+## Artifact Audit Result
+
+```text
+status=dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_complete
+passed=True
+post_training_nonpromotion_artifact_audit_passed=True
+training_artifacts_nonpromotion=True
+fixed_dp_candidate_reranking_only=True
+fallback_only_training_artifact=True
+score_expression=score_k(w)=a_k^T w
+training_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized_now=False
+fallback_risk_training_authorized_now=False
+```
+
+Artifact checks:
+
+```text
+training_summary_sha256_match=True
+weights_json_sha256_match=True
+weights_npy_sha256_match=True
+atom_scales_json_sha256_match=True
+weights_json_simplex_nonnegative=True
+weights_npy_simplex_nonnegative=True
+weights_json_matches_npy=True
+atom_scales_strictly_positive=True
+atom_schema_version=dp_camp_v10_14d
+num_atoms=14
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+deployment_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_static_camp_training_nonpromotion_artifact_audit_passed
+passed=True
+post_training_nonpromotion_artifact_audit_complete=True
+training_artifacts_nonpromotion=True
+no_selector_or_atom_promotion=True
+no_deployment=True
+no_safety_benefit_claim=True
+no_camp_over_dp_top1_claim=True
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan_only
+```
