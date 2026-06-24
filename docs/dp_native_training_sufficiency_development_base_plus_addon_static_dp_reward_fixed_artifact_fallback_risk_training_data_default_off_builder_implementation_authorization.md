@@ -1,0 +1,135 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Default-Off Builder Implementation Authorization
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization_only
+```
+
+This authorization-only artifact decides whether the next gate may implement a
+minimal default-off, read-only fallback-risk training data builder. It does not
+implement the builder, run replay, generate candidates, train CAMP, retrain
+CAMP, modify Diffusion Planner, change the online selector, promote a selector
+or atom, or claim safety benefit or CAMP-over-DP Top-1.
+
+## Reviewed Evidence
+
+```text
+training_data_design_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan.md
+training_data_design_static_contract_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review.md
+builder_unit_tests_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_plan.md
+builder_unit_tests_contract=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py
+camp_head_at_authorization=1b5f372f505281dbd08a3cbb650e292668f501ee
+camp_origin_main_at_authorization=1b5f372f505281dbd08a3cbb650e292668f501ee
+github_refs_heads_main_at_authorization=1b5f372f505281dbd08a3cbb650e292668f501ee
+autodl_CAMP_HEAD_at_authorization=1b5f372f505281dbd08a3cbb650e292668f501ee
+autodl_CAMP_origin_main_at_authorization=1b5f372f505281dbd08a3cbb650e292668f501ee
+autodl_DP_HEAD_at_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Preconditions
+
+```text
+training_data_design_plan_passed=True
+training_data_design_static_contract_review_passed=True
+builder_unit_tests_plan_ready=True
+builder_unit_tests_contract_pinned=True
+blocking_contract_findings=0
+local_builder_contract_pytest=5 passed
+local_fallback_risk_pytest=72 passed
+autodl_builder_contract_pytest=5 passed
+autodl_fallback_risk_pytest=72 passed
+dp_fixed_commit_verified=True
+```
+
+## Authorized Next Work
+
+The next gate may implement a minimal builder only under this boundary:
+
+```text
+implementation_authorized=True
+fallback_risk_training_data_builder_implementation_authorized=True
+default_off_required=True
+read_only_selection_log_input_only=True
+read_only_extractor_output_input_only=True
+synthetic_unit_tests_required=True
+existing_contract_tests_must_continue_to_pass=True
+records_scope=records_without_feasible_candidate_only
+dataset_schema_version=dp_native_fallback_risk_training_data_v1
+output_json_or_markdown_only=True
+production_selector_change_authorized=False
+training_authorized=False
+replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+```
+
+Allowed implementation shape:
+
+```text
+may_add_read_only_script_or_helper=True
+may_add_targeted_synthetic_tests=True
+may_write_output_artifacts_only_when_user_supplies_output_path=True
+must_fail_closed_on_missing_required_fields=True
+must_preserve_score_k_equals_a_k_transpose_w_boundary=True
+must_keep_fallback_dataset_separate_from_feasible_master=True
+must_record_training_and_promotion_forbidden_flags=True
+```
+
+The implementation must not train CAMP, extend the feasible-ranking master, or
+turn fallback-risk records into deployed atoms or an online selector.
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_default_off_builder_implementation_authorized
+passed=True
+implementation_authorized=True
+fallback_risk_training_data_builder_implementation_authorized=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_only
+```
+
+The next gate may only implement the minimal default-off read-only builder and
+its targeted synthetic tests. It must not run replay, generate candidates, train
+CAMP, retrain CAMP, modify DP, use formal seeds, promote a selector or atom, or
+claim safety/CAMP-over-DP benefit.
