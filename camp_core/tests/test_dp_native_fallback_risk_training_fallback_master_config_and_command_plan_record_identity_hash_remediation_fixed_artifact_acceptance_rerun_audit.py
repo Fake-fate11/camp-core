@@ -127,7 +127,8 @@ def test_acceptance_rerun_records_local_verification_and_next_gate() -> None:
 
 
 def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
-    tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-190:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
         "status=fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_implemented",
@@ -137,8 +138,8 @@ def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
-        assert needle in tail
+        assert needle in audit
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only`"
     )

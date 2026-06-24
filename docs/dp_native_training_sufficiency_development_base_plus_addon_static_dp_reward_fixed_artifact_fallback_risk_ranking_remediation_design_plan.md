@@ -251,3 +251,34 @@ camp_retraining_executed=False
 candidate_generation_executed=False
 dp_modification_executed=False
 ```
+
+## Current-Head Revalidation After Ranking Audit Revalidation
+
+Date: 2026-06-25
+
+The plan remains valid after the fixed-artifact fallback-risk ranking audit was
+revalidated on the current synchronized CAMP HEAD:
+
+```text
+camp_head_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e
+camp_origin_main_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e
+github_refs_heads_main_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e
+autodl_CAMP_HEAD_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e
+autodl_CAMP_origin_main_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_ranking_revalidation_status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+prior_ranking_revalidation_failed_checks=[]
+prior_ranking_revalidation_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_7a2d490_20260624T231111Z
+prior_ranking_revalidation_json_sha256=fe57dc19a8f0371fe3f4f5ea469e39c0934a9bc8e76f205a046f2a29cfdaaa33
+prior_ranking_revalidation_md_sha256=34fd32059d306725931cce948c4146c83d14d34555293b1c87cb58916c7352af
+```
+
+This remains a plan-only gate. It does not implement the extractor, run replay,
+generate candidates, train CAMP, retrain CAMP, modify DP, use formal seeds,
+promote a selector or atom, deploy, or claim safety/CAMP-over-DP benefit.
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only
+```

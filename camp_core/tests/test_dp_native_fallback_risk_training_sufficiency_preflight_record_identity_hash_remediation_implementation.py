@@ -198,5 +198,5 @@ def test_remediation_audit_records_rejection_implementation_and_next_gate() -> N
         assert needle in text
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only`"
     )
