@@ -86516,3 +86516,168 @@ immutability using fixed DP-native artifacts or default-off, no-selection-effect
 instrumentation. It may not run replay, generate candidates, rewrite
 trajectories, train CAMP, promote atoms, change the online selector, claim safety
 benefit, claim CAMP is better than DP Top-1, or modify DP.
+
+## 2026-06-24 - DP-native candidate tensor provenance gap design plan only
+
+Gate:
+
+`dp_native_candidate_tensor_provenance_gap_design_plan_only`
+
+Purpose:
+
+Convert the fixed-artifact evidence gaps from the previous gate into a narrow,
+default-off provenance payload design boundary. This gate is plan-only: it does
+not implement logging, run replay, generate candidates, rewrite trajectories,
+train CAMP, promote atoms, change online selection, modify DP, or make safety
+or CAMP-over-DP claims.
+
+Code commit:
+
+```text
+3d0283d23b176d880a5d2efdbe002cd4babbc2bf Plan DP-native tensor provenance gap closure
+```
+
+Local status and verification:
+
+```text
+local HEAD=3d0283d23b176d880a5d2efdbe002cd4babbc2bf
+local origin/main=3d0283d23b176d880a5d2efdbe002cd4babbc2bf
+python -m py_compile scripts/integrations/plan_diffusion_planner_dp_native_candidate_tensor_provenance_gap.py camp_core/tests/test_diffusion_planner_dp_native_candidate_tensor_provenance_gap_plan.py
+PYTHONPATH=F:\camp_core-main python -m pytest Y:\dp_native_gap_plan_test.py -q --rootdir=Y:\
+6 passed in 0.54s
+local_analysis_root=F:\camp_core-main\analysis_bundles\dp_native_candidate_tensor_provenance_gap_design_plan_3d0283d
+local_analysis_EXIT_CODE=0
+```
+
+Note: the pytest command used a single-file short-name copy because direct
+collection from the repo path still triggers a pre-existing Windows collection
+path issue unrelated to this gate.
+
+Local analysis artifact hashes:
+
+```text
+dp_native_candidate_tensor_provenance_gap_design_plan.json=b89d251980aad11539a09196f533b31bed286c39e2280b7d51e4d0262d8956aa
+dp_native_candidate_tensor_provenance_gap_design_plan.md=a9d6d80fc43308e09dacd819ed5ec6624659a504d324a437c4aceb851b149d02
+DP_NATIVE_TENSOR_PROVENANCE_GAP_DESIGN_PLAN.err=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+DP_NATIVE_TENSOR_PROVENANCE_GAP_DESIGN_PLAN.log=1e59c31952a48ee93471197791da34b6c1f653bcebcbaeab03a98a752ae01558
+EXIT_CODE=13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354
+HEADS.txt=449917b07380495f5937ec85e44e3576ebe6c5add21b8910f748c0a22bd5f184
+```
+
+AutoDL verification:
+
+```text
+autodl CAMP HEAD=3d0283d23b176d880a5d2efdbe002cd4babbc2bf
+autodl CAMP origin/main=3d0283d23b176d880a5d2efdbe002cd4babbc2bf
+autodl DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+/root/miniconda3/envs/camp/bin/python -m py_compile scripts/integrations/plan_diffusion_planner_dp_native_candidate_tensor_provenance_gap.py camp_core/tests/test_diffusion_planner_dp_native_candidate_tensor_provenance_gap_plan.py
+/root/miniconda3/envs/camp/bin/python -m pytest camp_core/tests/test_diffusion_planner_dp_native_candidate_tensor_provenance_gap_plan.py -q
+6 passed in 0.03s
+autodl_analysis_root=/root/autodl-tmp/camp_dp_dp_native_candidate_tensor_provenance_gap_design_plan_3d0283d
+autodl_analysis_EXIT_CODE=0
+```
+
+AutoDL analysis artifact hashes:
+
+```text
+DP_NATIVE_TENSOR_PROVENANCE_GAP_DESIGN_PLAN.err=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+DP_NATIVE_TENSOR_PROVENANCE_GAP_DESIGN_PLAN.log=01089eff0521b3774d0eb539e7fedcc95f9f9be7edab961cdf5b366f0c1fa743
+EXIT_CODE=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+HEADS.txt=71b2c0cca0fdaa884079240f5d8fca9f3b9df83cb1d75ad8b86ef8625e940c3b
+dp_native_candidate_tensor_provenance_gap_design_plan.json=5bd68717f306bef995f37d36591d2360aaeaf252b438c52fccfa3be8bb581a06
+dp_native_candidate_tensor_provenance_gap_design_plan.md=e460235c2b35d3f458e96450e3ebd098ffc7e8b3f1327a53f74cba9266a9375a
+```
+
+Source gaps consumed from the previous evidence audit:
+
+```text
+candidate_tensor_hash_missing
+full_candidate_coordinate_tensor_artifact_missing
+raw_dp_pre_camp_candidate_set_immutability_not_proven
+reference_blend_selection_effect_requires_provenance_separation
+full_candidate_tensor_mutation_absence_not_proven
+```
+
+Required provenance payload boundary:
+
+```text
+route=default_off_candidate_tensor_provenance_payload_design
+required_stages=
+  dp_sampler_output_before_reference_blend_or_any_camp_side_transform
+  camp_scoring_input_after_dp_postprocess_before_camp_scoring
+  post_camp_selector_candidate_tensor_reference
+required_hash_contract=contiguous candidate tensor bytes plus explicit shape and dtype
+minimum_hashes=camp_scoring_input_after_dp_postprocess_before_camp_scoring, post_camp_selector_candidate_tensor_reference
+raw_dp_hash_required_when_available=True
+nan_policy=preserve tensor bytes; do not stringify floating point values
+```
+
+Required acceptance criteria for any later implementation gate:
+
+```text
+selection_effect=False by default
+candidate_count recorded
+selected_index_in_range proven
+pre_camp_scoring_tensor_sha256 present
+post_camp_selector_tensor_sha256 present
+pre_post_tensor_hash_equal=True
+reference_blend_stage_hash_separated=True when reference blend is present
+no candidate row append
+no coordinate/heading/speed rewrite by CAMP
+no outcome labels
+no replay authorization
+no training authorization
+no promotion authorization
+no DP modification authorization
+no safety benefit claim authorization
+no CAMP-over-DP-Top-1 claim authorization
+```
+
+Design-plan decision:
+
+```text
+status=dp_native_candidate_tensor_provenance_gap_design_plan_ready
+passed=True
+failed_checks=[]
+provenance_payload_implementation_authorization_ready=True
+implementation_authorized_now=False
+authorized_next_work=dp_native_candidate_tensor_provenance_payload_implementation_authorization_only
+candidate_generation_execution_authorized=False
+trajectory_rewrite_authorized=False
+candidate_tensor_mutation_authorized=False
+new_replay_authorized=False
+formal_seeds_authorized=False
+full36_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+atom_promotion_authorized=False
+online_selector_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Mathematical boundary:
+
+This gate keeps CAMP as an index selector over a fixed DP-native candidate set.
+The planned payload can authorize only proof of tensor provenance and
+immutability: tensor bytes, shape, dtype, candidate count, selected index range,
+and pre/post selector hash equality. It cannot be used as evidence that CAMP
+improves safety, beats DP Top-1, or is ready for replay/training/promotion.
+
+Decision:
+
+Accept the provenance gap design plan as complete. Do not implement the payload
+inside this gate, because the next gate is explicitly authorization-only and the
+artifact reports `implementation_authorized_now=False`.
+
+Next admissible gate:
+
+`dp_native_candidate_tensor_provenance_payload_implementation_authorization_only`.
+
+This next gate may only decide whether to authorize a minimal, default-off
+implementation of the provenance payload. If authorized, the implementation
+must remain limited to candidate tensor hash/provenance logging and static
+contract checks with no replay, candidate generation, trajectory rewrite,
+training, promotion, DP modification, safety-benefit claim, or CAMP-over-DP
+claim.
