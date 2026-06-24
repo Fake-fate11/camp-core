@@ -87242,3 +87242,62 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `clean_dp_native_training_data_contract_trainer_preflight_authorization_only`
+
+## Clean DP native training data contract trainer preflight authorization
+
+Gate:
+
+`clean_dp_native_training_data_contract_trainer_preflight_authorization_only`
+
+Artifact:
+
+```text
+docs/clean_dp_native_training_data_contract_trainer_preflight_authorization.md
+```
+
+Ref evidence:
+
+```text
+git status --short --branch
+## main...origin/main
+untracked unrelated session/slide artifacts remain ignored
+
+git rev-parse HEAD origin/main
+00eb7cf03867697c0e795dc62848c44d52910eab
+00eb7cf03867697c0e795dc62848c44d52910eab
+
+git ls-remote origin refs/heads/main
+exit=1
+reason=GitHub HTTPS/TLS handshake failure after prior push; local origin/main still matches HEAD
+```
+
+Evidence:
+
+```text
+validator exists and reports read_only=True, replay_executed=False, candidate_generation_executed=False, training_execution_authorized=False
+robust trainer has --require_atom_schema and validate_atom_schema(...)
+robust trainer does not yet require the DP-native provenance validator before atom/label loading and optimization
+```
+
+Decision:
+
+```text
+status=trainer_preflight_implementation_authorized
+implementation_authorized_now=True
+authorized_next_work=clean_dp_native_training_data_contract_trainer_preflight_default_off_implementation
+training_data_collection_execution_authorized=False
+replay_executed=False
+candidate_generation_executed=False
+outcome_label_generation_authorized=False
+camp_retraining_authorized=False
+training_execution_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`clean_dp_native_training_data_contract_trainer_preflight_default_off_implementation`
