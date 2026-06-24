@@ -1,6 +1,6 @@
 # DP Native Fixed-Artifact Fallback Risk Training Split Manifest Builder Fixed-Artifact Acceptance Audit
 
-Date: 2026-06-24
+Date: 2026-06-25
 
 Gate:
 
@@ -8,11 +8,11 @@ Gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only
 ```
 
-This audit ran the default-off split manifest builder on the existing validated
-fallback-risk training dataset artifact. It did not run replay, generate new
-candidates, train CAMP, retrain CAMP, modify Diffusion Planner, change the
-online selector, promote a selector or atom, or claim safety benefit or
-CAMP-over-DP Top-1.
+This audit ran the current default-off split manifest builder on the existing
+validated fallback-risk training dataset artifact after the record identity
+hardening implementation. It did not run replay, generate new candidates, train
+CAMP, retrain CAMP, modify Diffusion Planner, change the online selector,
+promote a selector or atom, or claim safety benefit or CAMP-over-DP Top-1.
 
 ## Fixed Artifact Inputs
 
@@ -20,32 +20,47 @@ CAMP-over-DP Top-1.
 source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f632c44_20260624T133402Z/dataset.json
 expected_dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
 validator_output_json_sha256=572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b
-builder_commit=f00a2d4e3bf7576ad8f6ecd79dad1e3d09255c10
-autodl_CAMP_HEAD=f00a2d4e3bf7576ad8f6ecd79dad1e3d09255c10
+builder_commit=cdeef56a6502504aded815866d2a95d248fe2cc6
+autodl_CAMP_HEAD=cdeef56a6502504aded815866d2a95d248fe2cc6
+autodl_CAMP_origin_main=cdeef56a6502504aded815866d2a95d248fe2cc6
 autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+post_static_contract_status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed
+record_identity_hash_required_input_field=True
 ```
 
 ## Output Artifact
 
 ```text
-builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_f00a2d4_20260624T153229Z
-split_manifest_json_sha256=141b1213ac5c0ca7bf701bcc01d03d7245e23801af830613e48ef07bdd948ae2
+builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_cdeef56_20260624T212247Z
+split_manifest_json_sha256=35fc5a3d3f648177c9da0db24f6c9205ad9bfa0ecbe4fcd3dc5008d12e27f8c3
 split_manifest_md_sha256=3bd8c173c0745673aa6f3a6ce3a39524631450b9535c1904d919b38cbe5c82f9
+builder_exit=1
 ```
 
 ## Observed Result
 
 ```text
 schema_version=dp_native_fallback_risk_training_split_manifest_v1
-status=dp_native_fallback_risk_training_split_manifest_builder_rejected
-passed=False
-errors=['final_decision_fallback_risk_training_authorized_now_not_false']
 dataset_sha256=1a7593ad2ef4eb138187e56635c597e4537f4533e7033936acf6801a1108e9bf
 validator_output_sha256=572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b
+split_policy=sha256(record_identity_hash + split_salt)
+split_salt=fallback_risk_training_split_v1
+status=dp_native_fallback_risk_training_split_manifest_builder_rejected
+passed=False
+errors_count=15
+errors_all_record_identity_hash_missing=True
+first_error=record_0:record_identity_hash_missing
+last_error=record_9:record_identity_hash_missing
 accepted_records=0
 training_records=0
 validation_records=0
+training_groups=0
+validation_groups=0
+record_assignments=0
+split_manifest_written=False
+ready_for_future_preflight=False
 training_authorized=False
+fallback_dataset_training_sufficiency_claim=False
 candidate_generation_authorized=False
 dp_modification_authorized=False
 ```
@@ -55,27 +70,37 @@ dp_modification_authorized=False
 ```text
 fixed_artifact_acceptance_passed=False
 blocking_acceptance_findings=1
-legacy_final_decision_flag_compatibility_issue=True
-missing_flag=fallback_risk_training_authorized_now
+legacy_final_decision_flag_compatibility_issue=False
+record_identity_hash_compatibility_issue=True
+source_training_dataset_missing_record_identity_hash=True
+missing_record_identity_hash_records=15
 dataset_sha256_matched=True
 validator_output_sha256_recorded=True
 builder_failed_closed=True
+identity_hardening_effective=True
 manifest_accepted_for_preflight=False
+training_split_manifest_ready_for_preflight=False
+upstream_training_data_record_identity_remediation_required=True
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
 ```
 
 ## Verification
 
 ```text
+autodl_builder_exit=1
+autodl_output_json_sha256=35fc5a3d3f648177c9da0db24f6c9205ad9bfa0ecbe4fcd3dc5008d12e27f8c3
+autodl_output_md_sha256=3bd8c173c0745673aa6f3a6ce3a39524631450b9535c1904d919b38cbe5c82f9
 local_py_compile_exit=0
-local_target_pytest=5 passed
-local_fallback_risk_related_pytest=224 passed
+local_target_pytest=6 passed
 ```
 
-The fixed dataset artifact predates the split builder's newer
-`fallback_risk_training_authorized_now` final-decision flag check. The builder
-therefore treats the absent legacy flag as not-false and rejects the artifact.
-This is a compatibility rejection, not evidence of candidate generation,
-training, replay, DP modification, or safety benefit.
+The current split manifest builder is intentionally stricter than the older
+fixed dataset artifact. The rejection is a hard contract finding: the split
+manifest cannot be accepted for preflight until the upstream fixed fallback-risk
+training dataset carries explicit `record_identity_hash` values derived from
+`source_log_sha256`, `run_id`, and `record_index`.
 
 ## Forbidden
 
@@ -108,12 +133,12 @@ online_selector_change_authorized=False
 ## Decision
 
 ```text
-status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rejected_legacy_decision_flag
+status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rejected_missing_record_identity_hash
 passed=False
 fixed_artifact_acceptance_audit_complete=True
 fixed_artifact_acceptance_passed=False
 blocking_acceptance_findings=1
-legacy_final_decision_flag_compatibility_issue=True
+record_identity_hash_compatibility_issue=True
 training_split_manifest_ready_for_preflight=False
 fallback_risk_training_authorized_now=False
 camp_retraining_authorized_now=False
@@ -131,12 +156,12 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 ```text
-dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_legacy_decision_flag_remediation_authorization_only
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_authorization_only
 ```
 
-The next gate may only decide whether to authorize a minimal compatibility
-remediation for legacy validated dataset final-decision flags. It must not run
-replay, generate candidates, train CAMP, modify Diffusion Planner, use formal
-seeds, relax hard feasibility, add all-infeasible records to the feasible
-ranking master, promote a selector or atom, or claim safety/CAMP-over-DP
-benefit.
+The next gate may only decide whether to authorize a minimal default-off
+fallback-risk training data record-identity remediation for the upstream data
+builder and validator contract. It must not run replay, generate candidates,
+train CAMP, modify Diffusion Planner, use formal seeds, relax hard feasibility,
+add all-infeasible records to the feasible-ranking master, promote a selector
+or atom, or claim safety/CAMP-over-DP benefit.

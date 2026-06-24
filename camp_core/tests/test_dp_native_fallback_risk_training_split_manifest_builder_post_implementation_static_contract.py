@@ -207,7 +207,8 @@ def test_post_static_review_next_gate_is_fixed_artifact_acceptance_audit_only() 
 
 
 def test_audit_tail_records_post_static_contract_next_gate() -> None:
-    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-140:])
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-180:])
 
     for needle in [
         "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed",
@@ -218,8 +219,10 @@ def test_audit_tail_records_post_static_contract_next_gate() -> None:
         "training_execution_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
-        assert needle in tail
+        assert needle in audit
+
+    assert "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rejected_missing_record_identity_hash" in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_authorization_only`"
     )
