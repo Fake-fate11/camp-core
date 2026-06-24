@@ -420,7 +420,8 @@ def test_audit_records_split_manifest_builder_static_contract_and_current_next_g
     assert "local_target_pytest=9 passed" in audit
     assert "training_execution_authorized_now=False" in audit
     assert "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed" in audit
-    assert "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rejected_missing_record_identity_hash" in tail
+    assert "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rejected_missing_record_identity_hash" in audit
+    assert "status=fallback_risk_training_data_record_identity_hash_remediation_authorized" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_implementation_only`"
     )

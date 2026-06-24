@@ -102053,3 +102053,123 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_authorization_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Data Record Identity Hash Remediation Authorization
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_authorization_only
+```
+
+Reviewed the split manifest acceptance failure and the current upstream
+fallback-risk training data builder/validator contract. The split manifest
+builder correctly requires `record_identity_hash` and fails closed when it is
+missing, while the upstream fixed dataset was produced before that identity
+field existed. This gate only authorizes the minimal remediation; it does not
+implement it, rebuild fixed artifacts, run replay, generate candidates, train
+or retrain CAMP, modify Diffusion Planner, change the online selector, promote
+a selector or atom, or claim safety benefit or CAMP-over-DP Top-1.
+
+Reviewed evidence:
+
+```text
+authorization_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_authorization.md
+authorization_test=camp_core/tests/test_dp_native_fallback_risk_training_data_record_identity_hash_remediation_authorization.py
+current_camp_head=4f950ed8403274623963310de93b8c848ef75494
+current_origin_main=4f950ed8403274623963310de93b8c848ef75494
+github_refs_heads_main=4f950ed8403274623963310de93b8c848ef75494
+autodl_CAMP_HEAD=4f950ed8403274623963310de93b8c848ef75494
+autodl_CAMP_origin_main=4f950ed8403274623963310de93b8c848ef75494
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rejected_missing_record_identity_hash
+current_fixed_dataset_records_missing_record_identity_hash=15
+```
+
+Contract gap:
+
+```text
+split_manifest_builder_requires_record_identity_hash=True
+split_manifest_builder_missing_record_identity_hash_fails_closed=True
+training_data_builder_currently_omits_record_identity_hash=True
+training_data_validator_currently_does_not_require_record_identity_hash=True
+accepted_split_manifest_not_available=True
+training_split_manifest_ready_for_preflight=False
+```
+
+Authorized minimal remediation:
+
+```text
+record_identity_hash_remediation_authorized=True
+implementation_scope=training_data_builder_and_training_data_validator_only
+record_identity_hash_required_on_every_built_record=True
+record_identity_hash_formula_must_match_split_manifest_builder=True
+record_identity_hash_inputs=source_log,source_log_sha256,run_id,record_index
+validator_must_require_record_identity_hash=True
+validator_must_recompute_record_identity_hash=True
+validator_must_fail_closed_on_missing_or_mismatch=True
+unit_tests_required=True
+post_implementation_static_contract_required=True
+fixed_artifact_acceptance_rerun_required=True
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=7 passed
+local_related_target_pytest=29 passed
+```
+
+Forbidden remains:
+
+```text
+user_camp_retraining_permission_available=True
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+fixed_artifact_rebuild_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_record_identity_hash_remediation_authorized
+passed=True
+record_identity_hash_remediation_authorized=True
+implementation_authorized=True
+implementation_scope_limited_to_training_data_builder_and_validator=True
+fixed_artifact_rebuild_authorized_now=False
+training_split_manifest_ready_for_preflight=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_implementation_only`

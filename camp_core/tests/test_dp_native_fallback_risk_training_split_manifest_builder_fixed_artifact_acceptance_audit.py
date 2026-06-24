@@ -132,7 +132,8 @@ def test_acceptance_audit_next_gate_is_record_identity_authorization_only() -> N
 
 
 def test_iteration_audit_tail_records_current_acceptance_audit_next_gate() -> None:
-    tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-140:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-160:])
 
     for needle in [
         "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rejected_missing_record_identity_hash",
@@ -140,10 +141,16 @@ def test_iteration_audit_tail_records_current_acceptance_audit_next_gate() -> No
         "missing_record_identity_hash_records=15",
         "autodl_target_pytest=22 passed",
         "training_split_manifest_ready_for_preflight=False",
+    ]:
+        assert needle in audit
+
+    for needle in [
+        "status=fallback_risk_training_data_record_identity_hash_remediation_authorized",
+        "record_identity_hash_remediation_authorized=True",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_implementation_only`"
     )
