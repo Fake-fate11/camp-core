@@ -86681,3 +86681,64 @@ must remain limited to candidate tensor hash/provenance logging and static
 contract checks with no replay, candidate generation, trajectory rewrite,
 training, promotion, DP modification, safety-benefit claim, or CAMP-over-DP
 claim.
+
+## Paper-faithful boundary and Benders-compatible atom audit
+
+Commit `ff56d1e157f1f03056396e458ad51446d2c29480` makes the DP-CAMP replay and
+benchmark-matrix entrypoints fail closed for non-atom routes. The rejected
+routes include reference blending, candidate guidance, antithetic candidate
+sampling, postselection, splice/materialized generators, closed-loop outcome
+inputs, payload logging, candidate0 guards, lexicographic preselection, and
+underprogress relaxation. These routes are not CAMP atoms and must not be used
+for replay, training, online promotion, or safety/CAMP-over-DP claims.
+
+The current atom audit artifact is:
+
+```text
+docs/dp_camp_benders_compatible_atom_audit.md
+```
+
+Audit decision:
+
+```text
+keep current deployed atom schemas:
+  camp_legacy_v1_9d
+  dp_camp_v7_10d
+  dp_camp_v8_12d
+  dp_camp_v9_13d
+  dp_camp_v10_14d
+condition:
+  values are fixed finite nonnegative candidate coefficients before scoring
+  score remains a_k^T w
+  robust-margin loss remains a finite maximum of affine functions
+reject:
+  any non-atom route or payload unless later promoted through a separate
+  Benders-compatible atom gate
+```
+
+Local verification:
+
+```text
+git fetch --prune origin
+git rev-parse HEAD origin/main
+ff56d1e157f1f03056396e458ad51446d2c29480
+ff56d1e157f1f03056396e458ad51446d2c29480
+
+python -m py_compile camp_core/tests/test_diffusion_planner_benders_atom_contract.py camp_core/tests/test_diffusion_planner_benchmark_matrix.py camp_core/tests/test_diffusion_planner_camp_replay_paper_boundary.py scripts/integrations/run_diffusion_planner_camp_replay.py scripts/integrations/run_diffusion_planner_camp_benchmark_matrix.py
+exit=0
+
+python -m pytest camp_core/tests/test_diffusion_planner_benders_atom_contract.py camp_core/tests/test_diffusion_planner_benchmark_matrix.py camp_core/tests/test_diffusion_planner_camp_replay_paper_boundary.py -q
+exit=1
+reason=existing Windows collection blocker on a missing long-path residual-comfort test file before target tests ran
+
+temporary rootdir target pytest with PYTHONPATH=F:\camp_core-main\camp_core;F:\camp_core-main
+51 passed in 0.73s
+```
+
+This audit does not authorize candidate generation, replay, Full36, formal
+seeds 11/12/13, CAMP retraining, online selector promotion, atom promotion, DP
+modification, safety benefit claims, or CAMP-over-DP Top-1 claims.
+
+Next admissible gate remains:
+
+`dp_native_candidate_tensor_provenance_payload_implementation_authorization_only`.
