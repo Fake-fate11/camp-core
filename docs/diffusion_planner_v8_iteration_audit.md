@@ -87981,3 +87981,145 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_clean_training_log_collection_broader_nonformal_user_authorization_pending`
+
+## DP native clean training log collection broader nonformal result
+
+Gate:
+
+`dp_native_clean_training_log_collection_broader_nonformal_user_authorized_execution`
+
+Artifact:
+
+```text
+docs/dp_native_clean_training_log_collection_broader_nonformal_result.md
+```
+
+User authorization:
+
+```text
+routes=sample_tl,sample_normal
+seeds=101,102,103
+traffic_lights=on,off
+steps=3
+num_candidates=4
+candidate_noise_strategy=iid
+must_enable=--camp_candidate_tensor_provenance_logging
+must_not_enable=closed-loop outcomes, reference_blend, guidance
+must_not_run=Full36, formal seeds 11/12/13, CAMP retraining
+must_not_modify=Diffusion Planner
+must_not_promote=selector/atom
+must_not_claim=safety or CAMP-over-DP
+```
+
+Fixed AutoDL artifact root:
+
+```text
+/root/autodl-tmp/camp_dp_native_clean_training_log_broader_nonformal_4967c531_20260624T054110Z
+```
+
+HEAD evidence:
+
+```text
+pre-run local/GitHub/AutoDL CAMP HEAD=4967c531d51d098fa836de134d9e7380a448f8ee
+AutoDL CAMP origin/main=4967c531d51d098fa836de134d9e7380a448f8ee
+AutoDL DP HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+required DP fixed commit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Execution and validator evidence:
+
+```text
+run_count=12
+all_replay_exits_zero=True
+selection_log_count=12
+all_selection_logs_present=True
+total_records=36
+expected_exact_selection_records_for_completed_matrix=36
+validator_exit=0
+validator_passed=True
+validator_records=36
+validator_failed_records=[]
+future_training_input_contract_satisfied=True
+collection_passed=True
+```
+
+Coverage:
+
+```text
+counts_by_route={"sample_normal": 18, "sample_tl": 18}
+counts_by_seed={"101": 12, "102": 12, "103": 12}
+counts_by_traffic_lights={"off": 18, "on": 18}
+candidate_count_values={"4": 36}
+selected_index_counts={"0": 7, "1": 8, "2": 7, "3": 14}
+```
+
+Clean-boundary evidence:
+
+```text
+no_forbidden_flags_in_commands=True
+all_records_closed_loop_outcomes_none=True
+all_candidate_generation_contracts_clean=True
+all_candidate_tensor_provenance_clean=True
+validator_read_only=True
+validator_training_execution_authorized=False
+```
+
+Verification:
+
+```text
+remote_collection_driver_exit=0
+remote_clean_log_validator_exit=0
+remote_clean_log_validator_passed=True
+remote_clean_log_validator_records=36
+local_git_diff_check_exit=0
+local_python_version=Python 3.13.9
+local_py_compile_exit=0
+local_temp_rootdir_target_pytest=8 passed in 0.76s
+autodl_py_compile_exit=0
+autodl_target_pytest=8 passed in 0.41s
+```
+
+Windows note:
+
+```text
+direct_repo_pytest_target_invocation_aborted_before_target_collection=True
+reason=pre-existing unavailable long-path test node enumerated by pytest
+workaround_used=temp rootdir target pytest with repo PYTHONPATH
+repo_cleanup_performed=False
+```
+
+SHA evidence:
+
+```text
+preflight.json=163162dfc60bd7967773fe12834a58b7c6debe785bd58af55eeb99ff879fe965
+collection_summary.json=05c8c7056dbe7460cfac422b0f1081179021a9df80324a4378cec3bf6dc693f0
+collection_summary.md=be8e8acc22805592c35ec22d71d86f494fd53768fad8cf0a8c338e3bfd89363a
+clean_dp_native_training_data_contract_validation.json=c2f8f1b10e9d1a8925886255e8ffa3af151ef1ceaab278027a50a9087f39a7f4
+clean_dp_native_training_data_contract_validation.md=76e14ed1657d91581b2ff96cfcf0366be2363d704e4a38d2ea7e5f7659263758
+validator_stdout_stderr.log=5b7b916da344996d04f5950c723cfde782ca981c57fccbc8c8cacb174ed0a458
+validator_exit.txt=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+```
+
+Decision:
+
+```text
+status=broader_nonformal_collection_passed
+clean_dp_native_training_log_contract_passed=True
+records_collected=36
+training_execution_authorized=False
+camp_retraining_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This gate proves only that a small broader nonformal fixed-DP clean-log
+collection can be produced and validated under the approved boundary. It does
+not authorize CAMP retraining, DP modification, selector/atom promotion, or any
+safety/CAMP-over-DP claim.
+
+Next admissible gate:
+
+`dp_native_clean_training_log_dataset_sufficiency_and_trainer_preflight_authorization_only`
