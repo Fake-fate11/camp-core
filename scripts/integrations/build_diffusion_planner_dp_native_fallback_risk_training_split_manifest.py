@@ -273,6 +273,7 @@ def _validate_record(
         "record_index",
         "candidate_count",
         "oracle_index",
+        "record_identity_hash",
     ):
         if field not in record:
             errors.append(f"{field}_missing")
@@ -300,7 +301,7 @@ def _validate_record(
     if identity_hash in seen_hashes:
         errors.append("duplicate_record_identity")
     seen_hashes.add(identity_hash)
-    if record.get("record_identity_hash") not in (None, identity_hash):
+    if "record_identity_hash" in record and record.get("record_identity_hash") != identity_hash:
         errors.append("record_identity_hash_mismatch")
     for flag in FORBIDDEN_SPLIT_FEATURE_FLAGS:
         if record.get(flag) not in (None, False):

@@ -30,6 +30,7 @@ from scripts.integrations.validate_dp_native_fallback_risk_training_sufficiency_
 
 DATASET_SCHEMA_VERSION = "dp_native_fallback_risk_training_data_v1"
 VALIDATOR_SHA = "572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b"
+AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _sha256_file(path: Path) -> str:
@@ -42,7 +43,7 @@ def _hex(char: str) -> str:
 
 def _record(index: int, *, source_log: str | None = None) -> dict[str, Any]:
     source = source_log or f"/synthetic/source_{index:02d}/camp_selection_log.json"
-    return {
+    record = {
         "schema_version": DATASET_SCHEMA_VERSION,
         "source_log": source,
         "source_log_sha256": _hex(chr(ord("a") + index % 6)),
@@ -59,6 +60,20 @@ def _record(index: int, *, source_log: str | None = None) -> dict[str, Any]:
         "candidate_rank_used_as_feature": False,
         "fallback_label_is_not_a_deployed_atom": True,
     }
+    record["record_identity_hash"] = _record_identity_hash(record)
+    return record
+
+
+def _record_identity_hash(record: dict[str, Any]) -> str:
+    identity = {
+        "source_log": record.get("source_log"),
+        "source_log_sha256": record.get("source_log_sha256"),
+        "run_id": record.get("run_id"),
+        "record_index": record.get("record_index"),
+    }
+    return hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def _dataset(records: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -306,20 +321,24 @@ def test_split_builder_rejects_identity_collision_and_formal_leaks(tmp_path: Pat
     records[6]["formal_eval_artifact_included"] = True
     records[7]["selected_index_used_as_feature"] = True
     records[8]["candidate_rank_used_as_feature"] = True
+    records[9].pop("record_identity_hash")
 
     payload = _dataset(records)
     payload["source_hashes"][records[3]["source_log"]] = _hex("a")
     errors = _build(tmp_path, payload)["final_decision"]["errors"]
 
     for needle in [
+        "record_1:record_identity_hash_mismatch",
         "record_2:group_key_collision",
         "record_2:duplicate_record_identity",
         "record_3:source_log_sha256_mismatch",
+        "record_3:record_identity_hash_mismatch",
         "record_4:oracle_index_invalid",
         "record_5:formal_seed_in_split_manifest",
         "record_6:formal_eval_artifact_record_included",
         "record_7:selected_index_used_as_feature_leak",
         "record_8:candidate_rank_used_as_feature_leak",
+        "record_9:record_identity_hash_missing",
     ]:
         assert needle in errors
 
@@ -391,3 +410,14 @@ def test_split_builder_rejects_explicit_true_or_nonfalse_forbidden_flags(
 
     assert "final_decision_fallback_risk_training_authorized_now_not_false" in true_errors
     assert "final_decision_candidate_generation_authorized_not_false" in nonfalse_errors
+
+
+def test_audit_tail_records_split_manifest_builder_static_contract_next_gate() -> None:
+    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
+
+    assert "status=fallback_risk_training_split_manifest_builder_implementation_current_head_revalidated" in tail
+    assert "local_target_pytest=9 passed" in tail
+    assert "training_execution_authorized_now=False" in tail
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only`"
+    )
