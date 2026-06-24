@@ -102285,3 +102285,103 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Data Record Identity Hash Remediation Post-Implementation Static Contract Review
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_only
+```
+
+Reviewed the implemented record identity hash remediation in the fallback-risk
+training data builder and validator contract. This gate did not rebuild fixed
+artifacts, run replay, generate candidates, train or retrain CAMP, modify
+Diffusion Planner, change the online selector, promote a selector or atom, or
+claim safety benefit or CAMP-over-DP Top-1.
+
+Reviewed artifacts:
+
+```text
+review_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_review.md
+review_test=camp_core/tests/test_dp_native_fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract.py
+implementation_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_implementation.md
+training_data_builder=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py
+training_data_validator=scripts/integrations/validate_dp_native_fallback_risk_training_data_contract.py
+implementation_status=fallback_risk_training_data_record_identity_hash_remediation_implemented
+```
+
+Static contract:
+
+```text
+builder_emits_record_identity_hash=True
+builder_hash_formula_matches_split_manifest_builder=True
+validator_requires_record_identity_hash=True
+validator_recomputes_record_identity_hash=True
+validator_rejects_missing_record_identity_hash=True
+validator_rejects_invalid_record_identity_hash=True
+validator_rejects_mismatched_record_identity_hash=True
+default_off_boundaries_preserved=True
+new_runtime_dependencies=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_post_static_target_pytest=6 passed
+local_related_target_pytest=54 passed
+```
+
+Forbidden remains:
+
+```text
+user_camp_retraining_permission_available=True
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+fixed_artifact_rebuild_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_record_identity_hash_remediation_post_implementation_static_contract_passed
+passed=True
+static_contract_review_complete=True
+blocking_contract_findings=0
+record_identity_hash_remediation_implemented=True
+fixed_artifact_rebuild_authorized_now=False
+training_split_manifest_ready_for_preflight=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`
