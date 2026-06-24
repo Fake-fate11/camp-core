@@ -98218,3 +98218,89 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Ranking Default-Off Unit Tests Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only
+```
+
+Revalidated the existing focused synthetic contract tests for the default-off
+fallback-risk diagnostic boundary.
+
+```text
+test_file=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_contract.py
+camp_head=94e11c118176a46f43b1031600fc897249b9888a
+camp_origin_main=94e11c118176a46f43b1031600fc897249b9888a
+github_refs_heads_main=94e11c118176a46f43b1031600fc897249b9888a
+autodl_CAMP_HEAD=94e11c118176a46f43b1031600fc897249b9888a
+autodl_CAMP_origin_main=94e11c118176a46f43b1031600fc897249b9888a
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Covered synthetic checks:
+
+```text
+test_default_off_contract_scopes_to_records_without_feasible_candidate=True
+test_default_off_contract_reports_ties_and_lower_cost_candidates=True
+test_default_off_contract_fails_closed_on_missing_or_invalid_costs=True
+test_default_off_contract_rejects_provenance_mutation_paths=True
+test_default_off_contract_keeps_training_and_promotion_forbidden=True
+```
+
+Forbidden remains for this gate:
+
+```text
+production_implementation_edit_authorized=False
+extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=5 passed
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=5 passed
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated
+passed=True
+tests_only=True
+production_implementation_not_changed=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization_only`
