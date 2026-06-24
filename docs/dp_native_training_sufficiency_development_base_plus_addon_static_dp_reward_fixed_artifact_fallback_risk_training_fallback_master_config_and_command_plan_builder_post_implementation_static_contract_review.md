@@ -1,0 +1,181 @@
+# DP Native Fixed-Artifact Fallback Risk Training Fallback Master Config And Command Plan Builder Post-Implementation Static Contract Review
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_builder_post_implementation_static_contract_only
+```
+
+This static review checks the default-off builder implementation for
+fallback-only master config and dry-run command plan manifests. It does not run
+the builder on the fixed AutoDL artifact, run the sufficiency preflight, train
+CAMP, retrain CAMP, run replay, generate candidates, modify Diffusion Planner,
+change the online selector, promote a selector or atom, or claim safety
+benefit or CAMP-over-DP Top-1.
+
+## Reviewed Artifacts
+
+```text
+implementation=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_fallback_master_config_and_command_plan.py
+implementation_tests=camp_core/tests/test_dp_native_fallback_risk_training_fallback_master_config_and_command_plan_builder.py
+implementation_authorization=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_builder_implementation_authorization.md
+camp_head_at_review=56ab355d39def011f59a8dbf3bba90457e93c097
+camp_origin_main_at_review=56ab355d39def011f59a8dbf3bba90457e93c097
+github_refs_heads_main_at_review=56ab355d39def011f59a8dbf3bba90457e93c097
+autodl_CAMP_HEAD_at_review=56ab355d39def011f59a8dbf3bba90457e93c097
+autodl_CAMP_origin_main_at_review=56ab355d39def011f59a8dbf3bba90457e93c097
+autodl_DP_HEAD_at_review=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Contract Checks
+
+### Default-Off And Write Boundary
+
+```text
+default_off_boundary_passed=True
+disabled_status=dp_native_fallback_risk_training_fallback_master_config_and_command_plan_builder_default_off_disabled
+enable_flag=--enable_default_off_fallback_risk_training_master_command_builder
+disabled_mode_returns_before_any_manifest_read=True
+disabled_mode_reads_inputs=False
+disabled_mode_writes_master_or_command=False
+writes_master_and_command_only_when_complete=True
+subprocess_usage_found=False
+```
+
+### Input Hash And Scope Boundary
+
+```text
+input_hash_scope_boundary_passed=True
+reads_validated_dataset_json_only=True
+reads_training_split_manifest_json_only=True
+reads_train_only_scale_manifest_json_only=True
+requires_expected_dataset_sha256=True
+requires_expected_split_manifest_sha256=True
+requires_expected_scale_manifest_sha256=True
+dataset_sha256_mismatch_fails_closed=True
+split_manifest_sha256_mismatch_fails_closed=True
+scale_manifest_sha256_mismatch_fails_closed=True
+fixed_artifact_master_command_manifest_generation_authorized=False
+```
+
+### Split And Scale Fail-Closed Boundary
+
+```text
+split_scale_fail_closed_boundary_passed=True
+training_validation_overlap_rejected=True
+scale_fit_groups_not_training_only_rejected=True
+scale_fit_validation_leak_rejected=True
+formal_seed_in_split_rejected=True
+formal_eval_artifact_rejected=True
+scale_fit_formal_seed_leak_rejected=True
+scale_fit_formal_eval_leak_rejected=True
+dp_camp_v10_14d_required=True
+exact_14d_atom_names_required=True
+strictly_positive_atom_scales_required=True
+```
+
+### Master, Command, And Preflight Boundary
+
+```text
+master_command_output_boundary_passed=True
+fallback_master_config_schema=dp_native_fallback_risk_fallback_master_config_v1
+training_command_plan_schema=dp_native_fallback_risk_training_command_plan_v1
+fallback_only=True
+score_expression=score_k(w)=a_k^T w
+atoms_fixed_nonnegative=True
+fallback_label_is_deployed_atom=False
+simplex_cvar_l2_convex=True
+training_command_authorization=False
+training_execution_authorized=False
+post_training_nonpromotion_plan_required=True
+development_holdout_acceptance_gate_required=True
+preflight_shape_compatible=True
+```
+
+## Findings
+
+```text
+blocking_contract_findings=0
+nonblocking_requirements=2
+```
+
+Nonblocking requirements for later gates:
+
+```text
+require_fixed_artifact_master_command_acceptance_audit=True
+require_training_sufficiency_preflight_acceptance_after_all_manifest_generation=True
+```
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=6 passed
+local_fallback_risk_related_pytest=315 passed
+autodl_target_pytest=6 passed
+autodl_fallback_risk_related_pytest=315 passed
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_fallback_master_config_and_command_plan_builder_post_implementation_static_contract_passed
+passed=True
+static_contract_review_complete=True
+blocking_contract_findings=0
+fixed_artifact_master_command_manifest_generation_authorized=False
+master_command_builder_execution_on_fixed_artifact_authorized=False
+training_sufficiency_preflight_execution_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_builder_fixed_artifact_acceptance_audit_only
+```
+
+The next gate may only run the default-off builder on the existing accepted fixed artifact manifests for acceptance evidence and write audit outputs. It
+must not run the sufficiency preflight, must not train CAMP, run replay,
+generate candidates, modify Diffusion Planner, use formal seeds, promote a
+selector or atom, or claim safety/CAMP-over-DP benefit.
