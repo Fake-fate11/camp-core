@@ -99955,3 +99955,107 @@ selector_or_atom_not_promoted=True
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_only`
+
+## DP Native Training Sufficiency Development Base Plus Addon Static DP Reward Fixed Artifact Fallback Risk Training Data Validator Extension Implementation Revalidation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_only
+```
+
+Revalidated the current default-off fallback-risk training-data validator
+implementation. No production selector, atom schema, feasible-ranking master,
+Diffusion Planner code, replay path, candidate generator, or training entrypoint
+was edited.
+
+```text
+validator_script=scripts/integrations/validate_dp_native_fallback_risk_training_data_contract.py
+validator_tests=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension.py
+validator_contract_tests=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_contract.py
+authorization_tests=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_implementation_authorization.py
+camp_head=05399b16e7ebfb6106d69f4803a6cff124b17fd5
+camp_origin_main=05399b16e7ebfb6106d69f4803a6cff124b17fd5
+github_refs_heads_main=05399b16e7ebfb6106d69f4803a6cff124b17fd5
+autodl_CAMP_HEAD=05399b16e7ebfb6106d69f4803a6cff124b17fd5
+autodl_CAMP_origin_main=05399b16e7ebfb6106d69f4803a6cff124b17fd5
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Implementation boundary revalidated:
+
+```text
+default_off=True
+read_only_dataset_json_input_only=True
+read_only_source_log_readback_only=True
+source_log_readback_required_for_acceptance=True
+output_json_or_markdown_only=True
+schema_status_count_and_hash_mismatch_fail_closed=True
+source_feasible_mask_any_true_or_non_bool_fail_closed=True
+candidate_generation_or_provenance_violation_fail_closed=True
+atom_schema_or_nonnegative_matrix_violation_fail_closed=True
+training_selector_atom_promotion_or_claim_flags_rejected=True
+score_k_equals_a_k_transpose_w_boundary_preserved=True
+fallback_dataset_kept_separate_from_feasible_master=True
+```
+
+Verification:
+
+```text
+local_python=py -3.12
+local_py_compile_exit=0
+local_target_pytest=15 passed
+local_git_diff_check_exit=0
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=15 passed
+autodl_git_diff_check_exit=0
+```
+
+Forbidden remains:
+
+```text
+user_camp_retraining_permission_available=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_validator_extension_implementation_current_head_revalidated
+passed=True
+validator_extension_implementation_complete=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_post_implementation_static_contract_only`
