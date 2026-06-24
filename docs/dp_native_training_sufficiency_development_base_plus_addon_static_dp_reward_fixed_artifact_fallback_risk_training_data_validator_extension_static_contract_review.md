@@ -1,0 +1,199 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Validator Extension Static Contract Review
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_static_contract_review_only
+```
+
+This review statically checks the fallback-risk training data validator
+extension plan. It does not implement the validator, run replay, generate
+candidates, train CAMP, retrain CAMP, modify Diffusion Planner, change the
+online selector, promote a selector or atom, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+## Reviewed Artifact
+
+```text
+validator_extension_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan.md
+camp_head_at_review=63b85f6380ecba4dfa04122b01d556a3f66465af
+camp_origin_main_at_review=63b85f6380ecba4dfa04122b01d556a3f66465af
+github_refs_heads_main_at_review=63b85f6380ecba4dfa04122b01d556a3f66465af
+autodl_CAMP_HEAD_at_review=63b85f6380ecba4dfa04122b01d556a3f66465af
+autodl_CAMP_origin_main_at_review=63b85f6380ecba4dfa04122b01d556a3f66465af
+autodl_DP_HEAD_at_review=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Contract Checks
+
+### Source Isolation
+
+```text
+source_isolation_passed=True
+validator_input=existing_fallback_risk_training_dataset_json_only
+optional_source_log_readback=True
+source_log_readback_required_for_acceptance=True
+source_log_readback_mode=read_only_source_log_sha256_and_record_index_check
+output_json_or_markdown_only=True
+replay_execution_authorized=False
+candidate_generation_authorized=False
+training_execution_authorized=False
+dp_modification_authorized=False
+```
+
+### Dataset Contract
+
+```text
+dataset_contract_passed=True
+require_schema_version=dp_native_fallback_risk_training_data_v1
+require_final_decision_status=dp_native_fallback_risk_training_data_builder_complete
+require_final_decision_passed=True
+require_records_built_equals_records_length=True
+require_records_built_equals_records_without_feasible_candidate=True
+require_failed_records_zero=True
+require_no_final_decision_errors=True
+require_source_hashes_for_every_source_log=True
+```
+
+### Per-Record Contract
+
+```text
+per_record_contract_passed=True
+require_source_log=True
+require_source_log_sha256_hex=True
+require_source_artifact_sha256_hex=True
+require_run_id=True
+require_record_index_int=True
+require_candidate_count_positive_int=True
+require_selected_index_in_range=True
+require_oracle_index_in_range=True
+allowed_oracle_policies=red/lane/quality,lane/red/quality,quality/red/lane
+require_cost_values_finite_nonnegative=True
+require_margins_finite_nonnegative=True
+require_atom_schema_version_approved=True
+require_atom_names_exact_for_schema=True
+require_atoms_shape_candidate_by_schema_dim=True
+require_atoms_finite_nonnegative=True
+require_normalized_atoms_shape_matches_atoms=True
+require_normalized_atoms_finite_nonnegative=True
+require_training_authorized_false=True
+require_selected_index_used_as_feature_false=True
+require_candidate_rank_used_as_feature_false=True
+require_fallback_label_is_not_a_deployed_atom_true=True
+```
+
+### Source-Log Readback Contract
+
+The plan correctly refuses to rely only on dataset-level summary counts for
+acceptance. It requires a source-log readback proof for every accepted record.
+
+```text
+source_log_readback_contract_passed=True
+source_log_hash_mismatch_fails_closed=True
+source_record_missing_fails_closed=True
+source_feasible_mask_non_bool_fails_closed=True
+source_feasible_mask_any_true_fails_closed=True
+source_candidate_count_mismatch_fails_closed=True
+source_selected_index_mismatch_fails_closed=True
+source_candidate_generation_contract_rechecked=True
+source_candidate_tensor_provenance_rechecked=True
+source_atom_schema_and_names_rechecked=True
+source_atoms_and_normalized_atoms_rechecked=True
+```
+
+### Mathematical And Nonpromotion Boundary
+
+```text
+score_k(w)=a_k^T w
+mathematical_boundary_passed=True
+fallback_dataset_validator_does_not_add_atoms=True
+fallback_dataset_validator_does_not_change_weights=True
+fallback_dataset_validator_does_not_change_feasible_master=True
+fallback_dataset_validator_does_not_relax_hard_feasibility=True
+fallback_dataset_validator_does_not_train=True
+fallback_dataset_training_sufficiency_claim=False
+all_infeasible_records_added_to_feasible_training=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+simplex_master_unchanged=True
+cvar_master_unchanged=True
+l2_regularized_master_unchanged=True
+```
+
+## Findings
+
+```text
+blocking_contract_findings=0
+nonblocking_requirements=3
+```
+
+Nonblocking requirements for later gates:
+
+```text
+require_validator_unit_tests_plan=True
+require_validator_synthetic_unit_tests=True
+require_implementation_authorization_after_tests=True
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+validator_extension_implementation_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_validator_extension_static_contract_review_passed
+passed=True
+static_contract_review_complete=True
+blocking_contract_findings=0
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only
+```
+
+The next gate may only plan synthetic unit tests for the fallback-risk dataset
+validator extension. It must not implement the validator, run replay, generate
+candidates, train CAMP, retrain CAMP, modify Diffusion Planner, use formal
+seeds, relax hard feasibility, add all-infeasible records to the
+feasible-ranking master, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.
