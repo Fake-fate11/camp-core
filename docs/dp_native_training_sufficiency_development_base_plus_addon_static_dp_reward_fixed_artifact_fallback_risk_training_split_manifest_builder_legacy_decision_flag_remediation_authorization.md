@@ -1,0 +1,149 @@
+# DP Native Fixed-Artifact Fallback Risk Training Split Manifest Builder Legacy Decision Flag Remediation Authorization
+
+Date: 2026-06-24
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_legacy_decision_flag_remediation_authorization_only
+```
+
+This authorization-only artifact decides whether the next gate may implement a
+minimal compatibility remediation for legacy validated dataset final-decision
+flags. It does not implement the remediation, rerun fixed-artifact acceptance,
+train CAMP, retrain CAMP, run replay, generate candidates, modify Diffusion
+Planner, change the online selector, promote a selector or atom, or claim
+safety benefit or CAMP-over-DP Top-1.
+
+## Reviewed Evidence
+
+```text
+failed_acceptance_audit=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit.md
+split_manifest_builder=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_split_manifest.py
+source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f632c44_20260624T133402Z/dataset.json
+builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_f00a2d4_20260624T153229Z
+camp_head_at_authorization=eebe16f15daadd24a781cdbe5cd8aa5bff71ec8a
+camp_origin_main_at_authorization=eebe16f15daadd24a781cdbe5cd8aa5bff71ec8a
+github_refs_heads_main_at_authorization=eebe16f15daadd24a781cdbe5cd8aa5bff71ec8a
+autodl_CAMP_HEAD_at_authorization=eebe16f15daadd24a781cdbe5cd8aa5bff71ec8a
+autodl_CAMP_origin_main_at_authorization=eebe16f15daadd24a781cdbe5cd8aa5bff71ec8a
+autodl_DP_HEAD_at_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Preconditions
+
+```text
+fixed_artifact_acceptance_audit_complete=True
+fixed_artifact_acceptance_passed=False
+blocking_acceptance_findings=1
+legacy_final_decision_flag_compatibility_issue=True
+single_error=final_decision_fallback_risk_training_authorized_now_not_false
+dataset_sha256_matched=True
+validator_output_sha256_recorded=True
+builder_failed_closed=True
+local_acceptance_audit_pytest=5 passed
+local_fallback_risk_pytest=224 passed
+autodl_acceptance_audit_pytest=5 passed
+autodl_fallback_risk_pytest=224 passed
+dp_fixed_commit_verified=True
+```
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=4 passed
+local_fallback_risk_related_pytest=228 passed
+```
+
+## Authorized Next Work
+
+The next gate may implement only a minimal compatibility remediation in the
+split manifest builder's validation of legacy dataset `final_decision` flags.
+
+```text
+implementation_authorized=True
+legacy_decision_flag_remediation_implementation_authorized=True
+may_treat_absent_legacy_final_decision_forbidden_flags_as_false=True
+must_reject_explicit_true_forbidden_flags=True
+must_reject_present_non_false_forbidden_flags=True
+must_scope_to_input_dataset_final_decision_validation_only=True
+must_preserve_output_final_decision_forbidden_flags_false=True
+must_add_synthetic_missing_legacy_flag_test=True
+must_add_synthetic_explicit_true_flag_rejection_test=True
+fixed_artifact_acceptance_rerun_authorized=False
+training_split_manifest_ready_for_preflight=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+production_selector_change_authorized=False
+```
+
+The implementation must not relax explicit True or non-false forbidden flags.
+It may only make absent legacy fields compatible with older already-validated
+dataset artifacts.
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_split_manifest_builder_legacy_decision_flag_remediation_authorized
+passed=True
+implementation_authorized=True
+legacy_decision_flag_remediation_implementation_authorized=True
+fixed_artifact_acceptance_rerun_authorized=False
+training_split_manifest_ready_for_preflight=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_legacy_decision_flag_remediation_implementation_only
+```
+
+The next gate may only implement this minimal compatibility remediation and
+targeted synthetic tests. It must not rerun fixed-artifact acceptance, train
+CAMP, run replay, generate candidates, modify Diffusion Planner, use formal
+seeds, relax hard feasibility, add all-infeasible records to the feasible
+ranking master, promote a selector or atom, or claim safety/CAMP-over-DP
+benefit.
