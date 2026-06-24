@@ -24,7 +24,9 @@ from scripts.integrations.validate_dp_native_training_data_contract import (  # 
 
 SCHEMA_VERSION = "dp_native_training_sufficiency_preflight_v1"
 PROFILE = "development_minimal_v1"
+DEVELOPMENT_PROFILE = "dp_native_feasible_ranking_development_minimal_v1"
 FORMAL_SEEDS = {11, 12, 13}
+REQUIRED_DEVELOPMENT_TRAFFIC_LIGHT_STATES = ("off", "on")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -44,7 +46,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--reward_key", default="quality_without_progress")
     parser.add_argument("--reward_progress_weight", type=float, default=2.0)
+    parser.add_argument(
+        "--development_profile",
+        choices=(DEVELOPMENT_PROFILE,),
+        default=None,
+        help=(
+            "Enable a named default-off development sufficiency profile. "
+            "This only changes preflight thresholds; it does not train CAMP."
+        ),
+    )
     parser.add_argument("--min_records", type=int, default=100)
+    parser.add_argument("--min_usable_feasible_records", type=int, default=0)
     parser.add_argument("--min_routes", type=int, default=3)
     parser.add_argument("--min_seeds", type=int, default=4)
     parser.add_argument("--min_traffic_light_states", type=int, default=2)
@@ -86,6 +98,13 @@ def _metadata_from_log_path(path: Path) -> dict[str, Any]:
 def _candidate_count(record: dict[str, Any]) -> int:
     atoms = record.get("atoms")
     return len(atoms) if isinstance(atoms, list) else 0
+
+
+def _has_usable_feasible_candidate(record: dict[str, Any]) -> bool:
+    feasible = record.get("feasible_mask")
+    if not isinstance(feasible, list):
+        return False
+    return any(value is True for value in feasible)
 
 
 def _dp_reward_record_errors(
@@ -139,12 +158,15 @@ def evaluate_training_sufficiency(
     label_source: str,
     reward_key: str = "quality_without_progress",
     min_records: int = 100,
+    min_usable_feasible_records: int = 0,
     min_routes: int = 3,
     min_seeds: int = 4,
     min_traffic_light_states: int = 2,
     min_candidate_count: int = 2,
+    required_traffic_light_states: tuple[str, ...] = (),
     require_heldout_split: bool = False,
     allow_formal_seeds: bool = False,
+    profile: str = PROFILE,
 ) -> dict[str, Any]:
     loaded_logs: list[str] = []
     failed_records: list[dict[str, Any]] = []
@@ -156,6 +178,7 @@ def evaluate_training_sufficiency(
     group_counts: Counter[str] = Counter()
     formal_seed_records = 0
     record_count = 0
+    usable_feasible_records = 0
 
     for path in paths:
         log_path, records = _records_from_path(path)
@@ -166,6 +189,8 @@ def evaluate_training_sufficiency(
         tl_state = meta["traffic_lights"]
         for record_index, record in enumerate(records):
             record_count += 1
+            if _has_usable_feasible_candidate(record):
+                usable_feasible_records += 1
             routes[route] += 1
             group_counts[str(meta["group_name"])] += 1
             if seed is not None:
@@ -201,10 +226,15 @@ def evaluate_training_sufficiency(
 
     checks = {
         "records_at_least_min": record_count >= int(min_records),
+        "usable_feasible_records_at_least_min": usable_feasible_records
+        >= int(min_usable_feasible_records),
         "routes_at_least_min": len(routes) >= int(min_routes),
         "seeds_at_least_min": len(seeds) >= int(min_seeds),
         "traffic_light_states_at_least_min": (
             len(traffic_lights) >= int(min_traffic_light_states)
+        ),
+        "required_traffic_light_states_present": all(
+            state in traffic_lights for state in required_traffic_light_states
         ),
         "candidate_count_at_least_min": all(
             int(count) >= int(min_candidate_count) for count in candidate_counts
@@ -225,20 +255,23 @@ def evaluate_training_sufficiency(
     passed = not failed_checks
     return {
         "schema_version": SCHEMA_VERSION,
-        "profile": PROFILE,
+        "profile": profile,
         "selection_logs": loaded_logs,
         "label_source": label_source,
         "reward_key": reward_key if label_source == "dp_reward" else None,
         "thresholds": {
             "min_records": int(min_records),
+            "min_usable_feasible_records": int(min_usable_feasible_records),
             "min_routes": int(min_routes),
             "min_seeds": int(min_seeds),
             "min_traffic_light_states": int(min_traffic_light_states),
             "min_candidate_count": int(min_candidate_count),
+            "required_traffic_light_states": list(required_traffic_light_states),
             "require_heldout_split": bool(require_heldout_split),
             "allow_formal_seeds": bool(allow_formal_seeds),
         },
         "records": int(record_count),
+        "usable_feasible_records": int(usable_feasible_records),
         "routes": dict(sorted(routes.items())),
         "seeds": dict(sorted(seeds.items())),
         "traffic_lights": dict(sorted(traffic_lights.items())),
@@ -272,6 +305,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Passed: `{report['passed']}`",
         f"- Profile: `{report['profile']}`",
         f"- Records: `{report['records']}`",
+        f"- Usable feasible records: `{report['usable_feasible_records']}`",
         f"- Label source: `{report['label_source']}`",
         f"- Failed checks: `{', '.join(report['failed_checks'])}`",
         f"- Replay executed: `{report['replay_executed']}`",
@@ -312,17 +346,42 @@ def render_markdown(report: dict[str, Any]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    profile = PROFILE
+    min_records = args.min_records
+    min_usable_feasible_records = args.min_usable_feasible_records
+    min_routes = args.min_routes
+    min_seeds = args.min_seeds
+    min_traffic_light_states = args.min_traffic_light_states
+    min_candidate_count = args.min_candidate_count
+    required_traffic_light_states: tuple[str, ...] = ()
+    require_heldout_split = args.require_heldout_split
+    allow_formal_seeds = args.allow_formal_seeds
+    if args.development_profile == DEVELOPMENT_PROFILE:
+        profile = DEVELOPMENT_PROFILE
+        min_records = 100
+        min_usable_feasible_records = 100
+        min_routes = 3
+        min_seeds = 4
+        min_traffic_light_states = 2
+        min_candidate_count = 4
+        required_traffic_light_states = REQUIRED_DEVELOPMENT_TRAFFIC_LIGHT_STATES
+        require_heldout_split = True
+        allow_formal_seeds = False
+
     report = evaluate_training_sufficiency(
         args.selection_log,
         label_source=args.label_source,
         reward_key=args.reward_key,
-        min_records=args.min_records,
-        min_routes=args.min_routes,
-        min_seeds=args.min_seeds,
-        min_traffic_light_states=args.min_traffic_light_states,
-        min_candidate_count=args.min_candidate_count,
-        require_heldout_split=args.require_heldout_split,
-        allow_formal_seeds=args.allow_formal_seeds,
+        min_records=min_records,
+        min_usable_feasible_records=min_usable_feasible_records,
+        min_routes=min_routes,
+        min_seeds=min_seeds,
+        min_traffic_light_states=min_traffic_light_states,
+        min_candidate_count=min_candidate_count,
+        required_traffic_light_states=required_traffic_light_states,
+        require_heldout_split=require_heldout_split,
+        allow_formal_seeds=allow_formal_seeds,
+        profile=profile,
     )
     if args.output_json is not None:
         args.output_json.parent.mkdir(parents=True, exist_ok=True)

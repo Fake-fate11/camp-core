@@ -8,6 +8,7 @@ from scripts.integrations.validate_dp_native_training_data_contract import (
     PROVENANCE_SCHEMA_VERSION,
 )
 from scripts.integrations.validate_dp_native_training_sufficiency_preflight import (
+    DEVELOPMENT_PROFILE,
     evaluate_training_sufficiency,
     main,
 )
@@ -17,20 +18,29 @@ def _sha(value: str) -> str:
     return value * 64
 
 
-def _record(*, selected_index: int = 0, include_dp_rewards: bool = True) -> dict:
+def _record(
+    *,
+    selected_index: int = 0,
+    include_dp_rewards: bool = True,
+    candidate_count: int = 2,
+    feasible_mask: list[bool] | None = None,
+) -> dict:
     version, names = atom_schema_for_dimension(9)
+    atoms = [
+        [float(index + column + 1) / 10.0 for column in range(9)]
+        for index in range(candidate_count)
+    ]
+    if feasible_mask is None:
+        feasible_mask = [True for _ in range(candidate_count)]
     record = {
         "selected_index": selected_index,
         "atom_schema_version": version,
         "atom_names": list(names),
-        "atoms": [
-            [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
-            [0.2, 0.1, 0.4, 0.3, 0.6, 0.5, 0.8, 0.7, 1.0],
-        ],
-        "feasible_mask": [True, True],
+        "atoms": atoms,
+        "feasible_mask": feasible_mask,
         "candidate_generation_contract": {
             "schema_version": "dp_candidate_generation_contract_v1",
-            "num_candidates": 2,
+            "num_candidates": candidate_count,
             "noise_strategy": "iid",
             "reference_blend_steps": None,
             "guidance_enabled": False,
@@ -52,19 +62,19 @@ def _record(*, selected_index: int = 0, include_dp_rewards: bool = True) -> dict
             "reference_blend_stage_hash_separated": True,
             "outcome_label_input": False,
             "closed_loop_outcome_fields_read": False,
-            "candidate_count": 2,
-            "post_selector_candidate_count": 2,
+            "candidate_count": candidate_count,
+            "post_selector_candidate_count": candidate_count,
             "selected_index": selected_index,
             "pre_camp_scoring_tensor": {
                 "sha256": _sha("a"),
-                "shape": [2, 80, 4],
+                "shape": [candidate_count, 80, 4],
                 "dtype": "float32",
                 "hash_input": "contiguous_candidate_tensor_bytes",
                 "nan_policy": "preserve_tensor_bytes",
             },
             "post_camp_selector_tensor": {
                 "sha256": _sha("a"),
-                "shape": [2, 80, 4],
+                "shape": [candidate_count, 80, 4],
                 "dtype": "float32",
                 "hash_input": "contiguous_candidate_tensor_bytes",
                 "nan_policy": "preserve_tensor_bytes",
@@ -73,8 +83,8 @@ def _record(*, selected_index: int = 0, include_dp_rewards: bool = True) -> dict
     }
     if include_dp_rewards:
         record["dp_candidate_rewards"] = [
-            {"total": 2.0, "progress": 0.5},
-            {"total": 1.0, "progress": 0.1},
+            {"total": float(candidate_count - index), "progress": 0.1 * index}
+            for index in range(candidate_count)
         ]
     return record
 
@@ -101,6 +111,7 @@ def test_current_scale_artifact_shape_fails_development_profile(tmp_path: Path) 
 
     assert report["passed"] is False
     assert "records_at_least_min" in report["failed_checks"]
+    assert "usable_feasible_records_at_least_min" not in report["failed_checks"]
     assert "routes_at_least_min" in report["failed_checks"]
     assert "seeds_at_least_min" in report["failed_checks"]
     assert report["training_execution_authorized"] is False
@@ -126,7 +137,56 @@ def test_preflight_passes_when_explicit_thresholds_are_met(tmp_path: Path) -> No
     assert report["routes"] == {"sample_normal": 1, "sample_tl": 1}
     assert report["seeds"] == {"101": 1, "102": 1}
     assert report["traffic_lights"] == {"off": 1, "on": 1}
+    assert report["usable_feasible_records"] == 2
     assert report["read_only"] is True
+
+
+def test_development_profile_is_explicit_and_fails_small_artifact_shape(
+    tmp_path: Path,
+) -> None:
+    log_path = _write_log(
+        tmp_path,
+        "sample_tl_seed101_tl_on",
+        [
+            _record(candidate_count=4),
+            _record(candidate_count=4, feasible_mask=[False, False, False, False]),
+        ],
+    )
+
+    custom = evaluate_training_sufficiency(
+        [log_path],
+        label_source="dp_reward",
+        min_records=1,
+        min_routes=1,
+        min_seeds=1,
+        min_traffic_light_states=1,
+        min_candidate_count=4,
+    )
+    profiled = evaluate_training_sufficiency(
+        [log_path],
+        label_source="dp_reward",
+        min_records=100,
+        min_usable_feasible_records=100,
+        min_routes=3,
+        min_seeds=4,
+        min_traffic_light_states=2,
+        min_candidate_count=4,
+        required_traffic_light_states=("off", "on"),
+        require_heldout_split=True,
+        profile=DEVELOPMENT_PROFILE,
+    )
+
+    assert custom["profile"] != DEVELOPMENT_PROFILE
+    assert custom["checks"]["candidate_count_at_least_min"] is True
+    assert profiled["profile"] == DEVELOPMENT_PROFILE
+    assert profiled["usable_feasible_records"] == 1
+    assert profiled["passed"] is False
+    assert "records_at_least_min" in profiled["failed_checks"]
+    assert "usable_feasible_records_at_least_min" in profiled["failed_checks"]
+    assert "routes_at_least_min" in profiled["failed_checks"]
+    assert "seeds_at_least_min" in profiled["failed_checks"]
+    assert "required_traffic_light_states_present" in profiled["failed_checks"]
+    assert profiled["training_execution_authorized"] is False
 
 
 def test_preflight_rejects_missing_label_source_records(tmp_path: Path) -> None:
@@ -213,3 +273,34 @@ def test_preflight_cli_writes_read_only_reports(tmp_path: Path, capsys) -> None:
     markdown = md_path.read_text(encoding="utf-8")
     assert "Training execution authorized: `False`" in markdown
     assert '"passed": true' in capsys.readouterr().out
+
+
+def test_preflight_cli_development_profile_fails_closed(tmp_path: Path) -> None:
+    log_path = _write_log(
+        tmp_path,
+        "sample_tl_seed101_tl_on",
+        [_record(candidate_count=4)],
+    )
+    json_path = tmp_path / "profile_report.json"
+
+    exit_code = main(
+        [
+            "--selection_log",
+            str(log_path),
+            "--label_source",
+            "dp_reward",
+            "--development_profile",
+            DEVELOPMENT_PROFILE,
+            "--output_json",
+            str(json_path),
+        ]
+    )
+
+    report = json.loads(json_path.read_text(encoding="utf-8"))
+    assert exit_code == 1
+    assert report["profile"] == DEVELOPMENT_PROFILE
+    assert report["thresholds"]["min_candidate_count"] == 4
+    assert report["thresholds"]["min_usable_feasible_records"] == 100
+    assert report["thresholds"]["required_traffic_light_states"] == ["off", "on"]
+    assert "usable_feasible_records_at_least_min" in report["failed_checks"]
+    assert report["training_execution_authorized"] is False
