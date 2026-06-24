@@ -89794,3 +89794,170 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_additive_clean_collection_user_authorization_pending`
+
+## DP native training sufficiency development additive clean collection result
+
+Gate:
+
+`dp_native_training_sufficiency_development_additive_clean_collection_user_authorized_execution`
+
+Artifact:
+
+```text
+docs/dp_native_training_sufficiency_development_additive_clean_collection_result.md
+```
+
+Fixed remote artifacts:
+
+```text
+base_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_development_collection_73aec55_20260624T075109Z
+additive_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_additive_clean_collection_79343f9_20260624T082432Z
+```
+
+Heads:
+
+```text
+local_HEAD=79343f9f50299849d1d3ebc5b6a49cab86752096
+origin_main=79343f9f50299849d1d3ebc5b6a49cab86752096
+github_refs_heads_main=79343f9f50299849d1d3ebc5b6a49cab86752096
+autodl_CAMP_HEAD=79343f9f50299849d1d3ebc5b6a49cab86752096
+autodl_CAMP_origin_main=79343f9f50299849d1d3ebc5b6a49cab86752096
+autodl_CAMP_github_main=79343f9f50299849d1d3ebc5b6a49cab86752096
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Authorized additive scope actually run:
+
+```text
+base_selection_log_count=24
+addon_routes=sample_normal,sample_tl
+addon_seeds=105,106,107,108
+traffic_lights=on,off
+steps=5
+num_candidates=4
+candidate_noise_strategy=iid
+candidate_noise_scale=1.0
+advance_mode=perfect
+max_npcs=0
+spawn_probability=0.3
+camp_selector_mode=uniform
+camp_feasibility_source=dp_reward
+must_enable=--camp_candidate_tensor_provenance_logging
+addon_expected_run_count=16
+```
+
+Remote result:
+
+```text
+remote_addon_replay_run_count=16
+remote_addon_all_replay_exits_zero=True
+remote_addon_selection_log_count=16
+remote_addon_records=80
+remote_addon_usable_feasible_records=68
+remote_combined_selection_log_count=40
+remote_combined_records=200
+remote_combined_usable_feasible_records=140
+remote_combined_required_usable_feasible_records=100
+remote_combined_usable_feasible_margin=40
+remote_clean_contract_validator_exit=0
+remote_clean_contract_validator_passed=True
+remote_clean_contract_validator_records=200
+remote_clean_contract_validator_failed_records=0
+remote_development_profile_exit=0
+remote_development_profile_passed=True
+remote_development_profile_failed_checks=[]
+```
+
+Coverage:
+
+```text
+addon_counts_by_route={"sample_normal": 40, "sample_tl": 40}
+addon_usable_by_route={"sample_normal": 40, "sample_tl": 28}
+combined_counts_by_route={"nishishinjuku_lane_change": 40, "sample_normal": 80, "sample_tl": 80}
+combined_usable_by_route={"sample_normal": 80, "sample_tl": 60}
+combined_counts_by_seed={"101": 30, "102": 30, "103": 30, "104": 30, "105": 20, "106": 20, "107": 20, "108": 20}
+combined_counts_by_traffic_lights={"off": 100, "on": 100}
+combined_candidate_count_values={"4": 200}
+```
+
+Remote SHA-256 evidence:
+
+```text
+preflight.json=5cfbfc23132b8ab7c7457a29342cf562a61d1bfba5ba91d7b2f33aa0a532abf3
+collection_summary.json=4247b91acd9a6af8db83b8ad55f31e13a4f0c708f80c8ecfbd8cfdfdfc9b1eb3
+collection_summary.md=33ea263ef3e803ede9ceed1b64765964d7dafe066e1fad5f0d41a665714c11a1
+run_additive_collection.py=9a1fb90a014e2958336e6591869c908a0a2c2ec4c1aadc9fd5d7a43f996625c2
+sha256.json=9afd13d7a6cfe21c30d21ff4f3e95afc9764a92890318d41c94b2091b0df5b46
+combined_clean_dp_native_training_data_contract_validation.json=f481a26294a30f2c2bea74349857fe388151f721a6172fa192a41bf2f4f96755
+combined_clean_validator_exit.txt=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+combined_clean_validator_stdout_stderr.log=f481a26294a30f2c2bea74349857fe388151f721a6172fa192a41bf2f4f96755
+combined_development_profile_validation.json=227f4e7580e229377ecd711b2e3b5ea3648017d4f0d94aed055a0ff2a89a87d1
+combined_development_profile_exit.txt=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+combined_development_profile_stdout_stderr.log=227f4e7580e229377ecd711b2e3b5ea3648017d4f0d94aed055a0ff2a89a87d1
+```
+
+Clean-boundary checks:
+
+```text
+forbidden_flags_present_in_commands=[]
+closed_loop_outcome_collection_enabled=False
+reference_blend_enabled=False
+guidance_enabled=False
+postprocess_postselection_enabled=False
+full36_executed=False
+formal_seeds_executed=False
+camp_training_executed=False
+dp_modified=False
+selector_promotion_executed=False
+atom_promotion_executed=False
+safety_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Verification:
+
+```text
+git_diff_check_exit=0
+local_py_compile_exit=0
+local_target_pytest=3 passed in 0.02s
+direct_windows_repo_pytest_blocked_by_preexisting_unavailable_long_path_node=True
+remote_replay_scope=authorized_additive_clean_collection_only
+remote_clean_contract_validator_exit=0
+remote_development_profile_validator_exit=0
+remote_camp_training_executed=False
+remote_dp_modified=False
+```
+
+Decision:
+
+```text
+status=development_additive_collection_clean_contract_and_profile_passed_training_still_blocked
+clean_dp_native_training_data_contract_passed=True
+development_profile=dp_native_feasible_ranking_development_minimal_v1
+development_profile_passed=True
+development_profile_failed_checks=[]
+usable_feasible_records_sufficient=True
+combined_records_sufficient=True
+route_count_sufficient=True
+seed_count_sufficient=True
+traffic_light_state_count_sufficient=True
+candidate_count_sufficient=True
+training_execution_authorized=False
+camp_retraining_authorized=False
+collection_replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+online_selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This is a data-sufficiency pass for a later static DP-reward feasible-ranking
+training smoke. It is not a CAMP safety result, not a CAMP-over-DP result, not
+a deployable checkpoint claim, and not authorization to train or modify DP.
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_training_user_authorization_pending`
