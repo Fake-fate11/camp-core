@@ -150,7 +150,7 @@ def test_builder_decision_forbids_training_dp_and_promotion() -> None:
 def test_implementation_doc_and_audit_tail_record_latest_revalidation() -> None:
     doc = IMPLEMENTATION_DOC.read_text(encoding="utf-8")
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    current_head = "d7fb8610ecca4f8ff021a6c890efe15407eaac5f"
+    current_head = "34dc6480c93b189ea64c8ea03dcbcb5f44fa2a79"
 
     for payload in (doc, audit):
         for needle in [
