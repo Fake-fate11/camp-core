@@ -263,3 +263,50 @@ fallback_risk_training_authorized_now=False
 dataset_builder_implementation_authorized=False
 training_execution_authorized_now=False
 ```
+
+## Current-Head Revalidation After AutoDL Extractor Static Contract Verification
+
+Date: 2026-06-25
+
+The training-data design remains valid at the actual current three-endpoint
+state after the default-off extractor post-implementation static contract was
+verified on AutoDL:
+
+```text
+camp_head_at_revalidation=b085727767a39729caa21fe1935c6d59c01901f6
+camp_origin_main_at_revalidation=b085727767a39729caa21fe1935c6d59c01901f6
+github_refs_heads_main_at_revalidation=b085727767a39729caa21fe1935c6d59c01901f6
+autodl_CAMP_HEAD_at_revalidation=b085727767a39729caa21fe1935c6d59c01901f6
+autodl_CAMP_origin_main_at_revalidation=b085727767a39729caa21fe1935c6d59c01901f6
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_extractor_contract_status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_autodl_verification_passed
+fallback_training_data_design_complete=True
+blocking_contract_findings=0
+```
+
+This revalidation remains design-plan-only. It does not authorize a dataset
+builder implementation, validator extension, smoke execution, training,
+retraining, replay, candidate generation, Diffusion Planner modification,
+selector or atom promotion, deployable checkpoint claim, safety claim, or
+CAMP-over-DP Top-1 claim.
+
+```text
+dataset_builder_implementation_authorized=False
+validator_extension_implementation_authorized=False
+fallback_risk_smoke_authorized_now=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```

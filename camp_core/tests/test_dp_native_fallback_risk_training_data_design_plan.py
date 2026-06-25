@@ -147,3 +147,24 @@ def test_training_data_design_plan_next_gate_static_review_only() -> None:
         "promote",
     ]:
         assert needle in text
+
+
+def test_training_data_design_plan_records_current_head_revalidation() -> None:
+    text = _text()
+
+    current_head = "b085727767a39729caa21fe1935c6d59c01901f6"
+    for needle in [
+        f"camp_head_at_revalidation={current_head}",
+        f"camp_origin_main_at_revalidation={current_head}",
+        f"github_refs_heads_main_at_revalidation={current_head}",
+        f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+        f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_extractor_contract_status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_autodl_verification_passed",
+        "fallback_training_data_design_complete=True",
+        "blocking_contract_findings=0",
+        "dataset_builder_implementation_authorized=False",
+        "validator_extension_implementation_authorized=False",
+        "training_execution_authorized_now=False",
+    ]:
+        assert needle in text
