@@ -33,6 +33,12 @@ def test_authorization_records_reviewed_evidence_and_preconditions() -> None:
         "current_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_current_head_revalidated",
         "autodl_target_pytest=10 passed",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_authorization_revalidation_base_head=f52b518610ff83043d9a60858ed38fad7dd6e8d8",
+        "latest_autodl_CAMP_HEAD_at_revalidation=f52b518610ff83043d9a60858ed38fad7dd6e8d8",
+        "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_autodl_verification_passed",
+        "latest_local_target_pytest=11 passed",
+        "latest_autodl_target_pytest=11 passed",
     ]:
         assert needle in text
 
@@ -54,6 +60,9 @@ def test_authorization_allows_only_minimal_read_only_validator() -> None:
         "candidate_generation_authorized=False",
         "dp_modification_authorized=False",
         "production_selector_change_authorized=False",
+        "user_broad_execution_permission_recorded=True",
+        "this_authorization_gate_authorizes_validator_implementation_only=True",
+        "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
     ]:
         assert needle in text
 
