@@ -131,6 +131,9 @@ def test_static_contract_review_next_gate_unit_tests_plan_only() -> None:
 
 def test_static_contract_review_current_head_revalidation() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
+    recent_review = text.split(
+        "## Current-Head Revalidation After 1027a6b Design Plan Revalidation"
+    )[-1]
 
     for needle in [
         "camp_head_at_revalidation=f4f076ab9d85a35d6d2bb3343405fddc8648f9fa",
@@ -150,9 +153,30 @@ def test_static_contract_review_current_head_revalidation() -> None:
         "github_refs_heads_main_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
         "autodl_CAMP_HEAD_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
         "prior_design_head_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
+        "camp_head_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
+        "camp_origin_main_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
+        "github_refs_heads_main_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
+        "autodl_CAMP_HEAD_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
+        "prior_design_head_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
         NEXT_UNIT_TESTS_PLAN_GATE,
     ]:
         assert needle in text
+
+    for needle in [
+        "camp_head_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
+        "autodl_CAMP_HEAD_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
+        "prior_design_head_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
+        "blocking_contract_findings=0",
+        "score_expression=score_k(w)=a_k^T w",
+        "fallback_cost_targets_nonnegative=True",
+        "fixed_dp_candidate_reranking_only=True",
+        "candidate_trajectory_rewrite_authorized=False",
+        "local_target_pytest=24 passed",
+        "autodl_target_pytest=24 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        NEXT_UNIT_TESTS_PLAN_GATE,
+    ]:
+        assert needle in recent_review
 
 
 def test_iteration_audit_records_static_contract_review_next_gate() -> None:
@@ -183,10 +207,10 @@ def test_iteration_audit_records_static_contract_review_next_gate() -> None:
     for needle in [
         "status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
         "static_contract_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review.md",
-        "camp_head_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
-        "autodl_CAMP_HEAD_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
+        "camp_head_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
+        "autodl_CAMP_HEAD_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "prior_design_head_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
+        "prior_design_head_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
         "blocking_contract_findings=0",
         "current_head_static_contract_revalidated=True",
         "fixed_candidate_boundary_passed=True",
@@ -202,6 +226,9 @@ def test_iteration_audit_records_static_contract_review_next_gate() -> None:
         "camp_retraining_authorized=False",
         "candidate_generation_authorized=False",
         "dp_modification_authorized=False",
+        "local_target_pytest=24 passed",
+        "autodl_target_pytest=24 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
