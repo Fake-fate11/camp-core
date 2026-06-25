@@ -138,19 +138,18 @@ def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_fixed_artifact_acceptance_passed",
-        "source_scale_manifest_acceptance_status=fallback_risk_training_train_only_scale_manifest_current_head_fixed_artifact_acceptance_passed",
-        "fallback_master_config_json_sha256=6dbd94ea34e8374ac616817d64d6f93baa0d9da4828e3af6c32474a91cf3a7f3",
-        "training_command_plan_json_sha256=f5128aca1566783ef02a464970f2e1623abf9f69d2d724cae2d6995176c89e82",
-        "latest_fallback_master_config_ready=True",
-        "latest_training_command_plan_ready=True",
-        "local_target_pytest=123 passed",
-        "autodl_target_pytest=123 passed",
+        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_fixed_artifact_acceptance_passed",
+        "source_master_command_acceptance_status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_fixed_artifact_acceptance_passed",
+        "validated_dataset_summary_json_sha256=e5dc69273795be41f1d48ea702a55fac63733d462c030c1595e42ef4d5d78c5f",
+        "summary_source_validator_output_sha256=039b3e41f866434e187a9f679cbc964d6fe35d5406896e53ec38d8f70db40c52",
+        "latest_validated_dataset_summary_ready_for_preflight=True",
+        "local_target_pytest=134 passed",
+        "autodl_target_pytest=134 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_validated_dataset_summary_materializer_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
     )
