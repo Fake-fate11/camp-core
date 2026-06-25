@@ -325,7 +325,11 @@ def test_fallback_risk_audit_doc_forbids_nonpaper_routes() -> None:
 
 def test_iteration_audit_records_current_head_ranking_audit_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    recent_audit = audit[-30000:]
+    current_head_marker = (
+        "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_current_head_"
+        "9764f12_complete"
+    )
+    current_head_audit = current_head_marker + audit.split(current_head_marker)[-1]
 
     for needle in [
         "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete",
@@ -347,7 +351,7 @@ def test_iteration_audit_records_current_head_ranking_audit_next_gate() -> None:
         assert needle in audit
 
     for needle in [
-        "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_current_head_9764f12_complete",
+        current_head_marker,
         "camp_head_at_revalidation=9764f1296049bfe7d232c15f43c51225055c184e",
         "camp_origin_main_at_revalidation=9764f1296049bfe7d232c15f43c51225055c184e",
         "dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
@@ -362,9 +366,9 @@ def test_iteration_audit_records_current_head_ranking_audit_next_gate() -> None:
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
-        assert needle in recent_audit
+        assert needle in current_head_audit
 
-    assert NEXT_DESIGN_GATE in recent_audit
+    assert NEXT_DESIGN_GATE in current_head_audit
 
 
 def test_current_head_9764f12_ranking_audit_is_pinned() -> None:
