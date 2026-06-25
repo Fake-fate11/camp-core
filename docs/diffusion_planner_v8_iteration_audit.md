@@ -113356,3 +113356,79 @@ claim safety/CAMP-over-DP benefit.
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_only`
+
+## Current Tail Confirmation After Current HEAD Fallback-Risk Ranking Extractor Implementation
+
+Date: 2026-06-26
+
+The existing fixed-artifact fallback-risk ranking default-off extractor
+implementation was revalidated after the current implementation authorization
+evidence commit was synchronized across local, GitHub, and AutoDL CAMP. This
+gate did not change the extractor script, Diffusion Planner, replay scenarios,
+candidate generation, CAMP training, selector or atom logic, or any
+safety/CAMP-over-DP claim. The extractor remains diagnostic-only, default-off,
+and limited to reading fixed DP-native CAMP selection logs when the explicit
+opt-in flag is provided.
+
+```text
+status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated_latest
+implementation_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation.md
+script=scripts/integrations/extract_diffusion_planner_dp_native_fallback_risk_records.py
+test=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_extractor.py
+contract_tests=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_contract.py
+authorization_test=camp_core/tests/test_dp_native_fallback_risk_ranking_extractor_implementation_authorization.py
+camp_head_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b
+camp_origin_main_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b
+github_refs_heads_main_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b
+autodl_CAMP_HEAD_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b
+autodl_CAMP_origin_main_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_authorization_status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head
+prior_authorization_head_at_revalidation=950b0c829ec880b5feb5b5c7b863cd3c39f33664
+prior_authorization_tail_verified=True
+prior_authorization_autodl_verified=True
+passed=True
+implementation_gate_complete=True
+implementation_change_required=False
+existing_extractor_revalidated=True
+default_off_required=True
+enabled_default=False
+explicit_enable_flag=--enable_default_off_fallback_risk_extractor
+read_only_selection_log_input_only=True
+records_scope=records_without_feasible_candidate_only
+output_json_or_markdown_only=True
+fallback_risk_records_are_diagnostic_only=True
+local_py_compile_exit=0
+local_target_pytest=29 passed
+local_git_diff_check_exit=0
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+The next gate may only statically review the implemented default-off extractor
+against the fixed-candidate, affine-score, read-only, and nonpromotion
+contract. It must not run replay, generate candidates, train CAMP, retrain
+CAMP, modify DP, use formal seeds, promote selector or atom logic, deploy, or
+claim safety benefit or CAMP-over-DP Top-1.
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only`
