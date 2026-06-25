@@ -36,7 +36,7 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 
 def test_review_doc_records_validator_post_implementation_contract() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
-    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-20000:]
+    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")
     combined = text + audit_tail
 
     for needle in [
@@ -64,6 +64,11 @@ def test_review_doc_records_validator_post_implementation_contract() -> None:
         "latest_post_static_revalidation_base_head=c087f9036691a7bb5339b6e9f9969a9d29437741",
         "latest_autodl_CAMP_HEAD_at_revalidation=c087f9036691a7bb5339b6e9f9969a9d29437741",
         "latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_current_head_edeec5b_revalidated",
+        "status=fallback_risk_training_data_validator_extension_post_implementation_static_contract_current_head_fc3af61_revalidated",
+        "latest_post_static_revalidation_base_head=fc3af61e407bf3bafc966db8200c1c0f45b48c9d",
+        "latest_autodl_CAMP_HEAD_at_revalidation=fc3af61e407bf3bafc966db8200c1c0f45b48c9d",
+        "latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_current_head_5b12ce8_revalidated",
+        "latest_autodl_target_pytest=30 passed",
     ]:
         assert needle in combined
 
