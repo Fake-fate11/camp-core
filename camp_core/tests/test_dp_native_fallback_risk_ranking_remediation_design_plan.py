@@ -133,6 +133,7 @@ def test_fallback_risk_remediation_design_next_gate_static_review_only() -> None
 
 def test_fallback_risk_remediation_design_current_head_revalidation() -> None:
     text = PLAN_DOC.read_text(encoding="utf-8")
+    recent_plan = text[-12000:]
 
     for needle in [
         "camp_head_at_revalidation=30e16f3e132064366720ff58af9549de10f5d9d1",
@@ -156,9 +157,31 @@ def test_fallback_risk_remediation_design_current_head_revalidation() -> None:
         "autodl_CAMP_HEAD_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
         "prior_ranking_revalidation_json_sha256=160a03e46343862f20e65ea5c0e39724c643a0011a5738bb68609adfef66ccbb",
         "prior_ranking_revalidation_md_sha256=f292a664b5f372a12bbfa350408ded4a29c7f3ed49b1fd638364b8b685ba2979",
+        "camp_head_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
+        "camp_origin_main_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
+        "github_refs_heads_main_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
+        "autodl_CAMP_HEAD_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
+        "prior_ranking_revalidation_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_9764f12_20260625T202954Z",
+        "prior_ranking_revalidation_json_sha256=d8c171d4ef2c40a34ab61e4e8bb76286614ec752c56acaed13d89e3e736f6e13",
+        "prior_ranking_revalidation_md_sha256=300b8f487e83c4914954f88ed56c181674204dfb935214f96776f59b7c1fdb36",
         NEXT_STATIC_REVIEW_GATE,
     ]:
         assert needle in text
+
+    for needle in [
+        "camp_head_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
+        "autodl_CAMP_HEAD_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
+        "prior_ranking_revalidation_json_sha256=d8c171d4ef2c40a34ab61e4e8bb76286614ec752c56acaed13d89e3e736f6e13",
+        "status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
+        "score_expression=score_k(w)=a_k^T w",
+        "fallback_risk_training_authorized_now=False",
+        "candidate_generation_authorized=False",
+        "local_target_pytest=17 passed",
+        "autodl_target_pytest=17 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        NEXT_STATIC_REVIEW_GATE,
+    ]:
+        assert needle in recent_plan
 
 
 def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
@@ -186,10 +209,10 @@ def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
     for needle in [
         "status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
         "design_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan.md",
-        "camp_head_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
-        "autodl_CAMP_HEAD_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
+        "camp_head_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
+        "autodl_CAMP_HEAD_at_revalidation=1027a6b223c7a0ac75c7cbec56639841819bf475",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "prior_ranking_revalidation_json_sha256=160a03e46343862f20e65ea5c0e39724c643a0011a5738bb68609adfef66ccbb",
+        "prior_ranking_revalidation_json_sha256=d8c171d4ef2c40a34ab61e4e8bb76286614ec752c56acaed13d89e3e736f6e13",
         "current_head_design_plan_revalidated=True",
         "score_expression=score_k(w)=a_k^T w",
         "fallback_cost_targets_nonnegative=True",
@@ -198,6 +221,9 @@ def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
         "camp_retraining_authorized=False",
         "candidate_generation_authorized=False",
         "dp_modification_authorized=False",
+        "local_target_pytest=17 passed",
+        "autodl_target_pytest=17 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:

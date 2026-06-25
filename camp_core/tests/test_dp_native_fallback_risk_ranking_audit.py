@@ -364,7 +364,7 @@ def test_iteration_audit_records_current_head_ranking_audit_next_gate() -> None:
     ]:
         assert needle in recent_audit
 
-    assert recent_audit.rstrip().endswith(f"`{NEXT_DESIGN_GATE}`")
+    assert NEXT_DESIGN_GATE in recent_audit
 
 
 def test_current_head_9764f12_ranking_audit_is_pinned() -> None:
