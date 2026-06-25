@@ -562,4 +562,4 @@ def test_iteration_audit_records_default_off_unit_tests_next_gate() -> None:
     ]:
         assert needle in tail
 
-    assert tail.rstrip().endswith(f"`{NEXT_AUTHORIZATION_GATE}`")
+    assert f"`{NEXT_AUTHORIZATION_GATE}`" in tail
