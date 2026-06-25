@@ -202,3 +202,82 @@ online_selector_change_authorized=False
 safety_benefit_claim_authorized=False
 camp_over_dp_top1_claim_authorized=False
 ```
+
+## Current-Head Revalidation After Expanded User Authorization
+
+Date: 2026-06-25
+
+The user expanded authorization for future replay, candidate generation, CAMP
+training, selector/atom promotion, DP modification, and safety/CAMP-over-DP
+claims only when those steps can be justified by the active gate evidence. This
+artifact records that permission boundary without converting it into immediate
+execution authority. The current gate remains authorization-only and advances
+only the default-off read-only extractor implementation.
+
+```text
+camp_head_at_revalidation=edc3648a80b9095c33238dd17cbde03355acddbb
+camp_origin_main_at_revalidation=edc3648a80b9095c33238dd17cbde03355acddbb
+github_refs_heads_main_at_revalidation=edc3648a80b9095c33238dd17cbde03355acddbb
+autodl_CAMP_HEAD_at_revalidation=edc3648a80b9095c33238dd17cbde03355acddbb
+autodl_CAMP_origin_main_at_revalidation=edc3648a80b9095c33238dd17cbde03355acddbb
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_unit_tests_status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated
+prior_unit_tests_autodl_verified=True
+local_default_off_contract_pytest=47 passed
+autodl_default_off_contract_pytest=47 passed
+blocking_contract_findings=0
+expanded_user_authorization_received=True
+gate_evidence_controls_execution=True
+local_py_compile_exit=0
+local_target_pytest=53 passed
+local_git_diff_check_exit=0
+```
+
+Current gate authorization:
+
+```text
+implementation_authorized=True
+fallback_risk_extractor_implementation_authorized=True
+default_off_required=True
+read_only_selection_log_input_only=True
+records_scope=records_without_feasible_candidate_only
+synthetic_unit_tests_required=True
+existing_contract_tests_must_continue_to_pass=True
+output_json_or_markdown_only=True
+training_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head
+passed=True
+implementation_authorized=True
+fallback_risk_extractor_implementation_authorized=True
+training_authorized=False
+fallback_risk_training_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_only
+```
