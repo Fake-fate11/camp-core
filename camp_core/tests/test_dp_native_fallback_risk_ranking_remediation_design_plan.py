@@ -186,7 +186,11 @@ def test_fallback_risk_remediation_design_current_head_revalidation() -> None:
 
 def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    recent_audit = audit[-30000:]
+    current_head_marker = (
+        "## Current Tail Confirmation After Current HEAD 1027a6b Fallback Risk "
+        "Ranking Remediation Design Plan"
+    )
+    current_head_audit = current_head_marker + audit.split(current_head_marker)[-1]
 
     for needle in [
         "status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
@@ -227,4 +231,4 @@ def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
-        assert needle in recent_audit
+        assert needle in current_head_audit

@@ -161,9 +161,11 @@ def test_builder_unit_tests_plan_next_gate_tests_only() -> None:
 
 def test_builder_unit_tests_plan_records_current_head_revalidation() -> None:
     text = _text()
-    tail = "\n".join(text.splitlines()[-95:])
+    tail = text.split(
+        "## Current-Head Revalidation After 5e6ac78 Design Static Contract"
+    )[-1]
 
-    current_head = "9a5b4792e6040f0c89882f37787176cddc6f43fd"
+    current_head = "5e6ac785cbf900656b6ef272dbef08839d4ce9d1"
     for needle in [
         "status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest",
         "plan_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_plan.md",
@@ -175,13 +177,21 @@ def test_builder_unit_tests_plan_records_current_head_revalidation() -> None:
         f"autodl_CAMP_origin_main_at_revalidation={current_head}",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_design_static_contract_status=fallback_risk_training_data_design_static_contract_review_current_head_revalidated_latest",
+        "prior_design_static_contract_commit_at_revalidation=5e6ac785cbf900656b6ef272dbef08839d4ce9d1",
         "prior_design_static_contract_tail_verified=True",
         "prior_design_static_contract_autodl_verified=True",
+        "user_camp_retraining_permission_available_for_future_training_gate=True",
         "default_off_builder_unit_tests_plan_complete=True",
         "blocking_contract_findings=0",
         "local_py_compile_exit=0",
-        "local_target_pytest=62 passed",
-        "local_git_diff_check_exit=0",
+        "local_target_pytest=94 passed",
+        "local_diff_check=0 findings",
+        f"autodl_CAMP_HEAD={current_head}",
+        f"autodl_CAMP_origin_main={current_head}",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=94 passed",
+        "autodl_diff_check=0 findings",
         "dataset_builder_implementation_authorized=False",
         "validator_extension_implementation_authorized=False",
         "fallback_risk_training_authorized_now=False",
@@ -210,20 +220,28 @@ def test_iteration_audit_records_builder_unit_tests_plan_history() -> None:
         "status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest",
         "plan_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_plan.md",
         "plan_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_unit_tests_plan.py",
-        "camp_head_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
-        "camp_origin_main_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
-        "github_refs_heads_main_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
-        "autodl_CAMP_HEAD_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
-        "autodl_CAMP_origin_main_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
+        "camp_head_at_revalidation=5e6ac785cbf900656b6ef272dbef08839d4ce9d1",
+        "camp_origin_main_at_revalidation=5e6ac785cbf900656b6ef272dbef08839d4ce9d1",
+        "github_refs_heads_main_at_revalidation=5e6ac785cbf900656b6ef272dbef08839d4ce9d1",
+        "autodl_CAMP_HEAD_at_revalidation=5e6ac785cbf900656b6ef272dbef08839d4ce9d1",
+        "autodl_CAMP_origin_main_at_revalidation=5e6ac785cbf900656b6ef272dbef08839d4ce9d1",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_design_static_contract_status=fallback_risk_training_data_design_static_contract_review_current_head_revalidated_latest",
+        "prior_design_static_contract_commit_at_revalidation=5e6ac785cbf900656b6ef272dbef08839d4ce9d1",
         "prior_design_static_contract_tail_verified=True",
         "prior_design_static_contract_autodl_verified=True",
+        "user_camp_retraining_permission_available_for_future_training_gate=True",
         "default_off_builder_unit_tests_plan_complete=True",
         "blocking_contract_findings=0",
         "local_py_compile_exit=0",
-        "local_target_pytest=62 passed",
-        "local_git_diff_check_exit=0",
+        "local_target_pytest=94 passed",
+        "local_diff_check=0 findings",
+        "autodl_CAMP_HEAD=5e6ac785cbf900656b6ef272dbef08839d4ce9d1",
+        "autodl_CAMP_origin_main=5e6ac785cbf900656b6ef272dbef08839d4ce9d1",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=94 passed",
+        "autodl_diff_check=0 findings",
         "dataset_builder_implementation_authorized=False",
         "validator_extension_implementation_authorized=False",
         "fallback_risk_training_authorized_now=False",
