@@ -14,6 +14,20 @@ from scripts.integrations.extract_diffusion_planner_dp_native_fallback_risk_reco
 )
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+UNIT_TESTS_DOC = (
+    REPO_ROOT
+    / "docs"
+    / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests.md"
+)
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+NEXT_AUTHORIZATION_GATE = (
+    "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_"
+    "fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_"
+    "authorization_only"
+)
+
+
 def _reward(
     *,
     red_light: object = -1.0,
@@ -476,3 +490,49 @@ def test_default_off_contract_keeps_training_and_promotion_forbidden(
     assert decision["all_infeasible_records_added_to_feasible_training"] is False
     assert decision["candidate_trajectory_rewrite_authorized"] is False
     assert decision["postprocess_postselection_authorized"] is False
+
+
+def test_default_off_unit_tests_doc_records_current_head_revalidation() -> None:
+    text = UNIT_TESTS_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated",
+        "camp_head_at_revalidation=fe0ebc23e3ee2b1fcc51b402228262d4b1500bd4",
+        "camp_origin_main_at_revalidation=fe0ebc23e3ee2b1fcc51b402228262d4b1500bd4",
+        "github_refs_heads_main_at_revalidation=fe0ebc23e3ee2b1fcc51b402228262d4b1500bd4",
+        "autodl_CAMP_HEAD_at_revalidation=fe0ebc23e3ee2b1fcc51b402228262d4b1500bd4",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_unit_tests_plan_status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate",
+        "default_off_contract_tests_pinned=True",
+        "tests_only=True",
+        "synthetic_static_unit_tests_only=True",
+        "production_implementation_edit_authorized=False",
+        "fallback_risk_extractor_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        NEXT_AUTHORIZATION_GATE,
+    ]:
+        assert needle in text
+
+
+def test_iteration_audit_tail_records_default_off_unit_tests_next_gate() -> None:
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-110:])
+
+    for needle in [
+        "status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated",
+        "camp_head_at_revalidation=fe0ebc23e3ee2b1fcc51b402228262d4b1500bd4",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_unit_tests_plan_status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate",
+        "default_off_contract_tests_pinned=True",
+        "tests_only=True",
+        "synthetic_static_unit_tests_only=True",
+        "production_implementation_edit_authorized=False",
+        "fallback_risk_extractor_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "dp_modification_authorized=False",
+        NEXT_AUTHORIZATION_GATE,
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_AUTHORIZATION_GATE}`")
