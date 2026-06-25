@@ -198,3 +198,48 @@ dp_modification_authorized=False
 selector_promotion_authorized=False
 atom_promotion_authorized=False
 ```
+
+## Current-Head Revalidation After Extractor Implementation Gate Replay
+
+Date: 2026-06-25
+
+The static contract was rechecked at the actual current three-endpoint state
+after the default-off extractor implementation gate was replayed. The earlier
+`fef3d68d1d8da39feb7f9665da76fdfd94c757f2` review remains historical evidence;
+the authoritative current pre-commit review input is:
+
+```text
+camp_head_at_revalidation=0eae3cca7d59c24a80e40576a8adc81e3ccd9953
+camp_origin_main_at_revalidation=0eae3cca7d59c24a80e40576a8adc81e3ccd9953
+github_refs_heads_main_at_revalidation=0eae3cca7d59c24a80e40576a8adc81e3ccd9953
+autodl_CAMP_HEAD_at_revalidation=0eae3cca7d59c24a80e40576a8adc81e3ccd9953
+autodl_CAMP_origin_main_at_revalidation=0eae3cca7d59c24a80e40576a8adc81e3ccd9953
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_implementation_status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated
+blocking_contract_findings=0
+post_implementation_static_contract_review_complete=True
+```
+
+This revalidation is still static-contract-only. It authorizes no training,
+replay, candidate generation, Diffusion Planner modification, selector or atom
+promotion, deployable checkpoint claim, safety claim, or CAMP-over-DP Top-1
+claim.
+
+```text
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```

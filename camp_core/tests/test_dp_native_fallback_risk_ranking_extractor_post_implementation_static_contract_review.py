@@ -52,6 +52,23 @@ def test_review_doc_records_post_implementation_contract() -> None:
         assert needle in text
 
 
+def test_review_doc_records_current_three_endpoint_revalidation() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+
+    current_head = "0eae3cca7d59c24a80e40576a8adc81e3ccd9953"
+    for needle in [
+        f"camp_head_at_revalidation={current_head}",
+        f"camp_origin_main_at_revalidation={current_head}",
+        f"github_refs_heads_main_at_revalidation={current_head}",
+        f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+        f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_implementation_status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated",
+        "blocking_contract_findings=0",
+    ]:
+        assert needle in text
+
+
 def test_extractor_is_static_default_off_before_reading_artifact() -> None:
     tree = _tree()
     source = _source()
