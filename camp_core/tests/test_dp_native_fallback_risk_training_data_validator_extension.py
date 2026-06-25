@@ -342,6 +342,17 @@ def test_validator_unit_tests_audit_records_current_head_boundary() -> None:
 
     for text in (audit, iteration_tail):
         for needle in [
+            "status=fallback_risk_training_data_validator_extension_unit_tests_current_head_8cfa8f5_revalidated",
+            "unit_tests_validation_head=8cfa8f51ac884c90c34aad7863e27c49d1a227f1",
+            "camp_origin_main_at_validation=8cfa8f51ac884c90c34aad7863e27c49d1a227f1",
+            "github_refs_heads_main_at_validation=8cfa8f51ac884c90c34aad7863e27c49d1a227f1",
+            "autodl_CAMP_HEAD_at_validation=8cfa8f51ac884c90c34aad7863e27c49d1a227f1",
+            "autodl_CAMP_origin_main_at_validation=8cfa8f51ac884c90c34aad7863e27c49d1a227f1",
+            "latest_unit_tests_plan_status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_fe4bb4a_revalidated",
+            "accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+            "local_unit_tests_scope_pytest=21 passed",
+            "local_target_pytest=166 passed",
+            "autodl_target_pytest=166 passed",
             "status=fallback_risk_training_data_validator_extension_unit_tests_current_head_82cb821_revalidated",
             "unit_tests_validation_head=82cb821ae2b613549abc546b9895f9513e7a4356",
             "camp_origin_main_at_validation=82cb821ae2b613549abc546b9895f9513e7a4356",
