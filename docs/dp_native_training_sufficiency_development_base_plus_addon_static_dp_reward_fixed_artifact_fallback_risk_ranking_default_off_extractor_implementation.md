@@ -119,3 +119,67 @@ against the fixed-candidate, affine-score, read-only, nonpromotion contract. It
 must not run replay, generate candidates, train CAMP, retrain CAMP, modify DP,
 use formal seeds, promote selector or atom logic, deploy, or claim safety
 benefit or CAMP-over-DP Top-1.
+
+## Current-Head Revalidation After Authorization Tail
+
+Date: 2026-06-25
+
+The existing default-off extractor implementation remains valid after the
+current authorization tail was revalidated. This gate did not change Diffusion
+Planner, replay scenarios, generate candidates, train or retrain CAMP, promote
+selector/atom logic, or create any safety/CAMP-over-DP claim. The script stays
+diagnostic-only and reads fixed DP-native CAMP selection logs only when the
+explicit opt-in flag is supplied.
+
+```text
+camp_head_at_revalidation=848040bd08c4361af2eb88972615f3147b9bce58
+camp_origin_main_at_revalidation=848040bd08c4361af2eb88972615f3147b9bce58
+github_refs_heads_main_at_revalidation=848040bd08c4361af2eb88972615f3147b9bce58
+autodl_CAMP_HEAD_before_gate=848040bd08c4361af2eb88972615f3147b9bce58
+autodl_CAMP_origin_main_before_gate=848040bd08c4361af2eb88972615f3147b9bce58
+autodl_DP_HEAD_before_gate=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_authorization_status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head
+prior_authorization_autodl_verified=True
+script=scripts/integrations/extract_diffusion_planner_dp_native_fallback_risk_records.py
+tests=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_extractor.py
+contract_tests=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_contract.py
+implementation_change_required=False
+existing_extractor_revalidated=True
+default_off_required=True
+enabled_default=False
+explicit_enable_flag=--enable_default_off_fallback_risk_extractor
+read_only_selection_log_input_only=True
+records_scope=records_without_feasible_candidate_only
+output_json_or_markdown_only=True
+fallback_risk_records_are_diagnostic_only=True
+local_py_compile_exit=0
+local_target_pytest=60 passed
+local_git_diff_check_exit=0
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated_latest
+passed=True
+implementation_gate_complete=True
+implementation_change_required=False
+existing_extractor_revalidated=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only
+```
