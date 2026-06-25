@@ -42,6 +42,47 @@ def test_acceptance_rerun_records_inputs_and_outputs() -> None:
         assert needle in text
 
 
+def test_current_head_9270485_master_command_acceptance_rerun_is_pinned() -> None:
+    text = _audit()
+
+    for needle in [
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_9270485_fixed_artifact_acceptance_passed",
+        "source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_bbba35b_20260625T174901Z/dataset.json",
+        "expected_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+        "training_split_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_6d1fa5e_20260625T193828Z/split_manifest.json",
+        "expected_split_manifest_sha256=e0a4ec0623f5db0b868465249ce9615b06b86f6c91067702af3bee9fd700db1d",
+        "train_only_scale_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_train_only_scale_manifest_acceptance_cb12988_20260625T194220Z/scale_manifest.json",
+        "expected_scale_manifest_sha256=92059b9c60e66c96db836821cb0060072402089b915e0bbd87240fc24c602567",
+        "source_scale_manifest_acceptance_status=fallback_risk_training_train_only_scale_manifest_current_head_cb12988_fixed_artifact_acceptance_passed",
+        "builder_commit=9270485bd89bca20e027e86b1b16e2e052c57539",
+        "autodl_CAMP_HEAD=9270485bd89bca20e027e86b1b16e2e052c57539",
+        "autodl_CAMP_origin_main=9270485bd89bca20e027e86b1b16e2e052c57539",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_master_command_acceptance_9270485_20260625T194804Z",
+        "fallback_master_config_json_sha256=c513fd6da7768a7444cdecea25797649c131efaa5b548335b10e07c24758c95b",
+        "training_command_plan_json_sha256=8051af1f8932c60b90a7f60686e7d127429e36b7a5acf67f2840d7044b805fd0",
+        "master_command_md_sha256=a14244b6719d8d5942c9cfa2c9d763a9d4967fa5967b622dfc176757072f232e",
+        "builder_stdout_log_sha256=194b56ed5ebb16374b8f48e02b6194912f3b9b3261b86cd86bdd83c33f52a405",
+        "builder_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "builder_exit=0",
+        "master_schema_version=dp_native_fallback_risk_fallback_master_config_v1",
+        "training_command_schema_version=dp_native_fallback_risk_training_command_plan_v1",
+        "fallback_only=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "atoms_fixed_nonnegative=True",
+        "simplex_cvar_l2_convex=True",
+        "training_command_authorization=False",
+        "training_execution_authorized=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "fallback_master_config_ready=True",
+        "training_command_plan_ready=True",
+        "fallback_risk_training_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+    ]:
+        assert needle in text
+
+
 def test_acceptance_rerun_records_master_and_command_contract() -> None:
     text = _audit()
 
@@ -135,12 +176,12 @@ def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_f6568d8_fixed_artifact_acceptance_passed",
-        "fallback_master_config_json_sha256=081a31214f18d1608a440b8826cd4cd4febaa6760284e8f01cbd0749b502e1b9",
-        "training_command_plan_json_sha256=a56c86337d5576811d866a7b080a629cadb2f692a02fed7675be20e1810aec3a",
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_9270485_fixed_artifact_acceptance_passed",
+        "fallback_master_config_json_sha256=c513fd6da7768a7444cdecea25797649c131efaa5b548335b10e07c24758c95b",
+        "training_command_plan_json_sha256=8051af1f8932c60b90a7f60686e7d127429e36b7a5acf67f2840d7044b805fd0",
         "fallback_master_config_ready=True",
         "training_command_plan_ready=True",
-        "local_target_pytest=6 passed",
+        "local_target_pytest=7 passed",
         "local_master_command_builder_pytest=6 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
