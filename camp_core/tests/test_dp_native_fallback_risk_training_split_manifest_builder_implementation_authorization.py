@@ -156,12 +156,12 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
 
     assert (
-        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_autodl_verification_passed"
+        "status=fallback_risk_training_split_manifest_builder_implementation_autodl_verification_passed"
         in tail
     )
-    assert "local_target_pytest=78 passed" in tail
-    assert "local_split_manifest_builder_authorization_pytest=6 passed" in tail
+    assert "local_target_pytest=87 passed" in tail
+    assert "local_split_manifest_builder_pytest=9 passed" in tail
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only`"
     )
