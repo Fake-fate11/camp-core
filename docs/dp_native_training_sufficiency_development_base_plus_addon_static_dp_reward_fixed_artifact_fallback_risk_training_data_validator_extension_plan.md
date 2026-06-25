@@ -251,3 +251,54 @@ dp_modification_authorized=False
 selector_promotion_authorized=False
 atom_promotion_authorized=False
 ```
+
+## Current-Head Revalidation After Builder Acceptance Tail
+
+Date: 2026-06-25
+
+The validator extension plan remains valid after the current-head fixed
+artifact builder acceptance revalidation. This is still a plan-only gate: it
+does not implement the validator, run replay, generate candidates, train or
+retrain CAMP, modify Diffusion Planner, promote selectors or atoms, or make
+safety/CAMP-over-DP claims.
+
+```text
+latest_plan_revalidation_base_head=02417e1b5783b5f2f1ffc9f095d3fe4ddd32d06d
+latest_camp_origin_main_at_revalidation=02417e1b5783b5f2f1ffc9f095d3fe4ddd32d06d
+latest_github_refs_heads_main_at_revalidation=02417e1b5783b5f2f1ffc9f095d3fe4ddd32d06d
+latest_autodl_CAMP_HEAD_at_revalidation=02417e1b5783b5f2f1ffc9f095d3fe4ddd32d06d
+latest_autodl_CAMP_origin_main_at_revalidation=02417e1b5783b5f2f1ffc9f095d3fe4ddd32d06d
+latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+latest_fixed_artifact_acceptance_status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_autodl_verification_passed
+latest_accepted_fallback_records=15
+latest_accepted_dataset_schema_version=dp_native_fallback_risk_training_data_v1
+latest_accepted_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018
+latest_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_6adb800_20260625T020016Z/dataset.json
+latest_local_py_compile_exit=0
+latest_local_target_pytest=7 passed
+latest_local_git_diff_check_exit=0
+latest_autodl_py_compile_exit=0
+latest_autodl_target_pytest=7 passed
+```
+
+The broad user execution permission is recorded for later eligible gates, but
+this plan gate does not authorize implementation or training:
+
+```text
+user_broad_execution_permission_recorded=True
+this_plan_gate_authorizes_broad_execution=False
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
