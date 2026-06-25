@@ -219,7 +219,9 @@ def test_extractor_cli_writes_outputs_when_enabled(
 
 def test_implementation_doc_records_current_head_revalidation() -> None:
     text = IMPLEMENTATION_DOC.read_text(encoding="utf-8")
-    tail = "\n".join(text.splitlines()[-90:])
+    tail = text.split(
+        "## Current-Head Revalidation After 9d92c1b Extractor Authorization"
+    )[-1]
 
     for needle in [
         "status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated_latest",
@@ -231,6 +233,11 @@ def test_implementation_doc_records_current_head_revalidation() -> None:
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_authorization_status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head",
         "prior_authorization_head_at_revalidation=950b0c829ec880b5feb5b5c7b863cd3c39f33664",
+        "camp_head_at_revalidation=44b501869be09b5180b7c82e1feb6f4f0950b010",
+        "camp_origin_main_at_revalidation=44b501869be09b5180b7c82e1feb6f4f0950b010",
+        "github_refs_heads_main_at_revalidation=44b501869be09b5180b7c82e1feb6f4f0950b010",
+        "autodl_CAMP_HEAD_at_revalidation=44b501869be09b5180b7c82e1feb6f4f0950b010",
+        "prior_authorization_head_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
         "prior_authorization_tail_verified=True",
         "prior_authorization_autodl_verified=True",
         "implementation_gate_complete=True",
@@ -244,8 +251,10 @@ def test_implementation_doc_records_current_head_revalidation() -> None:
         "output_json_or_markdown_only=True",
         "fallback_risk_records_are_diagnostic_only=True",
         "local_py_compile_exit=0",
-        "local_target_pytest=29 passed",
-        "local_git_diff_check_exit=0",
+        "local_target_pytest=61 passed",
+        "local_diff_check=0 findings",
+        "autodl_target_pytest=61 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "fallback_risk_training_authorized_now=False",
         "fallback_risk_smoke_authorized_now=False",
         "replay_execution_authorized=False",
@@ -274,14 +283,14 @@ def test_iteration_audit_records_extractor_implementation() -> None:
         "test=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_extractor.py",
         "contract_tests=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_contract.py",
         "authorization_test=camp_core/tests/test_dp_native_fallback_risk_ranking_extractor_implementation_authorization.py",
-        "camp_head_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b",
-        "camp_origin_main_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b",
-        "github_refs_heads_main_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b",
-        "autodl_CAMP_HEAD_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b",
-        "autodl_CAMP_origin_main_at_revalidation=88aa647dac256401e1e921cf26f4f3e37a1ce80b",
+        "camp_head_at_revalidation=44b501869be09b5180b7c82e1feb6f4f0950b010",
+        "camp_origin_main_at_revalidation=44b501869be09b5180b7c82e1feb6f4f0950b010",
+        "github_refs_heads_main_at_revalidation=44b501869be09b5180b7c82e1feb6f4f0950b010",
+        "autodl_CAMP_HEAD_at_revalidation=44b501869be09b5180b7c82e1feb6f4f0950b010",
+        "autodl_CAMP_origin_main_at_revalidation=44b501869be09b5180b7c82e1feb6f4f0950b010",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_authorization_status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head",
-        "prior_authorization_head_at_revalidation=950b0c829ec880b5feb5b5c7b863cd3c39f33664",
+        "prior_authorization_head_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
         "prior_authorization_tail_verified=True",
         "prior_authorization_autodl_verified=True",
         "implementation_gate_complete=True",
@@ -290,8 +299,10 @@ def test_iteration_audit_records_extractor_implementation() -> None:
         "default_off_required=True",
         "enabled_default=False",
         "local_py_compile_exit=0",
-        "local_target_pytest=29 passed",
-        "local_git_diff_check_exit=0",
+        "local_target_pytest=61 passed",
+        "local_diff_check=0 findings",
+        "autodl_target_pytest=61 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "fallback_risk_training_authorized_now=False",
         "fallback_risk_smoke_authorized_now=False",
         "replay_execution_authorized=False",
