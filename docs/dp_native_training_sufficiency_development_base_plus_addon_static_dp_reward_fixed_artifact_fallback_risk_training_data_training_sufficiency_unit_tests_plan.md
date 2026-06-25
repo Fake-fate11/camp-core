@@ -261,13 +261,13 @@ Current-head local verification:
 
 ```text
 head_7ebc103_local_py_compile_exit=0
-head_7ebc103_local_target_pytest=7 passed
-head_7ebc103_local_training_group_pytest=37 passed
+head_7ebc103_local_target_pytest=8 passed
+head_7ebc103_local_training_group_pytest=38 passed
 head_7ebc103_local_git_diff_check_exit=0
 head_7ebc103_autodl_py_compile_exit=0
-head_7ebc103_autodl_target_pytest=7 passed
-head_7ebc103_autodl_training_group_pytest=37 passed
-head_7ebc103_autodl_cumulative_pytest=225 passed
+head_7ebc103_autodl_target_pytest=8 passed
+head_7ebc103_autodl_training_group_pytest=38 passed
+head_7ebc103_autodl_cumulative_pytest=226 passed
 head_7ebc103_autodl_git_diff_check_exit=0
 ```
 

@@ -487,13 +487,13 @@ def test_unit_tests_plan_current_head_7ebc103_revalidation_is_pinned() -> None:
         "head_7ebc103_safety_benefit_claim_authorized=False",
         "head_7ebc103_camp_over_dp_top1_claim_authorized=False",
         "head_7ebc103_local_py_compile_exit=0",
-        "head_7ebc103_local_target_pytest=7 passed",
-        "head_7ebc103_local_training_group_pytest=37 passed",
+        "head_7ebc103_local_target_pytest=8 passed",
+        "head_7ebc103_local_training_group_pytest=38 passed",
         "head_7ebc103_local_git_diff_check_exit=0",
         "head_7ebc103_autodl_py_compile_exit=0",
-        "head_7ebc103_autodl_target_pytest=7 passed",
-        "head_7ebc103_autodl_training_group_pytest=37 passed",
-        "head_7ebc103_autodl_cumulative_pytest=225 passed",
+        "head_7ebc103_autodl_target_pytest=8 passed",
+        "head_7ebc103_autodl_training_group_pytest=38 passed",
+        "head_7ebc103_autodl_cumulative_pytest=226 passed",
         "head_7ebc103_autodl_git_diff_check_exit=0",
         "head_7ebc103_status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_ready",
         "head_7ebc103_training_sufficiency_unit_tests_plan_complete=True",
@@ -502,3 +502,20 @@ def test_unit_tests_plan_current_head_7ebc103_revalidation_is_pinned() -> None:
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only",
     ]:
         assert needle in combined
+
+
+def test_unit_tests_plan_current_head_7ebc103_is_audit_tail_gate() -> None:
+    iteration_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-16000:]
+
+    for needle in [
+        "status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_current_head_7ebc103_revalidated",
+        "status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_current_head_7ebc103_tail_counts_revalidated",
+        "head_7ebc103_training_sufficiency_unit_tests_authorized=True",
+        "head_7ebc103_tail_local_target_pytest=8 passed",
+        "head_7ebc103_tail_local_training_group_pytest=38 passed",
+        "head_7ebc103_tail_autodl_cumulative_pytest=226 passed",
+        "this_unit_tests_plan_gate_authorizes_training_replay_dp_or_claims=False",
+        "this_tail_count_correction_authorizes_training_replay_dp_or_claims=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only",
+    ]:
+        assert needle in iteration_tail
