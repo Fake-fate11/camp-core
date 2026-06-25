@@ -9,6 +9,11 @@ PLAN_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_plan.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+NEXT_UNIT_TESTS_GATE = (
+    "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_"
+    "fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_only"
+)
 
 
 def _text() -> str:
@@ -157,7 +162,7 @@ def test_builder_unit_tests_plan_next_gate_tests_only() -> None:
 def test_builder_unit_tests_plan_records_current_head_revalidation() -> None:
     text = _text()
 
-    current_head = "ebd5b34d9a01fef9c453fe70a1d674ceac76c54c"
+    current_head = "07b95a6b129a3532f50e64cfde9c67801ac328b6"
     for needle in [
         f"camp_head_at_revalidation={current_head}",
         f"camp_origin_main_at_revalidation={current_head}",
@@ -165,10 +170,52 @@ def test_builder_unit_tests_plan_records_current_head_revalidation() -> None:
         f"autodl_CAMP_HEAD_at_revalidation={current_head}",
         f"autodl_CAMP_origin_main_at_revalidation={current_head}",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "prior_design_static_contract_status=fallback_risk_training_data_design_static_contract_review_autodl_verification_passed",
+        "prior_design_static_contract_status=fallback_risk_training_data_design_static_contract_review_current_head_revalidated_latest",
+        "prior_design_static_contract_autodl_verified=True",
         "default_off_builder_unit_tests_plan_complete=True",
         "blocking_contract_findings=0",
+        "local_py_compile_exit=0",
+        "local_target_pytest=93 passed",
+        "local_git_diff_check_exit=0",
+        "dataset_builder_implementation_authorized=False",
         "validator_extension_implementation_authorized=False",
         "training_execution_authorized_now=False",
+        NEXT_UNIT_TESTS_GATE,
     ]:
         assert needle in text
+
+
+def test_iteration_audit_tail_records_builder_unit_tests_plan() -> None:
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-120:])
+
+    for needle in [
+        "status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest",
+        "camp_head_at_revalidation=07b95a6b129a3532f50e64cfde9c67801ac328b6",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_design_static_contract_status=fallback_risk_training_data_design_static_contract_review_current_head_revalidated_latest",
+        "prior_design_static_contract_autodl_verified=True",
+        "default_off_builder_unit_tests_plan_complete=True",
+        "blocking_contract_findings=0",
+        "local_py_compile_exit=0",
+        "local_target_pytest=93 passed",
+        "local_git_diff_check_exit=0",
+        "dataset_builder_implementation_authorized=False",
+        "validator_extension_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "fallback_risk_smoke_authorized_now=False",
+        "training_execution_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_UNIT_TESTS_GATE,
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_UNIT_TESTS_GATE}`")
