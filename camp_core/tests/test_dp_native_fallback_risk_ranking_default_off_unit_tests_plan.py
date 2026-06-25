@@ -195,7 +195,11 @@ def test_default_off_unit_tests_plan_current_head_revalidation() -> None:
 
 def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() -> None:
     text = ITERATION_AUDIT.read_text(encoding="utf-8")
-    recent_audit = text[-30000:]
+    current_head_marker = (
+        "## Current Tail Confirmation After Current HEAD a9fbf1c Fallback Risk "
+        "Ranking Default-Off Unit Tests Plan"
+    )
+    current_head_audit = current_head_marker + text.split(current_head_marker)[-1]
 
     for needle in [
         "status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate",
@@ -241,4 +245,4 @@ def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() ->
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
-        assert needle in recent_audit
+        assert needle in current_head_audit

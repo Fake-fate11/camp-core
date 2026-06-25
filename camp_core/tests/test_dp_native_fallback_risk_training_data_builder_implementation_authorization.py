@@ -134,7 +134,7 @@ def test_builder_implementation_authorization_records_current_head_revalidation(
 def test_builder_implementation_authorization_records_latest_tail() -> None:
     text = _text()
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    current_head = "ae8bf8ca205566f0c64eacc17b66ab7d68c6c5ae"
+    current_head = "8be31ac8b4490f48be5d7b78cc2bd009db9bfa41"
 
     for payload in (text, audit):
         for needle in [
@@ -149,11 +149,19 @@ def test_builder_implementation_authorization_records_latest_tail() -> None:
             f"autodl_CAMP_origin_main_at_revalidation={current_head}",
             "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
             "prior_builder_unit_tests_status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_revalidated_latest",
+            "prior_builder_unit_tests_commit_at_revalidation=8be31ac8b4490f48be5d7b78cc2bd009db9bfa41",
             "prior_builder_unit_tests_tail_verified=True",
             "prior_builder_unit_tests_autodl_verified=True",
+            "user_camp_retraining_permission_available_for_future_training_gate=True",
             "local_py_compile_exit=0",
-            "local_target_pytest=21 passed",
-            "local_git_diff_check_exit=0",
+            "local_target_pytest=106 passed",
+            "local_diff_check=0 findings",
+            f"autodl_CAMP_HEAD={current_head}",
+            f"autodl_CAMP_origin_main={current_head}",
+            "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+            "autodl_py_compile_exit=0",
+            "autodl_target_pytest=106 passed",
+            "autodl_diff_check=0 findings",
             "blocking_contract_findings=0",
             "implementation_authorized=True",
             "fallback_risk_training_data_builder_implementation_authorized=True",
