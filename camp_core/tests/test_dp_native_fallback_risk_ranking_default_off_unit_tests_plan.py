@@ -145,6 +145,9 @@ def test_default_off_unit_tests_plan_next_gate_tests_only() -> None:
 
 def test_default_off_unit_tests_plan_current_head_revalidation() -> None:
     text = PLAN_DOC.read_text(encoding="utf-8")
+    recent_plan = text.split(
+        "## Current-Head Revalidation After e73f9ea Static Contract Review"
+    )[-1]
 
     for needle in [
         "camp_head_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f",
@@ -164,9 +167,30 @@ def test_default_off_unit_tests_plan_current_head_revalidation() -> None:
         "github_refs_heads_main_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
         "autodl_CAMP_HEAD_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
         "prior_static_contract_head_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
+        "camp_head_at_revalidation=a9fbf1c00f2f9fea6847b88cf25d527b2cc6d0cc",
+        "camp_origin_main_at_revalidation=a9fbf1c00f2f9fea6847b88cf25d527b2cc6d0cc",
+        "github_refs_heads_main_at_revalidation=a9fbf1c00f2f9fea6847b88cf25d527b2cc6d0cc",
+        "autodl_CAMP_HEAD_at_revalidation=a9fbf1c00f2f9fea6847b88cf25d527b2cc6d0cc",
+        "prior_static_contract_head_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
         NEXT_UNIT_TESTS_GATE,
     ]:
         assert needle in text
+
+    for needle in [
+        "camp_head_at_revalidation=a9fbf1c00f2f9fea6847b88cf25d527b2cc6d0cc",
+        "autodl_CAMP_HEAD_at_revalidation=a9fbf1c00f2f9fea6847b88cf25d527b2cc6d0cc",
+        "prior_static_contract_head_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
+        "current_head_unit_tests_plan_revalidated=True",
+        "planned_default_off_tests=4",
+        "implementation_authorized=False",
+        "production_implementation_edit_authorized=False",
+        "fallback_risk_extractor_implementation_authorized=False",
+        "local_target_pytest=32 passed",
+        "autodl_target_pytest=32 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        NEXT_UNIT_TESTS_GATE,
+    ]:
+        assert needle in recent_plan
 
 
 def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() -> None:
@@ -195,11 +219,11 @@ def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() ->
     for needle in [
         "status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate",
         "unit_tests_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan.md",
-        "camp_head_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
-        "autodl_CAMP_HEAD_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
+        "camp_head_at_revalidation=a9fbf1c00f2f9fea6847b88cf25d527b2cc6d0cc",
+        "autodl_CAMP_HEAD_at_revalidation=a9fbf1c00f2f9fea6847b88cf25d527b2cc6d0cc",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
-        "prior_static_contract_head_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
+        "prior_static_contract_head_at_revalidation=e73f9ea0b30f9619d2f56dea208c78c2b1c79901",
         "current_head_unit_tests_plan_revalidated=True",
         "planned_default_off_tests=4",
         "planned_cost_extraction_tests=11",
@@ -211,6 +235,9 @@ def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() ->
         "camp_retraining_authorized=False",
         "candidate_generation_authorized=False",
         "dp_modification_authorized=False",
+        "local_target_pytest=32 passed",
+        "autodl_target_pytest=32 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
