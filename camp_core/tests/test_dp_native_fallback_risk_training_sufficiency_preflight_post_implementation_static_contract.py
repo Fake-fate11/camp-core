@@ -226,18 +226,18 @@ def test_review_next_gate_is_training_split_manifest_plan_only() -> None:
         assert needle in text
 
 
-def test_audit_tail_records_current_post_static_gate_as_split_plan_next() -> None:
+def test_audit_tail_records_current_split_manifest_plan_as_static_review_next() -> None:
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
 
     assert (
-        "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_f474ee0_revalidated"
+        "status=fallback_risk_training_split_manifest_plan_head_507a0be_revalidated"
         in tail
     )
     assert (
-        "head_f474ee0_expected_validated_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0"
+        "head_507a0be_validated_fallback_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0"
         in tail
     )
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_static_contract_review_only`"
     )
