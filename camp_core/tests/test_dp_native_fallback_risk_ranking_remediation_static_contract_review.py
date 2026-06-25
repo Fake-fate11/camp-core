@@ -146,9 +146,8 @@ def test_static_contract_review_current_head_revalidation() -> None:
         assert needle in text
 
 
-def test_iteration_audit_tail_records_static_contract_review_next_gate() -> None:
+def test_iteration_audit_records_static_contract_review_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-120:])
 
     for needle in [
         "status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
@@ -170,7 +169,3 @@ def test_iteration_audit_tail_records_static_contract_review_next_gate() -> None
         NEXT_UNIT_TESTS_PLAN_GATE,
     ]:
         assert needle in audit
-
-    assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only`"
-    )

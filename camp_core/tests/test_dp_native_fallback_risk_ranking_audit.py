@@ -260,13 +260,13 @@ def test_fallback_risk_audit_doc_pins_real_artifact_result() -> None:
         "candidate_tensor_mutation_effect_all_no_feasible_records=False",
         "candidate_generation_effect_all_no_feasible_records=False",
         "fallback_risk_training_authorized_now=False",
-        "camp_head_at_revalidation=7a2d4903699a2266160d3206a00f4d6801028049",
-        "camp_origin_main_at_revalidation=7a2d4903699a2266160d3206a00f4d6801028049",
+        "camp_head_at_revalidation=61fc5256d6496626cbfa826445fdfc7317bead7a",
+        "camp_origin_main_at_revalidation=61fc5256d6496626cbfa826445fdfc7317bead7a",
         "dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_7a2d490_20260624T231111Z",
-        "remote_audit_json_sha256=fe57dc19a8f0371fe3f4f5ea469e39c0934a9bc8e76f205a046f2a29cfdaaa33",
-        "remote_audit_md_sha256=34fd32059d306725931cce948c4146c83d14d34555293b1c87cb58916c7352af",
-        "remote_target_pytest=13 passed",
+        "remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_61fc525_20260625T053215Z",
+        "remote_audit_json_sha256=52bb6f5168483cf6843a98214a21f1d597e31030eb1dbb47387a827e87732fcc",
+        "remote_audit_md_sha256=843236dd8f0cdfaad4a3c52252bce922faed04aa0c8a05c97ddadc9276f5e75c",
+        "remote_artifact_audit_exit=0",
         NEXT_DESIGN_GATE,
     ]:
         assert needle in text
@@ -317,9 +317,9 @@ def test_iteration_audit_tail_records_current_head_ranking_audit_next_gate() -> 
     for needle in [
         "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete",
         "passed=True",
-        "camp_head_at_revalidation=7a2d4903699a2266160d3206a00f4d6801028049",
+        "camp_head_at_revalidation=61fc5256d6496626cbfa826445fdfc7317bead7a",
         "dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "remote_audit_json_sha256=fe57dc19a8f0371fe3f4f5ea469e39c0934a9bc8e76f205a046f2a29cfdaaa33",
+        "remote_audit_json_sha256=52bb6f5168483cf6843a98214a21f1d597e31030eb1dbb47387a827e87732fcc",
         "records_without_feasible_candidate=15",
         "lower_risk_fixed_candidate_exists_under_logged_costs=True",
         "fallback_risk_training_authorized_now=False",
@@ -331,8 +331,8 @@ def test_iteration_audit_tail_records_current_head_ranking_audit_next_gate() -> 
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_DESIGN_GATE,
     ]:
-        assert needle in audit
+        assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only`"
     )
