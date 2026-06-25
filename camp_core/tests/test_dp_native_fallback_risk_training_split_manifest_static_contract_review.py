@@ -279,8 +279,12 @@ def test_audit_tail_records_split_manifest_unit_tests_plan_next_gate() -> None:
         in tail
     )
     assert "head_2c8adc8_local_static_contract_review_pytest=9 passed" in tail
+    assert (
+        "status=fallback_risk_training_split_manifest_unit_tests_plan_head_7756feb_revalidated"
+        in tail
+    )
     assert "training_execution_authorized_now=False" in tail
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_plan_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only`"
         in tail
     )

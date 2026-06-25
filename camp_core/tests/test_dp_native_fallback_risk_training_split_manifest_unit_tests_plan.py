@@ -88,6 +88,49 @@ def test_current_head_5753703_unit_tests_plan_revalidation_is_pinned() -> None:
         assert needle in text
 
 
+def test_current_head_7756feb_unit_tests_plan_revalidation_is_pinned() -> None:
+    text = _plan()
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_unit_tests_plan_head_7756feb_revalidated",
+        "unit_tests_plan_base_head=7756feb39b4492cda559dae261ebd6bb0fa2beb0",
+        "camp_origin_main_at_unit_tests_plan=7756feb39b4492cda559dae261ebd6bb0fa2beb0",
+        "github_refs_heads_main_at_unit_tests_plan=7756feb39b4492cda559dae261ebd6bb0fa2beb0",
+        "autodl_CAMP_HEAD_at_unit_tests_plan=7756feb39b4492cda559dae261ebd6bb0fa2beb0",
+        "autodl_CAMP_origin_main_at_unit_tests_plan=7756feb39b4492cda559dae261ebd6bb0fa2beb0",
+        "autodl_DP_HEAD_at_unit_tests_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_split_manifest_static_contract_status=fallback_risk_training_split_manifest_static_contract_review_head_2c8adc8_revalidated",
+        "head_7756feb_validated_fallback_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+        "head_7756feb_validated_fallback_records=15",
+        "head_7756feb_split_manifest_plan_ready=True",
+        "head_7756feb_split_manifest_static_contract_review_passed=True",
+        "head_7756feb_blocking_contract_findings=0",
+        "head_7756feb_manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1",
+        "head_7756feb_records_scope=records_without_feasible_candidate_only",
+        "head_7756feb_test_disabled_mode_does_not_read_dataset=True",
+        "head_7756feb_test_enabled_mode_reads_existing_validated_dataset_json_only=True",
+        "head_7756feb_test_requires_group_key_source_log_run_id_record_index=True",
+        "head_7756feb_test_does_not_use_selected_index_as_split_feature=True",
+        "head_7756feb_test_does_not_use_candidate_rank_as_split_feature=True",
+        "head_7756feb_test_does_not_use_closed_loop_outcome_as_split_feature=True",
+        "head_7756feb_test_training_and_validation_groups_are_disjoint=True",
+        "head_7756feb_test_final_decision_never_authorizes_training=True",
+        "head_7756feb_synthetic_dataset_fixtures_only=True",
+        "head_7756feb_synthetic_split_manifest_fixtures_only=True",
+        "head_7756feb_split_manifest_unit_tests_authorized=True",
+        "head_7756feb_training_split_manifest_builder_authorized=False",
+        "head_7756feb_local_unit_tests_plan_pytest=10 passed",
+        "head_7756feb_local_static_contract_review_pytest=9 passed",
+        "head_7756feb_local_target_pytest=19 passed",
+        "head_7756feb_training_not_executed=True",
+        "head_7756feb_candidate_generation_not_executed=True",
+        "head_7756feb_dp_not_modified=True",
+        "head_7756feb_selector_or_atom_not_promoted=True",
+        "this_split_manifest_unit_tests_plan_gate_authorizes_builder_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in text
+
+
 def test_split_unit_tests_plan_covers_default_off_and_dataset_scope() -> None:
     text = _plan()
 
@@ -230,10 +273,14 @@ def test_audit_tail_records_split_manifest_unit_tests_only_next_gate() -> None:
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
 
     assert (
-        "status=fallback_risk_training_split_manifest_unit_tests_plan_head_5753703_revalidated"
+        "status=fallback_risk_training_split_manifest_unit_tests_plan_head_7756feb_revalidated"
         in tail
     )
-    assert "head_5753703_local_unit_tests_plan_pytest=9 passed" in tail
+    assert (
+        "head_7756feb_validated_fallback_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498"
+        in tail
+    )
+    assert "head_7756feb_local_unit_tests_plan_pytest=10 passed" in tail
     assert (
         "this_split_manifest_unit_tests_plan_gate_authorizes_builder_training_replay_dp_or_claims=False"
         in tail
