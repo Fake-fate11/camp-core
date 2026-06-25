@@ -83,6 +83,18 @@ def test_validator_acceptance_records_fixed_nonformal_dataset_identity() -> None
         "head_1276639_validator_stdout_json_sha256=3713b3fc66b174a8298c6925f410dfdd8a3f994ef56bf8335c08670a117031fb",
         "camp_head_at_head_1276639_revalidation=127663927199f041db0fe37dada7c300045f22ed",
         "autodl_DP_HEAD_at_head_1276639_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "head_6dc8ae6_source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.json",
+        "head_6dc8ae6_source_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_6dc8ae6_source_artifact_scope=broader_nonformal_fixed_evaluation_artifact",
+        "head_6dc8ae6_unique_source_logs=7",
+        "head_6dc8ae6_strict_formal_seed_path_matches=0",
+        "head_6dc8ae6_formal_seeds_11_12_13_used=False",
+        "head_6dc8ae6_validator_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_validator_acceptance_6dc8ae6_20260625T222922Z",
+        "head_6dc8ae6_validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
+        "head_6dc8ae6_validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "head_6dc8ae6_validator_stdout_json_sha256=3713b3fc66b174a8298c6925f410dfdd8a3f994ef56bf8335c08670a117031fb",
+        "camp_head_at_head_6dc8ae6_revalidation=6dc8ae66651e61409d85dc7c845d4a53c89daf64",
+        "autodl_DP_HEAD_at_head_6dc8ae6_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -245,6 +257,26 @@ def test_validator_acceptance_records_status_counts_and_readback() -> None:
         "head_1276639_dataset_candidate_rank_used_as_feature_any=False",
         "head_1276639_dataset_fallback_label_is_not_a_deployed_atom_all=True",
         "head_1276639_dataset_training_authorized_any=False",
+        "head_6dc8ae6_schema_version=dp_native_fallback_risk_training_data_validator_v1",
+        "head_6dc8ae6_status=dp_native_fallback_risk_training_data_validator_complete",
+        "head_6dc8ae6_passed=True",
+        "head_6dc8ae6_enabled=True",
+        "head_6dc8ae6_records_checked=15",
+        "head_6dc8ae6_failed_records=0",
+        "head_6dc8ae6_errors=0",
+        "head_6dc8ae6_source_log_readback_enabled=True",
+        "head_6dc8ae6_default_off=True",
+        "head_6dc8ae6_read_only=True",
+        "head_6dc8ae6_dataset_records_total=60",
+        "head_6dc8ae6_dataset_records_without_feasible_candidate=15",
+        "head_6dc8ae6_dataset_records_with_feasible_candidate=45",
+        "head_6dc8ae6_dataset_records_built=15",
+        "head_6dc8ae6_dataset_record_count=15",
+        "head_6dc8ae6_dataset_candidate_counts=4",
+        "head_6dc8ae6_dataset_oracle_policies=lane/red/quality,red/lane/quality",
+        "head_6dc8ae6_dataset_atom_schema_versions=dp_camp_v10_14d",
+        "head_6dc8ae6_dataset_atom_name_counts=14",
+        "head_6dc8ae6_dataset_training_authorized_any=False",
     ]:
         assert needle in text
 
@@ -375,6 +407,18 @@ def test_validator_acceptance_forbids_training_replay_dp_and_claims() -> None:
         "head_1276639_feasible_ranking_master_change_authorized=False",
         "head_1276639_hard_feasibility_relaxation_authorized=False",
         "head_1276639_all_infeasible_records_added_to_feasible_training=False",
+        "head_6dc8ae6_replay_execution_authorized=False",
+        "head_6dc8ae6_candidate_generation_authorized=False",
+        "head_6dc8ae6_training_authorized=False",
+        "head_6dc8ae6_camp_training_authorized=False",
+        "head_6dc8ae6_camp_retraining_authorized=False",
+        "head_6dc8ae6_formal_seeds_11_12_13_authorized=False",
+        "head_6dc8ae6_dp_modification_authorized=False",
+        "head_6dc8ae6_selector_promotion_authorized=False",
+        "head_6dc8ae6_atom_promotion_authorized=False",
+        "head_6dc8ae6_safety_benefit_claim_authorized=False",
+        "head_6dc8ae6_camp_over_dp_top1_claim_authorized=False",
+        "head_6dc8ae6_fallback_dataset_training_sufficiency_claim=False",
     ]:
         assert needle in text
 
@@ -394,7 +438,7 @@ def test_validator_acceptance_forbids_training_replay_dp_and_claims() -> None:
 
 def test_validator_acceptance_next_gate_is_training_sufficiency_plan_only() -> None:
     text = _audit()
-    iteration_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-12000:]
+    iteration_tail = ITERATION_AUDIT.read_text(encoding="utf-8")
     combined = text + iteration_tail
 
     for needle in [
@@ -403,13 +447,16 @@ def test_validator_acceptance_next_gate_is_training_sufficiency_plan_only() -> N
         "status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_b572505_revalidated",
         "status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_0c7eada_revalidated",
         "status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_1276639_passed",
+        "status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_6dc8ae6_passed",
         "fixed_artifact_acceptance_audit_complete=True",
         "validated_fallback_records=15",
         "validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
         "validated_fallback_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0",
         "validated_fallback_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+        "validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
         "validator_output_json_sha256=4baaf581141c8fbfddede13bd04b02788276421f041d6eca9bd86c15e1d221fc",
         "validator_output_json_sha256=bfe5d031be232c13188e19ae19692a560bb424090fc446253edf015c50c821c9",
+        "validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_plan_only",
         "may only plan the training-sufficiency boundary",
         "must predeclare any split",
