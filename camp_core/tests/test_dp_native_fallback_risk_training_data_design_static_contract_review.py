@@ -169,3 +169,22 @@ def test_static_review_next_gate_unit_tests_plan_only() -> None:
         "train CAMP",
     ]:
         assert needle in text
+
+
+def test_static_review_records_current_head_revalidation() -> None:
+    text = _review()
+
+    current_head = "4ba6c4ced6a26c776940d2e2e77e655f45b13897"
+    for needle in [
+        f"camp_head_at_revalidation={current_head}",
+        f"camp_origin_main_at_revalidation={current_head}",
+        f"github_refs_heads_main_at_revalidation={current_head}",
+        f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+        f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_design_status=fallback_risk_training_data_design_plan_autodl_verification_passed",
+        "blocking_contract_findings=0",
+        "validator_extension_implementation_authorized=False",
+        "training_execution_authorized_now=False",
+    ]:
+        assert needle in text
