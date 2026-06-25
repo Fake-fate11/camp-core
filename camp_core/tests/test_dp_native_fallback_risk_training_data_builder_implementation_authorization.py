@@ -134,7 +134,7 @@ def test_builder_implementation_authorization_records_current_head_revalidation(
 def test_builder_implementation_authorization_records_latest_tail() -> None:
     text = _text()
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    current_head = "c763e35e796b5d93def72cfba33c5196d3f9316b"
+    current_head = "ae8bf8ca205566f0c64eacc17b66ab7d68c6c5ae"
 
     for payload in (text, audit):
         for needle in [
