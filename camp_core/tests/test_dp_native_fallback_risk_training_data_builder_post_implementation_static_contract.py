@@ -17,6 +17,11 @@ BUILDER = (
     / "build_diffusion_planner_dp_native_fallback_risk_training_data.py"
 )
 AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+NEXT_FIXED_ARTIFACT_GATE = (
+    "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_"
+    "fixed_artifact_fallback_risk_training_data_default_off_builder_"
+    "fixed_artifact_acceptance_audit_only"
+)
 
 
 def _source() -> str:
@@ -193,3 +198,38 @@ def test_review_next_gate_is_fixed_artifact_acceptance_audit_only() -> None:
         "promote a selector or atom",
     ]:
         assert needle in text
+
+
+def test_review_doc_and_audit_tail_record_latest_revalidation() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-140:])
+    current_head = "8cbd4a23a907f19425df9ae09227d62c1edf2bbe"
+
+    for payload in (text, tail):
+        for needle in [
+            "status=fallback_risk_training_data_default_off_builder_post_implementation_static_contract_current_head_revalidated_latest",
+            f"camp_head_at_current_head_revalidation={current_head}",
+            f"camp_origin_main_at_current_head_revalidation={current_head}",
+            f"github_refs_heads_main_at_current_head_revalidation={current_head}",
+            f"autodl_CAMP_HEAD_at_current_head_revalidation={current_head}",
+            f"autodl_CAMP_origin_main_at_current_head_revalidation={current_head}",
+            "autodl_DP_HEAD_at_current_head_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+            "prior_builder_implementation_status=fallback_risk_training_data_default_off_builder_implementation_current_head_revalidated_latest",
+            "prior_builder_implementation_autodl_verified=True",
+            "local_target_pytest=24 passed",
+            "post_implementation_static_contract_review_complete=True",
+            "blocking_contract_findings=0",
+            "default_off_boundary_passed=True",
+            "read_only_fixed_artifact_boundary_passed=True",
+            "affine_score_boundary_preserved=True",
+            "training_sufficiency_boundary_passed=True",
+            "fixed_artifact_acceptance_audit_authorized_next=True",
+            "this_static_contract_gate_authorizes_broad_execution=False",
+            "fallback_risk_training_authorized_now=False",
+            "training_execution_authorized_now=False",
+            NEXT_FIXED_ARTIFACT_GATE,
+        ]:
+            assert needle in payload
+
+    assert tail.rstrip().endswith(f"`{NEXT_FIXED_ARTIFACT_GATE}`")
