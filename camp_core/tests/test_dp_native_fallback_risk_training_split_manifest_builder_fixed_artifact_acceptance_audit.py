@@ -44,6 +44,44 @@ def test_acceptance_audit_records_current_fixed_artifact_inputs_and_outputs() ->
         assert needle in text
 
 
+def test_current_head_def7dde_fixed_artifact_acceptance_is_pinned() -> None:
+    text = _audit()
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_def7dde_passed",
+        "acceptance_base_head=def7dde5f8f3ae157c9b2e82415f4cd1c75a0ba5",
+        "source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_e35f1e4_20260625T132102Z/dataset.json",
+        "expected_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0",
+        "validator_output_json_sha256=572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b",
+        "builder_commit=def7dde5f8f3ae157c9b2e82415f4cd1c75a0ba5",
+        "autodl_CAMP_HEAD=def7dde5f8f3ae157c9b2e82415f4cd1c75a0ba5",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "post_static_contract_status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_5455e4d_revalidated",
+        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_def7dde_20260625T160330Z",
+        "split_manifest_json_sha256=13fa6b86d2fcebbb3ecbb675daefa7409f1f427900896307474d2d1dc4f6e773",
+        "split_manifest_md_sha256=60ef091344704d9edeec48820d2d1888cb0110ba6b9a35e6de6ad49ee9fe2aeb",
+        "builder_stdout_log_sha256=c825f1298c9660dafbe2fdad70f118575ee2a072b66cf44371332d0090c99d47",
+        "builder_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "builder_exit=0",
+        "observed_status=dp_native_fallback_risk_training_split_manifest_builder_complete",
+        "observed_passed=True",
+        "observed_errors=[]",
+        "observed_accepted_records=15",
+        "observed_training_records=13",
+        "observed_validation_records=2",
+        "observed_record_assignments=15",
+        "observed_training_authorized=False",
+        "observed_fallback_dataset_training_sufficiency_claim=False",
+        "observed_candidate_generation_authorized=False",
+        "observed_dp_modification_authorized=False",
+        "fixed_artifact_acceptance_passed=True",
+        "blocking_acceptance_findings=0",
+        "training_split_manifest_ready_for_preflight=True",
+        "local_acceptance_target_pytest=7 passed",
+    ]:
+        assert needle in text
+
+
 def test_acceptance_audit_records_missing_record_identity_rejection() -> None:
     text = _audit()
 
@@ -175,16 +213,14 @@ def test_iteration_audit_tail_records_current_acceptance_audit_next_gate() -> No
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_sufficiency_preflight_current_head_fixed_artifact_acceptance_passed",
-        "ready_for_future_training_authorization=True",
-        "local_target_pytest=140 passed",
-        "local_preflight_acceptance_rerun_pytest=6 passed",
-        "local_preflight_pytest=5 passed",
-        "autodl_target_pytest=140 passed",
+        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_def7dde_passed",
+        "split_manifest_json_sha256=13fa6b86d2fcebbb3ecbb675daefa7409f1f427900896307474d2d1dc4f6e773",
+        "observed_training_records=13",
+        "observed_validation_records=2",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
     )
