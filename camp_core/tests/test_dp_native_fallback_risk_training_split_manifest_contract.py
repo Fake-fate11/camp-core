@@ -683,6 +683,10 @@ def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> 
         in tail
     )
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only`"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_0f00924_revalidated"
+        in tail
+    )
+    assert (
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only`"
         in tail
     )
