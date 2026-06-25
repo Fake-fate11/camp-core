@@ -145,6 +145,11 @@ def test_static_contract_review_current_head_revalidation() -> None:
         "camp_origin_main_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
         "github_refs_heads_main_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
         "autodl_CAMP_HEAD_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
+        "camp_head_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
+        "camp_origin_main_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
+        "github_refs_heads_main_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
+        "autodl_CAMP_HEAD_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
+        "prior_design_head_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
         NEXT_UNIT_TESTS_PLAN_GATE,
     ]:
         assert needle in text
@@ -178,9 +183,10 @@ def test_iteration_audit_records_static_contract_review_next_gate() -> None:
     for needle in [
         "status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
         "static_contract_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review.md",
-        "camp_head_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
-        "autodl_CAMP_HEAD_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
+        "camp_head_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
+        "autodl_CAMP_HEAD_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_design_head_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
         "blocking_contract_findings=0",
         "current_head_static_contract_revalidated=True",
         "fixed_candidate_boundary_passed=True",
