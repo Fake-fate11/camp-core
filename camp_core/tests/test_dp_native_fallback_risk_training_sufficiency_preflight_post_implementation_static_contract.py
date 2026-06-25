@@ -96,6 +96,38 @@ def test_current_head_f474ee0_static_contract_revalidation_is_pinned() -> None:
         assert needle in text
 
 
+def test_current_head_717aba9_static_contract_revalidation_is_pinned() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_717aba9_revalidated",
+        "post_static_contract_base_head=717aba905f425aacbc4585e2461eafef8c3b8ee8",
+        "camp_origin_main_at_post_static_contract=717aba905f425aacbc4585e2461eafef8c3b8ee8",
+        "github_refs_heads_main_at_post_static_contract=717aba905f425aacbc4585e2461eafef8c3b8ee8",
+        "autodl_CAMP_HEAD_at_post_static_contract=717aba905f425aacbc4585e2461eafef8c3b8ee8",
+        "autodl_CAMP_origin_main_at_post_static_contract=717aba905f425aacbc4585e2461eafef8c3b8ee8",
+        "autodl_DP_HEAD_at_post_static_contract=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_implementation_status=fallback_risk_training_sufficiency_preflight_implementation_head_9195b3c_revalidated",
+        "head_717aba9_validated_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+        "head_717aba9_expected_validated_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+        "head_717aba9_source_expected_sha_current=True",
+        "head_717aba9_default_off_boundary_passed=True",
+        "head_717aba9_read_only_manifest_boundary_passed=True",
+        "head_717aba9_training_sufficiency_boundary_passed=True",
+        "head_717aba9_affine_score_boundary_preserved=True",
+        "head_717aba9_approved_atom_names_match_dp_camp_v10_14d=True",
+        "head_717aba9_blocking_contract_findings=0",
+        "head_717aba9_local_post_static_contract_pytest=9 passed",
+        "head_717aba9_local_target_pytest=45 passed",
+        "head_717aba9_training_not_executed=True",
+        "head_717aba9_candidate_generation_not_executed=True",
+        "head_717aba9_dp_not_modified=True",
+        "head_717aba9_selector_or_atom_not_promoted=True",
+        "this_post_static_gate_authorizes_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in text
+
+
 def test_preflight_is_default_off_before_reading_any_manifest() -> None:
     tree = _tree()
     source = _source()
@@ -173,7 +205,7 @@ def test_preflight_uses_exact_14d_atom_schema_names() -> None:
         "scale_atom_names_mismatch",
         "atom_scale_keys_mismatch",
         'EXPECTED_VALIDATED_DATASET_SHA256 = (',
-        '"79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0"',
+        '"682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498"',
     ]:
         assert needle in source
 
@@ -230,14 +262,14 @@ def test_audit_tail_records_current_split_manifest_plan_as_static_review_next() 
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
 
     assert (
-        "status=fallback_risk_training_split_manifest_plan_head_507a0be_revalidated"
+        "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_717aba9_revalidated"
         in tail
     )
     assert (
-        "head_507a0be_validated_fallback_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0"
+        "head_717aba9_expected_validated_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498"
         in tail
     )
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_static_contract_review_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only`"
     )
