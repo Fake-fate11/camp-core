@@ -158,7 +158,7 @@ def test_training_data_design_plan_records_current_head_revalidation() -> None:
     text = _text()
     tail = "\n".join(text.splitlines()[-90:])
 
-    current_head = "23a965ebc3c602082c396a63fb4ad178b70070f0"
+    current_head = "f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09"
     for needle in [
         "status=fallback_risk_training_data_design_plan_current_head_revalidated_latest",
         f"camp_head_at_revalidation={current_head}",
@@ -201,11 +201,11 @@ def test_iteration_audit_records_training_data_design_plan() -> None:
         "status=fallback_risk_training_data_design_plan_current_head_revalidated_latest",
         "design_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan.md",
         "design_test=camp_core/tests/test_dp_native_fallback_risk_training_data_design_plan.py",
-        "camp_head_at_revalidation=23a965ebc3c602082c396a63fb4ad178b70070f0",
-        "camp_origin_main_at_revalidation=23a965ebc3c602082c396a63fb4ad178b70070f0",
-        "github_refs_heads_main_at_revalidation=23a965ebc3c602082c396a63fb4ad178b70070f0",
-        "autodl_CAMP_HEAD_at_revalidation=23a965ebc3c602082c396a63fb4ad178b70070f0",
-        "autodl_CAMP_origin_main_at_revalidation=23a965ebc3c602082c396a63fb4ad178b70070f0",
+        "camp_head_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
+        "camp_origin_main_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
+        "github_refs_heads_main_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
+        "autodl_CAMP_HEAD_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
+        "autodl_CAMP_origin_main_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_extractor_contract_status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_current_head_revalidated_latest",
         "prior_extractor_contract_tail_verified=True",

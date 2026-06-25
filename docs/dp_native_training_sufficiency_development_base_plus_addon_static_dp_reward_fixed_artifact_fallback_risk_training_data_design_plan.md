@@ -428,3 +428,63 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review_only
 ```
+
+## Current-Head Revalidation After Extractor Post-Contract Sync
+
+Date: 2026-06-26
+
+The fallback-risk training-data design remains valid after the extractor
+post-implementation static contract gate was committed, pushed, and verified
+on AutoDL. This gate remains design-plan-only. It does not implement a dataset
+builder, extend the validator, run replay, generate candidates, train or
+retrain CAMP, modify Diffusion Planner, promote selector/atom logic, deploy,
+or claim safety/CAMP-over-DP benefit.
+
+```text
+status=fallback_risk_training_data_design_plan_current_head_revalidated_latest
+passed=True
+camp_head_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09
+camp_origin_main_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09
+github_refs_heads_main_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09
+autodl_CAMP_HEAD_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09
+autodl_CAMP_origin_main_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_extractor_contract_status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_current_head_revalidated_latest
+prior_extractor_contract_tail_verified=True
+prior_extractor_contract_autodl_verified=True
+user_camp_retraining_permission_available_for_future_training_gate=True
+fallback_training_data_design_complete=True
+blocking_contract_findings=0
+local_py_compile_exit=0
+local_target_pytest=45 passed
+local_git_diff_check_exit=0
+dataset_builder_implementation_authorized=False
+validator_extension_implementation_authorized=False
+fallback_risk_smoke_authorized_now=False
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review_only
+```
