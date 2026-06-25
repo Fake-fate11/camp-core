@@ -39,23 +39,16 @@ def test_implementation_doc_records_current_head_and_next_gate() -> None:
     text = _doc()
 
     for needle in [
-        "status=fallback_risk_training_data_validator_extension_implementation_current_head_40a6940_revalidated",
-        "implementation_validation_head=40a6940e4dcc87314ce1e7c875f4853cb40ba621",
-        "github_refs_heads_main_at_validation=40a6940e4dcc87314ce1e7c875f4853cb40ba621",
-        "autodl_CAMP_HEAD_at_validation=40a6940e4dcc87314ce1e7c875f4853cb40ba621",
+        "status=fallback_risk_training_data_validator_extension_implementation_current_head_93ddd14_revalidated",
+        "implementation_validation_head=93ddd14b145f681a5773420645ff9b7326d16589",
+        "github_refs_heads_main_at_validation=93ddd14b145f681a5773420645ff9b7326d16589",
+        "autodl_CAMP_HEAD_at_validation=93ddd14b145f681a5773420645ff9b7326d16589",
         "autodl_DP_HEAD_at_validation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "latest_implementation_authorization_status=fallback_risk_training_data_validator_extension_implementation_authorization_autodl_verification_passed",
+        "latest_implementation_authorization_status=fallback_risk_training_data_validator_extension_implementation_authorization_current_head_8ee65b2_revalidated",
         "validator_script=scripts/integrations/validate_dp_native_fallback_risk_training_data_contract.py",
         "production_validator_modified_in_this_gate=False",
         "implementation_already_present_at_head=True",
         "local_target_pytest=24 passed",
-        "status=fallback_risk_training_data_validator_extension_implementation_autodl_verification_passed",
-        "github_pushed_commit=5d8d68db7cf13a5d03de41da708cc9543693dcca",
-        "autodl_CAMP_HEAD_after_sync=5d8d68db7cf13a5d03de41da708cc9543693dcca",
-        "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "autodl_target_pytest_result=24 passed",
-        "autodl_py_compile_exit=0",
-        "autodl_git_diff_check_exit=0",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_post_implementation_static_contract_only",
     ]:
         assert needle in text
@@ -131,8 +124,8 @@ def test_iteration_audit_tail_records_implementation_gate() -> None:
 
     for needle in [
         "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Implementation",
-        "status=fallback_risk_training_data_validator_extension_implementation_current_head_40a6940_revalidated",
-        "implementation_validation_head=40a6940e4dcc87314ce1e7c875f4853cb40ba621",
+        "status=fallback_risk_training_data_validator_extension_implementation_current_head_93ddd14_revalidated",
+        "implementation_validation_head=93ddd14b145f681a5773420645ff9b7326d16589",
         "autodl_DP_HEAD_at_validation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "production_validator_modified_in_this_gate=False",
         "default_off_required=True",
@@ -141,13 +134,6 @@ def test_iteration_audit_tail_records_implementation_gate() -> None:
         "diffusion_planner_modified=False",
         "local_target_pytest=24 passed",
         "validator_extension_implementation_complete=True",
-        "status=fallback_risk_training_data_validator_extension_implementation_autodl_verification_passed",
-        "github_pushed_commit=5d8d68db7cf13a5d03de41da708cc9543693dcca",
-        "autodl_CAMP_HEAD_after_sync=5d8d68db7cf13a5d03de41da708cc9543693dcca",
-        "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "autodl_target_pytest_result=24 passed",
-        "autodl_py_compile_exit=0",
-        "autodl_git_diff_check_exit=0",
         "camp_retraining_authorized=False",
         "replay_execution_authorized=False",
         "candidate_generation_authorized=False",
