@@ -182,6 +182,55 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only
 ```
 
+## Current HEAD Post-Implementation Static Contract Revalidation After Builder Resync
+
+Date: 2026-06-26
+
+Revalidated this post-implementation static contract review after the current
+builder implementation checkpoint was synced across local Git, GitHub, and
+AutoDL. The builder remains default-off, read-only, and fail-closed for
+malformed or out-of-contract records. This gate does not run the builder on the
+fixed artifact, generate a fixed-artifact split manifest, train or retrain CAMP,
+run replay, generate candidates, modify Diffusion Planner, promote selectors or
+atoms, deploy, or make safety/CAMP-over-DP claims.
+
+```text
+status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_fabbd5d_revalidated
+passed=True
+post_static_contract_base_head=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d
+camp_origin_main_at_post_static_contract=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d
+github_refs_heads_main_at_post_static_contract=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d
+autodl_CAMP_HEAD_at_post_static_contract=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d
+autodl_CAMP_origin_main_at_post_static_contract=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d
+autodl_DP_HEAD_at_post_static_contract=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_builder_implementation_status=fallback_risk_training_split_manifest_builder_implementation_head_7d057d9_revalidated
+head_fabbd5d_default_off_boundary_passed=True
+head_fabbd5d_dataset_source_boundary_passed=True
+head_fabbd5d_split_identity_policy_passed=True
+head_fabbd5d_forbidden_feature_formal_boundary_passed=True
+head_fabbd5d_output_preflight_boundary_passed=True
+head_fabbd5d_record_identity_hash_missing_fails_closed=True
+head_fabbd5d_fixed_artifact_manifest_generation_authorized=False
+head_fabbd5d_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
+head_fabbd5d_local_post_static_target_pytest=9 passed
+head_fabbd5d_local_builder_target_pytest=9 passed
+head_fabbd5d_local_combined_target_pytest=18 passed
+head_fabbd5d_local_py_compile_exit=0
+head_fabbd5d_local_git_diff_check_exit=0
+head_fabbd5d_training_not_executed=True
+head_fabbd5d_candidate_generation_not_executed=True
+head_fabbd5d_dp_not_modified=True
+head_fabbd5d_selector_or_atom_not_promoted=True
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only
+```
+
 The next gate may only run the default-off split manifest builder on the
 existing validated fixed artifact for acceptance evidence and write audit
 outputs. It must not train CAMP, run replay, generate candidates, modify

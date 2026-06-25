@@ -84,6 +84,37 @@ def test_current_head_5455e4d_post_static_contract_revalidation_is_pinned() -> N
         assert needle in review
 
 
+def test_current_head_fabbd5d_post_static_contract_revalidation_is_pinned() -> None:
+    review = _review()
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_fabbd5d_revalidated",
+        "post_static_contract_base_head=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d",
+        "camp_origin_main_at_post_static_contract=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d",
+        "github_refs_heads_main_at_post_static_contract=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d",
+        "autodl_CAMP_HEAD_at_post_static_contract=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d",
+        "autodl_CAMP_origin_main_at_post_static_contract=fabbd5d08f6c7207e1cd076c6ac1dbf425b2e08d",
+        "autodl_DP_HEAD_at_post_static_contract=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_builder_implementation_status=fallback_risk_training_split_manifest_builder_implementation_head_7d057d9_revalidated",
+        "head_fabbd5d_default_off_boundary_passed=True",
+        "head_fabbd5d_dataset_source_boundary_passed=True",
+        "head_fabbd5d_split_identity_policy_passed=True",
+        "head_fabbd5d_forbidden_feature_formal_boundary_passed=True",
+        "head_fabbd5d_output_preflight_boundary_passed=True",
+        "head_fabbd5d_record_identity_hash_missing_fails_closed=True",
+        "head_fabbd5d_fixed_artifact_manifest_generation_authorized=False",
+        "head_fabbd5d_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "head_fabbd5d_local_post_static_target_pytest=9 passed",
+        "head_fabbd5d_local_builder_target_pytest=9 passed",
+        "head_fabbd5d_local_combined_target_pytest=18 passed",
+        "head_fabbd5d_training_not_executed=True",
+        "head_fabbd5d_candidate_generation_not_executed=True",
+        "head_fabbd5d_dp_not_modified=True",
+        "head_fabbd5d_selector_or_atom_not_promoted=True",
+    ]:
+        assert needle in review
+
+
 def test_post_static_review_records_dataset_source_and_hash_boundary() -> None:
     review = _review()
     script = _script()
@@ -254,11 +285,11 @@ def test_audit_tail_records_post_static_contract_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-180:])
 
     for needle in [
-        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_5455e4d_revalidated",
-        "head_5455e4d_local_post_static_target_pytest=8 passed",
-        "head_5455e4d_local_builder_target_pytest=9 passed",
+        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_fabbd5d_revalidated",
+        "head_fabbd5d_local_post_static_target_pytest=9 passed",
+        "head_fabbd5d_local_builder_target_pytest=9 passed",
         "training_execution_authorized_now=False",
-        "head_5455e4d_fixed_artifact_manifest_generation_authorized=False",
+        "head_fabbd5d_fixed_artifact_manifest_generation_authorized=False",
     ]:
         assert needle in tail
 
