@@ -142,7 +142,7 @@ def test_preflight_uses_exact_14d_atom_schema_names() -> None:
         "scale_atom_names_mismatch",
         "atom_scale_keys_mismatch",
         'EXPECTED_VALIDATED_DATASET_SHA256 = (',
-        '"9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018"',
+        '"79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0"',
     ]:
         assert needle in source
 
@@ -195,15 +195,18 @@ def test_review_next_gate_is_training_split_manifest_plan_only() -> None:
         assert needle in text
 
 
-def test_audit_tail_records_split_manifest_plan_as_next_gate() -> None:
+def test_audit_tail_records_current_implementation_gate_as_next_static_contract() -> None:
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
 
     assert (
-        "status=fallback_risk_training_sufficiency_preflight_current_head_fixed_artifact_acceptance_passed"
+        "status=fallback_risk_training_sufficiency_preflight_implementation_head_be3b522_revalidated"
         in tail
     )
-    assert "ready_for_future_training_authorization=True" in tail
+    assert (
+        "new_expected_validated_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0"
+        in tail
+    )
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_only`"
     )

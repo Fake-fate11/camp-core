@@ -40,6 +40,13 @@ APPROVED_ATOMS = (
 )
 
 
+def test_preflight_dataset_sha_pin_matches_current_fixed_artifact() -> None:
+    assert (
+        VALIDATED_DATASET_SHA
+        == "79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0"
+    )
+
+
 def _write(path: Path, payload: dict[str, Any]) -> Path:
     path.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
     return path
