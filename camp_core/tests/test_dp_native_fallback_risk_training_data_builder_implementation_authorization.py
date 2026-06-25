@@ -102,3 +102,24 @@ def test_builder_implementation_authorization_next_gate_implementation_only() ->
         "modify DP",
     ]:
         assert needle in text
+
+
+def test_builder_implementation_authorization_records_current_head_revalidation() -> None:
+    text = _text()
+
+    current_head = "3ded8e3273445ee8d6a358bbc4825b52ab6694af"
+    for needle in [
+        f"camp_head_at_revalidation={current_head}",
+        f"camp_origin_main_at_revalidation={current_head}",
+        f"github_refs_heads_main_at_revalidation={current_head}",
+        f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+        f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_builder_unit_tests_status=fallback_risk_training_data_default_off_builder_unit_tests_autodl_verification_passed",
+        "local_authorization_and_contract_pytest=10 passed",
+        "blocking_contract_findings=0",
+        "implementation_authorized=True",
+        "fallback_risk_training_data_builder_implementation_authorized=True",
+        "training_execution_authorized_now=False",
+    ]:
+        assert needle in text

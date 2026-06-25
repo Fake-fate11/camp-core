@@ -178,3 +178,50 @@ dp_modification_authorized=False
 selector_promotion_authorized=False
 atom_promotion_authorized=False
 ```
+
+## Current-Head Revalidation After AutoDL Builder Unit Tests Verification
+
+Date: 2026-06-25
+
+This authorization-only gate remains valid at the actual current three-endpoint
+state after the fallback-risk training-data default-off builder unit tests were
+verified on AutoDL:
+
+```text
+camp_head_at_revalidation=3ded8e3273445ee8d6a358bbc4825b52ab6694af
+camp_origin_main_at_revalidation=3ded8e3273445ee8d6a358bbc4825b52ab6694af
+github_refs_heads_main_at_revalidation=3ded8e3273445ee8d6a358bbc4825b52ab6694af
+autodl_CAMP_HEAD_at_revalidation=3ded8e3273445ee8d6a358bbc4825b52ab6694af
+autodl_CAMP_origin_main_at_revalidation=3ded8e3273445ee8d6a358bbc4825b52ab6694af
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_builder_unit_tests_status=fallback_risk_training_data_default_off_builder_unit_tests_autodl_verification_passed
+local_authorization_and_contract_pytest=10 passed
+blocking_contract_findings=0
+```
+
+This authorization still only permits the next default-off/read-only builder
+implementation gate. It does not authorize training, replay, candidate
+generation, Diffusion Planner modification, selector or atom promotion,
+deployable checkpoint claim, safety claim, or CAMP-over-DP Top-1 claim.
+
+```text
+implementation_authorized=True
+fallback_risk_training_data_builder_implementation_authorized=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
