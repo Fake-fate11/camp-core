@@ -426,6 +426,7 @@ def test_audit_records_split_manifest_builder_static_contract_and_current_next_g
         in tail
     )
     assert "training_execution_authorized_now=False" in audit
-    assert tail.rstrip().endswith(
+    assert (
         "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only`"
+        in tail
     )
