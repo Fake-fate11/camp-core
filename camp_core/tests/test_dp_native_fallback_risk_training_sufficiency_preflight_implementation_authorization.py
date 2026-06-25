@@ -41,6 +41,19 @@ def test_authorization_records_preconditions_and_verified_tests() -> None:
         "current_autodl_training_sufficiency_contract_pytest=7 passed",
         "current_autodl_training_sufficiency_plan_static_pytest=19 passed",
         "current_dp_fixed_commit_verified=True",
+        "latest_training_sufficiency_plan_ready=True",
+        "latest_training_sufficiency_static_contract_review_passed=True",
+        "latest_training_sufficiency_unit_tests_plan_ready=True",
+        "latest_training_sufficiency_contract_tests_pinned=True",
+        "latest_blocking_contract_findings=0",
+        "latest_validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_local_training_sufficiency_contract_pytest=7 passed",
+        "latest_local_training_sufficiency_plan_static_pytest=25 passed",
+        "latest_autodl_training_sufficiency_contract_pytest=7 passed",
+        "latest_autodl_training_sufficiency_plan_static_pytest=25 passed",
+        "latest_dp_fixed_commit_verified=True",
+        "camp_head_at_latest_revalidation=ba8c50ec6baeff9319ccb458bac0a8dcd277903b",
+        "autodl_DP_HEAD_at_latest_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -69,6 +82,18 @@ def test_authorization_only_allows_default_off_read_only_preflight() -> None:
         "current_reads_fallback_master_config_json_only=True",
         "current_reads_training_command_plan_json_only=True",
         "current_output_json_or_markdown_only=True",
+        "latest_implementation_authorized=True",
+        "latest_fallback_risk_training_sufficiency_preflight_implementation_authorized=True",
+        "latest_default_off_required=True",
+        "latest_read_only_manifest_inputs_only=True",
+        "latest_reads_validated_dataset_summary_json_only=True",
+        "latest_reads_training_split_manifest_json_only=True",
+        "latest_reads_train_only_scale_manifest_json_only=True",
+        "latest_reads_fallback_master_config_json_only=True",
+        "latest_reads_training_command_plan_json_only=True",
+        "latest_output_json_or_markdown_only=True",
+        "latest_synthetic_unit_tests_required=True",
+        "latest_existing_contract_tests_must_continue_to_pass=True",
     ]:
         assert needle in text
 
@@ -97,6 +122,16 @@ def test_authorization_requires_fail_closed_contracts() -> None:
         "current_must_fail_closed_on_training_command_execution_or_dp_modification_flags=True",
         "current_must_reject_selector_atom_promotion_or_claim_flags=True",
         "current_must_preserve_score_k_equals_a_k_transpose_w_boundary=True",
+        "latest_must_return_before_reading_inputs_when_disabled=True",
+        "latest_must_fail_closed_on_missing_or_invalid_validated_dataset_summary=True",
+        "latest_must_fail_closed_on_missing_split_manifest_or_group_overlap=True",
+        "latest_must_fail_closed_on_formal_seeds_or_formal_eval_leakage=True",
+        "latest_must_fail_closed_on_validation_or_formal_scale_fit_leakage=True",
+        "latest_must_fail_closed_on_nonpositive_scales_or_atom_schema_mismatch=True",
+        "latest_must_fail_closed_on_fallback_master_feasible_branch_leakage=True",
+        "latest_must_fail_closed_on_training_command_execution_or_dp_modification_flags=True",
+        "latest_must_reject_selector_atom_promotion_or_claim_flags=True",
+        "latest_must_preserve_score_k_equals_a_k_transpose_w_boundary=True",
     ]:
         assert needle in text
 
@@ -129,6 +164,21 @@ def test_authorization_keeps_training_dp_and_promotion_forbidden() -> None:
         "current_atom_promotion_authorized=False",
         "current_safety_benefit_claim_authorized=False",
         "current_camp_over_dp_top1_claim_authorized=False",
+        "user_broad_execution_permission_recorded=True",
+        "this_authorization_gate_authorizes_preflight_implementation_only=True",
+        "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
+        "latest_training_authorized=False",
+        "latest_camp_retraining_authorized_now=False",
+        "latest_replay_authorized=False",
+        "latest_candidate_generation_authorized=False",
+        "latest_dp_modification_authorized=False",
+        "latest_production_selector_change_authorized=False",
+        "latest_camp_training_authorized=False",
+        "latest_formal_seeds_11_12_13_authorized=False",
+        "latest_selector_promotion_authorized=False",
+        "latest_atom_promotion_authorized=False",
+        "latest_safety_benefit_claim_authorized=False",
+        "latest_camp_over_dp_top1_claim_authorized=False",
     ]:
         assert needle in text
 
@@ -151,6 +201,7 @@ def test_authorization_next_gate_is_implementation_only() -> None:
 
     for needle in [
         "status=fallback_risk_training_sufficiency_preflight_implementation_authorized",
+        "status=fallback_risk_training_sufficiency_preflight_implementation_authorization_latest_head_revalidated",
         "passed=True",
         "implementation_authorized=True",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_only",
