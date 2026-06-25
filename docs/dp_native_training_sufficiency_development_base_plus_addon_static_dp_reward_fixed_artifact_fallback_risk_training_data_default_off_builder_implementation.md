@@ -1,0 +1,116 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Default-Off Builder Implementation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_only
+```
+
+This implementation gate revalidates the existing default-off, read-only
+fallback-risk training data builder. It does not run replay, generate
+candidates, train CAMP, retrain CAMP, modify Diffusion Planner, change the
+online selector, promote a selector or atom, or claim safety benefit or
+CAMP-over-DP Top-1.
+
+## Artifacts
+
+```text
+builder=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py
+behavior_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder.py
+contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py
+implementation_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_implementation.py
+authorization_status=fallback_risk_training_data_default_off_builder_implementation_authorization_autodl_verification_passed
+camp_head_at_revalidation=e7631084a17e3a520cd7b32e3b4940c38497de12
+camp_origin_main_at_revalidation=e7631084a17e3a520cd7b32e3b4940c38497de12
+github_refs_heads_main_at_revalidation=e7631084a17e3a520cd7b32e3b4940c38497de12
+autodl_CAMP_HEAD_at_revalidation=e7631084a17e3a520cd7b32e3b4940c38497de12
+autodl_CAMP_origin_main_at_revalidation=e7631084a17e3a520cd7b32e3b4940c38497de12
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Implementation Boundary
+
+```text
+implementation_required_now=False
+implementation_already_present=True
+production_builder_changed_in_this_gate=False
+default_off_required=True
+enabled_default=False
+enable_flag_required_before_reading_selection_logs=True
+disabled_mode_reads_selection_logs=False
+disabled_mode_emits_records=False
+read_only_selection_log_input_only=True
+read_only_extractor_output_input_only=True
+records_scope=records_without_feasible_candidate_only
+dataset_schema_version=dp_native_fallback_risk_training_data_v1
+output_json_or_markdown_only=True
+writes_only_explicit_output_json_and_output_md=True
+subprocess_usage_found=False
+```
+
+## Mathematical Boundary
+
+The builder materializes an offline all-infeasible fallback-risk dataset. It
+does not add deployed atoms, change the feasible-ranking master, relax hard
+feasibility, or change the deployed affine score.
+
+```text
+score_k(w)=a_k^T w
+affine_score_boundary_preserved=True
+fallback_dataset_separate_from_feasible_master=True
+all_infeasible_records_added_to_feasible_training=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+new_atom_authorized_now=False
+simplex_master_unchanged=True
+cvar_master_unchanged=True
+l2_regularized_master_unchanged=True
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_default_off_builder_implementation_current_head_revalidated
+passed=True
+implementation_gate_complete=True
+blocking_contract_findings=0
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_post_implementation_static_contract_only
+```
+
+The next gate may only statically review the implemented default-off builder.
+It must not run replay, generate candidates, train CAMP, retrain CAMP, modify
+Diffusion Planner, use formal seeds, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.
