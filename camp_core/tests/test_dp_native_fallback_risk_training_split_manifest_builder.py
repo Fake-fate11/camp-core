@@ -417,10 +417,10 @@ def test_audit_records_split_manifest_builder_static_contract_and_current_next_g
     tail = "\n".join(audit.splitlines()[-220:])
 
     assert (
-        "status=fallback_risk_training_split_manifest_builder_implementation_head_d7df6d9_revalidated"
+        "status=fallback_risk_training_split_manifest_builder_implementation_head_7d057d9_revalidated"
         in tail
     )
-    assert "head_d7df6d9_local_split_manifest_builder_pytest=9 passed" in tail
+    assert "head_7d057d9_local_split_manifest_builder_pytest=9 passed" in tail
     assert (
         "this_builder_implementation_gate_authorizes_fixed_artifact_training_replay_dp_or_claims=False"
         in tail

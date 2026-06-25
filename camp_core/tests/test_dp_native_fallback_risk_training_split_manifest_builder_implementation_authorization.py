@@ -239,8 +239,12 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
         in tail
     )
     assert "head_0f00924_local_authorization_pytest=8 passed" in tail
+    assert (
+        "status=fallback_risk_training_split_manifest_builder_implementation_head_7d057d9_revalidated"
+        in tail
+    )
     assert "training_execution_authorized_now=False" in tail
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only`"
         in tail
     )
