@@ -155,6 +155,65 @@ safety_benefit_claim_authorized=False
 camp_over_dp_top1_claim_authorized=False
 ```
 
+## Current-Head Revalidation After Latest Extractor Implementation Verification
+
+Date: 2026-06-25
+
+The post-implementation static contract remains valid after the latest
+default-off extractor implementation verification. This gate is still static
+contract review only: it did not run replay, generate candidates, train or
+retrain CAMP, modify Diffusion Planner, promote selector/atom logic, deploy, or
+claim safety/CAMP-over-DP benefit.
+
+```text
+camp_head_at_revalidation=e2f5e3f8c8895540054bdd0dad4530257fa87892
+camp_origin_main_at_revalidation=e2f5e3f8c8895540054bdd0dad4530257fa87892
+github_refs_heads_main_at_revalidation=e2f5e3f8c8895540054bdd0dad4530257fa87892
+autodl_CAMP_HEAD_at_revalidation=e2f5e3f8c8895540054bdd0dad4530257fa87892
+autodl_CAMP_origin_main_at_revalidation=e2f5e3f8c8895540054bdd0dad4530257fa87892
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_implementation_status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated_latest
+prior_implementation_autodl_verified=True
+default_off_boundary_passed=True
+read_only_fixed_artifact_boundary_passed=True
+output_boundary_passed=True
+affine_score_boundary_preserved=True
+feasible_master_separation_passed=True
+blocking_contract_findings=0
+post_implementation_static_contract_review_complete=True
+local_py_compile_exit=0
+local_target_pytest=68 passed
+local_git_diff_check_exit=0
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_current_head_revalidated_latest
+passed=True
+post_implementation_static_contract_review_complete=True
+implementation_change_required=False
+blocking_contract_findings=0
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan_only
+```
+
 Next admissible gate:
 
 ```text
