@@ -9,10 +9,73 @@ AUTH_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_authorization.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _auth() -> str:
     return AUTH_DOC.read_text(encoding="utf-8")
+
+
+def test_current_head_193ce66_authorization_revalidation_is_pinned() -> None:
+    text = _auth()
+    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-16000:]
+    combined = text + audit_tail
+    status = (
+        "status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_193ce66_revalidated"
+    )
+
+    assert status in audit_tail
+
+    for needle in [
+        status,
+        "authorization_base_head=193ce6605e1d9d680a27cf540be9563d77fc7c25",
+        "camp_origin_main_at_head_193ce66_authorization=193ce6605e1d9d680a27cf540be9563d77fc7c25",
+        "github_refs_heads_main_at_head_193ce66_authorization=193ce6605e1d9d680a27cf540be9563d77fc7c25",
+        "autodl_CAMP_HEAD_at_head_193ce66_authorization=193ce6605e1d9d680a27cf540be9563d77fc7c25",
+        "autodl_CAMP_origin_main_at_head_193ce66_authorization=193ce6605e1d9d680a27cf540be9563d77fc7c25",
+        "autodl_DP_HEAD_at_head_193ce66_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "audit_eof_prior_status=fallback_risk_training_data_training_sufficiency_unit_tests_current_head_0506f8c_revalidated",
+        "head_193ce66_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
+        "validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "strict_formal_seed_path_matches=0",
+        "head_193ce66_implementation_authorized=True",
+        "head_193ce66_fallback_risk_training_sufficiency_preflight_implementation_authorized=True",
+        "head_193ce66_default_off_required=True",
+        "head_193ce66_read_only_manifest_inputs_only=True",
+        "head_193ce66_may_add_read_only_preflight_script=True",
+        "head_193ce66_may_add_targeted_synthetic_tests=True",
+        "head_193ce66_must_return_before_reading_inputs_when_disabled=True",
+        "head_193ce66_must_fail_closed_on_formal_seeds_or_formal_eval_leakage=True",
+        "head_193ce66_must_preserve_score_k_equals_a_k_transpose_w_boundary=True",
+        "head_193ce66_score_k(w)=a_k^T w",
+        "head_193ce66_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "head_193ce66_simplex_master_convex_if_later_authorized=True",
+        "head_193ce66_cvar_master_convex_if_later_authorized=True",
+        "head_193ce66_l2_regularized_master_convex_if_later_authorized=True",
+        "head_193ce66_local_authorization_pytest=8 passed",
+        "head_193ce66_local_training_sufficiency_contract_pytest=18 passed",
+        "head_193ce66_local_unit_tests_plan_pytest=8 passed",
+        "head_193ce66_local_target_pytest=34 passed",
+        "head_193ce66_autodl_authorization_pytest=8 passed",
+        "head_193ce66_autodl_training_sufficiency_contract_pytest=18 passed",
+        "head_193ce66_autodl_unit_tests_plan_pytest=8 passed",
+        "head_193ce66_autodl_target_pytest=34 passed",
+        "head_193ce66_training_not_executed=True",
+        "head_193ce66_candidate_generation_not_executed=True",
+        "head_193ce66_dp_not_modified=True",
+        "head_193ce66_selector_or_atom_not_promoted=True",
+        "head_193ce66_user_broad_execution_permission_recorded=True",
+        "head_193ce66_camp_training_authorized=False",
+        "head_193ce66_camp_retraining_authorized=False",
+        "head_193ce66_formal_seeds_11_12_13_authorized=False",
+        "head_193ce66_safety_benefit_claim_authorized=False",
+        "head_193ce66_camp_over_dp_top1_claim_authorized=False",
+        "this_authorization_gate_authorizes_preflight_implementation_only=True",
+        "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_only",
+    ]:
+        assert needle in combined
 
 
 def test_current_head_e5cc047_authorization_revalidation_is_pinned() -> None:
