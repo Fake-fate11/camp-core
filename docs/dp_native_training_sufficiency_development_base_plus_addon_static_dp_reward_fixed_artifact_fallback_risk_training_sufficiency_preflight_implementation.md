@@ -111,3 +111,123 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_review_only
 ```
+
+## Current HEAD Implementation Revalidation After Authorization Sync
+
+Date: 2026-06-26
+
+Revalidated and updated the default-off read-only fallback-risk training
+sufficiency preflight against the latest accepted fixed-artifact dataset SHA.
+This implementation-only gate changes the expected dataset SHA in the
+preflight validator and targeted tests. It does not train CAMP, run replay,
+generate candidates, modify Diffusion Planner, change the online selector,
+promote selectors or atoms, deploy, or claim safety benefit or CAMP-over-DP
+Top-1.
+
+```text
+status=fallback_risk_training_sufficiency_preflight_implementation_head_f77b4c1_revalidated
+passed=True
+implementation_base_head=f77b4c151dbca03eb8b381561182f66f9f5c88ec
+camp_origin_main_at_implementation=f77b4c151dbca03eb8b381561182f66f9f5c88ec
+github_refs_heads_main_at_implementation=f77b4c151dbca03eb8b381561182f66f9f5c88ec
+autodl_CAMP_HEAD_at_implementation=f77b4c151dbca03eb8b381561182f66f9f5c88ec
+autodl_CAMP_origin_main_at_implementation=f77b4c151dbca03eb8b381561182f66f9f5c88ec
+autodl_DP_HEAD_at_implementation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_authorization_status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_193ce66_revalidated
+validated_fallback_records=15
+old_expected_validated_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498
+new_expected_validated_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114
+validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a
+strict_formal_seed_path_matches=0
+```
+
+Implementation details:
+
+```text
+implementation_file=scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py
+implementation_scope=expected_validated_dataset_sha_only
+preflight_default_off=True
+preflight_read_only=True
+manifest_inputs_only=True
+disabled_mode_returns_before_manifest_read=True
+writes_only_explicit_output_json_and_output_md=True
+subprocess_usage_introduced=False
+training_execution_path_introduced=False
+diffusion_planner_execution_path_introduced=False
+candidate_generation_path_introduced=False
+script_sha256=12b7f7a4055584b5c5bca44df4343b2614338fafc54809260cbe7883fb3210d0
+test_sha256=22c292614b46841082ef984ba9d6c9e44b41ee0643bbbff40102af946636121b
+```
+
+Contract boundary:
+
+```text
+score_k(w)=a_k^T w
+a_k_fixed_before_weight_optimization=True
+a_k_nonnegative_benders_compatible_atoms_only=True
+fallback_label_is_not_a_deployed_atom=True
+simplex_master_convex_if_later_authorized=True
+cvar_master_convex_if_later_authorized=True
+l2_regularized_master_convex_if_later_authorized=True
+ready_for_future_training_authorization_is_not_training_authorization=True
+```
+
+Verification:
+
+```text
+local_py_compile_exit=0
+local_preflight_pytest=7 passed
+local_authorization_pytest=8 passed
+local_training_sufficiency_contract_pytest=18 passed
+local_unit_tests_plan_pytest=8 passed
+local_target_pytest=41 passed
+local_git_diff_check_exit=0
+autodl_py_compile_exit=0
+autodl_preflight_pytest=7 passed
+autodl_authorization_pytest=8 passed
+autodl_training_sufficiency_contract_pytest=18 passed
+autodl_unit_tests_plan_pytest=8 passed
+autodl_target_pytest=41 passed
+autodl_git_diff_check_exit=0
+```
+
+Forbidden:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+```
+
+Decision:
+
+```text
+preflight_implementation_complete=True
+expected_validated_dataset_sha_updated=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_review_only
+```

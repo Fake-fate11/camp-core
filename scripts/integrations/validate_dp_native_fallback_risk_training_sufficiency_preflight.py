@@ -15,7 +15,7 @@ COMPLETE_STATUS = "dp_native_fallback_risk_training_sufficiency_preflight_comple
 REJECT_STATUS = "dp_native_fallback_risk_training_sufficiency_preflight_rejected"
 
 EXPECTED_VALIDATED_DATASET_SHA256 = (
-    "682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498"
+    "16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
 )
 EXPECTED_VALIDATED_FALLBACK_RECORDS = 15
 EXPECTED_VALIDATOR_STATUS = "dp_native_fallback_risk_training_data_validator_complete"

@@ -7,6 +7,12 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+IMPL_DOC = (
+    REPO_ROOT
+    / "docs"
+    / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation.md"
+)
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -43,8 +49,62 @@ APPROVED_ATOMS = (
 def test_preflight_dataset_sha_pin_matches_current_fixed_artifact() -> None:
     assert (
         VALIDATED_DATASET_SHA
-        == "682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498"
+        == "16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
     )
+
+
+def test_current_head_f77b4c1_preflight_implementation_revalidation_is_pinned() -> None:
+    doc = IMPL_DOC.read_text(encoding="utf-8")
+    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-16000:]
+    combined = doc + audit_tail
+    status = "status=fallback_risk_training_sufficiency_preflight_implementation_head_f77b4c1_revalidated"
+
+    assert status in audit_tail
+
+    for needle in [
+        status,
+        "implementation_base_head=f77b4c151dbca03eb8b381561182f66f9f5c88ec",
+        "prior_authorization_status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_193ce66_revalidated",
+        "old_expected_validated_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+        "new_expected_validated_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "implementation_scope=expected_validated_dataset_sha_only",
+        "preflight_default_off=True",
+        "preflight_read_only=True",
+        "manifest_inputs_only=True",
+        "disabled_mode_returns_before_manifest_read=True",
+        "training_execution_path_introduced=False",
+        "diffusion_planner_execution_path_introduced=False",
+        "candidate_generation_path_introduced=False",
+        "score_k(w)=a_k^T w",
+        "a_k_fixed_before_weight_optimization=True",
+        "a_k_nonnegative_benders_compatible_atoms_only=True",
+        "simplex_master_convex_if_later_authorized=True",
+        "cvar_master_convex_if_later_authorized=True",
+        "l2_regularized_master_convex_if_later_authorized=True",
+        "local_preflight_pytest=7 passed",
+        "local_authorization_pytest=8 passed",
+        "local_training_sufficiency_contract_pytest=18 passed",
+        "local_unit_tests_plan_pytest=8 passed",
+        "local_target_pytest=41 passed",
+        "autodl_preflight_pytest=7 passed",
+        "autodl_authorization_pytest=8 passed",
+        "autodl_training_sufficiency_contract_pytest=18 passed",
+        "autodl_unit_tests_plan_pytest=8 passed",
+        "autodl_target_pytest=41 passed",
+        "preflight_implementation_complete=True",
+        "expected_validated_dataset_sha_updated=True",
+        "training_not_executed=True",
+        "candidate_generation_not_executed=True",
+        "dp_not_modified=True",
+        "selector_or_atom_not_promoted=True",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "formal_seeds_11_12_13_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_review_only",
+    ]:
+        assert needle in combined
 
 
 def _write(path: Path, payload: dict[str, Any]) -> Path:
