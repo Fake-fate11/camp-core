@@ -14,6 +14,7 @@ PLAN_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _review() -> str:
@@ -22,6 +23,10 @@ def _review() -> str:
 
 def _plan() -> str:
     return PLAN_DOC.read_text(encoding="utf-8")
+
+
+def _iteration_audit() -> str:
+    return ITERATION_AUDIT.read_text(encoding="utf-8")
 
 
 def test_static_review_passes_source_isolation_contract() -> None:
@@ -56,6 +61,15 @@ def test_static_review_passes_source_isolation_contract() -> None:
         "latest_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_autodl_verification_passed",
         "latest_accepted_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
         "latest_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_6adb800_20260625T020016Z/dataset.json",
+        "current_static_review_revalidation_base_head=8f25fe4fc0940c031f628569bcf69a3d154da306",
+        "current_camp_origin_main_at_revalidation=8f25fe4fc0940c031f628569bcf69a3d154da306",
+        "current_github_refs_heads_main_at_revalidation=8f25fe4fc0940c031f628569bcf69a3d154da306",
+        "current_autodl_CAMP_HEAD_at_revalidation=8f25fe4fc0940c031f628569bcf69a3d154da306",
+        "current_autodl_CAMP_origin_main_at_revalidation=8f25fe4fc0940c031f628569bcf69a3d154da306",
+        "current_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_autodl_verification_passed",
+        "current_accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "current_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_da0e617_20260625T080225Z/dataset.json",
     ]:
         assert needle in text
 
@@ -162,6 +176,10 @@ def test_static_review_forbids_execution_training_and_claims() -> None:
         "validator_extension_implementation_authorized=False",
         "user_broad_execution_permission_recorded=True",
         "this_static_review_gate_authorizes_broad_execution=False",
+        "validator_extension_unit_tests_plan_authorized_next=True",
+        "current_local_target_pytest=7 passed",
+        "current_local_py_compile_exit=0",
+        "current_local_git_diff_check_exit=0",
         "latest_local_target_pytest=13 passed",
         "latest_autodl_target_pytest=13 passed",
     ]:
@@ -187,6 +205,7 @@ def test_static_review_next_gate_unit_tests_plan_only() -> None:
 
     for needle in [
         "status=fallback_risk_training_data_validator_extension_static_contract_review_passed",
+        "status=fallback_risk_training_data_validator_extension_static_contract_current_head_8f25fe4_revalidated",
         "blocking_contract_findings=0",
         "require_validator_unit_tests_plan=True",
         "require_validator_synthetic_unit_tests=True",
@@ -199,3 +218,30 @@ def test_static_review_next_gate_unit_tests_plan_only() -> None:
         "train CAMP",
     ]:
         assert needle in text
+
+
+def test_iteration_audit_tail_records_current_head_static_contract_review() -> None:
+    text = _iteration_audit()
+    tail = text[-12000:]
+
+    for needle in [
+        "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Static Contract Review",
+        "status=fallback_risk_training_data_validator_extension_static_contract_current_head_8f25fe4_revalidated",
+        "current_static_review_revalidation_base_head=8f25fe4fc0940c031f628569bcf69a3d154da306",
+        "current_github_refs_heads_main_at_revalidation=8f25fe4fc0940c031f628569bcf69a3d154da306",
+        "current_autodl_CAMP_HEAD_at_revalidation=8f25fe4fc0940c031f628569bcf69a3d154da306",
+        "current_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_autodl_verification_passed",
+        "current_accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "current_local_target_pytest=7 passed",
+        "static_contract_review_complete=True",
+        "blocking_contract_findings=0",
+        "validator_extension_implementation_authorized=False",
+        "validator_extension_unit_tests_plan_authorized_next=True",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only",
+    ]:
+        assert needle in tail
