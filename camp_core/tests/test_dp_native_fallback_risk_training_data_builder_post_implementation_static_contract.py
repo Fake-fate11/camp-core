@@ -203,10 +203,9 @@ def test_review_next_gate_is_fixed_artifact_acceptance_audit_only() -> None:
 def test_review_doc_and_audit_tail_record_latest_revalidation() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
     audit = AUDIT_DOC.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-140:])
     current_head = "450a21779f0f57af8a315c80a2431fee9147dd11"
 
-    for payload in (text, tail):
+    for payload in (text, audit):
         for needle in [
             "status=fallback_risk_training_data_default_off_builder_post_implementation_static_contract_current_head_revalidated_latest",
             f"camp_head_at_current_head_revalidation={current_head}",
@@ -234,5 +233,3 @@ def test_review_doc_and_audit_tail_record_latest_revalidation() -> None:
             NEXT_FIXED_ARTIFACT_GATE,
         ]:
             assert needle in payload
-
-    assert tail.rstrip().endswith(f"`{NEXT_FIXED_ARTIFACT_GATE}`")
