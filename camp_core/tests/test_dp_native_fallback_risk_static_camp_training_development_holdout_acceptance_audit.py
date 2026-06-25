@@ -427,3 +427,36 @@ def test_development_holdout_audit_docs_pin_nonpromotion_next_gate() -> None:
         assert needle in text
 
     assert "status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_passed" in audit
+
+
+def test_current_head_a263ce5_development_holdout_audit_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "current_camp_head=a263ce5e9257031f0468f0240e873cbdc0421baf",
+        "training_summary_json_sha256=5b362f29f3737a1015ea977401c5fdafe2cff8e87426555d1ab7140c3ecc8761",
+        "offline_weights_json_sha256=75e879d5f9345e49d2ccf4b477ba26863016fe6bcf6adb05c9c48a7cdd772b03",
+        "dataset_json_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+        "training_split_manifest_json_sha256=e0a4ec0623f5db0b868465249ce9615b06b86f6c91067702af3bee9fd700db1d",
+        "train_only_scale_manifest_json_sha256=92059b9c60e66c96db836821cb0060072402089b915e0bbd87240fc24c602567",
+        "remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_a263ce5_20260625T202013Z",
+        "remote_audit_json_sha256=d579ad6853e000f9a8a126a938c7a2f487b212d34d84b0b68b67c6ed58be83bb",
+        "remote_audit_md_sha256=a6f4639e1c2bdc22840119e4e31615134533fa0497fd023f38b56e31efd22d5e",
+        "development_holdout_acceptance_audit_passed=True",
+        "static_oracle_match_rate=0.5",
+        "uniform_oracle_match_rate=1.0",
+        "holdout_static_underperforms_uniform=True",
+        "local_target_pytest=18 passed",
+        "autodl_target_pytest=18 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    assert (
+        "status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_current_head_a263ce5_passed"
+        in audit
+    )
