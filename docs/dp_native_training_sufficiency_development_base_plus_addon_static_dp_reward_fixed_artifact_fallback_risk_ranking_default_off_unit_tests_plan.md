@@ -193,6 +193,68 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only
 ```
 
+## Current-Head Revalidation After Current Static Contract Closure
+
+Date: 2026-06-25
+
+The unit-test plan remains valid after the current static contract review
+closure on the synchronized CAMP/GitHub/AutoDL HEAD. This remains a
+tests-plan-only gate.
+
+```text
+camp_head_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f
+camp_origin_main_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f
+github_refs_heads_main_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f
+autodl_CAMP_HEAD_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f
+autodl_CAMP_origin_main_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next
+prior_static_contract_current_head_revalidated=True
+blocking_contract_findings=0
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate
+passed=True
+current_head_unit_tests_plan_revalidated=True
+local_py_compile_exit=0
+local_target_pytest=31 passed
+local_git_diff_check_exit=0
+planned_default_off_tests=4
+planned_scope_filtering_tests=4
+planned_candidate_validation_tests=6
+planned_cost_extraction_tests=11
+planned_provenance_no_mutation_tests=8
+planned_forbidden_side_effect_tests=7
+planned_future_label_tests=4
+implementation_authorized=False
+production_implementation_edit_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This revalidation remains tests-plan-only. It does not implement the extractor,
+edit production implementation, train CAMP, retrain CAMP, run replay, generate
+candidates, modify DP, use formal seeds, promote a selector or atom, deploy, or
+claim safety/CAMP-over-DP benefit.
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only
+```
+
 The next gate may only add focused default-off contract tests and synthetic
 fixtures. It must not edit production implementation, train CAMP, run replay,
 generate candidates, modify DP, use formal seeds, or promote a selector or atom.

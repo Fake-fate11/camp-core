@@ -147,10 +147,10 @@ def test_default_off_unit_tests_plan_current_head_revalidation() -> None:
     text = PLAN_DOC.read_text(encoding="utf-8")
 
     for needle in [
-        "camp_head_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
-        "camp_origin_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
-        "github_refs_heads_main_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
-        "autodl_CAMP_HEAD_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
+        "camp_head_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f",
+        "camp_origin_main_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f",
+        "github_refs_heads_main_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f",
+        "autodl_CAMP_HEAD_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
         "blocking_contract_findings=0",
@@ -162,11 +162,12 @@ def test_default_off_unit_tests_plan_current_head_revalidation() -> None:
 
 def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() -> None:
     text = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(text.splitlines()[-110:])
 
     for needle in [
         "status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate",
         "current_head_unit_tests_plan_revalidated=True",
-        "camp_head_at_revalidation=05fbd6e6cbdf027374015f92e709a9a229d35b4a",
+        "camp_head_at_revalidation=31b72358d4d40eace1c5daabc066fd7b2132551f",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
         "planned_default_off_tests=4",
@@ -180,4 +181,8 @@ def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() ->
         "dp_modification_authorized=False",
         NEXT_UNIT_TESTS_GATE,
     ]:
-        assert needle in text
+        assert needle in tail
+
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only`"
+    )
