@@ -191,3 +191,83 @@ manifest, train CAMP, run replay, generate candidates, modify Diffusion
 Planner, use formal seeds, relax hard feasibility, add all-infeasible records
 to the feasible-ranking master, promote a selector or atom, or claim
 safety/CAMP-over-DP benefit.
+
+## Latest Current-Head Unit Tests Plan Revalidation
+
+Date: 2026-06-25
+
+Revalidated this synthetic/static unit-tests plan against the latest
+split-manifest static contract review and fixed fallback-risk dataset. The
+user has provided broad execution permission for future gates, but this gate
+only authorizes synthetic/static unit tests and does not itself authorize
+builder execution, replay, candidate generation, CAMP retraining, Diffusion
+Planner modification, selector/atom promotion, deployment, or safety/CAMP-over-DP
+claims.
+
+```text
+latest_split_manifest_plan_ready=True
+latest_split_manifest_static_contract_review_passed=True
+latest_blocking_contract_findings=0
+latest_manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1
+latest_records_scope=records_without_feasible_candidate_only
+latest_validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018
+latest_validated_fallback_records=15
+latest_split_manifest_static_contract_tail_status=fallback_risk_training_split_manifest_static_contract_review_autodl_verification_passed
+camp_head_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e
+camp_origin_main_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e
+github_refs_heads_main_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e
+autodl_CAMP_HEAD_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e
+autodl_CAMP_origin_main_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e
+autodl_DP_HEAD_at_latest_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Latest planned unit-test boundary:
+
+```text
+latest_synthetic_dataset_fixtures_only=True
+latest_synthetic_split_manifest_fixtures_only=True
+latest_fixed_autodl_artifact_required_for_unit_tests=False
+latest_formal_seeds_11_12_13_used=False
+latest_replay_required_for_unit_tests=False
+latest_candidate_generation_required_for_unit_tests=False
+latest_training_required_for_unit_tests=False
+latest_dp_required_for_unit_tests=False
+latest_split_manifest_unit_tests_authorized=True
+latest_training_split_manifest_builder_authorized=False
+```
+
+Latest execution boundary:
+
+```text
+user_broad_execution_permission_recorded=True
+this_split_manifest_unit_tests_plan_gate_authorizes_builder_training_replay_dp_or_claims=False
+latest_replay_execution_authorized=False
+latest_candidate_generation_authorized=False
+latest_camp_training_authorized=False
+latest_camp_retraining_authorized=False
+latest_formal_seeds_11_12_13_authorized=False
+latest_dp_modification_authorized=False
+latest_selector_promotion_authorized=False
+latest_atom_promotion_authorized=False
+latest_safety_benefit_claim_authorized=False
+latest_camp_over_dp_top1_claim_authorized=False
+```
+
+Latest decision:
+
+```text
+latest_status=fallback_risk_training_split_manifest_unit_tests_plan_ready
+latest_passed=True
+latest_split_manifest_unit_tests_plan_complete=True
+latest_split_manifest_unit_tests_authorized=True
+latest_training_split_manifest_builder_authorized=False
+latest_fallback_risk_training_authorized_now=False
+latest_camp_retraining_authorized_now=False
+latest_fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only
+```

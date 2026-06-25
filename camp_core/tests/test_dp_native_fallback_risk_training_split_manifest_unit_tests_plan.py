@@ -34,6 +34,15 @@ def test_split_unit_tests_plan_records_preconditions_and_no_builder_authorizatio
         "user_camp_retraining_permission_available=True",
         "training_command_authorization_required_before_training=True",
         "camp_head_at_plan=6ea1a40de4fe895825d2f87e1bec851fa222994b",
+        "latest_validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_validated_fallback_records=15",
+        "latest_split_manifest_static_contract_tail_status=fallback_risk_training_split_manifest_static_contract_review_autodl_verification_passed",
+        "camp_head_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e",
+        "camp_origin_main_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e",
+        "github_refs_heads_main_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e",
+        "autodl_CAMP_HEAD_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e",
+        "autodl_CAMP_origin_main_at_latest_revalidation=6189214cacfa196515cfd4a5fa579eac30824c3e",
+        "autodl_DP_HEAD_at_latest_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -120,6 +129,14 @@ def test_split_unit_tests_plan_uses_synthetic_fixtures_only() -> None:
         "candidate_generation_required_for_unit_tests=False",
         "training_required_for_unit_tests=False",
         "dp_required_for_unit_tests=False",
+        "latest_synthetic_dataset_fixtures_only=True",
+        "latest_synthetic_split_manifest_fixtures_only=True",
+        "latest_fixed_autodl_artifact_required_for_unit_tests=False",
+        "latest_formal_seeds_11_12_13_used=False",
+        "latest_replay_required_for_unit_tests=False",
+        "latest_candidate_generation_required_for_unit_tests=False",
+        "latest_training_required_for_unit_tests=False",
+        "latest_dp_required_for_unit_tests=False",
     ]:
         assert needle in text
 
@@ -141,6 +158,23 @@ def test_split_unit_tests_plan_forbids_execution_and_sets_unit_tests_next() -> N
         "split_manifest_unit_tests_authorized=True",
         "training_split_manifest_builder_authorized=False",
         "fallback_risk_training_authorized_now=False",
+        "user_broad_execution_permission_recorded=True",
+        "this_split_manifest_unit_tests_plan_gate_authorizes_builder_training_replay_dp_or_claims=False",
+        "latest_replay_execution_authorized=False",
+        "latest_candidate_generation_authorized=False",
+        "latest_camp_training_authorized=False",
+        "latest_camp_retraining_authorized=False",
+        "latest_formal_seeds_11_12_13_authorized=False",
+        "latest_dp_modification_authorized=False",
+        "latest_selector_promotion_authorized=False",
+        "latest_atom_promotion_authorized=False",
+        "latest_safety_benefit_claim_authorized=False",
+        "latest_camp_over_dp_top1_claim_authorized=False",
+        "latest_status=fallback_risk_training_split_manifest_unit_tests_plan_ready",
+        "latest_split_manifest_unit_tests_plan_complete=True",
+        "latest_split_manifest_unit_tests_authorized=True",
+        "latest_training_split_manifest_builder_authorized=False",
+        "latest_fallback_risk_training_authorized_now=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only",
         "may only add synthetic/static unit tests",
         "must not implement the builder",
@@ -154,8 +188,13 @@ def test_split_unit_tests_plan_forbids_execution_and_sets_unit_tests_next() -> N
 def test_audit_tail_records_split_manifest_unit_tests_only_next_gate() -> None:
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
 
-    assert "status=fallback_risk_training_split_manifest_unit_tests_plan_current_head_revalidated" in tail
-    assert "local_target_pytest=8 passed" in tail
+    assert "status=fallback_risk_training_split_manifest_unit_tests_plan_autodl_verification_passed" in tail
+    assert "local_target_pytest=64 passed" in tail
+    assert "local_split_manifest_unit_tests_plan_pytest=8 passed" in tail
+    assert (
+        "this_split_manifest_unit_tests_plan_gate_authorizes_builder_training_replay_dp_or_claims=False"
+        in tail
+    )
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
         "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only`"
