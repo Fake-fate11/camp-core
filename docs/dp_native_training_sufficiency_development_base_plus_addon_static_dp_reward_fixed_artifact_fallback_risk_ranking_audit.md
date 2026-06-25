@@ -156,6 +156,81 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only
 ```
 
+## Current-Head Revalidation After Static CAMP Training Acceptance Evidence Commit
+
+Date: 2026-06-26
+
+The same fixed broader-nonformal evaluation artifact was re-audited from the
+current synchronized CAMP HEAD after the static CAMP training acceptance
+evidence was committed and synchronized. This gate remained read-only and did
+not rerun replay, generate candidates, train or retrain CAMP, modify Diffusion
+Planner, promote a selector or atom, deploy, or claim safety/CAMP-over-DP
+benefit.
+
+```text
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+evaluation_summary_sha256=c39fa6278431e08ee16b7b45f6645e43fa46f9951981c1fff8fa1809778aea07
+camp_head_at_revalidation=760f73683321a4f732324dd8f901c2e5f243a617
+camp_origin_main_at_revalidation=760f73683321a4f732324dd8f901c2e5f243a617
+autodl_CAMP_HEAD_at_revalidation=760f73683321a4f732324dd8f901c2e5f243a617
+autodl_CAMP_origin_main_at_revalidation=760f73683321a4f732324dd8f901c2e5f243a617
+dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+required_dp_fixed_commit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_760f736_20260625T164848Z
+remote_audit_json_sha256=160a03e46343862f20e65ea5c0e39724c643a0011a5738bb68609adfef66ccbb
+remote_audit_md_sha256=f292a664b5f372a12bbfa350408ded4a29c7f3ed49b1fd638364b8b685ba2979
+remote_audit_stdout_log_sha256=4b9c5fb6a41d86fb59daf064fc094366257f23ad3ed64294f35f871024f60c2f
+remote_audit_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+```
+
+Revalidation result:
+
+```text
+remote_artifact_audit_exit=0
+local_py_compile_exit=0
+local_target_pytest=9 passed
+local_git_diff_check_exit=0
+status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+passed=True
+failed_checks=[]
+records_without_feasible_candidate=15
+existing_fallback_uniformly_least_bad_red=False
+existing_fallback_uniformly_least_bad_lane=False
+existing_fallback_uniformly_least_bad_quality=True
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+dp_red_light_cost_selected_min=14
+dp_red_light_cost_lower_cost_candidate_available=1
+lane_related_cost_selected_min=4
+lane_related_cost_lower_cost_candidate_available=11
+dp_reward_quality_cost_selected_min=15
+dp_reward_quality_cost_lower_cost_candidate_available=0
+selected_index_in_range_all_no_feasible_records=True
+candidate_count_unchanged_all_no_feasible_records=True
+pre_post_tensor_hash_equal_all_no_feasible_records=True
+no_coordinate_heading_speed_rewrite_by_camp_all_no_feasible_records=True
+candidate_tensor_mutation_effect_all_no_feasible_records=False
+candidate_generation_effect_all_no_feasible_records=False
+closed_loop_outcome_fields_read_all_no_feasible_records=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This revalidation remains audit-only. It supports the existing remediation
+design gate for fixed-candidate fallback-risk ranking diagnostics, but does
+not authorize deployment, selector or atom promotion, DP changes, new replay,
+candidate generation, CAMP retraining, or any safety/CAMP-over-DP claim.
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only
+```
+
 The next gate may only decide a default-off, nondeployable remediation design for
 fixed-candidate fallback-risk ranking diagnostics. It must not run replay,
 generate candidates, train CAMP, retrain CAMP, change DP, relax hard feasibility,
