@@ -613,3 +613,111 @@ dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixe
 The next gate may only plan the fallback-risk dataset validator extension. It
 must not train or retrain CAMP, run replay, generate candidates, modify DP,
 promote a selector or atom, or make safety/CAMP-over-DP claims.
+
+## Current-Head Acceptance Revalidation After Current Post-Contract Tail
+
+Date: 2026-06-26
+
+Re-ran the default-off fallback-risk training-data builder on AutoDL at the
+current three-endpoint head, using the same existing non-formal broader
+fixed-artifact selection logs. The run used the explicit builder enable flag.
+It did not run replay, generate candidates, train or retrain CAMP, modify
+Diffusion Planner, promote selectors or atoms, or make safety/CAMP-over-DP
+claims.
+
+```text
+4751222_artifact_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+4751222_artifact_scope=broader_nonformal_fixed_evaluation_artifact
+4751222_selection_logs=12
+4751222_formal_seed_path_matches=0
+4751222_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z
+4751222_builder_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.json
+4751222_builder_output_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.md
+4751222_builder_stdout_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/builder_stdout.json
+4751222_builder_output_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+4751222_builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823
+4751222_builder_stdout_json_sha256=ca1f3ce6bc5df5f8fc26eaec00fa89cb8df55c80781ae1ae41a3fe804c59e1bd
+4751222_camp_head_at_revalidation=4751222a6c1c29fea03a76b6cd4cb3dfef530010
+4751222_camp_origin_main_at_revalidation=4751222a6c1c29fea03a76b6cd4cb3dfef530010
+4751222_github_refs_heads_main_at_revalidation=4751222a6c1c29fea03a76b6cd4cb3dfef530010
+4751222_autodl_CAMP_HEAD_at_revalidation=4751222a6c1c29fea03a76b6cd4cb3dfef530010
+4751222_autodl_CAMP_origin_main_at_revalidation=4751222a6c1c29fea03a76b6cd4cb3dfef530010
+4751222_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+4751222_builder_execution_exit=0
+4751222_summary_parse_exit=0
+local_py_compile_exit=0
+local_target_pytest=130 passed
+local_git_diff_check_exit=0
+autodl_py_compile_exit=0
+autodl_target_pytest=130 passed
+autodl_git_diff_check_exit=0
+```
+
+4751222 acceptance summary:
+
+```text
+4751222_schema_version=dp_native_fallback_risk_training_data_v1
+4751222_status=dp_native_fallback_risk_training_data_builder_complete
+4751222_passed=True
+4751222_enabled=True
+4751222_records_total=60
+4751222_records_without_feasible_candidate=15
+4751222_records_with_feasible_candidate=45
+4751222_records_built=15
+4751222_failed_records=0
+4751222_errors=0
+4751222_record_candidate_counts=4
+4751222_oracle_policies=lane/red/quality,red/lane/quality
+```
+
+4751222 boundary flags remained closed:
+
+```text
+user_broad_execution_permission_recorded=True
+user_camp_retraining_permission_available_for_future_training_gate=True
+this_acceptance_gate_authorizes_broad_execution=False
+4751222_replay_execution_authorized=False
+4751222_candidate_generation_authorized=False
+4751222_camp_training_authorized=False
+4751222_camp_retraining_authorized=False
+4751222_formal_seeds_11_12_13_authorized=False
+4751222_dp_modification_authorized=False
+4751222_selector_promotion_authorized=False
+4751222_atom_promotion_authorized=False
+4751222_safety_benefit_claim_authorized=False
+4751222_camp_over_dp_top1_claim_authorized=False
+4751222_training_authorized=False
+4751222_production_selector_change_authorized=False
+4751222_online_selector_change_authorized=False
+4751222_feasible_ranking_master_change_authorized=False
+4751222_all_infeasible_records_added_to_feasible_training=False
+4751222_hard_feasibility_relaxation_authorized=False
+4751222_fallback_dataset_training_sufficiency_claim=False
+```
+
+4751222 decision:
+
+```text
+status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_4751222_passed
+passed=True
+fixed_artifact_acceptance_audit_complete=True
+accepted_fallback_records=15
+fallback_dataset_artifact_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+production_builder_not_modified=True
+selector_or_atom_not_promoted=True
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only
+```
+
+The next gate may only plan the fallback-risk dataset validator extension. It
+must not train or retrain CAMP, run replay, generate candidates, modify DP,
+promote a selector or atom, or make safety/CAMP-over-DP claims.
