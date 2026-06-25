@@ -32,6 +32,16 @@ def test_training_sufficiency_plan_records_validated_dataset_but_no_sufficiency_
         "current_fixed_artifact_training_sufficiency_claim=False",
         "current_fallback_dataset_training_sufficiency_claim=False",
         "current_fallback_risk_training_authorized_now=False",
+        "latest_validated_fallback_records=15",
+        "latest_validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_validator_output_json_sha256=039b3e41f866434e187a9f679cbc964d6fe35d5406896e53ec38d8f70db40c52",
+        "latest_validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "latest_strict_formal_seed_path_matches=0",
+        "latest_fixed_artifact_training_sufficiency_claim=False",
+        "latest_fallback_dataset_training_sufficiency_claim=False",
+        "latest_fallback_risk_training_authorized_now=False",
+        "camp_head_at_latest_revalidation=e5f306255adf458a7185d6f3be23df20d3a41bb0",
+        "autodl_DP_HEAD_at_latest_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -56,6 +66,14 @@ def test_training_sufficiency_plan_isolates_fallback_master() -> None:
         "current_feasible_ranking_master_change_authorized=False",
         "current_production_selector_change_authorized=False",
         "current_online_selector_change_authorized=False",
+        "latest_fallback_master_isolated_from_feasible_master_required=True",
+        "latest_feasible_branch_records_allowed_in_fallback_master=False",
+        "latest_all_infeasible_records_added_to_feasible_training=False",
+        "latest_all_infeasible_records_relabelled_feasible=False",
+        "latest_hard_feasibility_relaxation_authorized=False",
+        "latest_feasible_ranking_master_change_authorized=False",
+        "latest_production_selector_change_authorized=False",
+        "latest_online_selector_change_authorized=False",
     ]:
         assert needle in text
 
@@ -81,6 +99,13 @@ def test_training_sufficiency_plan_preserves_convex_fixed_candidate_boundary() -
         "current_simplex_master_convex_if_later_authorized=True",
         "current_cvar_master_convex_if_later_authorized=True",
         "current_l2_regularized_master_convex_if_later_authorized=True",
+        "latest_score_k(w)=a_k^T w",
+        "latest_a_k_fixed_before_weight_optimization=True",
+        "latest_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "latest_fallback_label_is_not_a_deployed_atom=True",
+        "latest_simplex_master_convex_if_later_authorized=True",
+        "latest_cvar_master_convex_if_later_authorized=True",
+        "latest_l2_regularized_master_convex_if_later_authorized=True",
     ]:
         assert needle in text
 
@@ -104,6 +129,16 @@ def test_training_sufficiency_plan_requires_split_scale_and_formal_seed_exclusio
         "current_formal_eval_data_excluded_from_scale_fit_required=True",
         "current_scale_fit_training_groups_only_required=True",
         "current_strict_positive_atom_scales_required=True",
+        "latest_training_validation_split_predeclaration_required=True",
+        "latest_validation_groups_disjoint_from_training_groups_required=True",
+        "latest_formal_seeds_11_12_13_excluded_required=True",
+        "latest_formal_eval_data_excluded_from_scale_fit_required=True",
+        "latest_scale_fit_training_groups_only_required=True",
+        "latest_strict_positive_atom_scales_required=True",
+        "latest_gate_predeclares_split=False",
+        "latest_gate_fits_scales=False",
+        "latest_gate_trains_weights=False",
+        "latest_gate_claims_deployable_checkpoint=False",
     ]:
         assert needle in text
 
@@ -126,6 +161,13 @@ def test_training_sufficiency_plan_lists_missing_retraining_prerequisites() -> N
         "current_missing_checkpoint_nonpromotion_plan=True",
         "current_missing_development_holdout_acceptance_gate=True",
         "current_camp_retraining_authorized_now=False",
+        "latest_missing_training_split_manifest=True",
+        "latest_missing_train_only_scale_manifest=True",
+        "latest_missing_fallback_only_master_config=True",
+        "latest_missing_training_command_authorization=True",
+        "latest_missing_checkpoint_nonpromotion_plan=True",
+        "latest_missing_development_holdout_acceptance_gate=True",
+        "latest_camp_retraining_authorized_now=False",
     ]:
         assert needle in text
 
@@ -154,7 +196,20 @@ def test_training_sufficiency_plan_forbids_execution_and_sets_static_review_next
         "current_atom_promotion_authorized=False",
         "current_safety_benefit_claim_authorized=False",
         "current_camp_over_dp_top1_claim_authorized=False",
+        "user_broad_execution_permission_recorded=True",
+        "this_plan_gate_authorizes_training_replay_dp_or_claims=False",
+        "latest_replay_execution_authorized=False",
+        "latest_candidate_generation_authorized=False",
+        "latest_camp_training_authorized=False",
+        "latest_camp_retraining_authorized=False",
+        "latest_formal_seeds_11_12_13_authorized=False",
+        "latest_dp_modification_authorized=False",
+        "latest_selector_promotion_authorized=False",
+        "latest_atom_promotion_authorized=False",
+        "latest_safety_benefit_claim_authorized=False",
+        "latest_camp_over_dp_top1_claim_authorized=False",
         "status=fallback_risk_training_data_training_sufficiency_plan_ready",
+        "status=fallback_risk_training_data_training_sufficiency_plan_latest_head_revalidated",
         "training_sufficiency_plan_complete=True",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only",
         "may only statically review",
