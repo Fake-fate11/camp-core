@@ -1,4 +1,4 @@
-# Diffusion Planner CAMP V8 Iteration Audit
+﻿# Diffusion Planner CAMP V8 Iteration Audit
 
 ## Decision
 
@@ -57292,7 +57292,7 @@ Decision:
 
 Accept the shadow weight-sensitivity diagnosis as evidence that the atom has
 nontrivial selector influence in the existing candidate pool under positive
-shadow weights while preserving λ=0 exactness. This is still not safety-benefit
+shadow weights while preserving 位=0 exactness. This is still not safety-benefit
 evidence. It does not authorize online selector promotion, CAMP retraining,
 Full36, formal seeds, DP modification, or a classical Benders claim. The next
 admissible gate is an existing-smoke safety-proxy association: compare
@@ -112867,3 +112867,118 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`
+## Current Tail Confirmation After Current HEAD Static CAMP Fallback-Risk Training Acceptance Chain
+
+Date: 2026-06-25
+
+The existing command-authorization and static-trainer contract was applied
+under the user's current CAMP retraining authorization. The run executed only
+the default-off static CAMP fallback-risk trainer on the accepted fixed
+DP-native candidate artifacts at CAMP HEAD
+`e3e7c2265f6362cc63229153c521acff2014dc1c`. It did not execute replay,
+generate candidates, modify Diffusion Planner, use formal seeds 11/12/13,
+promote selectors or atoms, deploy a checkpoint, or make safety-benefit or
+CAMP-over-DP Top-1 claims.
+
+```text
+status=fallback_risk_static_camp_training_current_head_acceptance_chain_passed
+acceptance_doc=docs/dp_native_fallback_risk_static_camp_training_current_head_acceptance_chain.md
+acceptance_test=camp_core/tests/test_dp_native_fallback_risk_static_camp_training_current_head_acceptance_chain.py
+training_commit=e3e7c2265f6362cc63229153c521acff2014dc1c
+autodl_CAMP_HEAD=e3e7c2265f6362cc63229153c521acff2014dc1c
+autodl_CAMP_origin_main=e3e7c2265f6362cc63229153c521acff2014dc1c
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+dataset_json_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0
+training_split_manifest_json_sha256=13fa6b86d2fcebbb3ecbb675daefa7409f1f427900896307474d2d1dc4f6e773
+train_only_scale_manifest_json_sha256=452828bf134fb4d5d74d8a491597ee4c50f82893622e283546ea69f2b16da934
+fallback_master_config_json_sha256=081a31214f18d1608a440b8826cd4cd4febaa6760284e8f01cbd0749b502e1b9
+training_command_plan_json_sha256=a56c86337d5576811d866a7b080a629cadb2f692a02fed7675be20e1810aec3a
+preflight_json_sha256=22ad4437d0cfa2eea0884d340c9c0fd6073824ce86bbf263d6f4e3e4bff6d51b
+training_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_e3e7c22_20260625T163942Z
+training_exit=0
+training_summary_json_sha256=0afa8fa4a59586294099ec8e8390e21e72539ac36163cf63f5515aa8cd52eb67
+offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40
+offline_weights_json_sha256=0944dd48fdf64dd79e3a4bbdef46b9b82af9604c44569c7b2109732f24ff8b95
+atom_scales_json_sha256=b2e0b3b4b2e2b3e5bf30ea546483c65e7f201b333d9eb1299763a89d19cc88bc
+training_authorized=True
+training_execution_authorized=True
+training_executed=True
+camp_retraining_completed=True
+camp_retraining_authorized_now=True
+fallback_risk_training_authorized_now=True
+fixed_dp_candidate_reranking_only=True
+fallback_only_training=True
+training_records=13
+validation_records=2
+num_candidates=4
+num_atoms=14
+atom_schema_version=dp_camp_v10_14d
+score_k(w)=a_k^T w
+objective=simplex_hinge_cvar_l2
+weights_sum=1.0
+weights_min=0.0
+weights_max=1.0
+train_oracle_match_rate=0.3076923076923077
+validation_oracle_match_rate=0.5
+validation_mean_violation=0.03760588354777358
+nonpromotion_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_e3e7c22_20260625T164050Z
+nonpromotion_audit_exit=0
+nonpromotion_audit_json_sha256=4275f076cd308dd07d6d79ae0716dd52a7e15b226ecb7eab9c2798f8542260b6
+post_training_nonpromotion_artifact_audit_passed=True
+training_artifacts_nonpromotion=True
+weights_json_simplex_nonnegative=True
+weights_npy_simplex_nonnegative=True
+weights_json_matches_npy=True
+atom_scales_strictly_positive=True
+holdout_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_e3e7c22_20260625T164050Z
+holdout_audit_exit=0
+holdout_audit_json_sha256=2e83de4d8283ea31683527a68322e0744d7c152ecf4d7548cfe5cecb1d0b5bcf
+development_holdout_acceptance_audit_passed=True
+audit_only=True
+records_scope=validation_groups_only
+records_without_feasible_candidate_only=True
+static_oracle_match_rate=0.5
+recorded_oracle_match_rate=1.0
+uniform_oracle_match_rate=1.0
+candidate0_oracle_match_rate=0.0
+static_mean_margin_violation=0.03760588354777358
+candidate_count_unchanged=True
+candidate_tensor_unchanged=True
+pre_post_candidate_provenance_hashes_equal_if_present=True
+holdout_static_underperforms_uniform=True
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+promotion_authorized=False
+deployment_authorized=False
+local_current_head_chain_pytest=5 passed
+local_command_authorization_and_trainer_pytest=7 passed
+autodl_training_exit=0
+autodl_nonpromotion_audit_exit=0
+autodl_holdout_audit_exit=0
+```
+
+The development holdout audit is diagnostic only. Because the static trained
+reranker underperforms the uniform baseline on this tiny validation slice, the
+artifact remains nonpromotion and cannot support deployment, safety-benefit, or
+CAMP-over-DP claims.
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only`
