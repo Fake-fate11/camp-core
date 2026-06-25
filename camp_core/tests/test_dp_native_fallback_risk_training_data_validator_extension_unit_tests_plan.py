@@ -30,6 +30,11 @@ def test_unit_tests_plan_records_preconditions() -> None:
         "current_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_current_head_revalidated",
         "current_accepted_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_unit_tests_plan_revalidation_base_head=3e9a002dc1099afe6846cdf6e3a44830e15f6a6a",
+        "latest_autodl_CAMP_HEAD_at_revalidation=3e9a002dc1099afe6846cdf6e3a44830e15f6a6a",
+        "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_autodl_verification_passed",
+        "latest_accepted_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
     ]:
         assert needle in text
 
@@ -134,6 +139,10 @@ def test_unit_tests_plan_forbids_execution_training_and_claims() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         "validator_extension_implementation_authorized=False",
         "fallback_risk_training_authorized_now=False",
+        "user_broad_execution_permission_recorded=True",
+        "this_unit_tests_plan_gate_authorizes_broad_execution=False",
+        "latest_local_target_pytest=13 passed",
+        "latest_autodl_target_pytest=13 passed",
     ]:
         assert needle in text
 
