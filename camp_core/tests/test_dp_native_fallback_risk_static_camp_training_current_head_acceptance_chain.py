@@ -119,6 +119,7 @@ def test_current_head_chain_forbids_promotion_deployment_dp_changes_and_claims()
 
 def test_iteration_audit_records_current_head_training_chain_and_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-160:])
 
     for needle in [
         "status=fallback_risk_static_camp_training_current_head_acceptance_chain_passed",
@@ -132,3 +133,18 @@ def test_iteration_audit_records_current_head_training_chain_and_next_gate() -> 
         "camp_over_dp_top1_claim_authorized=False",
     ]:
         assert needle in audit
+
+    for needle in [
+        "status=fallback_risk_static_camp_training_current_head_acceptance_chain_eof_tail_corrected",
+        "pre_correction_repo_head=d7e470687bf42342cea2ea3a0355389178de3fd5",
+        "current_autodl_DP_HEAD_at_tail_correction=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "tail_correction_retraining_executed=False",
+        "tail_correction_replay_executed=False",
+        "tail_correction_candidate_generation_executed=False",
+        "tail_correction_dp_modified=False",
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only`"
+    )
