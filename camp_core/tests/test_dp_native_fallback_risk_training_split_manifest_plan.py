@@ -29,6 +29,16 @@ def test_split_manifest_plan_records_validated_dataset_and_no_generation() -> No
         "candidate_generation_authorized=False",
         "replay_execution_authorized=False",
         "training_execution_authorized=False",
+        "latest_validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_validated_fallback_records=15",
+        "latest_preflight_tail_authority_status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_autodl_verification_passed",
+        "camp_head_at_latest_revalidation=ccd925be133c5e776d1314a8e6ac138b5cbb9cb3",
+        "autodl_DP_HEAD_at_latest_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_manifest_input=existing_validated_fallback_risk_training_dataset_json_only",
+        "latest_records_scope=records_without_feasible_candidate_only",
+        "latest_candidate_generation_authorized=False",
+        "latest_replay_execution_authorized=False",
+        "latest_training_execution_authorized=False",
     ]:
         assert needle in text
 
@@ -45,6 +55,14 @@ def test_split_manifest_plan_defines_group_identity_and_forbidden_split_features
         "selected_index_used_as_split_feature=False",
         "candidate_rank_used_as_split_feature=False",
         "closed_loop_outcome_used_as_split_feature=False",
+        "latest_group_key_fields=source_log,run_id,record_index",
+        "latest_split_units=record_identity_groups",
+        "latest_training_groups_disjoint_from_validation_groups=True",
+        "latest_required_record_fields=source_log,source_log_sha256,run_id,record_index,candidate_count,oracle_index",
+        "latest_record_identity_hash_required=True",
+        "latest_selected_index_used_as_split_feature=False",
+        "latest_candidate_rank_used_as_split_feature=False",
+        "latest_closed_loop_outcome_used_as_split_feature=False",
     ]:
         assert needle in text
 
@@ -61,6 +79,13 @@ def test_split_manifest_plan_predeclares_deterministic_policy_and_small_data_bou
         "group_collision_fails_closed=True",
         "empty_train_or_validation_fails_closed=True",
         "fixed_15_record_artifact_training_sufficiency_claim=False",
+        "latest_split_policy=sha256(record_identity_hash + split_salt)",
+        "latest_split_salt=fallback_risk_training_split_v1",
+        "latest_validation_fraction_target=0.2",
+        "latest_min_validation_groups=1",
+        "latest_min_training_groups=1",
+        "latest_group_collision_fails_closed=True",
+        "latest_empty_train_or_validation_fails_closed=True",
     ]:
         assert needle in text
 
@@ -78,6 +103,13 @@ def test_split_manifest_plan_requires_default_off_builder_and_preflight_fields()
         "user_camp_retraining_permission_available=True",
         "training_command_authorization_required_before_training=True",
         "top_level_fields=schema_version,dataset_sha256,validator_output_sha256,split_policy,split_salt,group_key_fields,training_groups,validation_groups,record_assignments,record_counts,final_decision",
+        "latest_default_off_builder_required=True",
+        "latest_enable_flag_required=True",
+        "latest_disabled_mode_reads_dataset=False",
+        "latest_output_json_or_markdown_only=True",
+        "latest_training_split_manifest_json_required=True",
+        "latest_preflight_compatible_fields_required=True",
+        "latest_training_split_manifest_builder_authorized=False",
     ]:
         assert needle in text
 
@@ -97,6 +129,18 @@ def test_split_manifest_plan_forbids_training_dp_and_claims() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         "fallback_dataset_training_sufficiency_claim=False",
         "all_infeasible_records_added_to_feasible_training=False",
+        "user_broad_execution_permission_recorded=True",
+        "this_split_manifest_plan_gate_authorizes_builder_training_replay_dp_or_claims=False",
+        "latest_camp_training_authorized=False",
+        "latest_camp_retraining_authorized=False",
+        "latest_formal_seeds_11_12_13_authorized=False",
+        "latest_dp_modification_authorized=False",
+        "latest_selector_promotion_authorized=False",
+        "latest_atom_promotion_authorized=False",
+        "latest_safety_benefit_claim_authorized=False",
+        "latest_camp_over_dp_top1_claim_authorized=False",
+        "latest_fallback_dataset_training_sufficiency_claim=False",
+        "latest_all_infeasible_records_added_to_feasible_training=False",
     ]:
         assert needle in text
 
@@ -106,6 +150,7 @@ def test_split_manifest_plan_next_gate_is_static_review_only() -> None:
 
     for needle in [
         "status=fallback_risk_training_split_manifest_plan_ready",
+        "status=fallback_risk_training_split_manifest_plan_latest_head_revalidated",
         "training_split_manifest_plan_complete=True",
         "training_split_manifest_builder_authorized=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_static_contract_review_only",
@@ -121,8 +166,8 @@ def test_split_manifest_plan_next_gate_is_static_review_only() -> None:
 def test_audit_tail_records_split_manifest_static_review_next_gate() -> None:
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
 
-    assert "status=fallback_risk_training_split_manifest_plan_current_head_revalidated" in tail
-    assert "local_target_pytest=7 passed" in tail
+    assert "status=fallback_risk_training_split_manifest_plan_autodl_verification_passed" in tail
+    assert "local_split_manifest_plan_pytest=7 passed" in tail
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
         "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_static_contract_review_only`"

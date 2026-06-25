@@ -205,5 +205,5 @@ def test_audit_tail_records_split_manifest_plan_as_next_gate() -> None:
     assert "post_implementation_static_contract_review_complete=True" in tail
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_static_contract_review_only`"
     )
