@@ -431,9 +431,8 @@ def test_contract_rejects_negative_atoms_and_forbids_training() -> None:
         assert decision[flag] is False
 
 
-def test_iteration_audit_tail_records_builder_unit_tests_current_head() -> None:
+def test_iteration_audit_records_builder_unit_tests_current_head_history() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-120:])
     current_head = "235fd6004a130ee88508668c55068ab8e7cc6e6b"
 
     for needle in [
@@ -472,6 +471,4 @@ def test_iteration_audit_tail_records_builder_unit_tests_current_head() -> None:
         "training_execution_authorized_now=False",
         NEXT_AUTHORIZATION_GATE,
     ]:
-        assert needle in tail
-
-    assert tail.rstrip().endswith(f"`{NEXT_AUTHORIZATION_GATE}`")
+        assert needle in audit

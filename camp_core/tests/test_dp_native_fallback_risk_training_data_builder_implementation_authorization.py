@@ -9,6 +9,12 @@ AUTH_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+NEXT_IMPLEMENTATION_GATE = (
+    "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_"
+    "fixed_artifact_fallback_risk_training_data_default_off_builder_"
+    "implementation_only"
+)
 
 
 def _text() -> str:
@@ -123,3 +129,33 @@ def test_builder_implementation_authorization_records_current_head_revalidation(
         "training_execution_authorized_now=False",
     ]:
         assert needle in text
+
+
+def test_builder_implementation_authorization_records_latest_tail() -> None:
+    text = _text()
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-120:])
+    current_head = "30811349e6b9c3e73d58d1ea6d901e4445abd959"
+
+    for payload in (text, tail):
+        for needle in [
+            "status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_revalidated_latest",
+            f"camp_head_at_revalidation={current_head}",
+            f"camp_origin_main_at_revalidation={current_head}",
+            f"github_refs_heads_main_at_revalidation={current_head}",
+            f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+            f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+            "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+            "prior_builder_unit_tests_status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_revalidated_latest",
+            "prior_builder_unit_tests_autodl_verified=True",
+            "local_authorization_and_contract_pytest=12 passed",
+            "blocking_contract_findings=0",
+            "implementation_authorized=True",
+            "fallback_risk_training_data_builder_implementation_authorized=True",
+            "fallback_risk_training_authorized_now=False",
+            "training_execution_authorized_now=False",
+            NEXT_IMPLEMENTATION_GATE,
+        ]:
+            assert needle in payload
+
+    assert tail.rstrip().endswith(f"`{NEXT_IMPLEMENTATION_GATE}`")
