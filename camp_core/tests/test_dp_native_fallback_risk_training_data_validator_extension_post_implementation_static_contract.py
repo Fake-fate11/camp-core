@@ -49,6 +49,14 @@ def test_review_doc_records_validator_post_implementation_contract() -> None:
         "fallback_risk_training_authorized_now=False",
         "production_selector_change_authorized=False",
         "online_selector_change_authorized=False",
+        "latest_post_static_revalidation_base_head=f0f9fa088052bb3c55fea51d918aec9f60a5ce1e",
+        "latest_autodl_CAMP_HEAD_at_revalidation=f0f9fa088052bb3c55fea51d918aec9f60a5ce1e",
+        "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_autodl_verification_passed",
+        "latest_local_target_pytest=18 passed",
+        "latest_autodl_target_pytest=18 passed",
+        "user_broad_execution_permission_recorded=True",
+        "this_post_static_gate_authorizes_training_replay_dp_or_claims=False",
     ]:
         assert needle in text
 

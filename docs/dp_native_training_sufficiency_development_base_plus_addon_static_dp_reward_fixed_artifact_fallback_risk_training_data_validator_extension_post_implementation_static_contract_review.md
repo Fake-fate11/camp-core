@@ -192,3 +192,48 @@ dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixe
 The next gate may only run the default-off validator, with its explicit enable
 flag, against the existing non-formal fallback-risk training dataset artifact
 and audit the resulting JSON/Markdown validation contract. It must not run replay, generate candidates, train CAMP, retrain CAMP, modify Diffusion Planner, use formal seeds, relax hard feasibility, add all-infeasible records to the feasible-ranking master, promote a selector or atom, or claim safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation After Implementation Tail
+
+Date: 2026-06-25
+
+The validator extension post-implementation static contract remains valid
+after the current implementation revalidation. This remains a static review:
+it does not run replay, generate candidates, train or retrain CAMP, modify
+Diffusion Planner, promote selectors or atoms, deploy, or make
+safety/CAMP-over-DP claims.
+
+```text
+latest_post_static_revalidation_base_head=f0f9fa088052bb3c55fea51d918aec9f60a5ce1e
+latest_camp_origin_main_at_revalidation=f0f9fa088052bb3c55fea51d918aec9f60a5ce1e
+latest_github_refs_heads_main_at_revalidation=f0f9fa088052bb3c55fea51d918aec9f60a5ce1e
+latest_autodl_CAMP_HEAD_at_revalidation=f0f9fa088052bb3c55fea51d918aec9f60a5ce1e
+latest_autodl_CAMP_origin_main_at_revalidation=f0f9fa088052bb3c55fea51d918aec9f60a5ce1e
+latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_autodl_verification_passed
+latest_local_py_compile_exit=0
+latest_local_target_pytest=18 passed
+latest_local_git_diff_check_exit=0
+latest_autodl_py_compile_exit=0
+latest_autodl_target_pytest=18 passed
+```
+
+Current boundary remains:
+
+```text
+user_broad_execution_permission_recorded=True
+this_post_static_gate_authorizes_training_replay_dp_or_claims=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
