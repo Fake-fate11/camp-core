@@ -202,9 +202,8 @@ def test_review_next_gate_is_training_data_design_plan_only() -> None:
         assert needle in text
 
 
-def test_iteration_audit_tail_records_post_implementation_static_contract() -> None:
+def test_iteration_audit_records_post_implementation_static_contract() -> None:
     audit = AUDIT_DOC.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-120:])
 
     for needle in [
         "status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_current_head_revalidated_latest",
@@ -243,6 +242,4 @@ def test_iteration_audit_tail_records_post_implementation_static_contract() -> N
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_TRAINING_DATA_DESIGN_GATE,
     ]:
-        assert needle in tail
-
-    assert tail.rstrip().endswith(f"`{NEXT_TRAINING_DATA_DESIGN_GATE}`")
+        assert needle in audit

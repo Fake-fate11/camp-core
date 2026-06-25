@@ -221,6 +221,58 @@ safety_benefit_claim_authorized=False
 camp_over_dp_top1_claim_authorized=False
 ```
 
+## Current-Head Revalidation After Latest Extractor Static Contract Verification
+
+Date: 2026-06-25
+
+The fallback-risk training-data design remains valid after the latest
+default-off extractor post-implementation static contract verification. This
+gate remains design-plan-only: it does not implement a dataset builder, extend
+the validator, run replay, generate candidates, train or retrain CAMP, modify
+Diffusion Planner, promote selector/atom logic, deploy, or claim
+safety/CAMP-over-DP benefit.
+
+```text
+camp_head_at_revalidation=0262dfe620d3df7220f1388c19d37987766e1417
+camp_origin_main_at_revalidation=0262dfe620d3df7220f1388c19d37987766e1417
+github_refs_heads_main_at_revalidation=0262dfe620d3df7220f1388c19d37987766e1417
+autodl_CAMP_HEAD_at_revalidation=0262dfe620d3df7220f1388c19d37987766e1417
+autodl_CAMP_origin_main_at_revalidation=0262dfe620d3df7220f1388c19d37987766e1417
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_extractor_contract_status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_current_head_revalidated_latest
+prior_extractor_contract_autodl_verified=True
+fallback_training_data_design_complete=True
+blocking_contract_findings=0
+local_py_compile_exit=0
+local_target_pytest=76 passed
+local_git_diff_check_exit=0
+```
+
+Current design-plan boundary:
+
+```text
+dataset_builder_implementation_authorized=False
+validator_extension_implementation_authorized=False
+fallback_risk_smoke_authorized_now=False
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review_only
+```
+
 Next admissible gate:
 
 ```text
