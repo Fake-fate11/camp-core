@@ -372,5 +372,13 @@ def test_validator_unit_tests_audit_records_current_head_boundary() -> None:
             "candidate_generation_authorized=False",
             "dp_modification_authorized=False",
             "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_authorization_only",
+            "status=fallback_risk_training_data_validator_extension_unit_tests_current_head_c9bd0e3_revalidated",
+            "unit_tests_validation_head=c9bd0e36e2470292312dd11709236fd66e7557dc",
+            "camp_origin_main_at_validation=c9bd0e36e2470292312dd11709236fd66e7557dc",
+            "github_refs_heads_main_at_validation=c9bd0e36e2470292312dd11709236fd66e7557dc",
+            "autodl_CAMP_HEAD_at_validation=c9bd0e36e2470292312dd11709236fd66e7557dc",
+            "autodl_CAMP_origin_main_at_validation=c9bd0e36e2470292312dd11709236fd66e7557dc",
+            "latest_unit_tests_plan_status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_f0ad5c5_revalidated",
+            "accepted_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
         ]:
             assert needle in text
