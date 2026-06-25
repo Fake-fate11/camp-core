@@ -150,9 +150,10 @@ def test_builder_decision_forbids_training_dp_and_promotion() -> None:
 def test_implementation_doc_and_audit_tail_record_latest_revalidation() -> None:
     doc = IMPLEMENTATION_DOC.read_text(encoding="utf-8")
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    current_head = "9095a67320c893995cfcce1026cf4950eb3068b7"
+    tail = "\n".join(audit.splitlines()[-140:])
+    current_head = "d7fb8610ecca4f8ff021a6c890efe15407eaac5f"
 
-    for payload in (doc, audit):
+    for payload in (doc, tail):
         for needle in [
             "status=fallback_risk_training_data_default_off_builder_implementation_current_head_revalidated_latest",
             f"camp_head_at_revalidation={current_head}",
@@ -165,15 +166,9 @@ def test_implementation_doc_and_audit_tail_record_latest_revalidation() -> None:
             "implementation_required_now=False",
             "implementation_already_present=True",
             "production_builder_changed_in_this_gate=False",
-            "local_builder_implementation_pytest=17 passed",
-            "github_pushed_commit=c90681332d9a123036af7e507e349a29936d4eed",
-            "autodl_CAMP_HEAD_after_sync=c90681332d9a123036af7e507e349a29936d4eed",
-            "autodl_CAMP_origin_main_after_sync=c90681332d9a123036af7e507e349a29936d4eed",
-            "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-            "autodl_py_compile_exit=0",
-            "autodl_builder_implementation_pytest=17 passed",
-            "autodl_git_diff_check_exit=0",
-            "autodl_audit_tail_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_post_implementation_static_contract_only",
+            "local_py_compile_exit=0",
+            "local_target_pytest=23 passed",
+            "local_git_diff_check_exit=0",
             "blocking_contract_findings=0",
             "default_off_required=True",
             "read_only_selection_log_input_only=True",
@@ -186,3 +181,5 @@ def test_implementation_doc_and_audit_tail_record_latest_revalidation() -> None:
             NEXT_STATIC_CONTRACT_GATE,
         ]:
             assert needle in payload
+
+    assert tail.rstrip().endswith(f"`{NEXT_STATIC_CONTRACT_GATE}`")

@@ -134,10 +134,9 @@ def test_builder_implementation_authorization_records_current_head_revalidation(
 def test_builder_implementation_authorization_records_latest_tail() -> None:
     text = _text()
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-120:])
     current_head = "c763e35e796b5d93def72cfba33c5196d3f9316b"
 
-    for payload in (text, tail):
+    for payload in (text, audit):
         for needle in [
             "status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_revalidated_latest",
             "authorization_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization.md",
@@ -173,5 +172,3 @@ def test_builder_implementation_authorization_records_latest_tail() -> None:
             NEXT_IMPLEMENTATION_GATE,
         ]:
             assert needle in payload
-
-    assert tail.rstrip().endswith(f"`{NEXT_IMPLEMENTATION_GATE}`")
