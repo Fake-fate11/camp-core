@@ -141,6 +141,10 @@ def test_static_contract_review_current_head_revalidation() -> None:
         "prior_design_status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
         "prior_design_current_head_revalidated=True",
         "blocking_contract_findings=0",
+        "camp_head_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
+        "camp_origin_main_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
+        "github_refs_heads_main_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
+        "autodl_CAMP_HEAD_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
         NEXT_UNIT_TESTS_PLAN_GATE,
     ]:
         assert needle in text
@@ -148,6 +152,7 @@ def test_static_contract_review_current_head_revalidation() -> None:
 
 def test_iteration_audit_records_static_contract_review_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-140:])
 
     for needle in [
         "status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
@@ -169,3 +174,31 @@ def test_iteration_audit_records_static_contract_review_next_gate() -> None:
         NEXT_UNIT_TESTS_PLAN_GATE,
     ]:
         assert needle in audit
+
+    for needle in [
+        "status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
+        "static_contract_review=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review.md",
+        "camp_head_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
+        "autodl_CAMP_HEAD_at_revalidation=86ec080aa632ddf994d75da8bef83ff89203bc5c",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "blocking_contract_findings=0",
+        "current_head_static_contract_revalidated=True",
+        "fixed_candidate_boundary_passed=True",
+        "affine_score_boundary_passed=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "nonnegative_cost_boundary_passed=True",
+        "fallback_cost_targets_nonnegative=True",
+        "convex_master_boundary_passed=True",
+        "feasible_master_separation_passed=True",
+        "implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_UNIT_TESTS_PLAN_GATE}`")
