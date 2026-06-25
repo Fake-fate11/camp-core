@@ -173,6 +173,71 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only
 ```
 
+## Current-Head Unit Tests Plan Revalidation After Latest Static Contract Tail
+
+Date: 2026-06-26
+
+The validator extension unit-tests plan remains valid after the latest
+static contract review tail. This remains unit-tests-plan-only. It does not
+add the tests yet, implement the validator, run replay, generate candidates,
+train or retrain CAMP, modify Diffusion Planner, promote selectors or atoms, or
+make safety/CAMP-over-DP claims.
+
+```text
+current_f0ad5c5_unit_tests_plan_revalidation_base_head=f0ad5c57e6a438f1878f73ab4dc8258bc3fa748e
+current_f0ad5c5_camp_origin_main_at_revalidation=f0ad5c57e6a438f1878f73ab4dc8258bc3fa748e
+current_f0ad5c5_github_refs_heads_main_at_revalidation=f0ad5c57e6a438f1878f73ab4dc8258bc3fa748e
+current_f0ad5c5_autodl_CAMP_HEAD_at_revalidation=f0ad5c57e6a438f1878f73ab4dc8258bc3fa748e
+current_f0ad5c5_autodl_CAMP_origin_main_at_revalidation=f0ad5c57e6a438f1878f73ab4dc8258bc3fa748e
+current_f0ad5c5_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_f0ad5c5_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_current_head_d529235_revalidated
+current_f0ad5c5_accepted_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498
+current_f0ad5c5_local_py_compile_exit=0
+current_f0ad5c5_local_target_pytest=8 passed
+current_f0ad5c5_local_git_diff_check_exit=0
+```
+
+Current boundary:
+
+```text
+user_broad_execution_permission_recorded=True
+this_unit_tests_plan_gate_authorizes_broad_execution=False
+validator_extension_unit_tests_authorized_next=True
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_f0ad5c5_revalidated
+passed=True
+validator_extension_unit_tests_plan_complete=True
+validator_extension_unit_tests_authorized_next=True
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only
+```
+
 ## AutoDL Verification After Current-Head Unit Tests Plan Revalidation
 
 Date: 2026-06-25
