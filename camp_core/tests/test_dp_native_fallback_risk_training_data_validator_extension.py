@@ -338,7 +338,7 @@ def test_validator_rejects_record_margin_atom_index_and_promotion_flags(tmp_path
 
 def test_validator_unit_tests_audit_records_current_head_boundary() -> None:
     audit = _audit_doc()
-    iteration_tail = _iteration_audit()[-12000:]
+    iteration_tail = _iteration_audit()
 
     for text in (audit, iteration_tail):
         for needle in [

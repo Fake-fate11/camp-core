@@ -1,0 +1,122 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Validator Extension Implementation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_only
+```
+
+This gate verifies the minimal default-off, read-only fallback-risk training
+dataset validator implementation at the current synchronized local/GitHub/AutoDL
+head. The validator implementation already exists in the repo, so this gate
+does not modify production validator code. It does not run replay, generate
+candidates, train or retrain CAMP, modify Diffusion Planner, promote selectors
+or atoms, or make safety/CAMP-over-DP claims.
+
+## Reviewed Implementation
+
+```text
+implementation_validation_head=40a6940e4dcc87314ce1e7c875f4853cb40ba621
+camp_origin_main_at_validation=40a6940e4dcc87314ce1e7c875f4853cb40ba621
+github_refs_heads_main_at_validation=40a6940e4dcc87314ce1e7c875f4853cb40ba621
+autodl_CAMP_HEAD_at_validation=40a6940e4dcc87314ce1e7c875f4853cb40ba621
+autodl_CAMP_origin_main_at_validation=40a6940e4dcc87314ce1e7c875f4853cb40ba621
+autodl_DP_HEAD_at_validation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+latest_implementation_authorization_status=fallback_risk_training_data_validator_extension_implementation_authorization_autodl_verification_passed
+validator_script=scripts/integrations/validate_dp_native_fallback_risk_training_data_contract.py
+production_validator_modified_in_this_gate=False
+implementation_already_present_at_head=True
+```
+
+## Implementation Boundary
+
+```text
+default_off_required=True
+default_off_enable_flag=--enable_default_off_fallback_risk_training_data_validator
+read_only_dataset_json_input_only=True
+read_only_source_log_readback_only=True
+source_log_readback_required_for_acceptance=True
+output_json_or_markdown_only=True
+replay_executed=False
+candidate_generation_executed=False
+camp_training_executed=False
+diffusion_planner_executed=False
+diffusion_planner_modified=False
+training_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+```
+
+## Fail-Closed Checks
+
+```text
+schema_status_count_and_hash_mismatch_fails_closed=True
+source_feasible_mask_any_true_or_non_bool_fails_closed=True
+candidate_generation_or_provenance_violation_fails_closed=True
+atom_schema_or_nonnegative_matrix_violation_fails_closed=True
+record_identity_hash_required=True
+training_selector_atom_promotion_or_claim_flags_rejected=True
+score_k_equals_a_k_transpose_w_boundary_preserved=True
+fallback_dataset_kept_separate_from_feasible_master=True
+```
+
+## Verification
+
+```text
+implementation_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_implementation.py
+validator_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension.py
+contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_contract.py
+authorization_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_implementation_authorization.py
+local_py_compile_exit=0
+local_target_pytest=24 passed
+local_target_pytest_exit=0
+local_git_diff_check_exit=0
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_validator_extension_implementation_current_head_40a6940_revalidated
+passed=True
+validator_extension_implementation_complete=True
+production_validator_modified_in_this_gate=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_post_implementation_static_contract_only
+```
