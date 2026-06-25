@@ -1,0 +1,121 @@
+# DP Native Fixed-Artifact Fallback Risk Ranking Default-Off Extractor Implementation
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_only
+```
+
+This implementation-only gate revalidates the existing default-off,
+read-only fallback-risk extractor at the current head. No production selector
+logic was changed in this gate. The extractor remains a diagnostic script that
+reads existing fixed DP-native CAMP selection logs only when explicitly enabled
+and writes only user-specified JSON/Markdown outputs.
+
+## Implemented Artifact
+
+```text
+script=scripts/integrations/extract_diffusion_planner_dp_native_fallback_risk_records.py
+tests=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_extractor.py
+contract_tests=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_contract.py
+camp_head_at_revalidation=77161e9d06afa9c711d6f524a5bc12b90c8c6e14
+camp_origin_main_at_revalidation=77161e9d06afa9c711d6f524a5bc12b90c8c6e14
+github_refs_heads_main_at_revalidation=77161e9d06afa9c711d6f524a5bc12b90c8c6e14
+autodl_CAMP_HEAD_before_gate=77161e9d06afa9c711d6f524a5bc12b90c8c6e14
+autodl_CAMP_origin_main_before_gate=77161e9d06afa9c711d6f524a5bc12b90c8c6e14
+autodl_DP_HEAD_before_gate=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Implementation Boundary
+
+```text
+default_off_required=True
+enabled_default=False
+disabled_mode_reads_selection_logs=False
+disabled_mode_emits_fallback_risk_records=False
+explicit_enable_flag=--enable_default_off_fallback_risk_extractor
+read_only_selection_log_input_only=True
+records_scope=records_without_feasible_candidate_only
+output_json_or_markdown_only=True
+fallback_risk_records_are_diagnostic_only=True
+training_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+feasible_ranking_master_change_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+```
+
+The enabled path delegates fixed-artifact reading and fail-closed validation to
+the existing read-only fallback-risk ranking audit helper. It does not run
+Diffusion Planner, does not generate candidates, does not mutate candidate
+tensors, does not relax hard feasibility, and does not add all-infeasible
+records to the feasible-ranking master.
+
+## Verification
+
+```text
+local_py_compile_exit=0
+direct_windows_repo_pytest_exit=1
+direct_windows_repo_pytest_blocked_by_preexisting_unavailable_long_path_node=True
+local_temp_root_target_pytest=19 passed
+local_temp_root_target_pytest_exit=0
+```
+
+The temporary-root test copied only the target tests and required scripts into
+a short path and set `PYTHONPATH` to that copy. This avoids the pre-existing
+Windows long-path collection blocker without modifying or cleaning any repo
+file.
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated
+passed=True
+implementation_gate_complete=True
+implementation_change_required=False
+default_off_required=True
+read_only_selection_log_input_only=True
+records_scope=records_without_feasible_candidate_only
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+## Next Gate
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only
+```
+
+The next gate may only statically review the implemented default-off extractor
+against the fixed-candidate, affine-score, read-only, nonpromotion contract. It
+must not run replay, generate candidates, train CAMP, retrain CAMP, modify DP,
+use formal seeds, promote selector or atom logic, deploy, or claim safety
+benefit or CAMP-over-DP Top-1.
