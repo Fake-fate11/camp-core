@@ -135,11 +135,14 @@ def test_builder_implementation_authorization_records_latest_tail() -> None:
     text = _text()
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
     tail = "\n".join(audit.splitlines()[-120:])
-    current_head = "30811349e6b9c3e73d58d1ea6d901e4445abd959"
+    current_head = "c763e35e796b5d93def72cfba33c5196d3f9316b"
 
     for payload in (text, tail):
         for needle in [
             "status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_revalidated_latest",
+            "authorization_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization.md",
+            "authorization_test=camp_core/tests/test_dp_native_fallback_risk_training_data_builder_implementation_authorization.py",
+            "contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py",
             f"camp_head_at_revalidation={current_head}",
             f"camp_origin_main_at_revalidation={current_head}",
             f"github_refs_heads_main_at_revalidation={current_head}",
@@ -147,21 +150,26 @@ def test_builder_implementation_authorization_records_latest_tail() -> None:
             f"autodl_CAMP_origin_main_at_revalidation={current_head}",
             "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
             "prior_builder_unit_tests_status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_revalidated_latest",
+            "prior_builder_unit_tests_tail_verified=True",
             "prior_builder_unit_tests_autodl_verified=True",
-            "local_authorization_and_contract_pytest=12 passed",
-            "github_pushed_commit=ddeb74964149354be718fcf518796fb188e00208",
-            "autodl_CAMP_HEAD_after_sync=ddeb74964149354be718fcf518796fb188e00208",
-            "autodl_CAMP_origin_main_after_sync=ddeb74964149354be718fcf518796fb188e00208",
-            "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-            "autodl_py_compile_exit=0",
-            "autodl_authorization_and_contract_pytest=12 passed",
-            "autodl_git_diff_check_exit=0",
-            "autodl_audit_tail_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_only",
+            "local_py_compile_exit=0",
+            "local_target_pytest=21 passed",
+            "local_git_diff_check_exit=0",
             "blocking_contract_findings=0",
             "implementation_authorized=True",
             "fallback_risk_training_data_builder_implementation_authorized=True",
             "fallback_risk_training_authorized_now=False",
+            "fallback_risk_smoke_authorized_now=False",
             "training_execution_authorized_now=False",
+            "camp_training_authorized=False",
+            "camp_retraining_authorized=False",
+            "replay_execution_authorized=False",
+            "candidate_generation_authorized=False",
+            "dp_modification_authorized=False",
+            "selector_promotion_authorized=False",
+            "atom_promotion_authorized=False",
+            "safety_benefit_claim_authorized=False",
+            "camp_over_dp_top1_claim_authorized=False",
             NEXT_IMPLEMENTATION_GATE,
         ]:
             assert needle in payload
