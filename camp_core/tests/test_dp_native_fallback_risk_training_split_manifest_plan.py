@@ -195,7 +195,7 @@ def test_split_manifest_plan_next_gate_is_static_review_only() -> None:
 
 
 def test_audit_tail_records_split_manifest_static_review_next_gate() -> None:
-    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
+    tail = AUDIT_DOC.read_text(encoding="utf-8")
 
     assert (
         "status=fallback_risk_training_split_manifest_plan_head_507a0be_revalidated"

@@ -47,6 +47,47 @@ def test_split_unit_tests_plan_records_preconditions_and_no_builder_authorizatio
         assert needle in text
 
 
+def test_current_head_5753703_unit_tests_plan_revalidation_is_pinned() -> None:
+    text = _plan()
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_unit_tests_plan_head_5753703_revalidated",
+        "unit_tests_plan_base_head=57537031147c41abb6b811be8f932c1d3ec951ac",
+        "camp_origin_main_at_unit_tests_plan=57537031147c41abb6b811be8f932c1d3ec951ac",
+        "github_refs_heads_main_at_unit_tests_plan=57537031147c41abb6b811be8f932c1d3ec951ac",
+        "autodl_CAMP_HEAD_at_unit_tests_plan=57537031147c41abb6b811be8f932c1d3ec951ac",
+        "autodl_CAMP_origin_main_at_unit_tests_plan=57537031147c41abb6b811be8f932c1d3ec951ac",
+        "autodl_DP_HEAD_at_unit_tests_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_split_manifest_static_contract_status=fallback_risk_training_split_manifest_static_contract_review_head_1e1e8f1_revalidated",
+        "head_5753703_validated_fallback_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0",
+        "head_5753703_validated_fallback_records=15",
+        "head_5753703_split_manifest_plan_ready=True",
+        "head_5753703_split_manifest_static_contract_review_passed=True",
+        "head_5753703_blocking_contract_findings=0",
+        "head_5753703_manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1",
+        "head_5753703_records_scope=records_without_feasible_candidate_only",
+        "head_5753703_test_disabled_mode_does_not_read_dataset=True",
+        "head_5753703_test_enabled_mode_reads_existing_validated_dataset_json_only=True",
+        "head_5753703_test_requires_group_key_source_log_run_id_record_index=True",
+        "head_5753703_test_does_not_use_selected_index_as_split_feature=True",
+        "head_5753703_test_does_not_use_candidate_rank_as_split_feature=True",
+        "head_5753703_test_does_not_use_closed_loop_outcome_as_split_feature=True",
+        "head_5753703_test_training_and_validation_groups_are_disjoint=True",
+        "head_5753703_test_final_decision_never_authorizes_training=True",
+        "head_5753703_synthetic_dataset_fixtures_only=True",
+        "head_5753703_synthetic_split_manifest_fixtures_only=True",
+        "head_5753703_split_manifest_unit_tests_authorized=True",
+        "head_5753703_training_split_manifest_builder_authorized=False",
+        "head_5753703_local_unit_tests_plan_pytest=9 passed",
+        "head_5753703_training_not_executed=True",
+        "head_5753703_candidate_generation_not_executed=True",
+        "head_5753703_dp_not_modified=True",
+        "head_5753703_selector_or_atom_not_promoted=True",
+        "this_split_manifest_unit_tests_plan_gate_authorizes_builder_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in text
+
+
 def test_split_unit_tests_plan_covers_default_off_and_dataset_scope() -> None:
     text = _plan()
 
@@ -189,16 +230,15 @@ def test_audit_tail_records_split_manifest_unit_tests_only_next_gate() -> None:
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
 
     assert (
-        "status=fallback_risk_training_sufficiency_preflight_current_head_fixed_artifact_acceptance_passed"
+        "status=fallback_risk_training_split_manifest_unit_tests_plan_head_5753703_revalidated"
         in tail
     )
-    assert "local_target_pytest=140 passed" in tail
-    assert "local_preflight_acceptance_rerun_pytest=6 passed" in tail
+    assert "head_5753703_local_unit_tests_plan_pytest=9 passed" in tail
     assert (
-        "this_preflight_gate_authorizes_training_replay_dp_or_claims=False"
+        "this_split_manifest_unit_tests_plan_gate_authorizes_builder_training_replay_dp_or_claims=False"
         in tail
     )
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only`"
     )
