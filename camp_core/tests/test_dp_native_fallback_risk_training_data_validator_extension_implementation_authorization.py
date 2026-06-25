@@ -9,10 +9,15 @@ AUTH_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_authorization.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _auth() -> str:
     return AUTH_DOC.read_text(encoding="utf-8")
+
+
+def _iteration_audit() -> str:
+    return ITERATION_AUDIT.read_text(encoding="utf-8")
 
 
 def test_authorization_records_reviewed_evidence_and_preconditions() -> None:
@@ -39,6 +44,16 @@ def test_authorization_records_reviewed_evidence_and_preconditions() -> None:
         "latest_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_autodl_verification_passed",
         "latest_local_target_pytest=11 passed",
         "latest_autodl_target_pytest=11 passed",
+        "current_authorization_revalidation_base_head=9260058775a9a163985b54434b774190d91cb37a",
+        "current_camp_origin_main_at_revalidation=9260058775a9a163985b54434b774190d91cb37a",
+        "current_github_refs_heads_main_at_revalidation=9260058775a9a163985b54434b774190d91cb37a",
+        "current_autodl_CAMP_HEAD_at_revalidation=9260058775a9a163985b54434b774190d91cb37a",
+        "current_autodl_CAMP_origin_main_at_revalidation=9260058775a9a163985b54434b774190d91cb37a",
+        "current_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_autodl_verification_passed",
+        "current_local_target_pytest=6 passed",
+        "current_local_py_compile_exit=0",
+        "current_local_git_diff_check_exit=0",
     ]:
         assert needle in text
 
@@ -126,6 +141,7 @@ def test_authorization_next_gate_is_implementation_only() -> None:
 
     for needle in [
         "status=fallback_risk_training_data_validator_extension_implementation_authorized",
+        "status=fallback_risk_training_data_validator_extension_implementation_authorization_current_head_9260058_revalidated",
         "passed=True",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_only",
         "may only implement the minimal default-off read-only validator",
@@ -137,3 +153,29 @@ def test_authorization_next_gate_is_implementation_only() -> None:
         "promote a selector or atom",
     ]:
         assert needle in text
+
+
+def test_iteration_audit_tail_records_current_head_implementation_authorization() -> None:
+    text = _iteration_audit()
+    tail = text[-12000:]
+
+    for needle in [
+        "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Implementation Authorization",
+        "status=fallback_risk_training_data_validator_extension_implementation_authorization_current_head_9260058_revalidated",
+        "current_authorization_revalidation_base_head=9260058775a9a163985b54434b774190d91cb37a",
+        "current_github_refs_heads_main_at_revalidation=9260058775a9a163985b54434b774190d91cb37a",
+        "current_autodl_CAMP_HEAD_at_revalidation=9260058775a9a163985b54434b774190d91cb37a",
+        "current_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_autodl_verification_passed",
+        "implementation_authorized=True",
+        "fallback_risk_training_data_validator_extension_implementation_authorized=True",
+        "default_off_required=True",
+        "read_only_dataset_json_input_only=True",
+        "source_log_readback_required_for_acceptance=True",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_only",
+    ]:
+        assert needle in tail
