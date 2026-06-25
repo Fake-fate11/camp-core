@@ -633,19 +633,19 @@ def test_manifest_pins_deterministic_policy_and_forbids_random_inputs() -> None:
 
 def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> None:
     audit = AUDIT_DOC.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-180:])
+    tail = "\n".join(audit.splitlines()[-220:])
 
     assert (
-        "status=fallback_risk_training_train_only_scale_manifest_current_head_fixed_artifact_acceptance_passed"
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_fixed_artifact_acceptance_passed"
         in tail
     )
-    assert "local_target_pytest=111 passed" in tail
-    assert "local_train_only_scale_acceptance_pytest=6 passed" in tail
+    assert "local_target_pytest=123 passed" in tail
+    assert "local_master_command_acceptance_pytest=6 passed" in tail
     assert "training_execution_authorized_now=False" in audit
     assert (
-        "source_split_manifest_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_passed"
+        "source_scale_manifest_acceptance_status=fallback_risk_training_train_only_scale_manifest_current_head_fixed_artifact_acceptance_passed"
         in tail
     )
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_validated_dataset_summary_materializer_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
     )
