@@ -190,6 +190,71 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization_only
 ```
 
+## Current-Head Revalidation After a9fbf1c Unit-Tests Plan
+
+Date: 2026-06-26
+
+The default-off synthetic/static unit-test contract remains valid after the
+current unit-tests plan revalidation was recorded, pushed, and synchronized
+across local, GitHub, and AutoDL CAMP. This is still a tests-only gate.
+
+```text
+camp_head_at_revalidation=91d4327200995903d2a2bbf0b5545033a6ed9cd7
+camp_origin_main_at_revalidation=91d4327200995903d2a2bbf0b5545033a6ed9cd7
+github_refs_heads_main_at_revalidation=91d4327200995903d2a2bbf0b5545033a6ed9cd7
+autodl_CAMP_HEAD_at_revalidation=91d4327200995903d2a2bbf0b5545033a6ed9cd7
+autodl_CAMP_origin_main_at_revalidation=91d4327200995903d2a2bbf0b5545033a6ed9cd7
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_unit_tests_plan_status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate
+prior_unit_tests_plan_head_at_revalidation=a9fbf1c00f2f9fea6847b88cf25d527b2cc6d0cc
+prior_unit_tests_plan_current_head_revalidated=True
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated
+passed=True
+tests_only=True
+synthetic_static_unit_tests_only=True
+default_off_contract_tests_pinned=True
+local_py_compile_exit=0
+local_target_pytest=48 passed
+local_diff_check=0 findings
+autodl_CAMP_HEAD=91d4327200995903d2a2bbf0b5545033a6ed9cd7
+autodl_CAMP_origin_main=91d4327200995903d2a2bbf0b5545033a6ed9cd7
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_py_compile_exit=0
+autodl_target_pytest=48 passed
+autodl_diff_check=0 findings
+production_implementation_edit_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization_only
+```
+
 ## Current-Head Revalidation After Tail-Corrected Unit-Tests Plan
 
 Date: 2026-06-25
