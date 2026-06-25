@@ -32,6 +32,15 @@ def test_acceptance_audit_records_fixed_nonformal_artifact_identity() -> None:
         "current_builder_output_json_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
         "current_builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_artifact_scope=broader_nonformal_fixed_evaluation_artifact",
+        "latest_selection_logs=12",
+        "latest_formal_seed_path_matches=0",
+        "latest_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_6adb800_20260625T020016Z",
+        "latest_builder_output_json_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823",
+        "latest_camp_head_at_revalidation=6adb80021bf6590cf3e3a9660821a8b4c369af1a",
+        "latest_autodl_CAMP_HEAD_at_revalidation=6adb80021bf6590cf3e3a9660821a8b4c369af1a",
+        "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -65,6 +74,18 @@ def test_acceptance_audit_records_dataset_counts_and_status() -> None:
         "current_errors=0",
         "current_record_candidate_counts=4",
         "current_oracle_policies=lane/red/quality,red/lane/quality",
+        "latest_schema_version=dp_native_fallback_risk_training_data_v1",
+        "latest_status=dp_native_fallback_risk_training_data_builder_complete",
+        "latest_passed=True",
+        "latest_enabled=True",
+        "latest_records_total=60",
+        "latest_records_without_feasible_candidate=15",
+        "latest_records_with_feasible_candidate=45",
+        "latest_records_built=15",
+        "latest_failed_records=0",
+        "latest_errors=0",
+        "latest_record_candidate_counts=4",
+        "latest_oracle_policies=lane/red/quality,red/lane/quality",
     ]:
         assert needle in text
 
@@ -123,6 +144,25 @@ def test_acceptance_audit_forbids_training_replay_dp_and_claims() -> None:
         "current_safety_benefit_claim_authorized=False",
         "current_camp_over_dp_top1_claim_authorized=False",
         "current_fallback_risk_training_authorized_now=False",
+        "user_broad_execution_permission_recorded=True",
+        "this_acceptance_gate_authorizes_broad_execution=False",
+        "latest_replay_execution_authorized=False",
+        "latest_candidate_generation_authorized=False",
+        "latest_camp_training_authorized=False",
+        "latest_camp_retraining_authorized=False",
+        "latest_formal_seeds_11_12_13_authorized=False",
+        "latest_dp_modification_authorized=False",
+        "latest_selector_promotion_authorized=False",
+        "latest_atom_promotion_authorized=False",
+        "latest_safety_benefit_claim_authorized=False",
+        "latest_camp_over_dp_top1_claim_authorized=False",
+        "latest_training_authorized=False",
+        "latest_production_selector_change_authorized=False",
+        "latest_online_selector_change_authorized=False",
+        "latest_feasible_ranking_master_change_authorized=False",
+        "latest_all_infeasible_records_added_to_feasible_training=False",
+        "latest_hard_feasibility_relaxation_authorized=False",
+        "latest_fallback_dataset_training_sufficiency_claim=False",
     ]:
         assert needle in text
 
@@ -145,8 +185,10 @@ def test_acceptance_audit_next_gate_is_validator_extension_plan_only() -> None:
 
     for needle in [
         "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_passed",
+        "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_rerun_passed",
         "fixed_artifact_acceptance_audit_complete=True",
         "accepted_fallback_records=15",
+        "fallback_dataset_artifact_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
         "may only plan a validator extension",
         "must not implement training",
