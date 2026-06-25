@@ -1,0 +1,130 @@
+# DP Native Fixed-Artifact Fallback Risk Ranking Default-Off Unit Tests
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only
+```
+
+This tests-only gate pins the default-off, synthetic/static contract coverage
+for the fallback-risk ranking diagnostic path. It does not edit production
+implementation, run replay, generate candidates, train or retrain CAMP, modify
+Diffusion Planner, use formal seeds, promote selector or atom logic, deploy, or
+claim safety benefit or CAMP-over-DP Top-1.
+
+## Heads
+
+```text
+camp_head_before_unit_tests_commit=f399cb0770bd98ae9d6faed3afe8eefbb8edf1f9
+camp_origin_main_before_unit_tests_commit=f399cb0770bd98ae9d6faed3afe8eefbb8edf1f9
+github_refs_heads_main_before_unit_tests_commit=f399cb0770bd98ae9d6faed3afe8eefbb8edf1f9
+autodl_CAMP_HEAD_before_unit_tests_commit=f399cb0770bd98ae9d6faed3afe8eefbb8edf1f9
+autodl_CAMP_origin_main_before_unit_tests_commit=f399cb0770bd98ae9d6faed3afe8eefbb8edf1f9
+autodl_DP_HEAD_before_unit_tests_commit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Tracked worktree files were clean before this gate. Existing unrelated
+untracked local handoff/session files and unrelated AutoDL untracked files were
+left untouched.
+
+## Test Scope
+
+Target tests:
+
+```text
+camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_contract.py
+camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_unit_tests_plan.py
+```
+
+The expanded synthetic contract coverage now checks:
+
+```text
+default_off_disabled_extractor_does_not_read_missing_artifact=True
+records_without_feasible_candidate_only=True
+records_with_feasible_candidate_skipped=True
+all_infeasible_records_remain_out_of_feasible_master=True
+red_light_cost_uses_max_negative_reward_hinge=True
+lane_related_cost_uses_logged_lane_fields=True
+quality_cost_uses_max_negative_total_reward_hinge=True
+cost_vectors_nonnegative_and_finite=True
+ties_report_all_min_indices=True
+lower_cost_candidate_indices_reported=True
+missing_red_light_field_fails_closed=True
+missing_total_field_fails_closed=True
+missing_lane_field_fails_closed=True
+nonfinite_cost_field_fails_closed=True
+selected_index_out_of_range_fails_closed=True
+num_candidates_nonpositive_fails_closed=True
+candidate_count_mismatch_fails_closed=True
+candidate_tensor_provenance_payload_required=True
+pre_post_tensor_hash_mismatch_fails_closed=True
+candidate_count_change_fails_closed=True
+candidate_row_append_fails_closed=True
+coordinate_heading_speed_rewrite_fails_closed=True
+candidate_tensor_mutation_effect_fails_closed=True
+reference_blend_or_guidance_path_fails_closed=True
+postselection_underprogress_splice_paths_fail_closed=True
+closed_loop_outcome_online_input_forbidden=True
+training_and_promotion_flags_remain_false=True
+```
+
+The tests use synthetic in-memory records and temporary directories only. They
+do not read fixed replay artifacts, do not run DP, and do not write production
+artifacts.
+
+## Verification
+
+```text
+local_py_compile_exit=0
+direct_windows_repo_pytest_exit=1
+direct_windows_repo_pytest_blocked_by_preexisting_unavailable_long_path_node=True
+local_temp_root_target_pytest=22 passed
+local_temp_root_target_pytest_exit=0
+```
+
+The temporary-root test copied only the target tests, required static scripts,
+and required docs into a short path and set `PYTHONPATH` to that copy. This
+avoids the pre-existing Windows long-path collection blocker without modifying
+or cleaning any repo file.
+
+## Decision
+
+```text
+status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated
+passed=True
+tests_only=True
+synthetic_static_unit_tests_only=True
+production_implementation_edit_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+## Next Gate
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization_only
+```
+
+The next gate may only decide whether the already scoped default-off extractor
+implementation path is authorized. It must not run replay, generate candidates,
+train CAMP, retrain CAMP, modify DP, use formal seeds, promote a selector or
+atom, or claim safety/CAMP-over-DP benefit.
