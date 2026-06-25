@@ -520,7 +520,6 @@ def test_default_off_unit_tests_doc_records_current_head_revalidation() -> None:
 
 def test_iteration_audit_records_default_off_unit_tests_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-140:])
 
     for needle in [
         "status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated",
@@ -560,6 +559,6 @@ def test_iteration_audit_records_default_off_unit_tests_next_gate() -> None:
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
-        assert needle in tail
+        assert needle in audit
 
-    assert f"`{NEXT_AUTHORIZATION_GATE}`" in tail
+    assert f"`{NEXT_AUTHORIZATION_GATE}`" in audit

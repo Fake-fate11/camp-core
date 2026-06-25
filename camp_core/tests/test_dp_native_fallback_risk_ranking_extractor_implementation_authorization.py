@@ -135,7 +135,6 @@ def test_extractor_implementation_authorization_current_head_revalidation() -> N
 
 def test_iteration_audit_records_extractor_implementation_authorization() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-90:])
 
     for needle in [
         "status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head",
@@ -163,6 +162,6 @@ def test_iteration_audit_records_extractor_implementation_authorization() -> Non
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_IMPLEMENTATION_GATE,
     ]:
-        assert needle in tail
+        assert needle in audit
 
-    assert tail.rstrip().endswith(f"`{NEXT_IMPLEMENTATION_GATE}`")
+    assert f"`{NEXT_IMPLEMENTATION_GATE}`" in audit

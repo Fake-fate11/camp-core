@@ -219,17 +219,20 @@ def test_extractor_cli_writes_outputs_when_enabled(
 
 def test_implementation_doc_records_current_head_revalidation() -> None:
     text = IMPLEMENTATION_DOC.read_text(encoding="utf-8")
+    tail = "\n".join(text.splitlines()[-90:])
 
     for needle in [
         "status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated_latest",
-        "camp_head_at_revalidation=848040bd08c4361af2eb88972615f3147b9bce58",
-        "camp_origin_main_at_revalidation=848040bd08c4361af2eb88972615f3147b9bce58",
-        "github_refs_heads_main_at_revalidation=848040bd08c4361af2eb88972615f3147b9bce58",
-        "autodl_CAMP_HEAD_before_gate=848040bd08c4361af2eb88972615f3147b9bce58",
-        "autodl_CAMP_origin_main_before_gate=848040bd08c4361af2eb88972615f3147b9bce58",
-        "autodl_DP_HEAD_before_gate=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "camp_head_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "camp_origin_main_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "github_refs_heads_main_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "autodl_CAMP_HEAD_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "autodl_CAMP_origin_main_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_authorization_status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head",
+        "prior_authorization_tail_verified=True",
         "prior_authorization_autodl_verified=True",
+        "implementation_gate_complete=True",
         "implementation_change_required=False",
         "existing_extractor_revalidated=True",
         "default_off_required=True",
@@ -240,43 +243,8 @@ def test_implementation_doc_records_current_head_revalidation() -> None:
         "output_json_or_markdown_only=True",
         "fallback_risk_records_are_diagnostic_only=True",
         "local_py_compile_exit=0",
-        "local_target_pytest=60 passed",
+        "local_target_pytest=29 passed",
         "local_git_diff_check_exit=0",
-        "autodl_CAMP_HEAD_after_sync=60249743c5658db73626c17ac5125ab1b5ef39a2",
-        "autodl_CAMP_origin_main_after_sync=60249743c5658db73626c17ac5125ab1b5ef39a2",
-        "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "autodl_py_compile_exit=0",
-        "autodl_target_pytest=60 passed",
-        "autodl_git_diff_check_exit=0",
-        "autodl_audit_tail_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only",
-        NEXT_STATIC_CONTRACT_GATE,
-    ]:
-        assert needle in text
-
-
-def test_iteration_audit_records_extractor_implementation() -> None:
-    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-
-    for needle in [
-        "status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated_latest",
-        "camp_head_at_revalidation=848040bd08c4361af2eb88972615f3147b9bce58",
-        "autodl_DP_HEAD_before_gate=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "prior_authorization_status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head",
-        "prior_authorization_autodl_verified=True",
-        "implementation_change_required=False",
-        "existing_extractor_revalidated=True",
-        "default_off_required=True",
-        "enabled_default=False",
-        "local_py_compile_exit=0",
-        "local_target_pytest=60 passed",
-        "local_git_diff_check_exit=0",
-        "autodl_CAMP_HEAD_after_sync=60249743c5658db73626c17ac5125ab1b5ef39a2",
-        "autodl_CAMP_origin_main_after_sync=60249743c5658db73626c17ac5125ab1b5ef39a2",
-        "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "autodl_py_compile_exit=0",
-        "autodl_target_pytest=60 passed",
-        "autodl_git_diff_check_exit=0",
-        "autodl_audit_tail_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_only",
         "fallback_risk_training_authorized_now=False",
         "fallback_risk_smoke_authorized_now=False",
         "replay_execution_authorized=False",
@@ -290,4 +258,52 @@ def test_iteration_audit_records_extractor_implementation() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_STATIC_CONTRACT_GATE,
     ]:
-        assert needle in audit
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"```text\n{NEXT_STATIC_CONTRACT_GATE}\n```")
+
+
+def test_iteration_audit_records_extractor_implementation() -> None:
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-100:])
+
+    for needle in [
+        "status=fallback_risk_ranking_default_off_extractor_implementation_current_head_revalidated_latest",
+        "implementation_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation.md",
+        "script=scripts/integrations/extract_diffusion_planner_dp_native_fallback_risk_records.py",
+        "test=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_extractor.py",
+        "contract_tests=camp_core/tests/test_dp_native_fallback_risk_ranking_default_off_contract.py",
+        "authorization_test=camp_core/tests/test_dp_native_fallback_risk_ranking_extractor_implementation_authorization.py",
+        "camp_head_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "camp_origin_main_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "github_refs_heads_main_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "autodl_CAMP_HEAD_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "autodl_CAMP_origin_main_at_revalidation=2b4ea1ec074e61e6283fa270827741268641d29e",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_authorization_status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head",
+        "prior_authorization_tail_verified=True",
+        "prior_authorization_autodl_verified=True",
+        "implementation_gate_complete=True",
+        "implementation_change_required=False",
+        "existing_extractor_revalidated=True",
+        "default_off_required=True",
+        "enabled_default=False",
+        "local_py_compile_exit=0",
+        "local_target_pytest=29 passed",
+        "local_git_diff_check_exit=0",
+        "fallback_risk_training_authorized_now=False",
+        "fallback_risk_smoke_authorized_now=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_STATIC_CONTRACT_GATE,
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_STATIC_CONTRACT_GATE}`")
