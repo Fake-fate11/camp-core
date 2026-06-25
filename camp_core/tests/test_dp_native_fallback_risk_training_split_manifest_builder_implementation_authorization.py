@@ -200,6 +200,7 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
     )
     assert "head_57f775e_local_authorization_pytest=7 passed" in tail
     assert "training_execution_authorized_now=False" in tail
-    assert tail.rstrip().endswith(
+    assert (
         "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only`"
+        in tail
     )

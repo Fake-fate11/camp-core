@@ -417,16 +417,15 @@ def test_audit_records_split_manifest_builder_static_contract_and_current_next_g
     tail = "\n".join(audit.splitlines()[-220:])
 
     assert (
-        "status=fallback_risk_training_sufficiency_preflight_current_head_fixed_artifact_acceptance_passed"
+        "status=fallback_risk_training_split_manifest_builder_implementation_head_d7df6d9_revalidated"
         in tail
     )
-    assert "local_target_pytest=140 passed" in tail
-    assert "local_preflight_acceptance_rerun_pytest=6 passed" in tail
+    assert "head_d7df6d9_local_split_manifest_builder_pytest=9 passed" in tail
     assert (
-        "source_summary_acceptance_status=fallback_risk_training_validated_dataset_summary_materializer_current_head_fixed_artifact_acceptance_passed"
+        "this_builder_implementation_gate_authorizes_fixed_artifact_training_replay_dp_or_claims=False"
         in tail
     )
     assert "training_execution_authorized_now=False" in audit
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only`"
     )
