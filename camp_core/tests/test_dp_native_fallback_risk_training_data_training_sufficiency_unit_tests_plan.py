@@ -55,6 +55,20 @@ def test_unit_tests_plan_records_preconditions_and_no_training_authorization() -
         "current_head_camp_retraining_authorized_now=False",
         "camp_head_at_current_head_revalidation=30b0dc75930288c043ce892a1df6ec1969127790",
         "autodl_DP_HEAD_at_current_head_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "head_040ce08_training_sufficiency_plan_ready=True",
+        "head_040ce08_training_sufficiency_static_contract_review_passed=True",
+        "head_040ce08_static_contract_status=fallback_risk_training_data_training_sufficiency_static_contract_review_current_head_ac14588_revalidated",
+        "head_040ce08_blocking_contract_findings=0",
+        "head_040ce08_validated_fallback_records=15",
+        "head_040ce08_validated_fallback_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0",
+        "head_040ce08_validator_output_json_sha256=4baaf581141c8fbfddede13bd04b02788276421f041d6eca9bd86c15e1d221fc",
+        "head_040ce08_validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "head_040ce08_strict_formal_seed_path_matches=0",
+        "head_040ce08_fallback_dataset_training_sufficiency_claim=False",
+        "head_040ce08_fallback_risk_training_authorized_now=False",
+        "head_040ce08_camp_retraining_authorized_now=False",
+        "camp_head_at_head_040ce08_revalidation=040ce087a80d2cbe71a749a5f185948c5e0981ec",
+        "autodl_DP_HEAD_at_head_040ce08_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -102,6 +116,16 @@ def test_unit_tests_plan_covers_evidence_split_and_scale_fail_closed_cases() -> 
         "current_head_test_requires_train_only_scale_manifest=True",
         "current_head_test_rejects_scale_fit_on_validation_groups=True",
         "current_head_test_rejects_nonpositive_atom_scales=True",
+        "head_040ce08_test_validated_fallback_dataset_is_required=True",
+        "head_040ce08_test_15_record_artifact_does_not_authorize_training=True",
+        "head_040ce08_test_rejects_training_sufficiency_claim_without_split=True",
+        "head_040ce08_test_rejects_deployable_checkpoint_claim=True",
+        "head_040ce08_test_requires_training_validation_split_manifest=True",
+        "head_040ce08_test_rejects_train_validation_group_overlap=True",
+        "head_040ce08_test_rejects_formal_seeds_11_12_13_in_train_or_validation=True",
+        "head_040ce08_test_requires_train_only_scale_manifest=True",
+        "head_040ce08_test_rejects_scale_fit_on_validation_groups=True",
+        "head_040ce08_test_rejects_nonpositive_atom_scales=True",
     ]:
         assert needle in text
 
@@ -142,6 +166,14 @@ def test_unit_tests_plan_covers_fallback_master_and_convex_contract() -> None:
         "current_head_test_requires_nonnegative_fixed_atoms=True",
         "current_head_test_requires_fallback_label_not_deployed_atom=True",
         "current_head_test_requires_simplex_cvar_l2_convex_boundary=True",
+        "head_040ce08_test_requires_fallback_only_master_config=True",
+        "head_040ce08_test_rejects_feasible_branch_records_in_fallback_master=True",
+        "head_040ce08_test_rejects_all_infeasible_records_added_to_feasible_training=True",
+        "head_040ce08_test_rejects_hard_feasibility_relaxation=True",
+        "head_040ce08_test_requires_score_equals_a_transpose_w=True",
+        "head_040ce08_test_requires_nonnegative_fixed_atoms=True",
+        "head_040ce08_test_requires_fallback_label_not_deployed_atom=True",
+        "head_040ce08_test_requires_simplex_cvar_l2_convex_boundary=True",
     ]:
         assert needle in text
 
@@ -178,6 +210,13 @@ def test_unit_tests_plan_covers_training_command_and_nonpromotion_rejections() -
         "current_head_test_rejects_online_selector_or_atom_promotion=True",
         "current_head_test_requires_post_training_nonpromotion_plan=True",
         "current_head_test_requires_development_holdout_acceptance_gate=True",
+        "head_040ce08_test_rejects_training_command_without_prior_authorization=True",
+        "head_040ce08_test_rejects_replay_or_candidate_generation_commands=True",
+        "head_040ce08_test_rejects_dp_weight_or_config_changes=True",
+        "head_040ce08_test_rejects_reference_blend_guidance_or_postselection=True",
+        "head_040ce08_test_rejects_online_selector_or_atom_promotion=True",
+        "head_040ce08_test_requires_post_training_nonpromotion_plan=True",
+        "head_040ce08_test_requires_development_holdout_acceptance_gate=True",
     ]:
         assert needle in text
 
@@ -218,6 +257,14 @@ def test_unit_tests_plan_uses_synthetic_fixtures_only() -> None:
         "current_head_candidate_generation_required_for_unit_tests=False",
         "current_head_training_required_for_unit_tests=False",
         "current_head_dp_required_for_unit_tests=False",
+        "head_040ce08_synthetic_manifest_fixtures_only=True",
+        "head_040ce08_synthetic_dataset_summary_fixtures_only=True",
+        "head_040ce08_fixed_autodl_artifact_required_for_unit_tests=False",
+        "head_040ce08_formal_seeds_11_12_13_used=False",
+        "head_040ce08_replay_required_for_unit_tests=False",
+        "head_040ce08_candidate_generation_required_for_unit_tests=False",
+        "head_040ce08_training_required_for_unit_tests=False",
+        "head_040ce08_dp_required_for_unit_tests=False",
     ]:
         assert needle in text
 
@@ -277,7 +324,24 @@ def test_unit_tests_plan_forbids_execution_and_sets_unit_tests_next() -> None:
         "current_head_fallback_risk_training_authorized_now=False",
         "current_head_camp_retraining_authorized_now=False",
         "current_head_fallback_dataset_training_sufficiency_claim=False",
-        "local_target_pytest=25 passed",
+        "status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_current_head_040ce08_revalidated",
+        "head_040ce08_status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_ready",
+        "head_040ce08_training_sufficiency_unit_tests_plan_complete=True",
+        "head_040ce08_training_sufficiency_unit_tests_authorized=True",
+        "head_040ce08_fallback_risk_training_authorized_now=False",
+        "head_040ce08_camp_retraining_authorized_now=False",
+        "head_040ce08_fallback_dataset_training_sufficiency_claim=False",
+        "head_040ce08_replay_execution_authorized=False",
+        "head_040ce08_candidate_generation_authorized=False",
+        "head_040ce08_camp_training_authorized=False",
+        "head_040ce08_camp_retraining_authorized=False",
+        "head_040ce08_formal_seeds_11_12_13_authorized=False",
+        "head_040ce08_dp_modification_authorized=False",
+        "head_040ce08_selector_promotion_authorized=False",
+        "head_040ce08_atom_promotion_authorized=False",
+        "head_040ce08_safety_benefit_claim_authorized=False",
+        "head_040ce08_camp_over_dp_top1_claim_authorized=False",
+        "head_040ce08_local_target_pytest=35 passed",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only",
         "may only add synthetic/static unit tests",
         "must not implement training execution",
