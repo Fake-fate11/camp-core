@@ -144,6 +144,12 @@ def test_fallback_risk_remediation_design_current_head_revalidation() -> None:
         "prior_ranking_revalidation_failed_checks=[]",
         "prior_ranking_revalidation_json_sha256=52bb6f5168483cf6843a98214a21f1d597e31030eb1dbb47387a827e87732fcc",
         "This remains a plan-only gate",
+        "camp_head_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4",
+        "camp_origin_main_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4",
+        "github_refs_heads_main_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4",
+        "autodl_CAMP_HEAD_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4",
+        "prior_ranking_revalidation_json_sha256=14c5bf7dfb6204ba8c47983f38cc326f5a4cca29ff63fb8f85a23cfef4437dd4",
+        "prior_ranking_revalidation_md_sha256=3124737477f1d6b5721dcdf585fcb382096b4e3bf29921283a3ad11695280746",
         NEXT_STATIC_REVIEW_GATE,
     ]:
         assert needle in text
@@ -151,6 +157,7 @@ def test_fallback_risk_remediation_design_current_head_revalidation() -> None:
 
 def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-150:])
 
     for needle in [
         "status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
@@ -169,3 +176,25 @@ def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
         NEXT_STATIC_REVIEW_GATE,
     ]:
         assert needle in audit
+
+    for needle in [
+        "status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
+        "design_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan.md",
+        "camp_head_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4",
+        "autodl_CAMP_HEAD_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_ranking_revalidation_json_sha256=14c5bf7dfb6204ba8c47983f38cc326f5a4cca29ff63fb8f85a23cfef4437dd4",
+        "current_head_design_plan_revalidated=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "fallback_cost_targets_nonnegative=True",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_STATIC_REVIEW_GATE}`")

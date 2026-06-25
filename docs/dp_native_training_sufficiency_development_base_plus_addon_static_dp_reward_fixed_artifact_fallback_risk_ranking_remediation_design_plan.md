@@ -344,3 +344,59 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only
 ```
+
+## Current-Head Revalidation After Tail-Corrected Ranking Audit
+
+Date: 2026-06-25
+
+The plan remains valid after the tail-corrected fixed-artifact fallback-risk
+ranking audit was revalidated on the current synchronized CAMP HEAD. This
+remains a plan-only gate over existing fixed artifacts.
+
+```text
+camp_head_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4
+camp_origin_main_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4
+github_refs_heads_main_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4
+autodl_CAMP_HEAD_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4
+autodl_CAMP_origin_main_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_ranking_revalidation_status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+prior_ranking_revalidation_failed_checks=[]
+prior_ranking_revalidation_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_5dbb8df_20260625T_current_tail
+prior_ranking_revalidation_json_sha256=14c5bf7dfb6204ba8c47983f38cc326f5a4cca29ff63fb8f85a23cfef4437dd4
+prior_ranking_revalidation_md_sha256=3124737477f1d6b5721dcdf585fcb382096b4e3bf29921283a3ad11695280746
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review
+passed=True
+current_head_design_plan_revalidated=True
+score_expression=score_k(w)=a_k^T w
+fallback_cost_targets_nonnegative=True
+simplex_master_convex_if_later_authorized=True
+cvar_master_convex_if_later_authorized=True
+l2_regularized_master_convex_if_later_authorized=True
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This remains a plan-only gate. It does not implement the extractor, run replay,
+generate candidates, train CAMP, retrain CAMP, modify DP, use formal seeds,
+promote a selector or atom, deploy, or claim safety/CAMP-over-DP benefit.
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only
+```
