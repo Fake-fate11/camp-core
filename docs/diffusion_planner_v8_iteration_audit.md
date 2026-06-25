@@ -113769,3 +113769,77 @@ benefit or CAMP-over-DP Top-1.
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_only`
+
+## Current Tail Confirmation After Current HEAD Fallback-Risk Training-Data Builder Unit Tests
+
+Date: 2026-06-26
+
+The fixed-artifact fallback-risk training-data default-off builder synthetic
+unit tests were revalidated after the unit-tests plan gate was committed,
+pushed, and verified on AutoDL. This gate was unit-tests-only. It did not
+implement or execute the production dataset builder, extend the validator, run
+replay, generate candidates, train or retrain CAMP, modify Diffusion Planner,
+use formal seeds, promote a selector or atom, deploy, or make safety-benefit
+or CAMP-over-DP Top-1 claims.
+
+```text
+status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_revalidated_latest
+camp_head_at_revalidation=24856546327002d30e411470614f73d1cdffb02a
+camp_origin_main_at_revalidation=24856546327002d30e411470614f73d1cdffb02a
+github_refs_heads_main_at_revalidation=24856546327002d30e411470614f73d1cdffb02a
+autodl_CAMP_HEAD_at_revalidation=24856546327002d30e411470614f73d1cdffb02a
+autodl_CAMP_origin_main_at_revalidation=24856546327002d30e411470614f73d1cdffb02a
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_builder_unit_tests_plan_status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest
+prior_builder_unit_tests_plan_tail_verified=True
+prior_builder_unit_tests_plan_autodl_verified=True
+contract_test_file=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py
+plan_test_file=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_unit_tests_plan.py
+production_builder_file=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py
+local_py_compile_exit=0
+local_target_pytest=68 passed
+local_git_diff_check_exit=0
+synthetic_records_only=True
+default_off_disabled_status_pinned=True
+all_infeasible_scope_pinned=True
+reason_conditioned_oracle_policy_pinned=True
+nonnegative_margin_contract_pinned=True
+missing_costs_fail_closed_pinned=True
+provenance_mutation_rejection_pinned=True
+negative_atom_rejection_pinned=True
+training_and_promotion_forbidden_pinned=True
+production_builder_edited_in_this_gate=False
+production_builder_executed_in_this_gate=False
+dataset_builder_implementation_authorized_now=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+The next gate may only authorize a default-off implementation of the
+fallback-risk training-data builder and validator extension. It must not run
+the builder on artifacts, run replay, generate candidates, train or retrain
+CAMP, modify Diffusion Planner, use formal seeds, promote selector or atom
+logic, deploy, or claim safety benefit or CAMP-over-DP Top-1.
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization_only`

@@ -433,7 +433,7 @@ def test_contract_rejects_negative_atoms_and_forbids_training() -> None:
 
 def test_iteration_audit_records_builder_unit_tests_current_head_history() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    current_head = "3fe7714f66bfd756761b9f2d95ea3c6eb07ef0c4"
+    current_head = "24856546327002d30e411470614f73d1cdffb02a"
 
     for needle in [
         "status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_revalidated_latest",
