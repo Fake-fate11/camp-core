@@ -116,6 +116,141 @@ no_safety_benefit_claim=True
 no_camp_over_dp_top1_claim=True
 ```
 
+Verification:
+
+```text
+local_py_compile_exit=0
+local_target_pytest=13 passed
+local_diff_check=0 findings
+autodl_CAMP_HEAD=cb9c630c183323d1654ebe3a7f39ae5a5361b07f
+autodl_CAMP_origin_main=cb9c630c183323d1654ebe3a7f39ae5a5361b07f
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_python=/root/miniconda3/envs/camp/bin/python
+autodl_py_compile_exit=0
+autodl_target_pytest=13 passed
+autodl_diff_check=0 findings
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only
+```
+
+## Current HEAD cb9c630 Holdout Acceptance Static Contract Review
+
+Date: 2026-06-26
+
+This current-head review statically audits the development holdout acceptance
+audit implementation and the current holdout audit artifact. It does not run
+replay, generate candidates, retrain CAMP, modify Diffusion Planner, promote a
+selector or atom, deploy a checkpoint, or claim safety benefit.
+
+Reviewed surface:
+
+```text
+review_start_head=cb9c630c183323d1654ebe3a7f39ae5a5361b07f
+script=scripts/integrations/audit_diffusion_planner_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance.py
+test=camp_core/tests/test_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit.py
+result_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_audit.md
+reviewed_holdout_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_a263ce5_20260625T202013Z
+reviewed_holdout_audit_json_sha256=d579ad6853e000f9a8a126a938c7a2f487b212d34d84b0b68b67c6ed58be83bb
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Static findings:
+
+```text
+default_off_before_reads=True
+read_only_existing_artifacts=True
+writes_only_explicit_output_json_and_md=True
+subprocess_usage=False
+dp_execution_path=False
+candidate_generation_path=False
+camp_retraining_path=False
+production_selector_change_path=False
+selector_or_atom_promotion_path=False
+deployment_path=False
+blocking_contract_findings=0
+```
+
+The static audit implementation keeps the Benders-compatible fixed-candidate
+reranker boundary:
+
+```text
+records_scope=validation_groups_only
+fallback_branch_only=True
+records_without_feasible_candidate_only=True
+fixed_dp_candidate_reranking_only=True
+require_atom_schema_version=dp_camp_v10_14d
+require_num_atoms=14
+require_weights_simplex_nonnegative=True
+require_atom_scales_strictly_positive=True
+score_expression=score_k(w)=a_k^T w
+selection_rule=argmin_k score_k(w)
+selected_index_in_range=True
+candidate_count_unchanged=True
+pre_post_candidate_provenance_hashes_equal_if_present=True
+paper_consistent_fixed_candidate_reranker_boundary_preserved=True
+```
+
+The current holdout audit remains diagnostic only. It explicitly reports that
+the trained static fallback reranker underperforms the uniform fallback
+ablation on the development holdout, so no deployment, safety-benefit, or
+CAMP-over-DP claim is supported by this evidence.
+
+```text
+development_holdout_acceptance_audit_passed=True
+static_oracle_match_rate=0.5
+uniform_oracle_match_rate=1.0
+holdout_static_underperforms_uniform=True
+```
+
+Forbidden remains:
+
+```text
+training_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized_now=False
+fallback_risk_training_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+deployment_authorized=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_cb9c630_passed
+passed=True
+blocking_contract_findings=0
+static_contract_review_complete=True
+paper_consistent_fixed_candidate_reranker_boundary_preserved=True
+holdout_static_underperforms_uniform=True
+no_replay=True
+no_candidate_generation=True
+no_camp_retraining=True
+no_dp_modification=True
+no_selector_or_atom_promotion=True
+no_deployment=True
+no_safety_benefit_claim=True
+no_camp_over_dp_top1_claim=True
+```
+
 Next admissible gate:
 
 ```text
