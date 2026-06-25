@@ -81,6 +81,19 @@ def test_static_review_records_evidence_boundary_without_training_claim() -> Non
         "head_ac14588_deployable_checkpoint_claim_authorized=False",
         "camp_head_at_head_ac14588_revalidation=ac145882ec195ba64e83c2405025f2bce39c605c",
         "autodl_DP_HEAD_at_head_ac14588_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "head_af2a81c_evidence_boundary_passed=True",
+        "head_af2a81c_validated_fallback_records=15",
+        "head_af2a81c_validated_fallback_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+        "head_af2a81c_validator_output_json_sha256=bfe5d031be232c13188e19ae19692a560bb424090fc446253edf015c50c821c9",
+        "head_af2a81c_validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "head_af2a81c_strict_formal_seed_path_matches=0",
+        "head_af2a81c_fixed_artifact_training_sufficiency_claim=False",
+        "head_af2a81c_fallback_dataset_training_sufficiency_claim=False",
+        "head_af2a81c_fallback_risk_training_authorized_now=False",
+        "head_af2a81c_camp_retraining_authorized_now=False",
+        "head_af2a81c_deployable_checkpoint_claim_authorized=False",
+        "camp_head_at_head_af2a81c_revalidation=af2a81cf1b008ed9a6590486c70d0ffaaf371497",
+        "autodl_DP_HEAD_at_head_af2a81c_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -124,6 +137,13 @@ def test_static_review_preserves_master_isolation() -> None:
         "head_ac14588_all_infeasible_records_relabelled_feasible=False",
         "head_ac14588_hard_feasibility_relaxation_authorized=False",
         "head_ac14588_feasible_ranking_master_change_authorized=False",
+        "head_af2a81c_master_isolation_passed=True",
+        "head_af2a81c_fallback_master_isolated_from_feasible_master_required=True",
+        "head_af2a81c_feasible_branch_records_allowed_in_fallback_master=False",
+        "head_af2a81c_all_infeasible_records_added_to_feasible_training=False",
+        "head_af2a81c_all_infeasible_records_relabelled_feasible=False",
+        "head_af2a81c_hard_feasibility_relaxation_authorized=False",
+        "head_af2a81c_feasible_ranking_master_change_authorized=False",
     ]:
         assert needle in text
 
@@ -162,6 +182,11 @@ def test_static_review_preserves_convex_fixed_candidate_boundary() -> None:
         "head_ac14588_a_k_fixed_before_weight_optimization=True",
         "head_ac14588_a_k_nonnegative_benders_compatible_atoms_only=True",
         "head_ac14588_fallback_label_is_not_a_deployed_atom=True",
+        "head_af2a81c_convex_fixed_candidate_boundary_passed=True",
+        "head_af2a81c_score_k(w)=a_k^T w",
+        "head_af2a81c_a_k_fixed_before_weight_optimization=True",
+        "head_af2a81c_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "head_af2a81c_fallback_label_is_not_a_deployed_atom=True",
     ]:
         assert needle in text
 
@@ -235,6 +260,20 @@ def test_static_review_requires_split_scale_and_lists_missing_retraining_inputs(
         "head_ac14588_missing_checkpoint_nonpromotion_plan=True",
         "head_ac14588_missing_development_holdout_acceptance_gate=True",
         "head_ac14588_blocking_contract_findings=0",
+        "head_af2a81c_split_scale_boundary_passed=True",
+        "head_af2a81c_training_validation_split_predeclaration_required=True",
+        "head_af2a81c_validation_groups_disjoint_from_training_groups_required=True",
+        "head_af2a81c_formal_seeds_11_12_13_excluded_required=True",
+        "head_af2a81c_formal_eval_data_excluded_from_scale_fit_required=True",
+        "head_af2a81c_scale_fit_training_groups_only_required=True",
+        "head_af2a81c_retraining_prerequisite_boundary_passed=True",
+        "head_af2a81c_missing_training_split_manifest=True",
+        "head_af2a81c_missing_train_only_scale_manifest=True",
+        "head_af2a81c_missing_fallback_only_master_config=True",
+        "head_af2a81c_missing_training_command_authorization=True",
+        "head_af2a81c_missing_checkpoint_nonpromotion_plan=True",
+        "head_af2a81c_missing_development_holdout_acceptance_gate=True",
+        "head_af2a81c_blocking_contract_findings=0",
     ]:
         assert needle in text
 
@@ -303,6 +342,16 @@ def test_static_review_matches_plan_and_forbids_execution() -> None:
         "head_ac14588_atom_promotion_authorized=False",
         "head_ac14588_safety_benefit_claim_authorized=False",
         "head_ac14588_camp_over_dp_top1_claim_authorized=False",
+        "head_af2a81c_replay_execution_authorized=False",
+        "head_af2a81c_candidate_generation_authorized=False",
+        "head_af2a81c_camp_training_authorized=False",
+        "head_af2a81c_camp_retraining_authorized=False",
+        "head_af2a81c_formal_seeds_11_12_13_authorized=False",
+        "head_af2a81c_dp_modification_authorized=False",
+        "head_af2a81c_selector_promotion_authorized=False",
+        "head_af2a81c_atom_promotion_authorized=False",
+        "head_af2a81c_safety_benefit_claim_authorized=False",
+        "head_af2a81c_camp_over_dp_top1_claim_authorized=False",
     ]:
         assert needle in text
 
@@ -317,6 +366,7 @@ def test_static_review_next_gate_is_unit_tests_plan_only() -> None:
         "status=fallback_risk_training_data_training_sufficiency_static_contract_review_latest_head_revalidated",
         "status=fallback_risk_training_data_training_sufficiency_static_contract_review_current_head_d331cb5_revalidated",
         "status=fallback_risk_training_data_training_sufficiency_static_contract_review_current_head_ac14588_revalidated",
+        "status=fallback_risk_training_data_training_sufficiency_static_contract_review_current_head_af2a81c_revalidated",
         "status=fallback_risk_training_data_training_sufficiency_static_contract_review_autodl_verification_passed_current_head",
         "github_pushed_commit=bc3fafeb4afc597df7528b1d544fac72e2cfdf44",
         "autodl_CAMP_HEAD_after_sync=bc3fafeb4afc597df7528b1d544fac72e2cfdf44",
@@ -327,6 +377,9 @@ def test_static_review_next_gate_is_unit_tests_plan_only() -> None:
         "static_contract_review_complete=True",
         "blocking_contract_findings=0",
         "head_ac14588_local_target_pytest=6 passed",
+        "head_af2a81c_local_py_compile_exit=0",
+        "head_af2a81c_local_target_pytest=29 passed",
+        "head_af2a81c_local_git_diff_check_exit=0",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_plan_only",
         "may only plan static and synthetic unit tests",
         "must not train CAMP",
