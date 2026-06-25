@@ -159,6 +159,11 @@ def test_default_off_unit_tests_plan_current_head_revalidation() -> None:
         "camp_origin_main_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
         "github_refs_heads_main_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
         "autodl_CAMP_HEAD_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
+        "camp_head_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
+        "camp_origin_main_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
+        "github_refs_heads_main_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
+        "autodl_CAMP_HEAD_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
+        "prior_static_contract_head_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
         NEXT_UNIT_TESTS_GATE,
     ]:
         assert needle in text
@@ -190,10 +195,11 @@ def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() ->
     for needle in [
         "status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate",
         "unit_tests_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan.md",
-        "camp_head_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
-        "autodl_CAMP_HEAD_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
+        "camp_head_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
+        "autodl_CAMP_HEAD_at_revalidation=bfa29bd54f3d5a6aa52fa87350f7fe2845b79597",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
+        "prior_static_contract_head_at_revalidation=7e3e65700c2bf910958788ac6cc5d7bf7ddf961a",
         "current_head_unit_tests_plan_revalidated=True",
         "planned_default_off_tests=4",
         "planned_cost_extraction_tests=11",
