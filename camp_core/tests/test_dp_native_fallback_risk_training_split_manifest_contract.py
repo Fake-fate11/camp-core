@@ -645,6 +645,7 @@ def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> 
         "this_split_manifest_unit_tests_gate_authorizes_builder_training_replay_dp_or_claims=False"
         in tail
     )
-    assert tail.rstrip().endswith(
+    assert (
         "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only`"
+        in tail
     )

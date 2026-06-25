@@ -43,6 +43,45 @@ def test_split_builder_authorization_records_preconditions_and_verified_tests() 
         assert needle in text
 
 
+def test_current_head_57f775e_builder_authorization_revalidation_is_pinned() -> None:
+    text = _auth()
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_57f775e_revalidated",
+        "builder_authorization_base_head=57f775e02bc3a47a290a218e37a3ef2d641bab73",
+        "camp_origin_main_at_builder_authorization=57f775e02bc3a47a290a218e37a3ef2d641bab73",
+        "github_refs_heads_main_at_builder_authorization=57f775e02bc3a47a290a218e37a3ef2d641bab73",
+        "autodl_CAMP_HEAD_at_builder_authorization=57f775e02bc3a47a290a218e37a3ef2d641bab73",
+        "autodl_CAMP_origin_main_at_builder_authorization=57f775e02bc3a47a290a218e37a3ef2d641bab73",
+        "autodl_DP_HEAD_at_builder_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_split_manifest_unit_tests_status=fallback_risk_training_split_manifest_unit_tests_head_402b9a0_revalidated",
+        "head_57f775e_validated_fallback_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0",
+        "head_57f775e_validated_fallback_records=15",
+        "head_57f775e_split_manifest_plan_ready=True",
+        "head_57f775e_split_manifest_static_contract_review_passed=True",
+        "head_57f775e_split_manifest_unit_tests_plan_ready=True",
+        "head_57f775e_split_manifest_contract_tests_pinned=True",
+        "head_57f775e_blocking_contract_findings=0",
+        "head_57f775e_implementation_authorized=True",
+        "head_57f775e_training_split_manifest_builder_implementation_authorized=True",
+        "head_57f775e_default_off_required=True",
+        "head_57f775e_read_only_dataset_input_only=True",
+        "head_57f775e_existing_validated_fallback_dataset_json_only=True",
+        "head_57f775e_synthetic_unit_tests_required=True",
+        "head_57f775e_fixed_artifact_manifest_generation_authorized=False",
+        "head_57f775e_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "head_57f775e_training_execution_authorized_now=False",
+        "head_57f775e_camp_retraining_authorized_now=False",
+        "head_57f775e_local_authorization_pytest=7 passed",
+        "head_57f775e_local_split_manifest_contract_pytest=8 passed",
+        "head_57f775e_training_not_executed=True",
+        "head_57f775e_candidate_generation_not_executed=True",
+        "head_57f775e_dp_not_modified=True",
+        "head_57f775e_selector_or_atom_not_promoted=True",
+    ]:
+        assert needle in text
+
+
 def test_split_builder_authorization_only_allows_default_off_read_only_builder() -> None:
     text = _auth()
 
@@ -156,12 +195,11 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
 
     assert (
-        "status=fallback_risk_training_sufficiency_preflight_current_head_fixed_artifact_acceptance_passed"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_57f775e_revalidated"
         in tail
     )
-    assert "local_target_pytest=140 passed" in tail
-    assert "local_preflight_acceptance_rerun_pytest=6 passed" in tail
+    assert "head_57f775e_local_authorization_pytest=7 passed" in tail
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only`"
     )
