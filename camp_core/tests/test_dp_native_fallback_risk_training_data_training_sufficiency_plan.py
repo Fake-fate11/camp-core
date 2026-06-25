@@ -9,6 +9,7 @@ PLAN_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_plan.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _plan() -> str:
@@ -42,6 +43,16 @@ def test_training_sufficiency_plan_records_validated_dataset_but_no_sufficiency_
         "latest_fallback_risk_training_authorized_now=False",
         "camp_head_at_latest_revalidation=e5f306255adf458a7185d6f3be23df20d3a41bb0",
         "autodl_DP_HEAD_at_latest_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_head_validated_fallback_records=15",
+        "current_head_validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "current_head_validator_output_json_sha256=039b3e41f866434e187a9f679cbc964d6fe35d5406896e53ec38d8f70db40c52",
+        "current_head_validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "current_head_strict_formal_seed_path_matches=0",
+        "current_head_fixed_artifact_training_sufficiency_claim=False",
+        "current_head_fallback_dataset_training_sufficiency_claim=False",
+        "current_head_fallback_risk_training_authorized_now=False",
+        "camp_head_at_current_head_revalidation=2097b588ace2d3ef197b5311e30e4fcbe379fcb7",
+        "autodl_DP_HEAD_at_current_head_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -74,6 +85,14 @@ def test_training_sufficiency_plan_isolates_fallback_master() -> None:
         "latest_feasible_ranking_master_change_authorized=False",
         "latest_production_selector_change_authorized=False",
         "latest_online_selector_change_authorized=False",
+        "current_head_fallback_master_isolated_from_feasible_master_required=True",
+        "current_head_feasible_branch_records_allowed_in_fallback_master=False",
+        "current_head_all_infeasible_records_added_to_feasible_training=False",
+        "current_head_all_infeasible_records_relabelled_feasible=False",
+        "current_head_hard_feasibility_relaxation_authorized=False",
+        "current_head_feasible_ranking_master_change_authorized=False",
+        "current_head_production_selector_change_authorized=False",
+        "current_head_online_selector_change_authorized=False",
     ]:
         assert needle in text
 
@@ -106,6 +125,13 @@ def test_training_sufficiency_plan_preserves_convex_fixed_candidate_boundary() -
         "latest_simplex_master_convex_if_later_authorized=True",
         "latest_cvar_master_convex_if_later_authorized=True",
         "latest_l2_regularized_master_convex_if_later_authorized=True",
+        "current_head_score_k(w)=a_k^T w",
+        "current_head_a_k_fixed_before_weight_optimization=True",
+        "current_head_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "current_head_fallback_label_is_not_a_deployed_atom=True",
+        "current_head_simplex_master_convex_if_later_authorized=True",
+        "current_head_cvar_master_convex_if_later_authorized=True",
+        "current_head_l2_regularized_master_convex_if_later_authorized=True",
     ]:
         assert needle in text
 
@@ -139,6 +165,16 @@ def test_training_sufficiency_plan_requires_split_scale_and_formal_seed_exclusio
         "latest_gate_fits_scales=False",
         "latest_gate_trains_weights=False",
         "latest_gate_claims_deployable_checkpoint=False",
+        "current_head_training_validation_split_predeclaration_required=True",
+        "current_head_validation_groups_disjoint_from_training_groups_required=True",
+        "current_head_formal_seeds_11_12_13_excluded_required=True",
+        "current_head_formal_eval_data_excluded_from_scale_fit_required=True",
+        "current_head_scale_fit_training_groups_only_required=True",
+        "current_head_strict_positive_atom_scales_required=True",
+        "current_head_gate_predeclares_split=False",
+        "current_head_gate_fits_scales=False",
+        "current_head_gate_trains_weights=False",
+        "current_head_gate_claims_deployable_checkpoint=False",
     ]:
         assert needle in text
 
@@ -168,12 +204,21 @@ def test_training_sufficiency_plan_lists_missing_retraining_prerequisites() -> N
         "latest_missing_checkpoint_nonpromotion_plan=True",
         "latest_missing_development_holdout_acceptance_gate=True",
         "latest_camp_retraining_authorized_now=False",
+        "current_head_missing_training_split_manifest=True",
+        "current_head_missing_train_only_scale_manifest=True",
+        "current_head_missing_fallback_only_master_config=True",
+        "current_head_missing_training_command_authorization=True",
+        "current_head_missing_checkpoint_nonpromotion_plan=True",
+        "current_head_missing_development_holdout_acceptance_gate=True",
+        "current_head_camp_retraining_authorized_now=False",
     ]:
         assert needle in text
 
 
 def test_training_sufficiency_plan_forbids_execution_and_sets_static_review_next() -> None:
     text = _plan()
+    iteration_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-12000:]
+    combined = text + iteration_tail
 
     for needle in [
         "replay_execution_authorized=False",
@@ -208,9 +253,21 @@ def test_training_sufficiency_plan_forbids_execution_and_sets_static_review_next
         "latest_atom_promotion_authorized=False",
         "latest_safety_benefit_claim_authorized=False",
         "latest_camp_over_dp_top1_claim_authorized=False",
+        "current_head_replay_execution_authorized=False",
+        "current_head_candidate_generation_authorized=False",
+        "current_head_camp_training_authorized=False",
+        "current_head_camp_retraining_authorized=False",
+        "current_head_formal_seeds_11_12_13_authorized=False",
+        "current_head_dp_modification_authorized=False",
+        "current_head_selector_promotion_authorized=False",
+        "current_head_atom_promotion_authorized=False",
+        "current_head_safety_benefit_claim_authorized=False",
+        "current_head_camp_over_dp_top1_claim_authorized=False",
         "status=fallback_risk_training_data_training_sufficiency_plan_ready",
         "status=fallback_risk_training_data_training_sufficiency_plan_latest_head_revalidated",
+        "status=fallback_risk_training_data_training_sufficiency_plan_current_head_2097b58_revalidated",
         "training_sufficiency_plan_complete=True",
+        "local_target_pytest=13 passed",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only",
         "may only statically review",
         "must not train CAMP",
@@ -219,4 +276,4 @@ def test_training_sufficiency_plan_forbids_execution_and_sets_static_review_next
         "modify Diffusion Planner",
         "promote a selector or atom",
     ]:
-        assert needle in text
+        assert needle in combined
