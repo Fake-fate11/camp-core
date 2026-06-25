@@ -56,6 +56,52 @@ def test_current_head_e5cc047_authorization_revalidation_is_pinned() -> None:
         assert needle in text
 
 
+def test_current_head_dd18260_authorization_revalidation_is_pinned() -> None:
+    text = _auth()
+
+    for needle in [
+        "status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_dd18260_revalidated",
+        "authorization_base_head=dd18260f89691f94387ecaaacdba9011a676ebb6",
+        "camp_origin_main_at_head_dd18260_authorization=dd18260f89691f94387ecaaacdba9011a676ebb6",
+        "github_refs_heads_main_at_head_dd18260_authorization=dd18260f89691f94387ecaaacdba9011a676ebb6",
+        "autodl_CAMP_HEAD_at_head_dd18260_authorization=dd18260f89691f94387ecaaacdba9011a676ebb6",
+        "autodl_CAMP_origin_main_at_head_dd18260_authorization=dd18260f89691f94387ecaaacdba9011a676ebb6",
+        "autodl_DP_HEAD_at_head_dd18260_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "audit_eof_prior_status=fallback_risk_training_data_training_sufficiency_unit_tests_current_head_8413ae4_revalidated",
+        "head_dd18260_validated_fallback_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+        "head_dd18260_implementation_authorized=True",
+        "head_dd18260_fallback_risk_training_sufficiency_preflight_implementation_authorized=True",
+        "head_dd18260_default_off_required=True",
+        "head_dd18260_read_only_manifest_inputs_only=True",
+        "head_dd18260_may_add_read_only_preflight_script=True",
+        "head_dd18260_may_add_targeted_synthetic_tests=True",
+        "head_dd18260_must_return_before_reading_inputs_when_disabled=True",
+        "head_dd18260_must_fail_closed_on_formal_seeds_or_formal_eval_leakage=True",
+        "head_dd18260_must_preserve_score_k_equals_a_k_transpose_w_boundary=True",
+        "head_dd18260_score_k(w)=a_k^T w",
+        "head_dd18260_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "head_dd18260_simplex_master_convex_if_later_authorized=True",
+        "head_dd18260_cvar_master_convex_if_later_authorized=True",
+        "head_dd18260_l2_regularized_master_convex_if_later_authorized=True",
+        "head_dd18260_local_authorization_pytest=7 passed",
+        "head_dd18260_local_training_sufficiency_contract_pytest=17 passed",
+        "head_dd18260_local_unit_tests_plan_pytest=6 passed",
+        "head_dd18260_local_target_pytest=30 passed",
+        "head_dd18260_training_not_executed=True",
+        "head_dd18260_candidate_generation_not_executed=True",
+        "head_dd18260_dp_not_modified=True",
+        "head_dd18260_selector_or_atom_not_promoted=True",
+        "head_dd18260_camp_training_authorized=False",
+        "head_dd18260_camp_retraining_authorized=False",
+        "head_dd18260_formal_seeds_11_12_13_authorized=False",
+        "head_dd18260_safety_benefit_claim_authorized=False",
+        "head_dd18260_camp_over_dp_top1_claim_authorized=False",
+        "this_authorization_gate_authorizes_preflight_implementation_only=True",
+        "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in text
+
+
 def test_authorization_records_preconditions_and_verified_tests() -> None:
     text = _auth()
 
