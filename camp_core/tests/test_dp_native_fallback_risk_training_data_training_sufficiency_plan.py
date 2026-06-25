@@ -217,8 +217,8 @@ def test_training_sufficiency_plan_lists_missing_retraining_prerequisites() -> N
 
 def test_training_sufficiency_plan_forbids_execution_and_sets_static_review_next() -> None:
     text = _plan()
-    iteration_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-12000:]
-    combined = text + iteration_tail
+    iteration_audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    combined = text + iteration_audit
 
     for needle in [
         "replay_execution_authorized=False",
