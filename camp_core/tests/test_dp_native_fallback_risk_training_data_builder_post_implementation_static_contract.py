@@ -36,6 +36,7 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 
 def test_review_doc_records_builder_post_implementation_contract() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
+    current_head = "1ea5cb0e76559bd00b469ae68616412b4194c8c3"
 
     for needle in [
         "default_off_boundary_passed=True",
@@ -48,6 +49,18 @@ def test_review_doc_records_builder_post_implementation_contract() -> None:
         "fallback_risk_training_authorized_now=False",
         "production_selector_change_authorized=False",
         "online_selector_change_authorized=False",
+        "status=fallback_risk_training_data_default_off_builder_post_implementation_static_contract_current_head_revalidated",
+        f"camp_head_at_current_head_revalidation={current_head}",
+        f"camp_origin_main_at_current_head_revalidation={current_head}",
+        f"github_refs_heads_main_at_current_head_revalidation={current_head}",
+        f"autodl_CAMP_HEAD_at_current_head_revalidation={current_head}",
+        f"autodl_CAMP_origin_main_at_current_head_revalidation={current_head}",
+        "autodl_DP_HEAD_at_current_head_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "local_target_pytest=21 passed",
+        "autodl_target_pytest=21 passed",
+        "user_broad_execution_permission_recorded=True",
+        "this_static_contract_gate_authorizes_broad_execution=False",
+        "fixed_artifact_acceptance_audit_authorized_next=True",
     ]:
         assert needle in text
 

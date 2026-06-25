@@ -239,3 +239,53 @@ dp_modification_authorized=False
 selector_promotion_authorized=False
 atom_promotion_authorized=False
 ```
+
+## Current-Head Revalidation After Builder Implementation AutoDL Sync
+
+Date: 2026-06-25
+
+The post-implementation static contract was revalidated after the builder
+implementation gate was committed, pushed, and fast-forward synced to AutoDL.
+This section only records the current-head static review state; it does not run
+replay, generate candidates, train or retrain CAMP, modify Diffusion Planner,
+promote selectors or atoms, or make safety/CAMP-over-DP claims.
+
+```text
+status=fallback_risk_training_data_default_off_builder_post_implementation_static_contract_current_head_revalidated
+passed=True
+camp_head_at_current_head_revalidation=1ea5cb0e76559bd00b469ae68616412b4194c8c3
+camp_origin_main_at_current_head_revalidation=1ea5cb0e76559bd00b469ae68616412b4194c8c3
+github_refs_heads_main_at_current_head_revalidation=1ea5cb0e76559bd00b469ae68616412b4194c8c3
+autodl_CAMP_HEAD_at_current_head_revalidation=1ea5cb0e76559bd00b469ae68616412b4194c8c3
+autodl_CAMP_origin_main_at_current_head_revalidation=1ea5cb0e76559bd00b469ae68616412b4194c8c3
+autodl_DP_HEAD_at_current_head_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+builder_implementation_audit_commit=1ea5cb0e76559bd00b469ae68616412b4194c8c3
+local_py_compile_exit=0
+local_target_pytest=21 passed
+local_target_pytest_exit=0
+autodl_py_compile_exit=0
+autodl_target_pytest=21 passed
+autodl_target_pytest_exit=0
+post_implementation_static_contract_review_complete=True
+blocking_contract_findings=0
+default_off_boundary_passed=True
+read_only_fixed_artifact_boundary_passed=True
+affine_score_boundary_preserved=True
+training_sufficiency_boundary_passed=True
+fixed_artifact_acceptance_audit_authorized_next=True
+user_broad_execution_permission_recorded=True
+this_static_contract_gate_authorizes_broad_execution=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
