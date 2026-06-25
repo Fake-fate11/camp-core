@@ -19,6 +19,12 @@ from camp_core.integrations.diffusion_planner import atom_schema_for_dimension
 DISABLED_STATUS = "dp_native_fallback_risk_training_data_builder_default_off_disabled"
 COMPLETE_STATUS = "dp_native_fallback_risk_training_data_builder_contract_complete"
 REJECT_STATUS = "dp_native_fallback_risk_training_data_builder_contract_rejected"
+ITERATION_AUDIT = ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+NEXT_AUTHORIZATION_GATE = (
+    "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_"
+    "fixed_artifact_fallback_risk_training_data_default_off_builder_"
+    "implementation_authorization_only"
+)
 
 FORBIDDEN_FLAGS = (
     "replay_execution_authorized",
@@ -423,3 +429,41 @@ def test_contract_rejects_negative_atoms_and_forbids_training() -> None:
         "camp_over_dp_top1_claim_authorized",
     ]:
         assert decision[flag] is False
+
+
+def test_iteration_audit_tail_records_builder_unit_tests_current_head() -> None:
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-120:])
+    current_head = "235fd6004a130ee88508668c55068ab8e7cc6e6b"
+
+    for needle in [
+        "status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_revalidated_latest",
+        f"camp_head_at_revalidation={current_head}",
+        f"camp_origin_main_at_revalidation={current_head}",
+        f"github_refs_heads_main_at_revalidation={current_head}",
+        f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+        f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_builder_unit_tests_plan_status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest",
+        "contract_test_file=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py",
+        "plan_test_file=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_unit_tests_plan.py",
+        "local_target_pytest=15 passed",
+        "synthetic_records_only=True",
+        "default_off_disabled_status_pinned=True",
+        "all_infeasible_scope_pinned=True",
+        "reason_conditioned_oracle_policy_pinned=True",
+        "nonnegative_margin_contract_pinned=True",
+        "missing_costs_fail_closed_pinned=True",
+        "provenance_mutation_rejection_pinned=True",
+        "negative_atom_rejection_pinned=True",
+        "training_and_promotion_forbidden_pinned=True",
+        "production_builder_edited_in_this_gate=False",
+        "production_builder_executed_in_this_gate=False",
+        "dataset_builder_implementation_authorized_now=False",
+        "fallback_risk_training_authorized_now=False",
+        "training_execution_authorized_now=False",
+        NEXT_AUTHORIZATION_GATE,
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_AUTHORIZATION_GATE}`")
