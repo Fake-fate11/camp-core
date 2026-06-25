@@ -1,0 +1,113 @@
+# DP Native Fixed-Artifact Fallback Risk Training Sufficiency Preflight Implementation
+
+Date: 2026-06-26
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_only
+```
+
+This implementation updates the default-off read-only fallback-risk training
+sufficiency preflight to the latest accepted fixed-artifact dataset SHA. It
+does not train CAMP, run replay, generate candidates, modify Diffusion Planner,
+change the online selector, promote selectors or atoms, deploy, or claim safety
+benefit or CAMP-over-DP Top-1.
+
+## Inputs
+
+```text
+implementation_base_head=9195b3cd5d55a61d0e6aafb9fc590d0a159aa2ea
+prior_authorization_status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_dd18260_revalidated
+validated_fallback_records=15
+old_expected_validated_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0
+new_expected_validated_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498
+validator_output_json_sha256=bfe5d031be232c13188e19ae19692a560bb424090fc446253edf015c50c821c9
+validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a
+strict_formal_seed_path_matches=0
+```
+
+## Implementation
+
+```text
+implementation_file=scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py
+implementation_scope=expected_validated_dataset_sha_only
+preflight_default_off=True
+preflight_read_only=True
+manifest_inputs_only=True
+disabled_mode_returns_before_manifest_read=True
+writes_only_explicit_output_json_and_output_md=True
+subprocess_usage_introduced=False
+training_execution_path_introduced=False
+diffusion_planner_execution_path_introduced=False
+candidate_generation_path_introduced=False
+script_sha256=0738544cf70933a32b0613f1c4843d4df2505c6180fb6ac5cfd9b44d3a26a4f9
+test_sha256=49e0cf60538a6ff3b6eca8cd970922af519591f328b5a6440742f33b90465af0
+```
+
+## Contract Boundary
+
+```text
+score_k(w)=a_k^T w
+a_k_fixed_before_weight_optimization=True
+a_k_nonnegative_benders_compatible_atoms_only=True
+fallback_label_is_not_a_deployed_atom=True
+simplex_master_convex_if_later_authorized=True
+cvar_master_convex_if_later_authorized=True
+l2_regularized_master_convex_if_later_authorized=True
+ready_for_future_training_authorization_is_not_training_authorization=True
+```
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_preflight_pytest=6 passed
+local_authorization_pytest=7 passed
+local_training_sufficiency_contract_pytest=17 passed
+local_unit_tests_plan_pytest=6 passed
+local_target_pytest=36 passed
+local_git_diff_check_exit=0
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_sufficiency_preflight_implementation_head_9195b3c_revalidated
+passed=True
+preflight_implementation_complete=True
+expected_validated_dataset_sha_updated=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_review_only
+```
