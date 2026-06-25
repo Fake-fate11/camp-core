@@ -41,6 +41,19 @@ def test_static_review_records_evidence_boundary_without_training_claim() -> Non
         "current_fallback_risk_training_authorized_now=False",
         "current_camp_retraining_authorized_now=False",
         "current_deployable_checkpoint_claim_authorized=False",
+        "latest_evidence_boundary_passed=True",
+        "latest_validated_fallback_records=15",
+        "latest_validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_validator_output_json_sha256=039b3e41f866434e187a9f679cbc964d6fe35d5406896e53ec38d8f70db40c52",
+        "latest_validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "latest_strict_formal_seed_path_matches=0",
+        "latest_fixed_artifact_training_sufficiency_claim=False",
+        "latest_fallback_dataset_training_sufficiency_claim=False",
+        "latest_fallback_risk_training_authorized_now=False",
+        "latest_camp_retraining_authorized_now=False",
+        "latest_deployable_checkpoint_claim_authorized=False",
+        "camp_head_at_latest_revalidation=181591a21972b7b666f0593150665d40fb1edb7a",
+        "autodl_DP_HEAD_at_latest_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -63,6 +76,13 @@ def test_static_review_preserves_master_isolation() -> None:
         "current_all_infeasible_records_relabelled_feasible=False",
         "current_hard_feasibility_relaxation_authorized=False",
         "current_feasible_ranking_master_change_authorized=False",
+        "latest_master_isolation_passed=True",
+        "latest_fallback_master_isolated_from_feasible_master_required=True",
+        "latest_feasible_branch_records_allowed_in_fallback_master=False",
+        "latest_all_infeasible_records_added_to_feasible_training=False",
+        "latest_all_infeasible_records_relabelled_feasible=False",
+        "latest_hard_feasibility_relaxation_authorized=False",
+        "latest_feasible_ranking_master_change_authorized=False",
     ]:
         assert needle in text
 
@@ -86,6 +106,11 @@ def test_static_review_preserves_convex_fixed_candidate_boundary() -> None:
         "current_a_k_fixed_before_weight_optimization=True",
         "current_a_k_nonnegative_benders_compatible_atoms_only=True",
         "current_fallback_label_is_not_a_deployed_atom=True",
+        "latest_convex_fixed_candidate_boundary_passed=True",
+        "latest_score_k(w)=a_k^T w",
+        "latest_a_k_fixed_before_weight_optimization=True",
+        "latest_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "latest_fallback_label_is_not_a_deployed_atom=True",
     ]:
         assert needle in text
 
@@ -117,6 +142,20 @@ def test_static_review_requires_split_scale_and_lists_missing_retraining_inputs(
         "current_missing_training_command_authorization=True",
         "current_missing_development_holdout_acceptance_gate=True",
         "current_blocking_contract_findings=0",
+        "latest_split_scale_boundary_passed=True",
+        "latest_training_validation_split_predeclaration_required=True",
+        "latest_validation_groups_disjoint_from_training_groups_required=True",
+        "latest_formal_seeds_11_12_13_excluded_required=True",
+        "latest_formal_eval_data_excluded_from_scale_fit_required=True",
+        "latest_scale_fit_training_groups_only_required=True",
+        "latest_retraining_prerequisite_boundary_passed=True",
+        "latest_missing_training_split_manifest=True",
+        "latest_missing_train_only_scale_manifest=True",
+        "latest_missing_fallback_only_master_config=True",
+        "latest_missing_training_command_authorization=True",
+        "latest_missing_checkpoint_nonpromotion_plan=True",
+        "latest_missing_development_holdout_acceptance_gate=True",
+        "latest_blocking_contract_findings=0",
     ]:
         assert needle in text
 
@@ -153,6 +192,18 @@ def test_static_review_matches_plan_and_forbids_execution() -> None:
         "current_atom_promotion_authorized=False",
         "current_safety_benefit_claim_authorized=False",
         "current_camp_over_dp_top1_claim_authorized=False",
+        "user_broad_execution_permission_recorded=True",
+        "this_static_review_gate_authorizes_training_replay_dp_or_claims=False",
+        "latest_replay_execution_authorized=False",
+        "latest_candidate_generation_authorized=False",
+        "latest_camp_training_authorized=False",
+        "latest_camp_retraining_authorized=False",
+        "latest_formal_seeds_11_12_13_authorized=False",
+        "latest_dp_modification_authorized=False",
+        "latest_selector_promotion_authorized=False",
+        "latest_atom_promotion_authorized=False",
+        "latest_safety_benefit_claim_authorized=False",
+        "latest_camp_over_dp_top1_claim_authorized=False",
     ]:
         assert needle in text
 
@@ -162,6 +213,7 @@ def test_static_review_next_gate_is_unit_tests_plan_only() -> None:
 
     for needle in [
         "status=fallback_risk_training_data_training_sufficiency_static_contract_review_passed",
+        "status=fallback_risk_training_data_training_sufficiency_static_contract_review_latest_head_revalidated",
         "static_contract_review_complete=True",
         "blocking_contract_findings=0",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_plan_only",
