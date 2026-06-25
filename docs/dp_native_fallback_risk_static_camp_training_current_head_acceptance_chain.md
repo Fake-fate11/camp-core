@@ -176,9 +176,9 @@ deployment_authorized=False
 local_py_compile_exit=0
 local_target_pytest=36 passed
 local_git_diff_check_exit=0
-autodl_py_compile_exit=TBD
-autodl_target_pytest=TBD
-autodl_git_diff_check_exit=TBD
+autodl_py_compile_exit=0
+autodl_target_pytest=36 passed
+autodl_git_diff_check_exit=0
 ```
 
 ## Decision
