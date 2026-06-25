@@ -372,3 +372,34 @@ def test_nonpromotion_artifact_audit_docs_pin_the_next_gate_and_no_promotion_cla
         "camp_over_dp_top1_claim_authorized=True",
     ]:
         assert forbidden not in text
+
+
+def test_current_head_f09dc90_nonpromotion_artifact_audit_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "training_commit=adab72980bfad5fa13172d183feda672d766eba9",
+        "audit_execution_camp_head=f09dc902252eed428f7cf72ee5bcefd22f2f235b",
+        "training_summary_json_sha256=5b362f29f3737a1015ea977401c5fdafe2cff8e87426555d1ab7140c3ecc8761",
+        "offline_weights_json_sha256=75e879d5f9345e49d2ccf4b477ba26863016fe6bcf6adb05c9c48a7cdd772b03",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=69f3618f21687e08793bf766a57747fa121321be9de3e5a71f5a75b5407cfa88",
+        "remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_f09dc90_20260625T201043Z",
+        "remote_audit_json_sha256=3cee7ac6dfbba3c60a9d6a6cb1af6f9fd02badc8d1a61cce8ce3385dd05673c5",
+        "remote_audit_md_sha256=f7ee7c31174162342b6d2fab45dd4cec951238f23bb6480b6ebb690256c538c7",
+        "post_training_nonpromotion_artifact_audit_passed=True",
+        "training_artifacts_nonpromotion=True",
+        "weights_json_simplex_nonnegative=True",
+        "weights_npy_simplex_nonnegative=True",
+        "weights_json_matches_npy=True",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+    ]:
+        assert needle in text
+
+    assert (
+        "status=fallback_risk_static_camp_training_nonpromotion_artifact_audit_current_head_f09dc90_passed"
+        in audit
+    )
