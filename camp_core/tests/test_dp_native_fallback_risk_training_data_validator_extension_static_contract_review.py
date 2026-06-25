@@ -50,6 +50,12 @@ def test_static_review_passes_source_isolation_contract() -> None:
         "current_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_current_head_revalidated",
         "current_accepted_dataset_sha256=0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_static_review_revalidation_base_head=4526a198338d7780c67261a96b35b1f8649c7b2a",
+        "latest_autodl_CAMP_HEAD_at_revalidation=4526a198338d7780c67261a96b35b1f8649c7b2a",
+        "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_autodl_verification_passed",
+        "latest_accepted_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_6adb800_20260625T020016Z/dataset.json",
     ]:
         assert needle in text
 
@@ -154,6 +160,10 @@ def test_static_review_forbids_execution_training_and_claims() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         "fallback_risk_training_authorized_now=False",
         "validator_extension_implementation_authorized=False",
+        "user_broad_execution_permission_recorded=True",
+        "this_static_review_gate_authorizes_broad_execution=False",
+        "latest_local_target_pytest=13 passed",
+        "latest_autodl_target_pytest=13 passed",
     ]:
         assert needle in text
 
