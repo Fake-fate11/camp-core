@@ -247,6 +247,9 @@ current_head_design_plan_revalidated=True
 local_py_compile_exit=0
 local_target_pytest=16 passed
 local_git_diff_check_exit=0
+autodl_py_compile_exit=0
+autodl_target_pytest=16 passed
+autodl_git_diff_check_exit=0
 score_expression=score_k(w)=a_k^T w
 fallback_cost_targets_nonnegative=True
 simplex_master_convex_if_later_authorized=True
