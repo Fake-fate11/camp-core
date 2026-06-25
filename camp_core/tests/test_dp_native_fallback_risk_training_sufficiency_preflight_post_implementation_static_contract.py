@@ -199,11 +199,11 @@ def test_audit_tail_records_split_manifest_plan_as_next_gate() -> None:
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
 
     assert (
-        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_fixed_artifact_acceptance_passed"
+        "status=fallback_risk_training_sufficiency_preflight_current_head_fixed_artifact_acceptance_passed"
         in tail
     )
-    assert "latest_validated_dataset_summary_ready_for_preflight=True" in tail
+    assert "ready_for_future_training_authorization=True" in tail
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
     )

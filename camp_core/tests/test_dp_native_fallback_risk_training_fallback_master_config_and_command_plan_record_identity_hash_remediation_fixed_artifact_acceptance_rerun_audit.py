@@ -138,18 +138,17 @@ def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_fixed_artifact_acceptance_passed",
-        "source_master_command_acceptance_status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_fixed_artifact_acceptance_passed",
-        "validated_dataset_summary_json_sha256=e5dc69273795be41f1d48ea702a55fac63733d462c030c1595e42ef4d5d78c5f",
-        "summary_source_validator_output_sha256=039b3e41f866434e187a9f679cbc964d6fe35d5406896e53ec38d8f70db40c52",
-        "latest_validated_dataset_summary_ready_for_preflight=True",
-        "local_target_pytest=134 passed",
-        "autodl_target_pytest=134 passed",
+        "status=fallback_risk_training_sufficiency_preflight_current_head_fixed_artifact_acceptance_passed",
+        "source_summary_acceptance_status=fallback_risk_training_validated_dataset_summary_materializer_current_head_fixed_artifact_acceptance_passed",
+        "preflight_json_sha256=3f17ecd558e7f18da2c8a10c39df52533d18ead5f8444e38553fd784bb8f62dd",
+        "ready_for_future_training_authorization=True",
+        "local_target_pytest=140 passed",
+        "autodl_target_pytest=140 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
     )

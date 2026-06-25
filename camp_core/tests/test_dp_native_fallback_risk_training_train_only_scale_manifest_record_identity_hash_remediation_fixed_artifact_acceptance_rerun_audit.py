@@ -164,17 +164,17 @@ def test_iteration_audit_tail_records_scale_rerun_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_fixed_artifact_acceptance_passed",
-        "latest_validated_dataset_summary_ready_for_preflight=True",
-        "local_target_pytest=134 passed",
-        "local_summary_acceptance_pytest=6 passed",
-        "local_summary_materializer_pytest=5 passed",
-        "autodl_target_pytest=134 passed",
+        "status=fallback_risk_training_sufficiency_preflight_current_head_fixed_artifact_acceptance_passed",
+        "ready_for_future_training_authorization=True",
+        "local_target_pytest=140 passed",
+        "local_preflight_acceptance_rerun_pytest=6 passed",
+        "local_preflight_pytest=5 passed",
+        "autodl_target_pytest=140 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
     )
