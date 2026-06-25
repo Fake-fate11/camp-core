@@ -104355,3 +104355,61 @@ camp_over_dp_top1_claim_authorized=False
 Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization_only`
+
+## Current Tail Confirmation After AutoDL Fallback Risk Training Data Default-Off Builder Unit Tests Verification
+
+Date: 2026-06-25
+
+The fallback-risk training-data default-off builder unit-tests gate was repeated
+on AutoDL after the GitHub push and AutoDL fast-forward sync. This verification
+does not change the gate decision and does not authorize dataset builder
+implementation, validator extension implementation, replay, candidate
+generation, training, DP modification, selector or atom promotion, deployment,
+safety claims, or CAMP-over-DP Top-1 claims.
+
+```text
+status=fallback_risk_training_data_default_off_builder_unit_tests_autodl_verification_passed
+passed=True
+github_pushed_commit=5acb1eac21032db77a0d820820a1b53c6c18d08c
+sync_method=git_bundle_fast_forward_after_remote_fetch_timeout
+autodl_CAMP_HEAD_after_sync=5acb1eac21032db77a0d820820a1b53c6c18d08c
+autodl_CAMP_origin_main_after_sync=5acb1eac21032db77a0d820820a1b53c6c18d08c
+autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_py_compile_exit=0
+autodl_target_pytest=13 passed
+autodl_target_pytest_exit=0
+synthetic_records_only=True
+default_off_disabled_status_pinned=True
+all_infeasible_scope_pinned=True
+reason_conditioned_oracle_policy_pinned=True
+nonnegative_margin_contract_pinned=True
+missing_costs_fail_closed_pinned=True
+provenance_mutation_rejection_pinned=True
+negative_atom_rejection_pinned=True
+training_and_promotion_forbidden_pinned=True
+production_builder_edited_in_this_gate=False
+production_builder_executed_in_this_gate=False
+dataset_builder_implementation_authorized_now=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization_only`
