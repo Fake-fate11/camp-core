@@ -323,12 +323,6 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only
 ```
 
-The next gate may only statically review this fallback-risk training
-sufficiency plan. It must not train CAMP, run replay, generate candidates,
-modify Diffusion Planner, use formal seeds, relax hard feasibility, add
-all-infeasible records to the feasible-ranking master, promote a selector or
-atom, or claim safety/CAMP-over-DP benefit.
-
 ## Current-Head Training Sufficiency Plan Revalidation
 
 Date: 2026-06-25
@@ -654,3 +648,135 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only
 ```
+
+## Current-Head Training Sufficiency Plan Revalidation After Validator Acceptance Sync
+
+Date: 2026-06-26
+
+Revalidated this plan against the latest accepted fixed fallback-risk dataset
+and validator acceptance artifact after synchronizing CAMP to the current
+validator-acceptance commit. The user's broader execution permission is
+recorded, but this remains a plan-only gate. It updates the synthetic
+training-sufficiency contract to the latest validated dataset identity and does
+not execute training.
+
+```text
+head_d4ca6f2_validated_fallback_records=15
+head_d4ca6f2_validated_fallback_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498
+head_d4ca6f2_validator_output_json_sha256=bfe5d031be232c13188e19ae19692a560bb424090fc446253edf015c50c821c9
+head_d4ca6f2_validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a
+head_d4ca6f2_strict_formal_seed_path_matches=0
+head_d4ca6f2_fixed_artifact_training_sufficiency_claim=False
+head_d4ca6f2_fallback_dataset_training_sufficiency_claim=False
+head_d4ca6f2_fallback_risk_training_authorized_now=False
+head_d4ca6f2_training_sufficiency_contract_validated_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498
+camp_head_at_head_d4ca6f2_revalidation=d4ca6f2c61b4dc6e01c9c8adc421d50bbabbfcd6
+camp_origin_main_at_head_d4ca6f2_revalidation=d4ca6f2c61b4dc6e01c9c8adc421d50bbabbfcd6
+github_refs_heads_main_at_head_d4ca6f2_revalidation=d4ca6f2c61b4dc6e01c9c8adc421d50bbabbfcd6
+autodl_CAMP_HEAD_at_head_d4ca6f2_revalidation=d4ca6f2c61b4dc6e01c9c8adc421d50bbabbfcd6
+autodl_CAMP_origin_main_at_head_d4ca6f2_revalidation=d4ca6f2c61b4dc6e01c9c8adc421d50bbabbfcd6
+autodl_DP_HEAD_at_head_d4ca6f2_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Current-head training boundary:
+
+```text
+head_d4ca6f2_fallback_master_isolated_from_feasible_master_required=True
+head_d4ca6f2_feasible_branch_records_allowed_in_fallback_master=False
+head_d4ca6f2_all_infeasible_records_added_to_feasible_training=False
+head_d4ca6f2_all_infeasible_records_relabelled_feasible=False
+head_d4ca6f2_hard_feasibility_relaxation_authorized=False
+head_d4ca6f2_feasible_ranking_master_change_authorized=False
+head_d4ca6f2_production_selector_change_authorized=False
+head_d4ca6f2_online_selector_change_authorized=False
+head_d4ca6f2_score_k(w)=a_k^T w
+head_d4ca6f2_a_k_fixed_before_weight_optimization=True
+head_d4ca6f2_a_k_nonnegative_benders_compatible_atoms_only=True
+head_d4ca6f2_fallback_label_is_not_a_deployed_atom=True
+head_d4ca6f2_simplex_master_convex_if_later_authorized=True
+head_d4ca6f2_cvar_master_convex_if_later_authorized=True
+head_d4ca6f2_l2_regularized_master_convex_if_later_authorized=True
+```
+
+Current-head split and scale requirements remain preconditions, not actions:
+
+```text
+head_d4ca6f2_training_validation_split_predeclaration_required=True
+head_d4ca6f2_split_group_key_required=source_log,run_id,record_index
+head_d4ca6f2_validation_groups_disjoint_from_training_groups_required=True
+head_d4ca6f2_formal_seeds_11_12_13_excluded_required=True
+head_d4ca6f2_formal_eval_data_excluded_from_scale_fit_required=True
+head_d4ca6f2_scale_fit_training_groups_only_required=True
+head_d4ca6f2_strict_positive_atom_scales_required=True
+head_d4ca6f2_gate_predeclares_split=False
+head_d4ca6f2_gate_fits_scales=False
+head_d4ca6f2_gate_trains_weights=False
+head_d4ca6f2_gate_claims_deployable_checkpoint=False
+```
+
+Current-head missing prerequisites before any CAMP retraining:
+
+```text
+head_d4ca6f2_missing_training_split_manifest=True
+head_d4ca6f2_missing_train_only_scale_manifest=True
+head_d4ca6f2_missing_fallback_only_master_config=True
+head_d4ca6f2_missing_training_command_authorization=True
+head_d4ca6f2_missing_checkpoint_nonpromotion_plan=True
+head_d4ca6f2_missing_development_holdout_acceptance_gate=True
+head_d4ca6f2_camp_retraining_authorized_now=False
+```
+
+Current-head forbidden flags remain false:
+
+```text
+user_broad_execution_permission_recorded=True
+this_plan_gate_authorizes_training_replay_dp_or_claims=False
+head_d4ca6f2_replay_execution_authorized=False
+head_d4ca6f2_candidate_generation_authorized=False
+head_d4ca6f2_camp_training_authorized=False
+head_d4ca6f2_camp_retraining_authorized=False
+head_d4ca6f2_Full36_authorized=False
+head_d4ca6f2_formal_seeds_11_12_13_authorized=False
+head_d4ca6f2_dp_modification_authorized=False
+head_d4ca6f2_reference_blend_authorized=False
+head_d4ca6f2_guidance_authorized=False
+head_d4ca6f2_postprocess_postselection_authorized=False
+head_d4ca6f2_closed_loop_outcome_online_input_authorized=False
+head_d4ca6f2_selector_promotion_authorized=False
+head_d4ca6f2_atom_promotion_authorized=False
+head_d4ca6f2_deployable_checkpoint_claim_authorized=False
+head_d4ca6f2_safety_benefit_claim_authorized=False
+head_d4ca6f2_camp_over_dp_top1_claim_authorized=False
+```
+
+Current-head local verification:
+
+```text
+head_d4ca6f2_local_py_compile_exit=0
+head_d4ca6f2_local_target_pytest=23 passed
+head_d4ca6f2_local_git_diff_check_exit=0
+```
+
+Current-head decision:
+
+```text
+status=fallback_risk_training_data_training_sufficiency_plan_current_head_d4ca6f2_revalidated
+passed=True
+training_sufficiency_plan_complete=True
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only
+```
+
+The next gate may only statically review this fallback-risk training
+sufficiency plan. It must not train CAMP, run replay, generate candidates,
+modify Diffusion Planner, use formal seeds, relax hard feasibility, add
+all-infeasible records to the feasible-ranking master, promote a selector or
+atom, or claim safety/CAMP-over-DP benefit.
