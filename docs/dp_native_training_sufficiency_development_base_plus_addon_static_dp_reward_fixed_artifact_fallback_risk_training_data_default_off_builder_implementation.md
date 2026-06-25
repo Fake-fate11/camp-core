@@ -114,3 +114,78 @@ The next gate may only statically review the implemented default-off builder.
 It must not run replay, generate candidates, train CAMP, retrain CAMP, modify
 Diffusion Planner, use formal seeds, promote a selector or atom, or claim
 safety/CAMP-over-DP benefit.
+
+## Current-Head Revalidation After Current Implementation Authorization
+
+Date: 2026-06-25
+
+The existing default-off, read-only fallback-risk training data builder remains
+valid after the current implementation authorization gate. No production
+builder code was changed in this gate. This gate does not run replay, generate
+candidates, train or retrain CAMP, modify Diffusion Planner, use formal seeds,
+promote selector or atom logic, deploy, or claim safety benefit or CAMP-over-DP
+Top-1.
+
+```text
+status=fallback_risk_training_data_default_off_builder_implementation_current_head_revalidated_latest
+builder=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py
+behavior_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder.py
+contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py
+implementation_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_implementation.py
+authorization_status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_revalidated_latest
+camp_head_at_revalidation=9095a67320c893995cfcce1026cf4950eb3068b7
+camp_origin_main_at_revalidation=9095a67320c893995cfcce1026cf4950eb3068b7
+github_refs_heads_main_at_revalidation=9095a67320c893995cfcce1026cf4950eb3068b7
+autodl_CAMP_HEAD_at_revalidation=9095a67320c893995cfcce1026cf4950eb3068b7
+autodl_CAMP_origin_main_at_revalidation=9095a67320c893995cfcce1026cf4950eb3068b7
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+implementation_required_now=False
+implementation_already_present=True
+production_builder_changed_in_this_gate=False
+local_py_compile_exit=0
+local_builder_implementation_pytest=17 passed
+local_git_diff_check_exit=0
+blocking_contract_findings=0
+```
+
+The implementation remains default-off/read-only and keeps fallback-risk
+dataset construction separate from the feasible-ranking master:
+
+```text
+default_off_required=True
+enabled_default=False
+enable_flag_required_before_reading_selection_logs=True
+disabled_mode_reads_selection_logs=False
+disabled_mode_emits_records=False
+read_only_selection_log_input_only=True
+read_only_extractor_output_input_only=True
+records_scope=records_without_feasible_candidate_only
+dataset_schema_version=dp_native_fallback_risk_training_data_v1
+output_json_or_markdown_only=True
+writes_only_explicit_output_json_and_output_md=True
+subprocess_usage_found=False
+score_k(w)=a_k^T w
+affine_score_boundary_preserved=True
+fallback_dataset_separate_from_feasible_master=True
+all_infeasible_records_added_to_feasible_training=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+new_atom_authorized_now=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
