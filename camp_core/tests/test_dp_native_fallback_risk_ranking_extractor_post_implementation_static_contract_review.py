@@ -74,6 +74,13 @@ def test_review_doc_records_current_three_endpoint_revalidation() -> None:
         "local_py_compile_exit=0",
         "local_target_pytest=68 passed",
         "local_git_diff_check_exit=0",
+        "autodl_CAMP_HEAD_after_sync=0817df4e37a15e70c4027249240ddb2f29c1474c",
+        "autodl_CAMP_origin_main_after_sync=0817df4e37a15e70c4027249240ddb2f29c1474c",
+        "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=68 passed",
+        "autodl_git_diff_check_exit=0",
+        "autodl_audit_tail_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan_only",
     ]:
         assert needle in text
 
@@ -215,6 +222,13 @@ def test_iteration_audit_tail_records_post_implementation_static_contract() -> N
         "local_py_compile_exit=0",
         "local_target_pytest=68 passed",
         "local_git_diff_check_exit=0",
+        "autodl_CAMP_HEAD_after_sync=0817df4e37a15e70c4027249240ddb2f29c1474c",
+        "autodl_CAMP_origin_main_after_sync=0817df4e37a15e70c4027249240ddb2f29c1474c",
+        "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=68 passed",
+        "autodl_git_diff_check_exit=0",
+        "autodl_audit_tail_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan_only",
         "fallback_risk_training_authorized_now=False",
         "fallback_risk_smoke_authorized_now=False",
         "training_execution_authorized_now=False",
