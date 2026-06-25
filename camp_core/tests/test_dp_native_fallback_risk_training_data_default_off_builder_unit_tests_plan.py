@@ -163,7 +163,7 @@ def test_builder_unit_tests_plan_records_current_head_revalidation() -> None:
     text = _text()
     tail = "\n".join(text.splitlines()[-95:])
 
-    current_head = "43e0af4d6fc841c27ade0ca950c2962a6ee08449"
+    current_head = "9a5b4792e6040f0c89882f37787176cddc6f43fd"
     for needle in [
         "status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest",
         "plan_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_plan.md",
@@ -210,11 +210,11 @@ def test_iteration_audit_records_builder_unit_tests_plan_history() -> None:
         "status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest",
         "plan_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_unit_tests_plan.md",
         "plan_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_unit_tests_plan.py",
-        "camp_head_at_revalidation=43e0af4d6fc841c27ade0ca950c2962a6ee08449",
-        "camp_origin_main_at_revalidation=43e0af4d6fc841c27ade0ca950c2962a6ee08449",
-        "github_refs_heads_main_at_revalidation=43e0af4d6fc841c27ade0ca950c2962a6ee08449",
-        "autodl_CAMP_HEAD_at_revalidation=43e0af4d6fc841c27ade0ca950c2962a6ee08449",
-        "autodl_CAMP_origin_main_at_revalidation=43e0af4d6fc841c27ade0ca950c2962a6ee08449",
+        "camp_head_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
+        "camp_origin_main_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
+        "github_refs_heads_main_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
+        "autodl_CAMP_HEAD_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
+        "autodl_CAMP_origin_main_at_revalidation=9a5b4792e6040f0c89882f37787176cddc6f43fd",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_design_static_contract_status=fallback_risk_training_data_design_static_contract_review_current_head_revalidated_latest",
         "prior_design_static_contract_tail_verified=True",
