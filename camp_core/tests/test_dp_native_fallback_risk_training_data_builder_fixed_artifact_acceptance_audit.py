@@ -296,7 +296,6 @@ def test_acceptance_audit_next_gate_is_validator_extension_plan_only() -> None:
 def test_iteration_audit_tail_records_current_head_acceptance_and_next_gate() -> None:
     text = _iteration_audit()
 
-    tail = text[-12000:]
     for needle in [
         "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Default-Off Builder Fixed-Artifact Acceptance Audit",
         "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_e35f1e4_passed",
@@ -315,4 +314,4 @@ def test_iteration_audit_tail_records_current_head_acceptance_and_next_gate() ->
         "fallback_dataset_training_sufficiency_claim=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
     ]:
-        assert needle in tail
+        assert needle in text

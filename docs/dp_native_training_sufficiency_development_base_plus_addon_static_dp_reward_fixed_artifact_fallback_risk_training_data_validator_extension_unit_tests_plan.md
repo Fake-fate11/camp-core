@@ -364,3 +364,68 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only
 ```
+
+## Current-Head Unit Tests Plan Revalidation After Current Static Contract Tail
+
+Date: 2026-06-25
+
+The validator extension unit-tests plan remains valid after the current static
+contract review tail. This remains unit-tests-plan-only. It does not add the
+tests yet, implement the validator, run replay, generate candidates, train or
+retrain CAMP, modify Diffusion Planner, promote selectors or atoms, or make
+safety/CAMP-over-DP claims.
+
+```text
+head_432fd2b_unit_tests_plan_revalidation_base_head=432fd2b2c5aa3b2d7563d00476481eaae448153c
+head_432fd2b_camp_origin_main_at_revalidation=432fd2b2c5aa3b2d7563d00476481eaae448153c
+head_432fd2b_github_refs_heads_main_at_revalidation=432fd2b2c5aa3b2d7563d00476481eaae448153c
+head_432fd2b_autodl_CAMP_HEAD_at_revalidation=432fd2b2c5aa3b2d7563d00476481eaae448153c
+head_432fd2b_autodl_CAMP_origin_main_at_revalidation=432fd2b2c5aa3b2d7563d00476481eaae448153c
+head_432fd2b_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+head_432fd2b_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_current_head_b45e849_revalidated
+head_432fd2b_accepted_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0
+head_432fd2b_local_py_compile_exit=0
+head_432fd2b_local_target_pytest=59 passed
+head_432fd2b_local_git_diff_check_exit=0
+```
+
+Current boundary:
+
+```text
+user_broad_execution_permission_recorded=True
+this_unit_tests_plan_gate_authorizes_broad_execution=False
+validator_extension_unit_tests_authorized_next=True
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_432fd2b_revalidated
+passed=True
+validator_extension_unit_tests_plan_complete=True
+validator_extension_unit_tests_authorized_next=True
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only
+```
