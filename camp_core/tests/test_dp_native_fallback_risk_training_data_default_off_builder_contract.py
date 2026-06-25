@@ -433,7 +433,8 @@ def test_contract_rejects_negative_atoms_and_forbids_training() -> None:
 
 def test_iteration_audit_records_builder_unit_tests_current_head_history() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    current_head = "235fd6004a130ee88508668c55068ab8e7cc6e6b"
+    tail = "\n".join(audit.splitlines()[-105:])
+    current_head = "3fe7714f66bfd756761b9f2d95ea3c6eb07ef0c4"
 
     for needle in [
         "status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_revalidated_latest",
@@ -444,17 +445,14 @@ def test_iteration_audit_records_builder_unit_tests_current_head_history() -> No
         f"autodl_CAMP_origin_main_at_revalidation={current_head}",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_builder_unit_tests_plan_status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest",
+        "prior_builder_unit_tests_plan_tail_verified=True",
+        "prior_builder_unit_tests_plan_autodl_verified=True",
         "contract_test_file=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py",
         "plan_test_file=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_unit_tests_plan.py",
-        "local_target_pytest=15 passed",
-        "github_pushed_commit=c29301020a191ac2b2f65bb94d1ef6f169138c4c",
-        "autodl_CAMP_HEAD_after_sync=c29301020a191ac2b2f65bb94d1ef6f169138c4c",
-        "autodl_CAMP_origin_main_after_sync=c29301020a191ac2b2f65bb94d1ef6f169138c4c",
-        "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "autodl_py_compile_exit=0",
-        "autodl_target_pytest=15 passed",
-        "autodl_git_diff_check_exit=0",
-        "autodl_audit_tail_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization_only",
+        "production_builder_file=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py",
+        "local_py_compile_exit=0",
+        "local_target_pytest=68 passed",
+        "local_git_diff_check_exit=0",
         "synthetic_records_only=True",
         "default_off_disabled_status_pinned=True",
         "all_infeasible_scope_pinned=True",
@@ -468,7 +466,19 @@ def test_iteration_audit_records_builder_unit_tests_current_head_history() -> No
         "production_builder_executed_in_this_gate=False",
         "dataset_builder_implementation_authorized_now=False",
         "fallback_risk_training_authorized_now=False",
+        "fallback_risk_smoke_authorized_now=False",
         "training_execution_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
         NEXT_AUTHORIZATION_GATE,
     ]:
-        assert needle in audit
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_AUTHORIZATION_GATE}`")

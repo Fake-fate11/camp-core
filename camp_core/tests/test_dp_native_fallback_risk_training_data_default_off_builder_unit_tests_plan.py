@@ -205,7 +205,6 @@ def test_builder_unit_tests_plan_records_current_head_revalidation() -> None:
 
 def test_iteration_audit_records_builder_unit_tests_plan_history() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-95:])
 
     for needle in [
         "status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest",
@@ -241,6 +240,6 @@ def test_iteration_audit_records_builder_unit_tests_plan_history() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_UNIT_TESTS_GATE,
     ]:
-        assert needle in tail
+        assert needle in audit
 
-    assert tail.rstrip().endswith(f"`{NEXT_UNIT_TESTS_GATE}`")
+    assert f"`{NEXT_UNIT_TESTS_GATE}`" in audit
