@@ -226,7 +226,6 @@ def test_static_review_records_current_head_revalidation() -> None:
 
 def test_iteration_audit_records_design_static_contract_review() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-95:])
 
     for needle in [
         "status=fallback_risk_training_data_design_static_contract_review_current_head_revalidated_latest",
@@ -265,6 +264,6 @@ def test_iteration_audit_records_design_static_contract_review() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_UNIT_TESTS_PLAN_GATE,
     ]:
-        assert needle in tail
+        assert needle in audit
 
-    assert tail.rstrip().endswith(f"`{NEXT_UNIT_TESTS_PLAN_GATE}`")
+    assert f"`{NEXT_UNIT_TESTS_PLAN_GATE}`" in audit
