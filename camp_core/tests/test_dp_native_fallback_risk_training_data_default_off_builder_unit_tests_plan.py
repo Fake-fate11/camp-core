@@ -152,3 +152,23 @@ def test_builder_unit_tests_plan_next_gate_tests_only() -> None:
         "modify Diffusion Planner",
     ]:
         assert needle in text
+
+
+def test_builder_unit_tests_plan_records_current_head_revalidation() -> None:
+    text = _text()
+
+    current_head = "ebd5b34d9a01fef9c453fe70a1d674ceac76c54c"
+    for needle in [
+        f"camp_head_at_revalidation={current_head}",
+        f"camp_origin_main_at_revalidation={current_head}",
+        f"github_refs_heads_main_at_revalidation={current_head}",
+        f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+        f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_design_static_contract_status=fallback_risk_training_data_design_static_contract_review_autodl_verification_passed",
+        "default_off_builder_unit_tests_plan_complete=True",
+        "blocking_contract_findings=0",
+        "validator_extension_implementation_authorized=False",
+        "training_execution_authorized_now=False",
+    ]:
+        assert needle in text
