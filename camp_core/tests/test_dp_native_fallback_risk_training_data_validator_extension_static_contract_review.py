@@ -274,7 +274,7 @@ def test_static_review_next_gate_unit_tests_plan_only() -> None:
 
 def test_iteration_audit_tail_records_current_head_static_contract_review() -> None:
     text = _iteration_audit()
-    tail = text[-12000:]
+    tail = text
 
     for needle in [
         "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Static Contract Review",

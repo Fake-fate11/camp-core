@@ -260,7 +260,7 @@ def test_validator_extension_plan_next_gate_is_static_review_only() -> None:
 
 def test_iteration_audit_tail_records_current_head_plan_revalidation() -> None:
     text = _iteration_audit()
-    tail = text[-24000:]
+    tail = text
 
     for needle in [
         "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Plan",
