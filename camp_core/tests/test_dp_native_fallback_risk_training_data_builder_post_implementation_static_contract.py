@@ -203,7 +203,7 @@ def test_review_next_gate_is_fixed_artifact_acceptance_audit_only() -> None:
 def test_review_doc_and_audit_tail_record_latest_revalidation() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
     audit = AUDIT_DOC.read_text(encoding="utf-8")
-    current_head = "450a21779f0f57af8a315c80a2431fee9147dd11"
+    current_head = "816e23e3c789e8e184341984b36acb33279c64de"
 
     for payload in (text, audit):
         for needle in [
