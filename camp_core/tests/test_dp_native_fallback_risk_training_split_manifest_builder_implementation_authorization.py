@@ -34,6 +34,11 @@ def test_split_builder_authorization_records_preconditions_and_verified_tests() 
         "autodl_split_manifest_contract_pytest=8 passed",
         "broad_fallback_risk_pytest_not_claimed=True",
         "dp_fixed_commit_verified=True",
+        "latest_validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_validator_output_sha256=276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078",
+        "latest_split_manifest_unit_tests_tail_status=fallback_risk_training_split_manifest_unit_tests_autodl_verification_passed",
+        "camp_head_at_latest_authorization=a373d046cbb690ae6127c79a39c2fdeeedea0129",
+        "autodl_DP_HEAD_at_latest_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -52,6 +57,11 @@ def test_split_builder_authorization_only_allows_default_off_read_only_builder()
         "synthetic_unit_tests_required=True",
         "fixed_artifact_manifest_generation_authorized=False",
         "training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "user_broad_execution_permission_recorded=True",
+        "latest_implementation_authorized=True",
+        "latest_training_split_manifest_builder_implementation_authorized=True",
+        "latest_fixed_artifact_manifest_generation_authorized=False",
+        "latest_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
     ]:
         assert needle in text
 
@@ -96,6 +106,12 @@ def test_split_builder_authorization_keeps_generation_training_dp_and_claims_for
         "atom_promotion_authorized=False",
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
+        "latest_fallback_risk_training_authorized_now=False",
+        "latest_camp_retraining_authorized_now=False",
+        "latest_training_execution_authorized_now=False",
+        "latest_dp_modification_authorized=False",
+        "latest_safety_benefit_claim_authorized=False",
+        "latest_camp_over_dp_top1_claim_authorized=False",
     ]:
         assert needle in text
 
@@ -120,6 +136,7 @@ def test_split_builder_authorization_next_gate_is_implementation_only() -> None:
 
     for needle in [
         "status=fallback_risk_training_split_manifest_builder_implementation_authorized",
+        "latest_status=fallback_risk_training_split_manifest_builder_implementation_authorized",
         "passed=True",
         "implementation_authorized=True",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only",
@@ -139,10 +156,11 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
 
     assert (
-        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_revalidated"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_autodl_verification_passed"
         in tail
     )
-    assert "local_target_pytest=6 passed" in tail
+    assert "local_target_pytest=78 passed" in tail
+    assert "local_split_manifest_builder_authorization_pytest=6 passed" in tail
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
         "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only`"

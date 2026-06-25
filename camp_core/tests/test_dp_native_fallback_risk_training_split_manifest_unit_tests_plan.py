@@ -188,14 +188,17 @@ def test_split_unit_tests_plan_forbids_execution_and_sets_unit_tests_next() -> N
 def test_audit_tail_records_split_manifest_unit_tests_only_next_gate() -> None:
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-120:])
 
-    assert "status=fallback_risk_training_split_manifest_unit_tests_autodl_verification_passed" in tail
-    assert "local_target_pytest=72 passed" in tail
-    assert "local_split_manifest_contract_pytest=8 passed" in tail
     assert (
-        "this_split_manifest_unit_tests_gate_authorizes_builder_training_replay_dp_or_claims=False"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_autodl_verification_passed"
+        in tail
+    )
+    assert "local_target_pytest=78 passed" in tail
+    assert "local_split_manifest_builder_authorization_pytest=6 passed" in tail
+    assert (
+        "this_builder_authorization_gate_authorizes_training_replay_dp_or_claims=False"
         in tail
     )
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only`"
     )

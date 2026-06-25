@@ -166,3 +166,80 @@ fixed-artifact manifest, train CAMP, run replay, generate candidates, modify
 Diffusion Planner, use formal seeds, relax hard feasibility, add
 all-infeasible records to the feasible-ranking master, promote a selector or
 atom, or claim safety/CAMP-over-DP benefit.
+
+## Latest Current-Head Authorization Revalidation
+
+Date: 2026-06-25
+
+Revalidated this authorization boundary against the latest split manifest
+contract tests and fixed fallback-risk dataset. The user's current broad
+execution permission is recorded, but this gate only authorizes the next
+default-off read-only builder implementation gate. It does not authorize fixed
+artifact builder execution, replay, candidate generation, CAMP training or
+retraining, Diffusion Planner modification, selector/atom promotion,
+deployment, or safety/CAMP-over-DP claims.
+
+```text
+latest_split_manifest_plan_ready=True
+latest_split_manifest_static_contract_review_passed=True
+latest_split_manifest_unit_tests_plan_ready=True
+latest_split_manifest_contract_tests_pinned=True
+latest_blocking_contract_findings=0
+latest_validated_fallback_records=15
+latest_validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018
+latest_validator_output_sha256=276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078
+latest_split_manifest_unit_tests_tail_status=fallback_risk_training_split_manifest_unit_tests_autodl_verification_passed
+camp_head_at_latest_authorization=a373d046cbb690ae6127c79a39c2fdeeedea0129
+camp_origin_main_at_latest_authorization=a373d046cbb690ae6127c79a39c2fdeeedea0129
+github_refs_heads_main_at_latest_authorization=a373d046cbb690ae6127c79a39c2fdeeedea0129
+autodl_CAMP_HEAD_at_latest_authorization=a373d046cbb690ae6127c79a39c2fdeeedea0129
+autodl_CAMP_origin_main_at_latest_authorization=a373d046cbb690ae6127c79a39c2fdeeedea0129
+autodl_DP_HEAD_at_latest_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Latest authorized next work:
+
+```text
+user_broad_execution_permission_recorded=True
+implementation_authorized=True
+training_split_manifest_builder_implementation_authorized=True
+default_off_required=True
+read_only_dataset_input_only=True
+existing_validated_fallback_dataset_json_only=True
+records_scope=records_without_feasible_candidate_only
+output_json_or_markdown_only=True
+synthetic_unit_tests_required=True
+existing_contract_tests_must_continue_to_pass=True
+fixed_artifact_manifest_generation_authorized=False
+training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_retraining_authorized_now=False
+replay_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+production_selector_change_authorized=False
+```
+
+Latest decision:
+
+```text
+latest_status=fallback_risk_training_split_manifest_builder_implementation_authorized
+latest_passed=True
+latest_implementation_authorized=True
+latest_training_split_manifest_builder_implementation_authorized=True
+latest_fixed_artifact_manifest_generation_authorized=False
+latest_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
+latest_fallback_risk_training_authorized_now=False
+latest_camp_retraining_authorized_now=False
+latest_training_execution_authorized_now=False
+latest_dp_modification_authorized=False
+latest_safety_benefit_claim_authorized=False
+latest_camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only
+```
