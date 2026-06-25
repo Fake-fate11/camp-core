@@ -417,16 +417,16 @@ def test_audit_records_split_manifest_builder_static_contract_and_current_next_g
     tail = "\n".join(audit.splitlines()[-180:])
 
     assert (
-        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_autodl_verification_passed"
+        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_passed"
         in tail
     )
-    assert "local_target_pytest=94 passed" in tail
-    assert "local_post_static_target_pytest=7 passed" in tail
+    assert "local_target_pytest=100 passed" in tail
+    assert "local_split_manifest_fixed_artifact_acceptance_pytest=6 passed" in tail
     assert (
-        "builder_implementation_tail_status=fallback_risk_training_split_manifest_builder_implementation_autodl_verification_passed"
+        "post_static_contract_status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_autodl_verification_passed"
         in tail
     )
     assert "training_execution_authorized_now=False" in audit
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
     )
