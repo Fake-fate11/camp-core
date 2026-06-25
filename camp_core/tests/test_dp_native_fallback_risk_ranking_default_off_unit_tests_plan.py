@@ -155,6 +155,10 @@ def test_default_off_unit_tests_plan_current_head_revalidation() -> None:
         "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
         "blocking_contract_findings=0",
         "This revalidation remains tests-plan-only",
+        "camp_head_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
+        "camp_origin_main_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
+        "github_refs_heads_main_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
+        "autodl_CAMP_HEAD_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
         NEXT_UNIT_TESTS_GATE,
     ]:
         assert needle in text
@@ -162,6 +166,7 @@ def test_default_off_unit_tests_plan_current_head_revalidation() -> None:
 
 def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() -> None:
     text = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(text.splitlines()[-140:])
 
     for needle in [
         "status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate",
@@ -181,3 +186,28 @@ def test_iteration_audit_tail_records_default_off_unit_tests_plan_next_gate() ->
         NEXT_UNIT_TESTS_GATE,
     ]:
         assert needle in text
+
+    for needle in [
+        "status=fallback_risk_ranking_default_off_unit_tests_plan_ready_tests_only_gate",
+        "unit_tests_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_plan.md",
+        "camp_head_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
+        "autodl_CAMP_HEAD_at_revalidation=b9d939a97bcd811d92c33f98e2f3edeed3b14876",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_passed_default_off_tests_plan_next",
+        "current_head_unit_tests_plan_revalidated=True",
+        "planned_default_off_tests=4",
+        "planned_cost_extraction_tests=11",
+        "planned_provenance_no_mutation_tests=8",
+        "implementation_authorized=False",
+        "production_implementation_edit_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_UNIT_TESTS_GATE}`")
