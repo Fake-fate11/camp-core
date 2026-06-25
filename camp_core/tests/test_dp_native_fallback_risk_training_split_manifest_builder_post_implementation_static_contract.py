@@ -288,12 +288,13 @@ def test_audit_tail_records_post_static_contract_next_gate() -> None:
         "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_fabbd5d_revalidated",
         "head_fabbd5d_local_post_static_target_pytest=9 passed",
         "head_fabbd5d_local_builder_target_pytest=9 passed",
+        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_6d1fa5e_passed",
         "training_execution_authorized_now=False",
         "head_fabbd5d_fixed_artifact_manifest_generation_authorized=False",
     ]:
         assert needle in tail
 
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
         in tail
     )
