@@ -33,6 +33,14 @@ def test_acceptance_rerun_records_inputs_and_outputs() -> None:
         "scale_manifest_json_sha256=d4205878c3af549ed86a778236500997df302272ab671bfcb60bc5f18b03b812",
         "scale_manifest_md_sha256=bafe15c581eb48e8a02908989f38a97cf1fa11db1a120e18c440338e76479ac7",
         "builder_exit=0",
+        "latest_source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_6adb800_20260625T020016Z/dataset.json",
+        "latest_expected_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_training_split_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_b10a5b6_20260625T040200Z/split_manifest.json",
+        "latest_expected_split_manifest_sha256=b6f8cdcc0e353e1efdc81c62d0e81aa1f4b0679270f1bb211879ac03adce8079",
+        "latest_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_train_only_scale_manifest_acceptance_015058d_20260625T041048Z",
+        "latest_scale_manifest_json_sha256=5ad58c9fee35d8e21922385993edb28d4934b8066a2cf683af28f12384a976cf",
+        "latest_scale_manifest_md_sha256=bafe15c581eb48e8a02908989f38a97cf1fa11db1a120e18c440338e76479ac7",
+        "latest_builder_exit=0",
     ]:
         assert needle in text
 
@@ -57,6 +65,21 @@ def test_acceptance_rerun_records_train_only_scale_result() -> None:
         "fit_seeds=[]",
         "formal_eval_artifact_included=False",
         "errors=[]",
+        "latest_schema_version=dp_native_fallback_risk_training_train_only_scale_manifest_v1",
+        "latest_status=dp_native_fallback_risk_training_train_only_scale_manifest_builder_complete",
+        "latest_passed=True",
+        "latest_scale_policy=train_only_positive_finite_p95_or_one_v1",
+        "latest_source_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "latest_source_split_manifest_sha256=b6f8cdcc0e353e1efdc81c62d0e81aa1f4b0679270f1bb211879ac03adce8079",
+        "latest_atom_schema_version=dp_camp_v10_14d",
+        "latest_atom_count=14",
+        "latest_fit_records_used=13",
+        "latest_training_records_seen=13",
+        "latest_validation_records_seen=2",
+        "latest_fit_groups=13",
+        "latest_excluded_validation_groups=2",
+        "latest_fit_seeds=[]",
+        "latest_errors=[]",
     ]:
         assert needle in text
 
@@ -75,6 +98,17 @@ def test_acceptance_rerun_marks_scale_ready_but_not_training_authorized() -> Non
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
         "fixed_15_record_artifact_training_sufficiency_claim=False",
+        "latest_fixed_artifact_acceptance_rerun_passed=True",
+        "latest_blocking_acceptance_findings=0",
+        "latest_train_only_scale_manifest_ready_for_preflight=True",
+        "latest_fallback_master_config_ready=False",
+        "latest_training_command_plan_ready=False",
+        "latest_validated_dataset_summary_ready_for_preflight=False",
+        "latest_training_sufficiency_preflight_ready=False",
+        "latest_fallback_risk_training_authorized_now=False",
+        "latest_camp_retraining_authorized_now=False",
+        "latest_fallback_dataset_training_sufficiency_claim=False",
+        "latest_fixed_15_record_artifact_training_sufficiency_claim=False",
     ]:
         assert needle in text
 
@@ -112,7 +146,9 @@ def test_acceptance_rerun_records_local_verification_and_next_gate() -> None:
         "autodl_target_pytest=77 passed",
         "autodl_git_diff_check_exit=0",
         "status=fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed",
+        "latest_status=fallback_risk_training_train_only_scale_manifest_current_head_fixed_artifact_acceptance_passed",
         "fixed_artifact_acceptance_rerun_complete=True",
+        "latest_fixed_artifact_acceptance_rerun_complete=True",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only",
         "may only rerun the default-off fallback master config",
         "must not execute training",
@@ -128,22 +164,19 @@ def test_iteration_audit_tail_records_scale_rerun_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed",
-        "train_only_scale_manifest_ready_for_preflight=True",
-        "fallback_master_config_ready=False",
-        "training_command_plan_ready=False",
+        "status=fallback_risk_training_train_only_scale_manifest_current_head_fixed_artifact_acceptance_passed",
+        "latest_train_only_scale_manifest_ready_for_preflight=True",
+        "latest_fallback_master_config_ready=False",
+        "latest_training_command_plan_ready=False",
+        "local_target_pytest=111 passed",
+        "local_train_only_scale_acceptance_pytest=6 passed",
+        "local_train_only_scale_builder_pytest=5 passed",
+        "autodl_target_pytest=111 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
-        assert needle in audit
-
-    for needle in [
-        "status=fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_implemented",
-        "old_expected_validated_dataset_sha_rejected=True",
-        "new_expected_validated_dataset_sha_accepted_by_unit_contract=True",
-    ]:
-        assert needle in audit
+        assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_unit_tests_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
     )

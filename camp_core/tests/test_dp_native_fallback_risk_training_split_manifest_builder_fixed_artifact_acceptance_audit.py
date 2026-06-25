@@ -175,15 +175,16 @@ def test_iteration_audit_tail_records_current_acceptance_audit_next_gate() -> No
     tail = "\n".join(audit.splitlines()[-160:])
 
     for needle in [
-        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_passed",
-        "latest_training_split_manifest_ready_for_preflight=True",
-        "local_target_pytest=100 passed",
-        "local_split_manifest_fixed_artifact_acceptance_pytest=6 passed",
-        "autodl_target_pytest=100 passed",
+        "status=fallback_risk_training_train_only_scale_manifest_current_head_fixed_artifact_acceptance_passed",
+        "latest_train_only_scale_manifest_ready_for_preflight=True",
+        "local_target_pytest=111 passed",
+        "local_train_only_scale_acceptance_pytest=6 passed",
+        "local_train_only_scale_builder_pytest=5 passed",
+        "autodl_target_pytest=111 passed",
         "camp_retraining_authorized_now=False",
     ]:
         assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
     )
