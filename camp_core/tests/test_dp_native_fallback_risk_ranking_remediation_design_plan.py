@@ -135,14 +135,14 @@ def test_fallback_risk_remediation_design_current_head_revalidation() -> None:
     text = PLAN_DOC.read_text(encoding="utf-8")
 
     for needle in [
-        "camp_head_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e",
-        "camp_origin_main_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e",
-        "github_refs_heads_main_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e",
-        "autodl_CAMP_HEAD_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e",
+        "camp_head_at_revalidation=30e16f3e132064366720ff58af9549de10f5d9d1",
+        "camp_origin_main_at_revalidation=30e16f3e132064366720ff58af9549de10f5d9d1",
+        "github_refs_heads_main_at_revalidation=30e16f3e132064366720ff58af9549de10f5d9d1",
+        "autodl_CAMP_HEAD_at_revalidation=30e16f3e132064366720ff58af9549de10f5d9d1",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_ranking_revalidation_status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete",
         "prior_ranking_revalidation_failed_checks=[]",
-        "prior_ranking_revalidation_json_sha256=fe57dc19a8f0371fe3f4f5ea469e39c0934a9bc8e76f205a046f2a29cfdaaa33",
+        "prior_ranking_revalidation_json_sha256=52bb6f5168483cf6843a98214a21f1d597e31030eb1dbb47387a827e87732fcc",
         "This remains a plan-only gate",
         NEXT_STATIC_REVIEW_GATE,
     ]:
@@ -151,11 +151,12 @@ def test_fallback_risk_remediation_design_current_head_revalidation() -> None:
 
 def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-100:])
 
     for needle in [
         "status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
         "current_head_design_plan_revalidated=True",
-        "camp_head_at_revalidation=9ded474572c30ff75d1afe15f65f5c1e5b2f769e",
+        "camp_head_at_revalidation=30e16f3e132064366720ff58af9549de10f5d9d1",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "score_expression=score_k(w)=a_k^T w",
         "fallback_cost_targets_nonnegative=True",
@@ -168,4 +169,8 @@ def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_STATIC_REVIEW_GATE,
     ]:
-        assert needle in audit
+        assert needle in tail
+
+    assert tail.rstrip().endswith(
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only`"
+    )
