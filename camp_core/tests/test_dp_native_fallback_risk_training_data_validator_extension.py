@@ -9,6 +9,12 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
+AUDIT_DOC = (
+    ROOT
+    / "docs"
+    / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests.md"
+)
+ITERATION_AUDIT = ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 PACKAGE_ROOT = ROOT / "camp_core"
 for path in (ROOT, PACKAGE_ROOT):
     path_str = str(path)
@@ -186,6 +192,14 @@ def _load(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _audit_doc() -> str:
+    return AUDIT_DOC.read_text(encoding="utf-8")
+
+
+def _iteration_audit() -> str:
+    return ITERATION_AUDIT.read_text(encoding="utf-8")
+
+
 def test_validator_is_default_off_and_does_not_read_missing_dataset(tmp_path: Path) -> None:
     report = validate_fallback_risk_training_data(
         dataset_json=tmp_path / "missing.json",
@@ -320,3 +334,35 @@ def test_validator_rejects_record_margin_atom_index_and_promotion_flags(tmp_path
         "fallback_label_is_not_a_deployed_atom_invalid",
     ]:
         assert any(needle in item for item in errors)
+
+
+def test_validator_unit_tests_audit_records_current_head_boundary() -> None:
+    audit = _audit_doc()
+    iteration_tail = _iteration_audit()[-12000:]
+
+    for text in (audit, iteration_tail):
+        for needle in [
+            "status=fallback_risk_training_data_validator_extension_unit_tests_current_head_5dd66d4_revalidated",
+            "unit_tests_validation_head=5dd66d4cbe8735740fa5e5a4276f3645a5e528c9",
+            "autodl_DP_HEAD_at_validation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+            "latest_unit_tests_plan_status=fallback_risk_training_data_validator_extension_unit_tests_plan_autodl_verification_passed",
+            "accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+            "validator_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension.py",
+            "contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_contract.py",
+            "unit_tests_plan_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_unit_tests_plan.py",
+            "synthetic_dataset_fixtures_only=True",
+            "synthetic_source_logs_only=True",
+            "fixed_autodl_artifact_required_for_unit_tests=False",
+            "production_validator_implemented_in_this_gate=False",
+            "record_identity_hash_required=True",
+            "training_and_promotion_flags_rejected=True",
+            "local_target_pytest=21 passed",
+            "validator_extension_unit_tests_complete=True",
+            "validator_extension_implementation_authorized=False",
+            "camp_retraining_authorized=False",
+            "replay_execution_authorized=False",
+            "candidate_generation_authorized=False",
+            "dp_modification_authorized=False",
+            "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_authorization_only",
+        ]:
+            assert needle in text

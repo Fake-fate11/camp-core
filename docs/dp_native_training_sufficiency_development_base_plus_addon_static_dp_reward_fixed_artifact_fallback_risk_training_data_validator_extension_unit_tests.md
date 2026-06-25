@@ -1,0 +1,120 @@
+# DP Native Fixed-Artifact Fallback Risk Training Data Validator Extension Unit Tests
+
+Date: 2026-06-25
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only
+```
+
+This gate revalidates the synthetic fallback-risk training-data validator
+extension tests at the current synchronized local/GitHub/AutoDL head. It does
+not implement or modify the validator, run replay, generate candidates, train
+or retrain CAMP, modify Diffusion Planner, promote selectors or atoms, or make
+safety/CAMP-over-DP claims.
+
+## Reviewed Inputs
+
+```text
+unit_tests_validation_head=5dd66d4cbe8735740fa5e5a4276f3645a5e528c9
+camp_origin_main_at_validation=5dd66d4cbe8735740fa5e5a4276f3645a5e528c9
+github_refs_heads_main_at_validation=5dd66d4cbe8735740fa5e5a4276f3645a5e528c9
+autodl_CAMP_HEAD_at_validation=5dd66d4cbe8735740fa5e5a4276f3645a5e528c9
+autodl_CAMP_origin_main_at_validation=5dd66d4cbe8735740fa5e5a4276f3645a5e528c9
+autodl_DP_HEAD_at_validation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+latest_unit_tests_plan_status=fallback_risk_training_data_validator_extension_unit_tests_plan_autodl_verification_passed
+accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+```
+
+## Test Scope
+
+```text
+validator_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension.py
+contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_contract.py
+unit_tests_plan_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_unit_tests_plan.py
+synthetic_dataset_fixtures_only=True
+synthetic_source_logs_only=True
+fixed_autodl_artifact_required_for_unit_tests=False
+replay_required_for_unit_tests=False
+candidate_generation_required_for_unit_tests=False
+training_required_for_unit_tests=False
+production_validator_implemented_in_this_gate=False
+```
+
+The synthetic tests pin the default-off/read-only validator behavior, source-log
+readback failure modes, record identity hashes, atom and normalized-atom
+nonnegativity, candidate-generation/provenance checks, and training/promotion
+flag rejection.
+
+```text
+default_off_no_missing_dataset_read=True
+clean_dataset_and_cli_output_acceptance=True
+top_level_summary_mismatch_rejected=True
+source_log_hash_mismatch_fails_closed=True
+source_feasible_mask_any_true_fails_closed=True
+source_feasible_mask_non_bool_fails_closed=True
+source_candidate_generation_contract_rechecked=True
+source_candidate_tensor_provenance_rechecked=True
+record_identity_hash_required=True
+record_identity_hash_mismatch_rejected=True
+atoms_finite_nonnegative_required=True
+normalized_atoms_finite_nonnegative_required=True
+training_and_promotion_flags_rejected=True
+```
+
+## Verification
+
+```text
+local_py_compile_exit=0
+local_target_pytest=21 passed
+local_target_pytest_exit=0
+local_git_diff_check_exit=0
+```
+
+## Forbidden
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_data_validator_extension_unit_tests_current_head_5dd66d4_revalidated
+passed=True
+validator_extension_unit_tests_complete=True
+validator_extension_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_authorization_only
+```
