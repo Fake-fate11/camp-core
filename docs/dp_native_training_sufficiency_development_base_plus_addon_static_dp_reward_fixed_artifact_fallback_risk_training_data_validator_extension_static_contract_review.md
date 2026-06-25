@@ -191,6 +191,39 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only
 ```
 
+## AutoDL Verification After Current-Head Static Contract Revalidation
+
+Date: 2026-06-25
+
+```text
+github_pushed_commit=392fed1dac2b20d51bf7afd070c14ac1c3a69083
+autodl_CAMP_HEAD_after_sync=392fed1dac2b20d51bf7afd070c14ac1c3a69083
+autodl_CAMP_origin_main_after_sync=392fed1dac2b20d51bf7afd070c14ac1c3a69083
+autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_target_pytest=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_static_contract_review.py
+autodl_target_pytest_result=7 passed
+autodl_target_pytest_exit=0
+autodl_py_compile_exit=0
+autodl_git_diff_check_exit=0
+autodl_audit_tail_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_validator_extension_static_contract_autodl_verification_passed
+passed=True
+validator_extension_static_contract_current_head_complete=True
+validator_extension_implementation_authorized=False
+validator_extension_unit_tests_plan_authorized_next=True
+training_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
 The next gate may only plan synthetic unit tests for the fallback-risk dataset
 validator extension. It must not implement the validator, run replay, generate
 candidates, train CAMP, retrain CAMP, modify Diffusion Planner, use formal
