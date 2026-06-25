@@ -191,6 +191,78 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only
 ```
 
+## Current-Head Static Contract Revalidation After Current Validator Plan Sync
+
+Date: 2026-06-26
+
+The validator extension static contract review remains valid after the current
+validator extension plan gate was committed, pushed, and synchronized across
+local, GitHub, and AutoDL CAMP. This remains static-review-only. It does not
+implement the validator, run replay, generate candidates, train or retrain
+CAMP, modify Diffusion Planner, promote selectors or atoms, or make
+safety/CAMP-over-DP claims.
+
+```text
+head_8268b98_static_review_revalidation_base_head=8268b9892423a0feccd838c90a915b86a9d480a8
+head_8268b98_camp_origin_main_at_revalidation=8268b9892423a0feccd838c90a915b86a9d480a8
+head_8268b98_github_refs_heads_main_at_revalidation=8268b9892423a0feccd838c90a915b86a9d480a8
+head_8268b98_autodl_CAMP_HEAD_at_revalidation=8268b9892423a0feccd838c90a915b86a9d480a8
+head_8268b98_autodl_CAMP_origin_main_at_revalidation=8268b9892423a0feccd838c90a915b86a9d480a8
+head_8268b98_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+head_8268b98_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_current_head_94f224b_revalidated
+head_8268b98_accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+head_8268b98_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.json
+head_8268b98_local_py_compile_exit=0
+head_8268b98_local_target_pytest=145 passed
+head_8268b98_local_git_diff_check_exit=0
+head_8268b98_autodl_py_compile_exit=0
+head_8268b98_autodl_target_pytest=145 passed
+head_8268b98_autodl_git_diff_check_exit=0
+```
+
+Current boundary:
+
+```text
+user_broad_execution_permission_recorded=True
+user_camp_retraining_permission_available_for_future_training_gate=True
+this_static_review_gate_authorizes_broad_execution=False
+validator_extension_implementation_authorized=False
+validator_extension_unit_tests_plan_authorized_next=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_validator_extension_static_contract_current_head_8268b98_revalidated
+passed=True
+static_contract_review_complete=True
+blocking_contract_findings=0
+validator_extension_implementation_authorized=False
+validator_extension_unit_tests_plan_authorized_next=True
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only
+```
+
 ## Current-Head Static Contract Revalidation After Latest Validator Plan Tail
 
 Date: 2026-06-26
