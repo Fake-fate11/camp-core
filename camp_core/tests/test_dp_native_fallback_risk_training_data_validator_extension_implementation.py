@@ -49,6 +49,11 @@ def test_implementation_doc_records_current_head_and_next_gate() -> None:
         "production_validator_modified_in_this_gate=False",
         "implementation_already_present_at_head=True",
         "local_target_pytest=24 passed",
+        "status=fallback_risk_training_data_validator_extension_implementation_current_head_edeec5b_revalidated",
+        "implementation_validation_head=edeec5bbf1d56c1e054285e41cbbe90f5f01ec62",
+        "github_refs_heads_main_at_validation=edeec5bbf1d56c1e054285e41cbbe90f5f01ec62",
+        "autodl_CAMP_HEAD_at_validation=edeec5bbf1d56c1e054285e41cbbe90f5f01ec62",
+        "latest_implementation_authorization_status=fallback_risk_training_data_validator_extension_implementation_authorization_current_head_e5a7779_revalidated",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_post_implementation_static_contract_only",
     ]:
         assert needle in text
@@ -124,8 +129,8 @@ def test_iteration_audit_tail_records_implementation_gate() -> None:
 
     for needle in [
         "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Implementation",
-        "status=fallback_risk_training_data_validator_extension_implementation_current_head_93ddd14_revalidated",
-        "implementation_validation_head=93ddd14b145f681a5773420645ff9b7326d16589",
+        "status=fallback_risk_training_data_validator_extension_implementation_current_head_edeec5b_revalidated",
+        "implementation_validation_head=edeec5bbf1d56c1e054285e41cbbe90f5f01ec62",
         "autodl_DP_HEAD_at_validation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "production_validator_modified_in_this_gate=False",
         "default_off_required=True",
