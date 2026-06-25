@@ -33,6 +33,33 @@ def test_command_authorization_doc_records_user_scope_and_next_gate() -> None:
         assert needle in text
 
 
+def test_current_head_command_authorization_pins_current_preflight_and_next_gate() -> None:
+    text = DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "status=fallback_risk_training_command_authorization_current_head_48620ac_passed",
+        "current_command_authorization_gate_complete=True",
+        "current_preflight_status=fallback_risk_training_sufficiency_preflight_current_head_95215ab_fixed_artifact_acceptance_passed",
+        "current_preflight_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_sufficiency_preflight_acceptance_95215ab_20260625T195559Z/preflight.json",
+        "current_preflight_json_sha256=b1ec5b1d5e3d895d7123dc08b86656bfd1901bd0fd0e5339b503aafa13b58252",
+        "current_preflight_ready_for_future_training_authorization=True",
+        "current_preflight_training_authorized=False",
+        "user_camp_retraining_authorization_received=True",
+        "training_execution_allowed_after_current_artifact_preflight=True",
+        "ready_for_fixed_artifact_training_execution=True",
+        "current_static_trainer=dp_native_fallback_risk_static_camp_training_v1",
+        "fixed_dp_candidate_reranking_only=True",
+        "score_k(w)=a_k^T w",
+        "a_k_nonnegative_benders_compatible_atoms_only=True",
+        "simplex_master_convex=True",
+        "cvar_master_convex=True",
+        "l2_regularized_master_convex=True",
+        "training_executed_by_this_gate=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_fixed_artifact_acceptance",
+    ]:
+        assert needle in text
+
+
 def test_static_trainer_preserves_benders_compatible_reranking_contract() -> None:
     text = DOC.read_text(encoding="utf-8")
     source = SCRIPT.read_text(encoding="utf-8")
