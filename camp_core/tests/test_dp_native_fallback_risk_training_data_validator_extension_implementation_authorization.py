@@ -54,6 +54,13 @@ def test_authorization_records_reviewed_evidence_and_preconditions() -> None:
         "current_local_target_pytest=6 passed",
         "current_local_py_compile_exit=0",
         "current_local_git_diff_check_exit=0",
+        "status=fallback_risk_training_data_validator_extension_implementation_authorization_current_head_e5a7779_revalidated",
+        "current_authorization_revalidation_base_head=e5a777977e02da3e3a7499226943ca3951ff4f39",
+        "current_camp_origin_main_at_revalidation=e5a777977e02da3e3a7499226943ca3951ff4f39",
+        "current_github_refs_heads_main_at_revalidation=e5a777977e02da3e3a7499226943ca3951ff4f39",
+        "current_autodl_CAMP_HEAD_at_revalidation=e5a777977e02da3e3a7499226943ca3951ff4f39",
+        "current_autodl_CAMP_origin_main_at_revalidation=e5a777977e02da3e3a7499226943ca3951ff4f39",
+        "current_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_current_head_c9bd0e3_revalidated",
     ]:
         assert needle in text
 
@@ -142,6 +149,7 @@ def test_authorization_next_gate_is_implementation_only() -> None:
     for needle in [
         "status=fallback_risk_training_data_validator_extension_implementation_authorized",
         "status=fallback_risk_training_data_validator_extension_implementation_authorization_current_head_8ee65b2_revalidated",
+        "status=fallback_risk_training_data_validator_extension_implementation_authorization_current_head_e5a7779_revalidated",
         "passed=True",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_only",
         "may only implement the minimal default-off read-only validator",
@@ -166,6 +174,12 @@ def test_iteration_audit_tail_records_current_head_implementation_authorization(
         "current_autodl_CAMP_HEAD_at_revalidation=8ee65b2eda225e49002239ff6935bc17ba137dfe",
         "current_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "current_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_current_head_82cb821_revalidated",
+        "status=fallback_risk_training_data_validator_extension_implementation_authorization_current_head_e5a7779_revalidated",
+        "current_authorization_revalidation_base_head=e5a777977e02da3e3a7499226943ca3951ff4f39",
+        "current_github_refs_heads_main_at_revalidation=e5a777977e02da3e3a7499226943ca3951ff4f39",
+        "current_autodl_CAMP_HEAD_at_revalidation=e5a777977e02da3e3a7499226943ca3951ff4f39",
+        "current_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_validator_unit_tests_status=fallback_risk_training_data_validator_extension_unit_tests_current_head_c9bd0e3_revalidated",
         "implementation_authorized=True",
         "fallback_risk_training_data_validator_extension_implementation_authorized=True",
         "default_off_required=True",
