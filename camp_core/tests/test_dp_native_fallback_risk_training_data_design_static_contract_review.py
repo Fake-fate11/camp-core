@@ -181,7 +181,7 @@ def test_static_review_records_current_head_revalidation() -> None:
     text = _review()
     tail = "\n".join(text.splitlines()[-95:])
 
-    current_head = "68a64c4a33b0b7e0626f49a0ecf8a4ec0679a7c4"
+    current_head = "95f223e46f8b979feee61d63ab622473d6503540"
     for needle in [
         "status=fallback_risk_training_data_design_static_contract_review_current_head_revalidated_latest",
         "review_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review.md",
@@ -231,11 +231,11 @@ def test_iteration_audit_records_design_static_contract_review() -> None:
         "status=fallback_risk_training_data_design_static_contract_review_current_head_revalidated_latest",
         "review_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review.md",
         "review_test=camp_core/tests/test_dp_native_fallback_risk_training_data_design_static_contract_review.py",
-        "camp_head_at_revalidation=68a64c4a33b0b7e0626f49a0ecf8a4ec0679a7c4",
-        "camp_origin_main_at_revalidation=68a64c4a33b0b7e0626f49a0ecf8a4ec0679a7c4",
-        "github_refs_heads_main_at_revalidation=68a64c4a33b0b7e0626f49a0ecf8a4ec0679a7c4",
-        "autodl_CAMP_HEAD_at_revalidation=68a64c4a33b0b7e0626f49a0ecf8a4ec0679a7c4",
-        "autodl_CAMP_origin_main_at_revalidation=68a64c4a33b0b7e0626f49a0ecf8a4ec0679a7c4",
+        "camp_head_at_revalidation=95f223e46f8b979feee61d63ab622473d6503540",
+        "camp_origin_main_at_revalidation=95f223e46f8b979feee61d63ab622473d6503540",
+        "github_refs_heads_main_at_revalidation=95f223e46f8b979feee61d63ab622473d6503540",
+        "autodl_CAMP_HEAD_at_revalidation=95f223e46f8b979feee61d63ab622473d6503540",
+        "autodl_CAMP_origin_main_at_revalidation=95f223e46f8b979feee61d63ab622473d6503540",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_design_status=fallback_risk_training_data_design_plan_current_head_revalidated_latest",
         "prior_design_tail_verified=True",
