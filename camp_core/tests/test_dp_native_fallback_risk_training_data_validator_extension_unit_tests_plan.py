@@ -9,10 +9,15 @@ PLAN_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _plan() -> str:
     return PLAN_DOC.read_text(encoding="utf-8")
+
+
+def _iteration_audit() -> str:
+    return ITERATION_AUDIT.read_text(encoding="utf-8")
 
 
 def test_unit_tests_plan_records_preconditions() -> None:
@@ -35,6 +40,14 @@ def test_unit_tests_plan_records_preconditions() -> None:
         "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "latest_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_autodl_verification_passed",
         "latest_accepted_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "current_unit_tests_plan_revalidation_base_head=4af52fa851c930486d23dbbf2edd3dd4bd27ead5",
+        "current_camp_origin_main_at_revalidation=4af52fa851c930486d23dbbf2edd3dd4bd27ead5",
+        "current_github_refs_heads_main_at_revalidation=4af52fa851c930486d23dbbf2edd3dd4bd27ead5",
+        "current_autodl_CAMP_HEAD_at_revalidation=4af52fa851c930486d23dbbf2edd3dd4bd27ead5",
+        "current_autodl_CAMP_origin_main_at_revalidation=4af52fa851c930486d23dbbf2edd3dd4bd27ead5",
+        "current_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_autodl_verification_passed",
+        "current_accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
     ]:
         assert needle in text
 
@@ -141,6 +154,10 @@ def test_unit_tests_plan_forbids_execution_training_and_claims() -> None:
         "fallback_risk_training_authorized_now=False",
         "user_broad_execution_permission_recorded=True",
         "this_unit_tests_plan_gate_authorizes_broad_execution=False",
+        "validator_extension_unit_tests_authorized_next=True",
+        "current_local_target_pytest=8 passed",
+        "current_local_py_compile_exit=0",
+        "current_local_git_diff_check_exit=0",
         "latest_local_target_pytest=13 passed",
         "latest_autodl_target_pytest=13 passed",
     ]:
@@ -166,6 +183,7 @@ def test_unit_tests_plan_next_gate_tests_only() -> None:
 
     for needle in [
         "status=fallback_risk_training_data_validator_extension_unit_tests_plan_ready",
+        "status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_4af52fa_revalidated",
         "validator_extension_unit_tests_plan_complete=True",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only",
         "may only add synthetic unit tests",
@@ -176,3 +194,29 @@ def test_unit_tests_plan_next_gate_tests_only() -> None:
         "modify Diffusion Planner",
     ]:
         assert needle in text
+
+
+def test_iteration_audit_tail_records_current_head_unit_tests_plan() -> None:
+    text = _iteration_audit()
+    tail = text[-12000:]
+
+    for needle in [
+        "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Unit Tests Plan",
+        "status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_4af52fa_revalidated",
+        "current_unit_tests_plan_revalidation_base_head=4af52fa851c930486d23dbbf2edd3dd4bd27ead5",
+        "current_github_refs_heads_main_at_revalidation=4af52fa851c930486d23dbbf2edd3dd4bd27ead5",
+        "current_autodl_CAMP_HEAD_at_revalidation=4af52fa851c930486d23dbbf2edd3dd4bd27ead5",
+        "current_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "current_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_autodl_verification_passed",
+        "current_accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "current_local_target_pytest=8 passed",
+        "validator_extension_unit_tests_plan_complete=True",
+        "validator_extension_unit_tests_authorized_next=True",
+        "validator_extension_implementation_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only",
+    ]:
+        assert needle in tail
