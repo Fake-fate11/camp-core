@@ -636,16 +636,15 @@ def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> 
     tail = "\n".join(audit.splitlines()[-220:])
 
     assert (
-        "status=fallback_risk_training_sufficiency_preflight_current_head_fixed_artifact_acceptance_passed"
+        "status=fallback_risk_training_split_manifest_unit_tests_head_402b9a0_revalidated"
         in tail
     )
-    assert "local_target_pytest=140 passed" in tail
-    assert "local_preflight_acceptance_rerun_pytest=6 passed" in tail
+    assert "head_402b9a0_local_split_manifest_contract_pytest=8 passed" in tail
     assert "training_execution_authorized_now=False" in audit
     assert (
-        "source_summary_acceptance_status=fallback_risk_training_validated_dataset_summary_materializer_current_head_fixed_artifact_acceptance_passed"
+        "this_split_manifest_unit_tests_gate_authorizes_builder_training_replay_dp_or_claims=False"
         in tail
     )
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_command_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only`"
     )

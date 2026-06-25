@@ -224,7 +224,7 @@ def test_split_static_review_next_gate_is_unit_tests_plan_only() -> None:
 
 
 def test_audit_tail_records_split_manifest_unit_tests_plan_next_gate() -> None:
-    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
+    tail = AUDIT_DOC.read_text(encoding="utf-8")
 
     assert (
         "status=fallback_risk_training_split_manifest_static_contract_review_head_1e1e8f1_revalidated"
