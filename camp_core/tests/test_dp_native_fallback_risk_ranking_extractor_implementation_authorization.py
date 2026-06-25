@@ -104,7 +104,9 @@ def test_extractor_implementation_authorization_next_gate_implementation_only() 
 
 def test_extractor_implementation_authorization_current_head_revalidation() -> None:
     text = AUTH_DOC.read_text(encoding="utf-8")
-    tail = "\n".join(text.splitlines()[-90:])
+    tail = text.split(
+        "## Current-Head Revalidation After 91d4327 Default-Off Unit Tests"
+    )[-1]
 
     for needle in [
         "status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head",
@@ -116,10 +118,18 @@ def test_extractor_implementation_authorization_current_head_revalidation() -> N
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_unit_tests_status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated",
         "prior_unit_tests_head_at_revalidation=3512ae0e883952ff2342c8ea714fbcd811ac5b37",
+        "camp_head_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
+        "camp_origin_main_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
+        "github_refs_heads_main_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
+        "autodl_CAMP_HEAD_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
+        "prior_unit_tests_head_at_revalidation=91d4327200995903d2a2bbf0b5545033a6ed9cd7",
         "prior_unit_tests_eof_tail_verified=True",
         "default_off_contract_tests_pinned=True",
         "implementation_authorized=True",
         "fallback_risk_extractor_implementation_authorized=True",
+        "local_target_pytest=54 passed",
+        "autodl_target_pytest=54 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "training_authorized=False",
         "fallback_risk_training_authorized_now=False",
         "replay_execution_authorized=False",
@@ -141,18 +151,21 @@ def test_iteration_audit_records_extractor_implementation_authorization() -> Non
         "status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head",
         "authorization_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization.md",
         "authorization_test=camp_core/tests/test_dp_native_fallback_risk_ranking_extractor_implementation_authorization.py",
-        "camp_head_at_revalidation=950b0c829ec880b5feb5b5c7b863cd3c39f33664",
-        "camp_origin_main_at_revalidation=950b0c829ec880b5feb5b5c7b863cd3c39f33664",
-        "github_refs_heads_main_at_revalidation=950b0c829ec880b5feb5b5c7b863cd3c39f33664",
-        "autodl_CAMP_HEAD_at_revalidation=950b0c829ec880b5feb5b5c7b863cd3c39f33664",
-        "autodl_CAMP_origin_main_at_revalidation=950b0c829ec880b5feb5b5c7b863cd3c39f33664",
+        "camp_head_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
+        "camp_origin_main_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
+        "github_refs_heads_main_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
+        "autodl_CAMP_HEAD_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
+        "autodl_CAMP_origin_main_at_revalidation=9d92c1bb2221d208ed2d035eb92b5c8f8f91c4ef",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_unit_tests_status=fallback_risk_ranking_default_off_unit_tests_current_head_revalidated",
-        "prior_unit_tests_head_at_revalidation=3512ae0e883952ff2342c8ea714fbcd811ac5b37",
+        "prior_unit_tests_head_at_revalidation=91d4327200995903d2a2bbf0b5545033a6ed9cd7",
         "prior_unit_tests_eof_tail_verified=True",
         "default_off_contract_tests_pinned=True",
         "implementation_authorized=True",
         "fallback_risk_extractor_implementation_authorized=True",
+        "local_target_pytest=54 passed",
+        "autodl_target_pytest=54 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "training_authorized=False",
         "fallback_risk_training_authorized_now=False",
         "replay_execution_authorized=False",
