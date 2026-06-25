@@ -95,3 +95,21 @@ def test_extractor_implementation_authorization_next_gate_implementation_only() 
         "modify DP",
     ]:
         assert needle in text
+
+
+def test_extractor_implementation_authorization_current_head_revalidation() -> None:
+    text = AUTH_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "camp_head_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95",
+        "camp_origin_main_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95",
+        "github_refs_heads_main_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95",
+        "autodl_CAMP_HEAD_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95",
+        "autodl_CAMP_origin_main_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_unit_tests_status=fallback_risk_ranking_default_off_unit_tests_autodl_verification_passed",
+        "local_default_off_contract_pytest=22 passed",
+        "autodl_default_off_contract_pytest=22 passed",
+        "blocking_contract_findings=0",
+    ]:
+        assert needle in text

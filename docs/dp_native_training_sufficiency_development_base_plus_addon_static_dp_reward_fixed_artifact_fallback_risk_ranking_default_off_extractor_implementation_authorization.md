@@ -161,3 +161,44 @@ candidate_generation_authorized=False
 dp_modification_authorized=False
 production_selector_change_authorized=False
 ```
+
+## Current-Head Revalidation After Expanded Unit Tests
+
+Date: 2026-06-25
+
+The authorization remains valid after the expanded default-off contract tests
+and AutoDL revalidation at the current head:
+
+```text
+camp_head_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95
+camp_origin_main_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95
+github_refs_heads_main_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95
+autodl_CAMP_HEAD_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95
+autodl_CAMP_origin_main_at_revalidation=0cc23a249e0a22980d6bd364a54ea18a0f0e5a95
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_unit_tests_status=fallback_risk_ranking_default_off_unit_tests_autodl_verification_passed
+local_default_off_contract_pytest=22 passed
+autodl_default_off_contract_pytest=22 passed
+blocking_contract_findings=0
+```
+
+The next gate remains implementation-only and default-off:
+
+```text
+implementation_authorized=True
+fallback_risk_extractor_implementation_authorized=True
+default_off_required=True
+read_only_selection_log_input_only=True
+records_scope=records_without_feasible_candidate_only
+synthetic_unit_tests_required=True
+existing_contract_tests_must_continue_to_pass=True
+output_json_or_markdown_only=True
+training_authorized=False
+fallback_risk_training_authorized_now=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
