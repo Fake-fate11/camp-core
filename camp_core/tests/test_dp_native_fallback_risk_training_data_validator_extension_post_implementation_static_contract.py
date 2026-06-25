@@ -60,6 +60,10 @@ def test_review_doc_records_validator_post_implementation_contract() -> None:
         "local_target_pytest=30 passed",
         "user_broad_execution_permission_recorded=True",
         "this_post_static_gate_authorizes_training_replay_dp_or_claims=False",
+        "status=fallback_risk_training_data_validator_extension_post_implementation_static_contract_current_head_c087f90_revalidated",
+        "latest_post_static_revalidation_base_head=c087f9036691a7bb5339b6e9f9969a9d29437741",
+        "latest_autodl_CAMP_HEAD_at_revalidation=c087f9036691a7bb5339b6e9f9969a9d29437741",
+        "latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_current_head_edeec5b_revalidated",
     ]:
         assert needle in combined
 
