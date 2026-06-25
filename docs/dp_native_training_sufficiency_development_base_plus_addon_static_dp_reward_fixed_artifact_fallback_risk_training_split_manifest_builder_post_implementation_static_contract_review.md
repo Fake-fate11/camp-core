@@ -188,3 +188,74 @@ outputs. It must not train CAMP, run replay, generate candidates, modify
 Diffusion Planner, use formal seeds, relax hard feasibility, add
 all-infeasible records to the feasible-ranking master, promote a selector or
 atom, or claim safety/CAMP-over-DP benefit.
+
+## Latest Current-Head Static Contract Revalidation
+
+Date: 2026-06-25
+
+Revalidated this post-implementation static contract review against the latest
+builder implementation gate. The builder remains default-off, read-only, and
+fail-closed for malformed or out-of-contract records. This gate does not run
+the builder on the fixed artifact, generate a fixed-artifact split manifest,
+train or retrain CAMP, run replay, generate candidates, modify Diffusion
+Planner, promote selectors or atoms, deploy, or make safety/CAMP-over-DP
+claims.
+
+```text
+latest_implementation=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_split_manifest.py
+latest_implementation_tests=camp_core/tests/test_dp_native_fallback_risk_training_split_manifest_builder.py
+latest_implementation_authorization=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization.md
+latest_builder_implementation_tail_status=fallback_risk_training_split_manifest_builder_implementation_autodl_verification_passed
+camp_head_at_latest_review=9d7531667682a2716e92e179c1f93cc5b8c574dd
+camp_origin_main_at_latest_review=9d7531667682a2716e92e179c1f93cc5b8c574dd
+github_refs_heads_main_at_latest_review=9d7531667682a2716e92e179c1f93cc5b8c574dd
+autodl_CAMP_HEAD_at_latest_review=9d7531667682a2716e92e179c1f93cc5b8c574dd
+autodl_CAMP_origin_main_at_latest_review=9d7531667682a2716e92e179c1f93cc5b8c574dd
+autodl_DP_HEAD_at_latest_review=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Latest contract boundary:
+
+```text
+latest_default_off_boundary_passed=True
+latest_dataset_source_boundary_passed=True
+latest_split_identity_policy_passed=True
+latest_forbidden_feature_formal_boundary_passed=True
+latest_output_preflight_boundary_passed=True
+latest_record_identity_hash_missing_fails_closed=True
+latest_fixed_artifact_manifest_generation_authorized=False
+latest_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
+```
+
+Latest verification:
+
+```text
+latest_local_py_compile_exit=0
+latest_local_post_static_target_pytest=7 passed
+latest_local_builder_target_pytest=9 passed
+latest_local_combined_target_pytest=16 passed
+latest_autodl_py_compile_exit=0
+latest_autodl_combined_target_pytest=16 passed
+latest_autodl_git_diff_check_exit=0
+```
+
+Latest decision:
+
+```text
+latest_status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed
+latest_passed=True
+latest_static_contract_review_complete=True
+latest_blocking_contract_findings=0
+latest_fixed_artifact_manifest_generation_authorized=False
+latest_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
+latest_training_not_executed=True
+latest_candidate_generation_not_executed=True
+latest_dp_not_modified=True
+latest_selector_or_atom_not_promoted=True
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only
+```

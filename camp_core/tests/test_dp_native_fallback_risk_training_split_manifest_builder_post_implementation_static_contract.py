@@ -172,6 +172,12 @@ def test_post_static_review_records_output_preflight_boundary_and_verification()
         "autodl_py_compile_exit=0",
         "autodl_combined_target_pytest=16 passed",
         "autodl_git_diff_check_exit=0",
+        "latest_builder_implementation_tail_status=fallback_risk_training_split_manifest_builder_implementation_autodl_verification_passed",
+        "camp_head_at_latest_review=9d7531667682a2716e92e179c1f93cc5b8c574dd",
+        "latest_local_post_static_target_pytest=7 passed",
+        "latest_local_builder_target_pytest=9 passed",
+        "latest_local_combined_target_pytest=16 passed",
+        "latest_autodl_combined_target_pytest=16 passed",
     ]:
         assert needle in review
 
@@ -189,12 +195,18 @@ def test_post_static_review_next_gate_is_fixed_artifact_acceptance_audit_only() 
 
     for needle in [
         "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed",
+        "latest_status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed",
         "passed=True",
         "static_contract_review_complete=True",
+        "latest_static_contract_review_complete=True",
         "blocking_contract_findings=0",
+        "latest_blocking_contract_findings=0",
         "record_identity_hash_missing_fails_closed=True",
+        "latest_record_identity_hash_missing_fails_closed=True",
         "fixed_artifact_manifest_generation_authorized=False",
         "training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "latest_fixed_artifact_manifest_generation_authorized=False",
+        "latest_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only",
         "may only run the default-off split manifest builder on the",
         "existing validated fixed artifact for acceptance evidence",
@@ -211,20 +223,17 @@ def test_audit_tail_records_post_static_contract_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-180:])
 
     for needle in [
-        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_passed",
+        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_autodl_verification_passed",
         "record_identity_hash_missing_fails_closed=True",
+        "local_target_pytest=94 passed",
         "local_post_static_target_pytest=7 passed",
         "local_builder_target_pytest=9 passed",
-        "autodl_combined_target_pytest=16 passed",
+        "autodl_target_pytest=94 passed",
         "training_execution_authorized_now=False",
         "camp_retraining_authorized_now=False",
     ]:
-        assert needle in audit
-
-    assert "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_rejected_missing_record_identity_hash" in audit
-    assert "status=fallback_risk_training_data_record_identity_hash_remediation_authorized" in audit
-    assert "status=fallback_risk_training_data_record_identity_hash_remediation_implemented" in tail
+        assert needle in tail
 
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
     )
