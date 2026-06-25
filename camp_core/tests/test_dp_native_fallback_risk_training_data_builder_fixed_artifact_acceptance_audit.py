@@ -9,10 +9,15 @@ AUDIT_DOC = (
     / "docs"
     / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_audit.md"
 )
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
 
 
 def _audit() -> str:
     return AUDIT_DOC.read_text(encoding="utf-8")
+
+
+def _iteration_audit() -> str:
+    return ITERATION_AUDIT.read_text(encoding="utf-8")
 
 
 def test_acceptance_audit_records_fixed_nonformal_artifact_identity() -> None:
@@ -41,6 +46,15 @@ def test_acceptance_audit_records_fixed_nonformal_artifact_identity() -> None:
         "latest_camp_head_at_revalidation=6adb80021bf6590cf3e3a9660821a8b4c369af1a",
         "latest_autodl_CAMP_HEAD_at_revalidation=6adb80021bf6590cf3e3a9660821a8b4c369af1a",
         "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "da0e617_artifact_scope=broader_nonformal_fixed_evaluation_artifact",
+        "da0e617_selection_logs=12",
+        "da0e617_formal_seed_path_matches=0",
+        "da0e617_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_da0e617_20260625T080225Z",
+        "da0e617_builder_output_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "da0e617_builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823",
+        "da0e617_camp_head_at_revalidation=da0e6171e30ee1be920bf58b477082f95a80b618",
+        "da0e617_autodl_CAMP_HEAD_at_revalidation=da0e6171e30ee1be920bf58b477082f95a80b618",
+        "da0e617_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     ]:
         assert needle in text
 
@@ -86,6 +100,18 @@ def test_acceptance_audit_records_dataset_counts_and_status() -> None:
         "latest_errors=0",
         "latest_record_candidate_counts=4",
         "latest_oracle_policies=lane/red/quality,red/lane/quality",
+        "da0e617_schema_version=dp_native_fallback_risk_training_data_v1",
+        "da0e617_status=dp_native_fallback_risk_training_data_builder_complete",
+        "da0e617_passed=True",
+        "da0e617_enabled=True",
+        "da0e617_records_total=60",
+        "da0e617_records_without_feasible_candidate=15",
+        "da0e617_records_with_feasible_candidate=45",
+        "da0e617_records_built=15",
+        "da0e617_failed_records=0",
+        "da0e617_errors=0",
+        "da0e617_record_candidate_counts=4",
+        "da0e617_oracle_policies=lane/red/quality,red/lane/quality",
     ]:
         assert needle in text
 
@@ -163,6 +189,22 @@ def test_acceptance_audit_forbids_training_replay_dp_and_claims() -> None:
         "latest_all_infeasible_records_added_to_feasible_training=False",
         "latest_hard_feasibility_relaxation_authorized=False",
         "latest_fallback_dataset_training_sufficiency_claim=False",
+        "da0e617_replay_execution_authorized=False",
+        "da0e617_candidate_generation_authorized=False",
+        "da0e617_camp_training_authorized=False",
+        "da0e617_camp_retraining_authorized=False",
+        "da0e617_formal_seeds_11_12_13_authorized=False",
+        "da0e617_dp_modification_authorized=False",
+        "da0e617_selector_promotion_authorized=False",
+        "da0e617_atom_promotion_authorized=False",
+        "da0e617_safety_benefit_claim_authorized=False",
+        "da0e617_camp_over_dp_top1_claim_authorized=False",
+        "da0e617_training_authorized=False",
+        "da0e617_production_selector_change_authorized=False",
+        "da0e617_online_selector_change_authorized=False",
+        "da0e617_feasible_ranking_master_change_authorized=False",
+        "da0e617_all_infeasible_records_added_to_feasible_training=False",
+        "da0e617_hard_feasibility_relaxation_authorized=False",
     ]:
         assert needle in text
 
@@ -186,9 +228,11 @@ def test_acceptance_audit_next_gate_is_validator_extension_plan_only() -> None:
     for needle in [
         "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_passed",
         "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_rerun_passed",
+        "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_da0e617_passed",
         "fixed_artifact_acceptance_audit_complete=True",
         "accepted_fallback_records=15",
         "fallback_dataset_artifact_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018",
+        "fallback_dataset_artifact_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
         "may only plan a validator extension",
         "must not implement training",
@@ -198,3 +242,27 @@ def test_acceptance_audit_next_gate_is_validator_extension_plan_only() -> None:
         "promote a selector or atom",
     ]:
         assert needle in text
+
+
+def test_iteration_audit_tail_records_current_head_acceptance_and_next_gate() -> None:
+    text = _iteration_audit()
+
+    tail = text[-12000:]
+    for needle in [
+        "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Default-Off Builder Fixed-Artifact Acceptance Audit",
+        "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_da0e617_passed",
+        "artifact_scope=broader_nonformal_fixed_evaluation_artifact",
+        "selection_logs=12",
+        "formal_seed_path_matches=0",
+        "builder_output_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "camp_head_at_revalidation=da0e6171e30ee1be920bf58b477082f95a80b618",
+        "autodl_CAMP_HEAD_at_revalidation=da0e6171e30ee1be920bf58b477082f95a80b618",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "records_total=60",
+        "records_built=15",
+        "training_authorized=False",
+        "camp_retraining_authorized=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
+    ]:
+        assert needle in tail
