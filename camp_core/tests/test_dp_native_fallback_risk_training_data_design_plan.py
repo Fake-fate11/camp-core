@@ -156,9 +156,11 @@ def test_training_data_design_plan_next_gate_static_review_only() -> None:
 
 def test_training_data_design_plan_records_current_head_revalidation() -> None:
     text = _text()
-    tail = "\n".join(text.splitlines()[-90:])
+    tail = text.split(
+        "## Current-Head Revalidation After 2bd9d52 Extractor Post-Contract"
+    )[-1]
 
-    current_head = "f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09"
+    current_head = "67a6b659b11f2cf13c162ff9f3f707ea1b50d95a"
     for needle in [
         "status=fallback_risk_training_data_design_plan_current_head_revalidated_latest",
         f"camp_head_at_revalidation={current_head}",
@@ -168,13 +170,21 @@ def test_training_data_design_plan_records_current_head_revalidation() -> None:
         f"autodl_CAMP_origin_main_at_revalidation={current_head}",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_extractor_contract_status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_current_head_revalidated_latest",
+        "prior_extractor_contract_head_at_revalidation=2bd9d5205d23cd223cc636c00648d638c9d18637",
         "prior_extractor_contract_tail_verified=True",
         "prior_extractor_contract_autodl_verified=True",
+        "user_camp_retraining_permission_available_for_future_training_gate=True",
         "fallback_training_data_design_complete=True",
         "blocking_contract_findings=0",
         "local_py_compile_exit=0",
-        "local_target_pytest=45 passed",
-        "local_git_diff_check_exit=0",
+        "local_target_pytest=77 passed",
+        "local_diff_check=0 findings",
+        f"autodl_CAMP_HEAD={current_head}",
+        f"autodl_CAMP_origin_main={current_head}",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=77 passed",
+        "autodl_diff_check=0 findings",
         "dataset_builder_implementation_authorized=False",
         "validator_extension_implementation_authorized=False",
         "training_execution_authorized_now=False",
@@ -201,20 +211,28 @@ def test_iteration_audit_records_training_data_design_plan() -> None:
         "status=fallback_risk_training_data_design_plan_current_head_revalidated_latest",
         "design_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_plan.md",
         "design_test=camp_core/tests/test_dp_native_fallback_risk_training_data_design_plan.py",
-        "camp_head_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
-        "camp_origin_main_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
-        "github_refs_heads_main_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
-        "autodl_CAMP_HEAD_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
-        "autodl_CAMP_origin_main_at_revalidation=f9ae9198415ce54ebaa24ef2f6cb981ab8a5fe09",
+        "camp_head_at_revalidation=67a6b659b11f2cf13c162ff9f3f707ea1b50d95a",
+        "camp_origin_main_at_revalidation=67a6b659b11f2cf13c162ff9f3f707ea1b50d95a",
+        "github_refs_heads_main_at_revalidation=67a6b659b11f2cf13c162ff9f3f707ea1b50d95a",
+        "autodl_CAMP_HEAD_at_revalidation=67a6b659b11f2cf13c162ff9f3f707ea1b50d95a",
+        "autodl_CAMP_origin_main_at_revalidation=67a6b659b11f2cf13c162ff9f3f707ea1b50d95a",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "prior_extractor_contract_status=fallback_risk_ranking_default_off_extractor_post_implementation_static_contract_current_head_revalidated_latest",
+        "prior_extractor_contract_head_at_revalidation=2bd9d5205d23cd223cc636c00648d638c9d18637",
         "prior_extractor_contract_tail_verified=True",
         "prior_extractor_contract_autodl_verified=True",
+        "user_camp_retraining_permission_available_for_future_training_gate=True",
         "fallback_training_data_design_complete=True",
         "blocking_contract_findings=0",
         "local_py_compile_exit=0",
-        "local_target_pytest=45 passed",
-        "local_git_diff_check_exit=0",
+        "local_target_pytest=77 passed",
+        "local_diff_check=0 findings",
+        "autodl_CAMP_HEAD=67a6b659b11f2cf13c162ff9f3f707ea1b50d95a",
+        "autodl_CAMP_origin_main=67a6b659b11f2cf13c162ff9f3f707ea1b50d95a",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=77 passed",
+        "autodl_diff_check=0 findings",
         "dataset_builder_implementation_authorized=False",
         "validator_extension_implementation_authorized=False",
         "fallback_risk_smoke_authorized_now=False",
