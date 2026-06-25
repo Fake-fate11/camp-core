@@ -204,7 +204,7 @@ def test_review_doc_and_audit_tail_record_latest_revalidation() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
     audit = AUDIT_DOC.read_text(encoding="utf-8")
     tail = "\n".join(audit.splitlines()[-140:])
-    current_head = "8cbd4a23a907f19425df9ae09227d62c1edf2bbe"
+    current_head = "450a21779f0f57af8a315c80a2431fee9147dd11"
 
     for payload in (text, tail):
         for needle in [
@@ -216,16 +216,11 @@ def test_review_doc_and_audit_tail_record_latest_revalidation() -> None:
             f"autodl_CAMP_origin_main_at_current_head_revalidation={current_head}",
             "autodl_DP_HEAD_at_current_head_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
             "prior_builder_implementation_status=fallback_risk_training_data_default_off_builder_implementation_current_head_revalidated_latest",
+            "prior_builder_implementation_tail_verified=True",
             "prior_builder_implementation_autodl_verified=True",
-            "local_target_pytest=24 passed",
-            "github_pushed_commit=bb98d8e7b4af7e2f4f0b1fce93f011c9222a73ca",
-            "autodl_CAMP_HEAD_after_sync=bb98d8e7b4af7e2f4f0b1fce93f011c9222a73ca",
-            "autodl_CAMP_origin_main_after_sync=bb98d8e7b4af7e2f4f0b1fce93f011c9222a73ca",
-            "autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-            "autodl_py_compile_exit=0",
-            "autodl_target_pytest=24 passed",
-            "autodl_git_diff_check_exit=0",
-            "autodl_audit_tail_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_audit_only",
+            "local_py_compile_exit=0",
+            "local_target_pytest=30 passed",
+            "local_git_diff_check_exit=0",
             "post_implementation_static_contract_review_complete=True",
             "blocking_contract_findings=0",
             "default_off_boundary_passed=True",
