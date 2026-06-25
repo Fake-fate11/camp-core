@@ -234,6 +234,9 @@ current_head_static_contract_revalidated=True
 local_py_compile_exit=0
 local_target_pytest=23 passed
 local_git_diff_check_exit=0
+autodl_py_compile_exit=0
+autodl_target_pytest=23 passed
+autodl_git_diff_check_exit=0
 fixed_candidate_boundary_passed=True
 affine_score_boundary_passed=True
 score_expression=score_k(w)=a_k^T w
