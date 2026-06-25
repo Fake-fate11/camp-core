@@ -285,8 +285,12 @@ def test_audit_tail_records_split_manifest_unit_tests_only_next_gate() -> None:
         "this_split_manifest_unit_tests_plan_gate_authorizes_builder_training_replay_dp_or_claims=False"
         in tail
     )
+    assert (
+        "status=fallback_risk_training_split_manifest_unit_tests_head_e1f925a_revalidated"
+        in tail
+    )
     assert "training_execution_authorized_now=False" in tail
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only`"
         in tail
     )
