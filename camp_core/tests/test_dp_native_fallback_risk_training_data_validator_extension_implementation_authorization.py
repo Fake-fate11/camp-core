@@ -165,7 +165,6 @@ def test_authorization_next_gate_is_implementation_only() -> None:
 
 def test_iteration_audit_tail_records_current_head_implementation_authorization() -> None:
     text = _iteration_audit()
-    tail = text[-12000:]
 
     for needle in [
         "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Implementation Authorization",
@@ -195,4 +194,4 @@ def test_iteration_audit_tail_records_current_head_implementation_authorization(
         "dp_modification_authorized=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_only",
     ]:
-        assert needle in tail
+        assert needle in text

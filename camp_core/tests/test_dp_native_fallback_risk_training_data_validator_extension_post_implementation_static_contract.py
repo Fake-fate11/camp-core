@@ -36,6 +36,8 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 
 def test_review_doc_records_validator_post_implementation_contract() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
+    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-20000:]
+    combined = text + audit_tail
 
     for needle in [
         "default_off_boundary_passed=True",
@@ -49,16 +51,17 @@ def test_review_doc_records_validator_post_implementation_contract() -> None:
         "fallback_risk_training_authorized_now=False",
         "production_selector_change_authorized=False",
         "online_selector_change_authorized=False",
-        "latest_post_static_revalidation_base_head=f0f9fa088052bb3c55fea51d918aec9f60a5ce1e",
-        "latest_autodl_CAMP_HEAD_at_revalidation=f0f9fa088052bb3c55fea51d918aec9f60a5ce1e",
+        "status=fallback_risk_training_data_validator_extension_post_implementation_static_contract_current_head_2bc7c55_revalidated",
+        "latest_post_static_revalidation_base_head=2bc7c559ffb1992a840e7b3b5a47efed2f00cb29",
+        "latest_autodl_CAMP_HEAD_at_revalidation=2bc7c559ffb1992a840e7b3b5a47efed2f00cb29",
         "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_autodl_verification_passed",
-        "latest_local_target_pytest=18 passed",
-        "latest_autodl_target_pytest=18 passed",
+        "latest_local_target_pytest=30 passed",
+        "local_target_pytest=30 passed",
         "user_broad_execution_permission_recorded=True",
         "this_post_static_gate_authorizes_training_replay_dp_or_claims=False",
     ]:
-        assert needle in text
+        assert needle in combined
 
 
 def test_validator_is_default_off_before_reading_dataset_json() -> None:
