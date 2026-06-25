@@ -65,6 +65,37 @@ def test_review_doc_records_preflight_post_implementation_contract() -> None:
         assert needle in text
 
 
+def test_current_head_f474ee0_static_contract_revalidation_is_pinned() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_f474ee0_revalidated",
+        "post_static_contract_base_head=f474ee068de666f450d37c66d1d5a9b53a4f3d8d",
+        "camp_origin_main_at_post_static_contract=f474ee068de666f450d37c66d1d5a9b53a4f3d8d",
+        "github_refs_heads_main_at_post_static_contract=f474ee068de666f450d37c66d1d5a9b53a4f3d8d",
+        "autodl_CAMP_HEAD_at_post_static_contract=f474ee068de666f450d37c66d1d5a9b53a4f3d8d",
+        "autodl_CAMP_origin_main_at_post_static_contract=f474ee068de666f450d37c66d1d5a9b53a4f3d8d",
+        "autodl_DP_HEAD_at_post_static_contract=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_implementation_status=fallback_risk_training_sufficiency_preflight_implementation_head_be3b522_revalidated",
+        "head_f474ee0_validated_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0",
+        "head_f474ee0_expected_validated_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0",
+        "head_f474ee0_source_expected_sha_current=True",
+        "head_f474ee0_default_off_boundary_passed=True",
+        "head_f474ee0_read_only_manifest_boundary_passed=True",
+        "head_f474ee0_training_sufficiency_boundary_passed=True",
+        "head_f474ee0_affine_score_boundary_preserved=True",
+        "head_f474ee0_approved_atom_names_match_dp_camp_v10_14d=True",
+        "head_f474ee0_blocking_contract_findings=0",
+        "head_f474ee0_local_target_pytest=37 passed",
+        "head_f474ee0_training_not_executed=True",
+        "head_f474ee0_candidate_generation_not_executed=True",
+        "head_f474ee0_dp_not_modified=True",
+        "head_f474ee0_selector_or_atom_not_promoted=True",
+        "this_post_static_gate_authorizes_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in text
+
+
 def test_preflight_is_default_off_before_reading_any_manifest() -> None:
     tree = _tree()
     source = _source()
@@ -195,18 +226,18 @@ def test_review_next_gate_is_training_split_manifest_plan_only() -> None:
         assert needle in text
 
 
-def test_audit_tail_records_current_implementation_gate_as_next_static_contract() -> None:
+def test_audit_tail_records_current_post_static_gate_as_split_plan_next() -> None:
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
 
     assert (
-        "status=fallback_risk_training_sufficiency_preflight_implementation_head_be3b522_revalidated"
+        "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_f474ee0_revalidated"
         in tail
     )
     assert (
-        "new_expected_validated_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0"
+        "head_f474ee0_expected_validated_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0"
         in tail
     )
     assert "training_execution_authorized_now=False" in tail
     assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only`"
     )
