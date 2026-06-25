@@ -267,6 +267,12 @@ def test_fallback_risk_audit_doc_pins_real_artifact_result() -> None:
         "remote_audit_json_sha256=52bb6f5168483cf6843a98214a21f1d597e31030eb1dbb47387a827e87732fcc",
         "remote_audit_md_sha256=843236dd8f0cdfaad4a3c52252bce922faed04aa0c8a05c97ddadc9276f5e75c",
         "remote_artifact_audit_exit=0",
+        "camp_head_at_revalidation=5dbb8df93c6dc29dda68b3fc958ef870281103c1",
+        "camp_origin_main_at_revalidation=5dbb8df93c6dc29dda68b3fc958ef870281103c1",
+        "remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_5dbb8df_20260625T_current_tail",
+        "remote_audit_json_sha256=14c5bf7dfb6204ba8c47983f38cc326f5a4cca29ff63fb8f85a23cfef4437dd4",
+        "remote_audit_md_sha256=3124737477f1d6b5721dcdf585fcb382096b4e3bf29921283a3ad11695280746",
+        "autodl_target_pytest=14 passed",
         NEXT_DESIGN_GATE,
     ]:
         assert needle in text
@@ -312,6 +318,7 @@ def test_fallback_risk_audit_doc_forbids_nonpaper_routes() -> None:
 
 def test_iteration_audit_records_current_head_ranking_audit_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-170:])
 
     for needle in [
         "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete",
@@ -331,3 +338,25 @@ def test_iteration_audit_records_current_head_ranking_audit_next_gate() -> None:
         NEXT_DESIGN_GATE,
     ]:
         assert needle in audit
+
+    for needle in [
+        "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete",
+        "audit_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_audit.md",
+        "camp_head_at_revalidation=5dbb8df93c6dc29dda68b3fc958ef870281103c1",
+        "autodl_CAMP_HEAD_at_revalidation=5dbb8df93c6dc29dda68b3fc958ef870281103c1",
+        "dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "remote_audit_json_sha256=14c5bf7dfb6204ba8c47983f38cc326f5a4cca29ff63fb8f85a23cfef4437dd4",
+        "autodl_target_pytest=14 passed",
+        "records_without_feasible_candidate=15",
+        "lower_risk_fixed_candidate_exists_under_logged_costs=True",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in tail
+
+    assert tail.rstrip().endswith(f"`{NEXT_DESIGN_GATE}`")
