@@ -150,6 +150,12 @@ def test_fallback_risk_remediation_design_current_head_revalidation() -> None:
         "autodl_CAMP_HEAD_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4",
         "prior_ranking_revalidation_json_sha256=14c5bf7dfb6204ba8c47983f38cc326f5a4cca29ff63fb8f85a23cfef4437dd4",
         "prior_ranking_revalidation_md_sha256=3124737477f1d6b5721dcdf585fcb382096b4e3bf29921283a3ad11695280746",
+        "camp_head_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
+        "camp_origin_main_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
+        "github_refs_heads_main_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
+        "autodl_CAMP_HEAD_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
+        "prior_ranking_revalidation_json_sha256=160a03e46343862f20e65ea5c0e39724c643a0011a5738bb68609adfef66ccbb",
+        "prior_ranking_revalidation_md_sha256=f292a664b5f372a12bbfa350408ded4a29c7f3ed49b1fd638364b8b685ba2979",
         NEXT_STATIC_REVIEW_GATE,
     ]:
         assert needle in text
@@ -180,10 +186,10 @@ def test_iteration_audit_records_remediation_design_plan_next_gate() -> None:
     for needle in [
         "status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
         "design_plan=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan.md",
-        "camp_head_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4",
-        "autodl_CAMP_HEAD_at_revalidation=123ea3d24be9120cbe3251e89ec054a0e641eae4",
+        "camp_head_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
+        "autodl_CAMP_HEAD_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "prior_ranking_revalidation_json_sha256=14c5bf7dfb6204ba8c47983f38cc326f5a4cca29ff63fb8f85a23cfef4437dd4",
+        "prior_ranking_revalidation_json_sha256=160a03e46343862f20e65ea5c0e39724c643a0011a5738bb68609adfef66ccbb",
         "current_head_design_plan_revalidated=True",
         "score_expression=score_k(w)=a_k^T w",
         "fallback_cost_targets_nonnegative=True",

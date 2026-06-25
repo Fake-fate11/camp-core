@@ -400,3 +400,59 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only
 ```
+
+## Current-Head Revalidation After Fixed-Artifact Ranking Audit Revalidation
+
+Date: 2026-06-26
+
+The plan remains valid after the current fixed-artifact fallback-risk ranking
+audit revalidation was recorded and synchronized across local, GitHub, and
+AutoDL CAMP. This remains a plan-only gate over existing fixed artifacts.
+
+```text
+camp_head_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc
+camp_origin_main_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc
+github_refs_heads_main_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc
+autodl_CAMP_HEAD_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc
+autodl_CAMP_origin_main_at_revalidation=e7315c42398ed095a7df3e2e7ba5bdcbb4b8a0bc
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_ranking_revalidation_status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+prior_ranking_revalidation_failed_checks=[]
+prior_ranking_revalidation_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_760f736_20260625T164848Z
+prior_ranking_revalidation_json_sha256=160a03e46343862f20e65ea5c0e39724c643a0011a5738bb68609adfef66ccbb
+prior_ranking_revalidation_md_sha256=f292a664b5f372a12bbfa350408ded4a29c7f3ed49b1fd638364b8b685ba2979
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review
+passed=True
+current_head_design_plan_revalidated=True
+score_expression=score_k(w)=a_k^T w
+fallback_cost_targets_nonnegative=True
+simplex_master_convex_if_later_authorized=True
+cvar_master_convex_if_later_authorized=True
+l2_regularized_master_convex_if_later_authorized=True
+fixed_dp_candidate_reranking_only=True
+candidate_trajectory_rewrite_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This remains a plan-only gate. It does not implement the extractor, run replay,
+generate candidates, train CAMP, retrain CAMP, modify DP, use formal seeds,
+promote a selector or atom, deploy, or claim safety/CAMP-over-DP benefit.
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_static_contract_review_only
+```
