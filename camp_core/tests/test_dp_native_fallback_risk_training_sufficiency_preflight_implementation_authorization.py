@@ -15,6 +15,47 @@ def _auth() -> str:
     return AUTH_DOC.read_text(encoding="utf-8")
 
 
+def test_current_head_e5cc047_authorization_revalidation_is_pinned() -> None:
+    text = _auth()
+
+    for needle in [
+        "status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_e5cc047_revalidated",
+        "authorization_base_head=e5cc047a3f4c9e7a7d2b51ad77686ef8631895ce",
+        "camp_origin_main_at_head_e5cc047_authorization=e5cc047a3f4c9e7a7d2b51ad77686ef8631895ce",
+        "github_refs_heads_main_at_head_e5cc047_authorization=e5cc047a3f4c9e7a7d2b51ad77686ef8631895ce",
+        "autodl_CAMP_HEAD_at_head_e5cc047_authorization=e5cc047a3f4c9e7a7d2b51ad77686ef8631895ce",
+        "autodl_CAMP_origin_main_at_head_e5cc047_authorization=e5cc047a3f4c9e7a7d2b51ad77686ef8631895ce",
+        "autodl_DP_HEAD_at_head_e5cc047_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "audit_eof_prior_status=fallback_risk_training_data_training_sufficiency_unit_tests_current_head_0976c15_revalidated",
+        "head_e5cc047_validated_fallback_dataset_sha256=79e8ddd27b06f6d377819c64dace333e0e36af088505fe784bfee24f89f956c0",
+        "head_e5cc047_implementation_authorized=True",
+        "head_e5cc047_fallback_risk_training_sufficiency_preflight_implementation_authorized=True",
+        "head_e5cc047_default_off_required=True",
+        "head_e5cc047_read_only_manifest_inputs_only=True",
+        "head_e5cc047_must_return_before_reading_inputs_when_disabled=True",
+        "head_e5cc047_must_fail_closed_on_formal_seeds_or_formal_eval_leakage=True",
+        "head_e5cc047_must_preserve_score_k_equals_a_k_transpose_w_boundary=True",
+        "head_e5cc047_score_k(w)=a_k^T w",
+        "head_e5cc047_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "head_e5cc047_simplex_master_convex_if_later_authorized=True",
+        "head_e5cc047_cvar_master_convex_if_later_authorized=True",
+        "head_e5cc047_l2_regularized_master_convex_if_later_authorized=True",
+        "head_e5cc047_local_target_pytest=23 passed",
+        "head_e5cc047_training_not_executed=True",
+        "head_e5cc047_candidate_generation_not_executed=True",
+        "head_e5cc047_dp_not_modified=True",
+        "head_e5cc047_selector_or_atom_not_promoted=True",
+        "head_e5cc047_camp_training_authorized=False",
+        "head_e5cc047_camp_retraining_authorized=False",
+        "head_e5cc047_formal_seeds_11_12_13_authorized=False",
+        "head_e5cc047_safety_benefit_claim_authorized=False",
+        "head_e5cc047_camp_over_dp_top1_claim_authorized=False",
+        "this_authorization_gate_authorizes_preflight_implementation_only=True",
+        "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in text
+
+
 def test_authorization_records_preconditions_and_verified_tests() -> None:
     text = _auth()
 
