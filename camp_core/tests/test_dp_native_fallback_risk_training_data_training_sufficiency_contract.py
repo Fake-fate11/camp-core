@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-VALIDATED_DATASET_SHA = "0978687b1f7582f6644eb9598bdc5a9e03494ad227d1627bd603d54e15efb8e2"
+VALIDATED_DATASET_SHA = "9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018"
 APPROVED_SCHEMA = "dp_camp_v10_14d"
 APPROVED_ATOMS = (
     "jerk_early",
