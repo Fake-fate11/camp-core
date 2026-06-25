@@ -93442,6 +93442,61 @@ Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_only`
 
+## Current Tail Confirmation After Current HEAD Fallback Risk Training Data Training Sufficiency Unit Tests
+
+Date: 2026-06-25
+
+The fallback-risk training sufficiency unit-tests gate was revalidated with
+synthetic/static contract tests only. This closes the unit-tests-only gate and
+authorizes only the next implementation-authorization gate for the default-off
+read-only training sufficiency preflight. It does not train CAMP, run replay,
+generate candidates, modify Diffusion Planner, promote selectors or atoms,
+deploy, or make safety/CAMP-over-DP claims.
+
+```text
+status=fallback_risk_training_data_training_sufficiency_unit_tests_current_head_32da3cb_revalidated
+passed=True
+camp_head_at_revalidation=32da3cbd5352bd5a34f2a2a7981b90cef9232ce7
+camp_origin_main_at_revalidation=32da3cbd5352bd5a34f2a2a7981b90cef9232ce7
+github_refs_heads_main_at_revalidation=32da3cbd5352bd5a34f2a2a7981b90cef9232ce7
+autodl_CAMP_HEAD_at_revalidation=32da3cbd5352bd5a34f2a2a7981b90cef9232ce7
+autodl_CAMP_origin_main_at_revalidation=32da3cbd5352bd5a34f2a2a7981b90cef9232ce7
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+validated_fallback_records=15
+validated_fallback_dataset_sha256=9dae6215f7b35cd142c37da80c92b38cac1263ee229a5ecb9c4e7c7cd4785018
+synthetic_manifest_fixtures_only=True
+synthetic_dataset_summary_fixtures_only=True
+fixed_autodl_artifact_required_for_unit_tests=False
+formal_seeds_11_12_13_used=False
+replay_required_for_unit_tests=False
+candidate_generation_required_for_unit_tests=False
+training_required_for_unit_tests=False
+dp_required_for_unit_tests=False
+production_implementation_modified=False
+local_target_pytest_scope=exact_repo_test_file_copied_to_short_temp_path_due_windows_long_path_collection_issue
+local_target_pytest=17 passed
+local_target_pytest_exit=0
+local_py_compile_exit=0
+local_git_diff_check_exit=0
+training_sufficiency_unit_tests_complete=True
+training_sufficiency_preflight_implementation_authorization_gate_authorized_next=True
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_authorization_only`
+
 ---
 
 ### 2026-06-24 - Fixed-Artifact Fallback Risk Training Data Training Sufficiency Unit Tests

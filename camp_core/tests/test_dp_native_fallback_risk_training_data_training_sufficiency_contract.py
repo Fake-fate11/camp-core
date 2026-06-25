@@ -223,6 +223,10 @@ def _clean_payload() -> dict[str, Any]:
     }
 
 
+def _errors_for(payload: dict[str, Any]) -> list[str]:
+    return validate_training_sufficiency_preconditions(payload)["errors"]
+
+
 def test_clean_synthetic_preconditions_pass_without_training_authorization() -> None:
     report = validate_training_sufficiency_preconditions(_clean_payload())
 
@@ -231,6 +235,16 @@ def test_clean_synthetic_preconditions_pass_without_training_authorization() -> 
     assert report["training_authorized"] is False
     assert report["fallback_dataset_training_sufficiency_claim"] is False
     assert report["camp_retraining_authorized_now"] is False
+
+
+def test_rejects_missing_precondition_inputs() -> None:
+    errors = _errors_for({})
+
+    assert "validated_dataset_missing" in errors
+    assert "split_manifest_missing" in errors
+    assert "scale_manifest_missing" in errors
+    assert "fallback_master_config_missing" in errors
+    assert "training_command_plan_missing" in errors
 
 
 def test_rejects_dataset_sufficiency_and_checkpoint_claim_leaks() -> None:
@@ -246,6 +260,38 @@ def test_rejects_dataset_sufficiency_and_checkpoint_claim_leaks() -> None:
     assert "deployable_checkpoint_claim_leak" in errors
 
 
+def test_rejects_dataset_sha_validator_status_and_failed_validation() -> None:
+    payload = _clean_payload()
+    payload["validated_dataset"]["sha256"] = "wrong"
+    payload["validated_dataset"]["validator_status"] = "incomplete"
+    payload["validated_dataset"]["validator_passed"] = False
+
+    errors = _errors_for(payload)
+
+    assert "validated_dataset_sha_mismatch" in errors
+    assert "validator_status_not_complete" in errors
+    assert "validator_not_passed" in errors
+
+
+def test_rejects_missing_or_invalid_split_group_key() -> None:
+    payload = _clean_payload()
+    payload["split_manifest"]["group_key_fields"] = ["source_log", "record_index"]
+
+    errors = _errors_for(payload)
+
+    assert "split_group_key_invalid" in errors
+
+
+def test_rejects_empty_training_or_validation_groups() -> None:
+    payload = _clean_payload()
+    payload["split_manifest"]["training_groups"] = []
+    payload["split_manifest"]["validation_groups"] = []
+
+    errors = _errors_for(payload)
+
+    assert "split_train_or_validation_empty" in errors
+
+
 def test_rejects_split_overlap_formal_seed_and_formal_eval_leakage() -> None:
     payload = _clean_payload()
     payload["split_manifest"]["training_groups"].append("log_b:run_1:0")
@@ -257,6 +303,16 @@ def test_rejects_split_overlap_formal_seed_and_formal_eval_leakage() -> None:
     assert "split_train_validation_overlap" in errors
     assert "formal_seed_in_development_split" in errors
     assert "formal_eval_artifact_in_development_split" in errors
+
+
+def test_rejects_scale_manifest_without_split_manifest() -> None:
+    payload = _clean_payload()
+    del payload["split_manifest"]
+
+    errors = _errors_for(payload)
+
+    assert "split_manifest_missing" in errors
+    assert "scale_manifest_without_split" in errors
 
 
 def test_rejects_scale_fit_leakage_and_bad_atom_scale_contract() -> None:
@@ -277,6 +333,30 @@ def test_rejects_scale_fit_leakage_and_bad_atom_scale_contract() -> None:
     assert "atom_scale_jerk_early_not_strictly_positive" in errors
 
 
+def test_rejects_scale_atom_name_and_key_mismatch() -> None:
+    payload = _clean_payload()
+    payload["scale_manifest"]["atom_names"] = list(APPROVED_ATOMS[:-1])
+    payload["scale_manifest"]["atom_scales"].pop("jerk_late")
+
+    errors = _errors_for(payload)
+
+    assert "scale_atom_names_mismatch" in errors
+    assert "atom_scale_keys_mismatch" in errors
+
+
+def test_rejects_non_numeric_boolean_and_negative_atom_scales() -> None:
+    payload = _clean_payload()
+    payload["scale_manifest"]["atom_scales"]["jerk_early"] = True
+    payload["scale_manifest"]["atom_scales"]["jerk_late"] = "bad"
+    payload["scale_manifest"]["atom_scales"]["jerk_full"] = -1.0
+
+    errors = _errors_for(payload)
+
+    assert "atom_scale_jerk_early_not_strictly_positive" in errors
+    assert "atom_scale_jerk_late_not_strictly_positive" in errors
+    assert "atom_scale_jerk_full_not_strictly_positive" in errors
+
+
 def test_rejects_fallback_master_leaking_into_feasible_master() -> None:
     payload = _clean_payload()
     master = payload["fallback_master_config"]
@@ -295,6 +375,32 @@ def test_rejects_fallback_master_leaking_into_feasible_master() -> None:
     assert "hard_feasibility_relaxation_authorized_leak" in errors
     assert "score_expression_not_affine" in errors
     assert "fallback_label_promoted_to_atom" in errors
+
+
+def test_rejects_fallback_master_relabelling_and_feasible_master_changes() -> None:
+    payload = _clean_payload()
+    master = payload["fallback_master_config"]
+    master["all_infeasible_records_relabelled_feasible"] = True
+    master["feasible_ranking_master_change_authorized"] = True
+
+    errors = _errors_for(payload)
+
+    assert "all_infeasible_records_relabelled_feasible_leak" in errors
+    assert "feasible_ranking_master_change_authorized_leak" in errors
+
+
+def test_rejects_nonnegative_margin_and_convex_boundary_breaks() -> None:
+    payload = _clean_payload()
+    master = payload["fallback_master_config"]
+    master["atoms_fixed_nonnegative"] = False
+    master["margins_nonnegative"] = False
+    master["simplex_cvar_l2_convex"] = False
+
+    errors = _errors_for(payload)
+
+    assert "atoms_not_fixed_nonnegative" in errors
+    assert "margins_not_nonnegative" in errors
+    assert "convex_master_boundary_missing" in errors
 
 
 def test_rejects_training_command_execution_dp_changes_and_promotions() -> None:
@@ -328,6 +434,18 @@ def test_rejects_training_command_execution_dp_changes_and_promotions() -> None:
         "camp_over_dp_top1_claim_authorized_leak",
     ]:
         assert needle in errors
+
+
+def test_rejects_all_forbidden_command_flags() -> None:
+    payload = _clean_payload()
+    command = payload["training_command_plan"]
+    for flag in FORBIDDEN_COMMAND_FLAGS:
+        command[flag] = True
+
+    errors = _errors_for(payload)
+
+    for flag in FORBIDDEN_COMMAND_FLAGS:
+        assert f"{flag}_leak" in errors
 
 
 def test_rejects_missing_post_training_nonpromotion_and_holdout_gates() -> None:
