@@ -1,9 +1,19 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 
-VALIDATED_DATASET_SHA = "682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+UNIT_TESTS_DOC = (
+    REPO_ROOT
+    / "docs"
+    / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests.md"
+)
+ITERATION_AUDIT = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+
+
+VALIDATED_DATASET_SHA = "16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
 APPROVED_SCHEMA = "dp_camp_v10_14d"
 APPROVED_ATOMS = (
     "jerk_early",
@@ -225,6 +235,41 @@ def _clean_payload() -> dict[str, Any]:
 
 def _errors_for(payload: dict[str, Any]) -> list[str]:
     return validate_training_sufficiency_preconditions(payload)["errors"]
+
+
+def test_current_head_0506f8c_unit_tests_revalidation_is_pinned() -> None:
+    doc = UNIT_TESTS_DOC.read_text(encoding="utf-8")
+    iteration_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-16000:]
+    combined = doc + iteration_tail
+
+    assert VALIDATED_DATASET_SHA == (
+        "16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
+    )
+
+    for needle in [
+        "status=fallback_risk_training_data_training_sufficiency_unit_tests_current_head_0506f8c_revalidated",
+        "unit_tests_validation_base_head=0506f8c6e8b884ab8557917e35dd20b8cbd1c7a3",
+        "training_sufficiency_unit_tests_plan_status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_current_head_7ebc103_tail_counts_revalidated",
+        "validated_fallback_records=15",
+        "validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
+        "validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "strict_formal_seed_path_matches=0",
+        "contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_training_sufficiency_contract.py",
+        "local_target_pytest=18 passed",
+        "local_training_group_pytest=39 passed",
+        "local_cumulative_pytest=227 passed",
+        "autodl_target_pytest=18 passed",
+        "autodl_training_group_pytest=39 passed",
+        "autodl_cumulative_pytest=227 passed",
+        "training_sufficiency_unit_tests_complete=True",
+        "training_sufficiency_preflight_implementation_authorization_gate_authorized_next=True",
+        "fallback_risk_training_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_authorization_only",
+    ]:
+        assert needle in combined
 
 
 def test_clean_synthetic_preconditions_pass_without_training_authorization() -> None:
