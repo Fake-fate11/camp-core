@@ -355,3 +355,167 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit
 ```
+
+## Current HEAD Fixed-Artifact Acceptance After Record-Identity Command Authorization
+
+Date: 2026-06-26
+
+This current-head acceptance records the user-authorized fallback-risk CAMP
+retraining run over the current record-identity fixed DP-native candidate
+artifacts at CAMP HEAD `5c913aea29d821dbfb8bf47313309e9a7dafd305`.
+The run trained only a static CAMP reranking weight vector for the fallback-only
+all-infeasible branch. It did not run replay, generate candidates, modify
+Diffusion Planner, modify candidate trajectories, promote a selector or atom,
+or claim safety benefit or CAMP-over-DP Top-1.
+
+## Record-Identity Fixed Inputs
+
+```text
+dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.json
+dataset_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+training_split_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_e4f3831_20260626T012252Z/split_manifest.json
+training_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4
+train_only_scale_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_train_only_scale_manifest_acceptance_9d30a2d_20260626T013333Z/scale_manifest.json
+train_only_scale_manifest_json_sha256=8ec568461fb0887143b28899388544091aa613500673a2ffe7b1891316e62759
+fallback_master_config_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_master_command_acceptance_ee0ea6b_20260626T014601Z/fallback_master_config.json
+fallback_master_config_json_sha256=ea9d8ddf4bbf6a4fdebca9685c6cc1b625c3803837114301bb3537982a030364
+training_command_plan_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_master_command_acceptance_ee0ea6b_20260626T014601Z/training_command_plan.json
+training_command_plan_json_sha256=8a04ecb86b195bb472acbaf684ef6d0c942055345b3e1f5738326403a5b1e12d
+preflight_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_sufficiency_preflight_acceptance_e0347d8_20260626T020109Z/preflight.json
+preflight_json_sha256=8f68f312188ada4661aa6cb7dc91cbb9c5537df147ac5c3f0851ee6a5d00e8c5
+```
+
+## Record-Identity HEAD Evidence
+
+```text
+training_commit=5c913aea29d821dbfb8bf47313309e9a7dafd305
+autodl_CAMP_HEAD=5c913aea29d821dbfb8bf47313309e9a7dafd305
+autodl_CAMP_origin_main=5c913aea29d821dbfb8bf47313309e9a7dafd305
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+required_DP_fixed_commit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Record-Identity Authorized Scope Actually Run
+
+```text
+script=scripts/integrations/train_diffusion_planner_dp_native_fallback_risk_static_camp.py
+schema_version=dp_native_fallback_risk_static_camp_training_v1
+training_type=dp_native_fallback_risk_static_candidate_reranking
+training_scope=fallback_only_all_infeasible_fixed_dp_candidates
+objective=simplex_hinge_cvar_l2
+risk_type=cvar
+alpha=0.8
+epochs=400
+training_seed=23
+formal_seeds_11_12_13_used=False
+score_k(w)=a_k^T w
+fixed_dp_candidate_reranking_only=True
+fallback_only_training=True
+trajectory_generation_executed=False
+trajectory_rewrite_executed=False
+postprocess_postselection_executed=False
+```
+
+## Record-Identity Output Artifacts
+
+```text
+training_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_5c913ae_20260626T000000Z
+training_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_5c913ae_20260626T000000Z/training_artifacts
+training_summary_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_5c913ae_20260626T000000Z/training_summary.json
+training_summary_json_sha256=a82d2403276e2aaf3e151271426bfca91e113b4e79735a8ead7a359ee8f24fb4
+training_summary_md_sha256=18c8352bca1e0a590370a2ef3a6cdc7c52ef90d31941fe3e37c91b8a84cfc76a
+training_stdout_log_sha256=8ecea2e780da35cbf920cc4ca7a0686ded429585ae564c8772312100e1a2a860
+training_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40
+offline_weights_json_sha256=08fe4290defde501f03e99dc752c95432778b9fb973262255e9cf98ec097d0a3
+atom_scales_json_sha256=10360c02c3deb38a6504781497b4fb5f082e59e63d3aee961f691f4e853a1b21
+```
+
+## Record-Identity Result
+
+```text
+training_exit=0
+status=dp_native_fallback_risk_static_camp_training_complete
+passed=True
+training_authorized=True
+training_execution_authorized=True
+training_executed=True
+camp_retraining_authorized_now=True
+fallback_risk_training_authorized_now=True
+fixed_dp_candidate_reranking_only=True
+fallback_only_training=True
+training_records=13
+validation_records=2
+num_candidates=4
+num_atoms=14
+atom_schema_version=dp_camp_v10_14d
+weights_sum=1.0
+weights_min=0.0
+weights_max=1.0
+train_oracle_match_rate=0.3076923076923077
+validation_oracle_match_rate=0.5
+train_mean_violation=0.5104143049123017
+validation_mean_violation=0.03760588354777358
+```
+
+The zero minimum weight is a valid nonnegative simplex result for this
+non-promotion training artifact. It does not create a new atom, does not change
+the atom schema, and does not change the online selector.
+
+## Record-Identity Clean-Boundary Checks
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Record-Identity Verification
+
+```text
+remote_training_exit=0
+remote_summary_readback_passed=True
+remote_weights_simplex_nonnegative=True
+remote_dp_head_unchanged=True
+```
+
+## Record-Identity Decision
+
+```text
+status=fallback_risk_static_camp_training_current_head_5c913ae_fixed_artifact_acceptance_passed
+passed=True
+camp_retraining_started=True
+camp_retraining_completed=True
+training_artifacts_created=True
+static_weights_created=True
+atom_scales_created=True
+training_artifacts_nonpromotion=True
+deployment_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit
+```
