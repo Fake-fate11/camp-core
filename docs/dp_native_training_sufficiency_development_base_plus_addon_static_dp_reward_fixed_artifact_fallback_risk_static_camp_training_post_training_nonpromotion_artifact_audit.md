@@ -155,6 +155,109 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan_only
 ```
 
+## Current HEAD Record-Identity Post-Training Nonpromotion Artifact Audit
+
+Date: 2026-06-26
+
+This current-head audit re-reads the user-authorized fallback-risk static CAMP
+training artifacts created at training commit `5c913ae...` after the repository
+was synced to `fc21a13...`. It only validates artifact identity, simplex
+weights, atom scales, fixed-DP reranking scope, and non-promotion boundaries.
+It does not run Diffusion Planner, generate or rewrite trajectories, retrain
+CAMP, promote a selector or atom, deploy a checkpoint, or claim safety benefit.
+
+Audited training artifacts:
+
+```text
+training_commit=5c913aea29d821dbfb8bf47313309e9a7dafd305
+audit_execution_camp_head=fc21a130eb346e94b8a8fba8f1515e27e866ad7d
+training_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_5c913ae_20260626T000000Z
+training_summary_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_5c913ae_20260626T000000Z/training_summary.json
+training_summary_json_sha256=a82d2403276e2aaf3e151271426bfca91e113b4e79735a8ead7a359ee8f24fb4
+offline_weights_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_5c913ae_20260626T000000Z/training_artifacts/offline_weights_dp_fallback_risk_static.json
+offline_weights_json_sha256=08fe4290defde501f03e99dc752c95432778b9fb973262255e9cf98ec097d0a3
+offline_weights_npy=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_5c913ae_20260626T000000Z/training_artifacts/offline_weights_dp_fallback_risk_static.npy
+offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40
+atom_scales_json=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_5c913ae_20260626T000000Z/training_artifacts/atom_scales_dp_fallback_risk_static.json
+atom_scales_json_sha256=10360c02c3deb38a6504781497b4fb5f082e59e63d3aee961f691f4e853a1b21
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Remote audit artifact:
+
+```text
+remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_5c913ae_fc21a13_20260626T000000Z
+remote_audit_json_sha256=2f9f9c163bb14a0b058d33d051d32d0c153a422429260c1ebea6527e5a556bea
+remote_audit_md_sha256=eb3efbd544569fc476c4c8da1b071c5c3b210bf3b92101b405ebba66abd365a6
+remote_audit_stdout_log_sha256=798df11d416c0c0e5fd4bd00b537391d5cf4d7f3008932dbb286f155e9a9ca38
+remote_audit_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+remote_audit_exit=0
+remote_summary_readback_passed=True
+```
+
+Current audit result:
+
+```text
+status=dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_complete
+passed=True
+enabled=True
+post_training_nonpromotion_artifact_audit_passed=True
+training_artifacts_nonpromotion=True
+fixed_dp_candidate_reranking_only=True
+fallback_only_training_artifact=True
+score_expression=score_k(w)=a_k^T w
+training_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized_now=False
+fallback_risk_training_authorized_now=False
+```
+
+Current artifact checks:
+
+```text
+training_summary_sha256_match=True
+weights_json_sha256_match=True
+weights_npy_sha256_match=True
+atom_scales_json_sha256_match=True
+weights_json_simplex_nonnegative=True
+weights_npy_simplex_nonnegative=True
+weights_json_matches_npy=True
+atom_scales_strictly_positive=True
+atom_schema_version=dp_camp_v10_14d
+num_atoms=14
+```
+
+Forbidden remains:
+
+```text
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+deployment_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan_only
+```
+
 ## Current HEAD f09dc90 Post-Training Nonpromotion Artifact Audit
 
 Date: 2026-06-26

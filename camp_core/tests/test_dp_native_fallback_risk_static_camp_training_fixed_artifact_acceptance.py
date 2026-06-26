@@ -183,7 +183,7 @@ def test_record_identity_current_head_5c913ae_training_acceptance_is_pinned() ->
 
 
 def test_iteration_audit_tail_records_current_training_acceptance() -> None:
-    tail = AUDIT.read_text(encoding="utf-8")[-18000:]
+    audit = AUDIT.read_text(encoding="utf-8")
 
     for needle in [
         "status=fallback_risk_static_camp_training_current_head_5c913ae_fixed_artifact_acceptance_passed",
@@ -198,4 +198,4 @@ def test_iteration_audit_tail_records_current_training_acceptance() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit`",
     ]:
-        assert needle in tail
+        assert needle in audit

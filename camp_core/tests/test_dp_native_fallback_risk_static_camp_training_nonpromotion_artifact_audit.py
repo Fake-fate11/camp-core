@@ -403,3 +403,35 @@ def test_current_head_f09dc90_nonpromotion_artifact_audit_is_pinned() -> None:
         "status=fallback_risk_static_camp_training_nonpromotion_artifact_audit_current_head_f09dc90_passed"
         in audit
     )
+
+
+def test_current_record_identity_nonpromotion_artifact_audit_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "training_commit=5c913aea29d821dbfb8bf47313309e9a7dafd305",
+        "audit_execution_camp_head=fc21a130eb346e94b8a8fba8f1515e27e866ad7d",
+        "training_summary_json_sha256=a82d2403276e2aaf3e151271426bfca91e113b4e79735a8ead7a359ee8f24fb4",
+        "offline_weights_json_sha256=08fe4290defde501f03e99dc752c95432778b9fb973262255e9cf98ec097d0a3",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=10360c02c3deb38a6504781497b4fb5f082e59e63d3aee961f691f4e853a1b21",
+        "remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_5c913ae_fc21a13_20260626T000000Z",
+        "remote_audit_json_sha256=2f9f9c163bb14a0b058d33d051d32d0c153a422429260c1ebea6527e5a556bea",
+        "remote_audit_md_sha256=eb3efbd544569fc476c4c8da1b071c5c3b210bf3b92101b405ebba66abd365a6",
+        "remote_audit_stdout_log_sha256=798df11d416c0c0e5fd4bd00b537391d5cf4d7f3008932dbb286f155e9a9ca38",
+        "remote_audit_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "remote_audit_exit=0",
+        "post_training_nonpromotion_artifact_audit_passed=True",
+        "training_artifacts_nonpromotion=True",
+        "weights_json_simplex_nonnegative=True",
+        "weights_npy_simplex_nonnegative=True",
+        "weights_json_matches_npy=True",
+        "training_authorized=False",
+        "training_execution_authorized=False",
+        "camp_retraining_authorized_now=False",
+        "fallback_risk_training_authorized_now=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+    ]:
+        assert needle in text
