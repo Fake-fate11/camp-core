@@ -55,7 +55,7 @@ def test_preflight_dataset_sha_pin_matches_current_fixed_artifact() -> None:
 
 def test_current_head_5bc1d29_preflight_implementation_revalidation_is_pinned() -> None:
     doc = IMPL_DOC.read_text(encoding="utf-8")
-    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-24000:]
+    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-80000:]
     combined = doc + audit_tail
     status = "status=fallback_risk_training_sufficiency_preflight_implementation_head_5bc1d29_revalidated"
 
