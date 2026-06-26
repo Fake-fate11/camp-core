@@ -134,6 +134,65 @@ def test_current_head_1927603_master_command_acceptance_rerun_is_pinned() -> Non
         assert needle in text
 
 
+def test_current_head_ce7a2ca_master_command_acceptance_rerun_is_pinned() -> None:
+    text = _audit()
+
+    for needle in [
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_ce7a2ca_fixed_artifact_acceptance_passed",
+        "acceptance_base_head=ce7a2ca4ab4a23bbe59f9439a5cdc857d529b54f",
+        "source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.json",
+        "expected_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "training_split_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_094a2b4_20260626T182031Z/split_manifest.json",
+        "expected_split_manifest_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
+        "train_only_scale_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_train_only_scale_manifest_acceptance_fc3f224_20260626T182842Z/scale_manifest.json",
+        "expected_scale_manifest_sha256=6d4f691a6eeae0324406af959ddcff996b36441eb4d839b41143ef48bbc802f5",
+        "source_scale_manifest_acceptance_status=fallback_risk_training_train_only_scale_manifest_current_head_fc3f224_tail_authority",
+        "builder_commit=ce7a2ca4ab4a23bbe59f9439a5cdc857d529b54f",
+        "autodl_CAMP_HEAD=ce7a2ca4ab4a23bbe59f9439a5cdc857d529b54f",
+        "autodl_CAMP_origin_main=ce7a2ca4ab4a23bbe59f9439a5cdc857d529b54f",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_master_command_acceptance_ce7a2ca_20260626T183841Z",
+        "fallback_master_config_json_sha256=e8e6425ee7fd5371af597fc97cacc16593817cc19c35c1f64bc5c684c7cb37fb",
+        "training_command_plan_json_sha256=65bae87cde199c9c3b0a2d94104849bb47f3a753215642110ea9d4efe40f1384",
+        "master_command_md_sha256=a14244b6719d8d5942c9cfa2c9d763a9d4967fa5967b622dfc176757072f232e",
+        "builder_stdout_log_sha256=194b56ed5ebb16374b8f48e02b6194912f3b9b3261b86cd86bdd83c33f52a405",
+        "builder_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "builder_exit=0",
+        "master_schema_version=dp_native_fallback_risk_fallback_master_config_v1",
+        "training_command_schema_version=dp_native_fallback_risk_training_command_plan_v1",
+        "fallback_only=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "atoms_fixed_nonnegative=True",
+        "simplex_cvar_l2_convex=True",
+        "fallback_label_is_deployed_atom=False",
+        "margins_nonnegative=True",
+        "feasible_branch_records_allowed=False",
+        "all_infeasible_records_added_to_feasible_training=False",
+        "hard_feasibility_relaxation_authorized=False",
+        "feasible_ranking_master_change_authorized=False",
+        "training_command_authorization=False",
+        "training_execution_authorized=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "fallback_master_config_ready=True",
+        "training_command_plan_ready=True",
+        "validated_dataset_summary_ready_for_preflight=False",
+        "training_sufficiency_preflight_ready=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+        "local_target_pytest=10 passed",
+        "local_master_command_acceptance_pytest=10 passed",
+        "local_master_command_builder_pytest=6 passed",
+        "local_related_target_pytest=16 passed",
+        "autodl_temp_worktree=/root/autodl-tmp/camp_core_master_command_acceptance_ce7a2ca_verify_20260627T025000Z",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=10 passed",
+        "autodl_related_target_pytest=16 passed",
+        "autodl_git_diff_check_exit=0",
+    ]:
+        assert needle in text
+
+
 def test_current_head_16fa482_master_command_sync_verification_is_pinned() -> None:
     text = _audit()
 
@@ -267,16 +326,17 @@ def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-210:])
 
     for needle in [
-        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_acbbb77_fixed_artifact_acceptance_passed",
-        "fallback_master_config_json_sha256=fdef70d470721fdf9dabb2c44f3ae2656da177aa2345fbaf6b225b00e7576200",
-        "training_command_plan_json_sha256=7fc2904a4d49a853c8c29833ab2d4724342df74ad53cc561322455d09dd40b18",
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_ce7a2ca_tail_authority",
+        "fallback_master_config_json_sha256=e8e6425ee7fd5371af597fc97cacc16593817cc19c35c1f64bc5c684c7cb37fb",
+        "training_command_plan_json_sha256=65bae87cde199c9c3b0a2d94104849bb47f3a753215642110ea9d4efe40f1384",
         "fallback_master_config_ready=True",
         "training_command_plan_ready=True",
-        "local_target_pytest=15 passed",
+        "local_target_pytest=10 passed",
         "local_master_command_builder_pytest=6 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
         "autodl_builder_exit=0",
+        "autodl_related_target_pytest=16 passed",
         "autodl_dp_head_verified=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "this_acceptance_gate_authorizes_training_replay_dp_or_claims=False",
     ]:
