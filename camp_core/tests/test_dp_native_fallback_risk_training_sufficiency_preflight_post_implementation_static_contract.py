@@ -186,13 +186,13 @@ def test_current_head_537c69c_static_contract_revalidation_is_pinned() -> None:
 
 def test_current_head_bdfc3dd_static_contract_revalidation_is_pinned() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
-    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-18000:]
-    combined = text + audit_tail
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+    combined = text + audit
     status = (
         "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_bdfc3dd_revalidated"
     )
 
-    assert status in audit_tail
+    assert status in audit
 
     for needle in [
         status,
@@ -230,6 +230,93 @@ def test_current_head_bdfc3dd_static_contract_revalidation_is_pinned() -> None:
         "head_bdfc3dd_formal_seeds_11_12_13_authorized=False",
         "head_bdfc3dd_safety_benefit_claim_authorized=False",
         "head_bdfc3dd_camp_over_dp_top1_claim_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only",
+    ]:
+        assert needle in combined
+
+
+def test_current_head_75cc265_static_contract_eof_revalidation_is_pinned() -> None:
+    marker = "\n## Current Tail Confirmation After 75cc265 Fallback Risk Training Sufficiency Preflight Post-Implementation Static Contract Review\n\n"
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+    assert marker in text
+    assert marker in audit
+    combined = (
+        text.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+        + audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+    )
+
+    for needle in [
+        "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_75cc265_revalidated",
+        "post_static_contract_base_head=75cc2659397fb9311853565cd43151218c20787b",
+        "camp_origin_main_at_post_static_contract=75cc2659397fb9311853565cd43151218c20787b",
+        "github_refs_heads_main_at_post_static_contract=75cc2659397fb9311853565cd43151218c20787b",
+        "autodl_CAMP_HEAD_at_post_static_contract=75cc2659397fb9311853565cd43151218c20787b",
+        "autodl_CAMP_origin_main_at_post_static_contract=75cc2659397fb9311853565cd43151218c20787b",
+        "autodl_DP_HEAD_at_post_static_contract=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_implementation_status=fallback_risk_training_sufficiency_preflight_implementation_head_19b6ecc_revalidated",
+        "preflight_script=scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py",
+        "preflight_tests=camp_core/tests/test_dp_native_fallback_risk_training_sufficiency_preflight.py",
+        "review_test=camp_core/tests/test_dp_native_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract.py",
+        "authorization_tests=camp_core/tests/test_dp_native_fallback_risk_training_sufficiency_preflight_implementation_authorization.py",
+        "contract_tests=camp_core/tests/test_dp_native_fallback_risk_training_data_training_sufficiency_contract.py",
+        "head_75cc265_validated_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_75cc265_expected_validated_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_75cc265_source_expected_sha_current=True",
+        "head_75cc265_default_off_boundary_passed=True",
+        "head_75cc265_validate_training_sufficiency_preflight_enabled_default=False",
+        "head_75cc265_enable_flag_required_before_reading_any_manifest=True",
+        "head_75cc265_disabled_mode_returns_before_manifest_read=True",
+        "head_75cc265_disabled_mode_reads_inputs=False",
+        "head_75cc265_read_only_manifest_boundary_passed=True",
+        "head_75cc265_enabled_input_source=existing_json_manifests_only",
+        "head_75cc265_writes_only_explicit_output_json_and_output_md=True",
+        "head_75cc265_subprocess_usage_found=False",
+        "head_75cc265_training_command_execution_path_found=False",
+        "head_75cc265_diffusion_planner_execution_path_found=False",
+        "head_75cc265_candidate_generation_path_found=False",
+        "head_75cc265_training_sufficiency_boundary_passed=True",
+        "head_75cc265_preflight_implementation_is_not_training=True",
+        "head_75cc265_ready_for_future_training_authorization_is_not_training_authorization=True",
+        "head_75cc265_fallback_dataset_training_sufficiency_claim=False",
+        "head_75cc265_affine_score_boundary_preserved=True",
+        "head_75cc265_score_k(w)=a_k^T w",
+        "head_75cc265_a_k_fixed_before_weight_optimization=True",
+        "head_75cc265_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "head_75cc265_approved_atom_schema=dp_camp_v10_14d",
+        "head_75cc265_approved_atom_names_match_dp_camp_v10_14d=True",
+        "head_75cc265_approved_atom_name_count=14",
+        "head_75cc265_blocking_contract_findings=0",
+        "head_75cc265_production_preflight_script_modified_in_this_gate=False",
+        "head_75cc265_local_preflight_pytest=9 passed",
+        "head_75cc265_local_post_static_contract_pytest=12 passed",
+        "head_75cc265_local_authorization_pytest=10 passed",
+        "head_75cc265_local_training_sufficiency_contract_pytest=20 passed",
+        "head_75cc265_local_unit_tests_plan_pytest=9 passed",
+        "head_75cc265_local_target_pytest=60 passed",
+        "head_75cc265_local_py_compile_exit=0",
+        "head_75cc265_local_git_diff_check_exit=0",
+        "head_75cc265_autodl_temp_worktree=/root/autodl-tmp/camp_core_preflight_post_static_75cc265_verify_20260627T083000Z",
+        "head_75cc265_autodl_preflight_pytest=9 passed",
+        "head_75cc265_autodl_post_static_contract_pytest=12 passed",
+        "head_75cc265_autodl_authorization_pytest=10 passed",
+        "head_75cc265_autodl_training_sufficiency_contract_pytest=20 passed",
+        "head_75cc265_autodl_unit_tests_plan_pytest=9 passed",
+        "head_75cc265_autodl_target_pytest=60 passed",
+        "head_75cc265_autodl_py_compile_exit=0",
+        "head_75cc265_autodl_git_diff_check_exit=0",
+        "head_75cc265_training_not_executed=True",
+        "head_75cc265_candidate_generation_not_executed=True",
+        "head_75cc265_dp_not_modified=True",
+        "head_75cc265_selector_or_atom_not_promoted=True",
+        "this_post_static_gate_authorizes_training_replay_dp_or_claims=False",
+        "head_75cc265_camp_training_authorized=False",
+        "head_75cc265_camp_retraining_authorized=False",
+        "head_75cc265_formal_seeds_11_12_13_authorized=False",
+        "head_75cc265_safety_benefit_claim_authorized=False",
+        "head_75cc265_camp_over_dp_top1_claim_authorized=False",
+        "training_execution_authorized_now=False",
+        "fallback_risk_training_authorized_now=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_plan_only",
     ]:
         assert needle in combined
@@ -369,15 +456,15 @@ def test_audit_tail_records_current_split_manifest_plan_as_static_review_next() 
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-320:])
 
     assert (
-        "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_bdfc3dd_revalidated"
+        "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_75cc265_revalidated"
         in tail
     )
     assert (
-        "head_bdfc3dd_expected_validated_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
+        "head_75cc265_expected_validated_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
         in tail
     )
     assert (
-        "prior_implementation_status=fallback_risk_training_sufficiency_preflight_implementation_head_8d867cc_revalidated"
+        "prior_implementation_status=fallback_risk_training_sufficiency_preflight_implementation_head_19b6ecc_revalidated"
         in tail
     )
     assert "training_execution_authorized_now=False" in tail
