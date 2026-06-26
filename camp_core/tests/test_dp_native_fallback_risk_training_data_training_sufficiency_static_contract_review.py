@@ -21,56 +21,65 @@ def _review() -> str:
     return REVIEW_DOC.read_text(encoding="utf-8")
 
 
-def test_current_head_50ccb1f_static_review_revalidation_is_pinned() -> None:
+def test_current_head_f2658fb_static_review_revalidation_is_pinned() -> None:
     text = _review()
     plan = PLAN_DOC.read_text(encoding="utf-8")
     audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-24000:]
     combined = text + plan + audit_tail
-    status = "status=fallback_risk_training_data_training_sufficiency_static_contract_review_current_head_50ccb1f_revalidated"
+    status = "status=fallback_risk_training_data_training_sufficiency_static_contract_review_current_head_f2658fb_revalidated"
 
     assert status in audit_tail
     assert (
-        "status=fallback_risk_training_data_training_sufficiency_plan_current_head_a067ccd_revalidated"
+        "status=fallback_risk_training_data_training_sufficiency_plan_current_head_2d9a19d_revalidated"
         in plan
     )
 
     for needle in [
         status,
-        "review_validation_base_head=50ccb1fa91a99c1a0698e3514b86358ffe92b4f0",
-        "camp_origin_main_at_static_review=50ccb1fa91a99c1a0698e3514b86358ffe92b4f0",
-        "github_refs_heads_main_at_static_review=50ccb1fa91a99c1a0698e3514b86358ffe92b4f0",
-        "autodl_CAMP_HEAD_at_static_review=50ccb1fa91a99c1a0698e3514b86358ffe92b4f0",
-        "autodl_CAMP_origin_main_at_static_review=50ccb1fa91a99c1a0698e3514b86358ffe92b4f0",
+        "review_validation_base_head=f2658fb41156c8714d3437709cbfb0ecc563baf8",
+        "camp_origin_main_at_static_review=f2658fb41156c8714d3437709cbfb0ecc563baf8",
+        "github_refs_heads_main_at_static_review=f2658fb41156c8714d3437709cbfb0ecc563baf8",
+        "autodl_CAMP_HEAD_at_static_review=f2658fb41156c8714d3437709cbfb0ecc563baf8",
+        "autodl_CAMP_origin_main_at_static_review=f2658fb41156c8714d3437709cbfb0ecc563baf8",
         "autodl_DP_HEAD_at_static_review=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "source_plan_status=fallback_risk_training_data_training_sufficiency_plan_current_head_a067ccd_revalidated",
-        "source_validator_acceptance_status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_db9df4a_passed",
-        "head_50ccb1f_validated_fallback_records=15",
-        "head_50ccb1f_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
-        "head_50ccb1f_validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
-        "head_50ccb1f_strict_formal_seed_path_matches=0",
-        "head_50ccb1f_evidence_boundary_passed=True",
-        "head_50ccb1f_master_isolation_passed=True",
-        "head_50ccb1f_fallback_master_isolated_from_feasible_master_required=True",
-        "head_50ccb1f_feasible_branch_records_allowed_in_fallback_master=False",
-        "head_50ccb1f_all_infeasible_records_added_to_feasible_training=False",
-        "head_50ccb1f_hard_feasibility_relaxation_authorized=False",
-        "head_50ccb1f_convex_fixed_candidate_boundary_passed=True",
-        "head_50ccb1f_score_k(w)=a_k^T w",
-        "head_50ccb1f_candidate_features_fixed_at_current_tick=True",
-        "head_50ccb1f_no_trajectory_generation_modification_snap_blend_guidance_or_postprocess=True",
-        "head_50ccb1f_a_k_nonnegative_benders_compatible_atoms_only=True",
-        "head_50ccb1f_simplex_cvar_l2_master_convex_if_later_authorized=True",
-        "head_50ccb1f_split_scale_boundary_passed=True",
-        "head_50ccb1f_split_boundary_predeclared=True",
-        "head_50ccb1f_scale_fitting_boundary_predeclared=True",
-        "head_50ccb1f_scale_fit_training_groups_only_required=True",
-        "head_50ccb1f_formal_seed_exclusion_predeclared=True",
-        "head_50ccb1f_formal_seeds_11_12_13_excluded_required=True",
-        "head_50ccb1f_nonpromotion_checks_predeclared=True",
-        "head_50ccb1f_current_downstream_artifacts_not_reused_without_revalidation=True",
-        "head_50ccb1f_blocking_contract_findings=0",
-        "head_50ccb1f_local_target_pytest=33 passed",
-        "head_50ccb1f_autodl_target_pytest=33 passed",
+        "source_plan_status=fallback_risk_training_data_training_sufficiency_plan_current_head_2d9a19d_revalidated",
+        "source_validator_acceptance_status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_92ce703_passed",
+        "head_f2658fb_validated_fallback_records=15",
+        "head_f2658fb_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_f2658fb_validator_output_json_sha256=d719e3b01d17be91ab68ba42cc9349400cc73fa9624fb7fdff0e539fcb6344e2",
+        "head_f2658fb_validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "head_f2658fb_strict_formal_seed_path_matches=0",
+        "head_f2658fb_evidence_boundary_passed=True",
+        "head_f2658fb_fixed_artifact_training_sufficiency_claim=False",
+        "head_f2658fb_fallback_dataset_training_sufficiency_claim=False",
+        "head_f2658fb_fallback_risk_training_authorized_now=False",
+        "head_f2658fb_master_isolation_passed=True",
+        "head_f2658fb_fallback_master_isolated_from_feasible_master_required=True",
+        "head_f2658fb_feasible_branch_records_allowed_in_fallback_master=False",
+        "head_f2658fb_all_infeasible_records_added_to_feasible_training=False",
+        "head_f2658fb_hard_feasibility_relaxation_authorized=False",
+        "head_f2658fb_convex_fixed_candidate_boundary_passed=True",
+        "head_f2658fb_score_k(w)=a_k^T w",
+        "head_f2658fb_candidate_features_fixed_at_current_tick=True",
+        "head_f2658fb_no_trajectory_generation_modification_snap_blend_guidance_or_postprocess=True",
+        "head_f2658fb_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "head_f2658fb_simplex_cvar_l2_master_convex_if_later_authorized=True",
+        "head_f2658fb_split_scale_boundary_passed=True",
+        "head_f2658fb_split_boundary_predeclared=True",
+        "head_f2658fb_scale_fitting_boundary_predeclared=True",
+        "head_f2658fb_scale_fit_training_groups_only_required=True",
+        "head_f2658fb_formal_seed_exclusion_predeclared=True",
+        "head_f2658fb_formal_seeds_11_12_13_excluded_required=True",
+        "head_f2658fb_nonpromotion_checks_predeclared=True",
+        "head_f2658fb_current_downstream_artifacts_not_reused_without_revalidation=True",
+        "head_f2658fb_blocking_contract_findings=0",
+        "head_f2658fb_local_py_compile_exit=0",
+        "head_f2658fb_local_target_pytest=15 passed",
+        "head_f2658fb_local_git_diff_check_exit=0",
+        "head_f2658fb_autodl_temp_worktree=/root/autodl-tmp/camp_core_static_review_f2658fb_verify_20260626T164335Z",
+        "head_f2658fb_autodl_py_compile_exit=0",
+        "head_f2658fb_autodl_target_pytest=15 passed",
+        "head_f2658fb_autodl_git_diff_check_exit=0",
         "this_static_review_gate_authorizes_training_replay_dp_or_claims=False",
         "fallback_risk_training_authorized_now=False",
         "camp_training_authorized=False",
