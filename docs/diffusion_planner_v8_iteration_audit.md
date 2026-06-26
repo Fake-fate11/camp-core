@@ -126988,3 +126988,47 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only
 ```
+
+## Current Tail Confirmation After Current HEAD Split Manifest Builder Fixed-Artifact Acceptance
+
+Date: 2026-06-26
+
+Re-ran the default-off split manifest builder on the current accepted
+fixed-artifact fallback-risk training dataset. This acceptance-only gate wrote
+split manifest evidence but did not run replay, generate candidates, train or
+retrain CAMP, modify Diffusion Planner, promote selector or atom state, deploy,
+or claim safety benefit or CAMP-over-DP Top-1.
+
+```text
+status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_0e302e1_tail_authority
+passed=True
+source_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_0e302e1_passed
+source_acceptance_commit=0e302e1ac35d8dc4a733a9e3f4d51910475fc7a2
+source_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_0e302e1_20260626T130030Z
+source_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4
+source_builder_exit=0
+source_observed_training_records=13
+source_observed_validation_records=2
+source_training_split_manifest_ready_for_preflight=True
+source_fixed_15_record_artifact_training_sufficiency_claim=False
+local_acceptance_target_pytest=10 passed
+local_related_target_pytest=30 passed
+local_py_compile_exit=0
+local_git_diff_check_exit=0
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+this_tail_authority_authorizes_training_replay_dp_or_claims=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only
+```

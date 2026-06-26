@@ -336,13 +336,13 @@ def test_iteration_audit_tail_records_current_acceptance_audit_next_gate() -> No
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_6b43925_tail_authority",
-        "source_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_6b43925_passed",
+        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_0e302e1_tail_authority",
+        "source_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_0e302e1_passed",
         "source_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
         "source_observed_training_records=13",
         "source_observed_validation_records=2",
         "camp_retraining_authorized_now=False",
-        "local_related_target_pytest=49 passed",
+        "local_related_target_pytest=30 passed",
     ]:
         assert needle in tail
 
