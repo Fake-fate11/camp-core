@@ -237,3 +237,66 @@ def test_iteration_audit_records_static_contract_review_next_gate() -> None:
         "camp_over_dp_top1_claim_authorized=False",
     ]:
         assert needle in current_head_audit
+
+
+def test_current_head_e96fcc7_static_contract_review_is_pinned() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+
+    for needle in [
+        "camp_head_at_revalidation=e96fcc7eddffb952ade6af5679ac699fc351d5a9",
+        "camp_origin_main_at_revalidation=e96fcc7eddffb952ade6af5679ac699fc351d5a9",
+        "github_refs_heads_main_at_revalidation=e96fcc7eddffb952ade6af5679ac699fc351d5a9",
+        "autodl_CAMP_HEAD_at_revalidation=e96fcc7eddffb952ade6af5679ac699fc351d5a9",
+        "autodl_CAMP_origin_main_at_revalidation=e96fcc7eddffb952ade6af5679ac699fc351d5a9",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_design_status=fallback_risk_ranking_remediation_design_plan_current_head_c049a72_ready_static_contract_review",
+        "prior_design_head_at_revalidation=c049a7249ff9089c6110bfa3b2aec6f2db201ae8",
+        "status=fallback_risk_ranking_remediation_static_contract_review_current_head_e96fcc7_passed_default_off_tests_plan_next",
+        "blocking_contract_findings=0",
+        "current_head_static_contract_revalidated=True",
+        "fixed_candidate_boundary_passed=True",
+        "affine_score_boundary_passed=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "nonnegative_cost_boundary_passed=True",
+        "fallback_cost_targets_nonnegative=True",
+        "convex_master_boundary_passed=True",
+        "simplex_master_convex_if_later_authorized=True",
+        "feasible_master_separation_passed=True",
+        "fixed_dp_candidate_reranking_only=True",
+        "candidate_trajectory_rewrite_authorized=False",
+        "implementation_authorized=False",
+        "fallback_risk_extractor_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "fallback_risk_smoke_authorized_now=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_UNIT_TESTS_PLAN_GATE,
+    ]:
+        assert needle in text
+
+    for needle in [
+        "status=fallback_risk_ranking_remediation_static_contract_review_current_head_e96fcc7_passed_default_off_tests_plan_next",
+        "current_head_static_contract_revalidated=True",
+        "prior_design_head_at_revalidation=c049a7249ff9089c6110bfa3b2aec6f2db201ae8",
+        "blocking_contract_findings=0",
+        "fixed_candidate_boundary_passed=True",
+        "affine_score_boundary_passed=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "nonnegative_cost_boundary_passed=True",
+        "fallback_cost_targets_nonnegative=True",
+        "convex_master_boundary_passed=True",
+        "feasible_master_separation_passed=True",
+        "implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_UNIT_TESTS_PLAN_GATE,
+    ]:
+        assert needle in audit
