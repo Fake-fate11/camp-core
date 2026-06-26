@@ -1,0 +1,125 @@
+# DP Native Fixed-Artifact Fallback Risk Training Split Manifest Unit Tests
+
+Date: 2026-06-26
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only
+```
+
+This gate revalidates synthetic/static split-manifest unit tests at the current
+local/GitHub/AutoDL head. It does not generate a fixed-artifact split manifest,
+train or retrain CAMP, execute replay, generate candidates, modify Diffusion
+Planner, change the online selector, promote selectors or atoms, deploy, or
+claim safety benefit or CAMP-over-DP Top-1.
+
+## Reviewed Inputs
+
+```text
+unit_tests_base_head=f8f409b6b08fab9c0423278d5a7a52595e461379
+camp_origin_main_at_unit_tests=f8f409b6b08fab9c0423278d5a7a52595e461379
+github_refs_heads_main_at_unit_tests=f8f409b6b08fab9c0423278d5a7a52595e461379
+autodl_CAMP_HEAD_at_unit_tests=f8f409b6b08fab9c0423278d5a7a52595e461379
+autodl_CAMP_origin_main_at_unit_tests=f8f409b6b08fab9c0423278d5a7a52595e461379
+autodl_DP_HEAD_at_unit_tests=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_split_manifest_unit_tests_plan_status=fallback_risk_training_split_manifest_unit_tests_plan_head_84f24a1_revalidated
+validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+validated_fallback_records=15
+validator_output_sha256=276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078
+```
+
+## Unit Tests Pinned
+
+```text
+test_default_off_split_builder_does_not_read_dataset=True
+test_clean_synthetic_manifest_is_preflight_compatible=True
+test_split_assignments_are_stable_and_ignore_nonidentity_features=True
+test_rejects_forbidden_split_feature_sources=True
+test_rejects_scope_identity_collision_and_formal_leakage=True
+test_contract_rejects_tampered_split_overlap_and_decision_leaks=True
+test_manifest_pins_deterministic_policy_and_forbids_random_inputs=True
+test_current_head_f8f409b_split_manifest_unit_tests_revalidation_is_pinned=True
+test_audit_tail_records_split_manifest_builder_authorization_as_next_gate=True
+```
+
+## Contract Boundary
+
+```text
+manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1
+default_off_builder_requires_enable_flag=True
+disabled_mode_does_not_read_dataset=True
+enabled_mode_reads_existing_validated_dataset_json_only=True
+records_scope=records_without_feasible_candidate_only
+requires_group_key_source_log_run_id_record_index=True
+requires_record_identity_hash=True
+uses_sha256_record_identity_hash_plus_split_salt=True
+split_salt=fallback_risk_training_split_v1
+training_and_validation_groups_are_disjoint=True
+does_not_use_selected_index_as_split_feature=True
+does_not_use_candidate_rank_as_split_feature=True
+does_not_use_closed_loop_outcome_as_split_feature=True
+does_not_use_learned_weights_as_split_feature=True
+formal_seeds_11_12_13_excluded=True
+formal_eval_artifact_excluded=True
+final_decision_never_authorizes_training=True
+final_decision_never_claims_training_sufficiency=True
+safety_or_camp_over_dp_claim_rejected=True
+```
+
+## Local Verification
+
+```text
+local_split_manifest_contract_pytest=9 passed
+local_unit_tests_plan_pytest=11 passed
+local_static_contract_review_pytest=10 passed
+local_target_pytest=30 passed
+local_py_compile_exit=0
+local_git_diff_check_exit=0
+```
+
+## Forbidden
+
+```text
+manifest_generated=False
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_split_manifest_unit_tests_head_f8f409b_revalidated
+passed=True
+split_manifest_unit_tests_pinned=True
+training_split_manifest_builder_authorized=False
+this_split_manifest_unit_tests_gate_authorizes_builder_training_replay_dp_or_claims=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only
+```
+
+The next gate may only revalidate authorization for a minimal default-off
+read-only split manifest builder implementation. It must not generate a
+fixed-artifact manifest, train CAMP, run replay, generate candidates, modify
+Diffusion Planner, promote selectors or atoms, or claim safety/CAMP-over-DP
+benefit.
