@@ -129672,3 +129672,90 @@ The next gate may only implement the minimal default-off read-only validator
 extension with targeted synthetic tests. It must not run replay, generate
 candidates, train CAMP, modify Diffusion Planner, use formal seeds, promote a
 selector or atom, or claim safety/CAMP-over-DP benefit.
+
+## Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Implementation
+
+Date: 2026-06-27
+
+Completed the current EOF-authorized validator-extension implementation
+revalidation at local/GitHub/AutoDL CAMP head `b14ce09`. The default-off,
+read-only validator implementation was already present, so this gate did not
+modify production validator code. It did not run replay, generate candidates,
+train or retrain CAMP, modify Diffusion Planner, promote selectors or atoms,
+change the online selector, or make safety/CAMP-over-DP claims.
+
+```text
+status=fallback_risk_training_data_validator_extension_implementation_current_head_b14ce09_revalidated
+passed=True
+implementation_validation_head=b14ce09b0b05c13058d59b6b15cfa271ad856c80
+camp_origin_main_at_validation=b14ce09b0b05c13058d59b6b15cfa271ad856c80
+github_refs_heads_main_at_validation=b14ce09b0b05c13058d59b6b15cfa271ad856c80
+autodl_CAMP_HEAD_at_validation=b14ce09b0b05c13058d59b6b15cfa271ad856c80
+autodl_CAMP_origin_main_at_validation=b14ce09b0b05c13058d59b6b15cfa271ad856c80
+autodl_DP_HEAD_at_validation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+latest_implementation_authorization_status=fallback_risk_training_data_validator_extension_implementation_authorization_current_head_b8ee682_revalidated
+validator_script=scripts/integrations/validate_dp_native_fallback_risk_training_data_contract.py
+production_validator_modified_in_this_gate=False
+implementation_already_present_at_head=True
+default_off_required=True
+default_off_enable_flag=--enable_default_off_fallback_risk_training_data_validator
+read_only_dataset_json_input_only=True
+read_only_source_log_readback_only=True
+source_log_readback_required_for_acceptance=True
+output_json_or_markdown_only=True
+schema_status_count_and_hash_mismatch_fails_closed=True
+source_feasible_mask_any_true_or_non_bool_fails_closed=True
+candidate_generation_or_provenance_violation_fails_closed=True
+atom_schema_or_nonnegative_matrix_violation_fails_closed=True
+record_identity_hash_required=True
+training_selector_atom_promotion_or_claim_flags_rejected=True
+score_k_equals_a_k_transpose_w_boundary_preserved=True
+fallback_dataset_kept_separate_from_feasible_master=True
+replay_executed=False
+candidate_generation_executed=False
+camp_training_executed=False
+diffusion_planner_executed=False
+diffusion_planner_modified=False
+implementation_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_implementation.py
+validator_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension.py
+contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_contract.py
+authorization_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_implementation_authorization.py
+local_py_compile_exit=0
+local_target_pytest=26 passed
+local_target_pytest_exit=0
+local_git_diff_check_exit=0
+autodl_py_compile_exit=0
+autodl_target_pytest=26 passed
+autodl_target_pytest_exit=0
+autodl_git_diff_check_exit=0
+validator_extension_implementation_complete=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+training_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_post_implementation_static_contract_only`
+
+The next gate may only perform a post-implementation static contract review of
+the default-off read-only validator extension. It must not run replay,
+generate candidates, train CAMP, modify Diffusion Planner, use formal seeds,
+promote a selector or atom, or claim safety/CAMP-over-DP benefit.
