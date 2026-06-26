@@ -333,3 +333,98 @@ def test_iteration_audit_eof_records_current_head_a3663a4_unit_tests_plan() -> N
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only",
     ]:
         assert needle in tail
+
+
+def test_unit_tests_plan_eof_records_current_head_875a64a_plan() -> None:
+    marker = "\n## Current-Head Unit Tests Plan Revalidation After d8a3313 Static Contract Sync\n\n"
+    plan = _plan()
+    assert marker in plan
+    section = plan.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_875a64a_revalidated",
+        "head_875a64a_unit_tests_plan_revalidation_base_head=875a64ae3e0d0313d7e7acbcd7da2fa9ec09bc5f",
+        "head_875a64a_camp_origin_main_at_revalidation=875a64ae3e0d0313d7e7acbcd7da2fa9ec09bc5f",
+        "head_875a64a_github_refs_heads_main_at_revalidation=875a64ae3e0d0313d7e7acbcd7da2fa9ec09bc5f",
+        "head_875a64a_autodl_CAMP_HEAD_at_revalidation=875a64ae3e0d0313d7e7acbcd7da2fa9ec09bc5f",
+        "head_875a64a_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "head_875a64a_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_current_head_d8a3313_revalidated",
+        "head_875a64a_accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_875a64a_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_db52ac6_20260626T211859Z/dataset.json",
+        "head_875a64a_local_target_pytest=12 passed",
+        "head_875a64a_autodl_target_pytest=12 passed",
+        "synthetic_dataset_fixtures_only=True",
+        "synthetic_source_logs_only=True",
+        "source_log_readback_contract_tests_required=True",
+        "dataset_summary_fail_closed_tests_required=True",
+        "per_record_fail_closed_tests_required=True",
+        "nonpromotion_tests_required=True",
+        "formal_seeds_11_12_13_used=False",
+        "fixed_autodl_artifact_required_for_unit_tests=False",
+        "replay_required_for_unit_tests=False",
+        "candidate_generation_required_for_unit_tests=False",
+        "training_required_for_unit_tests=False",
+        "validator_extension_unit_tests_plan_complete=True",
+        "validator_extension_unit_tests_authorized_next=True",
+        "validator_extension_implementation_authorized=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only",
+    ]:
+        assert needle in section
+
+    for forbidden in [
+        "camp_training_authorized=True",
+        "camp_retraining_authorized=True",
+        "replay_execution_authorized=True",
+        "candidate_generation_authorized=True",
+        "dp_modification_authorized=True",
+        "selector_promotion_authorized=True",
+        "atom_promotion_authorized=True",
+        "safety_benefit_claim_authorized=True",
+        "camp_over_dp_top1_claim_authorized=True",
+        "validator_extension_implementation_authorized=True",
+    ]:
+        assert forbidden not in section
+
+
+def test_iteration_audit_eof_records_current_head_875a64a_unit_tests_plan() -> None:
+    marker = (
+        "\n## Current Tail Confirmation After 875a64a Fallback Risk Training "
+        "Data Validator Extension Unit Tests Plan\n\n"
+    )
+    audit = _iteration_audit()
+    assert marker in audit
+    section = audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_875a64a_revalidated",
+        "head_875a64a_unit_tests_plan_revalidation_base_head=875a64ae3e0d0313d7e7acbcd7da2fa9ec09bc5f",
+        "head_875a64a_static_contract_status=fallback_risk_training_data_validator_extension_static_contract_current_head_d8a3313_revalidated",
+        "head_875a64a_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_db52ac6_20260626T211859Z/dataset.json",
+        "head_875a64a_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "head_875a64a_local_target_pytest=12 passed",
+        "head_875a64a_autodl_target_pytest=12 passed",
+        "synthetic_dataset_fixtures_only=True",
+        "synthetic_source_logs_only=True",
+        "source_log_readback_contract_tests_required=True",
+        "dataset_summary_fail_closed_tests_required=True",
+        "per_record_fail_closed_tests_required=True",
+        "nonpromotion_tests_required=True",
+        "formal_seeds_11_12_13_used=False",
+        "fixed_autodl_artifact_required_for_unit_tests=False",
+        "replay_required_for_unit_tests=False",
+        "candidate_generation_required_for_unit_tests=False",
+        "training_required_for_unit_tests=False",
+        "validator_extension_unit_tests_plan_complete=True",
+        "validator_extension_unit_tests_authorized_next=True",
+        "validator_extension_implementation_authorized=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "training_execution_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_only",
+    ]:
+        assert needle in section
