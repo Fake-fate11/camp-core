@@ -426,11 +426,13 @@ def test_audit_records_split_manifest_builder_implementation_and_current_next_ga
         in audit
     )
     assert (
-        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_09ca81f_revalidated"
+        "status=fallback_risk_training_split_manifest_builder_implementation_current_head_099b935_revalidated"
         in tail
     )
+    assert "current_local_split_manifest_builder_pytest=9 passed" in tail
+    assert "current_local_combined_target_pytest=28 passed" in tail
     assert "training_execution_authorized_now=False" in audit
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only"
         in tail
     )

@@ -682,6 +682,10 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
     )
     assert (
         "status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_eedbc1f_autodl_sync_verified"
+        in audit
+    )
+    assert (
+        "status=fallback_risk_training_split_manifest_builder_implementation_current_head_099b935_revalidated"
         in tail
     )
     assert "head_f8f409b_local_split_manifest_contract_pytest=9 passed" in audit
@@ -690,10 +694,10 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
         in tail
     )
     assert (
-        "source_authorization_status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_0608ae4_revalidated"
+        "source_authorization_sync_status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_eedbc1f_autodl_sync_verified"
         in tail
     )
-    assert "verified_autodl_CAMP_HEAD=eedbc1fef868dbd8d25fe01270c6a4e684ce99dc" in tail
+    assert "current_head=099b935c7ab84cdd35ebafc097764bc7cf96354c" in tail
     assert "f8f409b_is_ancestor_of_current_head=True" in tail
     assert "training_execution_authorized_now=False" in audit
     assert (
@@ -705,7 +709,7 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
         in audit
     )
     assert (
-        "this_sync_verification_authorizes_fixed_artifact_manifest_generation=False"
+        "this_builder_implementation_gate_authorizes_fixed_artifact_training_replay_dp_or_claims=False"
         in tail
     )
     assert (
@@ -713,6 +717,6 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
         in audit
     )
     assert (
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only"
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only"
         in tail
     )
