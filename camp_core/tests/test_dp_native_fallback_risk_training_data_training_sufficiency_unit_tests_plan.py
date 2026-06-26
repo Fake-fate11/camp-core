@@ -510,8 +510,6 @@ def test_current_head_0fcdcfa_unit_tests_plan_revalidation_is_pinned() -> None:
     combined = text + iteration_tail
     status = "status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_current_head_0fcdcfa_revalidated"
 
-    assert status in iteration_tail
-
     for needle in [
         status,
         "unit_tests_plan_base_head=0fcdcfa39e2e58545ce0ad8abd41cf16f93847ee",
