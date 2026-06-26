@@ -421,3 +421,65 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization_only
 ```
+
+## Current-Head Revalidation After af2f6e9 Unit-Tests Plan
+
+Date: 2026-06-26
+
+The default-off synthetic/static unit-test contract remains valid after the
+current unit-tests plan revalidation was recorded, pushed, and synchronized
+across local, GitHub, and AutoDL CAMP. This is still a tests-only gate.
+
+```text
+camp_head_at_revalidation=f6381dd743c47aaa07aaeff3c6372453b69da445
+camp_origin_main_at_revalidation=f6381dd743c47aaa07aaeff3c6372453b69da445
+github_refs_heads_main_at_revalidation=f6381dd743c47aaa07aaeff3c6372453b69da445
+autodl_CAMP_HEAD_at_revalidation=f6381dd743c47aaa07aaeff3c6372453b69da445
+autodl_CAMP_origin_main_at_revalidation=f6381dd743c47aaa07aaeff3c6372453b69da445
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_unit_tests_plan_status=fallback_risk_ranking_default_off_unit_tests_plan_current_head_af2f6e9_ready_tests_only_gate
+prior_unit_tests_plan_head_at_revalidation=af2f6e9231f76206e593a6f9b2aa23d0a1c9d023
+prior_unit_tests_plan_current_head_revalidated=True
+```
+
+Decision:
+
+```text
+status=fallback_risk_ranking_default_off_unit_tests_current_head_f6381dd_revalidated
+passed=True
+tests_only=True
+synthetic_static_unit_tests_only=True
+default_off_contract_tests_pinned=True
+local_py_compile_exit=0
+local_target_pytest=28 passed
+local_diff_check=0 findings
+autodl_py_compile_exit=0
+autodl_target_pytest=28 passed
+autodl_diff_check=0 findings
+production_implementation_edit_authorized=False
+fallback_risk_extractor_implementation_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_authorization_only
+```
