@@ -528,3 +528,67 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_only
 ```
+
+## Current-Head Revalidation After f6381dd Default-Off Unit Tests
+
+Date: 2026-06-26
+
+The authorization remains valid after the current default-off unit-tests gate
+was revalidated, pushed, and synchronized across local, GitHub, and AutoDL
+CAMP. This remains authorization-only and does not implement the extractor, run
+replay, generate candidates, train CAMP, modify DP, promote selector or atom
+logic, or claim safety benefit or CAMP-over-DP Top-1.
+
+```text
+status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head_1bc34fe
+passed=True
+camp_head_at_revalidation=1bc34fefffe58dff0b007ec70fceb32258c3ffa6
+camp_origin_main_at_revalidation=1bc34fefffe58dff0b007ec70fceb32258c3ffa6
+github_refs_heads_main_at_revalidation=1bc34fefffe58dff0b007ec70fceb32258c3ffa6
+autodl_CAMP_HEAD_at_revalidation=1bc34fefffe58dff0b007ec70fceb32258c3ffa6
+autodl_CAMP_origin_main_at_revalidation=1bc34fefffe58dff0b007ec70fceb32258c3ffa6
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+prior_unit_tests_status=fallback_risk_ranking_default_off_unit_tests_current_head_f6381dd_revalidated
+prior_unit_tests_head_at_revalidation=f6381dd743c47aaa07aaeff3c6372453b69da445
+prior_unit_tests_eof_tail_verified=True
+default_off_contract_tests_pinned=True
+implementation_authorized=True
+fallback_risk_extractor_implementation_authorized=True
+default_off_required=True
+read_only_selection_log_input_only=True
+records_scope=records_without_feasible_candidate_only
+synthetic_unit_tests_required=True
+existing_contract_tests_must_continue_to_pass=True
+output_json_or_markdown_only=True
+local_py_compile_exit=0
+local_target_pytest=36 passed
+local_git_diff_check_exit=0
+autodl_py_compile_exit=0
+autodl_target_pytest=36 passed
+autodl_git_diff_check_exit=0
+training_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_default_off_extractor_implementation_only
+```
