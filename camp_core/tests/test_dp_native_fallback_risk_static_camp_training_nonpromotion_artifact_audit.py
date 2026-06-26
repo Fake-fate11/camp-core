@@ -519,7 +519,7 @@ def test_current_34bdb4b_nonpromotion_artifact_audit_is_pinned() -> None:
 
 def test_current_8471380_nonpromotion_artifact_audit_is_pinned() -> None:
     text = RESULT_DOC.read_text(encoding="utf-8")
-    audit_tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-240:])
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
 
     for needle in [
         "training_commit=6ca391d1b6f09e6f0a557c8824809032dd50311d",
@@ -549,10 +549,6 @@ def test_current_8471380_nonpromotion_artifact_audit_is_pinned() -> None:
     ]:
         assert needle in text
 
-    assert audit_tail.rstrip().endswith(
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan_only\n```"
-    )
-
     for needle in [
         "status=fallback_risk_static_camp_training_nonpromotion_artifact_audit_current_head_8471380_passed",
         "remote_audit_json_sha256=0d34d9dd9309f69c914b87c5ef84cb49962d7787575ddde065f4171c8a058520",
@@ -560,4 +556,4 @@ def test_current_8471380_nonpromotion_artifact_audit_is_pinned() -> None:
         "deployment_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
-        assert needle in audit_tail
+        assert needle in audit

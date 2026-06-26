@@ -232,7 +232,7 @@ def test_current_head_a29a0f5_development_holdout_plan_is_pinned() -> None:
 
 def test_current_head_440f390_development_holdout_plan_is_pinned() -> None:
     text = _plan_text()
-    audit_tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-240:])
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
 
     for needle in [
         "training_commit=34bdb4b3ac115700568f989c74a54706a0250e09",
@@ -263,8 +263,44 @@ def test_current_head_440f390_development_holdout_plan_is_pinned() -> None:
         "records_scope=validation_groups_only",
         "candidate_tensor_unchanged=True",
     ]:
-        assert needle in audit_tail
+        assert needle in audit
+
+
+def test_current_head_c5d92cb_development_holdout_plan_is_pinned() -> None:
+    text = _plan_text()
+    audit_tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-240:])
+
+    for needle in [
+        "training_commit=6ca391d1b6f09e6f0a557c8824809032dd50311d",
+        "plan_start_head=c5d92cb5b0e76dd6fec80678671f243fabbb53de",
+        "nonpromotion_audit_execution_head=84713804e1a2b4360ae850d8fbdd5427d810e342",
+        "training_summary_json_sha256=b7ea56145b3a4a8d50f8e5e12bc2f23c6c2c963f14d1907aa4be31a18dd7b4e3",
+        "offline_weights_json_sha256=c53d59509c8d338ad3993b9d8a079d9420ab48df05548d3be75fd29235fa0634",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=85fe39a375f59117459d3d4104d589c6dacb12c70add01b878142be23d327aa5",
+        "nonpromotion_audit_json_sha256=0d34d9dd9309f69c914b87c5ef84cb49962d7787575ddde065f4171c8a058520",
+        "post_training_nonpromotion_artifact_audit_passed=True",
+        "dataset_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "training_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
+        "train_only_scale_manifest_json_sha256=6d4f691a6eeae0324406af959ddcff996b36441eb4d839b41143ef48bbc802f5",
+        "fallback_master_config_json_sha256=e8e6425ee7fd5371af597fc97cacc16593817cc19c35c1f64bc5c684c7cb37fb",
+        "preflight_json_sha256=0c42ca3bf526e12190cc409bda5ab9ab829b17228624346bc15b291b7d22aabc",
+        "plan_only=True",
+        "development_holdout_acceptance_audit_authorized_next=True",
+        "training_authorized=False",
+        "selector_promotion_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
 
     assert audit_tail.rstrip().endswith(
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_audit_only\n```"
     )
+
+    for needle in [
+        "status=fallback_risk_static_camp_training_development_holdout_acceptance_plan_only_current_head_c5d92cb_passed",
+        "development_holdout_acceptance_audit_authorized_next=True",
+        "records_scope=validation_groups_only",
+        "candidate_tensor_unchanged=True",
+    ]:
+        assert needle in audit_tail
