@@ -390,3 +390,112 @@ def test_current_head_3f44332_design_static_contract_review_is_pinned() -> None:
         NEXT_UNIT_TESTS_PLAN_GATE,
     ]:
         assert needle in audit
+
+
+def test_current_head_243cb65_design_static_contract_review_is_pinned() -> None:
+    text = _review()
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+
+    current_head = "243cb65ec7b4627d6c3676ac6465c6db76a4bfc6"
+    prior_design_head = "35d8d2e875db6a14f52f219c0de4d4c156f33769"
+    status = (
+        "status=fallback_risk_training_data_design_static_contract_review_"
+        "current_head_243cb65_revalidated"
+    )
+
+    for needle in [
+        status,
+        "review_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review.md",
+        "review_test=camp_core/tests/test_dp_native_fallback_risk_training_data_design_static_contract_review.py",
+        f"camp_head_at_revalidation={current_head}",
+        f"camp_origin_main_at_revalidation={current_head}",
+        f"github_refs_heads_main_at_revalidation={current_head}",
+        f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+        f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_design_status=fallback_risk_training_data_design_plan_current_head_35d8d2e_revalidated",
+        f"prior_design_commit_at_revalidation={prior_design_head}",
+        "prior_design_tail_verified=True",
+        "prior_design_autodl_verified=True",
+        "user_camp_retraining_permission_available_for_future_training_gate=True",
+        "source_isolation_passed=True",
+        "label_legality_passed=True",
+        "convex_master_boundary_passed=True",
+        "training_sufficiency_boundary_passed=True",
+        "split_contract_review_passed=True",
+        "scale_fitting_contract_review_passed=True",
+        "fallback_master_isolation_review_passed=True",
+        "formal_seed_exclusion_review_passed=True",
+        "nonpromotion_checks_review_passed=True",
+        "blocking_contract_findings=0",
+        "local_py_compile_exit=0",
+        "local_target_pytest=10 passed",
+        "local_related_target_pytest=105 passed",
+        "local_git_diff_check_exit=0",
+        f"autodl_CAMP_HEAD={current_head}",
+        f"autodl_CAMP_origin_main={current_head}",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=10 passed",
+        "autodl_related_target_pytest=105 passed",
+        "autodl_diff_check=0 findings",
+        "dataset_builder_implementation_authorized=False",
+        "validator_extension_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "fallback_risk_smoke_authorized_now=False",
+        "training_execution_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_UNIT_TESTS_PLAN_GATE,
+    ]:
+        assert needle in text
+
+    for needle in [
+        status,
+        "review_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_design_static_contract_review.md",
+        "review_test=camp_core/tests/test_dp_native_fallback_risk_training_data_design_static_contract_review.py",
+        f"camp_head_at_revalidation={current_head}",
+        f"camp_origin_main_at_revalidation={current_head}",
+        f"github_refs_heads_main_at_revalidation={current_head}",
+        f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+        f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_design_status=fallback_risk_training_data_design_plan_current_head_35d8d2e_revalidated",
+        f"prior_design_commit_at_revalidation={prior_design_head}",
+        "source_isolation_passed=True",
+        "label_legality_passed=True",
+        "convex_master_boundary_passed=True",
+        "training_sufficiency_boundary_passed=True",
+        "split_contract_review_passed=True",
+        "scale_fitting_contract_review_passed=True",
+        "fallback_master_isolation_review_passed=True",
+        "formal_seed_exclusion_review_passed=True",
+        "nonpromotion_checks_review_passed=True",
+        "blocking_contract_findings=0",
+        "local_target_pytest=10 passed",
+        "local_related_target_pytest=105 passed",
+        "autodl_target_pytest=10 passed",
+        "autodl_related_target_pytest=105 passed",
+        "dataset_builder_implementation_authorized=False",
+        "validator_extension_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "training_execution_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_UNIT_TESTS_PLAN_GATE,
+    ]:
+        assert needle in audit
