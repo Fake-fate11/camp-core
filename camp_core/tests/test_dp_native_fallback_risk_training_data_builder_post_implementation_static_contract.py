@@ -41,7 +41,7 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 
 def test_review_doc_records_builder_post_implementation_contract() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
-    current_head = "1ea5cb0e76559bd00b469ae68616412b4194c8c3"
+    current_head = "b55267315667bdfae8c47a247cb02deff2393f2f"
 
     for needle in [
         "default_off_boundary_passed=True",
@@ -61,8 +61,8 @@ def test_review_doc_records_builder_post_implementation_contract() -> None:
         f"autodl_CAMP_HEAD_at_current_head_revalidation={current_head}",
         f"autodl_CAMP_origin_main_at_current_head_revalidation={current_head}",
         "autodl_DP_HEAD_at_current_head_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "local_target_pytest=21 passed",
-        "autodl_target_pytest=21 passed",
+        "local_target_pytest=12 passed",
+        "autodl_target_pytest=12 passed",
         "user_broad_execution_permission_recorded=True",
         "this_static_contract_gate_authorizes_broad_execution=False",
         "fixed_artifact_acceptance_audit_authorized_next=True",
@@ -203,33 +203,33 @@ def test_review_next_gate_is_fixed_artifact_acceptance_audit_only() -> None:
 def test_review_doc_and_audit_tail_record_latest_revalidation() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
     audit = AUDIT_DOC.read_text(encoding="utf-8")
-    current_head = "4e635c45bef9ede526e73089bfe7bce3a5ac7a20"
-    marker = "\n## Current-Head Revalidation After 4e635c4 Builder Implementation\n\nDate: 2026-06-26\n\n"
+    current_head = "b55267315667bdfae8c47a247cb02deff2393f2f"
+    marker = "\n## Current-Head Revalidation After b552673 Builder Implementation\n\nDate: 2026-06-26\n\n"
 
     for payload in (text, audit):
         assert marker in payload
         section = payload.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
         for needle in [
-            "status=fallback_risk_training_data_default_off_builder_post_implementation_static_contract_current_head_4e635c4_revalidated",
+            "status=fallback_risk_training_data_default_off_builder_post_implementation_static_contract_current_head_b552673_revalidated",
             f"camp_head_at_current_head_revalidation={current_head}",
             f"camp_origin_main_at_current_head_revalidation={current_head}",
             f"github_refs_heads_main_at_current_head_revalidation={current_head}",
             f"autodl_CAMP_HEAD_at_current_head_revalidation={current_head}",
             f"autodl_CAMP_origin_main_at_current_head_revalidation={current_head}",
             "autodl_DP_HEAD_at_current_head_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-            "prior_builder_implementation_status=fallback_risk_training_data_default_off_builder_implementation_current_head_9679495_revalidated",
-            "prior_builder_implementation_commit_at_revalidation=4e635c45bef9ede526e73089bfe7bce3a5ac7a20",
+            "prior_builder_implementation_status=fallback_risk_training_data_default_off_builder_implementation_current_head_e568ce2_revalidated",
+            "prior_builder_implementation_commit_at_revalidation=b55267315667bdfae8c47a247cb02deff2393f2f",
             "prior_builder_implementation_tail_verified=True",
             "prior_builder_implementation_autodl_verified=True",
             "user_camp_retraining_permission_available_for_future_training_gate=True",
             "local_py_compile_exit=0",
-            "local_target_pytest=39 passed",
+            "local_target_pytest=12 passed",
             "local_diff_check=0 findings",
             f"autodl_CAMP_HEAD={current_head}",
             f"autodl_CAMP_origin_main={current_head}",
             "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
             "autodl_py_compile_exit=0",
-            "autodl_target_pytest=39 passed",
+            "autodl_target_pytest=12 passed",
             "autodl_diff_check=0 findings",
             "post_implementation_static_contract_review_complete=True",
             "blocking_contract_findings=0",
