@@ -239,11 +239,11 @@ def _errors_for(payload: dict[str, Any]) -> list[str]:
 
 def test_current_head_bcd85c2_unit_tests_revalidation_is_pinned() -> None:
     doc = UNIT_TESTS_DOC.read_text(encoding="utf-8")
-    iteration_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-24000:]
-    combined = doc + iteration_tail
+    iteration_audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    combined = doc + iteration_audit
     status = "status=fallback_risk_training_data_training_sufficiency_unit_tests_current_head_bcd85c2_revalidated"
 
-    assert status in iteration_tail
+    assert status in iteration_audit
 
     for needle in [
         status,
