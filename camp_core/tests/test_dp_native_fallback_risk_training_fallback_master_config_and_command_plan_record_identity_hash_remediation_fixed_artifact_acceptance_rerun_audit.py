@@ -168,6 +168,14 @@ def test_acceptance_rerun_records_local_verification_and_next_gate() -> None:
         "run replay",
         "generate candidates",
         "modify Diffusion Planner",
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_ee0ea6b_acceptance_autodl_sync_verified",
+        "github_pushed_commit=8993631abfce73785c7fc6396e121c9faaa7995a",
+        "autodl_CAMP_HEAD_after_sync=8993631abfce73785c7fc6396e121c9faaa7995a",
+        "autodl_CAMP_origin_main_after_sync=8993631abfce73785c7fc6396e121c9faaa7995a",
+        "autodl_target_pytest=13 passed",
+        "autodl_py_compile_exit=0",
+        "autodl_git_diff_check_exit=0",
+        "autodl_audit_tail_has_master_command_acceptance=True",
     ]:
         assert needle in text
 
@@ -186,6 +194,11 @@ def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
         "local_master_command_builder_pytest=6 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_ee0ea6b_acceptance_autodl_sync_verified",
+        "github_pushed_commit=8993631abfce73785c7fc6396e121c9faaa7995a",
+        "autodl_target_pytest=13 passed",
+        "autodl_py_compile_exit=0",
+        "autodl_git_diff_check_exit=0",
     ]:
         assert needle in tail
 
