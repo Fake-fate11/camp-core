@@ -92283,6 +92283,69 @@ Next admissible gate:
 
 `dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_audit_only`
 
+## Current Tail Confirmation After Current HEAD Fallback Risk Training Data Default-Off Builder Fixed-Artifact Acceptance Audit
+
+Date: 2026-06-26
+
+Executed the current EOF-authorized fixed-artifact acceptance audit on AutoDL
+at the current local/GitHub/AutoDL CAMP head. The gate used the already
+implemented default-off builder with its explicit enable flag against existing
+broader non-formal fixed-artifact selection logs only. It did not run replay,
+generate candidates, train or retrain CAMP, modify Diffusion Planner, promote
+selectors or atoms, change the online selector, or make safety/CAMP-over-DP
+claims.
+
+```text
+status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_f99da50_passed
+passed=True
+artifact_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+artifact_scope=broader_nonformal_fixed_evaluation_artifact
+selection_logs=12
+formal_seed_path_matches=0
+builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z
+builder_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/dataset.json
+builder_output_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/dataset.md
+builder_stdout_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/builder_stdout.json
+builder_output_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823
+builder_stdout_json_sha256=ca1f3ce6bc5df5f8fc26eaec00fa89cb8df55c80781ae1ae41a3fe804c59e1bd
+camp_head_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+camp_origin_main_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+github_refs_heads_main_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+autodl_CAMP_HEAD_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+autodl_CAMP_origin_main_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+records_total=60
+records_without_feasible_candidate=15
+records_with_feasible_candidate=45
+records_built=15
+failed_records=0
+record_candidate_counts=4
+oracle_policies=lane/red/quality,red/lane/quality
+training_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only`
+
+The next gate may only plan the fallback-risk dataset validator extension. It
+must not implement training, run replay, generate candidates, modify Diffusion
+Planner, use formal seeds, relax hard feasibility, add all-infeasible records
+to the feasible-ranking master, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.
+
 ---
 
 ### 2026-06-24 - Fixed-Artifact Fallback Risk Training Data Builder Fixed-Artifact Acceptance Audit

@@ -510,6 +510,127 @@ The next gate may only plan the fallback-risk dataset validator extension. It
 must not train or retrain CAMP, run replay, generate candidates, modify DP,
 promote a selector or atom, or make safety/CAMP-over-DP claims.
 
+## Current-Head Acceptance Revalidation After f99da50 Post-Contract Tail
+
+Date: 2026-06-26
+
+Re-ran the default-off fallback-risk training-data builder on AutoDL at the
+current three-endpoint head, using the same existing broader non-formal
+fixed-artifact selection logs. The run used the explicit builder enable flag.
+It did not run replay, generate candidates, train or retrain CAMP, modify
+Diffusion Planner, promote selectors or atoms, or make safety/CAMP-over-DP
+claims.
+
+```text
+f99da50_artifact_root=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+f99da50_artifact_scope=broader_nonformal_fixed_evaluation_artifact
+f99da50_selection_logs=12
+f99da50_formal_seed_path_matches=0
+f99da50_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z
+f99da50_builder_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/dataset.json
+f99da50_builder_output_md=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/dataset.md
+f99da50_builder_stdout_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/builder_stdout.json
+f99da50_builder_output_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+f99da50_builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823
+f99da50_builder_stdout_json_sha256=ca1f3ce6bc5df5f8fc26eaec00fa89cb8df55c80781ae1ae41a3fe804c59e1bd
+f99da50_camp_head_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+f99da50_camp_origin_main_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+f99da50_github_refs_heads_main_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+f99da50_autodl_CAMP_HEAD_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+f99da50_autodl_CAMP_origin_main_at_revalidation=f99da501bdff4d4aa0f22ffdf1cae47a75a65ff3
+f99da50_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+f99da50_builder_execution_exit=0
+f99da50_summary_parse_exit=0
+local_py_compile_exit=0
+local_target_pytest=6 passed
+local_git_diff_check_exit=0
+```
+
+f99da50 acceptance summary:
+
+```text
+f99da50_schema_version=dp_native_fallback_risk_training_data_v1
+f99da50_status=dp_native_fallback_risk_training_data_builder_complete
+f99da50_passed=True
+f99da50_enabled=True
+f99da50_records_total=60
+f99da50_records_without_feasible_candidate=15
+f99da50_records_with_feasible_candidate=45
+f99da50_records_built=15
+f99da50_failed_records=0
+f99da50_errors=0
+f99da50_record_candidate_counts=4
+f99da50_oracle_policies=lane/red/quality,red/lane/quality
+```
+
+f99da50 fixed-candidate and atom boundary remained valid:
+
+```text
+f99da50_selected_index_range_validated_by_builder=True
+f99da50_candidate_count_unchanged_validated_by_builder=True
+f99da50_pre_post_tensor_hash_equal_validated_by_builder=True
+f99da50_no_candidate_row_append_validated_by_builder=True
+f99da50_no_coordinate_heading_speed_rewrite_by_camp_validated_by_builder=True
+f99da50_candidate_generation_contract_validated_by_builder=True
+f99da50_atom_schema_and_nonnegative_atoms_validated_by_builder=True
+f99da50_normalized_atoms_validated_by_builder=True
+f99da50_margin_ik_nonnegative_and_clipped=True
+```
+
+f99da50 boundary flags remained closed:
+
+```text
+user_broad_execution_permission_recorded=True
+user_camp_retraining_permission_available_for_future_training_gate=True
+this_acceptance_gate_authorizes_broad_execution=False
+f99da50_replay_execution_authorized=False
+f99da50_candidate_generation_authorized=False
+f99da50_camp_training_authorized=False
+f99da50_camp_retraining_authorized=False
+f99da50_formal_seeds_11_12_13_authorized=False
+f99da50_dp_modification_authorized=False
+f99da50_selector_promotion_authorized=False
+f99da50_atom_promotion_authorized=False
+f99da50_safety_benefit_claim_authorized=False
+f99da50_camp_over_dp_top1_claim_authorized=False
+f99da50_training_authorized=False
+f99da50_production_selector_change_authorized=False
+f99da50_online_selector_change_authorized=False
+f99da50_feasible_ranking_master_change_authorized=False
+f99da50_all_infeasible_records_added_to_feasible_training=False
+f99da50_hard_feasibility_relaxation_authorized=False
+f99da50_fallback_dataset_training_sufficiency_claim=False
+```
+
+f99da50 decision:
+
+```text
+status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_f99da50_passed
+passed=True
+fixed_artifact_acceptance_audit_complete=True
+accepted_fallback_records=15
+fallback_dataset_artifact_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+production_builder_not_modified=True
+selector_or_atom_not_promoted=True
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only
+```
+
+The next gate may only plan the fallback-risk dataset validator extension. It
+must not implement training, run replay, generate candidates, modify Diffusion
+Planner, use formal seeds, relax hard feasibility, add all-infeasible records
+to the feasible-ranking master, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.
+
 ## Current Tail Confirmation After 8e50989 Fallback Risk Training Data Default-Off Builder Fixed-Artifact Acceptance Audit
 
 Date: 2026-06-26
