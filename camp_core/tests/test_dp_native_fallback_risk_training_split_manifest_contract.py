@@ -668,7 +668,7 @@ def test_current_head_f8f409b_split_manifest_unit_tests_revalidation_is_pinned()
         assert needle in audit
 
 
-def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() -> None:
+def test_audit_tail_records_split_manifest_builder_post_static_next_gate() -> None:
     audit = AUDIT_DOC.read_text(encoding="utf-8")
     tail = "\n".join(audit.splitlines()[-220:])
 
@@ -686,19 +686,19 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
     )
     assert (
         "status=fallback_risk_training_split_manifest_builder_implementation_current_head_099b935_revalidated"
-        in tail
+        in audit
     )
     assert "head_f8f409b_local_split_manifest_contract_pytest=9 passed" in audit
     assert (
         "source_revalidation_status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
-        in tail
+        in audit
     )
     assert (
         "source_authorization_sync_status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_eedbc1f_autodl_sync_verified"
-        in tail
+        in audit
     )
-    assert "current_head=099b935c7ab84cdd35ebafc097764bc7cf96354c" in tail
-    assert "f8f409b_is_ancestor_of_current_head=True" in tail
+    assert "current_head=099b935c7ab84cdd35ebafc097764bc7cf96354c" in audit
+    assert "f8f409b_is_ancestor_of_current_head=True" in audit
     assert "training_execution_authorized_now=False" in audit
     assert (
         "this_split_manifest_unit_tests_gate_authorizes_builder_training_replay_dp_or_claims=False"
@@ -710,13 +710,19 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
     )
     assert (
         "this_builder_implementation_gate_authorizes_fixed_artifact_training_replay_dp_or_claims=False"
+        in audit
+    )
+    assert (
+        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_current_head_67db07f_revalidated"
         in tail
     )
+    assert "head_67db07f_local_extended_target_pytest=39 passed" in tail
+    assert "this_post_static_gate_authorizes_fixed_artifact_builder_run=False" in tail
     assert (
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only"
         in audit
     )
     assert (
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only"
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only"
         in tail
     )
