@@ -73,6 +73,14 @@ def test_review_doc_records_validator_post_implementation_contract() -> None:
         "latest_autodl_CAMP_HEAD_at_revalidation=504816ede1437bef93c26f9a5835503a3c7e1170",
         "latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_current_head_4f7a782_revalidated",
         "latest_autodl_target_pytest=30 passed",
+        "status=fallback_risk_training_data_validator_extension_post_implementation_static_contract_current_head_b4b92fa_revalidated",
+        "latest_post_static_revalidation_base_head=b4b92fa28e42a5c1c0be85bba3f2b64284ebba66",
+        "latest_autodl_CAMP_HEAD_at_revalidation=b4b92fa28e42a5c1c0be85bba3f2b64284ebba66",
+        "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_current_head_b14ce09_revalidated",
+        "latest_local_target_pytest=32 passed",
+        "latest_autodl_target_pytest=32 passed",
+        "local_target_pytest=32 passed",
     ]:
         assert needle in combined
 
