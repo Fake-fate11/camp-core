@@ -322,6 +322,55 @@ result. User permission to retrain CAMP is available for the first gate that
 explicitly authorizes training, but this materializer gate does not authorize
 training by itself.
 
+## AutoDL Sync Verification After Current HEAD Validated Dataset Summary Acceptance
+
+Date: 2026-06-26
+
+Verified the pushed validated dataset summary materializer acceptance checkpoint
+on AutoDL using a verified git bundle and fast-forward merge. This sync
+verification does not run the training sufficiency preflight, execute training,
+run replay, generate candidates, modify Diffusion Planner, promote selectors or
+atoms, deploy, or make safety/CAMP-over-DP claims.
+
+```text
+status=fallback_risk_training_validated_dataset_summary_materializer_current_head_b3d216b_acceptance_autodl_sync_verified
+passed=True
+source_summary_acceptance_status=fallback_risk_training_validated_dataset_summary_materializer_current_head_db0111c_fixed_artifact_acceptance_passed
+pushed_summary_acceptance_commit=b3d216b6709ecef15f759e39ccd639b1beb6e17b
+verified_local_HEAD=b3d216b6709ecef15f759e39ccd639b1beb6e17b
+verified_origin_main=b3d216b6709ecef15f759e39ccd639b1beb6e17b
+verified_github_refs_heads_main=b3d216b6709ecef15f759e39ccd639b1beb6e17b
+verified_autodl_CAMP_HEAD=b3d216b6709ecef15f759e39ccd639b1beb6e17b
+verified_autodl_CAMP_origin_main=b3d216b6709ecef15f759e39ccd639b1beb6e17b
+verified_autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+sync_method=autodl_bundle_fast_forward
+sync_bundle=F:\t\camp_db0111c_to_b3d216b.bundle
+sync_bundle_sha256=1b702ef9cdcfc0a7c5a5160500e50b00e31396f8c1661b53100916d86678d975
+autodl_bundle_verify_exit=0
+autodl_bundle_fetch_exit=0
+autodl_fast_forward_exit=0
+autodl_origin_main_update_ref_exit=0
+verified_autodl_py_compile_exit=0
+verified_autodl_target_pytest=13 passed
+verified_autodl_git_diff_check_exit=0
+verified_autodl_training_not_executed=True
+verified_autodl_candidate_generation_not_executed=True
+verified_autodl_dp_not_modified=True
+verified_autodl_selector_or_atom_not_promoted=True
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+this_sync_verification_authorizes_training_replay_dp_or_claims=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`
+
 ## Current HEAD Fixed-Artifact Acceptance Rerun After Master Command Sync
 
 Date: 2026-06-26

@@ -120,6 +120,38 @@ def test_current_head_db0111c_summary_acceptance_rerun_is_pinned() -> None:
         assert needle in text
 
 
+def test_current_head_b3d216b_summary_sync_verification_is_pinned() -> None:
+    text = _audit()
+
+    for needle in [
+        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_b3d216b_acceptance_autodl_sync_verified",
+        "source_summary_acceptance_status=fallback_risk_training_validated_dataset_summary_materializer_current_head_db0111c_fixed_artifact_acceptance_passed",
+        "pushed_summary_acceptance_commit=b3d216b6709ecef15f759e39ccd639b1beb6e17b",
+        "verified_local_HEAD=b3d216b6709ecef15f759e39ccd639b1beb6e17b",
+        "verified_origin_main=b3d216b6709ecef15f759e39ccd639b1beb6e17b",
+        "verified_github_refs_heads_main=b3d216b6709ecef15f759e39ccd639b1beb6e17b",
+        "verified_autodl_CAMP_HEAD=b3d216b6709ecef15f759e39ccd639b1beb6e17b",
+        "verified_autodl_CAMP_origin_main=b3d216b6709ecef15f759e39ccd639b1beb6e17b",
+        "verified_autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "sync_method=autodl_bundle_fast_forward",
+        "sync_bundle=F:\\t\\camp_db0111c_to_b3d216b.bundle",
+        "sync_bundle_sha256=1b702ef9cdcfc0a7c5a5160500e50b00e31396f8c1661b53100916d86678d975",
+        "autodl_bundle_verify_exit=0",
+        "autodl_bundle_fetch_exit=0",
+        "autodl_fast_forward_exit=0",
+        "autodl_origin_main_update_ref_exit=0",
+        "verified_autodl_py_compile_exit=0",
+        "verified_autodl_target_pytest=13 passed",
+        "verified_autodl_git_diff_check_exit=0",
+        "verified_autodl_training_not_executed=True",
+        "verified_autodl_candidate_generation_not_executed=True",
+        "verified_autodl_dp_not_modified=True",
+        "verified_autodl_selector_or_atom_not_promoted=True",
+        "this_sync_verification_authorizes_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in text
+
+
 def test_acceptance_rerun_records_complete_materializer_result() -> None:
     text = _audit()
 
@@ -242,6 +274,11 @@ def test_iteration_audit_tail_records_summary_rerun_next_gate() -> None:
         "local_summary_materializer_pytest=5 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
+        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_b3d216b_acceptance_autodl_sync_verified",
+        "pushed_summary_acceptance_commit=b3d216b6709ecef15f759e39ccd639b1beb6e17b",
+        "verified_autodl_target_pytest=13 passed",
+        "verified_autodl_py_compile_exit=0",
+        "verified_autodl_git_diff_check_exit=0",
     ]:
         assert needle in tail
 
