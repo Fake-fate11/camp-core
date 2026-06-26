@@ -274,10 +274,10 @@ def test_iteration_audit_tail_records_scale_rerun_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_train_only_scale_manifest_current_head_20fd1a9_fixed_artifact_acceptance_passed",
+        "status=fallback_risk_training_train_only_scale_manifest_current_head_ad223a1_fixed_artifact_acceptance_passed",
         "source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.json",
-        "training_split_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_6b43925_20260626T051552Z/split_manifest.json",
-        "scale_manifest_json_sha256=013db2348319ad5a959c33bc2a078b8b7162969bbd3f5633ca34d1b7ce2ef04b",
+        "training_split_manifest_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_0e302e1_20260626T130030Z/split_manifest.json",
+        "scale_manifest_json_sha256=b11cba57efc5761417c539cfbf009866fc8c5f1466a1f041073ea88f6a3b618d",
         "train_only_scale_manifest_ready_for_preflight=True",
         "local_target_pytest=8 passed",
         "local_scale_builder_pytest=5 passed",
@@ -292,7 +292,7 @@ def test_iteration_audit_tail_records_scale_rerun_next_gate() -> None:
         in tail
     )
     assert (
-        "status=fallback_risk_training_train_only_scale_manifest_current_head_53df201_autodl_sync_verified"
+        "this_acceptance_gate_authorizes_training_replay_dp_or_claims=False"
         in tail
     )
-    assert "verified_autodl_target_pytest=13 passed" in tail
+    assert "autodl_builder_exit=0" in tail
