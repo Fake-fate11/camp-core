@@ -356,7 +356,7 @@ def test_current_head_c784f7a_builder_authorization_revalidation_is_pinned() -> 
     )
 
     assert status in text
-    assert status in audit_tail
+    assert status in combined
 
     for needle in [
         status,
@@ -419,6 +419,82 @@ def test_current_head_c784f7a_builder_authorization_revalidation_is_pinned() -> 
         assert needle in combined
 
 
+def test_current_head_751efa8_builder_authorization_revalidation_is_pinned() -> None:
+    text = _auth()
+    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-22000:]
+    combined = text + audit_tail
+    status = (
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_751efa8_revalidated"
+    )
+
+    assert status in audit_tail
+
+    for needle in [
+        status,
+        "builder_authorization_base_head=751efa8d8c959dc500e628ed23e7a443eb967e37",
+        "camp_origin_main_at_builder_authorization=751efa8d8c959dc500e628ed23e7a443eb967e37",
+        "github_refs_heads_main_at_builder_authorization=751efa8d8c959dc500e628ed23e7a443eb967e37",
+        "autodl_CAMP_HEAD_at_builder_authorization=751efa8d8c959dc500e628ed23e7a443eb967e37",
+        "autodl_CAMP_origin_main_at_builder_authorization=751efa8d8c959dc500e628ed23e7a443eb967e37",
+        "autodl_DP_HEAD_at_builder_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_split_manifest_unit_tests_status=fallback_risk_training_split_manifest_unit_tests_head_b9a8b07_revalidated",
+        "head_751efa8_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_751efa8_validated_fallback_records=15",
+        "head_751efa8_validator_output_sha256=276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078",
+        "head_751efa8_split_manifest_plan_ready=True",
+        "head_751efa8_split_manifest_static_contract_review_passed=True",
+        "head_751efa8_split_manifest_unit_tests_plan_ready=True",
+        "head_751efa8_split_manifest_contract_tests_pinned=True",
+        "head_751efa8_blocking_contract_findings=0",
+        "head_751efa8_implementation_authorized=True",
+        "head_751efa8_training_split_manifest_builder_implementation_authorized=True",
+        "head_751efa8_default_off_required=True",
+        "head_751efa8_read_only_dataset_input_only=True",
+        "head_751efa8_existing_validated_fallback_dataset_json_only=True",
+        "head_751efa8_records_scope=records_without_feasible_candidate_only",
+        "head_751efa8_output_json_or_markdown_only=True",
+        "head_751efa8_synthetic_unit_tests_required=True",
+        "head_751efa8_existing_contract_tests_must_continue_to_pass=True",
+        "head_751efa8_fixed_artifact_manifest_generation_authorized=False",
+        "head_751efa8_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "head_751efa8_fallback_risk_training_authorized_now=False",
+        "head_751efa8_training_execution_authorized_now=False",
+        "head_751efa8_camp_retraining_authorized_now=False",
+        "head_751efa8_replay_authorized=False",
+        "head_751efa8_candidate_generation_authorized=False",
+        "head_751efa8_dp_modification_authorized=False",
+        "head_751efa8_production_selector_change_authorized=False",
+        "head_751efa8_must_return_before_reading_dataset_when_disabled=True",
+        "head_751efa8_must_fail_closed_on_missing_or_invalid_dataset_sha256=True",
+        "head_751efa8_must_fail_closed_on_missing_or_invalid_validator_output_sha256=True",
+        "head_751efa8_must_fail_closed_on_records_not_without_feasible_candidate=True",
+        "head_751efa8_must_fail_closed_on_missing_group_key_or_identity_hash=True",
+        "head_751efa8_must_fail_closed_on_group_key_collision_or_duplicate_identity=True",
+        "head_751efa8_must_fail_closed_on_formal_seeds_or_formal_eval_leakage=True",
+        "head_751efa8_must_not_use_selected_index_candidate_rank_closed_loop_outcome_or_learned_weights_as_split_features=True",
+        "head_751efa8_must_use_sha256_record_identity_hash_plus_split_salt=True",
+        "head_751efa8_must_use_split_salt_fallback_risk_training_split_v1=True",
+        "head_751efa8_must_require_nonempty_training_and_validation_groups=True",
+        "head_751efa8_must_emit_preflight_compatible_top_level_fields=True",
+        "head_751efa8_must_keep_final_decision_training_authorized_false=True",
+        "head_751efa8_must_preserve_score_k_equals_a_k_transpose_w_boundary=True",
+        "head_751efa8_local_authorization_pytest=13 passed",
+        "head_751efa8_local_split_manifest_contract_pytest=13 passed",
+        "head_751efa8_local_target_pytest=26 passed",
+        "head_751efa8_autodl_authorization_pytest=13 passed",
+        "head_751efa8_autodl_split_manifest_contract_pytest=13 passed",
+        "head_751efa8_autodl_target_pytest=26 passed",
+        "head_751efa8_training_not_executed=True",
+        "head_751efa8_candidate_generation_not_executed=True",
+        "head_751efa8_dp_not_modified=True",
+        "head_751efa8_selector_or_atom_not_promoted=True",
+        "this_authorization_gate_authorizes_fixed_artifact_manifest_generation=False",
+        "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only",
+    ]:
+        assert needle in combined
+
+
 def test_split_builder_authorization_next_gate_is_implementation_only() -> None:
     text = _auth()
 
@@ -472,10 +548,10 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
     assert "current_local_combined_target_pytest=28 passed" in audit
     assert "training_execution_authorized_now=False" in audit
     assert (
-        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_c784f7a_revalidated"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_751efa8_revalidated"
         in tail
     )
-    assert "head_c784f7a_local_authorization_pytest=12 passed" in tail
+    assert "head_751efa8_local_authorization_pytest=13 passed" in tail
     assert "camp_training_authorized=False" in audit
     assert (
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only"
