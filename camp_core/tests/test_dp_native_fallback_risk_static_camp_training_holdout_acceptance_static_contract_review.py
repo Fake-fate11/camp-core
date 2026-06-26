@@ -184,3 +184,35 @@ def test_current_head_cb9c630_holdout_static_contract_review_is_pinned() -> None
         "status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_cb9c630_passed"
         in audit
     )
+
+
+def test_current_head_525e887_holdout_static_contract_review_is_pinned() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "review_start_head=525e887f0c414676a0e20330e6adb3a069234117",
+        "reviewed_holdout_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_5c913ae_cfeebea_20260626T000000Z",
+        "reviewed_holdout_audit_json_sha256=4517a941f11b1268ce61dc19a62989a6d39cd04835ea3309dd00c95c5a25d523",
+        "default_off_before_reads=True",
+        "read_only_existing_artifacts=True",
+        "writes_only_explicit_output_json_and_md=True",
+        "subprocess_usage=False",
+        "dp_execution_path=False",
+        "candidate_generation_path=False",
+        "paper_consistent_fixed_candidate_reranker_boundary_preserved=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "static_oracle_match_rate=0.5",
+        "uniform_oracle_match_rate=1.0",
+        "holdout_static_underperforms_uniform=True",
+        "blocking_contract_findings=0",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    assert (
+        "status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_525e887_passed"
+        in audit
+    )
