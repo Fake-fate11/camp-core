@@ -591,3 +591,53 @@ def test_current_head_884a3ed_development_holdout_audit_is_pinned() -> None:
         "status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_current_head_884a3ed_passed"
         in audit
     )
+
+
+def test_current_head_f05e9c9_development_holdout_audit_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
+    audit_tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-260:])
+
+    for needle in [
+        "current_camp_head=f05e9c92b93332178ac324c975e81267fa3331c0",
+        "required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "training_commit=6ca391d1b6f09e6f0a557c8824809032dd50311d",
+        "nonpromotion_audit_execution_head=84713804e1a2b4360ae850d8fbdd5427d810e342",
+        "training_summary_json_sha256=b7ea56145b3a4a8d50f8e5e12bc2f23c6c2c963f14d1907aa4be31a18dd7b4e3",
+        "offline_weights_json_sha256=c53d59509c8d338ad3993b9d8a079d9420ab48df05548d3be75fd29235fa0634",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=85fe39a375f59117459d3d4104d589c6dacb12c70add01b878142be23d327aa5",
+        "dataset_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "training_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
+        "train_only_scale_manifest_json_sha256=6d4f691a6eeae0324406af959ddcff996b36441eb4d839b41143ef48bbc802f5",
+        "fallback_master_config_json_sha256=e8e6425ee7fd5371af597fc97cacc16593817cc19c35c1f64bc5c684c7cb37fb",
+        "preflight_json_sha256=0c42ca3bf526e12190cc409bda5ab9ab829b17228624346bc15b291b7d22aabc",
+        "remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_6ca391d_f05e9c9_20260626T193703Z",
+        "remote_audit_json_sha256=cca64b9f3646435a916c6e6861d6250b99006267d8ebb53a21aeb51f62733cb9",
+        "remote_audit_md_sha256=8a1cbe56033ec053fda46761b1e9f839f2391a3eb2f672990e3748af78ad354a",
+        "remote_audit_stdout_log_sha256=c4b0275758fb959b3193d310d5e06097fcd6a8be0b732165e2fbe42f7587966b",
+        "remote_artifact_audit_exit=0",
+        "development_holdout_acceptance_audit_passed=True",
+        "audit_only=True",
+        "plan_only=False",
+        "validation_records=2",
+        "static_oracle_match_rate=0.5",
+        "recorded_oracle_match_rate=1.0",
+        "uniform_oracle_match_rate=1.0",
+        "holdout_static_underperforms_uniform=True",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    assert audit_tail.rstrip().endswith(
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_holdout_acceptance_static_contract_review\n```"
+    )
+
+    for needle in [
+        "status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_current_head_f05e9c9_passed",
+        "development_holdout_acceptance_audit_passed=True",
+        "holdout_static_underperforms_uniform=True",
+        "this_audit_executes_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in audit_tail
