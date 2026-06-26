@@ -460,3 +460,42 @@ def test_current_head_a263ce5_development_holdout_audit_is_pinned() -> None:
         "status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_current_head_a263ce5_passed"
         in audit
     )
+
+
+def test_current_head_cfeebea_development_holdout_audit_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "current_camp_head=cfeebeac093a1705178a3aa4f709c485be4d69c9",
+        "training_summary_json_sha256=a82d2403276e2aaf3e151271426bfca91e113b4e79735a8ead7a359ee8f24fb4",
+        "offline_weights_json_sha256=08fe4290defde501f03e99dc752c95432778b9fb973262255e9cf98ec097d0a3",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=10360c02c3deb38a6504781497b4fb5f082e59e63d3aee961f691f4e853a1b21",
+        "dataset_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "training_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
+        "train_only_scale_manifest_json_sha256=8ec568461fb0887143b28899388544091aa613500673a2ffe7b1891316e62759",
+        "fallback_master_config_json_sha256=ea9d8ddf4bbf6a4fdebca9685c6cc1b625c3803837114301bb3537982a030364",
+        "preflight_json_sha256=8f68f312188ada4661aa6cb7dc91cbb9c5537df147ac5c3f0851ee6a5d00e8c5",
+        "remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_5c913ae_cfeebea_20260626T000000Z",
+        "remote_audit_json_sha256=4517a941f11b1268ce61dc19a62989a6d39cd04835ea3309dd00c95c5a25d523",
+        "remote_audit_md_sha256=ca4f43407fbc229fb2cc3dedc7bb9b9d10a24422ab0bfd621351ebfd678b2f90",
+        "remote_audit_stdout_log_sha256=c4b0275758fb959b3193d310d5e06097fcd6a8be0b732165e2fbe42f7587966b",
+        "remote_artifact_audit_exit=0",
+        "development_holdout_acceptance_audit_passed=True",
+        "audit_only=True",
+        "plan_only=False",
+        "validation_records=2",
+        "static_oracle_match_rate=0.5",
+        "uniform_oracle_match_rate=1.0",
+        "holdout_static_underperforms_uniform=True",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    assert (
+        "status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_current_head_cfeebea_passed"
+        in audit
+    )
