@@ -684,9 +684,13 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
     )
     assert (
         "status=fallback_risk_training_split_manifest_builder_implementation_autodl_sync_verified"
+        in audit
+    )
+    assert (
+        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_09ca81f_revalidated"
         in tail
     )
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
         in tail
     )
