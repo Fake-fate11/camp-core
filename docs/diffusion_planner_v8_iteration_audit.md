@@ -129359,3 +129359,59 @@ must not implement training, run replay, generate candidates, modify Diffusion
 Planner, use formal seeds, relax hard feasibility, add all-infeasible records
 to the feasible-ranking master, promote a selector or atom, or claim
 safety/CAMP-over-DP benefit.
+
+## Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Plan
+
+Date: 2026-06-26
+
+Completed the current EOF-authorized validator-extension plan revalidation at
+local/GitHub/AutoDL CAMP head `2aec4e8`. This gate only revalidated the plan
+for a future read-only validator extension against the accepted f99da50
+fallback-risk dataset artifact. It did not implement the validator, run replay,
+generate candidates, train or retrain CAMP, modify Diffusion Planner, promote
+selectors or atoms, change the online selector, or make safety/CAMP-over-DP
+claims.
+
+```text
+status=fallback_risk_training_data_validator_extension_plan_current_head_2aec4e8_revalidated
+passed=True
+head_2aec4e8_plan_revalidation_base_head=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c
+head_2aec4e8_camp_origin_main_at_revalidation=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c
+head_2aec4e8_github_refs_heads_main_at_revalidation=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c
+head_2aec4e8_autodl_CAMP_HEAD_at_revalidation=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c
+head_2aec4e8_autodl_CAMP_origin_main_at_revalidation=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c
+head_2aec4e8_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+head_2aec4e8_fixed_artifact_acceptance_status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_f99da50_passed
+head_2aec4e8_accepted_fallback_records=15
+head_2aec4e8_accepted_dataset_schema_version=dp_native_fallback_risk_training_data_v1
+head_2aec4e8_accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+head_2aec4e8_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/dataset.json
+head_2aec4e8_local_py_compile_exit=0
+head_2aec4e8_local_target_pytest=10 passed
+head_2aec4e8_local_git_diff_check_exit=0
+validator_extension_plan_complete=True
+validator_extension_implementation_authorized=False
+validator_extension_static_contract_review_authorized_next=True
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_static_contract_review_only`
+
+The next gate may only perform a static contract review of the planned
+fallback-risk dataset validator extension. It must not implement the validator,
+run replay, generate candidates, train CAMP, modify Diffusion Planner, use
+formal seeds, promote a selector or atom, or claim safety/CAMP-over-DP benefit.

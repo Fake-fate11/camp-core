@@ -100,6 +100,17 @@ def test_validator_extension_plan_records_preconditions() -> None:
         "head_ea68e5b_accepted_dataset_schema_version=dp_native_fallback_risk_training_data_v1",
         "head_ea68e5b_accepted_dataset_sha256=aff45e48340741ed976eaeaadc383fa794d7a0a769fcaebde3a90a20cae9caa6",
         "head_ea68e5b_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_8e50989_20260626T084333Z/dataset.json",
+        "head_2aec4e8_plan_revalidation_base_head=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c",
+        "head_2aec4e8_camp_origin_main_at_revalidation=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c",
+        "head_2aec4e8_github_refs_heads_main_at_revalidation=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c",
+        "head_2aec4e8_autodl_CAMP_HEAD_at_revalidation=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c",
+        "head_2aec4e8_autodl_CAMP_origin_main_at_revalidation=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c",
+        "head_2aec4e8_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "head_2aec4e8_fixed_artifact_acceptance_status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_f99da50_passed",
+        "head_2aec4e8_accepted_fallback_records=15",
+        "head_2aec4e8_accepted_dataset_schema_version=dp_native_fallback_risk_training_data_v1",
+        "head_2aec4e8_accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_2aec4e8_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/dataset.json",
     ]:
         assert needle in text
 
@@ -223,6 +234,9 @@ def test_validator_extension_plan_negative_tests_and_forbidden_flags() -> None:
         "head_ea68e5b_autodl_target_pytest=8 passed",
         "head_ea68e5b_autodl_py_compile_exit=0",
         "head_ea68e5b_autodl_git_diff_check_exit=0",
+        "head_2aec4e8_local_target_pytest=10 passed",
+        "head_2aec4e8_local_py_compile_exit=0",
+        "head_2aec4e8_local_git_diff_check_exit=0",
         "latest_local_target_pytest=7 passed",
         "latest_autodl_target_pytest=7 passed",
         "status=fallback_risk_training_data_validator_extension_plan_autodl_verification_passed",
@@ -263,6 +277,7 @@ def test_validator_extension_plan_next_gate_is_static_review_only() -> None:
         "status=fallback_risk_training_data_validator_extension_plan_current_head_8635158_revalidated",
         "status=fallback_risk_training_data_validator_extension_plan_current_head_94f224b_revalidated",
         "status=fallback_risk_training_data_validator_extension_plan_current_head_ea68e5b_revalidated",
+        "status=fallback_risk_training_data_validator_extension_plan_current_head_2aec4e8_revalidated",
         "validator_extension_plan_complete=True",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_static_contract_review_only",
         "may only perform a static contract review",
@@ -296,6 +311,42 @@ def test_iteration_audit_tail_records_current_head_plan_revalidation() -> None:
         "replay_execution_authorized=False",
         "candidate_generation_authorized=False",
         "dp_modification_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_static_contract_review_only",
+    ]:
+        assert needle in tail
+
+
+def test_validator_extension_plan_eof_records_current_head_2aec4e8_plan() -> None:
+    tail = "\n".join(_plan().splitlines()[-100:])
+
+    for needle in [
+        "Current-Head Plan Revalidation After f99da50 Builder Acceptance",
+        "status=fallback_risk_training_data_validator_extension_plan_current_head_2aec4e8_revalidated",
+        "head_2aec4e8_plan_revalidation_base_head=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c",
+        "head_2aec4e8_fixed_artifact_acceptance_status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_f99da50_passed",
+        "head_2aec4e8_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/dataset.json",
+        "head_2aec4e8_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "validator_extension_implementation_authorized=False",
+        "validator_extension_static_contract_review_authorized_next=True",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_static_contract_review_only",
+    ]:
+        assert needle in tail
+
+
+def test_iteration_audit_eof_records_current_head_2aec4e8_plan() -> None:
+    tail = "\n".join(_iteration_audit().splitlines()[-100:])
+
+    for needle in [
+        "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Plan",
+        "status=fallback_risk_training_data_validator_extension_plan_current_head_2aec4e8_revalidated",
+        "head_2aec4e8_plan_revalidation_base_head=2aec4e859169a72ad8bcc8b308936ae59cfa4d8c",
+        "head_2aec4e8_fixed_artifact_acceptance_status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_f99da50_passed",
+        "head_2aec4e8_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z/dataset.json",
+        "head_2aec4e8_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "validator_extension_implementation_authorized=False",
+        "validator_extension_static_contract_review_authorized_next=True",
+        "fallback_dataset_training_sufficiency_claim=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_static_contract_review_only",
     ]:
         assert needle in tail
