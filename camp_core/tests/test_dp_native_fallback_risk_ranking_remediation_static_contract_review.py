@@ -442,7 +442,16 @@ def test_current_head_013378c_static_contract_review_is_pinned() -> None:
 
 def test_current_head_4995778_static_contract_review_is_pinned() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
-    audit_tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-220:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    audit_marker = (
+        "## Current Tail Confirmation After Current HEAD Fallback Risk Ranking "
+        "Remediation Static Contract Review"
+    )
+    next_marker = (
+        "## Current Tail Confirmation After Current HEAD Fallback Risk Ranking "
+        "Default-Off Unit Tests Plan"
+    )
+    audit_tail = audit_marker + audit.split(audit_marker)[-1].split(next_marker)[0]
 
     for needle in [
         "camp_head_at_revalidation=49957782ca737b2370b82f5b4f725dcaf031989b",
