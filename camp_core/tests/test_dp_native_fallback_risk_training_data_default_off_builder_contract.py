@@ -434,23 +434,23 @@ def test_contract_rejects_negative_atoms_and_forbids_training() -> None:
 def test_iteration_audit_records_builder_unit_tests_current_head_history() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
     marker = (
-        "\n## Current EOF Confirmation After Current-Head Fallback Risk Training Data "
+        "\n## Current EOF Confirmation After 8fdb30c Fallback Risk Training-Data "
         "Default-Off Builder Unit Tests\n\nDate: 2026-06-26\n\n"
     )
     assert marker in audit
     section = audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
-    current_head = "96911f0c257021e828cd2b7f7b54212e716a5a50"
+    current_head = "8fdb30c01bb9cf2901ea15cce613e5935979846b"
 
     for needle in [
-        "status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_96911f0_revalidated",
+        "status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_8fdb30c_revalidated",
         f"camp_head_at_revalidation={current_head}",
         f"camp_origin_main_at_revalidation={current_head}",
         f"github_refs_heads_main_at_revalidation={current_head}",
         f"autodl_CAMP_HEAD_at_revalidation={current_head}",
         f"autodl_CAMP_origin_main_at_revalidation={current_head}",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "prior_builder_unit_tests_plan_status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_7e53e27_revalidated",
-        "prior_builder_unit_tests_plan_commit_at_revalidation=96911f0c257021e828cd2b7f7b54212e716a5a50",
+        "prior_builder_unit_tests_plan_status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_3434ae8_revalidated",
+        f"prior_builder_unit_tests_plan_commit_at_revalidation={current_head}",
         "prior_builder_unit_tests_plan_tail_verified=True",
         "prior_builder_unit_tests_plan_autodl_verified=True",
         "user_camp_retraining_permission_available_for_future_training_gate=True",
