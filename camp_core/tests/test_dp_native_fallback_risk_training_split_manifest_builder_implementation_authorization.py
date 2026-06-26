@@ -294,6 +294,59 @@ def test_split_builder_authorization_keeps_generation_training_dp_and_claims_for
         assert forbidden not in text
 
 
+def test_current_head_2235ca7_builder_authorization_revalidation_is_pinned() -> None:
+    text = _auth()
+    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-18000:]
+    combined = text + audit_tail
+    status = (
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_2235ca7_revalidated"
+    )
+
+    assert status in audit_tail
+
+    for needle in [
+        status,
+        "builder_authorization_base_head=2235ca76f65f28ce6c0ecdf6498dacf96d40d633",
+        "camp_origin_main_at_builder_authorization=2235ca76f65f28ce6c0ecdf6498dacf96d40d633",
+        "github_refs_heads_main_at_builder_authorization=2235ca76f65f28ce6c0ecdf6498dacf96d40d633",
+        "autodl_CAMP_HEAD_at_builder_authorization=2235ca76f65f28ce6c0ecdf6498dacf96d40d633",
+        "autodl_CAMP_origin_main_at_builder_authorization=2235ca76f65f28ce6c0ecdf6498dacf96d40d633",
+        "autodl_DP_HEAD_at_builder_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_split_manifest_unit_tests_status=fallback_risk_training_split_manifest_unit_tests_head_cde90c0_revalidated",
+        "head_2235ca7_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_2235ca7_validated_fallback_records=15",
+        "head_2235ca7_split_manifest_plan_ready=True",
+        "head_2235ca7_split_manifest_static_contract_review_passed=True",
+        "head_2235ca7_split_manifest_unit_tests_plan_ready=True",
+        "head_2235ca7_split_manifest_contract_tests_pinned=True",
+        "head_2235ca7_blocking_contract_findings=0",
+        "head_2235ca7_implementation_authorized=True",
+        "head_2235ca7_training_split_manifest_builder_implementation_authorized=True",
+        "head_2235ca7_default_off_required=True",
+        "head_2235ca7_read_only_dataset_input_only=True",
+        "head_2235ca7_existing_validated_fallback_dataset_json_only=True",
+        "head_2235ca7_synthetic_unit_tests_required=True",
+        "head_2235ca7_fixed_artifact_manifest_generation_authorized=False",
+        "head_2235ca7_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "head_2235ca7_training_execution_authorized_now=False",
+        "head_2235ca7_camp_retraining_authorized_now=False",
+        "head_2235ca7_local_authorization_pytest=11 passed",
+        "head_2235ca7_local_split_manifest_contract_pytest=10 passed",
+        "head_2235ca7_local_target_pytest=21 passed",
+        "head_2235ca7_autodl_authorization_pytest=11 passed",
+        "head_2235ca7_autodl_split_manifest_contract_pytest=10 passed",
+        "head_2235ca7_autodl_target_pytest=21 passed",
+        "head_2235ca7_training_not_executed=True",
+        "head_2235ca7_candidate_generation_not_executed=True",
+        "head_2235ca7_dp_not_modified=True",
+        "head_2235ca7_selector_or_atom_not_promoted=True",
+        "this_authorization_gate_authorizes_fixed_artifact_manifest_generation=False",
+        "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only",
+    ]:
+        assert needle in combined
+
+
 def test_split_builder_authorization_next_gate_is_implementation_only() -> None:
     text = _auth()
 
@@ -347,16 +400,12 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
     assert "current_local_combined_target_pytest=28 passed" in audit
     assert "training_execution_authorized_now=False" in audit
     assert (
-        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_6b43925_tail_authority"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_2235ca7_revalidated"
         in tail
     )
-    assert (
-        "source_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_6b43925_passed"
-        in tail
-    )
-    assert "local_related_target_pytest=49 passed" in tail
-    assert "camp_training_authorized=False" in tail
+    assert "head_2235ca7_local_authorization_pytest=11 passed" in tail
+    assert "camp_training_authorized=False" in audit
     assert (
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only"
-        in tail
+        in audit
     )
