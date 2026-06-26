@@ -162,3 +162,36 @@ def test_current_head_722875d_development_holdout_plan_is_pinned() -> None:
         "status=fallback_risk_static_camp_training_development_holdout_acceptance_plan_only_current_head_722875d_passed"
         in audit
     )
+
+
+def test_current_head_0fb6736_development_holdout_plan_is_pinned() -> None:
+    text = _plan_text()
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "training_commit=5c913aea29d821dbfb8bf47313309e9a7dafd305",
+        "plan_start_head=0fb6736bebc0992effb02c22cd4cedd859b9c215",
+        "nonpromotion_audit_execution_head=fc21a130eb346e94b8a8fba8f1515e27e866ad7d",
+        "training_summary_json_sha256=a82d2403276e2aaf3e151271426bfca91e113b4e79735a8ead7a359ee8f24fb4",
+        "offline_weights_json_sha256=08fe4290defde501f03e99dc752c95432778b9fb973262255e9cf98ec097d0a3",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=10360c02c3deb38a6504781497b4fb5f082e59e63d3aee961f691f4e853a1b21",
+        "nonpromotion_audit_json_sha256=2f9f9c163bb14a0b058d33d051d32d0c153a422429260c1ebea6527e5a556bea",
+        "post_training_nonpromotion_artifact_audit_passed=True",
+        "dataset_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "training_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
+        "train_only_scale_manifest_json_sha256=8ec568461fb0887143b28899388544091aa613500673a2ffe7b1891316e62759",
+        "fallback_master_config_json_sha256=ea9d8ddf4bbf6a4fdebca9685c6cc1b625c3803837114301bb3537982a030364",
+        "preflight_json_sha256=8f68f312188ada4661aa6cb7dc91cbb9c5537df147ac5c3f0851ee6a5d00e8c5",
+        "plan_only=True",
+        "development_holdout_acceptance_audit_authorized_next=True",
+        "training_authorized=False",
+        "selector_promotion_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    assert (
+        "status=fallback_risk_static_camp_training_development_holdout_acceptance_plan_only_current_head_0fb6736_passed"
+        in audit
+    )
