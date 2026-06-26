@@ -139,7 +139,7 @@ def test_builder_implementation_authorization_records_latest_tail() -> None:
 
     for payload in (text, audit):
         assert marker in payload
-        tail = payload.rsplit(marker, maxsplit=1)[-1]
+        section = payload.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
         for needle in [
             "status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_becb571_revalidated",
             "authorization_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization.md",
@@ -182,6 +182,6 @@ def test_builder_implementation_authorization_records_latest_tail() -> None:
             "camp_over_dp_top1_claim_authorized=False",
             NEXT_IMPLEMENTATION_GATE,
         ]:
-            assert needle in tail
+            assert needle in section
 
-        assert tail.rstrip().endswith(f"```text\n{NEXT_IMPLEMENTATION_GATE}\n```")
+        assert section.rstrip().endswith(f"```text\n{NEXT_IMPLEMENTATION_GATE}\n```")
