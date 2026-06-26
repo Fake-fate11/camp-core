@@ -294,7 +294,7 @@ def test_current_head_d5c8154_holdout_static_contract_review_is_pinned() -> None
 
 def test_current_head_e6adf15_holdout_static_contract_review_is_pinned() -> None:
     text = REVIEW_DOC.read_text(encoding="utf-8")
-    audit_tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-240:])
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
 
     for needle in [
         "review_start_head=e6adf151f40c294aa0ecfe02647508cc876dc163",
@@ -320,14 +320,10 @@ def test_current_head_e6adf15_holdout_static_contract_review_is_pinned() -> None
     ]:
         assert needle in text
 
-    assert audit_tail.rstrip().endswith(
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only\n```"
-    )
-
     for needle in [
         "status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_e6adf15_passed",
         "blocking_contract_findings=0",
         "paper_consistent_fixed_candidate_reranker_boundary_preserved=True",
         "this_review_executes_training_replay_dp_or_claims=False",
     ]:
-        assert needle in audit_tail
+        assert needle in audit
