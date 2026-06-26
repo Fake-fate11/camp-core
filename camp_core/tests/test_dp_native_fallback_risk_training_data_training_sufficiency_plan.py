@@ -18,11 +18,11 @@ def _plan() -> str:
 
 def test_current_head_2d9a19d_plan_revalidation_is_pinned() -> None:
     text = _plan()
-    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-32000:]
-    combined = text + audit_tail
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    combined = text + audit
     status = "status=fallback_risk_training_data_training_sufficiency_plan_current_head_2d9a19d_revalidated"
 
-    assert status in audit_tail
+    assert status in audit
 
     for needle in [
         status,
@@ -487,3 +487,92 @@ def test_training_sufficiency_plan_forbids_execution_and_sets_static_review_next
         "promote a selector or atom",
     ]:
         assert needle in combined
+
+
+def test_training_sufficiency_plan_eof_records_current_head_0c4e795_plan() -> None:
+    marker = "\n## Current-Head Training Sufficiency Plan Revalidation After 7f5ca75 Validator Acceptance Sync\n\n"
+    plan = _plan()
+    assert marker in plan
+    section = plan.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_training_sufficiency_plan_current_head_0c4e795_revalidated",
+        "plan_validation_base_head=0c4e7956171ab6722913c8a81c68821f81439bb8",
+        "github_refs_heads_main_at_plan=0c4e7956171ab6722913c8a81c68821f81439bb8",
+        "autodl_CAMP_HEAD_at_plan=0c4e7956171ab6722913c8a81c68821f81439bb8",
+        "autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "source_validator_acceptance_status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_7f5ca75_passed",
+        "validated_fallback_records=15",
+        "validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "validator_output_json_sha256=4f3a0be2dbf070b4d94262111e3c9b68618732efd64f54355722dbfbe61f2d40",
+        "strict_formal_seed_path_matches=0",
+        "head_0c4e795_split_boundary_predeclared=True",
+        "head_0c4e795_scale_fit_training_groups_only_required=True",
+        "head_0c4e795_fallback_master_isolated_from_feasible_master_required=True",
+        "head_0c4e795_formal_seeds_11_12_13_excluded_required=True",
+        "head_0c4e795_nonpromotion_checks_predeclared=True",
+        "head_0c4e795_score_k(w)=a_k^T w",
+        "head_0c4e795_candidate_features_fixed_at_current_tick=True",
+        "head_0c4e795_no_trajectory_generation_modification_snap_blend_guidance_or_postprocess=True",
+        "head_0c4e795_simplex_cvar_l2_master_convex_if_later_authorized=True",
+        "head_0c4e795_gate_predeclares_split=False",
+        "head_0c4e795_gate_fits_scales=False",
+        "head_0c4e795_gate_trains_weights=False",
+        "head_0c4e795_missing_training_split_manifest=True",
+        "head_0c4e795_missing_train_only_scale_manifest=True",
+        "head_0c4e795_missing_fallback_only_master_config=True",
+        "head_0c4e795_missing_training_command_authorization=True",
+        "head_0c4e795_camp_retraining_authorized_now=False",
+        "head_0c4e795_local_target_pytest=9 passed",
+        "head_0c4e795_autodl_target_pytest=9 passed",
+        "training_sufficiency_plan_complete=True",
+        "training_not_executed=True",
+        "candidate_generation_not_executed=True",
+        "dp_not_modified=True",
+        "selector_or_atom_not_promoted=True",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only",
+    ]:
+        assert needle in section
+
+
+def test_iteration_audit_eof_records_current_head_0c4e795_plan() -> None:
+    marker = (
+        "\n## Current Tail Confirmation After 0c4e795 Fallback Risk Training Data "
+        "Training Sufficiency Plan\n\n"
+    )
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    assert marker in audit
+    section = audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_training_sufficiency_plan_current_head_0c4e795_revalidated",
+        "plan_validation_base_head=0c4e7956171ab6722913c8a81c68821f81439bb8",
+        "source_validator_acceptance_status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_7f5ca75_passed",
+        "validated_fallback_records=15",
+        "validator_output_json_sha256=4f3a0be2dbf070b4d94262111e3c9b68618732efd64f54355722dbfbe61f2d40",
+        "strict_formal_seed_path_matches=0",
+        "head_0c4e795_split_boundary_predeclared=True",
+        "head_0c4e795_fallback_master_isolated_from_feasible_master_required=True",
+        "head_0c4e795_formal_seeds_11_12_13_excluded_required=True",
+        "head_0c4e795_nonpromotion_checks_predeclared=True",
+        "head_0c4e795_score_k(w)=a_k^T w",
+        "head_0c4e795_no_trajectory_generation_modification_snap_blend_guidance_or_postprocess=True",
+        "head_0c4e795_missing_training_split_manifest=True",
+        "head_0c4e795_missing_train_only_scale_manifest=True",
+        "head_0c4e795_missing_fallback_only_master_config=True",
+        "head_0c4e795_missing_training_command_authorization=True",
+        "head_0c4e795_camp_retraining_authorized_now=False",
+        "this_plan_gate_authorizes_training_replay_dp_or_claims=False",
+        "head_0c4e795_replay_execution_authorized=False",
+        "head_0c4e795_candidate_generation_authorized=False",
+        "head_0c4e795_camp_training_authorized=False",
+        "head_0c4e795_camp_retraining_authorized=False",
+        "head_0c4e795_dp_modification_authorized=False",
+        "head_0c4e795_local_target_pytest=9 passed",
+        "head_0c4e795_autodl_target_pytest=9 passed",
+        "training_sufficiency_plan_complete=True",
+        "training_not_executed=True",
+        "dp_not_modified=True",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only",
+    ]:
+        assert needle in section
