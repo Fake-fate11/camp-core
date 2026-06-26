@@ -41,11 +41,11 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 
 def test_implementation_doc_records_current_head_and_boundaries() -> None:
     text = IMPLEMENTATION_DOC.read_text(encoding="utf-8")
-    current_head = "e7631084a17e3a520cd7b32e3b4940c38497de12"
+    current_head = "e568ce282352a64c38af8e904e8ba0b2db982f44"
 
     for needle in [
         "status=fallback_risk_training_data_default_off_builder_implementation_current_head_revalidated",
-        "authorization_status=fallback_risk_training_data_default_off_builder_implementation_authorization_autodl_verification_passed",
+        "authorization_status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_dc85a9f_revalidated",
         f"camp_head_at_revalidation={current_head}",
         f"camp_origin_main_at_revalidation={current_head}",
         f"github_refs_heads_main_at_revalidation={current_head}",
@@ -150,34 +150,34 @@ def test_builder_decision_forbids_training_dp_and_promotion() -> None:
 def test_implementation_doc_and_audit_tail_record_latest_revalidation() -> None:
     doc = IMPLEMENTATION_DOC.read_text(encoding="utf-8")
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    current_head = "96794959ea638a8463ffcd251c3308b331ad8fc9"
-    marker = "\n## Current-Head Revalidation After 9679495 Implementation Authorization\n\nDate: 2026-06-26\n\n"
+    current_head = "e568ce282352a64c38af8e904e8ba0b2db982f44"
+    marker = "\n## Current-Head Revalidation After e568ce2 Implementation Authorization\n\nDate: 2026-06-26\n\n"
 
     for payload in (doc, audit):
         assert marker in payload
         section = payload.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
         for needle in [
-            "status=fallback_risk_training_data_default_off_builder_implementation_current_head_9679495_revalidated",
+            "status=fallback_risk_training_data_default_off_builder_implementation_current_head_e568ce2_revalidated",
             f"camp_head_at_revalidation={current_head}",
             f"camp_origin_main_at_revalidation={current_head}",
             f"github_refs_heads_main_at_revalidation={current_head}",
             f"autodl_CAMP_HEAD_at_revalidation={current_head}",
             f"autodl_CAMP_origin_main_at_revalidation={current_head}",
             "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-            "authorization_status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_becb571_revalidated",
-            "authorization_commit_at_revalidation=96794959ea638a8463ffcd251c3308b331ad8fc9",
+            "authorization_status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_dc85a9f_revalidated",
+            "authorization_commit_at_revalidation=e568ce282352a64c38af8e904e8ba0b2db982f44",
             "user_camp_retraining_permission_available_for_future_training_gate=True",
             "implementation_required_now=False",
             "implementation_already_present=True",
             "production_builder_changed_in_this_gate=False",
             "local_py_compile_exit=0",
-            "local_target_pytest=32 passed",
+            "local_target_pytest=23 passed",
             "local_diff_check=0 findings",
             f"autodl_CAMP_HEAD={current_head}",
             f"autodl_CAMP_origin_main={current_head}",
             "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
             "autodl_py_compile_exit=0",
-            "autodl_target_pytest=32 passed",
+            "autodl_target_pytest=23 passed",
             "autodl_diff_check=0 findings",
             "blocking_contract_findings=0",
             "default_off_required=True",
