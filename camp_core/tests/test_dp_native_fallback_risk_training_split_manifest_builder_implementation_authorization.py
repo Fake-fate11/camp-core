@@ -162,6 +162,50 @@ def test_current_head_d377c2a_builder_authorization_revalidation_is_pinned() -> 
         assert needle in text
 
 
+def test_current_head_0608ae4_builder_authorization_revalidation_is_pinned() -> None:
+    text = _auth()
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_0608ae4_revalidated",
+        "builder_authorization_base_head=0608ae41113e1025e8714be4dac90cbde734b6de",
+        "camp_origin_main_at_builder_authorization=0608ae41113e1025e8714be4dac90cbde734b6de",
+        "github_refs_heads_main_at_builder_authorization=0608ae41113e1025e8714be4dac90cbde734b6de",
+        "autodl_CAMP_HEAD_at_builder_authorization=0608ae41113e1025e8714be4dac90cbde734b6de",
+        "autodl_CAMP_origin_main_at_builder_authorization=0608ae41113e1025e8714be4dac90cbde734b6de",
+        "autodl_DP_HEAD_at_builder_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "source_split_manifest_unit_tests_sync_status=fallback_risk_training_split_manifest_unit_tests_current_head_2a49147_autodl_sync_verified",
+        "source_revalidation_status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated",
+        "current_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "current_validated_fallback_records=15",
+        "current_validator_output_sha256=276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078",
+        "current_implementation_authorized=True",
+        "current_training_split_manifest_builder_implementation_authorized=True",
+        "current_default_off_required=True",
+        "current_read_only_dataset_input_only=True",
+        "current_existing_validated_fallback_dataset_json_only=True",
+        "current_records_scope=records_without_feasible_candidate_only",
+        "current_output_json_or_markdown_only=True",
+        "current_synthetic_unit_tests_required=True",
+        "current_existing_contract_tests_must_continue_to_pass=True",
+        "current_fixed_artifact_manifest_generation_authorized=False",
+        "current_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "current_fallback_risk_training_authorized_now=False",
+        "current_training_execution_authorized_now=False",
+        "current_camp_retraining_authorized_now=False",
+        "current_replay_authorized=False",
+        "current_candidate_generation_authorized=False",
+        "current_dp_modification_authorized=False",
+        "current_local_authorization_pytest=10 passed",
+        "current_local_split_manifest_contract_pytest=9 passed",
+        "current_local_target_pytest=19 passed",
+        "current_training_not_executed=True",
+        "current_candidate_generation_not_executed=True",
+        "current_dp_not_modified=True",
+        "current_selector_or_atom_not_promoted=True",
+    ]:
+        assert needle in text
+
+
 def test_split_builder_authorization_only_allows_default_off_read_only_builder() -> None:
     text = _auth()
 
@@ -286,11 +330,14 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
         in audit
     )
     assert (
-        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_09ca81f_revalidated"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_0608ae4_revalidated"
         in tail
     )
+    assert "current_local_authorization_pytest=10 passed" in tail
+    assert "current_local_split_manifest_contract_pytest=9 passed" in tail
     assert "training_execution_authorized_now=False" in tail
+    assert "current_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False" in tail
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only"
         in tail
     )
