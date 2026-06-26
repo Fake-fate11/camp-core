@@ -156,6 +156,81 @@ Next admissible gate:
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only
 ```
 
+## Current-Head Revalidation After Holdout Static Review
+
+Date: 2026-06-26
+
+The same fixed broader-nonformal evaluation artifact was re-audited from the
+current synchronized CAMP HEAD after the fallback-risk holdout static contract
+review. This gate remained read-only and did not rerun replay, generate
+candidates, train or retrain CAMP, modify Diffusion Planner, promote a selector
+or atom, deploy, or claim safety/CAMP-over-DP benefit.
+
+```text
+evaluation_artifact=/root/autodl-tmp/camp_dp_native_training_sufficiency_base_plus_addon_static_dp_reward_broader_nonformal_eval_1c235eb_20260624T092550Z
+evaluation_summary_sha256=c39fa6278431e08ee16b7b45f6645e43fa46f9951981c1fff8fa1809778aea07
+camp_head_at_revalidation=b84d64ecff0c6913e905c10ece5c995ca6c01662
+camp_origin_main_at_revalidation=b84d64ecff0c6913e905c10ece5c995ca6c01662
+autodl_CAMP_HEAD_at_revalidation=b84d64ecff0c6913e905c10ece5c995ca6c01662
+autodl_CAMP_origin_main_at_revalidation=b84d64ecff0c6913e905c10ece5c995ca6c01662
+dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+required_dp_fixed_commit=7a1d33da277a1992ec474b5383a0c963c72e04e4
+remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_b84d64e_20260626T000000Z
+remote_audit_json_sha256=6761a3a2bc2e39e5697af9492b67bb3f280068754a1f7ddfd108adde92c1aae5
+remote_audit_md_sha256=419aaa0aa6a4e6b33c036007430fe4390daea72e2758c9f5688076279990cc22
+remote_audit_stdout_log_sha256=4b9c5fb6a41d86fb59daf064fc094366257f23ad3ed64294f35f871024f60c2f
+remote_audit_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+```
+
+Revalidation result:
+
+```text
+remote_artifact_audit_exit=0
+status=dp_native_fixed_artifact_fallback_risk_ranking_audit_complete
+passed=True
+failed_checks=[]
+records_total=60
+records_with_feasible_candidate=45
+records_without_feasible_candidate=15
+route_records_without_feasible_candidate={"nishishinjuku_lane_change": 4, "sample_tl": 11}
+existing_fallback_uniformly_least_bad_red=False
+existing_fallback_uniformly_least_bad_lane=False
+existing_fallback_uniformly_least_bad_quality=True
+lower_risk_fixed_candidate_exists_under_logged_costs=True
+dp_red_light_cost_selected_min=14
+dp_red_light_cost_lower_cost_candidate_available=1
+lane_related_cost_selected_min=4
+lane_related_cost_lower_cost_candidate_available=11
+dp_reward_quality_cost_selected_min=15
+dp_reward_quality_cost_lower_cost_candidate_available=0
+selected_index_in_range_all_no_feasible_records=True
+candidate_count_unchanged_all_no_feasible_records=True
+pre_post_tensor_hash_equal_all_no_feasible_records=True
+no_coordinate_heading_speed_rewrite_by_camp_all_no_feasible_records=True
+candidate_tensor_mutation_effect_all_no_feasible_records=False
+candidate_generation_effect_all_no_feasible_records=False
+closed_loop_outcome_fields_read_all_no_feasible_records=False
+reference_blend_present_all_no_feasible_records=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+candidate_generation_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+This revalidation remains audit-only. It supports the existing remediation
+design gate for fixed-candidate fallback-risk ranking diagnostics, but does
+not authorize deployment, selector or atom promotion, DP changes, new replay,
+candidate generation, CAMP retraining, or any safety/CAMP-over-DP claim.
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only
+```
+
 ## Current-Head Revalidation After Holdout Static Contract Review
 
 Date: 2026-06-26

@@ -410,3 +410,58 @@ def test_current_head_9764f12_ranking_audit_is_pinned() -> None:
         "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_current_head_9764f12_complete"
         in audit
     )
+
+
+def test_current_head_b84d64e_ranking_audit_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+
+    for needle in [
+        "camp_head_at_revalidation=b84d64ecff0c6913e905c10ece5c995ca6c01662",
+        "camp_origin_main_at_revalidation=b84d64ecff0c6913e905c10ece5c995ca6c01662",
+        "autodl_CAMP_HEAD_at_revalidation=b84d64ecff0c6913e905c10ece5c995ca6c01662",
+        "dp_head_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "remote_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_b84d64e_20260626T000000Z",
+        "remote_audit_json_sha256=6761a3a2bc2e39e5697af9492b67bb3f280068754a1f7ddfd108adde92c1aae5",
+        "remote_audit_md_sha256=419aaa0aa6a4e6b33c036007430fe4390daea72e2758c9f5688076279990cc22",
+        "records_total=60",
+        "records_with_feasible_candidate=45",
+        "records_without_feasible_candidate=15",
+        "route_records_without_feasible_candidate={\"nishishinjuku_lane_change\": 4, \"sample_tl\": 11}",
+        "existing_fallback_uniformly_least_bad_red=False",
+        "existing_fallback_uniformly_least_bad_lane=False",
+        "existing_fallback_uniformly_least_bad_quality=True",
+        "lower_risk_fixed_candidate_exists_under_logged_costs=True",
+        "dp_red_light_cost_selected_min=14",
+        "dp_red_light_cost_lower_cost_candidate_available=1",
+        "lane_related_cost_selected_min=4",
+        "lane_related_cost_lower_cost_candidate_available=11",
+        "dp_reward_quality_cost_selected_min=15",
+        "dp_reward_quality_cost_lower_cost_candidate_available=0",
+        "candidate_count_unchanged_all_no_feasible_records=True",
+        "candidate_generation_effect_all_no_feasible_records=False",
+        "reference_blend_present_all_no_feasible_records=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_current_head_b84d64e_complete",
+        "remote_audit_json_sha256=6761a3a2bc2e39e5697af9492b67bb3f280068754a1f7ddfd108adde92c1aae5",
+        "records_without_feasible_candidate=15",
+        "lower_risk_fixed_candidate_exists_under_logged_costs=True",
+        "candidate_generation_authorized=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_DESIGN_GATE,
+    ]:
+        assert needle in audit
