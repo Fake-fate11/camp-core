@@ -26,6 +26,11 @@ SPLIT_SALT = "fallback_risk_training_split_v1"
 GROUP_KEY_FIELDS = ("source_log", "run_id", "record_index")
 FORMAL_SEEDS = {11, 12, 13}
 AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+UNIT_TESTS_DOC = (
+    REPO_ROOT
+    / "docs"
+    / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests.md"
+)
 FORBIDDEN_SPLIT_FEATURES = {
     "selected_index",
     "candidate_rank",
@@ -669,10 +674,13 @@ def test_current_head_f8f409b_split_manifest_unit_tests_revalidation_is_pinned()
 
 
 def test_current_head_cde90c0_split_manifest_unit_tests_revalidation_is_pinned() -> None:
-    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-18000:]
+    combined = (
+        UNIT_TESTS_DOC.read_text(encoding="utf-8")
+        + AUDIT_DOC.read_text(encoding="utf-8")
+    )
     status = "status=fallback_risk_training_split_manifest_unit_tests_head_cde90c0_revalidated"
 
-    assert status in audit_tail
+    assert status in combined
 
     for needle in [
         status,
@@ -717,7 +725,61 @@ def test_current_head_cde90c0_split_manifest_unit_tests_revalidation_is_pinned()
         "head_cde90c0_camp_over_dp_top1_claim_authorized=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only",
     ]:
-        assert needle in audit_tail
+        assert needle in combined
+
+
+def test_current_head_6540f09_split_manifest_unit_tests_revalidation_is_pinned() -> None:
+    unit_tests_doc = UNIT_TESTS_DOC.read_text(encoding="utf-8")
+    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-22000:]
+    combined = unit_tests_doc + audit_tail
+    status = "status=fallback_risk_training_split_manifest_unit_tests_head_6540f09_revalidated"
+
+    assert status in unit_tests_doc
+    assert status in audit_tail
+
+    for needle in [
+        status,
+        "unit_tests_base_head=6540f0997d8273f423ba1ce78f0ebcc85dc893c9",
+        "camp_origin_main_at_unit_tests=6540f0997d8273f423ba1ce78f0ebcc85dc893c9",
+        "github_refs_heads_main_at_unit_tests=6540f0997d8273f423ba1ce78f0ebcc85dc893c9",
+        "autodl_CAMP_HEAD_at_unit_tests=6540f0997d8273f423ba1ce78f0ebcc85dc893c9",
+        "autodl_CAMP_origin_main_at_unit_tests=6540f0997d8273f423ba1ce78f0ebcc85dc893c9",
+        "autodl_DP_HEAD_at_unit_tests=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_split_manifest_unit_tests_plan_status=fallback_risk_training_split_manifest_unit_tests_plan_head_350b666_revalidated",
+        "head_6540f09_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_6540f09_validated_fallback_records=15",
+        "head_6540f09_validator_output_sha256=276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078",
+        "head_6540f09_manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1",
+        "head_6540f09_default_off_builder_requires_enable_flag=True",
+        "head_6540f09_disabled_mode_does_not_read_dataset=True",
+        "head_6540f09_clean_synthetic_manifest_preflight_compatible=True",
+        "head_6540f09_stable_split_ignores_nonidentity_features=True",
+        "head_6540f09_forbidden_split_feature_sources_rejected=True",
+        "head_6540f09_scope_identity_collision_and_formal_leakage_rejected=True",
+        "head_6540f09_split_overlap_and_decision_leaks_rejected=True",
+        "head_6540f09_deterministic_policy_and_no_random_inputs_pinned=True",
+        "head_6540f09_manifest_not_generated=True",
+        "head_6540f09_training_not_executed=True",
+        "head_6540f09_candidate_generation_not_executed=True",
+        "head_6540f09_dp_not_modified=True",
+        "head_6540f09_selector_or_atom_not_promoted=True",
+        "head_6540f09_autodl_temp_worktree=/root/autodl-tmp/camp_core_split_manifest_unit_tests_6540f09_verify_20260627T010000Z",
+        "head_6540f09_autodl_split_manifest_contract_pytest=11 passed",
+        "head_6540f09_autodl_unit_tests_plan_pytest=12 passed",
+        "head_6540f09_autodl_static_contract_review_pytest=11 passed",
+        "head_6540f09_autodl_target_pytest=34 passed",
+        "head_6540f09_autodl_git_diff_check_exit=0",
+        "head_6540f09_split_manifest_unit_tests_pinned=True",
+        "head_6540f09_training_split_manifest_builder_authorized=False",
+        "this_split_manifest_unit_tests_gate_authorizes_builder_training_replay_dp_or_claims=False",
+        "head_6540f09_camp_training_authorized=False",
+        "head_6540f09_camp_retraining_authorized=False",
+        "head_6540f09_formal_seeds_11_12_13_authorized=False",
+        "head_6540f09_safety_benefit_claim_authorized=False",
+        "head_6540f09_camp_over_dp_top1_claim_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only",
+    ]:
+        assert needle in combined
 
 
 def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> None:
@@ -771,12 +833,12 @@ def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> 
     assert "head_67db07f_local_extended_target_pytest=39 passed" in audit
     assert "this_post_static_gate_authorizes_fixed_artifact_builder_run=False" in audit
     assert (
-        "status=fallback_risk_training_split_manifest_unit_tests_head_cde90c0_revalidated"
+        "status=fallback_risk_training_split_manifest_unit_tests_head_6540f09_revalidated"
         in tail
     )
-    assert "head_cde90c0_local_split_manifest_contract_pytest=10 passed" in tail
+    assert "head_6540f09_local_split_manifest_contract_pytest=11 passed" in tail
     assert (
-        "prior_split_manifest_unit_tests_plan_status=fallback_risk_training_split_manifest_unit_tests_plan_head_8c6ab32_revalidated"
+        "prior_split_manifest_unit_tests_plan_status=fallback_risk_training_split_manifest_unit_tests_plan_head_350b666_revalidated"
         in tail
     )
     assert (
