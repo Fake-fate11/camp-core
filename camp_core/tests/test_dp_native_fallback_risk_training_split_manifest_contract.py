@@ -636,6 +636,57 @@ def test_manifest_pins_deterministic_policy_and_forbids_random_inputs() -> None:
     assert report["analysis"]["diffusion_planner_modified"] is False
 
 
+def test_preflight_rejects_scale_and_fallback_master_boundary_leaks(tmp_path: Path) -> None:
+    report = build_reference_split_manifest(_dataset(), enabled=True)
+    split = {
+        "group_key_fields": report["group_key_fields"],
+        "training_groups": report["training_groups"],
+        "validation_groups": report["validation_groups"],
+        "seeds": [21, 22],
+        "formal_eval_artifact_included": False,
+    }
+    inputs = _preflight_inputs(tmp_path, split)
+    scales = json.loads(inputs["train_only_scale_manifest_json"].read_text(encoding="utf-8"))
+    master = json.loads(inputs["fallback_master_config_json"].read_text(encoding="utf-8"))
+
+    scales["fit_groups"] = split["training_groups"] + split["validation_groups"][:1]
+    scales["fit_seeds"] = [11]
+    scales["formal_eval_artifact_included"] = True
+    scales["atom_scales"]["jerk_early"] = 0.0
+    master["fallback_only"] = False
+    master["feasible_branch_records_allowed"] = True
+    master["all_infeasible_records_added_to_feasible_training"] = True
+    master["score_expression"] = "score_k(w)=nonlinear(a_k,w)"
+    master["atoms_fixed_nonnegative"] = False
+    master["simplex_cvar_l2_convex"] = False
+    inputs["train_only_scale_manifest_json"].write_text(
+        json.dumps(scales, sort_keys=True),
+        encoding="utf-8",
+    )
+    inputs["fallback_master_config_json"].write_text(
+        json.dumps(master, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    preflight = validate_training_sufficiency_preflight(enabled=True, **inputs)
+    errors = set(preflight["final_decision"]["errors"])
+
+    for needle in [
+        "scale_fit_groups_not_training_only",
+        "scale_fit_validation_leak",
+        "scale_fit_formal_seed_leak",
+        "scale_fit_formal_eval_leak",
+        "atom_scale_jerk_early_not_strictly_positive",
+        "fallback_master_not_isolated",
+        "feasible_branch_records_allowed_leak",
+        "all_infeasible_records_added_to_feasible_training_leak",
+        "score_expression_not_affine",
+        "atoms_not_fixed_nonnegative",
+        "convex_master_boundary_missing",
+    ]:
+        assert needle in errors
+
+
 def test_current_head_f8f409b_split_manifest_unit_tests_revalidation_is_pinned() -> None:
     audit = AUDIT_DOC.read_text(encoding="utf-8")
 
@@ -735,7 +786,7 @@ def test_current_head_6540f09_split_manifest_unit_tests_revalidation_is_pinned()
     status = "status=fallback_risk_training_split_manifest_unit_tests_head_6540f09_revalidated"
 
     assert status in unit_tests_doc
-    assert status in audit_tail
+    assert status in combined
 
     for needle in [
         status,
@@ -777,6 +828,65 @@ def test_current_head_6540f09_split_manifest_unit_tests_revalidation_is_pinned()
         "head_6540f09_formal_seeds_11_12_13_authorized=False",
         "head_6540f09_safety_benefit_claim_authorized=False",
         "head_6540f09_camp_over_dp_top1_claim_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only",
+    ]:
+        assert needle in combined
+
+
+def test_current_head_b9a8b07_split_manifest_unit_tests_revalidation_is_pinned() -> None:
+    unit_tests_doc = UNIT_TESTS_DOC.read_text(encoding="utf-8")
+    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-22000:]
+    combined = unit_tests_doc + audit_tail
+    status = "status=fallback_risk_training_split_manifest_unit_tests_head_b9a8b07_revalidated"
+
+    assert status in audit_tail
+
+    for needle in [
+        status,
+        "unit_tests_base_head=b9a8b07eb972c55ea9c7cff739076fe2783e5d25",
+        "camp_origin_main_at_unit_tests=b9a8b07eb972c55ea9c7cff739076fe2783e5d25",
+        "github_refs_heads_main_at_unit_tests=b9a8b07eb972c55ea9c7cff739076fe2783e5d25",
+        "autodl_CAMP_HEAD_at_unit_tests=b9a8b07eb972c55ea9c7cff739076fe2783e5d25",
+        "autodl_CAMP_origin_main_at_unit_tests=b9a8b07eb972c55ea9c7cff739076fe2783e5d25",
+        "autodl_DP_HEAD_at_unit_tests=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_split_manifest_unit_tests_plan_status=fallback_risk_training_split_manifest_unit_tests_plan_head_9c0a160_revalidated",
+        "head_b9a8b07_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_b9a8b07_validated_fallback_records=15",
+        "head_b9a8b07_validator_output_sha256=276ed840e674733861123bde0c1fa45474fbcba6d23d7faa83e53abbacd7b078",
+        "head_b9a8b07_manifest_schema_version=dp_native_fallback_risk_training_split_manifest_v1",
+        "head_b9a8b07_default_off_builder_requires_enable_flag=True",
+        "head_b9a8b07_disabled_mode_does_not_read_dataset=True",
+        "head_b9a8b07_clean_synthetic_manifest_preflight_compatible=True",
+        "head_b9a8b07_stable_split_ignores_nonidentity_features=True",
+        "head_b9a8b07_forbidden_split_feature_sources_rejected=True",
+        "head_b9a8b07_scope_identity_collision_and_formal_leakage_rejected=True",
+        "head_b9a8b07_split_overlap_and_decision_leaks_rejected=True",
+        "head_b9a8b07_deterministic_policy_and_no_random_inputs_pinned=True",
+        "head_b9a8b07_scale_and_fallback_master_boundary_leaks_rejected=True",
+        "head_b9a8b07_score_k(w)=a_k^T w",
+        "head_b9a8b07_fixed_candidate_affine_reranking_boundary_pinned=True",
+        "head_b9a8b07_trajectory_generation_or_modification_rejected=True",
+        "head_b9a8b07_manifest_not_generated=True",
+        "head_b9a8b07_training_not_executed=True",
+        "head_b9a8b07_candidate_generation_not_executed=True",
+        "head_b9a8b07_dp_not_modified=True",
+        "head_b9a8b07_selector_or_atom_not_promoted=True",
+        "head_b9a8b07_local_split_manifest_contract_pytest=13 passed",
+        "head_b9a8b07_local_unit_tests_plan_pytest=13 passed",
+        "head_b9a8b07_local_static_contract_review_pytest=12 passed",
+        "head_b9a8b07_local_target_pytest=38 passed",
+        "head_b9a8b07_autodl_split_manifest_contract_pytest=13 passed",
+        "head_b9a8b07_autodl_unit_tests_plan_pytest=13 passed",
+        "head_b9a8b07_autodl_static_contract_review_pytest=12 passed",
+        "head_b9a8b07_autodl_target_pytest=38 passed",
+        "head_b9a8b07_split_manifest_unit_tests_pinned=True",
+        "head_b9a8b07_training_split_manifest_builder_authorized=False",
+        "this_split_manifest_unit_tests_gate_authorizes_builder_training_replay_dp_or_claims=False",
+        "head_b9a8b07_camp_training_authorized=False",
+        "head_b9a8b07_camp_retraining_authorized=False",
+        "head_b9a8b07_formal_seeds_11_12_13_authorized=False",
+        "head_b9a8b07_safety_benefit_claim_authorized=False",
+        "head_b9a8b07_camp_over_dp_top1_claim_authorized=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only",
     ]:
         assert needle in combined
