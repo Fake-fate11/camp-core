@@ -193,6 +193,14 @@ def test_acceptance_rerun_records_local_verification_and_next_gate() -> None:
         "latest_candidate_generation_not_executed=True",
         "latest_dp_not_modified=True",
         "latest_selector_or_atom_not_promoted=True",
+        "status=fallback_risk_training_train_only_scale_manifest_current_head_9d30a2d_acceptance_autodl_sync_verified",
+        "github_pushed_commit=d569c2b98c113efceeee457d1735552332de579e",
+        "autodl_CAMP_HEAD_after_sync=d569c2b98c113efceeee457d1735552332de579e",
+        "autodl_CAMP_origin_main_after_sync=d569c2b98c113efceeee457d1735552332de579e",
+        "autodl_target_pytest=12 passed",
+        "autodl_py_compile_exit=0",
+        "autodl_git_diff_check_exit=0",
+        "autodl_audit_tail_has_scale_acceptance=True",
         "status=fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_passed",
         "latest_status=fallback_risk_training_train_only_scale_manifest_current_head_fixed_artifact_acceptance_passed",
         "fixed_artifact_acceptance_rerun_complete=True",
@@ -221,6 +229,11 @@ def test_iteration_audit_tail_records_scale_rerun_next_gate() -> None:
         "local_scale_builder_pytest=5 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
+        "status=fallback_risk_training_train_only_scale_manifest_current_head_9d30a2d_acceptance_autodl_sync_verified",
+        "github_pushed_commit=d569c2b98c113efceeee457d1735552332de579e",
+        "autodl_target_pytest=12 passed",
+        "autodl_py_compile_exit=0",
+        "autodl_git_diff_check_exit=0",
     ]:
         assert needle in tail
 
