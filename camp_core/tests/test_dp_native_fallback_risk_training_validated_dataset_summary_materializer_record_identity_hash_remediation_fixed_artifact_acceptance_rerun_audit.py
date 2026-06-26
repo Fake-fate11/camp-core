@@ -176,6 +176,14 @@ def test_acceptance_rerun_records_verification_and_next_gate() -> None:
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only",
         "may only run the already implemented default-off read-only",
         "User permission to retrain CAMP is available",
+        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_84a5eff_acceptance_autodl_sync_verified",
+        "github_pushed_commit=0166155fa10ca228fc22949afe2d32e93e527602",
+        "autodl_CAMP_HEAD_after_sync=0166155fa10ca228fc22949afe2d32e93e527602",
+        "autodl_CAMP_origin_main_after_sync=0166155fa10ca228fc22949afe2d32e93e527602",
+        "autodl_target_pytest=12 passed",
+        "autodl_py_compile_exit=0",
+        "autodl_git_diff_check_exit=0",
+        "autodl_audit_tail_has_summary_acceptance=True",
     ]:
         assert needle in text
 
@@ -194,6 +202,11 @@ def test_iteration_audit_tail_records_summary_rerun_next_gate() -> None:
         "local_summary_materializer_pytest=5 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
+        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_84a5eff_acceptance_autodl_sync_verified",
+        "github_pushed_commit=0166155fa10ca228fc22949afe2d32e93e527602",
+        "autodl_target_pytest=12 passed",
+        "autodl_py_compile_exit=0",
+        "autodl_git_diff_check_exit=0",
     ]:
         assert needle in tail
 
