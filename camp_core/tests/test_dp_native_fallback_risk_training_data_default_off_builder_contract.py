@@ -438,7 +438,7 @@ def test_iteration_audit_records_builder_unit_tests_current_head_history() -> No
         "Default-Off Builder Unit Tests\n\nDate: 2026-06-26\n\n"
     )
     assert marker in audit
-    tail = audit.rsplit(marker, maxsplit=1)[-1]
+    section = audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
     current_head = "96911f0c257021e828cd2b7f7b54212e716a5a50"
 
     for needle in [
@@ -492,6 +492,6 @@ def test_iteration_audit_records_builder_unit_tests_current_head_history() -> No
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_AUTHORIZATION_GATE,
     ]:
-        assert needle in tail
+        assert needle in section
 
-    assert tail.rstrip().endswith(f"`{NEXT_AUTHORIZATION_GATE}`")
+    assert section.rstrip().endswith(f"`{NEXT_AUTHORIZATION_GATE}`")

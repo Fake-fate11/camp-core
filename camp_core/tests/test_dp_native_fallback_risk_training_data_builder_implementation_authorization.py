@@ -134,11 +134,14 @@ def test_builder_implementation_authorization_records_current_head_revalidation(
 def test_builder_implementation_authorization_records_latest_tail() -> None:
     text = _text()
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    current_head = "8be31ac8b4490f48be5d7b78cc2bd009db9bfa41"
+    current_head = "becb571aad6d87615f7aba318c26676cb731908c"
+    marker = "\n## Current-Head Revalidation After becb571 Builder Unit Tests\n\nDate: 2026-06-26\n\n"
 
     for payload in (text, audit):
+        assert marker in payload
+        tail = payload.rsplit(marker, maxsplit=1)[-1]
         for needle in [
-            "status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_revalidated_latest",
+            "status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_becb571_revalidated",
             "authorization_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization.md",
             "authorization_test=camp_core/tests/test_dp_native_fallback_risk_training_data_builder_implementation_authorization.py",
             "contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py",
@@ -148,19 +151,19 @@ def test_builder_implementation_authorization_records_latest_tail() -> None:
             f"autodl_CAMP_HEAD_at_revalidation={current_head}",
             f"autodl_CAMP_origin_main_at_revalidation={current_head}",
             "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-            "prior_builder_unit_tests_status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_revalidated_latest",
-            "prior_builder_unit_tests_commit_at_revalidation=8be31ac8b4490f48be5d7b78cc2bd009db9bfa41",
+            "prior_builder_unit_tests_status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_96911f0_revalidated",
+            "prior_builder_unit_tests_commit_at_revalidation=becb571aad6d87615f7aba318c26676cb731908c",
             "prior_builder_unit_tests_tail_verified=True",
             "prior_builder_unit_tests_autodl_verified=True",
             "user_camp_retraining_permission_available_for_future_training_gate=True",
             "local_py_compile_exit=0",
-            "local_target_pytest=106 passed",
+            "local_target_pytest=21 passed",
             "local_diff_check=0 findings",
             f"autodl_CAMP_HEAD={current_head}",
             f"autodl_CAMP_origin_main={current_head}",
             "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
             "autodl_py_compile_exit=0",
-            "autodl_target_pytest=106 passed",
+            "autodl_target_pytest=21 passed",
             "autodl_diff_check=0 findings",
             "blocking_contract_findings=0",
             "implementation_authorized=True",
@@ -179,4 +182,6 @@ def test_builder_implementation_authorization_records_latest_tail() -> None:
             "camp_over_dp_top1_claim_authorized=False",
             NEXT_IMPLEMENTATION_GATE,
         ]:
-            assert needle in payload
+            assert needle in tail
+
+        assert tail.rstrip().endswith(f"```text\n{NEXT_IMPLEMENTATION_GATE}\n```")
