@@ -681,7 +681,7 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
         in audit
     )
     assert (
-        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_0608ae4_revalidated"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_eedbc1f_autodl_sync_verified"
         in tail
     )
     assert "head_f8f409b_local_split_manifest_contract_pytest=9 passed" in audit
@@ -689,7 +689,11 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
         "source_revalidation_status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
         in tail
     )
-    assert "current_head=0608ae41113e1025e8714be4dac90cbde734b6de" in tail
+    assert (
+        "source_authorization_status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_0608ae4_revalidated"
+        in tail
+    )
+    assert "verified_autodl_CAMP_HEAD=eedbc1fef868dbd8d25fe01270c6a4e684ce99dc" in tail
     assert "f8f409b_is_ancestor_of_current_head=True" in tail
     assert "training_execution_authorized_now=False" in audit
     assert (
@@ -701,7 +705,7 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
         in audit
     )
     assert (
-        "this_authorization_gate_authorizes_fixed_artifact_manifest_generation=False"
+        "this_sync_verification_authorizes_fixed_artifact_manifest_generation=False"
         in tail
     )
     assert (

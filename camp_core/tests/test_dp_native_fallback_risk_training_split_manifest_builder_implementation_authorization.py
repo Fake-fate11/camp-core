@@ -330,13 +330,20 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
         in audit
     )
     assert (
-        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_0608ae4_revalidated"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_eedbc1f_autodl_sync_verified"
+        in tail
+    )
+    assert (
+        "source_authorization_status=fallback_risk_training_split_manifest_builder_implementation_authorization_current_head_0608ae4_revalidated"
         in tail
     )
     assert "current_local_authorization_pytest=10 passed" in tail
     assert "current_local_split_manifest_contract_pytest=9 passed" in tail
+    assert "verified_autodl_authorization_pytest=10 passed" in tail
+    assert "verified_autodl_split_manifest_contract_pytest=9 passed" in tail
+    assert "verified_autodl_target_pytest=19 passed" in tail
     assert "training_execution_authorized_now=False" in tail
-    assert "current_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False" in tail
+    assert "verified_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False" in tail
     assert (
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only"
         in tail
