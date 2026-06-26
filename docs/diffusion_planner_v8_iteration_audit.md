@@ -129522,3 +129522,83 @@ The next gate may only add synthetic unit tests for the fallback-risk dataset
 validator extension. It must not implement the validator, run replay, generate
 candidates, train CAMP, modify Diffusion Planner, use formal seeds, promote a
 selector or atom, or claim safety/CAMP-over-DP benefit.
+
+## Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Unit Tests
+
+Date: 2026-06-26
+
+Completed the current EOF-authorized synthetic unit-tests revalidation at
+local/GitHub/AutoDL CAMP head `1b94659`. This gate only revalidated synthetic
+validator tests. It did not implement or modify the validator, run replay,
+generate candidates, train or retrain CAMP, modify Diffusion Planner, promote
+selectors or atoms, change the online selector, or make safety/CAMP-over-DP
+claims.
+
+```text
+status=fallback_risk_training_data_validator_extension_unit_tests_current_head_1b94659_revalidated
+passed=True
+unit_tests_validation_head=1b94659b1dc86cdb02a2fa337d37074a3751235b
+camp_origin_main_at_validation=1b94659b1dc86cdb02a2fa337d37074a3751235b
+github_refs_heads_main_at_validation=1b94659b1dc86cdb02a2fa337d37074a3751235b
+autodl_CAMP_HEAD_at_validation=1b94659b1dc86cdb02a2fa337d37074a3751235b
+autodl_CAMP_origin_main_at_validation=1b94659b1dc86cdb02a2fa337d37074a3751235b
+autodl_DP_HEAD_at_validation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+latest_unit_tests_plan_status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_a3663a4_revalidated
+accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+validator_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension.py
+contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_contract.py
+unit_tests_plan_test=camp_core/tests/test_dp_native_fallback_risk_training_data_validator_extension_unit_tests_plan.py
+synthetic_dataset_fixtures_only=True
+synthetic_source_logs_only=True
+fixed_autodl_artifact_required_for_unit_tests=False
+replay_required_for_unit_tests=False
+candidate_generation_required_for_unit_tests=False
+training_required_for_unit_tests=False
+production_validator_implemented_in_this_gate=False
+default_off_no_missing_dataset_read=True
+clean_dataset_and_cli_output_acceptance=True
+top_level_summary_mismatch_rejected=True
+source_log_hash_mismatch_fails_closed=True
+source_feasible_mask_any_true_fails_closed=True
+source_feasible_mask_non_bool_fails_closed=True
+source_candidate_generation_contract_rechecked=True
+source_candidate_tensor_provenance_rechecked=True
+record_identity_hash_required=True
+record_identity_hash_mismatch_rejected=True
+atoms_finite_nonnegative_required=True
+normalized_atoms_finite_nonnegative_required=True
+training_and_promotion_flags_rejected=True
+local_py_compile_exit=0
+local_unit_tests_scope_pytest=25 passed
+local_target_pytest=25 passed
+local_target_pytest_exit=0
+local_git_diff_check_exit=0
+validator_extension_unit_tests_complete=True
+validator_extension_implementation_authorized=False
+validator_extension_unit_tests_current_head_complete=True
+implementation_authorization_gate_authorized_next=True
+user_broad_execution_permission_recorded=True
+this_unit_tests_gate_authorizes_broad_execution=False
+fallback_risk_training_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_authorization_only`
+
+The next gate may only authorize implementation of the read-only validator
+extension. It must not run replay, generate candidates, train CAMP, modify
+Diffusion Planner, use formal seeds, promote a selector or atom, or claim
+safety/CAMP-over-DP benefit.

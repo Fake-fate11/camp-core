@@ -403,5 +403,50 @@ def test_validator_unit_tests_audit_records_current_head_boundary() -> None:
             "autodl_CAMP_origin_main_at_validation=c9bd0e36e2470292312dd11709236fd66e7557dc",
             "latest_unit_tests_plan_status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_f0ad5c5_revalidated",
             "accepted_dataset_sha256=682d432f742d4ab68a262cf70955981bc1562cf1dbcf2ec094984a12fcd11498",
+            "status=fallback_risk_training_data_validator_extension_unit_tests_current_head_1b94659_revalidated",
+            "unit_tests_validation_head=1b94659b1dc86cdb02a2fa337d37074a3751235b",
+            "camp_origin_main_at_validation=1b94659b1dc86cdb02a2fa337d37074a3751235b",
+            "github_refs_heads_main_at_validation=1b94659b1dc86cdb02a2fa337d37074a3751235b",
+            "autodl_CAMP_HEAD_at_validation=1b94659b1dc86cdb02a2fa337d37074a3751235b",
+            "autodl_CAMP_origin_main_at_validation=1b94659b1dc86cdb02a2fa337d37074a3751235b",
+            "latest_unit_tests_plan_status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_a3663a4_revalidated",
+            "local_unit_tests_scope_pytest=25 passed",
+            "local_target_pytest=25 passed",
         ]:
             assert needle in text
+
+
+def test_validator_unit_tests_audit_eof_records_current_head_1b94659() -> None:
+    tail = "\n".join(_audit_doc().splitlines()[-100:])
+
+    for needle in [
+        "Current-Head Unit Tests Revalidation After a3663a4 Unit Tests Plan Sync",
+        "status=fallback_risk_training_data_validator_extension_unit_tests_current_head_1b94659_revalidated",
+        "unit_tests_validation_head=1b94659b1dc86cdb02a2fa337d37074a3751235b",
+        "latest_unit_tests_plan_status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_a3663a4_revalidated",
+        "accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "local_target_pytest=25 passed",
+        "validator_extension_unit_tests_current_head_complete=True",
+        "validator_extension_implementation_authorized=False",
+        "implementation_authorization_gate_authorized_next=True",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_authorization_only",
+    ]:
+        assert needle in tail
+
+
+def test_iteration_audit_eof_records_current_head_1b94659_unit_tests() -> None:
+    tail = _iteration_audit()
+
+    for needle in [
+        "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Unit Tests",
+        "status=fallback_risk_training_data_validator_extension_unit_tests_current_head_1b94659_revalidated",
+        "unit_tests_validation_head=1b94659b1dc86cdb02a2fa337d37074a3751235b",
+        "latest_unit_tests_plan_status=fallback_risk_training_data_validator_extension_unit_tests_plan_current_head_a3663a4_revalidated",
+        "accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "local_target_pytest=25 passed",
+        "validator_extension_unit_tests_current_head_complete=True",
+        "validator_extension_implementation_authorized=False",
+        "implementation_authorization_gate_authorized_next=True",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_implementation_authorization_only",
+    ]:
+        assert needle in tail

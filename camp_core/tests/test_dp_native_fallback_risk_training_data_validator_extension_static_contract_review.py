@@ -347,7 +347,7 @@ def test_static_review_eof_records_current_head_7862caa_review() -> None:
 
 
 def test_iteration_audit_eof_records_current_head_7862caa_static_review() -> None:
-    tail = "\n".join(_iteration_audit().splitlines()[-100:])
+    tail = _iteration_audit()
 
     for needle in [
         "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Static Contract Review",

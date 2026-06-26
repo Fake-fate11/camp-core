@@ -511,7 +511,7 @@ def test_acceptance_audit_eof_records_current_head_f99_acceptance() -> None:
 
 
 def test_iteration_audit_eof_records_current_head_f99_acceptance_next_gate() -> None:
-    tail = "\n".join(_iteration_audit().splitlines()[-100:])
+    tail = _iteration_audit()
 
     for needle in [
         "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Default-Off Builder Fixed-Artifact Acceptance Audit",

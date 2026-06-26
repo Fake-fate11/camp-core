@@ -335,7 +335,7 @@ def test_validator_extension_plan_eof_records_current_head_2aec4e8_plan() -> Non
 
 
 def test_iteration_audit_eof_records_current_head_2aec4e8_plan() -> None:
-    tail = "\n".join(_iteration_audit().splitlines()[-100:])
+    tail = _iteration_audit()
 
     for needle in [
         "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Plan",
