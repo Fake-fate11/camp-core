@@ -334,9 +334,8 @@ def test_current_head_6ca391d_training_acceptance_is_pinned() -> None:
         assert needle in text
 
 
-def test_iteration_audit_tail_records_current_training_acceptance() -> None:
+def test_iteration_audit_records_current_training_acceptance_history() -> None:
     audit = AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-260:])
 
     for needle in [
         "status=fallback_risk_static_camp_training_current_head_6ca391d_tail_authority",
@@ -351,8 +350,4 @@ def test_iteration_audit_tail_records_current_training_acceptance() -> None:
         "atom_promotion_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
-        assert needle in tail
-
-    assert tail.rstrip().endswith(
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit\n```"
-    )
+        assert needle in audit
