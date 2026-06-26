@@ -339,15 +339,24 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
     )
     assert (
         "status=fallback_risk_training_split_manifest_builder_implementation_current_head_099b935_revalidated"
-        in tail
+        in audit
     )
     assert "current_local_authorization_pytest=10 passed" in audit
     assert "current_local_split_manifest_contract_pytest=9 passed" in audit
-    assert "current_local_split_manifest_builder_pytest=9 passed" in tail
-    assert "current_local_combined_target_pytest=28 passed" in tail
-    assert "training_execution_authorized_now=False" in tail
-    assert "training_split_manifest_builder_execution_on_fixed_artifact_authorized=False" in tail
+    assert "current_local_split_manifest_builder_pytest=9 passed" in audit
+    assert "current_local_combined_target_pytest=28 passed" in audit
+    assert "training_execution_authorized_now=False" in audit
     assert (
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only"
+        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_6b43925_tail_authority"
+        in tail
+    )
+    assert (
+        "source_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_6b43925_passed"
+        in tail
+    )
+    assert "local_related_target_pytest=49 passed" in tail
+    assert "camp_training_authorized=False" in tail
+    assert (
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only"
         in tail
     )
