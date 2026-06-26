@@ -53,27 +53,27 @@ def test_preflight_dataset_sha_pin_matches_current_fixed_artifact() -> None:
     )
 
 
-def test_current_head_5bc1d29_preflight_implementation_revalidation_is_pinned() -> None:
+def test_current_head_8d867cc_preflight_implementation_revalidation_is_pinned() -> None:
     doc = IMPL_DOC.read_text(encoding="utf-8")
     audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-80000:]
     combined = doc + audit_tail
-    status = "status=fallback_risk_training_sufficiency_preflight_implementation_head_5bc1d29_revalidated"
+    status = "status=fallback_risk_training_sufficiency_preflight_implementation_head_8d867cc_revalidated"
 
     assert status in audit_tail
 
     for needle in [
         status,
-        "implementation_base_head=5bc1d29928d9b3670aa3c2692299c9ff0f953bf8",
-        "camp_origin_main_at_implementation=5bc1d29928d9b3670aa3c2692299c9ff0f953bf8",
-        "github_refs_heads_main_at_implementation=5bc1d29928d9b3670aa3c2692299c9ff0f953bf8",
-        "autodl_CAMP_HEAD_at_implementation=5bc1d29928d9b3670aa3c2692299c9ff0f953bf8",
-        "autodl_CAMP_origin_main_at_implementation=5bc1d29928d9b3670aa3c2692299c9ff0f953bf8",
+        "implementation_base_head=8d867cc5acb9e5ddbe24bcb545b48d931fed9afe",
+        "camp_origin_main_at_implementation=8d867cc5acb9e5ddbe24bcb545b48d931fed9afe",
+        "github_refs_heads_main_at_implementation=8d867cc5acb9e5ddbe24bcb545b48d931fed9afe",
+        "autodl_CAMP_HEAD_at_implementation=8d867cc5acb9e5ddbe24bcb545b48d931fed9afe",
+        "autodl_CAMP_origin_main_at_implementation=8d867cc5acb9e5ddbe24bcb545b48d931fed9afe",
         "autodl_DP_HEAD_at_implementation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "prior_authorization_status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_b74f8a2_revalidated",
+        "prior_authorization_status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_bc3af24_revalidated",
         "validated_fallback_records=15",
         "expected_validated_dataset_sha_already_current=True",
         "expected_validated_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
-        "validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
+        "validator_output_json_sha256=d719e3b01d17be91ab68ba42cc9349400cc73fa9624fb7fdff0e539fcb6344e2",
         "validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
         "strict_formal_seed_path_matches=0",
         "implementation_file=scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py",
@@ -99,12 +99,18 @@ def test_current_head_5bc1d29_preflight_implementation_revalidation_is_pinned() 
         "local_training_sufficiency_contract_pytest=19 passed",
         "local_unit_tests_plan_pytest=8 passed",
         "local_target_pytest=44 passed",
+        "local_py_compile_exit=0",
+        "local_git_diff_check_exit=0",
+        "autodl_temp_worktree=/root/autodl-tmp/camp_core_preflight_impl_8d867cc_verify_20260626T171059Z",
+        "autodl_py_compile_exit=0",
         "autodl_preflight_pytest=8 passed",
         "autodl_authorization_pytest=9 passed",
         "autodl_training_sufficiency_contract_pytest=19 passed",
         "autodl_unit_tests_plan_pytest=8 passed",
         "autodl_target_pytest=44 passed",
+        "autodl_git_diff_check_exit=0",
         "preflight_implementation_complete=True",
+        "expected_validated_dataset_sha_already_current=True",
         "training_not_executed=True",
         "candidate_generation_not_executed=True",
         "dp_not_modified=True",
