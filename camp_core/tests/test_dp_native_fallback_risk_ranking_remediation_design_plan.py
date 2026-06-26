@@ -338,3 +338,61 @@ def test_current_head_c0201ee_remediation_design_plan_is_pinned() -> None:
         NEXT_STATIC_REVIEW_GATE,
     ]:
         assert needle in audit
+
+
+def test_current_head_0a5d1af_remediation_design_plan_is_pinned() -> None:
+    text = PLAN_DOC.read_text(encoding="utf-8")
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+
+    for needle in [
+        "camp_head_at_revalidation=0a5d1af8b8de26361f079bebf52ffdbfb26fbd67",
+        "camp_origin_main_at_revalidation=0a5d1af8b8de26361f079bebf52ffdbfb26fbd67",
+        "github_refs_heads_main_at_revalidation=0a5d1af8b8de26361f079bebf52ffdbfb26fbd67",
+        "autodl_CAMP_HEAD_at_revalidation=0a5d1af8b8de26361f079bebf52ffdbfb26fbd67",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_ranking_revalidation_output_dir=/root/autodl-tmp/camp_dp_native_broader_nonformal_fixed_artifact_fallback_risk_ranking_audit_ad52f74_20260626T141146Z",
+        "prior_ranking_revalidation_json_sha256=149c70556a3b6e55ac05c99fd26d1b3aa33ab7e57acbebd9e0d8aa56da55756a",
+        "prior_ranking_revalidation_md_sha256=526b246b5f4fb1208ba245a6e70c43bdd320f492c0507f7bb4fa4f3ddf2c035c",
+        "prior_ranking_revalidation_records_total=60",
+        "prior_ranking_revalidation_records_without_feasible_candidate=15",
+        "prior_ranking_revalidation_lower_risk_fixed_candidate_exists_under_logged_costs=True",
+        "status=fallback_risk_ranking_remediation_design_plan_ready_static_contract_review",
+        "current_head_design_plan_revalidated=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "fallback_cost_targets_nonnegative=True",
+        "fixed_dp_candidate_reranking_only=True",
+        "candidate_trajectory_rewrite_authorized=False",
+        "fallback_risk_extractor_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "fallback_risk_smoke_authorized_now=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_STATIC_REVIEW_GATE,
+    ]:
+        assert needle in text
+
+    for needle in [
+        "status=fallback_risk_ranking_remediation_design_plan_current_head_0a5d1af_ready_static_contract_review",
+        "current_camp_head=0a5d1af8b8de26361f079bebf52ffdbfb26fbd67",
+        "github_refs_heads_main=0a5d1af8b8de26361f079bebf52ffdbfb26fbd67",
+        "autodl_CAMP_HEAD=0a5d1af8b8de26361f079bebf52ffdbfb26fbd67",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_ranking_revalidation_json_sha256=149c70556a3b6e55ac05c99fd26d1b3aa33ab7e57acbebd9e0d8aa56da55756a",
+        "prior_ranking_revalidation_md_sha256=526b246b5f4fb1208ba245a6e70c43bdd320f492c0507f7bb4fa4f3ddf2c035c",
+        "current_head_design_plan_revalidated=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "fallback_cost_targets_nonnegative=True",
+        "fallback_risk_training_authorized_now=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "local_target_pytest=10 passed",
+        "autodl_target_pytest=10 passed",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_STATIC_REVIEW_GATE,
+    ]:
+        assert needle in audit
