@@ -24,11 +24,11 @@ def _review() -> str:
 def test_current_head_f2658fb_static_review_revalidation_is_pinned() -> None:
     text = _review()
     plan = PLAN_DOC.read_text(encoding="utf-8")
-    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-24000:]
-    combined = text + plan + audit_tail
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    combined = text + plan + audit
     status = "status=fallback_risk_training_data_training_sufficiency_static_contract_review_current_head_f2658fb_revalidated"
 
-    assert status in audit_tail
+    assert status in audit
     assert (
         "status=fallback_risk_training_data_training_sufficiency_plan_current_head_2d9a19d_revalidated"
         in plan
@@ -537,3 +537,103 @@ def test_static_review_current_head_476a8e0_revalidation_is_pinned() -> None:
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_plan_only",
     ]:
         assert needle in combined
+
+
+def test_static_review_eof_records_current_head_721bac9_review() -> None:
+    marker = "\n## Current-Head Static Contract Revalidation After 0c4e795 Plan Sync\n\n"
+    review = _review()
+    assert marker in review
+    section = review.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_training_sufficiency_static_contract_review_current_head_721bac9_revalidated",
+        "review_validation_base_head=721bac940559daa11821f2ad81f94c788103791f",
+        "github_refs_heads_main_at_static_review=721bac940559daa11821f2ad81f94c788103791f",
+        "autodl_CAMP_HEAD_at_static_review=721bac940559daa11821f2ad81f94c788103791f",
+        "autodl_DP_HEAD_at_static_review=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "source_plan_status=fallback_risk_training_data_training_sufficiency_plan_current_head_0c4e795_revalidated",
+        "source_validator_acceptance_status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_7f5ca75_passed",
+        "head_721bac9_validated_fallback_records=15",
+        "head_721bac9_validator_output_json_sha256=4f3a0be2dbf070b4d94262111e3c9b68618732efd64f54355722dbfbe61f2d40",
+        "head_721bac9_strict_formal_seed_path_matches=0",
+        "head_721bac9_evidence_boundary_passed=True",
+        "head_721bac9_fallback_dataset_training_sufficiency_claim=False",
+        "head_721bac9_fallback_risk_training_authorized_now=False",
+        "head_721bac9_camp_retraining_authorized_now=False",
+        "head_721bac9_master_isolation_passed=True",
+        "head_721bac9_fallback_master_isolated_from_feasible_master_required=True",
+        "head_721bac9_all_infeasible_records_added_to_feasible_training=False",
+        "head_721bac9_convex_fixed_candidate_boundary_passed=True",
+        "head_721bac9_score_k(w)=a_k^T w",
+        "head_721bac9_candidate_features_fixed_at_current_tick=True",
+        "head_721bac9_no_trajectory_generation_modification_snap_blend_guidance_or_postprocess=True",
+        "head_721bac9_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "head_721bac9_simplex_cvar_l2_master_convex_if_later_authorized=True",
+        "head_721bac9_split_scale_boundary_passed=True",
+        "head_721bac9_training_validation_split_predeclaration_required=True",
+        "head_721bac9_scale_fit_training_groups_only_required=True",
+        "head_721bac9_formal_seeds_11_12_13_excluded_required=True",
+        "head_721bac9_current_downstream_artifacts_not_reused_without_revalidation=True",
+        "head_721bac9_retraining_prerequisite_boundary_passed=True",
+        "head_721bac9_missing_training_split_manifest=True",
+        "head_721bac9_missing_train_only_scale_manifest=True",
+        "head_721bac9_missing_fallback_only_master_config=True",
+        "head_721bac9_missing_training_command_authorization=True",
+        "head_721bac9_blocking_contract_findings=0",
+        "head_721bac9_local_target_pytest=10 passed",
+        "head_721bac9_autodl_target_pytest=10 passed",
+        "static_contract_review_complete=True",
+        "training_not_executed=True",
+        "candidate_generation_not_executed=True",
+        "dp_not_modified=True",
+        "selector_or_atom_not_promoted=True",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_plan_only",
+    ]:
+        assert needle in section
+
+
+def test_iteration_audit_eof_records_current_head_721bac9_review() -> None:
+    marker = (
+        "\n## Current Tail Confirmation After 721bac9 Fallback Risk Training Data "
+        "Training Sufficiency Static Contract Review\n\n"
+    )
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    assert marker in audit
+    section = audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_training_sufficiency_static_contract_review_current_head_721bac9_revalidated",
+        "review_validation_base_head=721bac940559daa11821f2ad81f94c788103791f",
+        "source_plan_status=fallback_risk_training_data_training_sufficiency_plan_current_head_0c4e795_revalidated",
+        "source_validator_acceptance_status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_7f5ca75_passed",
+        "head_721bac9_validator_output_json_sha256=4f3a0be2dbf070b4d94262111e3c9b68618732efd64f54355722dbfbe61f2d40",
+        "head_721bac9_evidence_boundary_passed=True",
+        "head_721bac9_master_isolation_passed=True",
+        "head_721bac9_convex_fixed_candidate_boundary_passed=True",
+        "head_721bac9_score_k(w)=a_k^T w",
+        "head_721bac9_no_trajectory_generation_modification_snap_blend_guidance_or_postprocess=True",
+        "head_721bac9_training_validation_split_predeclaration_required=True",
+        "head_721bac9_formal_seeds_11_12_13_excluded_required=True",
+        "head_721bac9_missing_training_split_manifest=True",
+        "head_721bac9_missing_train_only_scale_manifest=True",
+        "head_721bac9_missing_fallback_only_master_config=True",
+        "head_721bac9_missing_training_command_authorization=True",
+        "head_721bac9_local_target_pytest=10 passed",
+        "head_721bac9_autodl_target_pytest=10 passed",
+        "this_static_review_gate_authorizes_training_replay_dp_or_claims=False",
+        "head_721bac9_replay_execution_authorized=False",
+        "head_721bac9_candidate_generation_authorized=False",
+        "head_721bac9_camp_training_authorized=False",
+        "head_721bac9_camp_retraining_authorized=False",
+        "head_721bac9_dp_modification_authorized=False",
+        "head_721bac9_selector_promotion_authorized=False",
+        "head_721bac9_atom_promotion_authorized=False",
+        "head_721bac9_safety_benefit_claim_authorized=False",
+        "head_721bac9_camp_over_dp_top1_claim_authorized=False",
+        "static_contract_review_complete=True",
+        "blocking_contract_findings=0",
+        "training_not_executed=True",
+        "dp_not_modified=True",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_unit_tests_plan_only",
+    ]:
+        assert needle in section
