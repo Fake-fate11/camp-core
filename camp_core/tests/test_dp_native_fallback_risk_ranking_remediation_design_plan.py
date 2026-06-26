@@ -400,7 +400,16 @@ def test_current_head_0a5d1af_remediation_design_plan_is_pinned() -> None:
 
 def test_current_head_8ebd4d9_remediation_design_plan_is_pinned() -> None:
     text = PLAN_DOC.read_text(encoding="utf-8")
-    audit_tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-220:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    audit_marker = (
+        "## Current Tail Confirmation After Current HEAD Fallback Risk Ranking "
+        "Remediation Design Plan"
+    )
+    next_marker = (
+        "## Current Tail Confirmation After Current HEAD Fallback Risk Ranking "
+        "Remediation Static Contract Review"
+    )
+    audit_tail = audit_marker + audit.split(audit_marker)[-1].split(next_marker)[0]
 
     for needle in [
         "camp_head_at_revalidation=8ebd4d9cdaaf2d4cf24b84c4d0f49dedd886b33b",
