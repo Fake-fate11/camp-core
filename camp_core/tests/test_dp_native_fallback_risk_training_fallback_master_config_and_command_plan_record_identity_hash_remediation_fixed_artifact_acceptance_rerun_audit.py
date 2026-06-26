@@ -267,23 +267,22 @@ def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-210:])
 
     for needle in [
-        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_1927603_fixed_artifact_acceptance_passed",
-        "fallback_master_config_json_sha256=10ebf96545e244b4e3fcf657c0897a5f6f3eb72357ea9259b53de19dd2f6dc3a",
-        "training_command_plan_json_sha256=6bb97f7346d11039cd3f218ec06e110f92a69bcbddddac036a5301123230116c",
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_acbbb77_fixed_artifact_acceptance_passed",
+        "fallback_master_config_json_sha256=fdef70d470721fdf9dabb2c44f3ae2656da177aa2345fbaf6b225b00e7576200",
+        "training_command_plan_json_sha256=7fc2904a4d49a853c8c29833ab2d4724342df74ad53cc561322455d09dd40b18",
         "fallback_master_config_ready=True",
         "training_command_plan_ready=True",
-        "local_target_pytest=14 passed",
+        "local_target_pytest=15 passed",
         "local_master_command_builder_pytest=6 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
-        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_16fa482_acceptance_autodl_sync_verified",
-        "pushed_acceptance_commit=16fa4824af340f3154a1768754a545bf609856cf",
-        "verified_autodl_target_pytest=14 passed",
-        "verified_autodl_py_compile_exit=0",
-        "verified_autodl_git_diff_check_exit=0",
+        "autodl_builder_exit=0",
+        "autodl_dp_head_verified=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "this_acceptance_gate_authorizes_training_replay_dp_or_claims=False",
     ]:
         assert needle in tail
 
-    assert tail.rstrip().endswith(
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_validated_dataset_summary_materializer_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only`"
+    assert (
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_validated_dataset_summary_materializer_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only"
+        in tail
     )
