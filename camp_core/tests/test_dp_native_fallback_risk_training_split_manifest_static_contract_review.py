@@ -139,11 +139,16 @@ def test_current_head_2c8adc8_static_contract_revalidation_is_pinned() -> None:
 
 def test_current_head_e5e292b_static_contract_revalidation_is_pinned() -> None:
     text = _review()
-    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-16000:]
-    combined = text + audit_tail
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+    audit_tail = audit[-16000:]
+    combined = text + audit
     status = "status=fallback_risk_training_split_manifest_static_contract_review_head_e5e292b_revalidated"
 
-    assert status in audit_tail
+    assert status in audit
+    assert (
+        "status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
+        in audit_tail
+    )
 
     for needle in [
         status,
@@ -333,17 +338,17 @@ def test_audit_tail_records_split_manifest_unit_tests_plan_next_gate() -> None:
     tail = AUDIT_DOC.read_text(encoding="utf-8")[-16000:]
 
     assert (
-        "status=fallback_risk_training_split_manifest_static_contract_review_head_e5e292b_revalidated"
+        "status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
         in tail
     )
     assert (
-        "head_e5e292b_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
+        "current_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
         in tail
     )
-    assert "head_e5e292b_local_static_contract_review_pytest=10 passed" in tail
+    assert "current_local_static_contract_review_pytest=10 passed" in tail
     assert "prior_split_manifest_plan_status=fallback_risk_training_split_manifest_plan_head_b07f829_revalidated" in tail
     assert "training_execution_authorized_now=False" in tail
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_plan_only`"
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only"
         in tail
     )

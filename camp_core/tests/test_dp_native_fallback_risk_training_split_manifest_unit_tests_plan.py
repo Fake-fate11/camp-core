@@ -133,11 +133,16 @@ def test_current_head_7756feb_unit_tests_plan_revalidation_is_pinned() -> None:
 
 def test_current_head_84f24a1_unit_tests_plan_revalidation_is_pinned() -> None:
     text = _plan()
-    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-16000:]
-    combined = text + audit_tail
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+    audit_tail = audit[-16000:]
+    combined = text + audit
     status = "status=fallback_risk_training_split_manifest_unit_tests_plan_head_84f24a1_revalidated"
 
-    assert status in audit_tail
+    assert status in audit
+    assert (
+        "status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
+        in audit_tail
+    )
 
     for needle in [
         status,
@@ -330,21 +335,22 @@ def test_audit_tail_records_split_manifest_unit_tests_only_next_gate() -> None:
     tail = AUDIT_DOC.read_text(encoding="utf-8")[-16000:]
 
     assert (
-        "status=fallback_risk_training_split_manifest_unit_tests_plan_head_84f24a1_revalidated"
+        "status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
         in tail
     )
     assert (
-        "head_84f24a1_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
+        "current_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
         in tail
     )
-    assert "head_84f24a1_local_unit_tests_plan_pytest=11 passed" in tail
+    assert "current_local_unit_tests_plan_pytest=11 passed" in tail
+    assert "current_local_target_pytest=30 passed" in tail
     assert (
-        "this_split_manifest_unit_tests_plan_gate_authorizes_builder_training_replay_dp_or_claims=False"
+        "this_current_head_revalidation_authorizes_builder_training_replay_dp_or_claims=False"
         in tail
     )
     assert "prior_split_manifest_static_contract_status=fallback_risk_training_split_manifest_static_contract_review_head_e5e292b_revalidated" in tail
     assert "training_execution_authorized_now=False" in tail
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_unit_tests_only`"
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only"
         in tail
     )

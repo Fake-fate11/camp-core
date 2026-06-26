@@ -676,7 +676,13 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
         "status=fallback_risk_training_split_manifest_unit_tests_head_f8f409b_revalidated"
         in audit
     )
+    assert (
+        "status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
+        in tail
+    )
     assert "head_f8f409b_local_split_manifest_contract_pytest=9 passed" in audit
+    assert "current_head=9668754f2c3d5bb47e5fc3c2a391bd670df7e45f" in tail
+    assert "f8f409b_is_ancestor_of_current_head=True" in tail
     assert "training_execution_authorized_now=False" in audit
     assert (
         "this_split_manifest_unit_tests_gate_authorizes_builder_training_replay_dp_or_claims=False"
@@ -687,10 +693,10 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
         in audit
     )
     assert (
-        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_09ca81f_revalidated"
+        "this_current_head_revalidation_authorizes_builder_training_replay_dp_or_claims=False"
         in tail
     )
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only`"
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only"
         in tail
     )
