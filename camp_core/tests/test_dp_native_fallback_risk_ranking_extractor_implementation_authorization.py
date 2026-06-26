@@ -389,7 +389,16 @@ def test_current_head_47860dc_extractor_implementation_authorization_is_pinned()
 
 def test_current_head_d26eb75_extractor_implementation_authorization_is_pinned() -> None:
     text = AUTH_DOC.read_text(encoding="utf-8")
-    audit_tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-260:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    audit_marker = (
+        "## Current Tail Confirmation After Current HEAD Fallback Risk Ranking "
+        "Default-Off Extractor Implementation Authorization"
+    )
+    next_marker = (
+        "## Current Tail Confirmation After Current HEAD Fallback Risk Ranking "
+        "Default-Off Extractor Implementation"
+    )
+    audit_tail = audit_marker + audit.split(audit_marker)[-1].split(next_marker)[0]
 
     for needle in [
         "status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head_d26eb75",
