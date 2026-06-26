@@ -231,13 +231,65 @@ def test_current_head_ca07b6a_training_acceptance_is_pinned() -> None:
         assert needle in text
 
 
-def test_iteration_audit_tail_records_current_training_acceptance() -> None:
-    audit = AUDIT.read_text(encoding="utf-8")
+def test_current_head_34bdb4b_training_acceptance_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
 
     for needle in [
-        "status=fallback_risk_static_camp_training_current_head_ca07b6a_fixed_artifact_acceptance_passed",
-        "training_summary_json_sha256=22aec7885c32fc8b514184fd0eb25f1d177be1f41419a62178607f4a26e5ca11",
-        "offline_weights_json_sha256=d05f35bb83ed160f98f498a6d7d80483d2da3f396af8a73cbdbaab31db7e5b5e",
+        "status=fallback_risk_static_camp_training_current_head_34bdb4b_fixed_artifact_acceptance_passed",
+        "training_commit=34bdb4b3ac115700568f989c74a54706a0250e09",
+        "autodl_CAMP_HEAD=34bdb4b3ac115700568f989c74a54706a0250e09",
+        "autodl_CAMP_origin_main=34bdb4b3ac115700568f989c74a54706a0250e09",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "dataset_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "training_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
+        "train_only_scale_manifest_json_sha256=b11cba57efc5761417c539cfbf009866fc8c5f1466a1f041073ea88f6a3b618d",
+        "fallback_master_config_json_sha256=fdef70d470721fdf9dabb2c44f3ae2656da177aa2345fbaf6b225b00e7576200",
+        "training_command_plan_json_sha256=7fc2904a4d49a853c8c29833ab2d4724342df74ad53cc561322455d09dd40b18",
+        "preflight_json_sha256=c816b04fc3171514cdef8ad3643ba138c86b5361b3e5c2ce577de9d2dd3f0809",
+        "training_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_acceptance_34bdb4b_20260626T134118Z",
+        "training_summary_json_sha256=c37307b62210204bbd2a26730f9b4c2f209deb1c3d921eabb7214bb168f5c5ce",
+        "training_summary_md_sha256=18c8352bca1e0a590370a2ef3a6cdc7c52ef90d31941fe3e37c91b8a84cfc76a",
+        "training_stdout_log_sha256=8ecea2e780da35cbf920cc4ca7a0686ded429585ae564c8772312100e1a2a860",
+        "training_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "offline_weights_json_sha256=d5be3af9de82f2032145915e0ce2947248850dc3643a9b0a526a625232bce3fb",
+        "atom_scales_json_sha256=ff6a513c25d5dd4ac10672c54751023b2ca400b3fd202fcb42bc95d4e24ee7c2",
+        "training_exit=0",
+        "status=dp_native_fallback_risk_static_camp_training_complete",
+        "training_authorized=True",
+        "training_execution_authorized=True",
+        "training_executed=True",
+        "camp_retraining_completed=True",
+        "fixed_dp_candidate_reranking_only=True",
+        "fallback_only_training=True",
+        "training_records=13",
+        "validation_records=2",
+        "num_candidates=4",
+        "num_atoms=14",
+        "weights_sum=1.0",
+        "weights_min=0.0",
+        "weights_max=1.0",
+        "train_oracle_match_rate=0.3076923076923077",
+        "validation_oracle_match_rate=0.5",
+        "remote_weights_simplex_nonnegative=True",
+        "remote_dp_head_unchanged=True",
+        "deployment_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "dp_modification_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+
+def test_iteration_audit_tail_records_current_training_acceptance() -> None:
+    audit = AUDIT.read_text(encoding="utf-8")
+    tail = "\n".join(audit.splitlines()[-260:])
+
+    for needle in [
+        "status=fallback_risk_static_camp_training_current_head_34bdb4b_fixed_artifact_acceptance_passed",
+        "training_summary_json_sha256=c37307b62210204bbd2a26730f9b4c2f209deb1c3d921eabb7214bb168f5c5ce",
+        "offline_weights_json_sha256=d5be3af9de82f2032145915e0ce2947248850dc3643a9b0a526a625232bce3fb",
         "remote_training_exit=0",
         "remote_weights_simplex_nonnegative=True",
         "candidate_generation_authorized=False",
@@ -245,6 +297,9 @@ def test_iteration_audit_tail_records_current_training_acceptance() -> None:
         "selector_promotion_authorized=False",
         "atom_promotion_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit`",
     ]:
-        assert needle in audit
+        assert needle in tail
+
+    assert tail.rstrip().endswith(
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_post_training_nonpromotion_artifact_audit\n```"
+    )
