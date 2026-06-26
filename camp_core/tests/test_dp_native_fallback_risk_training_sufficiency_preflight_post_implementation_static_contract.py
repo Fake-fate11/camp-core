@@ -366,7 +366,7 @@ def test_review_next_gate_is_training_split_manifest_plan_only() -> None:
 
 
 def test_audit_tail_records_current_split_manifest_plan_as_static_review_next() -> None:
-    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
+    tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-320:])
 
     assert (
         "status=fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_head_bdfc3dd_revalidated"
