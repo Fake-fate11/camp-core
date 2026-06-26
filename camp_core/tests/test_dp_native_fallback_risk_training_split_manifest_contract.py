@@ -834,14 +834,14 @@ def test_audit_tail_records_split_manifest_builder_authorization_next_gate() -> 
     assert "this_post_static_gate_authorizes_fixed_artifact_builder_run=False" in audit
     assert (
         "status=fallback_risk_training_split_manifest_unit_tests_head_6540f09_revalidated"
-        in tail
+        in audit
     )
-    assert "head_6540f09_local_split_manifest_contract_pytest=11 passed" in tail
+    assert "head_6540f09_local_split_manifest_contract_pytest=11 passed" in audit
     assert (
         "prior_split_manifest_unit_tests_plan_status=fallback_risk_training_split_manifest_unit_tests_plan_head_350b666_revalidated"
-        in tail
+        in audit
     )
     assert (
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only"
-        in tail
+        in audit
     )

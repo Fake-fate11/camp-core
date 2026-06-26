@@ -31,6 +31,11 @@ from scripts.integrations.validate_dp_native_fallback_risk_training_sufficiency_
 DATASET_SCHEMA_VERSION = "dp_native_fallback_risk_training_data_v1"
 VALIDATOR_SHA = "572888123f53ebe6921a5e9a6fb920c2e425e5a1e578a259d0ce03f76a85a44b"
 AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v8_iteration_audit.md"
+IMPLEMENTATION_DOC = (
+    REPO_ROOT
+    / "docs"
+    / "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation.md"
+)
 
 
 def _sha256_file(path: Path) -> str:
@@ -414,6 +419,7 @@ def test_split_builder_rejects_explicit_true_or_nonfalse_forbidden_flags(
 
 def test_audit_records_split_manifest_builder_implementation_and_current_next_gate() -> None:
     audit = AUDIT_DOC.read_text(encoding="utf-8")
+    implementation_doc = IMPLEMENTATION_DOC.read_text(encoding="utf-8")
     tail = "\n".join(audit.splitlines()[-220:])
 
     assert (
@@ -434,16 +440,16 @@ def test_audit_records_split_manifest_builder_implementation_and_current_next_ga
     assert "training_execution_authorized_now=False" in audit
     assert (
         "status=fallback_risk_training_split_manifest_builder_implementation_head_df281ed_revalidated"
-        in tail
+        in audit + implementation_doc
     )
     assert (
         "implementation_base_head=df281ed506b0b004e05abee78a160c384c623539"
-        in tail
+        in audit + implementation_doc
     )
-    assert "head_df281ed_local_split_manifest_builder_pytest=9 passed" in tail
-    assert "head_df281ed_local_combined_target_pytest=30 passed" in tail
-    assert "head_df281ed_autodl_combined_target_pytest=30 passed" in tail
-    assert "head_df281ed_production_builder_changed_in_this_gate=False" in tail
+    assert "head_df281ed_local_split_manifest_builder_pytest=9 passed" in audit
+    assert "head_df281ed_local_combined_target_pytest=30 passed" in audit
+    assert "head_df281ed_autodl_combined_target_pytest=30 passed" in audit
+    assert "head_df281ed_production_builder_changed_in_this_gate=False" in audit
     assert "training_execution_authorized_now=False" in tail
     assert "camp_training_authorized=False" in tail
     assert (
@@ -454,3 +460,65 @@ def test_audit_records_split_manifest_builder_implementation_and_current_next_ga
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only"
         in tail
     )
+
+
+def test_current_head_9db58de_split_manifest_builder_implementation_is_pinned() -> None:
+    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-22000:]
+    implementation_doc = IMPLEMENTATION_DOC.read_text(encoding="utf-8")
+    combined = implementation_doc + audit_tail
+    status = "status=fallback_risk_training_split_manifest_builder_implementation_head_9db58de_revalidated"
+
+    assert status in implementation_doc
+    assert status in audit_tail
+
+    for needle in [
+        status,
+        "implementation_base_head=9db58dedb3bb5feae5932b1cac5c922d986d5a24",
+        "camp_origin_main_at_implementation=9db58dedb3bb5feae5932b1cac5c922d986d5a24",
+        "github_refs_heads_main_at_implementation=9db58dedb3bb5feae5932b1cac5c922d986d5a24",
+        "autodl_CAMP_HEAD_at_implementation=9db58dedb3bb5feae5932b1cac5c922d986d5a24",
+        "autodl_CAMP_origin_main_at_implementation=9db58dedb3bb5feae5932b1cac5c922d986d5a24",
+        "autodl_DP_HEAD_at_implementation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "source_authorization_status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_c784f7a_revalidated",
+        "production_builder_file=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_split_manifest.py",
+        "head_9db58de_production_builder_changed_in_this_gate=False",
+        "implementation_already_present=True",
+        "default_off=True",
+        "enable_flag=--enable_default_off_fallback_risk_training_split_manifest_builder",
+        "disabled_mode_reads_dataset=False",
+        "enabled_input_source=existing_validated_fallback_dataset_json_only",
+        "records_scope=records_without_feasible_candidate_only",
+        "split_policy=sha256(record_identity_hash + split_salt)",
+        "split_salt=fallback_risk_training_split_v1",
+        "validation_fraction_target=0.2",
+        "group_key_fields=source_log,run_id,record_index",
+        "output_json_or_markdown_only=True",
+        "status_disabled=dp_native_fallback_risk_training_split_manifest_builder_default_off_disabled",
+        "status_complete=dp_native_fallback_risk_training_split_manifest_builder_complete",
+        "status_rejected=dp_native_fallback_risk_training_split_manifest_builder_rejected",
+        "head_9db58de_local_split_manifest_builder_pytest=10 passed",
+        "head_9db58de_local_authorization_pytest=12 passed",
+        "head_9db58de_local_split_manifest_contract_pytest=11 passed",
+        "head_9db58de_local_combined_target_pytest=33 passed",
+        "head_9db58de_autodl_temp_worktree=/root/autodl-tmp/camp_core_split_manifest_builder_impl_9db58de_verify_20260627T030000Z",
+        "head_9db58de_autodl_split_manifest_builder_pytest=10 passed",
+        "head_9db58de_autodl_authorization_pytest=12 passed",
+        "head_9db58de_autodl_split_manifest_contract_pytest=11 passed",
+        "head_9db58de_autodl_combined_target_pytest=33 passed",
+        "head_9db58de_autodl_git_diff_check_exit=0",
+        "fixed_artifact_manifest_generation_authorized=False",
+        "training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "formal_seeds_11_12_13_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "this_builder_implementation_gate_authorizes_fixed_artifact_training_replay_dp_or_claims=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only",
+    ]:
+        assert needle in combined

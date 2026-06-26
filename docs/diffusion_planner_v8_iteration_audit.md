@@ -131107,3 +131107,84 @@ The next gate may only implement the minimal default-off read-only split
 manifest builder. It must not generate a fixed-artifact manifest, train CAMP,
 run replay, generate candidates, modify Diffusion Planner, promote selectors
 or atoms, change the online selector, or claim safety/CAMP-over-DP benefit.
+
+## Current Tail Confirmation After Current HEAD Fallback Risk Training Split Manifest Builder Implementation
+
+Date: 2026-06-27
+
+Completed the current EOF-authorized fallback-risk training split manifest
+builder implementation gate at local/GitHub/AutoDL CAMP head `9db58de`. The
+minimal default-off, read-only production builder was already present, so this
+gate revalidated the existing implementation and did not change production
+builder code. It did not run the builder on the fixed AutoDL artifact, generate
+a fixed-artifact split manifest, train CAMP, run replay, generate candidates,
+modify Diffusion Planner, use formal seeds, relax hard feasibility, add
+all-infeasible records to the feasible-ranking master, promote selectors or
+atoms, change the online selector, or make safety/CAMP-over-DP claims.
+
+```text
+status=fallback_risk_training_split_manifest_builder_implementation_head_9db58de_revalidated
+passed=True
+implementation_base_head=9db58dedb3bb5feae5932b1cac5c922d986d5a24
+camp_origin_main_at_implementation=9db58dedb3bb5feae5932b1cac5c922d986d5a24
+github_refs_heads_main_at_implementation=9db58dedb3bb5feae5932b1cac5c922d986d5a24
+autodl_CAMP_HEAD_at_implementation=9db58dedb3bb5feae5932b1cac5c922d986d5a24
+autodl_CAMP_origin_main_at_implementation=9db58dedb3bb5feae5932b1cac5c922d986d5a24
+autodl_DP_HEAD_at_implementation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_authorization_status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_c784f7a_revalidated
+production_builder_file=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_split_manifest.py
+head_9db58de_production_builder_changed_in_this_gate=False
+implementation_already_present=True
+default_off=True
+enable_flag=--enable_default_off_fallback_risk_training_split_manifest_builder
+disabled_mode_reads_dataset=False
+enabled_input_source=existing_validated_fallback_dataset_json_only
+records_scope=records_without_feasible_candidate_only
+split_policy=sha256(record_identity_hash + split_salt)
+split_salt=fallback_risk_training_split_v1
+validation_fraction_target=0.2
+group_key_fields=source_log,run_id,record_index
+output_json_or_markdown_only=True
+status_disabled=dp_native_fallback_risk_training_split_manifest_builder_default_off_disabled
+status_complete=dp_native_fallback_risk_training_split_manifest_builder_complete
+status_rejected=dp_native_fallback_risk_training_split_manifest_builder_rejected
+head_9db58de_local_split_manifest_builder_pytest=10 passed
+head_9db58de_local_authorization_pytest=12 passed
+head_9db58de_local_split_manifest_contract_pytest=11 passed
+head_9db58de_local_combined_target_pytest=33 passed
+head_9db58de_local_py_compile_exit=0
+head_9db58de_local_git_diff_check_exit=0
+head_9db58de_autodl_temp_worktree=/root/autodl-tmp/camp_core_split_manifest_builder_impl_9db58de_verify_20260627T030000Z
+head_9db58de_autodl_split_manifest_builder_pytest=10 passed
+head_9db58de_autodl_authorization_pytest=12 passed
+head_9db58de_autodl_split_manifest_contract_pytest=11 passed
+head_9db58de_autodl_combined_target_pytest=33 passed
+head_9db58de_autodl_git_diff_check_exit=0
+fixed_artifact_manifest_generation_authorized=False
+training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+this_builder_implementation_gate_authorizes_fixed_artifact_training_replay_dp_or_claims=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only
+```
+
+The next gate may only perform a static post-implementation contract review and
+run targeted tests. It must not run the builder on the fixed AutoDL artifact,
+generate a fixed-artifact split manifest, train CAMP, run replay, generate
+candidates, modify Diffusion Planner, use formal seeds, promote selector/atom
+state, or claim safety/CAMP-over-DP benefit.
