@@ -594,3 +594,56 @@ def test_iteration_audit_records_default_off_unit_tests_next_gate() -> None:
         assert needle in audit
 
     assert f"`{NEXT_AUTHORIZATION_GATE}`" in audit
+
+
+def test_current_head_83b73af_default_off_unit_tests_are_pinned() -> None:
+    text = UNIT_TESTS_DOC.read_text(encoding="utf-8")
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+
+    for needle in [
+        "camp_head_at_revalidation=83b73afb014188df67c524dd33cbab4a84abf411",
+        "camp_origin_main_at_revalidation=83b73afb014188df67c524dd33cbab4a84abf411",
+        "github_refs_heads_main_at_revalidation=83b73afb014188df67c524dd33cbab4a84abf411",
+        "autodl_CAMP_HEAD_at_revalidation=83b73afb014188df67c524dd33cbab4a84abf411",
+        "autodl_CAMP_origin_main_at_revalidation=83b73afb014188df67c524dd33cbab4a84abf411",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_unit_tests_plan_status=fallback_risk_ranking_default_off_unit_tests_plan_current_head_40cb9a6_ready_tests_only_gate",
+        "prior_unit_tests_plan_head_at_revalidation=40cb9a6cd0918192e0bcb7555a3204618f492584",
+        "status=fallback_risk_ranking_default_off_unit_tests_current_head_83b73af_revalidated",
+        "tests_only=True",
+        "synthetic_static_unit_tests_only=True",
+        "default_off_contract_tests_pinned=True",
+        "production_implementation_edit_authorized=False",
+        "fallback_risk_extractor_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "fallback_risk_smoke_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_AUTHORIZATION_GATE,
+    ]:
+        assert needle in text
+
+    for needle in [
+        "status=fallback_risk_ranking_default_off_unit_tests_current_head_83b73af_revalidated",
+        "prior_unit_tests_plan_head_at_revalidation=40cb9a6cd0918192e0bcb7555a3204618f492584",
+        "tests_only=True",
+        "synthetic_static_unit_tests_only=True",
+        "default_off_contract_tests_pinned=True",
+        "production_implementation_edit_authorized=False",
+        "fallback_risk_extractor_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_AUTHORIZATION_GATE,
+    ]:
+        assert needle in audit
