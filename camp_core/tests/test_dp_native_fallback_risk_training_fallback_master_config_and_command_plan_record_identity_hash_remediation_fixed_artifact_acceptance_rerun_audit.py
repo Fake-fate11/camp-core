@@ -134,6 +134,38 @@ def test_current_head_1927603_master_command_acceptance_rerun_is_pinned() -> Non
         assert needle in text
 
 
+def test_current_head_16fa482_master_command_sync_verification_is_pinned() -> None:
+    text = _audit()
+
+    for needle in [
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_16fa482_acceptance_autodl_sync_verified",
+        "source_acceptance_status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_1927603_fixed_artifact_acceptance_passed",
+        "pushed_acceptance_commit=16fa4824af340f3154a1768754a545bf609856cf",
+        "verified_local_HEAD=16fa4824af340f3154a1768754a545bf609856cf",
+        "verified_origin_main=16fa4824af340f3154a1768754a545bf609856cf",
+        "verified_github_refs_heads_main=16fa4824af340f3154a1768754a545bf609856cf",
+        "verified_autodl_CAMP_HEAD=16fa4824af340f3154a1768754a545bf609856cf",
+        "verified_autodl_CAMP_origin_main=16fa4824af340f3154a1768754a545bf609856cf",
+        "verified_autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "sync_method=autodl_bundle_fast_forward_after_github_fetch_timeout",
+        "sync_bundle=F:\\t\\camp_1927603_to_16fa482.bundle",
+        "sync_bundle_sha256=5438d0df60ff977c0341f9539e7722bd736e3bfd83bb445bb30d83444715ea8d",
+        "autodl_bundle_verify_exit=0",
+        "autodl_bundle_fetch_exit=0",
+        "autodl_fast_forward_exit=0",
+        "autodl_origin_main_update_ref_exit=0",
+        "verified_autodl_py_compile_exit=0",
+        "verified_autodl_target_pytest=14 passed",
+        "verified_autodl_git_diff_check_exit=0",
+        "verified_autodl_training_not_executed=True",
+        "verified_autodl_candidate_generation_not_executed=True",
+        "verified_autodl_dp_not_modified=True",
+        "verified_autodl_selector_or_atom_not_promoted=True",
+        "this_sync_verification_authorizes_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in text
+
+
 def test_acceptance_rerun_records_master_and_command_contract() -> None:
     text = _audit()
 
@@ -244,6 +276,11 @@ def test_iteration_audit_tail_records_master_command_rerun_next_gate() -> None:
         "local_master_command_builder_pytest=6 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
+        "status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_16fa482_acceptance_autodl_sync_verified",
+        "pushed_acceptance_commit=16fa4824af340f3154a1768754a545bf609856cf",
+        "verified_autodl_target_pytest=14 passed",
+        "verified_autodl_py_compile_exit=0",
+        "verified_autodl_git_diff_check_exit=0",
     ]:
         assert needle in tail
 
