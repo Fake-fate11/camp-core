@@ -491,3 +491,37 @@ def test_iteration_audit_tail_records_current_head_acceptance_and_next_gate() ->
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
     ]:
         assert needle in text
+
+
+def test_acceptance_audit_eof_records_current_head_f99_acceptance() -> None:
+    tail = "\n".join(_audit().splitlines()[-130:])
+
+    for needle in [
+        "Current-Head Acceptance Revalidation After f99da50 Post-Contract Tail",
+        "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_f99da50_passed",
+        "f99da50_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z",
+        "f99da50_formal_seed_path_matches=0",
+        "f99da50_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "f99da50_records_built=15",
+        "f99da50_training_authorized=False",
+        "f99da50_fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
+    ]:
+        assert needle in tail
+
+
+def test_iteration_audit_eof_records_current_head_f99_acceptance_next_gate() -> None:
+    tail = "\n".join(_iteration_audit().splitlines()[-100:])
+
+    for needle in [
+        "Current Tail Confirmation After Current HEAD Fallback Risk Training Data Default-Off Builder Fixed-Artifact Acceptance Audit",
+        "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_f99da50_passed",
+        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_f99da50_20260626T153546Z",
+        "formal_seed_path_matches=0",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "records_built=15",
+        "training_authorized=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
+    ]:
+        assert needle in tail
