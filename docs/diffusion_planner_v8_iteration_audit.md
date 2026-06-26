@@ -125081,3 +125081,76 @@ dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixe
 The next gate may only plan the fallback-risk dataset validator extension. It
 must not train or retrain CAMP, run replay, generate candidates, modify DP,
 promote a selector or atom, or make safety/CAMP-over-DP claims.
+
+## Current Tail Confirmation After Current HEAD Fallback Risk Training Data Validator Extension Plan
+
+Date: 2026-06-26
+
+The validator extension plan remains valid after the current fixed-artifact
+builder acceptance audit was committed, pushed, and synchronized across local,
+GitHub, and AutoDL CAMP. This remains a plan-only gate. It does not implement
+the validator, run replay, generate candidates, train or retrain CAMP, modify
+Diffusion Planner, promote selectors or atoms, or make safety/CAMP-over-DP
+claims.
+
+```text
+head_ea68e5b_plan_revalidation_base_head=ea68e5b70b2e91e1c92267b54692a145d5bdfb3c
+head_ea68e5b_camp_origin_main_at_revalidation=ea68e5b70b2e91e1c92267b54692a145d5bdfb3c
+head_ea68e5b_github_refs_heads_main_at_revalidation=ea68e5b70b2e91e1c92267b54692a145d5bdfb3c
+head_ea68e5b_autodl_CAMP_HEAD_at_revalidation=ea68e5b70b2e91e1c92267b54692a145d5bdfb3c
+head_ea68e5b_autodl_CAMP_origin_main_at_revalidation=ea68e5b70b2e91e1c92267b54692a145d5bdfb3c
+head_ea68e5b_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+head_ea68e5b_fixed_artifact_acceptance_status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_8e50989_passed
+head_ea68e5b_accepted_fallback_records=15
+head_ea68e5b_accepted_dataset_schema_version=dp_native_fallback_risk_training_data_v1
+head_ea68e5b_accepted_dataset_sha256=aff45e48340741ed976eaeaadc383fa794d7a0a769fcaebde3a90a20cae9caa6
+head_ea68e5b_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_8e50989_20260626T084333Z/dataset.json
+head_ea68e5b_local_py_compile_exit=0
+head_ea68e5b_local_target_pytest=8 passed
+head_ea68e5b_local_git_diff_check_exit=0
+head_ea68e5b_autodl_py_compile_exit=0
+head_ea68e5b_autodl_target_pytest=8 passed
+head_ea68e5b_autodl_git_diff_check_exit=0
+```
+
+Current boundary:
+
+```text
+user_broad_execution_permission_recorded=True
+user_camp_retraining_permission_available_for_future_training_gate=True
+this_plan_gate_authorizes_broad_execution=False
+validator_extension_implementation_authorized=False
+validator_extension_static_contract_review_authorized_next=True
+fallback_risk_training_authorized_now=False
+fallback_risk_smoke_authorized_now=False
+training_execution_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Decision:
+
+```text
+status=fallback_risk_training_data_validator_extension_plan_current_head_ea68e5b_revalidated
+passed=True
+validator_extension_plan_complete=True
+validator_extension_implementation_authorized=False
+validator_extension_static_contract_review_authorized_next=True
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_static_contract_review_only
+```
