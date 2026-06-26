@@ -545,3 +545,49 @@ def test_current_head_0143ee6_development_holdout_audit_is_pinned() -> None:
         "status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_current_head_0143ee6_passed"
         in audit
     )
+
+
+def test_current_head_884a3ed_development_holdout_audit_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "current_camp_head=884a3edbde3726b8d4cc4558f4dc911de59d0e75",
+        "required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "training_commit=34bdb4b3ac115700568f989c74a54706a0250e09",
+        "nonpromotion_audit_execution_head=ecc4a6ed5a54c04fafb6b9bf396eed3e6f6841e8",
+        "training_summary_json_sha256=c37307b62210204bbd2a26730f9b4c2f209deb1c3d921eabb7214bb168f5c5ce",
+        "offline_weights_json_sha256=d5be3af9de82f2032145915e0ce2947248850dc3643a9b0a526a625232bce3fb",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=ff6a513c25d5dd4ac10672c54751023b2ca400b3fd202fcb42bc95d4e24ee7c2",
+        "dataset_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "training_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
+        "train_only_scale_manifest_json_sha256=b11cba57efc5761417c539cfbf009866fc8c5f1466a1f041073ea88f6a3b618d",
+        "fallback_master_config_json_sha256=fdef70d470721fdf9dabb2c44f3ae2656da177aa2345fbaf6b225b00e7576200",
+        "preflight_json_sha256=c816b04fc3171514cdef8ad3643ba138c86b5361b3e5c2ce577de9d2dd3f0809",
+        "remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_34bdb4b_884a3ed_20260626T140243Z",
+        "remote_audit_json_sha256=647114fa5288c278c004c3a9fcc2efced2686165dd74707ad76cc74fa8ed7712",
+        "remote_audit_md_sha256=2a0af867845a916910e7bed893dd32521ef5ee9533a1d2dbbbf1b3aa7e0cb18c",
+        "remote_audit_stdout_log_sha256=c4b0275758fb959b3193d310d5e06097fcd6a8be0b732165e2fbe42f7587966b",
+        "remote_audit_inputs_log_sha256=23aa895d33ec8732d8bc82f4c00a68bbbf46316b3943b7abadfd1e967de6405b",
+        "remote_artifact_audit_exit=0",
+        "development_holdout_acceptance_audit_passed=True",
+        "audit_only=True",
+        "plan_only=False",
+        "validation_records=2",
+        "static_oracle_match_rate=0.5",
+        "uniform_oracle_match_rate=1.0",
+        "holdout_static_underperforms_uniform=True",
+        "local_target_pytest=9 passed",
+        "autodl_target_pytest=9 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    assert (
+        "status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_current_head_884a3ed_passed"
+        in audit
+    )
