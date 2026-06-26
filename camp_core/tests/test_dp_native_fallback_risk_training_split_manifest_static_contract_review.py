@@ -146,7 +146,7 @@ def test_current_head_e5e292b_static_contract_revalidation_is_pinned() -> None:
 
     assert status in audit
     assert (
-        "status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
+        "status=fallback_risk_training_split_manifest_unit_tests_current_head_2a49147_autodl_sync_verified"
         in audit_tail
     )
 
@@ -338,14 +338,15 @@ def test_audit_tail_records_split_manifest_unit_tests_plan_next_gate() -> None:
     tail = AUDIT_DOC.read_text(encoding="utf-8")[-16000:]
 
     assert (
-        "status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
+        "status=fallback_risk_training_split_manifest_unit_tests_current_head_2a49147_autodl_sync_verified"
         in tail
     )
     assert (
-        "current_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36"
+        "source_revalidation_status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated"
         in tail
     )
-    assert "current_local_static_contract_review_pytest=10 passed" in tail
+    assert "current_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36" in tail
+    assert "verified_autodl_static_contract_review_pytest=10 passed" in tail
     assert "prior_split_manifest_plan_status=fallback_risk_training_split_manifest_plan_head_b07f829_revalidated" in tail
     assert "training_execution_authorized_now=False" in tail
     assert (

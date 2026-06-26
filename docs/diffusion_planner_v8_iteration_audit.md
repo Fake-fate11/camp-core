@@ -122212,3 +122212,58 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only
 ```
+
+## AutoDL Sync Verification After 2a49147 Split Manifest Unit Tests
+
+Date: 2026-06-26
+
+The split-manifest unit-test gate revalidation commit was pushed to GitHub and
+synchronized to AutoDL with a verified fast-forward bundle. The remote
+py_compile, target pytest, and diff check passed at `2a49147`, while Diffusion
+Planner remained fixed at `7a1d33d`. This sync verification did not run the
+split manifest builder on fixed artifacts, generate a manifest, run replay,
+generate candidates, train or retrain CAMP, modify Diffusion Planner, promote
+selectors or atoms, deploy, or claim safety/CAMP-over-DP benefit.
+
+```text
+status=fallback_risk_training_split_manifest_unit_tests_current_head_2a49147_autodl_sync_verified
+passed=True
+source_revalidation_status=fallback_risk_training_split_manifest_unit_tests_current_head_9668754_revalidated
+verified_local_HEAD=2a491471ca56bbc6f96f2a12c492da96c4fb8f88
+verified_origin_main=2a491471ca56bbc6f96f2a12c492da96c4fb8f88
+verified_github_refs_heads_main=2a491471ca56bbc6f96f2a12c492da96c4fb8f88
+verified_autodl_CAMP_HEAD=2a491471ca56bbc6f96f2a12c492da96c4fb8f88
+verified_autodl_CAMP_origin_main=2a491471ca56bbc6f96f2a12c492da96c4fb8f88
+verified_autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+sync_bundle=F:\t\camp_9668754_to_2a49147.bundle
+sync_bundle_sha256=92F81EBE03AD6B993B70B6FAB47E6036D4272ABB81342B260582CCA36F589A52
+autodl_bundle_verify_exit=0
+autodl_fast_forward_exit=0
+verified_autodl_py_compile_exit=0
+verified_autodl_split_manifest_contract_pytest=9 passed
+verified_autodl_unit_tests_plan_pytest=11 passed
+verified_autodl_static_contract_review_pytest=10 passed
+verified_autodl_target_pytest=30 passed
+verified_autodl_git_diff_check_exit=0
+current_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+f8f409b_is_ancestor_of_current_head=True
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+this_autodl_sync_verification_authorizes_builder_training_replay_dp_or_claims=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only
+```
