@@ -362,3 +362,96 @@ def test_iteration_audit_eof_records_current_head_7862caa_static_review() -> Non
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only",
     ]:
         assert needle in tail
+
+
+def test_static_review_eof_records_current_head_d8a3313_review() -> None:
+    marker = "\n## Current-Head Static Contract Revalidation After d8a3313 Validator Plan Sync\n\n"
+    review = _review()
+    assert marker in review
+    section = review.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_validator_extension_static_contract_current_head_d8a3313_revalidated",
+        "head_d8a3313_static_review_revalidation_base_head=d8a3313f688ffdc10b3ff72c3170c2a92533ca52",
+        "head_d8a3313_camp_origin_main_at_revalidation=d8a3313f688ffdc10b3ff72c3170c2a92533ca52",
+        "head_d8a3313_github_refs_heads_main_at_revalidation=d8a3313f688ffdc10b3ff72c3170c2a92533ca52",
+        "head_d8a3313_autodl_CAMP_HEAD_at_revalidation=d8a3313f688ffdc10b3ff72c3170c2a92533ca52",
+        "head_d8a3313_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "head_d8a3313_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_current_head_5379cfc_revalidated",
+        "head_d8a3313_accepted_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_d8a3313_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_db52ac6_20260626T211859Z/dataset.json",
+        "head_d8a3313_local_target_pytest=11 passed",
+        "head_d8a3313_autodl_target_pytest=11 passed",
+        "source_isolation_passed=True",
+        "dataset_contract_passed=True",
+        "per_record_contract_passed=True",
+        "source_log_readback_contract_passed=True",
+        "mathematical_boundary_passed=True",
+        "split_predeclaration_required=True",
+        "scale_fit_training_groups_only_required=True",
+        "fallback_master_isolated_from_feasible_master_required=True",
+        "formal_seeds_11_12_13_excluded_required=True",
+        "nonpromotion_checks_required=True",
+        "blocking_contract_findings=0",
+        "validator_extension_implementation_authorized=False",
+        "validator_extension_unit_tests_plan_authorized_next=True",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only",
+    ]:
+        assert needle in section
+
+    for forbidden in [
+        "camp_training_authorized=True",
+        "camp_retraining_authorized=True",
+        "replay_execution_authorized=True",
+        "candidate_generation_authorized=True",
+        "dp_modification_authorized=True",
+        "selector_promotion_authorized=True",
+        "atom_promotion_authorized=True",
+        "safety_benefit_claim_authorized=True",
+        "camp_over_dp_top1_claim_authorized=True",
+        "validator_extension_implementation_authorized=True",
+    ]:
+        assert forbidden not in section
+
+
+def test_iteration_audit_eof_records_current_head_d8a3313_static_review() -> None:
+    marker = (
+        "\n## Current Tail Confirmation After d8a3313 Fallback Risk Training "
+        "Data Validator Extension Static Contract Review\n\n"
+    )
+    audit = _iteration_audit()
+    assert marker in audit
+    section = audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_validator_extension_static_contract_current_head_d8a3313_revalidated",
+        "head_d8a3313_static_review_revalidation_base_head=d8a3313f688ffdc10b3ff72c3170c2a92533ca52",
+        "head_d8a3313_validator_extension_plan_status=fallback_risk_training_data_validator_extension_plan_current_head_5379cfc_revalidated",
+        "head_d8a3313_accepted_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_db52ac6_20260626T211859Z/dataset.json",
+        "head_d8a3313_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "head_d8a3313_local_target_pytest=11 passed",
+        "head_d8a3313_autodl_target_pytest=11 passed",
+        "source_isolation_passed=True",
+        "dataset_contract_passed=True",
+        "per_record_contract_passed=True",
+        "source_log_readback_contract_passed=True",
+        "mathematical_boundary_passed=True",
+        "split_predeclaration_required=True",
+        "scale_fit_training_groups_only_required=True",
+        "fallback_master_isolated_from_feasible_master_required=True",
+        "formal_seeds_11_12_13_excluded_required=True",
+        "nonpromotion_checks_required=True",
+        "blocking_contract_findings=0",
+        "validator_extension_implementation_authorized=False",
+        "validator_extension_unit_tests_plan_authorized_next=True",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "training_execution_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_unit_tests_plan_only",
+    ]:
+        assert needle in section
