@@ -306,3 +306,68 @@ def test_current_head_40cb9a6_default_off_unit_tests_plan_is_pinned() -> None:
         NEXT_UNIT_TESTS_GATE,
     ]:
         assert needle in audit
+
+
+def test_current_head_af2f6e9_default_off_unit_tests_plan_is_pinned() -> None:
+    text = PLAN_DOC.read_text(encoding="utf-8")
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+
+    for needle in [
+        "camp_head_at_revalidation=af2f6e9231f76206e593a6f9b2aa23d0a1c9d023",
+        "camp_origin_main_at_revalidation=af2f6e9231f76206e593a6f9b2aa23d0a1c9d023",
+        "github_refs_heads_main_at_revalidation=af2f6e9231f76206e593a6f9b2aa23d0a1c9d023",
+        "autodl_CAMP_HEAD_at_revalidation=af2f6e9231f76206e593a6f9b2aa23d0a1c9d023",
+        "autodl_CAMP_origin_main_at_revalidation=af2f6e9231f76206e593a6f9b2aa23d0a1c9d023",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_current_head_08b1a6f_passed_default_off_tests_plan_next",
+        "prior_static_contract_head_at_revalidation=08b1a6f365f8c3f6915b1a0f8c1565cae215a5ab",
+        "status=fallback_risk_ranking_default_off_unit_tests_plan_current_head_af2f6e9_ready_tests_only_gate",
+        "current_head_unit_tests_plan_revalidated=True",
+        "planned_default_off_tests=4",
+        "planned_scope_filtering_tests=4",
+        "planned_candidate_validation_tests=6",
+        "planned_cost_extraction_tests=11",
+        "planned_provenance_no_mutation_tests=8",
+        "planned_forbidden_side_effect_tests=7",
+        "planned_future_label_tests=4",
+        "implementation_authorized=False",
+        "production_implementation_edit_authorized=False",
+        "fallback_risk_extractor_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "fallback_risk_smoke_authorized_now=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_UNIT_TESTS_GATE,
+    ]:
+        assert needle in text
+
+    for needle in [
+        "status=fallback_risk_ranking_default_off_unit_tests_plan_current_head_af2f6e9_ready_tests_only_gate",
+        "current_camp_head=af2f6e9231f76206e593a6f9b2aa23d0a1c9d023",
+        "github_refs_heads_main=af2f6e9231f76206e593a6f9b2aa23d0a1c9d023",
+        "autodl_CAMP_HEAD=af2f6e9231f76206e593a6f9b2aa23d0a1c9d023",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_static_contract_status=fallback_risk_ranking_remediation_static_contract_review_current_head_08b1a6f_passed_default_off_tests_plan_next",
+        "prior_static_contract_head_at_revalidation=08b1a6f365f8c3f6915b1a0f8c1565cae215a5ab",
+        "current_head_unit_tests_plan_revalidated=True",
+        "planned_default_off_tests=4",
+        "planned_scope_filtering_tests=4",
+        "planned_candidate_validation_tests=6",
+        "planned_cost_extraction_tests=11",
+        "planned_provenance_no_mutation_tests=8",
+        "planned_forbidden_side_effect_tests=7",
+        "implementation_authorized=False",
+        "production_implementation_edit_authorized=False",
+        "fallback_risk_extractor_implementation_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_UNIT_TESTS_GATE,
+    ]:
+        assert needle in audit
