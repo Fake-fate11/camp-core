@@ -237,6 +237,84 @@ def _errors_for(payload: dict[str, Any]) -> list[str]:
     return validate_training_sufficiency_preconditions(payload)["errors"]
 
 
+def test_current_head_09ca3e8_unit_tests_revalidation_is_pinned() -> None:
+    doc = UNIT_TESTS_DOC.read_text(encoding="utf-8")
+    iteration_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-24000:]
+    combined = doc + iteration_tail
+    status = "status=fallback_risk_training_data_training_sufficiency_unit_tests_current_head_09ca3e8_revalidated"
+
+    assert status in iteration_tail
+
+    for needle in [
+        status,
+        "unit_tests_validation_base_head=09ca3e8f7d4388e97cccc8138739b93d11dfc777",
+        "camp_origin_main_at_validation=09ca3e8f7d4388e97cccc8138739b93d11dfc777",
+        "github_refs_heads_main_at_validation=09ca3e8f7d4388e97cccc8138739b93d11dfc777",
+        "autodl_CAMP_HEAD_at_validation=09ca3e8f7d4388e97cccc8138739b93d11dfc777",
+        "autodl_CAMP_origin_main_at_validation=09ca3e8f7d4388e97cccc8138739b93d11dfc777",
+        "autodl_DP_HEAD_at_validation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "training_sufficiency_unit_tests_plan_status=fallback_risk_training_data_training_sufficiency_unit_tests_plan_current_head_0fcdcfa_revalidated",
+        "validated_fallback_records=15",
+        "validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
+        "validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "strict_formal_seed_path_matches=0",
+        "contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_training_sufficiency_contract.py",
+        "validated_dataset_required=True",
+        "15_record_artifact_does_not_authorize_training=True",
+        "training_sufficiency_claim_without_split_rejected=True",
+        "deployable_checkpoint_claim_rejected=True",
+        "training_validation_split_manifest_required=True",
+        "group_key_source_log_run_id_record_index_required=True",
+        "train_validation_group_overlap_rejected=True",
+        "formal_seeds_11_12_13_rejected=True",
+        "formal_eval_artifact_in_development_split_rejected=True",
+        "train_only_scale_manifest_required=True",
+        "scale_fit_validation_groups_rejected=True",
+        "scale_fit_formal_or_eval_groups_rejected=True",
+        "nonpositive_nonfinite_or_non_numeric_atom_scales_rejected=True",
+        "atom_schema_or_names_mismatch_rejected=True",
+        "fallback_only_master_config_required=True",
+        "feasible_branch_records_in_fallback_master_rejected=True",
+        "all_infeasible_records_added_to_feasible_training_rejected=True",
+        "all_infeasible_records_relabelled_feasible_rejected=True",
+        "hard_feasibility_relaxation_rejected=True",
+        "feasible_ranking_master_change_rejected=True",
+        "score_equals_a_transpose_w_required=True",
+        "nonnegative_fixed_atoms_required=True",
+        "fallback_label_not_deployed_atom_required=True",
+        "nonnegative_margins_required=True",
+        "simplex_cvar_l2_convex_boundary_required=True",
+        "training_command_without_prior_authorization_rejected=True",
+        "replay_or_candidate_generation_commands_rejected=True",
+        "dp_weight_or_config_changes_rejected=True",
+        "reference_blend_guidance_or_postselection_rejected=True",
+        "online_selector_or_atom_promotion_rejected=True",
+        "post_training_nonpromotion_plan_required=True",
+        "development_holdout_acceptance_gate_required=True",
+        "local_target_pytest=19 passed",
+        "local_training_group_pytest=42 passed",
+        "autodl_target_pytest=19 passed",
+        "autodl_training_group_pytest=42 passed",
+        "training_sufficiency_unit_tests_complete=True",
+        "training_sufficiency_preflight_implementation_authorization_gate_authorized_next=True",
+        "fallback_risk_training_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "training_authorized=False",
+        "camp_training_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_authorization_only",
+    ]:
+        assert needle in combined
+
+
 def test_current_head_0506f8c_unit_tests_revalidation_is_pinned() -> None:
     doc = UNIT_TESTS_DOC.read_text(encoding="utf-8")
     iteration_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-16000:]
