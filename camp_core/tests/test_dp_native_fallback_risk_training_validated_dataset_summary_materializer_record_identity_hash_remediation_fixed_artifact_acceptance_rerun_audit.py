@@ -80,6 +80,46 @@ def test_current_head_84a5eff_summary_acceptance_rerun_is_pinned() -> None:
         assert needle in text
 
 
+def test_current_head_db0111c_summary_acceptance_rerun_is_pinned() -> None:
+    text = _audit()
+
+    for needle in [
+        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_db0111c_fixed_artifact_acceptance_passed",
+        "current_validator_output_matched_dataset_sha=True",
+        "source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.json",
+        "expected_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "source_validator_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_validator_acceptance_6dc8ae6_20260625T222922Z/validation.json",
+        "expected_validator_output_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
+        "source_dataset_acceptance_status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_4751222_passed",
+        "source_validator_acceptance_status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_6dc8ae6_passed",
+        "source_master_command_sync_status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_16fa482_acceptance_autodl_sync_verified",
+        "builder_commit=db0111cc8144628f6dc6ab13722edf728c1ca465",
+        "autodl_CAMP_HEAD=db0111cc8144628f6dc6ab13722edf728c1ca465",
+        "autodl_CAMP_origin_main=db0111cc8144628f6dc6ab13722edf728c1ca465",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_validated_dataset_summary_acceptance_db0111c_20260626T055955Z",
+        "validated_dataset_summary_json_sha256=6ed8c738e65a6d9190db40a042089a21a7aaa032be0a9617b22b0ba4c67314e6",
+        "validated_dataset_summary_md_sha256=e1c75b4c6bc0b9626f44fd1cbdee29be8418d4660b8acf7e0430bbc7b0a05426",
+        "builder_stdout_log_sha256=f2a064276a2ddbcdac2da735e639be85f5c8b5fe153b62461f3b46c8388a0abe",
+        "builder_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "builder_exit=0",
+        "summary_schema_version=dp_native_fallback_risk_validated_dataset_summary_v1",
+        "summary_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "summary_records=15",
+        "summary_validator_status=dp_native_fallback_risk_training_data_validator_complete",
+        "summary_validator_passed=True",
+        "summary_training_sufficiency_claim=False",
+        "summary_deployable_checkpoint_claim=False",
+        "summary_source_validator_output_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
+        "validated_dataset_summary_ready_for_preflight=True",
+        "training_sufficiency_preflight_input_set_ready=True",
+        "training_sufficiency_preflight_executed=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+    ]:
+        assert needle in text
+
+
 def test_acceptance_rerun_records_complete_materializer_result() -> None:
     text = _audit()
 
@@ -193,20 +233,15 @@ def test_iteration_audit_tail_records_summary_rerun_next_gate() -> None:
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_84a5eff_fixed_artifact_acceptance_passed",
+        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_db0111c_fixed_artifact_acceptance_passed",
         "validated_dataset_summary_json_sha256=6ed8c738e65a6d9190db40a042089a21a7aaa032be0a9617b22b0ba4c67314e6",
         "observed_summary_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
         "validated_dataset_summary_ready_for_preflight=True",
         "training_sufficiency_preflight_input_set_ready=True",
-        "local_target_pytest=7 passed",
+        "local_target_pytest=13 passed",
         "local_summary_materializer_pytest=5 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
-        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_84a5eff_acceptance_autodl_sync_verified",
-        "github_pushed_commit=0166155fa10ca228fc22949afe2d32e93e527602",
-        "autodl_target_pytest=12 passed",
-        "autodl_py_compile_exit=0",
-        "autodl_git_diff_check_exit=0",
     ]:
         assert needle in tail
 
