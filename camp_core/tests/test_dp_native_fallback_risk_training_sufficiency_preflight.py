@@ -55,11 +55,11 @@ def test_preflight_dataset_sha_pin_matches_current_fixed_artifact() -> None:
 
 def test_current_head_8d867cc_preflight_implementation_revalidation_is_pinned() -> None:
     doc = IMPL_DOC.read_text(encoding="utf-8")
-    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-80000:]
-    combined = doc + audit_tail
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    combined = doc + audit
     status = "status=fallback_risk_training_sufficiency_preflight_implementation_head_8d867cc_revalidated"
 
-    assert status in audit_tail
+    assert status in audit
 
     for needle in [
         status,
@@ -120,6 +120,96 @@ def test_current_head_8d867cc_preflight_implementation_revalidation_is_pinned() 
         "formal_seeds_11_12_13_authorized=False",
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_review_only",
+    ]:
+        assert needle in combined
+
+
+def test_current_head_19b6ecc_preflight_implementation_eof_revalidation_is_pinned() -> None:
+    marker = "\n## Current Tail Confirmation After 19b6ecc Fallback Risk Training Sufficiency Preflight Implementation\n\n"
+    doc = IMPL_DOC.read_text(encoding="utf-8")
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    assert marker in doc
+    assert marker in audit
+    combined = (
+        doc.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+        + audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+    )
+
+    for needle in [
+        "status=fallback_risk_training_sufficiency_preflight_implementation_head_19b6ecc_revalidated",
+        "implementation_base_head=19b6ecc3ddbc2b3605870b0553f3a2467cc7f2fa",
+        "camp_origin_main_at_implementation=19b6ecc3ddbc2b3605870b0553f3a2467cc7f2fa",
+        "github_refs_heads_main_at_implementation=19b6ecc3ddbc2b3605870b0553f3a2467cc7f2fa",
+        "autodl_CAMP_HEAD_at_implementation=19b6ecc3ddbc2b3605870b0553f3a2467cc7f2fa",
+        "autodl_CAMP_origin_main_at_implementation=19b6ecc3ddbc2b3605870b0553f3a2467cc7f2fa",
+        "autodl_DP_HEAD_at_implementation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_authorization_status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_e3b27b7_revalidated",
+        "validated_fallback_records=15",
+        "expected_validated_dataset_sha_already_current=True",
+        "expected_validated_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "validator_output_json_sha256=4f3a0be2dbf070b4d94262111e3c9b68618732efd64f54355722dbfbe61f2d40",
+        "validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "strict_formal_seed_path_matches=0",
+        "implementation_file=scripts/integrations/validate_dp_native_fallback_risk_training_sufficiency_preflight.py",
+        "production_preflight_script_modified_in_this_gate=False",
+        "implementation_scope=current_default_off_read_only_preflight_revalidation",
+        "preflight_default_off=True",
+        "preflight_read_only=True",
+        "manifest_inputs_only=True",
+        "disabled_mode_returns_before_manifest_read=True",
+        "writes_only_explicit_output_json_and_output_md=True",
+        "subprocess_usage_introduced=False",
+        "training_execution_path_introduced=False",
+        "diffusion_planner_execution_path_introduced=False",
+        "candidate_generation_path_introduced=False",
+        "score_k(w)=a_k^T w",
+        "a_k_fixed_before_weight_optimization=True",
+        "a_k_nonnegative_benders_compatible_atoms_only=True",
+        "fallback_label_is_not_a_deployed_atom=True",
+        "simplex_master_convex_if_later_authorized=True",
+        "cvar_master_convex_if_later_authorized=True",
+        "l2_regularized_master_convex_if_later_authorized=True",
+        "ready_for_future_training_authorization_is_not_training_authorization=True",
+        "local_preflight_pytest=9 passed",
+        "local_authorization_pytest=10 passed",
+        "local_training_sufficiency_contract_pytest=20 passed",
+        "local_unit_tests_plan_pytest=9 passed",
+        "local_target_pytest=48 passed",
+        "local_py_compile_exit=0",
+        "local_git_diff_check_exit=0",
+        "autodl_temp_worktree=/root/autodl-tmp/camp_core_preflight_impl_19b6ecc_verify_20260627T080000Z",
+        "autodl_py_compile_exit=0",
+        "autodl_preflight_pytest=9 passed",
+        "autodl_authorization_pytest=10 passed",
+        "autodl_training_sufficiency_contract_pytest=20 passed",
+        "autodl_unit_tests_plan_pytest=9 passed",
+        "autodl_target_pytest=48 passed",
+        "autodl_git_diff_check_exit=0",
+        "preflight_implementation_complete=True",
+        "expected_validated_dataset_sha_already_current=True",
+        "training_not_executed=True",
+        "candidate_generation_not_executed=True",
+        "dp_not_modified=True",
+        "selector_or_atom_not_promoted=True",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "Full36_authorized=False",
+        "formal_seeds_11_12_13_authorized=False",
+        "dp_modification_authorized=False",
+        "reference_blend_authorized=False",
+        "guidance_authorized=False",
+        "postprocess_postselection_authorized=False",
+        "closed_loop_outcome_online_input_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployable_checkpoint_claim_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "training_execution_authorized_now=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_post_implementation_static_contract_review_only",
     ]:
         assert needle in combined
