@@ -290,3 +290,44 @@ def test_current_head_d5c8154_holdout_static_contract_review_is_pinned() -> None
         "status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_d5c8154_passed"
         in audit
     )
+
+
+def test_current_head_e6adf15_holdout_static_contract_review_is_pinned() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+    audit_tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-240:])
+
+    for needle in [
+        "review_start_head=e6adf151f40c294aa0ecfe02647508cc876dc163",
+        "reviewed_holdout_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_6ca391d_f05e9c9_20260626T193703Z",
+        "reviewed_holdout_audit_json_sha256=cca64b9f3646435a916c6e6861d6250b99006267d8ebb53a21aeb51f62733cb9",
+        "reviewed_holdout_audit_md_sha256=8a1cbe56033ec053fda46761b1e9f839f2391a3eb2f672990e3748af78ad354a",
+        "default_off_before_reads=True",
+        "read_only_existing_artifacts=True",
+        "writes_only_explicit_output_json_and_md=True",
+        "subprocess_usage=False",
+        "dp_execution_path=False",
+        "candidate_generation_path=False",
+        "camp_retraining_path=False",
+        "paper_consistent_fixed_candidate_reranker_boundary_preserved=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "static_oracle_match_rate=0.5",
+        "uniform_oracle_match_rate=1.0",
+        "holdout_static_underperforms_uniform=True",
+        "blocking_contract_findings=0",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    assert audit_tail.rstrip().endswith(
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only\n```"
+    )
+
+    for needle in [
+        "status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_e6adf15_passed",
+        "blocking_contract_findings=0",
+        "paper_consistent_fixed_candidate_reranker_boundary_preserved=True",
+        "this_review_executes_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in audit_tail

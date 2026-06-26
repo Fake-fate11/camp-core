@@ -595,7 +595,7 @@ def test_current_head_884a3ed_development_holdout_audit_is_pinned() -> None:
 
 def test_current_head_f05e9c9_development_holdout_audit_is_pinned() -> None:
     text = RESULT_DOC.read_text(encoding="utf-8")
-    audit_tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-260:])
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
 
     for needle in [
         "current_camp_head=f05e9c92b93332178ac324c975e81267fa3331c0",
@@ -630,14 +630,10 @@ def test_current_head_f05e9c9_development_holdout_audit_is_pinned() -> None:
     ]:
         assert needle in text
 
-    assert audit_tail.rstrip().endswith(
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_holdout_acceptance_static_contract_review\n```"
-    )
-
     for needle in [
         "status=fallback_risk_static_camp_training_development_holdout_acceptance_audit_current_head_f05e9c9_passed",
         "development_holdout_acceptance_audit_passed=True",
         "holdout_static_underperforms_uniform=True",
         "this_audit_executes_training_replay_dp_or_claims=False",
     ]:
-        assert needle in audit_tail
+        assert needle in audit
