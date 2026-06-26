@@ -906,3 +906,107 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only
 ```
+
+## Current-Head Training Sufficiency Plan Revalidation After Validator Acceptance Sync
+
+Date: 2026-06-26
+
+Revalidated this plan-only gate against the current synchronized CAMP baseline
+and the latest accepted fixed fallback-risk validator artifact. This gate only
+plans the training-sufficiency boundary for the validated fallback-risk dataset:
+it does not materialize a split, fit scales, train weights, execute replay,
+generate candidates, modify Diffusion Planner, promote selectors or atoms, or
+make safety/CAMP-over-DP claims. Previously recorded downstream artifacts are
+not treated as authorization for this current validator artifact unless they
+are revalidated by their own gates.
+
+```text
+status=fallback_risk_training_data_training_sufficiency_plan_current_head_a067ccd_revalidated
+passed=True
+plan_validation_base_head=a067ccde066f3c40d1db2f983b31143e9ff5e82c
+camp_origin_main_at_plan=a067ccde066f3c40d1db2f983b31143e9ff5e82c
+github_refs_heads_main_at_plan=a067ccde066f3c40d1db2f983b31143e9ff5e82c
+autodl_CAMP_HEAD_at_plan=a067ccde066f3c40d1db2f983b31143e9ff5e82c
+autodl_CAMP_origin_main_at_plan=a067ccde066f3c40d1db2f983b31143e9ff5e82c
+autodl_DP_HEAD_at_plan=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_validator_acceptance_status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_db9df4a_passed
+validated_fallback_records=15
+validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114
+strict_formal_seed_path_matches=0
+fixed_artifact_training_sufficiency_claim=False
+fallback_dataset_training_sufficiency_claim=False
+```
+
+Current-head split, scale, fallback-master, and nonpromotion boundaries:
+
+```text
+head_a067ccd_split_boundary_predeclared=True
+head_a067ccd_concrete_training_validation_split_materialized_in_this_gate=False
+head_a067ccd_scale_fitting_boundary_predeclared=True
+head_a067ccd_scale_fit_training_groups_only_required=True
+head_a067ccd_scales_fit_in_this_gate=False
+head_a067ccd_fallback_master_isolation_predeclared=True
+head_a067ccd_fallback_master_isolated_from_feasible_master_required=True
+head_a067ccd_feasible_branch_records_allowed_in_fallback_master=False
+head_a067ccd_all_infeasible_records_added_to_feasible_training=False
+head_a067ccd_hard_feasibility_relaxation_authorized=False
+head_a067ccd_formal_seed_exclusion_predeclared=True
+head_a067ccd_formal_seeds_11_12_13_excluded_required=True
+head_a067ccd_nonpromotion_checks_predeclared=True
+head_a067ccd_post_training_nonpromotion_required=True
+head_a067ccd_current_downstream_artifacts_not_reused_without_revalidation=True
+```
+
+Current-head CAMP/DP mathematical boundary:
+
+```text
+head_a067ccd_score_k(w)=a_k^T w
+head_a067ccd_candidate_features_fixed_at_current_tick=True
+head_a067ccd_no_trajectory_generation_modification_snap_blend_guidance_or_postprocess=True
+head_a067ccd_a_k_nonnegative_benders_compatible_atoms_only=True
+head_a067ccd_simplex_cvar_l2_master_convex_if_later_authorized=True
+```
+
+Current-head verification:
+
+```text
+head_a067ccd_local_py_compile_exit=0
+head_a067ccd_local_target_pytest=25 passed
+head_a067ccd_local_git_diff_check_exit=0
+head_a067ccd_autodl_py_compile_exit=0
+head_a067ccd_autodl_target_pytest=25 passed
+head_a067ccd_autodl_git_diff_check_exit=0
+```
+
+Current-head forbidden flags remain false:
+
+```text
+this_plan_gate_authorizes_training_replay_dp_or_claims=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+training_not_executed=True
+candidate_generation_not_executed=True
+dp_not_modified=True
+selector_or_atom_not_promoted=True
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Current-head decision:
+
+```text
+head_a067ccd_training_sufficiency_plan_complete=True
+training_sufficiency_plan_complete=True
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_training_sufficiency_static_contract_review_only
+```
