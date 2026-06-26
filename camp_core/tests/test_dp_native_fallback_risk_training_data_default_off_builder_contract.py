@@ -433,18 +433,24 @@ def test_contract_rejects_negative_atoms_and_forbids_training() -> None:
 
 def test_iteration_audit_records_builder_unit_tests_current_head_history() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    current_head = "c859a400cde5669ab1bc50f4a39ee923d486a830"
+    marker = (
+        "\n## Current EOF Confirmation After Current-Head Fallback Risk Training Data "
+        "Default-Off Builder Unit Tests\n\nDate: 2026-06-26\n\n"
+    )
+    assert marker in audit
+    tail = audit.rsplit(marker, maxsplit=1)[-1]
+    current_head = "96911f0c257021e828cd2b7f7b54212e716a5a50"
 
     for needle in [
-        "status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_revalidated_latest",
+        "status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_96911f0_revalidated",
         f"camp_head_at_revalidation={current_head}",
         f"camp_origin_main_at_revalidation={current_head}",
         f"github_refs_heads_main_at_revalidation={current_head}",
         f"autodl_CAMP_HEAD_at_revalidation={current_head}",
         f"autodl_CAMP_origin_main_at_revalidation={current_head}",
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "prior_builder_unit_tests_plan_status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_revalidated_latest",
-        "prior_builder_unit_tests_plan_commit_at_revalidation=c859a400cde5669ab1bc50f4a39ee923d486a830",
+        "prior_builder_unit_tests_plan_status=fallback_risk_training_data_default_off_builder_unit_tests_plan_current_head_7e53e27_revalidated",
+        "prior_builder_unit_tests_plan_commit_at_revalidation=96911f0c257021e828cd2b7f7b54212e716a5a50",
         "prior_builder_unit_tests_plan_tail_verified=True",
         "prior_builder_unit_tests_plan_autodl_verified=True",
         "user_camp_retraining_permission_available_for_future_training_gate=True",
@@ -452,13 +458,13 @@ def test_iteration_audit_records_builder_unit_tests_current_head_history() -> No
         "plan_test_file=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_unit_tests_plan.py",
         "production_builder_file=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_data.py",
         "local_py_compile_exit=0",
-        "local_target_pytest=100 passed",
+        "local_target_pytest=15 passed",
         "local_diff_check=0 findings",
         f"autodl_CAMP_HEAD={current_head}",
         f"autodl_CAMP_origin_main={current_head}",
         "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "autodl_py_compile_exit=0",
-        "autodl_target_pytest=100 passed",
+        "autodl_target_pytest=15 passed",
         "autodl_diff_check=0 findings",
         "synthetic_records_only=True",
         "default_off_disabled_status_pinned=True",
@@ -486,6 +492,6 @@ def test_iteration_audit_records_builder_unit_tests_current_head_history() -> No
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_AUTHORIZATION_GATE,
     ]:
-        assert needle in audit
+        assert needle in tail
 
-    assert f"`{NEXT_AUTHORIZATION_GATE}`" in audit
+    assert tail.rstrip().endswith(f"`{NEXT_AUTHORIZATION_GATE}`")
