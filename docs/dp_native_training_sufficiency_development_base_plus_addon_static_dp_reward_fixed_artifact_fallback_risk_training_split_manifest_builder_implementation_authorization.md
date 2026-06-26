@@ -472,3 +472,39 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only
 ```
+
+## AutoDL Sync Verification After Builder Authorization Revalidation
+
+Date: 2026-06-26
+
+Verified the pushed builder authorization checkpoint on AutoDL after a
+fast-forward bundle sync. This sync verification does not expand the gate: it
+does not execute the split manifest builder on fixed artifacts, train CAMP, run
+replay, generate candidates, modify Diffusion Planner, promote selector/atom
+state, deploy, or claim safety/CAMP-over-DP benefit.
+
+```text
+status=fallback_risk_training_split_manifest_builder_implementation_authorization_autodl_sync_verified
+passed=True
+github_pushed_commit=9c727973fb13f0f34d7321dfec1b14bcbd92759c
+autodl_CAMP_HEAD_after_sync=9c727973fb13f0f34d7321dfec1b14bcbd92759c
+autodl_CAMP_origin_main_after_sync=9c727973fb13f0f34d7321dfec1b14bcbd92759c
+autodl_DP_HEAD_after_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_target_pytest=18 passed
+autodl_py_compile_exit=0
+autodl_git_diff_check_exit=0
+autodl_audit_tail_has_builder_authorization=True
+autodl_last_gate=dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only
+autodl_training_not_executed=True
+autodl_candidate_generation_not_executed=True
+autodl_dp_not_modified=True
+autodl_selector_or_atom_not_promoted=True
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only
+```
