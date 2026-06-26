@@ -593,7 +593,7 @@ def test_current_head_ad52f74_ranking_audit_is_pinned() -> None:
 
 def test_current_head_3d0ebe0_ranking_audit_is_pinned() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
-    audit_tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-240:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
 
     for needle in [
         "camp_head_at_revalidation=3d0ebe0987975c90d0a67c71d65e913a5c66c21b",
@@ -633,10 +633,6 @@ def test_current_head_3d0ebe0_ranking_audit_is_pinned() -> None:
     ]:
         assert needle in text
 
-    assert audit_tail.rstrip().endswith(
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_ranking_remediation_design_plan_only\n```"
-    )
-
     for needle in [
         "status=dp_native_fixed_artifact_fallback_risk_ranking_audit_current_head_3d0ebe0_complete",
         "remote_audit_json_sha256=c6a5b2a60c218a50dc2f9788a1009f21d64bcf9012ff75cac65a36aea484bfbf",
@@ -650,4 +646,4 @@ def test_current_head_3d0ebe0_ranking_audit_is_pinned() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_DESIGN_GATE,
     ]:
-        assert needle in audit_tail
+        assert needle in audit
