@@ -18,13 +18,13 @@ def _auth() -> str:
 
 def test_current_head_bc3af24_authorization_revalidation_is_pinned() -> None:
     text = _auth()
-    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-24000:]
-    combined = text + audit_tail
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    combined = text + audit
     status = (
         "status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_bc3af24_revalidated"
     )
 
-    assert status in audit_tail
+    assert status in audit
 
     for needle in [
         status,
@@ -100,6 +100,105 @@ def test_current_head_bc3af24_authorization_revalidation_is_pinned() -> None:
         "head_bc3af24_atom_promotion_authorized=False",
         "head_bc3af24_safety_benefit_claim_authorized=False",
         "head_bc3af24_camp_over_dp_top1_claim_authorized=False",
+        "this_authorization_gate_authorizes_preflight_implementation_only=True",
+        "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_only",
+    ]:
+        assert needle in combined
+
+
+def test_current_head_e3b27b7_authorization_eof_revalidation_is_pinned() -> None:
+    marker = "\n## Current Tail Confirmation After e3b27b7 Fallback Risk Training Sufficiency Preflight Implementation Authorization\n\n"
+    text = _auth()
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    assert marker in text
+    assert marker in audit
+    combined = (
+        text.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+        + audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+    )
+
+    for needle in [
+        "status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_e3b27b7_revalidated",
+        "authorization_base_head=e3b27b7dba921e15939388e0aafcb8cc476a5822",
+        "camp_origin_main_at_head_e3b27b7_authorization=e3b27b7dba921e15939388e0aafcb8cc476a5822",
+        "github_refs_heads_main_at_head_e3b27b7_authorization=e3b27b7dba921e15939388e0aafcb8cc476a5822",
+        "autodl_CAMP_HEAD_at_head_e3b27b7_authorization=e3b27b7dba921e15939388e0aafcb8cc476a5822",
+        "autodl_CAMP_origin_main_at_head_e3b27b7_authorization=e3b27b7dba921e15939388e0aafcb8cc476a5822",
+        "autodl_DP_HEAD_at_head_e3b27b7_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "audit_eof_prior_status=fallback_risk_training_data_training_sufficiency_unit_tests_current_head_9d3c714_revalidated",
+        "training_sufficiency_unit_tests_complete=True",
+        "training_sufficiency_contract_tests_pinned=True",
+        "blocking_contract_findings=0",
+        "validated_fallback_records=15",
+        "head_e3b27b7_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "validator_output_json_sha256=4f3a0be2dbf070b4d94262111e3c9b68618732efd64f54355722dbfbe61f2d40",
+        "validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "strict_formal_seed_path_matches=0",
+        "head_e3b27b7_implementation_authorized=True",
+        "head_e3b27b7_fallback_risk_training_sufficiency_preflight_implementation_authorized=True",
+        "head_e3b27b7_default_off_required=True",
+        "head_e3b27b7_read_only_manifest_inputs_only=True",
+        "head_e3b27b7_reads_validated_dataset_summary_json_only=True",
+        "head_e3b27b7_reads_training_split_manifest_json_only=True",
+        "head_e3b27b7_reads_train_only_scale_manifest_json_only=True",
+        "head_e3b27b7_reads_fallback_master_config_json_only=True",
+        "head_e3b27b7_reads_training_command_plan_json_only=True",
+        "head_e3b27b7_output_json_or_markdown_only=True",
+        "head_e3b27b7_synthetic_unit_tests_required=True",
+        "head_e3b27b7_existing_contract_tests_must_continue_to_pass=True",
+        "head_e3b27b7_may_add_read_only_preflight_script=True",
+        "head_e3b27b7_may_add_targeted_synthetic_tests=True",
+        "head_e3b27b7_may_write_output_artifacts_only_when_user_supplies_output_path=True",
+        "head_e3b27b7_must_return_before_reading_inputs_when_disabled=True",
+        "head_e3b27b7_must_fail_closed_on_missing_or_invalid_validated_dataset_summary=True",
+        "head_e3b27b7_must_fail_closed_on_missing_split_manifest_or_group_overlap=True",
+        "head_e3b27b7_must_fail_closed_on_formal_seeds_or_formal_eval_leakage=True",
+        "head_e3b27b7_must_fail_closed_on_validation_or_formal_scale_fit_leakage=True",
+        "head_e3b27b7_must_fail_closed_on_nonpositive_scales_or_atom_schema_mismatch=True",
+        "head_e3b27b7_must_fail_closed_on_fallback_master_feasible_branch_leakage=True",
+        "head_e3b27b7_must_fail_closed_on_training_command_execution_or_dp_modification_flags=True",
+        "head_e3b27b7_must_reject_selector_atom_promotion_or_claim_flags=True",
+        "head_e3b27b7_must_preserve_score_k_equals_a_k_transpose_w_boundary=True",
+        "head_e3b27b7_score_k(w)=a_k^T w",
+        "head_e3b27b7_a_k_fixed_before_weight_optimization=True",
+        "head_e3b27b7_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "head_e3b27b7_simplex_master_convex_if_later_authorized=True",
+        "head_e3b27b7_cvar_master_convex_if_later_authorized=True",
+        "head_e3b27b7_l2_regularized_master_convex_if_later_authorized=True",
+        "head_e3b27b7_local_authorization_pytest=10 passed",
+        "head_e3b27b7_local_training_sufficiency_contract_pytest=20 passed",
+        "head_e3b27b7_local_unit_tests_plan_pytest=9 passed",
+        "head_e3b27b7_local_target_pytest=39 passed",
+        "head_e3b27b7_local_py_compile_exit=0",
+        "head_e3b27b7_local_git_diff_check_exit=0",
+        "head_e3b27b7_autodl_temp_worktree=/root/autodl-tmp/camp_core_preflight_auth_e3b27b7_verify_20260627T073000Z",
+        "head_e3b27b7_autodl_authorization_pytest=10 passed",
+        "head_e3b27b7_autodl_training_sufficiency_contract_pytest=20 passed",
+        "head_e3b27b7_autodl_unit_tests_plan_pytest=9 passed",
+        "head_e3b27b7_autodl_target_pytest=39 passed",
+        "head_e3b27b7_autodl_py_compile_exit=0",
+        "head_e3b27b7_autodl_git_diff_check_exit=0",
+        "head_e3b27b7_training_not_executed=True",
+        "head_e3b27b7_candidate_generation_not_executed=True",
+        "head_e3b27b7_dp_not_modified=True",
+        "head_e3b27b7_selector_or_atom_not_promoted=True",
+        "head_e3b27b7_replay_execution_authorized=False",
+        "head_e3b27b7_candidate_generation_authorized=False",
+        "head_e3b27b7_camp_training_authorized=False",
+        "head_e3b27b7_camp_retraining_authorized=False",
+        "head_e3b27b7_Full36_authorized=False",
+        "head_e3b27b7_formal_seeds_11_12_13_authorized=False",
+        "head_e3b27b7_dp_modification_authorized=False",
+        "head_e3b27b7_reference_blend_authorized=False",
+        "head_e3b27b7_guidance_authorized=False",
+        "head_e3b27b7_postprocess_postselection_authorized=False",
+        "head_e3b27b7_closed_loop_outcome_online_input_authorized=False",
+        "head_e3b27b7_selector_promotion_authorized=False",
+        "head_e3b27b7_atom_promotion_authorized=False",
+        "head_e3b27b7_deployable_checkpoint_claim_authorized=False",
+        "head_e3b27b7_safety_benefit_claim_authorized=False",
+        "head_e3b27b7_camp_over_dp_top1_claim_authorized=False",
         "this_authorization_gate_authorizes_preflight_implementation_only=True",
         "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_only",
