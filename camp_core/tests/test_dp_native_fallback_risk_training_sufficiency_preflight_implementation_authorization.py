@@ -16,15 +16,101 @@ def _auth() -> str:
     return AUTH_DOC.read_text(encoding="utf-8")
 
 
+def test_current_head_b74f8a2_authorization_revalidation_is_pinned() -> None:
+    text = _auth()
+    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-24000:]
+    combined = text + audit_tail
+    status = (
+        "status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_b74f8a2_revalidated"
+    )
+
+    assert status in audit_tail
+
+    for needle in [
+        status,
+        "authorization_base_head=b74f8a2fce591b73d90853ed2e58cc752040e3b6",
+        "camp_origin_main_at_head_b74f8a2_authorization=b74f8a2fce591b73d90853ed2e58cc752040e3b6",
+        "github_refs_heads_main_at_head_b74f8a2_authorization=b74f8a2fce591b73d90853ed2e58cc752040e3b6",
+        "autodl_CAMP_HEAD_at_head_b74f8a2_authorization=b74f8a2fce591b73d90853ed2e58cc752040e3b6",
+        "autodl_CAMP_origin_main_at_head_b74f8a2_authorization=b74f8a2fce591b73d90853ed2e58cc752040e3b6",
+        "autodl_DP_HEAD_at_head_b74f8a2_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "audit_eof_prior_status=fallback_risk_training_data_training_sufficiency_unit_tests_current_head_09ca3e8_revalidated",
+        "training_sufficiency_unit_tests_complete=True",
+        "training_sufficiency_contract_tests_pinned=True",
+        "blocking_contract_findings=0",
+        "head_b74f8a2_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
+        "validator_output_md_sha256=e57c15b6772e0202fe76fec20d220e435c1010aab7bc410fb45230277fc9ab6a",
+        "strict_formal_seed_path_matches=0",
+        "head_b74f8a2_implementation_authorized=True",
+        "head_b74f8a2_fallback_risk_training_sufficiency_preflight_implementation_authorized=True",
+        "head_b74f8a2_default_off_required=True",
+        "head_b74f8a2_read_only_manifest_inputs_only=True",
+        "head_b74f8a2_reads_validated_dataset_summary_json_only=True",
+        "head_b74f8a2_reads_training_split_manifest_json_only=True",
+        "head_b74f8a2_reads_train_only_scale_manifest_json_only=True",
+        "head_b74f8a2_reads_fallback_master_config_json_only=True",
+        "head_b74f8a2_reads_training_command_plan_json_only=True",
+        "head_b74f8a2_output_json_or_markdown_only=True",
+        "head_b74f8a2_synthetic_unit_tests_required=True",
+        "head_b74f8a2_existing_contract_tests_must_continue_to_pass=True",
+        "head_b74f8a2_may_add_read_only_preflight_script=True",
+        "head_b74f8a2_may_add_targeted_synthetic_tests=True",
+        "head_b74f8a2_may_write_output_artifacts_only_when_user_supplies_output_path=True",
+        "head_b74f8a2_must_return_before_reading_inputs_when_disabled=True",
+        "head_b74f8a2_must_fail_closed_on_missing_or_invalid_validated_dataset_summary=True",
+        "head_b74f8a2_must_fail_closed_on_missing_split_manifest_or_group_overlap=True",
+        "head_b74f8a2_must_fail_closed_on_formal_seeds_or_formal_eval_leakage=True",
+        "head_b74f8a2_must_fail_closed_on_validation_or_formal_scale_fit_leakage=True",
+        "head_b74f8a2_must_fail_closed_on_nonpositive_scales_or_atom_schema_mismatch=True",
+        "head_b74f8a2_must_fail_closed_on_fallback_master_feasible_branch_leakage=True",
+        "head_b74f8a2_must_fail_closed_on_training_command_execution_or_dp_modification_flags=True",
+        "head_b74f8a2_must_reject_selector_atom_promotion_or_claim_flags=True",
+        "head_b74f8a2_must_preserve_score_k_equals_a_k_transpose_w_boundary=True",
+        "head_b74f8a2_score_k(w)=a_k^T w",
+        "head_b74f8a2_a_k_fixed_before_weight_optimization=True",
+        "head_b74f8a2_a_k_nonnegative_benders_compatible_atoms_only=True",
+        "head_b74f8a2_simplex_master_convex_if_later_authorized=True",
+        "head_b74f8a2_cvar_master_convex_if_later_authorized=True",
+        "head_b74f8a2_l2_regularized_master_convex_if_later_authorized=True",
+        "head_b74f8a2_local_authorization_pytest=9 passed",
+        "head_b74f8a2_local_training_sufficiency_contract_pytest=19 passed",
+        "head_b74f8a2_local_unit_tests_plan_pytest=8 passed",
+        "head_b74f8a2_local_target_pytest=36 passed",
+        "head_b74f8a2_autodl_authorization_pytest=9 passed",
+        "head_b74f8a2_autodl_training_sufficiency_contract_pytest=19 passed",
+        "head_b74f8a2_autodl_unit_tests_plan_pytest=8 passed",
+        "head_b74f8a2_autodl_target_pytest=36 passed",
+        "head_b74f8a2_training_not_executed=True",
+        "head_b74f8a2_candidate_generation_not_executed=True",
+        "head_b74f8a2_dp_not_modified=True",
+        "head_b74f8a2_selector_or_atom_not_promoted=True",
+        "head_b74f8a2_replay_execution_authorized=False",
+        "head_b74f8a2_candidate_generation_authorized=False",
+        "head_b74f8a2_camp_training_authorized=False",
+        "head_b74f8a2_camp_retraining_authorized=False",
+        "head_b74f8a2_formal_seeds_11_12_13_authorized=False",
+        "head_b74f8a2_dp_modification_authorized=False",
+        "head_b74f8a2_selector_promotion_authorized=False",
+        "head_b74f8a2_atom_promotion_authorized=False",
+        "head_b74f8a2_safety_benefit_claim_authorized=False",
+        "head_b74f8a2_camp_over_dp_top1_claim_authorized=False",
+        "this_authorization_gate_authorizes_preflight_implementation_only=True",
+        "this_authorization_gate_authorizes_training_replay_dp_or_claims=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_implementation_only",
+    ]:
+        assert needle in combined
+
+
 def test_current_head_193ce66_authorization_revalidation_is_pinned() -> None:
     text = _auth()
-    audit_tail = ITERATION_AUDIT.read_text(encoding="utf-8")[-16000:]
-    combined = text + audit_tail
+    iteration_audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    combined = text + iteration_audit
     status = (
         "status=fallback_risk_training_sufficiency_preflight_implementation_authorization_head_193ce66_revalidated"
     )
 
-    assert status in audit_tail
+    assert status in iteration_audit
 
     for needle in [
         status,
