@@ -435,3 +435,41 @@ def test_current_record_identity_nonpromotion_artifact_audit_is_pinned() -> None
         "deployment_authorized=False",
     ]:
         assert needle in text
+
+
+def test_current_ca07b6a_nonpromotion_artifact_audit_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "training_commit=ca07b6acd82ebb1c195d15b95584fc3ce613d758",
+        "audit_execution_camp_head=fa5eeaf601c051dde2e30b6647b5f9eabb991952",
+        "training_summary_json_sha256=22aec7885c32fc8b514184fd0eb25f1d177be1f41419a62178607f4a26e5ca11",
+        "offline_weights_json_sha256=d05f35bb83ed160f98f498a6d7d80483d2da3f396af8a73cbdbaab31db7e5b5e",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=a1dd6249c59290a7b345d377512fa074a1a4c019d45d30a40637bdbfb8b141d5",
+        "remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_ca07b6a_fa5eeaf_20260626T063405Z",
+        "remote_audit_json_sha256=c2c746b557f300720fd2e146d38899cb2574501aa1fe4b17d89c721d517e5cf0",
+        "remote_audit_md_sha256=f1626790ddd14463ddad58b4684db086ccb3d23b63ee5221c966d0b594f4c393",
+        "remote_audit_stdout_log_sha256=798df11d416c0c0e5fd4bd00b537391d5cf4d7f3008932dbb286f155e9a9ca38",
+        "remote_audit_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "remote_audit_exit=0",
+        "post_training_nonpromotion_artifact_audit_passed=True",
+        "training_artifacts_nonpromotion=True",
+        "weights_json_simplex_nonnegative=True",
+        "weights_npy_simplex_nonnegative=True",
+        "weights_json_matches_npy=True",
+        "training_authorized=False",
+        "training_execution_authorized=False",
+        "camp_retraining_authorized_now=False",
+        "fallback_risk_training_authorized_now=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+    ]:
+        assert needle in text
+
+    assert (
+        "status=fallback_risk_static_camp_training_nonpromotion_artifact_audit_current_head_fa5eeaf_passed"
+        in audit
+    )
