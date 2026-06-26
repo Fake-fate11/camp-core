@@ -359,14 +359,20 @@ def test_audit_tail_records_post_static_contract_next_gate() -> None:
         assert needle in audit
 
     assert (
-        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_6b43925_tail_authority"
+        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_ee06a69_revalidated"
         in tail
     )
     assert (
-        "source_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_current_head_6b43925_passed"
+        "post_static_contract_base_head=ee06a696d65f94dd4353f67e958bca166de0c9fd"
         in tail
     )
+    assert "head_ee06a69_local_post_static_target_pytest=11 passed" in tail
+    assert "head_ee06a69_local_builder_target_pytest=9 passed" in tail
+    assert "head_ee06a69_local_combined_target_pytest=20 passed" in tail
+    assert "head_ee06a69_autodl_combined_target_pytest=20 passed" in tail
+    assert "this_post_static_gate_authorizes_fixed_artifact_builder_run=False" in tail
+    assert "this_post_static_gate_authorizes_training_replay_dp_or_claims=False" in tail
     assert (
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only"
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only"
         in tail
     )
