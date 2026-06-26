@@ -1,0 +1,149 @@
+# DP Native Fixed-Artifact Fallback Risk Training Split Manifest Builder Implementation
+
+Date: 2026-06-26
+
+Gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only
+```
+
+This gate revalidates the existing minimal default-off, read-only split
+manifest builder implementation against the current authorization boundary. It
+does not run the builder on the fixed AutoDL artifact, generate a fixed-artifact
+split manifest, train CAMP, retrain CAMP, run replay, generate candidates,
+modify Diffusion Planner, change the online selector, promote a selector or
+atom, deploy, or claim safety benefit or CAMP-over-DP Top-1.
+
+## Artifacts
+
+```text
+script=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_split_manifest.py
+tests=camp_core/tests/test_dp_native_fallback_risk_training_split_manifest_builder.py
+authorization=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization.md
+authorization_status=fallback_risk_training_split_manifest_builder_implementation_authorization_autodl_sync_verified
+implementation_base_head=c4f4dc50fd0aecd90a6824d997c7b6ad7afe731c
+camp_origin_main_at_implementation=c4f4dc50fd0aecd90a6824d997c7b6ad7afe731c
+github_refs_heads_main_at_implementation=c4f4dc50fd0aecd90a6824d997c7b6ad7afe731c
+autodl_CAMP_HEAD_at_implementation=c4f4dc50fd0aecd90a6824d997c7b6ad7afe731c
+autodl_CAMP_origin_main_at_implementation=c4f4dc50fd0aecd90a6824d997c7b6ad7afe731c
+autodl_DP_HEAD_at_implementation=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+## Implementation Boundary
+
+```text
+default_off=True
+enable_flag=--enable_default_off_fallback_risk_training_split_manifest_builder
+disabled_mode_reads_dataset=False
+enabled_input_source=existing_validated_fallback_dataset_json_only
+records_scope=records_without_feasible_candidate_only
+split_policy=sha256(record_identity_hash + split_salt)
+split_salt=fallback_risk_training_split_v1
+validation_fraction_target=0.2
+group_key_fields=source_log,run_id,record_index
+output_json_or_markdown_only=True
+status_disabled=dp_native_fallback_risk_training_split_manifest_builder_default_off_disabled
+status_complete=dp_native_fallback_risk_training_split_manifest_builder_complete
+status_rejected=dp_native_fallback_risk_training_split_manifest_builder_rejected
+```
+
+## Fail-Closed Coverage
+
+```text
+rejects_dataset_sha256_mismatch=True
+rejects_validator_output_sha256_invalid=True
+rejects_dataset_schema_mismatch=True
+rejects_records_built_count_mismatch=True
+rejects_final_decision_not_passed=True
+rejects_group_key_collision=True
+rejects_duplicate_record_identity=True
+rejects_source_log_sha256_mismatch=True
+rejects_record_identity_hash_mismatch=True
+rejects_oracle_index_invalid=True
+rejects_formal_seed_in_split_manifest=True
+rejects_formal_eval_artifact_record=True
+rejects_selected_index_used_as_feature=True
+rejects_candidate_rank_used_as_feature=True
+rejects_closed_loop_outcome_used_as_feature=True
+rejects_learned_weights_used_as_feature=True
+requires_nonempty_training_and_validation_groups=True
+keeps_assignments_order_stable=True
+ignores_selected_index_for_split=True
+```
+
+## Local Verification
+
+```text
+local_split_manifest_builder_pytest=9 passed
+local_authorization_pytest=9 passed
+local_split_manifest_contract_pytest=9 passed
+local_combined_target_pytest=27 passed
+local_py_compile_exit=0
+local_git_diff_check_exit=0
+```
+
+## Forbidden
+
+```text
+fixed_artifact_manifest_generation_authorized=False
+training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+fallback_risk_training_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+```
+
+## Decision
+
+```text
+status=fallback_risk_training_split_manifest_builder_implementation_head_c4f4dc5_revalidated
+passed=True
+split_manifest_builder_implemented=True
+default_off_read_only_builder_revalidated=True
+fixed_artifact_manifest_generation_authorized=False
+training_split_manifest_builder_execution_on_fixed_artifact_authorized=False
+fallback_risk_training_authorized_now=False
+camp_retraining_authorized_now=False
+training_execution_authorized_now=False
+fallback_dataset_training_sufficiency_claim=False
+feasible_ranking_master_change_authorized=False
+hard_feasibility_relaxation_authorized=False
+all_infeasible_records_added_to_feasible_training=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only
+```
+
+The next gate may only perform a static post-implementation contract review and
+run targeted tests. It must not run the builder on the fixed AutoDL artifact,
+generate a fixed-artifact split manifest, train CAMP, run replay, generate
+candidates, modify Diffusion Planner, use formal seeds, promote selector/atom
+state, or claim safety/CAMP-over-DP benefit.
