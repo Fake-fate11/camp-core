@@ -427,3 +427,54 @@ def test_current_head_f8786c7_post_static_contract_revalidation_is_pinned() -> N
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only",
     ]:
         assert needle in combined
+
+
+def test_current_head_ff767e4_post_static_contract_revalidation_is_pinned() -> None:
+    review = _review()
+    audit_tail = AUDIT_DOC.read_text(encoding="utf-8")[-26000:]
+    combined = review + audit_tail
+    status = (
+        "status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_ff767e4_revalidated"
+    )
+
+    assert status in review
+    assert status in audit_tail
+
+    for needle in [
+        status,
+        "post_static_contract_base_head=ff767e40951b341f1ffe240f1ac344225b37fec8",
+        "camp_origin_main_at_post_static_contract=ff767e40951b341f1ffe240f1ac344225b37fec8",
+        "github_refs_heads_main_at_post_static_contract=ff767e40951b341f1ffe240f1ac344225b37fec8",
+        "autodl_CAMP_HEAD_at_post_static_contract=ff767e40951b341f1ffe240f1ac344225b37fec8",
+        "autodl_CAMP_origin_main_at_post_static_contract=ff767e40951b341f1ffe240f1ac344225b37fec8",
+        "autodl_DP_HEAD_at_post_static_contract=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_builder_implementation_status=fallback_risk_training_split_manifest_builder_implementation_head_ade3cbe_revalidated",
+        "prior_builder_implementation_commit=ff767e40951b341f1ffe240f1ac344225b37fec8",
+        "production_builder_file=scripts/integrations/build_diffusion_planner_dp_native_fallback_risk_training_split_manifest.py",
+        "production_builder_changed_in_this_gate=False",
+        "head_ff767e4_default_off_boundary_passed=True",
+        "head_ff767e4_dataset_source_boundary_passed=True",
+        "head_ff767e4_split_identity_policy_passed=True",
+        "head_ff767e4_forbidden_feature_formal_boundary_passed=True",
+        "head_ff767e4_output_preflight_boundary_passed=True",
+        "head_ff767e4_record_identity_hash_missing_fails_closed=True",
+        "head_ff767e4_blocking_contract_findings=0",
+        "head_ff767e4_fixed_artifact_manifest_generation_authorized=False",
+        "head_ff767e4_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "head_ff767e4_local_post_static_target_pytest=13 passed",
+        "head_ff767e4_local_builder_target_pytest=11 passed",
+        "head_ff767e4_local_combined_target_pytest=24 passed",
+        "head_ff767e4_autodl_temp_worktree=/root/autodl-tmp/camp_core_split_manifest_builder_post_static_ff767e4_verify_20260627T074500CST",
+        "head_ff767e4_autodl_post_static_target_pytest=13 passed",
+        "head_ff767e4_autodl_builder_target_pytest=11 passed",
+        "head_ff767e4_autodl_combined_target_pytest=24 passed",
+        "head_ff767e4_autodl_git_diff_check_exit=0",
+        "head_ff767e4_training_not_executed=True",
+        "head_ff767e4_candidate_generation_not_executed=True",
+        "head_ff767e4_dp_not_modified=True",
+        "head_ff767e4_selector_or_atom_not_promoted=True",
+        "this_post_static_gate_authorizes_fixed_artifact_builder_run=False",
+        "this_post_static_gate_authorizes_training_replay_dp_or_claims=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_audit_only",
+    ]:
+        assert needle in combined
