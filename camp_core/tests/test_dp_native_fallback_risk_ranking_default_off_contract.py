@@ -779,7 +779,16 @@ def test_current_head_088ee39_default_off_unit_tests_are_pinned() -> None:
 
 def test_current_head_c574b9e_default_off_unit_tests_are_pinned() -> None:
     text = UNIT_TESTS_DOC.read_text(encoding="utf-8")
-    audit_tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-260:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    audit_marker = (
+        "## Current Tail Confirmation After Current HEAD Fallback Risk Ranking "
+        "Default-Off Unit Tests"
+    )
+    next_marker = (
+        "## Current Tail Confirmation After Current HEAD Fallback Risk Ranking "
+        "Default-Off Extractor Implementation Authorization"
+    )
+    audit_tail = audit_marker + audit.split(audit_marker)[-1].split(next_marker)[0]
 
     for needle in [
         "camp_head_at_revalidation=c574b9eada039725578cf4e852abc0a3bf113067",

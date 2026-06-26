@@ -385,3 +385,79 @@ def test_current_head_47860dc_extractor_implementation_authorization_is_pinned()
         NEXT_IMPLEMENTATION_GATE,
     ]:
         assert needle in audit
+
+
+def test_current_head_d26eb75_extractor_implementation_authorization_is_pinned() -> None:
+    text = AUTH_DOC.read_text(encoding="utf-8")
+    audit_tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-260:])
+
+    for needle in [
+        "status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head_d26eb75",
+        "camp_head_at_revalidation=d26eb75b1a8ff52219d0f5bb95d11e9c1ffcdc67",
+        "camp_origin_main_at_revalidation=d26eb75b1a8ff52219d0f5bb95d11e9c1ffcdc67",
+        "github_refs_heads_main_at_revalidation=d26eb75b1a8ff52219d0f5bb95d11e9c1ffcdc67",
+        "autodl_CAMP_HEAD_at_revalidation=d26eb75b1a8ff52219d0f5bb95d11e9c1ffcdc67",
+        "autodl_CAMP_origin_main_at_revalidation=d26eb75b1a8ff52219d0f5bb95d11e9c1ffcdc67",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_unit_tests_status=fallback_risk_ranking_default_off_unit_tests_current_head_c574b9e_revalidated",
+        "prior_unit_tests_head_at_revalidation=c574b9eada039725578cf4e852abc0a3bf113067",
+        "prior_unit_tests_eof_tail_verified=True",
+        "default_off_contract_tests_pinned=True",
+        "implementation_authorized=True",
+        "fallback_risk_extractor_implementation_authorized=True",
+        "default_off_required=True",
+        "read_only_selection_log_input_only=True",
+        "records_scope=records_without_feasible_candidate_only",
+        "synthetic_unit_tests_required=True",
+        "existing_contract_tests_must_continue_to_pass=True",
+        "output_json_or_markdown_only=True",
+        "local_py_compile_exit=0",
+        "local_target_pytest=10 passed",
+        "local_related_target_pytest=78 passed",
+        "autodl_py_compile_exit=0",
+        "autodl_related_target_pytest=78 passed",
+        "training_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "fallback_risk_smoke_authorized_now=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "production_selector_change_authorized=False",
+        "online_selector_change_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_IMPLEMENTATION_GATE,
+    ]:
+        assert needle in text
+
+    assert audit_tail.rstrip().endswith(NEXT_IMPLEMENTATION_GATE + "\n```")
+
+    for needle in [
+        "status=fallback_risk_ranking_default_off_extractor_implementation_authorized_current_head_d26eb75",
+        "current_camp_head=d26eb75b1a8ff52219d0f5bb95d11e9c1ffcdc67",
+        "github_refs_heads_main=d26eb75b1a8ff52219d0f5bb95d11e9c1ffcdc67",
+        "autodl_CAMP_HEAD=d26eb75b1a8ff52219d0f5bb95d11e9c1ffcdc67",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_unit_tests_status=fallback_risk_ranking_default_off_unit_tests_current_head_c574b9e_revalidated",
+        "prior_unit_tests_head_at_revalidation=c574b9eada039725578cf4e852abc0a3bf113067",
+        "implementation_authorized=True",
+        "fallback_risk_extractor_implementation_authorized=True",
+        "default_off_required=True",
+        "read_only_selection_log_input_only=True",
+        "local_target_pytest=10 passed",
+        "local_related_target_pytest=78 passed",
+        "autodl_related_target_pytest=78 passed",
+        "training_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        NEXT_IMPLEMENTATION_GATE,
+    ]:
+        assert needle in audit_tail
