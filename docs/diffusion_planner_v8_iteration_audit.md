@@ -122589,6 +122589,7 @@ training_execution_authorized_now=False
 fallback_risk_training_authorized_now=False
 camp_training_authorized=False
 camp_retraining_authorized=False
+camp_retraining_authorized_now=False
 formal_seeds_11_12_13_authorized=False
 dp_modification_authorized=False
 safety_benefit_claim_authorized=False
@@ -122718,6 +122719,7 @@ training_execution_authorized_now=False
 fallback_risk_training_authorized_now=False
 camp_training_authorized=False
 camp_retraining_authorized=False
+camp_retraining_authorized_now=False
 formal_seeds_11_12_13_authorized=False
 dp_modification_authorized=False
 safety_benefit_claim_authorized=False
@@ -131261,3 +131263,83 @@ existing validated fixed artifact for acceptance evidence. It must not train
 CAMP, run replay, generate candidates, modify Diffusion Planner, promote
 selectors or atoms, change the online selector, or claim safety/CAMP-over-DP
 benefit.
+
+## Current Tail Confirmation After Current HEAD Fallback Risk Training Split Manifest Builder Fixed-Artifact Acceptance
+
+Date: 2026-06-27
+
+Completed the current EOF-authorized fallback-risk training split manifest
+builder fixed-artifact acceptance gate at local/GitHub/AutoDL CAMP head
+`094a2b4`. This gate only ran the default-off split manifest builder on the
+existing validated fixed artifact for acceptance evidence. It did not train
+CAMP, run replay, generate candidates, modify Diffusion Planner, use formal
+seeds, relax hard feasibility, add all-infeasible records to the
+feasible-ranking master, promote selectors or atoms, change the online
+selector, or make safety/CAMP-over-DP claims.
+
+```text
+status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_094a2b4_tail_authority
+passed=True
+acceptance_base_head=094a2b4073d5e5781a01669f9bf4ccb8cbff674a
+camp_origin_main_at_acceptance=094a2b4073d5e5781a01669f9bf4ccb8cbff674a
+github_refs_heads_main_at_acceptance=094a2b4073d5e5781a01669f9bf4ccb8cbff674a
+autodl_CAMP_HEAD_at_acceptance=094a2b4073d5e5781a01669f9bf4ccb8cbff674a
+autodl_CAMP_origin_main_at_acceptance=094a2b4073d5e5781a01669f9bf4ccb8cbff674a
+autodl_DP_HEAD_at_acceptance=7a1d33da277a1992ec474b5383a0c963c72e04e4
+source_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_094a2b4_passed
+source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.json
+source_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36
+source_validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114
+source_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_094a2b4_20260626T182031Z
+source_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4
+source_split_manifest_md_sha256=60ef091344704d9edeec48820d2d1888cb0110ba6b9a35e6de6ad49ee9fe2aeb
+source_builder_stdout_log_sha256=c825f1298c9660dafbe2fdad70f118575ee2a072b66cf44371332d0090c99d47
+source_builder_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+source_builder_exit=0
+source_observed_status=dp_native_fallback_risk_training_split_manifest_builder_complete
+source_observed_passed=True
+source_observed_errors=[]
+source_observed_accepted_records=15
+source_observed_training_records=13
+source_observed_validation_records=2
+source_observed_record_assignments=15
+source_observed_formal_eval_artifact_included=False
+source_training_split_manifest_ready_for_preflight=True
+source_fixed_15_record_artifact_training_sufficiency_claim=False
+local_acceptance_target_pytest=11 passed
+local_related_target_pytest=33 passed
+local_py_compile_exit=0
+local_git_diff_check_exit=0
+autodl_builder_exit=0
+autodl_temp_worktree=/root/autodl-tmp/camp_core_split_manifest_acceptance_094a2b4_verify_20260627T023000Z
+autodl_py_compile_exit=0
+autodl_acceptance_target_pytest=11 passed
+autodl_related_target_pytest=33 passed
+autodl_git_diff_check_exit=0
+autodl_training_not_executed=True
+autodl_candidate_generation_not_executed=True
+autodl_dp_not_modified=True
+autodl_selector_or_atom_not_promoted=True
+training_execution_authorized_now=False
+fallback_risk_training_authorized_now=False
+camp_training_authorized=False
+camp_retraining_authorized=False
+camp_retraining_authorized_now=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+this_acceptance_gate_authorizes_training_replay_dp_or_claims=False
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_train_only_scale_manifest_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only
+```
+
+The next gate may only rerun the train-only scale manifest record-identity
+remediation fixed-artifact acceptance audit using existing fixed artifacts. It
+must not train CAMP, run replay, generate candidates, modify Diffusion Planner,
+use formal seeds, promote selectors or atoms, change the online selector, or
+claim safety/CAMP-over-DP benefit.

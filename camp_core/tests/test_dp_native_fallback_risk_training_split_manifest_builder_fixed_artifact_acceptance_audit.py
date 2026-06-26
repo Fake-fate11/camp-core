@@ -205,6 +205,55 @@ def test_current_head_6b43925_fixed_artifact_acceptance_is_pinned() -> None:
         assert needle in text
 
 
+def test_current_head_094a2b4_fixed_artifact_acceptance_is_pinned() -> None:
+    text = _audit()
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_094a2b4_passed",
+        "acceptance_base_head=094a2b4073d5e5781a01669f9bf4ccb8cbff674a",
+        "source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_4751222_20260625T213641Z/dataset.json",
+        "expected_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "validator_output_json_sha256=f8a26e357020022779dc9eb40992b3d1107521e0abd345cd9f498ea988c95114",
+        "builder_commit=094a2b4073d5e5781a01669f9bf4ccb8cbff674a",
+        "autodl_CAMP_HEAD=094a2b4073d5e5781a01669f9bf4ccb8cbff674a",
+        "autodl_CAMP_origin_main=094a2b4073d5e5781a01669f9bf4ccb8cbff674a",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "post_static_contract_status=fallback_risk_training_split_manifest_builder_post_implementation_static_contract_head_f8786c7_revalidated",
+        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_split_manifest_builder_acceptance_094a2b4_20260626T182031Z",
+        "split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
+        "split_manifest_md_sha256=60ef091344704d9edeec48820d2d1888cb0110ba6b9a35e6de6ad49ee9fe2aeb",
+        "builder_stdout_log_sha256=c825f1298c9660dafbe2fdad70f118575ee2a072b66cf44371332d0090c99d47",
+        "builder_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "builder_exit=0",
+        "observed_status=dp_native_fallback_risk_training_split_manifest_builder_complete",
+        "observed_passed=True",
+        "observed_errors=[]",
+        "observed_accepted_records=15",
+        "observed_training_records=13",
+        "observed_validation_records=2",
+        "observed_record_assignments=15",
+        "observed_training_authorized=False",
+        "observed_fallback_dataset_training_sufficiency_claim=False",
+        "observed_candidate_generation_authorized=False",
+        "observed_dp_modification_authorized=False",
+        "fixed_artifact_acceptance_passed=True",
+        "blocking_acceptance_findings=0",
+        "manifest_accepted_for_preflight=True",
+        "training_split_manifest_ready_for_preflight=True",
+        "fixed_15_record_artifact_training_sufficiency_claim=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+        "local_acceptance_target_pytest=11 passed",
+        "local_related_target_pytest=33 passed",
+        "autodl_temp_worktree=/root/autodl-tmp/camp_core_split_manifest_acceptance_094a2b4_verify_20260627T023000Z",
+        "autodl_py_compile_exit=0",
+        "autodl_acceptance_target_pytest=11 passed",
+        "autodl_related_target_pytest=33 passed",
+        "autodl_git_diff_check_exit=0",
+    ]:
+        assert needle in text
+
+
 def test_acceptance_audit_records_missing_record_identity_rejection() -> None:
     text = _audit()
 
@@ -336,13 +385,14 @@ def test_iteration_audit_tail_records_current_acceptance_audit_next_gate() -> No
     tail = "\n".join(audit.splitlines()[-190:])
 
     for needle in [
-        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_0e302e1_tail_authority",
-        "source_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_0e302e1_passed",
+        "status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_094a2b4_tail_authority",
+        "source_acceptance_status=fallback_risk_training_split_manifest_builder_fixed_artifact_acceptance_head_094a2b4_passed",
         "source_split_manifest_json_sha256=b76004575fb79916eb5bbb61492645d37b32797e16c8f28cc8b97cb16dae21f4",
         "source_observed_training_records=13",
         "source_observed_validation_records=2",
         "camp_retraining_authorized_now=False",
-        "local_related_target_pytest=30 passed",
+        "local_related_target_pytest=33 passed",
+        "autodl_related_target_pytest=33 passed",
     ]:
         assert needle in tail
 
