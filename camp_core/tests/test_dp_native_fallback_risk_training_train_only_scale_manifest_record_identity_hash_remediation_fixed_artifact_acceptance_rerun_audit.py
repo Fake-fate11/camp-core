@@ -260,6 +260,11 @@ def test_acceptance_rerun_records_local_verification_and_next_gate() -> None:
         "run replay",
         "generate candidates",
         "modify Diffusion Planner",
+        "status=fallback_risk_training_train_only_scale_manifest_current_head_53df201_autodl_sync_verified",
+        "pushed_scale_acceptance_commit=53df2012b8ab9dc83ad4f57e7077680d642ff7f1",
+        "verified_autodl_target_pytest=13 passed",
+        "verified_autodl_py_compile_exit=0",
+        "verified_autodl_git_diff_check_exit=0",
     ]:
         assert needle in text
 
@@ -286,3 +291,8 @@ def test_iteration_audit_tail_records_scale_rerun_next_gate() -> None:
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_fallback_master_config_and_command_plan_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only"
         in tail
     )
+    assert (
+        "status=fallback_risk_training_train_only_scale_manifest_current_head_53df201_autodl_sync_verified"
+        in tail
+    )
+    assert "verified_autodl_target_pytest=13 passed" in tail
