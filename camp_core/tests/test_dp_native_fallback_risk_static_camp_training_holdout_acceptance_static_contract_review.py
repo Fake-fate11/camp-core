@@ -216,3 +216,40 @@ def test_current_head_525e887_holdout_static_contract_review_is_pinned() -> None
         "status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_525e887_passed"
         in audit
     )
+
+
+def test_current_head_1751ce0_holdout_static_contract_review_is_pinned() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "review_start_head=1751ce0a4fd9d2f77c2450e5c5c48c0212327136",
+        "reviewed_holdout_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_ca07b6a_0143ee6_20260626T065105Z",
+        "reviewed_holdout_audit_json_sha256=a41ed88375b3fe8aa151ee769cc7c001aa45a9591ca633152cada04a93837601",
+        "reviewed_holdout_audit_md_sha256=a60996997d268bab3342fa8f7b0ef4950e8861d46d3ae4df90d673e2ff0696b9",
+        "default_off_before_reads=True",
+        "read_only_existing_artifacts=True",
+        "writes_only_explicit_output_json_and_md=True",
+        "subprocess_usage=False",
+        "dp_execution_path=False",
+        "candidate_generation_path=False",
+        "camp_retraining_path=False",
+        "paper_consistent_fixed_candidate_reranker_boundary_preserved=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "static_oracle_match_rate=0.5",
+        "uniform_oracle_match_rate=1.0",
+        "holdout_static_underperforms_uniform=True",
+        "blocking_contract_findings=0",
+        "local_target_pytest=9 passed",
+        "autodl_target_pytest=9 passed",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    assert (
+        "status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_1751ce0_passed"
+        in audit
+    )
