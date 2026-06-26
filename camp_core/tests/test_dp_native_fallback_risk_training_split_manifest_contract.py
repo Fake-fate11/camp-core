@@ -674,15 +674,19 @@ def test_audit_tail_records_split_manifest_builder_authorization_as_next_gate() 
 
     assert (
         "status=fallback_risk_training_split_manifest_unit_tests_head_f8f409b_revalidated"
-        in tail
+        in audit
     )
-    assert "head_f8f409b_local_split_manifest_contract_pytest=9 passed" in tail
+    assert "head_f8f409b_local_split_manifest_contract_pytest=9 passed" in audit
     assert "training_execution_authorized_now=False" in audit
     assert (
         "this_split_manifest_unit_tests_gate_authorizes_builder_training_replay_dp_or_claims=False"
+        in audit
+    )
+    assert (
+        "status=fallback_risk_training_split_manifest_builder_implementation_autodl_sync_verified"
         in tail
     )
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_authorization_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only`"
         in tail
     )
