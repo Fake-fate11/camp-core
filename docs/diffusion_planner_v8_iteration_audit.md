@@ -127878,3 +127878,100 @@ Next admissible gate:
 ```text
 dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_holdout_acceptance_static_contract_review
 ```
+
+## Current Tail Confirmation After Current HEAD Holdout Acceptance Static Contract Review
+
+Date: 2026-06-26
+
+This static-contract review re-reads the current holdout acceptance audit
+implementation and the `884a3ed` holdout audit artifact. It records that the
+gate remains default-off, read-only over existing artifacts, and within the
+fixed-DP-candidate reranking/Benders boundary. It does not run replay, generate
+candidates, retrain CAMP, modify Diffusion Planner, promote a selector or
+atom, deploy a checkpoint, or claim safety benefit.
+
+```text
+status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_d5c8154_passed
+passed=True
+review_start_head=d5c8154fd6abfa1d3ea53d574b657fe1cf0f36e1
+reviewed_holdout_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_34bdb4b_884a3ed_20260626T140243Z
+reviewed_holdout_audit_json_sha256=647114fa5288c278c004c3a9fcc2efced2686165dd74707ad76cc74fa8ed7712
+reviewed_holdout_audit_md_sha256=2a0af867845a916910e7bed893dd32521ef5ee9533a1d2dbbbf1b3aa7e0cb18c
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+default_off_before_reads=True
+read_only_existing_artifacts=True
+writes_only_explicit_output_json_and_md=True
+subprocess_usage=False
+dp_execution_path=False
+candidate_generation_path=False
+camp_retraining_path=False
+production_selector_change_path=False
+selector_or_atom_promotion_path=False
+deployment_path=False
+blocking_contract_findings=0
+```
+
+```text
+records_scope=validation_groups_only
+fallback_branch_only=True
+records_without_feasible_candidate_only=True
+fixed_dp_candidate_reranking_only=True
+require_atom_schema_version=dp_camp_v10_14d
+require_num_atoms=14
+require_weights_simplex_nonnegative=True
+require_atom_scales_strictly_positive=True
+score_expression=score_k(w)=a_k^T w
+selection_rule=argmin_k score_k(w)
+selected_index_in_range=True
+candidate_count_unchanged=True
+pre_post_candidate_provenance_hashes_equal_if_present=True
+paper_consistent_fixed_candidate_reranker_boundary_preserved=True
+```
+
+```text
+development_holdout_acceptance_audit_passed=True
+static_oracle_match_rate=0.5
+uniform_oracle_match_rate=1.0
+holdout_static_underperforms_uniform=True
+```
+
+```text
+training_authorized=False
+training_execution_authorized=False
+camp_retraining_authorized_now=False
+fallback_risk_training_authorized_now=False
+replay_execution_authorized=False
+candidate_generation_authorized=False
+Full36_authorized=False
+formal_seeds_11_12_13_authorized=False
+dp_modification_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+closed_loop_outcome_online_input_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+deployable_checkpoint_claim_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+production_selector_change_authorized=False
+online_selector_change_authorized=False
+deployment_authorized=False
+```
+
+```text
+local_py_compile_exit=0
+local_target_pytest=10 passed
+local_git_diff_check_exit=0
+autodl_py_compile_exit=0
+autodl_target_pytest=10 passed
+autodl_git_diff_check_exit=0
+autodl_static_review_start_CAMP_HEAD=d5c8154fd6abfa1d3ea53d574b657fe1cf0f36e1
+autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4
+```
+
+Next admissible gate:
+
+```text
+dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_broader_nonformal_replay_evaluation_fixed_artifact_fallback_risk_ranking_audit_only
+```
