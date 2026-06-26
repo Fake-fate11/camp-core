@@ -255,3 +255,71 @@ def test_current_head_3a59d3a_builder_implementation_authorization_is_pinned() -
             assert needle in section
 
         assert NEXT_IMPLEMENTATION_GATE in section
+
+
+def test_current_head_c1658a9_builder_implementation_authorization_is_pinned() -> None:
+    text = _text()
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    current_head = "c1658a93b1de98d413c0b240ca15d7da5f85de36"
+    prior_unit_tests_head = "a965c8449835b9ed0e08171e9d2441569361b769"
+    doc_marker = "\n## Current-Head Revalidation After a965c84 Builder Unit Tests\n\nDate: 2026-06-27\n\n"
+    audit_marker = (
+        "\n## Current EOF Confirmation After c1658a9 Fallback Risk Training-Data "
+        "Builder Implementation Authorization\n\nDate: 2026-06-27\n\n"
+    )
+
+    for payload, marker in ((text, doc_marker), (audit, audit_marker)):
+        assert marker in payload
+        section = payload.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+        for needle in [
+            "status=fallback_risk_training_data_default_off_builder_implementation_authorization_current_head_c1658a9_revalidated",
+            "authorization_doc=docs/dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_default_off_builder_implementation_authorization.md",
+            "authorization_test=camp_core/tests/test_dp_native_fallback_risk_training_data_builder_implementation_authorization.py",
+            "contract_test=camp_core/tests/test_dp_native_fallback_risk_training_data_default_off_builder_contract.py",
+            f"camp_head_at_revalidation={current_head}",
+            f"camp_origin_main_at_revalidation={current_head}",
+            f"github_refs_heads_main_at_revalidation={current_head}",
+            f"autodl_CAMP_HEAD_at_revalidation={current_head}",
+            f"autodl_CAMP_origin_main_at_revalidation={current_head}",
+            "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+            "prior_builder_unit_tests_status=fallback_risk_training_data_default_off_builder_unit_tests_current_head_a965c84_revalidated",
+            f"prior_builder_unit_tests_commit_at_revalidation={prior_unit_tests_head}",
+            "prior_builder_unit_tests_tail_verified=True",
+            "prior_builder_unit_tests_autodl_verified=True",
+            "user_camp_retraining_permission_available_for_future_training_gate=True",
+            "blocking_contract_findings=0",
+            "implementation_authorized=True",
+            "fallback_risk_training_data_builder_implementation_authorized=True",
+            "default_off_required=True",
+            "read_only_selection_log_input_only=True",
+            "read_only_extractor_output_input_only=True",
+            "must_preserve_score_k_equals_a_k_transpose_w_boundary=True",
+            "must_keep_fallback_dataset_separate_from_feasible_master=True",
+            "local_py_compile_exit=0",
+            "local_target_pytest=8 passed",
+            "local_related_target_pytest=132 passed",
+            "local_diff_check=0 findings",
+            f"autodl_CAMP_HEAD={current_head}",
+            f"autodl_CAMP_origin_main={current_head}",
+            "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+            "autodl_py_compile_exit=0",
+            "autodl_target_pytest=8 passed",
+            "autodl_related_target_pytest=132 passed",
+            "autodl_diff_check=0 findings",
+            "fallback_risk_training_authorized_now=False",
+            "fallback_risk_smoke_authorized_now=False",
+            "training_execution_authorized_now=False",
+            "camp_training_authorized=False",
+            "camp_retraining_authorized=False",
+            "replay_execution_authorized=False",
+            "candidate_generation_authorized=False",
+            "dp_modification_authorized=False",
+            "selector_promotion_authorized=False",
+            "atom_promotion_authorized=False",
+            "safety_benefit_claim_authorized=False",
+            "camp_over_dp_top1_claim_authorized=False",
+            NEXT_IMPLEMENTATION_GATE,
+        ]:
+            assert needle in section
+
+        assert NEXT_IMPLEMENTATION_GATE in section
