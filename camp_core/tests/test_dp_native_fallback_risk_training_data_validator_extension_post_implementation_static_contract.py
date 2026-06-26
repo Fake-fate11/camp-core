@@ -214,3 +214,84 @@ def test_review_next_gate_is_validator_fixed_artifact_acceptance_audit_only() ->
         "promote a selector or atom",
     ]:
         assert needle in text
+
+
+def test_review_eof_records_current_head_3176331_post_static_contract() -> None:
+    marker = "\n## Current-Head Revalidation After 9cd9022 Implementation Sync\n\n"
+    review = REVIEW_DOC.read_text(encoding="utf-8")
+    assert marker in review
+    section = review.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_validator_extension_post_implementation_static_contract_current_head_3176331_revalidated",
+        "latest_post_static_revalidation_base_head=3176331cd708c70dbf909054cbeaf4765172d13c",
+        "latest_github_refs_heads_main_at_revalidation=3176331cd708c70dbf909054cbeaf4765172d13c",
+        "latest_autodl_CAMP_HEAD_at_revalidation=3176331cd708c70dbf909054cbeaf4765172d13c",
+        "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_current_head_9cd9022_revalidated",
+        "validator_script=scripts/integrations/validate_dp_native_fallback_risk_training_data_contract.py",
+        "default_off_boundary_passed=True",
+        "read_only_fixed_artifact_boundary_passed=True",
+        "dataset_contract_passed=True",
+        "source_log_readback_acceptance_required=True",
+        "candidate_generation_provenance_contract_rechecked=True",
+        "reference_blend_guidance_postprocess_rejected=True",
+        "dp_weight_change_rejected=True",
+        "affine_score_boundary_preserved=True",
+        "score_k_equals_a_k_transpose_w_boundary_preserved=True",
+        "training_sufficiency_boundary_passed=True",
+        "latest_local_target_pytest=32 passed",
+        "local_post_static_target_pytest=8 passed",
+        "autodl_post_static_target_pytest=8 passed",
+        "post_implementation_static_contract_review_complete=True",
+        "implementation_hardening_required=False",
+        "blocking_contract_findings=0",
+        "this_post_static_gate_authorizes_training_replay_dp_or_claims=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_audit_only",
+    ]:
+        assert needle in section
+
+
+def test_iteration_audit_eof_records_current_head_3176331_post_static_contract() -> None:
+    marker = (
+        "\n## Current Tail Confirmation After 3176331 Fallback Risk Training Data "
+        "Validator Extension Post-Implementation Static Contract\n\n"
+    )
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+    assert marker in audit
+    section = audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_validator_extension_post_implementation_static_contract_current_head_3176331_revalidated",
+        "latest_post_static_revalidation_base_head=3176331cd708c70dbf909054cbeaf4765172d13c",
+        "latest_validator_implementation_status=fallback_risk_training_data_validator_extension_implementation_current_head_9cd9022_revalidated",
+        "latest_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "default_off_boundary_passed=True",
+        "read_only_fixed_artifact_boundary_passed=True",
+        "dataset_contract_passed=True",
+        "source_log_readback_acceptance_required=True",
+        "affine_score_boundary_preserved=True",
+        "score_k_equals_a_k_transpose_w_boundary_preserved=True",
+        "latest_local_target_pytest=32 passed",
+        "local_post_static_target_pytest=8 passed",
+        "autodl_post_static_target_pytest=8 passed",
+        "post_implementation_static_contract_review_complete=True",
+        "blocking_contract_findings=0",
+        "fallback_risk_training_authorized_now=False",
+        "training_execution_authorized_now=False",
+        "camp_training_authorized=False",
+        "camp_retraining_authorized=False",
+        "replay_execution_authorized=False",
+        "candidate_generation_authorized=False",
+        "dp_modification_authorized=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_audit_only",
+    ]:
+        assert needle in section
