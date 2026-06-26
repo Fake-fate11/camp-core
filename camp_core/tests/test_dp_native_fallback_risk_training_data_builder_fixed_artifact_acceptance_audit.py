@@ -510,6 +510,67 @@ def test_acceptance_audit_eof_records_current_head_f99_acceptance() -> None:
         assert needle in tail
 
 
+def test_acceptance_audit_eof_records_current_head_db52_acceptance() -> None:
+    marker = "\n## Current-Head Acceptance Revalidation After db52ac6 Post-Contract Tail\n\n"
+    audit = _audit()
+    assert marker in audit
+    tail = audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_db52ac6_passed",
+        "db52ac6_artifact_scope=broader_nonformal_fixed_evaluation_artifact",
+        "db52ac6_selection_logs=12",
+        "db52ac6_formal_token_path_matches=0",
+        "db52ac6_formal_seeds_11_12_13_path_matches=0",
+        "db52ac6_builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_db52ac6_20260626T211859Z",
+        "db52ac6_builder_output_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "db52ac6_builder_output_md_sha256=e32a7a0fcbbfae6c971dca0f0b04bca59f9111b3cffa57e9ce2dc046481d2823",
+        "db52ac6_builder_stdout_json_sha256=ca1f3ce6bc5df5f8fc26eaec00fa89cb8df55c80781ae1ae41a3fe804c59e1bd",
+        "db52ac6_camp_head_at_revalidation=db52ac6e16f62c4efbf5af1dfcf73950fd846e4d",
+        "db52ac6_github_refs_heads_main_at_revalidation=db52ac6e16f62c4efbf5af1dfcf73950fd846e4d",
+        "db52ac6_autodl_CAMP_HEAD_at_revalidation=db52ac6e16f62c4efbf5af1dfcf73950fd846e4d",
+        "db52ac6_autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "db52ac6_builder_execution_exit=0",
+        "db52ac6_summary_parse_exit=0",
+        "db52ac6_schema_version=dp_native_fallback_risk_training_data_v1",
+        "db52ac6_status=dp_native_fallback_risk_training_data_builder_complete",
+        "db52ac6_passed=True",
+        "db52ac6_enabled=True",
+        "db52ac6_records_total=60",
+        "db52ac6_records_without_feasible_candidate=15",
+        "db52ac6_records_with_feasible_candidate=45",
+        "db52ac6_records_built=15",
+        "db52ac6_failed_records=0",
+        "db52ac6_errors=0",
+        "db52ac6_source_hashes=12",
+        "db52ac6_record_candidate_counts=4",
+        "db52ac6_oracle_policies=lane/red/quality,red/lane/quality",
+        "local_target_pytest=10 passed",
+        "local_related_target_pytest=56 passed",
+        "autodl_target_pytest=10 passed",
+        "autodl_related_target_pytest=56 passed",
+        "db52ac6_training_authorized=False",
+        "db52ac6_production_selector_change_authorized=False",
+        "db52ac6_online_selector_change_authorized=False",
+        "db52ac6_feasible_ranking_master_change_authorized=False",
+        "db52ac6_all_infeasible_records_added_to_feasible_training=False",
+        "db52ac6_hard_feasibility_relaxation_authorized=False",
+        "db52ac6_replay_execution_authorized=False",
+        "db52ac6_candidate_generation_authorized=False",
+        "db52ac6_camp_training_authorized=False",
+        "db52ac6_camp_retraining_authorized=False",
+        "db52ac6_formal_seeds_11_12_13_authorized=False",
+        "db52ac6_dp_modification_authorized=False",
+        "db52ac6_selector_promotion_authorized=False",
+        "db52ac6_atom_promotion_authorized=False",
+        "db52ac6_safety_benefit_claim_authorized=False",
+        "db52ac6_camp_over_dp_top1_claim_authorized=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
+    ]:
+        assert needle in tail
+
+
 def test_iteration_audit_eof_records_current_head_f99_acceptance_next_gate() -> None:
     tail = _iteration_audit()
 
@@ -521,6 +582,32 @@ def test_iteration_audit_eof_records_current_head_f99_acceptance_next_gate() -> 
         "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "records_built=15",
         "training_authorized=False",
+        "fallback_dataset_training_sufficiency_claim=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
+    ]:
+        assert needle in tail
+
+
+def test_iteration_audit_eof_records_current_head_db52_acceptance_next_gate() -> None:
+    marker = (
+        "\n## Current Tail Confirmation After db52ac6 Fallback Risk Training Data "
+        "Default-Off Builder Fixed-Artifact Acceptance Audit\n\n"
+    )
+    audit = _iteration_audit()
+    assert marker in audit
+    tail = audit.rsplit(marker, maxsplit=1)[-1].split("\n## ", maxsplit=1)[0]
+
+    for needle in [
+        "status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_db52ac6_passed",
+        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_db52ac6_20260626T211859Z",
+        "builder_output_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "formal_token_path_matches=0",
+        "formal_seeds_11_12_13_path_matches=0",
+        "autodl_DP_HEAD_at_revalidation=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "records_built=15",
+        "source_hashes=12",
+        "training_authorized=False",
+        "camp_retraining_authorized=False",
         "fallback_dataset_training_sufficiency_claim=False",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_data_validator_extension_plan_only",
     ]:
