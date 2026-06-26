@@ -482,7 +482,16 @@ def test_current_head_0efa339_extractor_implementation_is_pinned() -> None:
 
 def test_current_head_2d31bbe_extractor_implementation_is_pinned() -> None:
     text = IMPLEMENTATION_DOC.read_text(encoding="utf-8")
-    audit_tail = "\n".join(ITERATION_AUDIT.read_text(encoding="utf-8").splitlines()[-260:])
+    audit = ITERATION_AUDIT.read_text(encoding="utf-8")
+    audit_status = (
+        "status=fallback_risk_ranking_default_off_extractor_implementation_current_head_2d31bbe_revalidated"
+    )
+    audit_section = audit_status + audit.split(audit_status, 1)[1]
+    audit_section = audit_section.split(
+        "## Current Tail Confirmation After Current HEAD Fallback Risk Ranking "
+        "Default-Off Extractor Post-Implementation Static Contract",
+        1,
+    )[0]
 
     for needle in [
         "status=fallback_risk_ranking_default_off_extractor_implementation_current_head_2d31bbe_revalidated",
@@ -532,7 +541,7 @@ def test_current_head_2d31bbe_extractor_implementation_is_pinned() -> None:
     ]:
         assert needle in text
 
-    assert audit_tail.rstrip().endswith(NEXT_STATIC_CONTRACT_GATE + "\n```")
+    assert audit_section.rstrip().endswith(NEXT_STATIC_CONTRACT_GATE + "\n```")
 
     for needle in [
         "status=fallback_risk_ranking_default_off_extractor_implementation_current_head_2d31bbe_revalidated",
@@ -561,4 +570,4 @@ def test_current_head_2d31bbe_extractor_implementation_is_pinned() -> None:
         "camp_over_dp_top1_claim_authorized=False",
         NEXT_STATIC_CONTRACT_GATE,
     ]:
-        assert needle in audit_tail
+        assert needle in audit_section
