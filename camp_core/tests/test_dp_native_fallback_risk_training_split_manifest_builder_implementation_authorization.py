@@ -122,6 +122,46 @@ def test_current_head_0f00924_builder_authorization_revalidation_is_pinned() -> 
         assert needle in text
 
 
+def test_current_head_d377c2a_builder_authorization_revalidation_is_pinned() -> None:
+    text = _auth()
+
+    for needle in [
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_d377c2a_revalidated",
+        "builder_authorization_base_head=d377c2add1d85086aa9a4b8b8cb14b3adc326627",
+        "camp_origin_main_at_builder_authorization=d377c2add1d85086aa9a4b8b8cb14b3adc326627",
+        "github_refs_heads_main_at_builder_authorization=d377c2add1d85086aa9a4b8b8cb14b3adc326627",
+        "autodl_CAMP_HEAD_at_builder_authorization=d377c2add1d85086aa9a4b8b8cb14b3adc326627",
+        "autodl_CAMP_origin_main_at_builder_authorization=d377c2add1d85086aa9a4b8b8cb14b3adc326627",
+        "autodl_DP_HEAD_at_builder_authorization=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "prior_split_manifest_unit_tests_status=fallback_risk_training_split_manifest_unit_tests_head_f8f409b_revalidated",
+        "head_d377c2a_validated_fallback_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "head_d377c2a_validated_fallback_records=15",
+        "head_d377c2a_split_manifest_plan_ready=True",
+        "head_d377c2a_split_manifest_static_contract_review_passed=True",
+        "head_d377c2a_split_manifest_unit_tests_plan_ready=True",
+        "head_d377c2a_split_manifest_contract_tests_pinned=True",
+        "head_d377c2a_blocking_contract_findings=0",
+        "head_d377c2a_implementation_authorized=True",
+        "head_d377c2a_training_split_manifest_builder_implementation_authorized=True",
+        "head_d377c2a_default_off_required=True",
+        "head_d377c2a_read_only_dataset_input_only=True",
+        "head_d377c2a_existing_validated_fallback_dataset_json_only=True",
+        "head_d377c2a_synthetic_unit_tests_required=True",
+        "head_d377c2a_fixed_artifact_manifest_generation_authorized=False",
+        "head_d377c2a_training_split_manifest_builder_execution_on_fixed_artifact_authorized=False",
+        "head_d377c2a_training_execution_authorized_now=False",
+        "head_d377c2a_camp_retraining_authorized_now=False",
+        "head_d377c2a_local_authorization_pytest=9 passed",
+        "head_d377c2a_local_split_manifest_contract_pytest=9 passed",
+        "head_d377c2a_local_target_pytest=18 passed",
+        "head_d377c2a_training_not_executed=True",
+        "head_d377c2a_candidate_generation_not_executed=True",
+        "head_d377c2a_dp_not_modified=True",
+        "head_d377c2a_selector_or_atom_not_promoted=True",
+    ]:
+        assert needle in text
+
+
 def test_split_builder_authorization_only_allows_default_off_read_only_builder() -> None:
     text = _auth()
 
@@ -235,16 +275,13 @@ def test_audit_tail_records_split_manifest_builder_implementation_next_gate() ->
     tail = "\n".join(AUDIT_DOC.read_text(encoding="utf-8").splitlines()[-190:])
 
     assert (
-        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_0f00924_revalidated"
+        "status=fallback_risk_training_split_manifest_builder_implementation_authorization_head_d377c2a_revalidated"
         in tail
     )
-    assert "head_0f00924_local_authorization_pytest=8 passed" in tail
-    assert (
-        "status=fallback_risk_training_split_manifest_builder_implementation_head_7d057d9_revalidated"
-        in tail
-    )
+    assert "head_d377c2a_local_authorization_pytest=9 passed" in tail
+    assert "head_d377c2a_local_split_manifest_contract_pytest=9 passed" in tail
     assert "training_execution_authorized_now=False" in tail
     assert (
-        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_post_implementation_static_contract_only`"
+        "`dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_split_manifest_builder_implementation_only`"
         in tail
     )
