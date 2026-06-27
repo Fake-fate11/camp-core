@@ -327,3 +327,40 @@ def test_current_head_e6adf15_holdout_static_contract_review_is_pinned() -> None
         "this_review_executes_training_replay_dp_or_claims=False",
     ]:
         assert needle in audit
+
+
+def test_current_head_58449d1_holdout_static_contract_review_is_pinned() -> None:
+    text = REVIEW_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "review_start_head=58449d1abd25ec541e8caeab19919e018991c04e",
+        "reviewed_holdout_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_75dbff5_57b6945_20260627T090226CST",
+        "reviewed_holdout_audit_json_sha256=68abc54d072f18ed3c2cadc4dc76c57b675e348a8666d7eccee4f784537071b7",
+        "reviewed_holdout_audit_md_sha256=5db09a0fccfeaedcb819ec4acc05216fbfbf6a70e93f95a48cee0b33e3033d6f",
+        "default_off_before_reads=True",
+        "read_only_existing_artifacts=True",
+        "writes_only_explicit_output_json_and_md=True",
+        "subprocess_usage=False",
+        "dp_execution_path=False",
+        "candidate_generation_path=False",
+        "camp_retraining_path=False",
+        "paper_consistent_fixed_candidate_reranker_boundary_preserved=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "static_oracle_match_rate=0.5",
+        "uniform_oracle_match_rate=1.0",
+        "holdout_static_underperforms_uniform=True",
+        "blocking_contract_findings=0",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "status=fallback_risk_static_camp_training_holdout_acceptance_static_contract_review_current_head_58449d1_passed",
+        "blocking_contract_findings=0",
+        "paper_consistent_fixed_candidate_reranker_boundary_preserved=True",
+        "this_review_executes_training_replay_dp_or_claims=False",
+    ]:
+        assert needle in audit
