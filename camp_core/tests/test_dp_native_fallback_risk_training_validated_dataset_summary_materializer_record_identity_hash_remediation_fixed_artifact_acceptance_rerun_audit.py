@@ -243,6 +243,58 @@ def test_current_head_c2646b3_summary_acceptance_rerun_is_pinned() -> None:
         assert needle in text
 
 
+def test_current_head_f9fc3f4_summary_acceptance_rerun_is_pinned() -> None:
+    text = _audit()
+
+    for needle in [
+        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_f9fc3f4_fixed_artifact_acceptance_passed",
+        "current_validator_output_matched_dataset_sha=True",
+        "source_dataset_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_builder_acceptance_db52ac6_20260626T211859Z/dataset.json",
+        "expected_dataset_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "source_validator_output_json=/root/autodl-tmp/camp_dp_native_fallback_risk_training_data_validator_acceptance_7f5ca75_20260626T215730Z/validation.json",
+        "expected_validator_output_sha256=4f3a0be2dbf070b4d94262111e3c9b68618732efd64f54355722dbfbe61f2d40",
+        "source_dataset_acceptance_status=fallback_risk_training_data_default_off_builder_fixed_artifact_acceptance_current_head_db52ac6_passed",
+        "source_validator_acceptance_status=fallback_risk_training_data_validator_extension_fixed_artifact_acceptance_current_head_7f5ca75_passed",
+        "source_master_command_acceptance_status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_a1d1d6d_fixed_artifact_acceptance_passed",
+        "builder_commit=f9fc3f4e0a253f7dc6325d5c7a506941d2567637",
+        "autodl_CAMP_HEAD=f9fc3f4e0a253f7dc6325d5c7a506941d2567637",
+        "autodl_CAMP_origin_main=f9fc3f4e0a253f7dc6325d5c7a506941d2567637",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_validated_dataset_summary_acceptance_f9fc3f4_20260627T101500CST",
+        "validated_dataset_summary_json_sha256=4b6a2cc9d67d593b32e87d96fcc22c8f3cc980ab73a79b217b13274f2e3d67d9",
+        "validated_dataset_summary_md_sha256=e1c75b4c6bc0b9626f44fd1cbdee29be8418d4660b8acf7e0430bbc7b0a05426",
+        "builder_stdout_log_sha256=f2a064276a2ddbcdac2da735e639be85f5c8b5fe153b62461f3b46c8388a0abe",
+        "builder_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "builder_exit=0",
+        "summary_schema_version=dp_native_fallback_risk_validated_dataset_summary_v1",
+        "summary_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "observed_summary_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "summary_records=15",
+        "summary_validator_status=dp_native_fallback_risk_training_data_validator_complete",
+        "summary_validator_passed=True",
+        "summary_training_sufficiency_claim=False",
+        "summary_deployable_checkpoint_claim=False",
+        "summary_source_validator_output_sha256=4f3a0be2dbf070b4d94262111e3c9b68618732efd64f54355722dbfbe61f2d40",
+        "validated_dataset_summary_ready_for_preflight=True",
+        "training_sufficiency_preflight_input_set_ready=True",
+        "training_sufficiency_preflight_executed=False",
+        "training_sufficiency_preflight_execution_authorized=False",
+        "fallback_risk_training_authorized_now=False",
+        "camp_retraining_authorized_now=False",
+        "local_target_pytest=12 passed",
+        "local_summary_acceptance_pytest=12 passed",
+        "local_summary_materializer_pytest=5 passed",
+        "local_related_target_pytest=17 passed",
+        "autodl_temp_worktree=/root/autodl-tmp/camp_core_validated_summary_acceptance_f9fc3f4_verify_20260627T103000CST",
+        "autodl_py_compile_exit=0",
+        "autodl_target_pytest=12 passed",
+        "autodl_related_target_pytest=17 passed",
+        "autodl_git_diff_check_exit=0",
+        "autodl_dp_head_verified=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+    ]:
+        assert needle in text
+
+
 def test_acceptance_rerun_records_complete_materializer_result() -> None:
     text = _audit()
 
@@ -353,23 +405,23 @@ def test_acceptance_rerun_records_verification_and_next_gate() -> None:
 
 def test_iteration_audit_tail_records_summary_rerun_next_gate() -> None:
     audit = ITERATION_AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-220:])
+    tail = "\n".join(audit.splitlines()[-240:])
 
     for needle in [
-        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_c2646b3_tail_authority",
-        "validated_dataset_summary_json_sha256=6ed8c738e65a6d9190db40a042089a21a7aaa032be0a9617b22b0ba4c67314e6",
+        "status=fallback_risk_training_validated_dataset_summary_materializer_current_head_f9fc3f4_fixed_artifact_acceptance_passed",
+        "validated_dataset_summary_json_sha256=4b6a2cc9d67d593b32e87d96fcc22c8f3cc980ab73a79b217b13274f2e3d67d9",
         "observed_summary_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
         "validated_dataset_summary_ready_for_preflight=True",
         "training_sufficiency_preflight_input_set_ready=True",
-        "local_target_pytest=11 passed",
-        "local_summary_acceptance_pytest=11 passed",
+        "local_target_pytest=12 passed",
+        "local_summary_acceptance_pytest=12 passed",
         "local_summary_materializer_pytest=5 passed",
         "fallback_risk_training_authorized_now=False",
         "camp_retraining_authorized_now=False",
-        "source_master_command_acceptance_status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_ce7a2ca_tail_authority",
-        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_validated_dataset_summary_acceptance_c2646b3_20260626T184436Z",
+        "source_master_command_acceptance_status=fallback_risk_training_fallback_master_config_and_command_plan_current_head_a1d1d6d_fixed_artifact_acceptance_passed",
+        "builder_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_training_validated_dataset_summary_acceptance_f9fc3f4_20260627T101500CST",
         "autodl_builder_exit=0",
-        "autodl_related_target_pytest=16 passed",
+        "autodl_related_target_pytest=17 passed",
         "autodl_dp_head_verified=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_training_sufficiency_preflight_record_identity_hash_remediation_fixed_artifact_acceptance_rerun_audit_only",
         "may only run the already implemented default-off read-only",
