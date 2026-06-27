@@ -753,6 +753,49 @@ def test_v13_audit_implementation_preserves_no_action_boundary() -> None:
         assert needle in text
 
 
+def test_v13_audit_records_training_authorization_update() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_training_authorization_update_status=user_authorized_subsequent_camp_training_tasks",
+        "v13_training_authorization_update_user_authorized=True",
+        "v13_training_authorization_update_camp_head=46add5d7633587ad75cab9140a4285abbfd9aac6",
+        "v13_training_authorization_update_github_refs_heads_main=46add5d7633587ad75cab9140a4285abbfd9aac6",
+        "v13_training_authorization_update_autodl_camp_head=46add5d7633587ad75cab9140a4285abbfd9aac6",
+        "v13_training_authorization_update_autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_training_authorization_update_training_authorized=True",
+        "v13_training_authorization_update_training_execution_authorized=True",
+        "v13_training_authorization_update_camp_retraining_authorized=True",
+        "v13_training_authorization_update_no_further_training_authorization_prompt_required=True",
+        "v13_training_authorization_update_fixed_dp_candidate_reranking_boundary_required=True",
+        "v13_training_authorization_update_score_expression_required=score_k(w)=a_k^T w",
+        "current_v13_training_authorized_by_user=True",
+        "current_v13_training_execution_authorized_by_user=True",
+        "current_v13_camp_retraining_authorized_by_user=True",
+        "current_v13_no_further_training_authorization_prompt_required=True",
+        "next_training_work_may_start_without_extra_user_authorization=True",
+    ]:
+        assert needle in text
+
+
+def test_v13_training_authorization_update_preserves_nontraining_boundaries() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_training_authorization_update_formal_seed_11_12_13_authorized=False",
+        "v13_training_authorization_update_dp_modification_authorized=False",
+        "v13_training_authorization_update_replay_execution_authorized=False",
+        "v13_training_authorization_update_candidate_generation_authorized=False",
+        "v13_training_authorization_update_selector_promotion_authorized=False",
+        "v13_training_authorization_update_atom_promotion_authorized=False",
+        "v13_training_authorization_update_deployment_authorized=False",
+        "v13_training_authorization_update_online_selector_change_authorized=False",
+        "v13_training_authorization_update_safety_benefit_claim_authorized=False",
+        "v13_training_authorization_update_camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
