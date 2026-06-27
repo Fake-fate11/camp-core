@@ -300,3 +300,44 @@ def test_current_head_c5d92cb_development_holdout_plan_is_pinned() -> None:
         "candidate_tensor_unchanged=True",
     ]:
         assert needle in audit
+
+
+def test_current_head_ed141cad_development_holdout_plan_is_pinned() -> None:
+    text = _plan_text()
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "training_commit=75dbff5316fd76b7fd842865249edbd7472fc0f5",
+        "plan_start_head=ed141cad7df1907d7f5208ecad3944b6d60ce91e",
+        "nonpromotion_audit_execution_head=604ef7121f7d0b4c084b26146f2267e89ed0787b",
+        "training_summary_json_sha256=55d046173592f25e0935b8afbec1c41b81dca589c962eda6e6f8f8119abf9100",
+        "offline_weights_json_sha256=6718721393726de47ff7137c6287821bade63dea5e66b9ae0fdff725bbb90896",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=a3815169bb734d1039df3527faa9961007a948d30ff757398d9c8b1bc1cef631",
+        "nonpromotion_audit_json_sha256=ca4dc5107c317232d3e2ad2c7941d6d93b42fec31df376a4278127c9bbfb0cba",
+        "post_training_nonpromotion_artifact_audit_passed=True",
+        "dataset_json_sha256=16f74d494ec371f5d888eead946dbd448ad4375107da75f8e3dbcdd57435dc36",
+        "training_split_manifest_json_sha256=beac0fa7d2c425fd5d2cc0b45c6cd8c446c56e1b3bc3c3210b464376589bee89",
+        "train_only_scale_manifest_json_sha256=168b07220db17aa1c800da8c63911388962cbef2d5f2a91d9f93186971ea6890",
+        "fallback_master_config_json_sha256=a967851582b5b038700486520b48dc22d3c0ccbc3b44aca34f11ce2eb4781183",
+        "preflight_json_sha256=94d0201a8a2a73a19fa2745ac85df4c910a417f2f9751f5c01e0507b061c799d",
+        "plan_only=True",
+        "development_holdout_acceptance_audit_authorized_next=True",
+        "local_development_holdout_plan_pytest=11 passed",
+        "autodl_development_holdout_plan_pytest=11 passed",
+        "autodl_dp_head_verified=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "training_authorized=False",
+        "selector_promotion_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_audit_only",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "status=fallback_risk_static_camp_training_development_holdout_acceptance_plan_only_current_head_ed141cad_passed",
+        "development_holdout_acceptance_audit_authorized_next=True",
+        "records_scope=validation_groups_only",
+        "candidate_tensor_unchanged=True",
+        "autodl_temp_worktree=/root/autodl-tmp/camp_core_development_holdout_plan_ed141cad_verify_20260627T143000CST",
+    ]:
+        assert needle in audit
