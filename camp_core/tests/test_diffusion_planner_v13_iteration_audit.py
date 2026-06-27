@@ -1520,6 +1520,80 @@ def test_v13_broader_nonformal_shadow_replay_batch_preflight_authorizes_only_bat
         assert needle in text
 
 
+def test_v13_audit_records_broader_nonformal_shadow_replay_batch_execution() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_status=dp_camp_v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_8babbc0_aa04ff6_20260628T045051CST",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_validation_json_sha256=3ef1127d8cc8f273a1cdda5e53862cbee2b8951d02bd96e2f4a7321c5d66cca6",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_validation_md_sha256=2dabda44135c27324368a5f4b6e15fd226cdad09b5787d231ff5db59ab290845",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_replay_output_hash_manifest_sha256=a1e686086779a3070aba2683b9ad1540f7fd1fa6c03aa9322f9b410341115c3b",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_raw_summary_sha256=8c5c181f5de34819fb9b22ad61e19d7564c299f25463bd8d2927a5563a341b20",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_progress_jsonl_sha256=6bc1a67a3c33faf1bf1f43842923f094142800cf677085fa0d248275af58570f",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_failures_txt_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_run_batch_py_sha256=a06dde6f543b231ebbe4a7a0c8e4ce08dffbcdbd248b2d039d2c0f68ce589d6e",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_run_batch_sh_sha256=10553d602df9ea3dffe6c00ad90bff0413208dac341a5ee676ddbee1bd7006a3",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_head_txt_sha256=0ce2299fa58e09791c773fc7a3163c4acc3a229255922fa0eb5af37b4c21f18e",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_schema_version=dp_camp_v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_validation_v1",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_camp_head=aa04ff6cc818d3f2fc44a285a1848ca89d62a355",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_command_count=32",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_completed_commands=32",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_failed_commands=0",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_records=3200",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_shadow_records=3200",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_failed_shadow_records=0",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_executed_indices=[0]",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_selected_indices_in_records=[0]",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_shadow_selected_index_counts={\"0\":695,\"1\":358,\"2\":312,\"3\":371,\"4\":391,\"5\":382,\"6\":393,\"7\":298}",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_nonzero_shadow_selection_count=2505",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_route_records={\"nishi_lane_change\":800,\"nishi_release\":800,\"sample_normal\":800,\"sample_tl\":800}",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_seed_records={\"301\":1600,\"302\":1600}",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_npc_records={\"0\":1600,\"4\":1600}",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_traffic_light_records={\"off\":1600,\"on\":1600}",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_all_shadow_artifact_contract_ready=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_all_shadow_selection_effect_false=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_all_shadow_executed_policy_dp_top1=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_all_shadow_candidate_operation_fixed=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_all_shadow_score_affine=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_all_shadow_scores_not_routed=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_all_executed_top1_all=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_failed_checks=[]",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_authorized_next_work=dp_camp_v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_only",
+    ]:
+        assert needle in text
+
+
+def test_v13_broader_nonformal_shadow_replay_batch_execution_keeps_training_and_claims_closed() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_formal_seeds_executed=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_training_executed=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_dp_modified=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_selector_promoted=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_deployed=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_safety_benefit_claim_authorized=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_camp_over_dp_top1_claim_authorized=False",
+        "current_v13_status=default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_complete",
+        "current_v13_next_scope=default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_only",
+        "current_v13_all_subsequent_training_tasks_authorized_by_user=True",
+        "current_v13_no_further_training_authorization_prompt_required=True",
+        "broader_nonformal_shadow_replay_batch_result_review_authorized=True",
+        "runtime_shadow_selector_execution_authorized=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
