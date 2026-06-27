@@ -1438,6 +1438,88 @@ def test_v13_shadow_selector_runtime_shadow_replay_smoke_keeps_claims_and_traini
         assert needle in text
 
 
+def test_v13_audit_records_broader_nonformal_shadow_replay_batch_preflight() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_status=dp_camp_v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_ready",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_8babbc0_72baf98_20260628T044649CST",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_json_sha256=463ca11600f53e788056b2ccef950a312e44a5fb9c181cd46037b2eb22f09646",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_md_sha256=421e5b3e6231ab3727eeec1a7732b11d8ffac626f4507cdece3069ef2b0ebc6e",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_runbook_sha256=21eea733783bb3151e8ea50ddb01660f64c7a697183cd2a6a3ffcb35b0500909",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_stdout_log_sha256=223adde7dd90b816d0acace3e00ec4fcc49900be0cb92e440115e406bc3cc716",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_exit_code_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_execution_camp_head=72baf9855178adc04665dbfbf3e3c3c57b9b2a22",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_runner_sha256=1d5e116cb2c7c473b9c79906a17bc01683dc9b7595a6006c129cc135dedf4813",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_runtime_manifest_sha256=bec2e74ae8ea8db314aeffccf518592706d703294a60c129cd24ae1ef7083bf8",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_base_replay_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_8babbc0_72baf98_20260628T044649CST",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_command_count=32",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_routes=nishi_lane_change,nishi_release,sample_normal,sample_tl",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_seeds=301,302",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_formal_seeds=11,12,13",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_formal_seeds_excluded=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_max_npcs_values=0,4",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_traffic_light_modes=on,off",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_steps_per_command=100",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_num_candidates=8",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_all_planned_outputs_absent=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_manifest_default_off=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_manifest_selection_effect=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_manifest_candidate_operation=fixed DP candidate reranking only",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_manifest_executed_output_policy=dp_top1",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_manifest_score_expression=score_k(w)=a_k^T w",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_atom_scales_sha256=24ee58d5c4dd0c37f46ed9195e584458675496d8a3a34d1d2883d09bdf1d7d7e",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_static_weights_sha256=751fbc3a333af0aae483ed50fcfa1abe02361f7bb3d18d8264bf0425019a4752",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_all_commands_use_shadow_selector=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_all_commands_use_shadow_manifest=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_all_commands_selector_mode_static=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_all_commands_num_candidates_8=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_all_commands_no_guidance_or_reference_blend=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_all_commands_no_postselection_relaxation_or_splice=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_runner_shadow_forces_dp_top1=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_runner_records_shadow_selected_index=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_expected_completed_commands=32",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_expected_records=3200",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_expected_shadow_records=3200",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_executed_indices_allowed=[0]",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_shadow_scores_routed_to_execution_required=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_passed=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_failed_checks=[]",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_authorized_next_work=dp_camp_v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_only",
+    ]:
+        assert needle in text
+
+
+def test_v13_broader_nonformal_shadow_replay_batch_preflight_authorizes_only_batch_execution() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_batch_execution_authorized_next=True",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_formal_seeds_authorized=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_candidate_generation_by_camp_authorized=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_dp_modification_authorized=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_training_executed=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_selector_promotion_authorized=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_deployment_authorized=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_safety_benefit_claim_authorized=False",
+        "v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_camp_over_dp_top1_claim_authorized=False",
+        "current_v13_status=default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight_complete",
+        "current_v13_next_scope=default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_only",
+        "broader_nonformal_shadow_replay_batch_execution_authorized=True",
+        "runtime_shadow_selector_execution_authorized=True",
+        "replay_execution_authorized_by_current_boundary=True",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=True",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
