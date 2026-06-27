@@ -152,6 +152,20 @@ safety_benefit_claim_authorized=False
 camp_over_dp_top1_claim_authorized=False
 ```
 
+## Superseded By V12
+
+V11 remains the historical record for the first K=8 provenance collection and
+fallback-risk nonpromotion training artifact. New current-state writes move to
+v12 because the user explicitly authorized broader fixed-DP candidate
+generation to expand the route/state plus DP candidate-set training data.
+
+```text
+superseded_by_current_authoritative_audit=docs/diffusion_planner_v12_iteration_audit.md
+v12_reason=broader_nonformal_fixed_dp_candidate_generation_authorized_for_larger_training_data
+candidate_generation_by_fixed_dp_authorized_in_v12=True
+candidate_generation_by_camp_authorized_in_v12=False
+```
+
 ## Nonpromotion And Holdout Audits
 
 The offline trained artifacts were audited as non-promoted artifacts. The

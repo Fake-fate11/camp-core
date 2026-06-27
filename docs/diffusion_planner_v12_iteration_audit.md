@@ -1,0 +1,163 @@
+# Diffusion Planner CAMP Integration V12 Audit
+
+Date: 2026-06-27
+
+This file is the current short-form audit entry point for the CAMP integration
+with the fixed TiERIV Diffusion Planner. It replaces v11 for new current-state
+writes because the user explicitly authorized broader fixed-DP candidate
+generation to expand the route/state plus DP candidate-set training data.
+
+## Current Authority
+
+```text
+current_authoritative_audit=docs/diffusion_planner_v12_iteration_audit.md
+previous_short_form_audit=docs/diffusion_planner_v11_iteration_audit.md
+older_short_form_audit=docs/diffusion_planner_v10_iteration_audit.md
+historical_audit=docs/diffusion_planner_v8_iteration_audit.md
+camp_local_head_at_v12_audit_start=8babbc0dd09cedda944130ce47688a9ba2b2efde
+camp_origin_main_at_v12_audit_start=8babbc0dd09cedda944130ce47688a9ba2b2efde
+autodl_camp_head_at_v12_launch=8babbc0dd09cedda944130ce47688a9ba2b2efde
+autodl_camp_origin_main_at_v12_launch=8babbc0dd09cedda944130ce47688a9ba2b2efde
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_dp_head_at_v12_launch=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_camp_path=/root/autodl-tmp/camp_core
+autodl_dp_path=/root/autodl-tmp/Diffusion-Planner
+formal_seeds_11_12_13_frozen=True
+```
+
+## User Authorization And Data Definition
+
+The user clarified and authorized the correct data-expansion path: CAMP
+training data should be route/state plus fixed DP candidate sets. Therefore the
+larger dataset must be produced by running the fixed DP black-box candidate
+trajectory generator on more nonformal route/seed/scenario combinations. CAMP
+still does not generate, rewrite, blend, guide, postprocess, tune, retrain, or
+modify trajectories; CAMP only observes the current-tick finite DP candidate
+set and selects an index.
+
+```text
+user_authorized_fixed_dp_candidate_generation_now=True
+training_data_unit=route_state_plus_fixed_dp_candidate_set
+dp_role=fixed_black_box_candidate_trajectory_generator
+camp_role=current_tick_fixed_candidate_reranker
+allowed_candidate_operation=argmin_k score_k(w)
+score_expression=score_k(w)=a_k^T w
+candidate_tensor_unchanged_required=True
+fixed_dp_candidate_generation_authorized=True
+camp_candidate_generation_authorized=False
+candidate_generation_by_camp_authorized=False
+trajectory_generation_by_camp_authorized=False
+trajectory_modification_by_camp_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+dp_retraining_authorized=False
+dp_tuning_authorized=False
+dp_modification_authorized=False
+formal_seeds_11_12_13_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+## Broader Fixed DP Candidate Collection Launch
+
+The v12 candidate collection was launched on AutoDL with the existing
+`run_diffusion_planner_camp_replay.py` runner, not the benchmark matrix path,
+because the direct runner forwards `--camp_candidate_tensor_provenance_logging`
+for every replay. The collection is resumable and serial to avoid GPU
+oversubscription.
+
+```text
+candidate_collection_status=running
+candidate_collection_output_dir=/root/autodl-tmp/camp_dp_v12_nonformal_k8_provenance_candidate_collection_8babbc0_20260627T113316CST
+candidate_collection_launcher=/root/autodl-tmp/camp_dp_v12_nonformal_k8_provenance_candidate_collection_8babbc0_20260627T113316CST/run_collection.sh
+candidate_collection_pid_file=/root/autodl-tmp/camp_dp_v12_nonformal_k8_provenance_candidate_collection_8babbc0_20260627T113316CST/pid.txt
+initial_remote_probe_selection_log_count=2
+expected_replay_commands=128
+routes=sample_normal,sample_tl,nishi_release,nishi_lane_change
+seeds=201,202,203,204,205,206,207,208
+max_npcs=0,4
+traffic_light_modes=on,off
+spawn_probability=0.3
+steps_per_replay=100
+num_candidates=8
+expected_records_total=12800
+candidate_noise_strategy=iid
+candidate_noise_scale=1.0
+advance_mode=perfect
+camp_selector_mode=uniform
+camp_fallback_mode=uniform
+camp_feasibility_source=dp_reward
+camp_reward_horizon_steps=30
+candidate_tensor_provenance_logging=True
+replay_png_rendering=False
+camp_training_executed=False
+training_execution_authorized_by_this_collection_gate=False
+collection_summary_expected_path=/root/autodl-tmp/camp_dp_v12_nonformal_k8_provenance_candidate_collection_8babbc0_20260627T113316CST/collection_summary.json
+```
+
+## Candidate Collection Contract
+
+Every generated replay must remain inside the fixed-DP candidate contract. The
+collection is useful only if the resulting `collection_summary.json` confirms
+these values.
+
+```text
+must_validate_selection_log_count=128
+must_validate_records_total=12800
+must_validate_formal_seed_path_matches=0
+must_validate_candidate_counts=8
+must_validate_candidate_tensor_provenance_logging=True
+must_validate_provenance_payload_valid_records_equals_records_total=True
+must_validate_provenance_prepost_equal_records_equals_records_total=True
+must_validate_provenance_reference_blend_separated_records_equals_records_total=True
+must_validate_contract_unique_values=(8,False,None,False)
+must_validate_guidance_authorized=False
+must_validate_reference_blend_authorized=False
+must_validate_dp_modification_authorized=False
+must_validate_camp_candidate_generation_authorized=False
+must_validate_candidate_generation_by_camp_authorized=False
+must_validate_camp_training_executed=False
+must_validate_selector_promotion_authorized=False
+must_validate_atom_promotion_authorized=False
+```
+
+## Mathematical Boundary
+
+```text
+atom_inputs=current_tick_finite_candidate_features_only
+atom_schema_version=dp_camp_v10_14d
+atom_count=14
+atoms_nonnegative_after_normalization=True
+simplex_master_convex=True
+cvar_master_convex=True
+l2_master_convex=True
+new_atoms_require_nonnegativity_or_signed_split_or_hinge_legality_proof=True
+closed_loop_outcome_online_input_authorized=False
+outcome_label_generation_authorized=False
+candidate_tensor_mutation_effect_allowed=False
+candidate_count_change_allowed=False
+no_candidate_row_append_required=True
+no_coordinate_heading_speed_rewrite_by_camp_required=True
+```
+
+## Next Work Target
+
+After the remote collection finishes, the next useful step is to materialize
+the v12 collection summary, run the candidate-generation contract checks, build
+the larger fallback-risk dataset from the fixed DP candidate logs, run the
+validator/split/scale/preflight chain, and only then retrain CAMP on the larger
+authorized dataset.
+
+```text
+next_work_target=dp_camp_v12_broader_nonformal_fixed_dp_candidate_collection_summary_and_large_fallback_risk_preflight
+candidate_generation_running=True
+candidate_generation_by_fixed_dp_running=True
+candidate_generation_by_camp_running=False
+fallback_risk_training_next_after_collection_summary=True
+camp_retraining_not_started_by_v12_launch_gate=True
+promotion_or_safety_claim_not_authorized=True
+formal_seeds_11_12_13_authorized=False
+```
