@@ -1285,6 +1285,83 @@ def test_v13_shadow_selector_runtime_artifact_manifest_materialization_preserves
         assert needle in text
 
 
+def test_v13_audit_records_shadow_selector_runtime_shadow_replay_preflight() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_status=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_ready",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_default_off_shadow_selector_runtime_shadow_replay_preflight_8babbc0_27013cf_20260628T043224CST",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_json_sha256=2f4e5bb33dab425461e087200c4d1dc620ddd59a508dc03c804f37e4059efd28",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_md_sha256=ab70d8e8b0ef67ea628b943f0bba6187b66d405a7da111a46c883c6709a48f28",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_stdout_log_sha256=557946e09e46cce368e1d4ff54fc772f9e1a7aa5873da44c4c8eb40f1bcef4e8",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_exit_code_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_execution_camp_head=27013cf19f1382343a66ab28ed88ff51f00d1a78",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_runner=scripts/integrations/run_diffusion_planner_camp_replay.py",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_runner_sha256=1d5e116cb2c7c473b9c79906a17bc01683dc9b7595a6006c129cc135dedf4813",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_runtime_manifest_sha256=bec2e74ae8ea8db314aeffccf518592706d703294a60c129cd24ae1ef7083bf8",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_route_name=sample_normal",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_seed=301",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_seed_is_formal=False",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_formal_seeds=11,12,13",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_max_npcs=0",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_traffic_lights=off",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_steps=100",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_num_candidates=8",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_planned_replay_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_default_off_shadow_selector_shadow_replay_smoke_8babbc0_27013cf_20260628T043224CST/sample_normal/seed_301/npc_0/spawn_0p3/tl_off/static_shadow",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_planned_output_absent=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_command_uses_shadow_selector=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_command_uses_shadow_manifest=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_command_selector_mode=static",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_command_fallback_mode=learned",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_command_feasibility_source=dp_reward",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_command_has_no_guidance_or_reference_blend=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_command_has_no_postselection_relaxation_or_splice=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_manifest_default_off=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_manifest_selection_effect=False",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_manifest_candidate_operation=fixed DP candidate reranking only",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_manifest_executed_output_policy=dp_top1",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_manifest_score_expression=score_k(w)=a_k^T w",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_atom_scales_sha256=24ee58d5c4dd0c37f46ed9195e584458675496d8a3a34d1d2883d09bdf1d7d7e",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_static_weights_sha256=751fbc3a333af0aae483ed50fcfa1abe02361f7bb3d18d8264bf0425019a4752",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_runner_shadow_forces_dp_top1=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_runner_records_shadow_selected_index=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_runner_rejects_incompatible_shadow_flags=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_passed=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_failed_checks=[]",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_authorized_next_work=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_only",
+    ]:
+        assert needle in text
+
+
+def test_v13_shadow_selector_runtime_shadow_replay_preflight_authorizes_only_nonformal_shadow_execution() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_shadow_replay_execution_authorized_next=True",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_formal_seeds_authorized=False",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_candidate_generation_by_camp_authorized=False",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_dp_modification_authorized=False",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_training_executed=False",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_selector_promotion_authorized=False",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_deployment_authorized=False",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_safety_benefit_claim_authorized=False",
+        "v13_default_off_shadow_selector_runtime_shadow_replay_preflight_camp_over_dp_top1_claim_authorized=False",
+        "current_v13_status=default_off_shadow_selector_runtime_shadow_replay_preflight_complete",
+        "current_v13_next_scope=default_off_shadow_selector_runtime_shadow_replay_execution_only",
+        "runtime_shadow_selector_execution_authorized=True",
+        "replay_execution_authorized_by_current_boundary=True",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=True",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
