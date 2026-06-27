@@ -165,8 +165,12 @@ def validate_training_sufficiency_preflight(
         if path.is_file():
             report["source_hashes"][name] = _sha256_file(path)
 
-    _validate_dataset(payloads.get("validated_dataset"), errors)
-    _validate_split(payloads.get("split_manifest"), errors)
+    dataset_summary = _validate_dataset(payloads.get("validated_dataset"), errors)
+    _validate_split(
+        payloads.get("split_manifest"),
+        errors,
+        expected_records=dataset_summary.get("records"),
+    )
     _validate_scales(
         payloads.get("scale_manifest"),
         payloads.get("split_manifest"),
@@ -190,14 +194,20 @@ def _load_json(path: Path, name: str) -> tuple[Any, list[str]]:
         return {}, [f"{name}_unreadable:{type(exc).__name__}"]
 
 
-def _validate_dataset(dataset: Any, errors: list[str]) -> None:
+def _validate_dataset(dataset: Any, errors: list[str]) -> dict[str, Any]:
+    summary: dict[str, Any] = {}
     if not isinstance(dataset, dict):
         errors.append("validated_dataset_not_object")
-        return
-    if dataset.get("sha256") != EXPECTED_VALIDATED_DATASET_SHA256:
-        errors.append("validated_dataset_sha_mismatch")
-    if dataset.get("records") != EXPECTED_VALIDATED_FALLBACK_RECORDS:
-        errors.append("validated_fallback_record_count_mismatch")
+        return summary
+    if not _is_sha256(dataset.get("sha256")):
+        errors.append("validated_dataset_sha_invalid")
+    else:
+        summary["sha256"] = dataset["sha256"]
+    records = dataset.get("records")
+    if isinstance(records, bool) or not isinstance(records, int) or records <= 0:
+        errors.append("validated_fallback_record_count_invalid")
+    else:
+        summary["records"] = records
     if dataset.get("validator_status") != EXPECTED_VALIDATOR_STATUS:
         errors.append("validator_status_not_complete")
     if dataset.get("validator_passed") is not True:
@@ -205,9 +215,10 @@ def _validate_dataset(dataset: Any, errors: list[str]) -> None:
     for field in ("training_sufficiency_claim", "deployable_checkpoint_claim"):
         if dataset.get(field) is not False:
             errors.append(f"{field}_leak")
+    return summary
 
 
-def _validate_split(split: Any, errors: list[str]) -> None:
+def _validate_split(split: Any, errors: list[str], *, expected_records: Any = None) -> None:
     if not isinstance(split, dict):
         errors.append("split_manifest_not_object")
         return
@@ -223,6 +234,15 @@ def _validate_split(split: Any, errors: list[str]) -> None:
         errors.append("split_train_or_validation_empty")
     if train & validation:
         errors.append("split_train_validation_overlap")
+    if isinstance(expected_records, int):
+        counts = split.get("record_counts")
+        if isinstance(counts, dict):
+            if counts.get("accepted_records") != expected_records:
+                errors.append("split_accepted_records_mismatch")
+            if counts.get("training_records") != len(train):
+                errors.append("split_training_records_mismatch")
+            if counts.get("validation_records") != len(validation):
+                errors.append("split_validation_records_mismatch")
     seeds = _int_set(split.get("seeds"), "split_seeds", errors)
     if seeds & FORMAL_SEEDS:
         errors.append("formal_seed_in_development_split")
@@ -352,6 +372,12 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _is_sha256(value: Any) -> bool:
+    if not isinstance(value, str) or len(value) != 64:
+        return False
+    return all(char in "0123456789abcdef" for char in value.lower())
 
 
 def render_markdown(report: dict[str, Any]) -> str:

@@ -415,6 +415,44 @@ def test_preflight_accepts_clean_synthetic_manifests_and_cli_writes_outputs(tmp_
     assert "training_authorized=False" in output_md.read_text(encoding="utf-8")
 
 
+def test_preflight_accepts_expanded_validated_dataset_without_old_hash_pin(tmp_path: Path) -> None:
+    payloads = _payloads()
+    training = [f"log_{index}:run:0" for index in range(26)]
+    validation = [f"log_v{index}:run:0" for index in range(6)]
+    payloads["validated_dataset"]["sha256"] = "a" * 64
+    payloads["validated_dataset"]["records"] = 32
+    payloads["split"]["training_groups"] = training
+    payloads["split"]["validation_groups"] = validation
+    payloads["split"]["record_counts"] = {
+        "accepted_records": 32,
+        "training_records": 26,
+        "validation_records": 6,
+    }
+    payloads["scales"]["fit_groups"] = training
+
+    report = _run(_write_inputs(tmp_path, payloads))
+
+    assert report["final_decision"]["status"] == COMPLETE_STATUS
+    assert report["final_decision"]["ready_for_future_training_authorization"] is True
+    assert "validated_dataset_sha_mismatch" not in report["final_decision"]["errors"]
+    assert "validated_fallback_record_count_mismatch" not in report["final_decision"]["errors"]
+
+
+def test_preflight_rejects_expanded_dataset_split_record_count_mismatch(tmp_path: Path) -> None:
+    payloads = _payloads()
+    payloads["validated_dataset"]["sha256"] = "b" * 64
+    payloads["validated_dataset"]["records"] = 32
+    payloads["split"]["record_counts"] = {
+        "accepted_records": 31,
+        "training_records": 2,
+        "validation_records": 1,
+    }
+
+    errors = _run(_write_inputs(tmp_path, payloads))["final_decision"]["errors"]
+
+    assert "split_accepted_records_mismatch" in errors
+
+
 def test_preflight_rejects_dataset_claims_split_and_formal_seed_leaks(tmp_path: Path) -> None:
     payloads = _payloads()
     payloads["validated_dataset"]["training_sufficiency_claim"] = True
