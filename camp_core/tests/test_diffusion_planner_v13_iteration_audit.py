@@ -133,6 +133,114 @@ def test_v13_audit_preserves_benders_math_boundary() -> None:
         assert needle in text
 
 
+def test_v13_audit_records_completed_collection_and_sync_evidence() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "autodl_camp_head_after_v13_completion_sync=a6c04788aea809c24f45fcd97669466718c29663",
+        "autodl_camp_sync_method=verified_local_git_bundle_fetch_plus_ff_only_merge",
+        "autodl_dp_head_after_v13_completion_sync=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v12_collection_status=complete",
+        "v12_records_without_feasible_candidate=3735",
+        "v12_training_records=2972",
+        "v12_validation_records=763",
+        "v13_collection_status=complete",
+        "v13_selection_log_count=512",
+        "v13_failed_replay_commands=0",
+        "v13_records_total=51200",
+        "v13_records_without_feasible_candidate=14058",
+        "v13_records_with_feasible_candidate=37142",
+        "v13_records_bad_feasible_mask=0",
+        "v13_candidate_counts=8",
+        "v13_formal_seed_path_matches=0",
+        "v13_provenance_payload_valid_records=51200",
+        "v13_contract_unique_values=(8,False,None,False)",
+        "v13_candidate_generation_by_camp_authorized=False",
+        "v13_dp_modification_authorized=False",
+        "v13_camp_training_executed_by_collection=False",
+    ]:
+        assert needle in text
+
+
+def test_v13_audit_records_large_training_artifact_contract() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_pipeline_status=complete",
+        "v13_dataset_json_sha256=2f41d07adedd28ded0869ec0f13a5e13beabe2f7e5f07a54e97b220df928113b",
+        "v13_training_summary_json_sha256=01234264e01aa7e8bdb4df1aa7aa818af8643a691f7427adc4e3639e104f77cd",
+        "v13_weights_json_sha256=4979901f489f20eb6b9fd6ea122300d3b390c5d6d0d72490a0b84148ba68b489",
+        "v13_weights_npy_sha256=751fbc3a333af0aae483ed50fcfa1abe02361f7bb3d18d8264bf0425019a4752",
+        "v13_dataset_records_built=14058",
+        "v13_training_records=11262",
+        "v13_validation_records=2796",
+        "v13_scale_fit_records_used=11262",
+        "v13_preflight_passed=True",
+        "v13_training_passed=True",
+        "v13_training_commit=8babbc0dd09cedda944130ce47688a9ba2b2efde",
+        "v13_fallback_only_training=True",
+        "v13_fixed_dp_candidate_reranking_only=True",
+        "v13_training_seed=23",
+        "v13_training_seed_is_formal_seed=False",
+        "v13_num_candidates=8",
+        "v13_num_atoms=14",
+        "v13_atom_schema_version=dp_camp_v10_14d",
+        "v13_training_objective=simplex_hinge_cvar_l2",
+        "v13_score_expression=score_k(w)=a_k^T w",
+        "v13_weights_sum=1.0",
+        "v13_weights_min=0.0",
+        "training_metrics_are_diagnostic_not_safety_claim=True",
+    ]:
+        assert needle in text
+
+
+def test_v13_audit_records_post_training_nonpromotion_and_holdout_audits() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_nonpromotion_audit_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_nonpromotion_artifact_audit_8babbc0_a6c0478_20260627T164235CST",
+        "v13_nonpromotion_audit_json_sha256=866c248f246ec9b2e6dc44c9bd41fb2fb47b280f61059a3337af64d4d031c3a6",
+        "v13_nonpromotion_audit_exit=0",
+        "v13_nonpromotion_audit_passed=True",
+        "v13_training_artifacts_nonpromotion=True",
+        "v13_nonpromotion_fixed_dp_candidate_reranking_only=True",
+        "v13_development_holdout_audit_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_development_holdout_acceptance_audit_8babbc0_a6c0478_20260627T164235CST",
+        "v13_development_holdout_audit_json_sha256=816fa4dbfac8e7cf47a4f3f86b64545374e5b29e263351c30150c42881ebeda2",
+        "v13_development_holdout_audit_exit=0",
+        "v13_development_holdout_acceptance_audit_passed=True",
+        "v13_development_holdout_records_scope=validation_groups_only",
+        "v13_development_holdout_fallback_branch_only=True",
+        "v13_development_holdout_selection_rule=argmin_k score_k(w)",
+        "training_authorized_by_post_training_audits=False",
+        "replay_execution_authorized_by_post_training_audits=False",
+        "candidate_generation_authorized_by_post_training_audits=False",
+        "dp_modification_authorized_by_post_training_audits=False",
+        "selector_promotion_authorized_by_post_training_audits=False",
+        "deployable_checkpoint_claim_authorized_by_post_training_audits=False",
+        "safety_benefit_claim_authorized_by_post_training_audits=False",
+        "camp_over_dp_top1_claim_authorized_by_post_training_audits=False",
+    ]:
+        assert needle in text
+
+
+def test_v13_audit_records_current_result_boundary() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "current_v13_status=large_fixed_dp_candidate_collection_training_and_post_training_audits_complete",
+        "current_v13_artifact_scope=offline_nonpromotion_static_camp_reranker",
+        "production_selector_change_authorized=False",
+        "online_selector_change_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployable_checkpoint_claim_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_offline_nonpromotion_static_reranker_result_review_before_any_promotion_decision",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
