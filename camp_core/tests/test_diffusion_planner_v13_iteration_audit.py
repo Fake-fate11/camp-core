@@ -510,6 +510,62 @@ def test_v13_audit_implementation_plan_preserves_no_action_boundary() -> None:
         assert needle in text
 
 
+def test_v13_audit_records_default_off_shadow_selector_implementation_static_contract_review() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_default_off_shadow_selector_implementation_static_contract_review_status=dp_camp_v13_default_off_shadow_selector_implementation_static_contract_review_ready",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_default_off_shadow_selector_implementation_static_contract_review_8babbc0_418f952_20260627T184154CST",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_json_sha256=7d3e9c1dc032da3edaa08318b84981ca84a747f4d22e82c61e0be93403596662",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_md_sha256=5fc7f070d5e468729f7c05594f0181e960e2d4fd64f3f5ae6d74b5bb7c74f54d",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_script_sha256=88e9d683e9b7b7523990c7aa28dec931ae470fb6508659e75a0746b728f8d2ce",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_source_plan_sha256=f4d83e2ceb686910ad4f34b79609c545d15e0133ccc4708d8871d00483d9c25c",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_exit=0",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_execution_camp_head=418f952af2b1eebacb0478f6bf3a0f33fa419327",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_passed=True",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_failed_checks=[]",
+        "v13_shadow_selector_static_contract_review_status=review_ready_no_implementation",
+        "v13_shadow_selector_static_contract_review_runtime_effect=executed output remains DP top1 during shadow phase",
+        "v13_shadow_selector_static_contract_review_candidate_operation=fixed DP candidate reranking only",
+        "v13_shadow_selector_static_contract_review_score_expression=score_k(w)=a_k^T w",
+        "v13_shadow_selector_static_contract_review_contracts=default_off_flag_contract,immutable_artifact_hash_contract,fixed_candidate_tensor_contract,affine_benders_atom_score_contract,dp_top1_runtime_output_contract,fail_closed_observability_contract,no_promotion_no_claims_contract",
+        "v13_default_off_shadow_selector_implementation_static_contract_review_authorized_next_work=dp_camp_v13_default_off_shadow_selector_implementation_unit_tests_plan_only",
+        "v13_default_off_shadow_selector_implementation_unit_tests_plan_authorized=True",
+        "v13_default_off_shadow_selector_implementation_authorized_by_static_contract_review=False",
+    ]:
+        assert needle in text
+
+
+def test_v13_audit_implementation_static_contract_review_preserves_no_action_boundary() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_selector_promotion_authorized_by_implementation_static_contract_review=False",
+        "v13_atom_promotion_authorized_by_implementation_static_contract_review=False",
+        "v13_deployment_authorized_by_implementation_static_contract_review=False",
+        "v13_training_authorized_by_implementation_static_contract_review=False",
+        "v13_training_execution_authorized_by_implementation_static_contract_review=False",
+        "v13_replay_execution_authorized_by_implementation_static_contract_review=False",
+        "v13_candidate_generation_authorized_by_implementation_static_contract_review=False",
+        "v13_dp_modification_authorized_by_implementation_static_contract_review=False",
+        "v13_online_selector_change_authorized_by_implementation_static_contract_review=False",
+        "v13_production_selector_change_authorized_by_implementation_static_contract_review=False",
+        "v13_deployable_checkpoint_claim_authorized_by_implementation_static_contract_review=False",
+        "v13_safety_benefit_claim_authorized_by_implementation_static_contract_review=False",
+        "v13_camp_over_dp_top1_claim_authorized_by_implementation_static_contract_review=False",
+        "current_v13_status=default_off_shadow_selector_implementation_static_contract_review_complete",
+        "current_v13_next_scope=default_off_shadow_selector_implementation_unit_tests_plan_only",
+        "default_off_shadow_selector_implementation_authorized_by_current_boundary=False",
+        "training_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "candidate_generation_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_implementation_unit_tests_plan_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
