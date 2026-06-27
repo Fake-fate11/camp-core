@@ -605,3 +605,62 @@ def test_current_604ef71_nonpromotion_artifact_audit_is_pinned() -> None:
         "camp_over_dp_top1_claim_authorized=False",
     ]:
         assert needle in audit
+
+
+def test_current_ea06c770_manual_training_nonpromotion_artifact_audit_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    needles = [
+        "status=fallback_risk_static_camp_training_nonpromotion_artifact_audit_current_head_ea06c770_passed",
+        "training_commit=0867cc8b468320b7aaef94ce12e6272ca1d362c4",
+        "audit_execution_camp_head=ea06c77000b01839454bc759e5914b1016ff7805",
+        "autodl_CAMP_HEAD=ea06c77000b01839454bc759e5914b1016ff7805",
+        "autodl_CAMP_origin_main=ea06c77000b01839454bc759e5914b1016ff7805",
+        "autodl_DP_HEAD=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "training_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_manual_authorized_0867cc8b_20260627T092951CST",
+        "training_summary_json_sha256=ebcae6f710fe8f46387de7c383ca934ac28a22d48b2accc6ccb066f392c47246",
+        "offline_weights_json_sha256=6718721393726de47ff7137c6287821bade63dea5e66b9ae0fdff725bbb90896",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=a3815169bb734d1039df3527faa9961007a948d30ff757398d9c8b1bc1cef631",
+        "remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_0867cc8_ea06c770_20260627T093743CST",
+        "remote_audit_json_sha256=ad051d8ace4c71c9929eb73051581b14d7d7841b928dc0d9f44aa5c0409bd78a",
+        "remote_audit_md_sha256=73fcf13a777cbbae244e0aa61d41be9c8789477dcad26f929d5e4ef90a2b84e4",
+        "remote_audit_stdout_log_sha256=798df11d416c0c0e5fd4bd00b537391d5cf4d7f3008932dbb286f155e9a9ca38",
+        "remote_audit_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "remote_audit_exit=0",
+        "remote_summary_readback_passed=True",
+        "status=dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_complete",
+        "post_training_nonpromotion_artifact_audit_passed=True",
+        "training_artifacts_nonpromotion=True",
+        "fixed_dp_candidate_reranking_only=True",
+        "fallback_only_training_artifact=True",
+        "score_expression=score_k(w)=a_k^T w",
+        "training_summary_sha256_match=True",
+        "weights_json_sha256_match=True",
+        "weights_npy_sha256_match=True",
+        "atom_scales_json_sha256_match=True",
+        "weights_json_simplex_nonnegative=True",
+        "weights_npy_simplex_nonnegative=True",
+        "weights_json_matches_npy=True",
+        "atom_scales_strictly_positive=True",
+        "atom_schema_version=dp_camp_v10_14d",
+        "num_atoms=14",
+        "training_authorized=False",
+        "training_execution_authorized=False",
+        "camp_retraining_authorized_now=False",
+        "fallback_risk_training_authorized_now=False",
+        "candidate_generation_authorized=False",
+        "formal_seeds_11_12_13_authorized=False",
+        "dp_modification_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployable_checkpoint_claim_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "deployment_authorized=False",
+        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_development_holdout_acceptance_plan_only",
+    ]
+    for needle in needles:
+        assert needle in text
+        assert needle in audit
