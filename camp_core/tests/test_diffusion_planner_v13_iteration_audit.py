@@ -907,6 +907,61 @@ def test_v13_shadow_selector_materialization_plan_preserves_no_action_boundary()
         assert needle in text
 
 
+def test_v13_audit_records_shadow_selector_artifact_manifest_materialization_static_review() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_status=dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_8babbc0_cd58f2c_20260628T032524CST",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_json_sha256=563a719753ec7a998a0314d851a4f625bfefc9753d7d3665024ca5b54189cbcd",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_md_sha256=057c6c7b0fc3fde8a8ead8cf0d0f809f66bf37801dad6bf99b21270c4be5df32",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_script=scripts/integrations/review_diffusion_planner_dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract.py",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_script_sha256=586c462bc04365030780670234273712e60d85d002988be1d23211d421c856da",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_test=camp_core/tests/test_diffusion_planner_dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract.py",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_test_sha256=8c940bc6cbb97e4a537167127ee3375a93282355a1ab07217c587ffec4000c74",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_execution_camp_head=cd58f2c9af54375cada7350b6328ab14785182a9",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_planned_runtime_manifest_exists=False",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_passed=True",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_failed_checks=[]",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_local_pytest=93 passed in 1.03s",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_autodl_pytest=93 passed in 0.41s",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_authorized_next_work=dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_only",
+    ]:
+        assert needle in text
+
+
+def test_v13_shadow_selector_materialization_static_review_preserves_no_action_boundary() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_authorized=True",
+        "v13_default_off_shadow_selector_artifact_manifest_materialization_authorized=False",
+        "v13_default_off_shadow_selector_runtime_execution_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_selector_promotion_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_atom_promotion_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_deployment_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_replay_execution_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_candidate_generation_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_dp_modification_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_online_selector_change_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_safety_benefit_claim_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_camp_over_dp_top1_claim_authorized_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_training_authorization_changed_by_artifact_manifest_materialization_static_review=False",
+        "v13_default_off_shadow_selector_training_executed_by_artifact_manifest_materialization_static_review=False",
+        "current_v13_status=default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete",
+        "current_v13_next_scope=default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_only",
+        "artifact_manifest_materialization_implementation_plan_authorized=True",
+        "artifact_manifest_materialization_authorized=False",
+        "runtime_shadow_selector_execution_authorized=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "candidate_generation_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
