@@ -1,0 +1,199 @@
+# Diffusion Planner CAMP Integration V13 Audit
+
+Date: 2026-06-27
+
+This file is the current short-form audit entry point for the CAMP integration
+with the fixed TiERIV Diffusion Planner. It replaces v12 for new current-state
+writes because the user clarified that broader training data should come from
+more fixed-DP candidate-set generation, not from CAMP-generated or modified
+trajectories.
+
+## Current Authority
+
+```text
+current_authoritative_audit=docs/diffusion_planner_v13_iteration_audit.md
+previous_short_form_audit=docs/diffusion_planner_v12_iteration_audit.md
+older_short_form_audit=docs/diffusion_planner_v11_iteration_audit.md
+historical_audit=docs/diffusion_planner_v8_iteration_audit.md
+camp_local_head_at_v13_launch=7ee638bd53e2c5c75da0bbad75afaf750c7af2e7
+camp_origin_main_at_v13_launch=7ee638bd53e2c5c75da0bbad75afaf750c7af2e7
+github_refs_heads_main_at_v13_launch=7ee638bd53e2c5c75da0bbad75afaf750c7af2e7
+autodl_camp_head_at_v13_launch=8babbc0dd09cedda944130ce47688a9ba2b2efde
+autodl_camp_origin_main_at_v13_launch=8babbc0dd09cedda944130ce47688a9ba2b2efde
+autodl_camp_runner_head_intentionally_unchanged_while_v12_running=True
+required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_dp_head_at_v13_launch=7a1d33da277a1992ec474b5383a0c963c72e04e4
+autodl_camp_path=/root/autodl-tmp/camp_core
+autodl_dp_path=/root/autodl-tmp/Diffusion-Planner
+formal_seeds_11_12_13_frozen=True
+```
+
+## Data Definition And Authorization
+
+The training datum remains a current route/state tick plus the fixed DP
+candidate trajectory set for that tick. Expanding data means running the fixed
+black-box DP candidate generator on more nonformal route/seed/scenario
+combinations. CAMP still only ranks candidate indices by a linear score over
+current-tick candidate atoms.
+
+```text
+user_authorized_fixed_dp_candidate_generation_now=True
+user_authorized_camp_retraining_after_preflight=True
+training_data_unit=route_state_plus_fixed_dp_candidate_set
+dataset_expansion_axis=more_fixed_dp_candidate_sets
+num_candidates_per_set_kept_fixed=8
+dp_role=fixed_black_box_candidate_trajectory_generator
+camp_role=current_tick_fixed_candidate_reranker
+allowed_candidate_operation=argmin_k score_k(w)
+score_expression=score_k(w)=a_k^T w
+candidate_tensor_unchanged_required=True
+fixed_dp_candidate_generation_authorized=True
+camp_candidate_generation_authorized=False
+candidate_generation_by_camp_authorized=False
+trajectory_generation_by_camp_authorized=False
+trajectory_modification_by_camp_authorized=False
+reference_blend_authorized=False
+guidance_authorized=False
+postprocess_postselection_authorized=False
+dp_retraining_authorized=False
+dp_tuning_authorized=False
+dp_modification_authorized=False
+formal_seeds_11_12_13_authorized=False
+selector_promotion_authorized=False
+atom_promotion_authorized=False
+safety_benefit_claim_authorized=False
+camp_over_dp_top1_claim_authorized=False
+```
+
+## V12 Probe Scale Finding
+
+The v12 collection was still running when v13 was queued. A read-only scan of
+the completed v12 fixed-DP selection logs showed that fallback-risk training
+records are only the all-infeasible subset, so raw tick count is not equal to
+training record count.
+
+```text
+v12_probe_selection_logs=39
+v12_probe_records_total=3900
+v12_probe_records_without_feasible_candidate=133
+v12_probe_fallback_rate=0.034102564102564105
+v12_probe_candidate_counts=8
+v12_full_expected_records_total=12800
+v12_full_expected_fallback_records_approx=436
+v13_expected_records_total=51200
+v13_expected_fallback_records_approx=1746
+fallback_risk_training_records_scope=records_without_feasible_candidate_only
+```
+
+## Larger Fixed DP Candidate Collection Launch
+
+The v13 collection was launched as a queued serial AutoDL job. It waits for the
+v12 collection summary before starting so fixed-DP replay does not run
+concurrently with the existing v12 replay loop. The v13 pipeline was launched
+at the same time and waits for the v13 collection summary before building the
+dataset, validating contracts, splitting, fitting train-only scales, running
+the sufficiency preflight, and training the offline nonpromotion static CAMP
+artifact.
+
+```text
+candidate_collection_status=queued_waiting_for_v12_collection_summary_then_running
+candidate_collection_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_collection_8babbc0_20260627T115139CST
+candidate_collection_launcher=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_collection_8babbc0_20260627T115139CST/run_collection.sh
+candidate_collection_pid_file=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_collection_8babbc0_20260627T115139CST/pid.txt
+candidate_collection_pid=264149
+prior_collection_wait_dir=/root/autodl-tmp/camp_dp_v12_nonformal_k8_provenance_candidate_collection_8babbc0_20260627T113316CST
+pipeline_status=waiting_for_v13_collection_summary_then_training_authorized
+pipeline_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_fallback_risk_training_8babbc0_20260627T115139CST
+pipeline_launcher=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_fallback_risk_training_8babbc0_20260627T115139CST/run_post_collection_pipeline.sh
+pipeline_pid_file=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_fallback_risk_training_8babbc0_20260627T115139CST/pipeline.pid
+pipeline_pid=264150
+expected_replay_commands=512
+routes=sample_normal,sample_tl,nishi_release,nishi_lane_change
+seeds=301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,332
+max_npcs=0,4
+traffic_light_modes=on,off
+spawn_probability=0.3
+steps_per_replay=100
+num_candidates=8
+expected_records_total=51200
+candidate_noise_strategy=iid
+candidate_noise_scale=1.0
+advance_mode=perfect
+camp_selector_mode=uniform
+camp_fallback_mode=uniform
+camp_feasibility_source=dp_reward
+camp_reward_horizon_steps=30
+candidate_tensor_provenance_logging=True
+replay_png_rendering=False
+camp_training_executed_by_collection=False
+training_execution_authorized_after_collection_preflight=True
+training_epochs=400
+training_lr=0.05
+training_l2_reg=0.001
+training_risk_type=cvar
+training_alpha=0.8
+training_seed=23
+```
+
+## Candidate Collection Contract
+
+Every generated replay must remain inside the fixed-DP candidate contract. The
+collection is useful only if the resulting `collection_summary.json` confirms
+these values.
+
+```text
+must_validate_selection_log_count=512
+must_validate_records_total=51200
+must_validate_formal_seed_path_matches=0
+must_validate_candidate_counts=8
+must_validate_candidate_tensor_provenance_logging=True
+must_validate_provenance_payload_valid_records_equals_records_total=True
+must_validate_provenance_prepost_equal_records_equals_records_total=True
+must_validate_provenance_reference_blend_separated_records_equals_records_total=True
+must_validate_contract_unique_values=(8,False,None,False)
+must_validate_guidance_authorized=False
+must_validate_reference_blend_authorized=False
+must_validate_dp_modification_authorized=False
+must_validate_camp_candidate_generation_authorized=False
+must_validate_candidate_generation_by_camp_authorized=False
+must_validate_collection_camp_training_executed=False
+must_validate_selector_promotion_authorized=False
+must_validate_atom_promotion_authorized=False
+```
+
+## Mathematical Boundary
+
+```text
+atom_inputs=current_tick_finite_candidate_features_only
+atom_schema_version=dp_camp_v10_14d
+atom_count=14
+atoms_nonnegative_after_normalization=True
+simplex_master_convex=True
+cvar_master_convex=True
+l2_master_convex=True
+new_atoms_require_nonnegativity_or_signed_split_or_hinge_legality_proof=True
+closed_loop_outcome_online_input_authorized=False
+outcome_label_generation_authorized=False
+candidate_tensor_mutation_effect_allowed=False
+candidate_count_change_allowed=False
+no_candidate_row_append_required=True
+no_coordinate_heading_speed_rewrite_by_camp_required=True
+```
+
+## Next Work Target
+
+Monitor v12 and v13 until the queued v13 collection completes. Then verify the
+v13 collection summary, execute or inspect the v13 dataset/validator/split/
+scale/preflight/training chain, and run nonpromotion plus development-holdout
+acceptance audits before making any promotion, deployment, safety, or CAMP-over-
+DP claims.
+
+```text
+next_work_target=dp_camp_v13_large_nonformal_fixed_dp_candidate_collection_summary_training_and_nonpromotion_holdout_audits
+candidate_generation_running=True
+candidate_generation_by_fixed_dp_running=True
+candidate_generation_by_camp_running=False
+fallback_risk_training_queued_after_v13_collection_summary=True
+promotion_or_safety_claim_not_authorized=True
+formal_seeds_11_12_13_authorized=False
+```

@@ -161,3 +161,25 @@ camp_retraining_not_started_by_v12_launch_gate=True
 promotion_or_safety_claim_not_authorized=True
 formal_seeds_11_12_13_authorized=False
 ```
+
+## Superseded By V13
+
+New current-state writes now go to `docs/diffusion_planner_v13_iteration_audit.md`
+because the user clarified that the training data expansion should come from
+more fixed-DP candidate-set generation, at a scale large enough to yield
+hundreds to thousands of fallback-risk training records. The v12 collection is
+still valid as a running intermediate collection, but v13 is the current larger
+collection/training queue.
+
+```text
+superseded_by_current_authoritative_audit=docs/diffusion_planner_v13_iteration_audit.md
+v13_reason=larger_fixed_dp_candidate_set_collection_authorized_for_hundreds_to_thousands_fallback_records
+v13_candidate_collection_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_collection_8babbc0_20260627T115139CST
+v13_pipeline_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_fallback_risk_training_8babbc0_20260627T115139CST
+v13_expected_replay_commands=512
+v13_expected_records_total=51200
+v13_num_candidates_per_set=8
+candidate_generation_by_fixed_dp_authorized_in_v13=True
+candidate_generation_by_camp_authorized_in_v13=False
+formal_seeds_11_12_13_authorized_in_v13=False
+```
