@@ -2,15 +2,18 @@
 
 Date: 2026-06-27
 
-This file is the current short-form audit entry point for the CAMP integration
-with the fixed TiERIV Diffusion Planner. It replaces v9 for new current-state
-writes so the oversized v8 log and earlier short-form v9 record stay historical.
+This file is the previous short-form audit entry point for the CAMP integration
+with the fixed TiERIV Diffusion Planner. The current audit entry point is now
+`docs/diffusion_planner_v11_iteration_audit.md`. It replaced v9 for its own
+current-state writes so the oversized v8 log and earlier short-form v9 record
+stay historical.
 
 ## Current Authority
 
 ```text
-current_authoritative_audit=docs/diffusion_planner_v10_iteration_audit.md
-previous_short_form_audit=docs/diffusion_planner_v9_iteration_audit.md
+previous_authoritative_audit=docs/diffusion_planner_v10_iteration_audit.md
+current_authoritative_audit=docs/diffusion_planner_v11_iteration_audit.md
+prior_short_form_audit=docs/diffusion_planner_v9_iteration_audit.md
 historical_audit=docs/diffusion_planner_v8_iteration_audit.md
 camp_local_head_at_v10_audit_start=5dd89d5b1c2846d810e9dd7702d0ea5cb9c85afe
 camp_origin_main_at_v10_audit_start=5dd89d5b1c2846d810e9dd7702d0ea5cb9c85afe
