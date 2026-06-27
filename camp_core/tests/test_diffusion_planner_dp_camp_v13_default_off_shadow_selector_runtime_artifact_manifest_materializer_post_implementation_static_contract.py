@@ -106,8 +106,8 @@ if not enabled:
 materialization_plan_sha256_matches_expected
 output_path_matches_source_plan
 output_runtime_manifest_absent_before_write
-atom_scales_sha256_matches
-static_weights_sha256_matches
+_expect(f"{logical_name}_sha256_matches"
+("atom_scales", "static_weights")
 output_runtime_manifest_json.write_text
 dp_camp_v13_default_off_shadow_selector_runtime_v1
 fixed DP candidate reranking only
