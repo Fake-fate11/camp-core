@@ -346,6 +346,60 @@ def test_v13_audit_promotion_decision_plan_preserves_no_promotion_boundary() -> 
         assert needle in text
 
 
+def test_v13_audit_records_promotion_evidence_package_preflight() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_promotion_evidence_package_preflight_status=dp_camp_v13_promotion_evidence_package_preflight_ready",
+        "v13_promotion_evidence_package_preflight_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_promotion_evidence_package_preflight_8babbc0_c3a57b1_20260627T180636CST",
+        "v13_promotion_evidence_package_preflight_json_sha256=15d8f3ee9452625325e614cbd4161dc715dcaf6cc7931534e860cea096c59722",
+        "v13_promotion_evidence_package_preflight_md_sha256=f4027408ff2ccc19d7e122d23abfa8fcae5aa7317a8e118e567f5b74626c86c8",
+        "v13_promotion_evidence_package_preflight_script_sha256=29ecdf331cabec915e70c3c5b8da72dab619f5b4c8a4a2c38194f7ca0552cfb9",
+        "v13_promotion_evidence_package_preflight_source_plan_sha256=2ce44397b699d22a353e00ef5646e71b4e0345a3bc838dc5a58f375b22b768c8",
+        "v13_promotion_evidence_package_preflight_exit=0",
+        "v13_promotion_evidence_package_preflight_execution_camp_head=c3a57b1a512ce1ba77ae0ebae1996835f46b0c7c",
+        "v13_promotion_evidence_package_preflight_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_promotion_evidence_package_preflight_passed=True",
+        "v13_promotion_evidence_package_preflight_failed_checks=[]",
+        "v13_promotion_evidence_package_preflight_manifest_count=10",
+        "v13_immutable_artifact_manifest_ready=True",
+        "v13_static_integration_contract_pinned=True",
+        "v13_static_integration_contract_status=preflight_ready_contract_pinned",
+        "v13_default_off_shadow_selector_wiring_status=future_static_contract_plan_required_before_implementation",
+        "v13_promotion_evidence_package_authorized_next_work=dp_camp_v13_default_off_shadow_selector_static_integration_contract_plan_only",
+        "v13_default_off_shadow_selector_contract_plan_authorized=True",
+    ]:
+        assert needle in text
+
+
+def test_v13_audit_evidence_package_preflight_preserves_no_action_boundary() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_selector_promotion_authorized_by_evidence_package_preflight=False",
+        "v13_atom_promotion_authorized_by_evidence_package_preflight=False",
+        "v13_deployment_authorized_by_evidence_package_preflight=False",
+        "v13_training_authorized_by_evidence_package_preflight=False",
+        "v13_training_execution_authorized_by_evidence_package_preflight=False",
+        "v13_replay_execution_authorized_by_evidence_package_preflight=False",
+        "v13_candidate_generation_authorized_by_evidence_package_preflight=False",
+        "v13_dp_modification_authorized_by_evidence_package_preflight=False",
+        "v13_online_selector_change_authorized_by_evidence_package_preflight=False",
+        "v13_production_selector_change_authorized_by_evidence_package_preflight=False",
+        "v13_deployable_checkpoint_claim_authorized_by_evidence_package_preflight=False",
+        "v13_safety_benefit_claim_authorized_by_evidence_package_preflight=False",
+        "v13_camp_over_dp_top1_claim_authorized_by_evidence_package_preflight=False",
+        "current_v13_status=promotion_evidence_package_preflight_complete",
+        "current_v13_next_scope=default_off_shadow_selector_static_integration_contract_plan_only",
+        "training_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "candidate_generation_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_static_integration_contract_plan_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
