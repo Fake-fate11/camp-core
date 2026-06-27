@@ -421,6 +421,10 @@ def test_current_record_identity_nonpromotion_artifact_audit_is_pinned() -> None
         "remote_audit_stdout_log_sha256=798df11d416c0c0e5fd4bd00b537391d5cf4d7f3008932dbb286f155e9a9ca38",
         "remote_audit_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "remote_audit_exit=0",
+        "local_related_target_pytest=25 passed",
+        "autodl_temp_worktree=/root/autodl-tmp/camp_core_nonpromotion_artifact_audit_604ef71_verify_20260627T141500CST",
+        "autodl_related_target_pytest=25 passed",
+        "autodl_dp_head_verified=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "post_training_nonpromotion_artifact_audit_passed=True",
         "training_artifacts_nonpromotion=True",
         "weights_json_simplex_nonnegative=True",
@@ -553,6 +557,50 @@ def test_current_8471380_nonpromotion_artifact_audit_is_pinned() -> None:
         "status=fallback_risk_static_camp_training_nonpromotion_artifact_audit_current_head_8471380_passed",
         "remote_audit_json_sha256=0d34d9dd9309f69c914b87c5ef84cb49962d7787575ddde065f4171c8a058520",
         "weights_json_matches_npy=True",
+        "deployment_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+    ]:
+        assert needle in audit
+
+
+def test_current_604ef71_nonpromotion_artifact_audit_is_pinned() -> None:
+    text = RESULT_DOC.read_text(encoding="utf-8")
+    audit = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "training_commit=75dbff5316fd76b7fd842865249edbd7472fc0f5",
+        "audit_execution_camp_head=604ef7121f7d0b4c084b26146f2267e89ed0787b",
+        "training_summary_json_sha256=55d046173592f25e0935b8afbec1c41b81dca589c962eda6e6f8f8119abf9100",
+        "offline_weights_json_sha256=6718721393726de47ff7137c6287821bade63dea5e66b9ae0fdff725bbb90896",
+        "offline_weights_npy_sha256=4a7d4e363822afdca2aafad2f138e77c51f00e7a14216e431193cdad66828b40",
+        "atom_scales_json_sha256=a3815169bb734d1039df3527faa9961007a948d30ff757398d9c8b1bc1cef631",
+        "remote_audit_output_dir=/root/autodl-tmp/camp_dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_75dbff5_604ef71_20260627T140000CST",
+        "remote_audit_json_sha256=ca4dc5107c317232d3e2ad2c7941d6d93b42fec31df376a4278127c9bbfb0cba",
+        "remote_audit_md_sha256=9a80e160dd121900e7bbdf5f8aff3a2359383a7a9aa72d51ad8b68be60a7e007",
+        "remote_audit_stdout_log_sha256=798df11d416c0c0e5fd4bd00b537391d5cf4d7f3008932dbb286f155e9a9ca38",
+        "remote_audit_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "remote_audit_exit=0",
+        "post_training_nonpromotion_artifact_audit_passed=True",
+        "training_artifacts_nonpromotion=True",
+        "weights_json_simplex_nonnegative=True",
+        "weights_npy_simplex_nonnegative=True",
+        "weights_json_matches_npy=True",
+        "training_authorized=False",
+        "training_execution_authorized=False",
+        "camp_retraining_authorized_now=False",
+        "fallback_risk_training_authorized_now=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "status=fallback_risk_static_camp_training_nonpromotion_artifact_audit_current_head_604ef71_passed",
+        "remote_audit_json_sha256=ca4dc5107c317232d3e2ad2c7941d6d93b42fec31df376a4278127c9bbfb0cba",
+        "weights_json_matches_npy=True",
+        "autodl_temp_worktree=/root/autodl-tmp/camp_core_nonpromotion_artifact_audit_604ef71_verify_20260627T141500CST",
+        "autodl_related_target_pytest=25 passed",
         "deployment_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
     ]:
