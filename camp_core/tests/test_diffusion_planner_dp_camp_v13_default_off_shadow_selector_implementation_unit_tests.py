@@ -3,10 +3,18 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
 import pytest
+
+from scripts.integrations.run_diffusion_planner_camp_replay import (
+    DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+    _default_off_shadow_selector_contract,
+    _summarize_default_off_shadow_selector_records,
+    _validate_args,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -51,6 +59,35 @@ def _base_artifacts(weights: np.ndarray | None = None) -> _Artifacts:
         weights = np.array([0.5, 0.25, 0.25], dtype=np.float64)
     digest = _sha256_array(weights)
     return _Artifacts(weights=weights, expected_hash=digest, actual_hash=digest)
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _shadow_args(
+    *,
+    enabled: bool = True,
+    atom_scales: Path | None = None,
+    static_weights: Path | None = None,
+    atom_scales_sha256: str | None = None,
+    static_weights_sha256: str | None = None,
+    manifest: Path | None = None,
+    selector_mode: str = "static",
+    num_candidates: int = EXPECTED_K,
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        camp_default_off_shadow_selector=enabled,
+        camp_selector_mode=selector_mode,
+        num_candidates=num_candidates,
+        camp_shadow_artifact_manifest=manifest,
+        camp_atom_scales=atom_scales,
+        camp_static_weights=static_weights,
+        camp_checkpoint=None,
+        camp_shadow_expected_atom_scales_sha256=atom_scales_sha256,
+        camp_shadow_expected_static_weights_sha256=static_weights_sha256,
+        camp_shadow_expected_checkpoint_sha256=None,
+    )
 
 
 def _fail_closed(
@@ -275,6 +312,161 @@ def test_formal_seed_boundary_rejects_frozen_seeds_without_selection() -> None:
         np.testing.assert_allclose(result["executed_trajectory"], candidates[0])
 
 
+def test_runner_shadow_contract_disabled_does_not_read_missing_artifacts() -> None:
+    contract = _default_off_shadow_selector_contract(
+        _shadow_args(
+            enabled=False,
+            atom_scales=Path("missing-scales.json"),
+            static_weights=Path("missing-weights.npy"),
+        )
+    )
+
+    assert contract["schema_version"] == DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION
+    assert contract["enabled"] is False
+    assert contract["ready"] is False
+    assert contract["failed_closed_reason"] == "disabled"
+    assert contract["artifacts"] == {}
+
+
+@pytest.mark.parametrize(
+    ("flag_name", "flag_value"),
+    [
+        ("camp_perfect_tracker_command_postselection", True),
+        ("camp_traffic_light_hybrid_postselection", "budgeted"),
+        ("camp_underprogress_relaxation", True),
+        ("camp_splice_shadow_rule", True),
+    ],
+)
+def test_runner_shadow_selector_rejects_execution_changing_flags(
+    flag_name: str,
+    flag_value: bool | str,
+) -> None:
+    args = SimpleNamespace(
+        camp_default_off_shadow_selector=True,
+        camp_perfect_tracker_command_postselection=False,
+        camp_traffic_light_hybrid_postselection="off",
+        camp_underprogress_relaxation=False,
+        camp_splice_shadow_rule=False,
+    )
+    setattr(args, flag_name, flag_value)
+
+    with pytest.raises(ValueError, match="shadow execution must remain DP Top-1"):
+        _validate_args(args)
+
+
+def test_runner_shadow_contract_missing_artifacts_fail_closed() -> None:
+    contract = _default_off_shadow_selector_contract(
+        _shadow_args(
+            atom_scales=Path("missing-scales.json"),
+            static_weights=Path("missing-weights.npy"),
+        )
+    )
+
+    assert contract["enabled"] is True
+    assert contract["ready"] is False
+    assert contract["fail_closed"] is True
+    assert contract["failed_closed_reason"] == "atom_scales_missing"
+    assert "static_weights_missing" in contract["failed_checks"]
+
+
+def test_runner_shadow_contract_rejects_hash_mismatch(tmp_path: Path) -> None:
+    scales = tmp_path / "scales.json"
+    weights = tmp_path / "weights.npy"
+    scales.write_text('{"scales": [1.0, 2.0, 3.0]}', encoding="utf-8")
+    np.save(weights, np.array([0.2, 0.3, 0.5], dtype=np.float64))
+
+    contract = _default_off_shadow_selector_contract(
+        _shadow_args(
+            atom_scales=scales,
+            static_weights=weights,
+            atom_scales_sha256="0" * 64,
+            static_weights_sha256=_sha256_file(weights),
+        )
+    )
+
+    assert contract["ready"] is False
+    assert contract["failed_closed_reason"] == "atom_scales_hash_mismatch"
+    assert contract["artifacts"]["atom_scales"]["hash_match"] is False
+
+
+def test_runner_shadow_contract_accepts_clean_hash_manifest(tmp_path: Path) -> None:
+    scales = tmp_path / "scales.json"
+    weights = tmp_path / "weights.npy"
+    manifest = tmp_path / "manifest.json"
+    scales.write_text('{"scales": [1.0, 2.0, 3.0]}', encoding="utf-8")
+    np.save(weights, np.array([0.2, 0.3, 0.5], dtype=np.float64))
+    manifest.write_text(
+        (
+            '{"artifacts": {'
+            f'"atom_scales": {{"sha256": "{_sha256_file(scales)}"}}, '
+            f'"static_weights": {{"sha256": "{_sha256_file(weights)}"}}'
+            "}}"
+        ),
+        encoding="utf-8",
+    )
+
+    contract = _default_off_shadow_selector_contract(
+        _shadow_args(
+            atom_scales=scales,
+            static_weights=weights,
+            manifest=manifest,
+        )
+    )
+
+    assert contract["ready"] is True
+    assert contract["fail_closed"] is False
+    assert contract["failed_closed_reason"] is None
+    assert contract["artifacts"]["atom_scales"]["hash_match"] is True
+    assert contract["artifacts"]["static_weights"]["hash_match"] is True
+
+
+def test_runner_shadow_summary_records_dp_top1_execution() -> None:
+    artifact_contract = {
+        "ready": True,
+        "failed_closed_reason": None,
+        "failed_checks": [],
+    }
+    records = [
+        {
+            "selected_index": 0,
+            "default_off_shadow_selector": {"shadow_selected_index": 3},
+        },
+        {
+            "selected_index": 0,
+            "default_off_shadow_selector": {"shadow_selected_index": 0},
+        },
+    ]
+
+    summary = _summarize_default_off_shadow_selector_records(
+        records,
+        enabled=True,
+        artifact_contract=artifact_contract,
+    )
+
+    assert summary["enabled"] is True
+    assert summary["selection_effect"] is False
+    assert summary["executed_top1_all"] is True
+    assert summary["shadow_selection_logged_records"] == 2
+    assert summary["shadow_selected_index_counts"] == {"0": 1, "3": 1}
+    assert summary["nonzero_shadow_selection_count"] == 1
+
+
+def test_runner_shadow_summary_fail_closed_without_records() -> None:
+    summary = _summarize_default_off_shadow_selector_records(
+        None,
+        enabled=True,
+        artifact_contract={
+            "ready": False,
+            "failed_closed_reason": "artifact_hash_mismatch",
+        },
+    )
+
+    assert summary["fail_closed"] is True
+    assert summary["failed_closed_reason"] == "artifact_hash_mismatch"
+    assert summary["records"] == 0
+    assert summary["executed_top1_all"] is True
+
+
 def test_current_static_source_surfaces_preserve_rerank_boundary() -> None:
     integration = (
         REPO_ROOT / "camp_core" / "camp_core" / "integrations" / "diffusion_planner.py"
@@ -296,8 +488,10 @@ def test_current_static_source_surfaces_preserve_rerank_boundary() -> None:
 
     for needle in [
         "--camp_selector_mode",
+        "--camp_default_off_shadow_selector",
         '"top1"',
         "_dp_camp_finite_candidate_contract",
+        "camp_default_off_shadow_selector",
     ]:
         assert needle in runner
 

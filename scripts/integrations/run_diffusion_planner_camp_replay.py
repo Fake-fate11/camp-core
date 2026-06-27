@@ -136,6 +136,10 @@ CANDIDATE_TENSOR_PROVENANCE_PRE_SCORING_STAGE = (
 CANDIDATE_TENSOR_PROVENANCE_POST_SELECTOR_STAGE = (
     "post_camp_selector_candidate_tensor_reference"
 )
+DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION = (
+    "dp_camp_v13_default_off_shadow_selector_runtime_v1"
+)
+DEFAULT_OFF_SHADOW_SELECTOR_EXPECTED_K = 8
 TRAFFIC_LIGHT_HYBRID_POSTSELECTION_BUDGETS = {
     "step_h10_guard_005": {
         "first_step_loss_m": 0.10,
@@ -490,6 +494,41 @@ def parse_args() -> argparse.Namespace:
             "and byte hashes before CAMP scoring and after selector return. "
             "This must not change candidate generation, scoring, or selection."
         ),
+    )
+    parser.add_argument(
+        "--camp_default_off_shadow_selector",
+        action="store_true",
+        help=(
+            "Compute and log the v13 CAMP static reranker as a default-off "
+            "shadow selector. The executed trajectory stays Diffusion Planner "
+            "candidate 0; missing artifacts, hash mismatch, K drift, or invalid "
+            "selector setup fail closed before selector execution."
+        ),
+    )
+    parser.add_argument(
+        "--camp_shadow_artifact_manifest",
+        type=Path,
+        default=None,
+        help=(
+            "Optional JSON manifest containing expected sha256 values for "
+            "shadow selector artifacts. Explicit expected-hash flags override "
+            "manifest entries."
+        ),
+    )
+    parser.add_argument(
+        "--camp_shadow_expected_atom_scales_sha256",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--camp_shadow_expected_static_weights_sha256",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--camp_shadow_expected_checkpoint_sha256",
+        type=str,
+        default=None,
     )
     parser.add_argument("--camp_outcome_horizon_steps", type=int, default=30)
     parser.add_argument("--camp_outcome_progress_weight", type=float, default=1.0)
@@ -935,12 +974,36 @@ def _validate_paper_faithful_boundary(args: argparse.Namespace) -> None:
 
 
 def _validate_args(args: argparse.Namespace) -> None:
+    shadow_selector = bool(args.camp_default_off_shadow_selector)
+    if shadow_selector:
+        incompatible_shadow_flags = [
+            (
+                "--camp_perfect_tracker_command_postselection",
+                args.camp_perfect_tracker_command_postselection,
+            ),
+            (
+                "--camp_traffic_light_hybrid_postselection",
+                args.camp_traffic_light_hybrid_postselection != "off",
+            ),
+            ("--camp_underprogress_relaxation", args.camp_underprogress_relaxation),
+            ("--camp_splice_shadow_rule", args.camp_splice_shadow_rule),
+        ]
+        for flag, enabled in incompatible_shadow_flags:
+            if enabled:
+                raise ValueError(
+                    "--camp_default_off_shadow_selector cannot be combined with "
+                    f"{flag}; shadow execution must remain DP Top-1."
+                )
     _validate_paper_faithful_boundary(args)
-    if args.camp_selector_mode != "top1" and args.camp_atom_scales is None:
+    if (
+        args.camp_selector_mode != "top1"
+        and args.camp_atom_scales is None
+        and not shadow_selector
+    ):
         raise ValueError(
             "--camp_atom_scales is required for uniform/static/linear CAMP modes."
         )
-    if args.camp_selector_mode == "static" and (
+    if args.camp_selector_mode == "static" and not shadow_selector and (
         args.camp_checkpoint is None and args.camp_static_weights is None
     ):
         raise ValueError(
@@ -963,7 +1026,11 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError(
             "Dedicated fallback artifacts require --camp_fallback_mode learned."
         )
-    if args.camp_selector_mode != "top1" and args.num_candidates < 2:
+    if (
+        args.camp_selector_mode != "top1"
+        and args.num_candidates < 2
+        and not shadow_selector
+    ):
         raise ValueError("--num_candidates must be >= 2 for CAMP candidate selection.")
     if args.candidate_noise_scale <= 0:
         raise ValueError("--candidate_noise_scale must be > 0.")
@@ -1405,6 +1472,200 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _normalize_sha256(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip().lower()
+    if len(text) == 64 and all(ch in "0123456789abcdef" for ch in text):
+        return text
+    return None
+
+
+def _load_shadow_artifact_manifest(path: Path | None) -> tuple[dict[str, Any], str | None]:
+    if path is None:
+        return {}, None
+    if not path.is_file():
+        return {}, "artifact_manifest_missing"
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}, "artifact_manifest_unreadable"
+    if not isinstance(loaded, dict):
+        return {}, "artifact_manifest_not_object"
+    return loaded, None
+
+
+def _manifest_expected_sha256(
+    manifest: dict[str, Any],
+    logical_name: str,
+    path: Path,
+) -> str | None:
+    lookup_keys = (logical_name, str(path), path.name)
+    artifacts = manifest.get("artifacts")
+    if isinstance(artifacts, dict):
+        for key in lookup_keys:
+            entry = artifacts.get(key)
+            if isinstance(entry, dict):
+                value = _normalize_sha256(
+                    entry.get("sha256")
+                    or entry.get("sha256_hex")
+                    or entry.get("hash")
+                )
+                if value is not None:
+                    return value
+            value = _normalize_sha256(entry)
+            if value is not None:
+                return value
+    hashes = manifest.get("sha256")
+    if isinstance(hashes, dict):
+        for key in lookup_keys:
+            value = _normalize_sha256(hashes.get(key))
+            if value is not None:
+                return value
+    for key in lookup_keys:
+        value = _normalize_sha256(manifest.get(key))
+        if value is not None:
+            return value
+    return None
+
+
+def _shadow_artifact_entry(
+    *,
+    logical_name: str,
+    path: Path | None,
+    expected_sha256: str | None,
+    manifest: dict[str, Any],
+) -> tuple[dict[str, Any], list[str]]:
+    checks: list[str] = []
+    entry: dict[str, Any] = {
+        "logical_name": logical_name,
+        "path": str(path) if path is not None else None,
+        "expected_sha256": None,
+        "actual_sha256": None,
+        "hash_match": False,
+        "exists": False,
+    }
+    if path is None:
+        checks.append(f"{logical_name}_missing")
+        return entry, checks
+    entry["exists"] = path.is_file()
+    if not path.is_file():
+        checks.append(f"{logical_name}_missing")
+        return entry, checks
+    expected = _normalize_sha256(expected_sha256) or _manifest_expected_sha256(
+        manifest,
+        logical_name,
+        path,
+    )
+    entry["expected_sha256"] = expected
+    if expected is None:
+        checks.append(f"{logical_name}_expected_hash_missing")
+    actual = _sha256_file(path).lower()
+    entry["actual_sha256"] = actual
+    entry["hash_match"] = expected == actual if expected is not None else False
+    if expected is not None and expected != actual:
+        checks.append(f"{logical_name}_hash_mismatch")
+    return entry, checks
+
+
+def _default_off_shadow_selector_contract(args: argparse.Namespace) -> dict[str, Any]:
+    enabled = bool(args.camp_default_off_shadow_selector)
+    contract: dict[str, Any] = {
+        "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+        "enabled": enabled,
+        "default_off": True,
+        "selection_effect": False,
+        "candidate_operation": "fixed DP candidate reranking only",
+        "executed_output_policy": "dp_top1",
+        "score_expression": "score_k(w)=a_k^T w",
+        "required_candidate_count": DEFAULT_OFF_SHADOW_SELECTOR_EXPECTED_K,
+        "selector_mode": str(args.camp_selector_mode),
+        "ready": False,
+        "fail_closed": enabled,
+        "failed_closed_reason": "disabled" if not enabled else None,
+        "failed_checks": [],
+        "manifest_path": (
+            str(args.camp_shadow_artifact_manifest)
+            if args.camp_shadow_artifact_manifest is not None
+            else None
+        ),
+        "manifest_sha256": None,
+        "artifacts": {},
+    }
+    if not enabled:
+        return contract
+
+    failed_checks: list[str] = []
+    if args.camp_selector_mode != "static":
+        failed_checks.append("selector_mode_not_static")
+    if int(args.num_candidates) != DEFAULT_OFF_SHADOW_SELECTOR_EXPECTED_K:
+        failed_checks.append("candidate_count_drift")
+
+    manifest, manifest_error = _load_shadow_artifact_manifest(
+        args.camp_shadow_artifact_manifest
+    )
+    if manifest_error is not None:
+        failed_checks.append(manifest_error)
+    elif args.camp_shadow_artifact_manifest is not None:
+        contract["manifest_sha256"] = _sha256_file(args.camp_shadow_artifact_manifest)
+
+    artifacts: dict[str, Any] = {}
+    atom_entry, atom_checks = _shadow_artifact_entry(
+        logical_name="atom_scales",
+        path=args.camp_atom_scales,
+        expected_sha256=args.camp_shadow_expected_atom_scales_sha256,
+        manifest=manifest,
+    )
+    artifacts["atom_scales"] = atom_entry
+    failed_checks.extend(atom_checks)
+
+    if args.camp_static_weights is not None:
+        weights_entry, weight_checks = _shadow_artifact_entry(
+            logical_name="static_weights",
+            path=args.camp_static_weights,
+            expected_sha256=args.camp_shadow_expected_static_weights_sha256,
+            manifest=manifest,
+        )
+        artifacts["static_weights"] = weights_entry
+        failed_checks.extend(weight_checks)
+    elif args.camp_checkpoint is not None:
+        checkpoint_entry, checkpoint_checks = _shadow_artifact_entry(
+            logical_name="checkpoint",
+            path=args.camp_checkpoint,
+            expected_sha256=args.camp_shadow_expected_checkpoint_sha256,
+            manifest=manifest,
+        )
+        artifacts["checkpoint"] = checkpoint_entry
+        failed_checks.extend(checkpoint_checks)
+    else:
+        failed_checks.append("selector_weights_missing")
+
+    contract["artifacts"] = artifacts
+    contract["failed_checks"] = failed_checks
+    contract["ready"] = not failed_checks
+    contract["fail_closed"] = bool(failed_checks)
+    contract["failed_closed_reason"] = failed_checks[0] if failed_checks else None
+    return contract
+
+
+def _mark_shadow_selector_fail_closed(
+    contract: dict[str, Any],
+    reason: str,
+    error: str | None = None,
+) -> dict[str, Any]:
+    updated = dict(contract)
+    failed = list(updated.get("failed_checks") or [])
+    if reason not in failed:
+        failed.append(reason)
+    updated["ready"] = False
+    updated["fail_closed"] = True
+    updated["failed_checks"] = failed
+    updated["failed_closed_reason"] = reason
+    if error is not None:
+        updated["error"] = error
+    return updated
 
 
 def _ego_frame_xy(world_xy: np.ndarray, ego_xy: np.ndarray, ego_heading: float) -> np.ndarray:
@@ -4157,6 +4418,84 @@ def _summarize_candidate_tensor_provenance_records(
     }
 
 
+def _summarize_default_off_shadow_selector_records(
+    records: list[dict[str, Any]] | None,
+    *,
+    enabled: bool,
+    artifact_contract: dict[str, Any],
+) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+        "enabled": bool(enabled),
+        "default_off": True,
+        "selection_effect": False,
+        "online_selector_change": False,
+        "candidate_operation": "fixed DP candidate reranking only",
+        "executed_output_policy": "dp_top1",
+        "score_expression": "score_k(w)=a_k^T w",
+        "artifact_contract": artifact_contract,
+    }
+    if not enabled:
+        summary.update(
+            {
+                "ready": False,
+                "fail_closed": False,
+                "failed_closed_reason": "disabled",
+                "records": 0,
+                "shadow_selection_logged_records": 0,
+                "executed_top1_all": True,
+            }
+        )
+        return summary
+    if records is None:
+        summary.update(
+            {
+                "ready": False,
+                "fail_closed": True,
+                "failed_closed_reason": artifact_contract.get(
+                    "failed_closed_reason",
+                    "shadow_selector_not_installed",
+                ),
+                "records": 0,
+                "shadow_selection_logged_records": 0,
+                "executed_top1_all": True,
+            }
+        )
+        return summary
+
+    payloads = [
+        record.get("default_off_shadow_selector")
+        for record in records
+        if record.get("default_off_shadow_selector") is not None
+    ]
+    executed_indices = [int(record.get("selected_index", -1)) for record in records]
+    shadow_indices = [
+        int(payload["shadow_selected_index"])
+        for payload in payloads
+        if payload.get("shadow_selected_index") is not None
+    ]
+    summary.update(
+        {
+            "ready": bool(artifact_contract.get("ready")),
+            "fail_closed": False,
+            "failed_closed_reason": None,
+            "records": int(len(records)),
+            "shadow_selection_logged_records": int(len(payloads)),
+            "all_shadow_payloads_present": len(payloads) == len(records),
+            "executed_top1_all": all(index == 0 for index in executed_indices),
+            "shadow_selected_index_counts": {
+                str(index): shadow_indices.count(index)
+                for index in sorted(set(shadow_indices))
+            },
+            "nonzero_shadow_selection_count": int(
+                sum(index != 0 for index in shadow_indices)
+            ),
+            "shadow_scores_routed_to_execution": False,
+        }
+    )
+    return summary
+
+
 def _install_camp_predictor(
     replay_module: Any,
     tensor_converter_module: Any,
@@ -4230,6 +4569,8 @@ def _install_camp_predictor(
     candidate_set_consensus_payload_logging: bool,
     candidate_set_consensus_payload_steps: int,
     candidate_tensor_provenance_logging: bool,
+    default_off_shadow_selector: bool,
+    default_off_shadow_selector_contract: dict[str, Any],
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -4900,7 +5241,37 @@ def _install_camp_predictor(
             )
         underprogress_relaxation_done = time.perf_counter()
         baseline_selected_index = int(selection.selected_index)
-        selected_index = baseline_selected_index
+        shadow_selected_index = (
+            baseline_selected_index if default_off_shadow_selector else None
+        )
+        selected_index = 0 if default_off_shadow_selector else baseline_selected_index
+        default_off_shadow_selector_record = None
+        if default_off_shadow_selector:
+            default_off_shadow_selector_record = {
+                "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+                "enabled": True,
+                "default_off": True,
+                "selection_effect": False,
+                "online_selector_change": False,
+                "candidate_operation": "fixed DP candidate reranking only",
+                "score_expression": "score_k(w)=a_k^T w",
+                "executed_index": int(selected_index),
+                "executed_output_policy": "dp_top1",
+                "shadow_selected_index": int(shadow_selected_index),
+                "failed_closed_reason": None,
+                "artifact_contract_ready": bool(
+                    default_off_shadow_selector_contract.get("ready")
+                ),
+                "candidate_tensor_hash": _candidate_tensor_hash_payload(
+                    candidates,
+                    stage="default_off_shadow_selector_fixed_candidate_tensor",
+                ),
+                "math_boundary": (
+                    "Shadow CAMP scores are logged only; the executed trajectory "
+                    "remains DP candidate 0. Scores remain affine in weights: "
+                    "score_k(w)=a_k^T w."
+                ),
+            }
         splice_shadow_rule_stats = None
         if splice_shadow_rule:
             if (
@@ -5179,6 +5550,9 @@ def _install_camp_predictor(
             {
                 "selection_step": len(records),
                 "selected_index": selected_index,
+                "executed_index": selected_index,
+                "shadow_selected_index": shadow_selected_index,
+                "default_off_shadow_selector": default_off_shadow_selector_record,
                 "camp_selected_index_before_tracker_postselection": (
                     baseline_selected_index
                     if perfect_tracker_command_postselection
@@ -5512,7 +5886,23 @@ def main() -> None:
         if args.reward_config is not None
         else None
     )
-    selector = _build_selector(args)
+    default_off_shadow_selector_contract = _default_off_shadow_selector_contract(args)
+    if args.camp_default_off_shadow_selector and not bool(
+        default_off_shadow_selector_contract.get("ready")
+    ):
+        selector = None
+    else:
+        try:
+            selector = _build_selector(args)
+        except (OSError, ValueError, RuntimeError) as exc:
+            if not args.camp_default_off_shadow_selector:
+                raise
+            default_off_shadow_selector_contract = _mark_shadow_selector_fail_closed(
+                default_off_shadow_selector_contract,
+                "selector_artifact_load_failed",
+                error=str(exc),
+            )
+            selector = None
     records: list[dict[str, Any]] | None = None
     metric_records: list[dict[str, Any]] = []
     evaluation_records: list[dict[str, Any]] = []
@@ -5671,6 +6061,10 @@ def main() -> None:
             ),
             candidate_tensor_provenance_logging=bool(
                 args.camp_candidate_tensor_provenance_logging
+            ),
+            default_off_shadow_selector=bool(args.camp_default_off_shadow_selector),
+            default_off_shadow_selector_contract=(
+                default_off_shadow_selector_contract
             ),
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
@@ -5897,6 +6291,13 @@ def main() -> None:
     camp_candidate_tensor_provenance = _summarize_candidate_tensor_provenance_records(
         records,
         enabled=bool(args.camp_candidate_tensor_provenance_logging),
+    )
+    camp_default_off_shadow_selector = (
+        _summarize_default_off_shadow_selector_records(
+            records,
+            enabled=bool(args.camp_default_off_shadow_selector),
+            artifact_contract=default_off_shadow_selector_contract,
+        )
     )
     camp_observable_state_logging = (
         {
@@ -6791,6 +7192,7 @@ def main() -> None:
         ),
         "camp_raw_candidate_prefix_logging": camp_raw_candidate_prefix_logging,
         "camp_candidate_tensor_provenance": camp_candidate_tensor_provenance,
+        "camp_default_off_shadow_selector": camp_default_off_shadow_selector,
         "camp_observable_state_logging": camp_observable_state_logging,
         "camp_red_route_vector_logging": camp_red_route_vector_logging,
         "camp_progress_support_logging": camp_progress_support_logging,
@@ -7106,6 +7508,7 @@ def main() -> None:
     validation["camp_candidate_tensor_provenance"] = (
         camp_candidate_tensor_provenance
     )
+    validation["camp_default_off_shadow_selector"] = camp_default_off_shadow_selector
     validation["camp_observable_state_logging"] = camp_observable_state_logging
     validation["camp_red_route_vector_logging"] = camp_red_route_vector_logging
     validation["camp_progress_support_logging"] = camp_progress_support_logging
