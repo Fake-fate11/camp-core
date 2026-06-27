@@ -7,11 +7,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 AUDIT_DOC = REPO_ROOT / "docs" / "diffusion_planner_v9_iteration_audit.md"
 
 
-def test_v9_audit_is_current_short_form_authority() -> None:
+def test_v9_audit_is_previous_short_form_authority() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
 
     for needle in [
-        "current_authoritative_audit=docs/diffusion_planner_v9_iteration_audit.md",
+        "previous_authoritative_audit=docs/diffusion_planner_v9_iteration_audit.md",
+        "current_authoritative_audit=docs/diffusion_planner_v10_iteration_audit.md",
         "historical_audit=docs/diffusion_planner_v8_iteration_audit.md",
         "handoff_base_camp_head=2b4d76c78e72b681675a837e5f36ba2c18efe5ef",
         "required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
