@@ -241,6 +241,60 @@ def test_v13_audit_records_current_result_boundary() -> None:
         assert needle in text
 
 
+def test_v13_audit_records_result_review_before_promotion_decision() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_result_review_status=dp_camp_v13_offline_nonpromotion_static_reranker_result_review_ready",
+        "v13_result_review_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_offline_nonpromotion_static_reranker_result_review_8babbc0_378adc3_20260627T165838CST",
+        "v13_result_review_schema_version=dp_camp_v13_offline_nonpromotion_static_reranker_result_review_v1",
+        "v13_result_review_json_sha256=dd3f2ab6c94ab9535710dc7dc848d560d29ebec99878fe2c8f4b9658651eac50",
+        "v13_result_review_md_sha256=17366f66a15abfbf25ad3265ab16d9d8c2b47811cbf70df8bcd91c17e16df1e5",
+        "v13_result_review_exit=0",
+        "v13_result_review_execution_camp_head=378adc3518490f9b8ebdecfde0d7ee7b557d986a",
+        "v13_result_review_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_result_review_passed=True",
+        "v13_result_review_failed_checks=[]",
+        "v13_result_review_records_total=51200",
+        "v13_result_review_records_without_feasible_candidate=14058",
+        "v13_result_review_training_records=11262",
+        "v13_result_review_validation_records=2796",
+        "v13_result_review_num_candidates=8",
+        "v13_result_review_num_atoms=14",
+        "v13_result_review_atom_schema_version=dp_camp_v10_14d",
+        "v13_result_review_score_expression=score_k(w)=a_k^T w",
+        "v13_result_review_ready=True",
+        "v13_result_review_authorized_next_work=dp_camp_v13_promotion_decision_plan_only_after_explicit_user_authorization",
+    ]:
+        assert needle in text
+
+
+def test_v13_audit_result_review_does_not_authorize_promotion_or_claims() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_promotion_decision_plan_authorized_by_result_review=True",
+        "v13_selector_promotion_authorized_by_result_review=False",
+        "v13_atom_promotion_authorized_by_result_review=False",
+        "v13_deployment_authorized_by_result_review=False",
+        "v13_training_authorized_by_result_review=False",
+        "v13_training_execution_authorized_by_result_review=False",
+        "v13_replay_execution_authorized_by_result_review=False",
+        "v13_candidate_generation_authorized_by_result_review=False",
+        "v13_dp_modification_authorized_by_result_review=False",
+        "v13_deployable_checkpoint_claim_authorized_by_result_review=False",
+        "v13_safety_benefit_claim_authorized_by_result_review=False",
+        "v13_camp_over_dp_top1_claim_authorized_by_result_review=False",
+        "current_v13_status=offline_nonpromotion_static_reranker_result_review_complete",
+        "training_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "candidate_generation_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_promotion_decision_plan_only_after_explicit_user_authorization",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
