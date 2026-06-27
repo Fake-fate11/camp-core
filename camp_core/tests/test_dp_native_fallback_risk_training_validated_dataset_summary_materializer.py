@@ -253,8 +253,46 @@ def test_materializer_writes_preflight_compatible_summary(tmp_path: Path) -> Non
     assert summary["training_sufficiency_claim"] is False
     assert summary["deployable_checkpoint_claim"] is False
     assert summary["source_validator_output_sha256"] == validator_sha
-    assert preflight["final_decision"]["errors"] == ["validated_dataset_sha_mismatch"]
+    assert preflight["final_decision"]["errors"] == []
     assert "training_sufficiency_preflight_executed=False" in output_md.read_text(encoding="utf-8")
+
+
+def test_materializer_accepts_expanded_validated_record_count(tmp_path: Path) -> None:
+    dataset = _dataset(records=[_record(index) for index in range(942)])
+    dataset_path, dataset_sha = _write_json(tmp_path / "dataset.json", dataset)
+    validator_path, validator_sha = _write_json(
+        tmp_path / "validator.json",
+        _validator(
+            dataset_sha,
+            record_counts={"records_checked": 942, "failed_records": 0},
+        ),
+    )
+    output_summary = tmp_path / "out" / "validated_dataset_summary.json"
+    output_md = tmp_path / "out" / "summary.md"
+
+    exit_code = main(
+        [
+            "--dataset_json",
+            str(dataset_path),
+            "--expected_dataset_sha256",
+            dataset_sha,
+            "--validator_output_json",
+            str(validator_path),
+            "--expected_validator_output_sha256",
+            validator_sha,
+            "--enable_default_off_fallback_risk_training_validated_dataset_summary_materializer",
+            "--output_summary_json",
+            str(output_summary),
+            "--output_md",
+            str(output_md),
+        ]
+    )
+    summary = json.loads(output_summary.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert summary["sha256"] == dataset_sha
+    assert summary["records"] == 942
+    assert "records=942" in output_md.read_text(encoding="utf-8")
 
 
 def test_materializer_rejects_sha_validator_status_and_record_count_mismatches(tmp_path: Path) -> None:
@@ -278,7 +316,7 @@ def test_materializer_rejects_sha_validator_status_and_record_count_mismatches(t
     for needle in [
         "validator_output_sha256_mismatch",
         "validator_dataset_sha256_mismatch",
-        "validator_records_checked_mismatch",
+        "dataset_validator_record_count_mismatch",
         "validator_failed_records_nonzero",
         "validator_status_not_complete",
         "validator_not_passed",
@@ -326,7 +364,7 @@ def test_materializer_rejects_training_dp_promotion_and_claim_leaks(tmp_path: Pa
 
 def test_materializer_rejects_dataset_record_count_and_final_decision_leaks(tmp_path: Path) -> None:
     dataset = _dataset()
-    dataset["records"] = dataset["records"][:14]
+    dataset["records"] = []
     dataset["final_decision"]["passed"] = False
     dataset["final_decision"]["camp_training_authorized"] = True
     dataset_path, dataset_sha = _write_json(tmp_path / "dataset.json", dataset)
@@ -340,7 +378,6 @@ def test_materializer_rejects_dataset_record_count_and_final_decision_leaks(tmp_
         enabled=True,
     )["final_decision"]["errors"]
 
-    assert "dataset_record_count_mismatch" in errors
+    assert "dataset_record_count_not_positive" in errors
     assert "dataset_final_decision_not_passed" in errors
     assert "dataset_final_decision_camp_training_authorized_not_false" in errors
-    assert "dataset_validator_record_count_mismatch" in errors

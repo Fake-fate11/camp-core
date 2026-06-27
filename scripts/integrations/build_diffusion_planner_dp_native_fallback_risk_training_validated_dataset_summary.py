@@ -223,8 +223,8 @@ def _validate_dataset(payload: dict[str, Any], errors: list[str]) -> int:
         record_count = 0
     else:
         record_count = len(records)
-        if record_count != EXPECTED_VALIDATED_FALLBACK_RECORDS:
-            errors.append("dataset_record_count_mismatch")
+        if record_count <= 0:
+            errors.append("dataset_record_count_not_positive")
     decision = payload.get("final_decision")
     if isinstance(decision, dict):
         if decision.get("passed") is not True:
@@ -254,8 +254,8 @@ def _validate_validator(payload: dict[str, Any], *, dataset_sha: str, errors: li
     else:
         records_checked = record_counts.get("records_checked")
         failed_records = record_counts.get("failed_records")
-        if records_checked != EXPECTED_VALIDATED_FALLBACK_RECORDS:
-            errors.append("validator_records_checked_mismatch")
+        if not isinstance(records_checked, int) or records_checked <= 0:
+            errors.append("validator_records_checked_not_positive")
             records_checked = 0
         if failed_records != 0:
             errors.append("validator_failed_records_nonzero")
@@ -345,6 +345,8 @@ def _sha256_file(path: Path) -> str:
 
 def render_markdown(report: dict[str, Any]) -> str:
     decision = report["final_decision"]
+    summary = report.get("validated_dataset_summary")
+    records = summary.get("records") if isinstance(summary, dict) else None
     lines = [
         "# DP Native Fallback Risk Training Validated Dataset Summary",
         "",
@@ -353,6 +355,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"passed={decision['passed']}",
         f"enabled={decision['enabled']}",
         f"summary_output_written={decision['summary_output_written']}",
+        f"records={records}",
         "training_sufficiency_preflight_executed=False",
         "training_sufficiency_preflight_execution_authorized=False",
         "training_authorized=False",
