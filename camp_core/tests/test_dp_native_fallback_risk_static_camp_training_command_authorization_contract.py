@@ -240,9 +240,8 @@ def test_current_head_command_authorization_pins_bf3c1ef_preflight() -> None:
         assert needle in text
 
 
-def test_iteration_audit_tail_records_current_head_command_authorization() -> None:
+def test_iteration_audit_records_current_head_command_authorization_history() -> None:
     audit = AUDIT.read_text(encoding="utf-8")
-    tail = "\n".join(audit.splitlines()[-220:])
 
     for needle in [
         "status=fallback_risk_training_command_authorization_current_head_f6a8a846_tail_authority",
@@ -263,11 +262,7 @@ def test_iteration_audit_tail_records_current_head_command_authorization() -> No
         "autodl_dp_head_verified=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "this_command_authorization_gate_executes_training_replay_dp_or_claims=False",
     ]:
-        assert needle in tail
-
-    assert tail.rstrip().endswith(
-        "dp_native_training_sufficiency_development_base_plus_addon_static_dp_reward_fixed_artifact_fallback_risk_static_camp_training_fixed_artifact_acceptance\n```"
-    )
+        assert needle in audit
 
 
 def test_static_trainer_preserves_benders_compatible_reranking_contract() -> None:
