@@ -1663,6 +1663,85 @@ def test_v13_broader_nonformal_shadow_replay_batch_result_review_authorizes_only
         assert needle in text
 
 
+def test_v13_audit_records_candidate_expansion_retraining_preflight() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_status=dp_camp_v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_ready",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_expansion_retraining_preflight_8babbc0_d070690_20260628T052201CST",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_json_sha256=a1baa7e02b49d5b805ccd4cf3309923a8c1f4a13064f28e4fa34f6a01c50c0c1",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_md_sha256=941736254129bcb4205df71fc140457d92ddded4048b0b57fe5de1eab81ebd0c",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_script_sha256=22222c500e247e5c45c907189f44f8b0b3de11346054ac4231688a6c95a78aa1",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_stdout_log_sha256=548df99d554b883133156891167947dc0e7d9c3ea791d6bbb9f6f6133227fd5b",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_command_plan_json_sha256=4e5927c1eb6f8d021d3daf67cd6f1226b0d133668476ec11b032d71f76572598",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_collection_runbook_sha256=114d46f23ff73cc7765f4a29e146b5421fea9267fe39e516417b12feac797129",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_pipeline_runbook_sha256=3acca91a8ef5f7bf87acad70f0fdec8e5333307bfddf2846763555877e6bac5c",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_schema_version=dp_camp_v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_v1",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_source_result_review_json_sha256=d57c313cf88d3606dd440b6a82f2885d8ad489ffdb2e11f19ea07b2f0d03d4a5",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_base_collection_summary_json_sha256=5ce2e4066a0652f994b21b5f6c24696cfc114be0bb1b38b783fb8d21c22d23e4",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_base_pipeline_summary_json_sha256=bde0f4396017422888b99a9c731a54d6cb007cae7aaab3012cd08cf67bca6b0d",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_camp_head=d0706908e9d13d28040854776c62fd1885a9c68a",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_addon_collection_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_expansion_addon_collection_8babbc0_d070690_20260628T052201CST",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_combined_retraining_pipeline_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_expansion_combined_retraining_8babbc0_d070690_20260628T052201CST",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_routes=sample_normal,sample_tl,nishi_release,nishi_lane_change",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_seeds=333,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,362,363,364",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_formal_seeds_excluded=True",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_expected_addon_replay_commands=512",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_expected_addon_records_total=51200",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_expected_combined_selection_logs=1024",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_expected_combined_records_total=102400",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_planned_outputs_absent=True",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_planned_output_paths_unique=True",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_candidate_operation=fixed DP candidate generation for addon, then CAMP fixed-candidate reranking training only",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_dp_role=fixed_black_box_candidate_trajectory_generator",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_camp_role=current_tick_fixed_dp_candidate_reranker_only",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_score_expression=score_k(w)=a_k^T w",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_training_objective=simplex_hinge_cvar_l2",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_training_seed=29",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_training_seed_is_formal_seed=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_passed=True",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_failed_checks=[]",
+    ]:
+        assert needle in text
+
+
+def test_v13_candidate_expansion_retraining_preflight_authorizes_only_execution_gate() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_fixed_dp_candidate_generation_execution_authorized_next=True",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_replay_execution_authorized_next=True",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_training_execution_authorized_next=True",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_no_further_training_authorization_prompt_required=True",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_authorized_next_work=dp_camp_v13_nonformal_fixed_dp_candidate_expansion_retraining_execution_only",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_candidate_generation_by_camp_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_trajectory_generation_by_camp_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_trajectory_modification_by_camp_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_reference_blend_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_guidance_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_dp_modification_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_formal_seeds_11_12_13_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_selector_promotion_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_deployment_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_safety_benefit_claim_authorized=False",
+        "v13_nonformal_fixed_dp_candidate_expansion_retraining_preflight_camp_over_dp_top1_claim_authorized=False",
+        "current_v13_status=nonformal_fixed_dp_candidate_expansion_retraining_preflight_complete",
+        "current_v13_next_scope=nonformal_fixed_dp_candidate_expansion_retraining_execution_only",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=True",
+        "candidate_generation_by_fixed_dp_authorized_by_current_boundary=True",
+        "replay_execution_authorized_by_current_boundary=True",
+        "training_execution_authorized_by_current_boundary=True",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_nonformal_fixed_dp_candidate_expansion_retraining_execution_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
