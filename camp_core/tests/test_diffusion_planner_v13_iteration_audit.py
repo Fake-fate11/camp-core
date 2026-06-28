@@ -5099,7 +5099,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
+        == "current_source_default_off_shadow_selector_runtime_shadow_replay_smoke_execution_passed"
     )
 
 
@@ -5145,7 +5145,61 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
+        == "current_source_default_off_shadow_selector_runtime_shadow_replay_smoke_execution_passed"
+    )
+
+
+def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_execution() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_fail_closed_status=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_missing_model_args",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_fail_closed_exit_code=1",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_fail_closed_error=FileNotFoundError: /root/autodl-tmp/camp_dp_assets/args.json",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_fail_closed_verified_model_args=/root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_fail_closed_candidate_generation_executed=False",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_status=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_ready",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_b0634561_20260629T012635CST",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_json_sha256=13b8c737762c05683242257075cba08263558b81fc9ed278191b929a1b3964f8",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_execution_camp_head=b0634561f5a6901d7a90164ca43c5d0c33187634",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_model_args=/root/autodl-tmp/camp_dp_assets/diffusion_planner.param.json",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_model_args_sha256=ee3145b68fd1e1e44e532933dfe66cfee4384fbd637382c87ab5190c66a8e268",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_command_has_model_args=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_model_args_exists=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_check_count=59",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_model_args_passed=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_status=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_smoke_passed",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_b0634561_20260629T012707CST",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_exit_code=0",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_camp_replay_summary_sha256=6894e30cbaf03513936e0dca27d5307b7de70fed89848c8e08bb40384b788f02",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_camp_validation_summary_sha256=4e58d055cf29babd3e4823dc6d83fe2e7cbb2842b6eeb5148b709f8e9303d49f",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_records=100",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_executed_indices=[0]",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_selected_indices_in_records=[0]",
+        'v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_shadow_selected_index_counts={"0":4,"1":17,"2":14,"3":13,"4":8,"5":13,"6":20,"7":11}',
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_nonzero_shadow_selection_count=96",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_all_shadow_selection_effect_false=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_all_shadow_executed_policy_dp_top1=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_all_shadow_candidate_operation_fixed=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_all_shadow_score_affine=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_summary_shadow_scores_routed_to_execution=False",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_summary_executed_top1_all=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_finite_candidate_contract_score=a_ik^T w",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_finite_candidate_contract_simplex_weights_expected=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_finite_candidate_contract_affine_score_in_weights=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_training_executed=False",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_model_args_dp_modified=False",
+        "current_v13_status=current_source_default_off_shadow_selector_runtime_shadow_replay_smoke_execution_passed",
+        "current_v13_next_scope=current_source_training_data_expansion_or_retraining_preflight_only",
+        "next_work_target=dp_camp_v13_current_source_training_data_expansion_or_retraining_preflight_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "current_source_default_off_shadow_selector_runtime_shadow_replay_smoke_execution_passed"
     )
 
 
