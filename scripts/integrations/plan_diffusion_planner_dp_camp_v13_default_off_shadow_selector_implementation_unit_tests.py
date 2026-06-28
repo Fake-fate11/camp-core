@@ -356,6 +356,7 @@ def _source_surface_checks(texts: dict[str, str]) -> list[dict[str, Any]]:
     runner = texts.get("replay_runner_py", "")
     benders = texts.get("benders_contract_test_py", "")
     audit = texts.get("v13_audit_md", "")
+    current_boundary = _current_v13_boundary(audit)
     return [
         _contains("integration_has_camp_selector", integration, "class CAMPSelector"),
         _contains("integration_scores_are_affine_matrix_product", integration, "scores = normalized @ weights"),
@@ -367,16 +368,25 @@ def _source_surface_checks(texts: dict[str, str]) -> list[dict[str, Any]]:
         _contains("benders_test_rejects_negative_atoms", benders, "test_robust_margin_master_rejects_negative_atom_coefficients"),
         _contains(
             "audit_authorizes_current_unit_tests_plan_only",
-            audit,
+            current_boundary,
             "next_work_target=dp_camp_v13_default_off_shadow_selector_implementation_unit_tests_plan_only",
         ),
-        _contains("audit_blocks_online_selector_change", audit, "online_selector_change_authorized=False"),
-        _contains(
+        _contains("audit_blocks_online_selector_change", current_boundary, "online_selector_change_authorized=False"),
+        _contains_any(
             "audit_blocks_implementation",
-            audit,
-            "default_off_shadow_selector_implementation_authorized_by_current_boundary=False",
+            current_boundary,
+            (
+                "default_off_shadow_selector_implementation_authorized=False",
+                "default_off_shadow_selector_implementation_authorized_by_current_boundary=False",
+            ),
         ),
     ]
+
+
+def _current_v13_boundary(audit: str) -> str:
+    marker = "\n## Current V13 "
+    index = audit.rfind(marker)
+    return audit[index + 1 :] if index >= 0 else audit
 
 
 def _source_summary(payload: dict[str, Any]) -> dict[str, Any]:
@@ -521,6 +531,11 @@ def _sha256(path: Path) -> str:
 
 def _contains(name: str, text: str, needle: str) -> dict[str, Any]:
     return _check(name, needle in text, needle if needle in text else "missing", needle)
+
+
+def _contains_any(name: str, text: str, needles: tuple[str, ...]) -> dict[str, Any]:
+    matched = next((needle for needle in needles if needle in text), None)
+    return _check(name, matched is not None, matched if matched else "missing", needles)
 
 
 def _contains_item(name: str, items: list[Any], expected: str) -> dict[str, Any]:
