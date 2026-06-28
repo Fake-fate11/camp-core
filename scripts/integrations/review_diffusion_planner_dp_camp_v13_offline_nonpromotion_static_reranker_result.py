@@ -420,7 +420,7 @@ def _training_checks(training: dict[str, Any], expected: dict[str, int]) -> list
         ),
         _check("training_seed_not_formal", seed not in FORMAL_SEEDS, seed, "not in {11,12,13}"),
         _check("training_weights_sum_simplex", _almost_equal(weights_sum, 1.0), weights_sum, 1.0),
-        _check("training_weights_nonnegative", isinstance(weights_min, int | float) and weights_min >= 0.0, weights_min, ">= 0.0"),
+        _check("training_weights_nonnegative", isinstance(weights_min, (int, float)) and weights_min >= 0.0, weights_min, ">= 0.0"),
     ]
 
 
@@ -590,7 +590,7 @@ def _stable_value(value: Any) -> Any:
 
 
 def _almost_equal(left: Any, right: float, tol: float = 1e-9) -> bool:
-    return isinstance(left, int | float) and abs(float(left) - right) <= tol
+    return isinstance(left, (int, float)) and abs(float(left) - right) <= tol
 
 
 def _is_git_sha(value: str) -> bool:
