@@ -2695,6 +2695,7 @@ def test_v13_candidate_expansion_default_off_shadow_selector_post_implementation
         "v13_candidate_expansion_default_off_shadow_selector_training_executed=False",
         "current_v13_status=candidate_expansion_default_off_shadow_selector_post_implementation_static_contract_review_complete",
         "current_v13_next_scope=default_off_shadow_selector_artifact_manifest_plan_only",
+        "current_v13_training_authorized_by_user=True",
         "candidate_expansion_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
         "default_off_shadow_selector_artifact_manifest_plan_authorized=True",
         "default_off_shadow_selector_artifact_manifest_plan_only_authorized=True",
