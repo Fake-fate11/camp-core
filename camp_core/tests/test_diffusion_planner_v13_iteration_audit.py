@@ -2070,6 +2070,92 @@ def test_v13_candidate_expansion_promotion_decision_plan_authorizes_only_evidenc
         assert needle in text
 
 
+def test_v13_audit_records_candidate_expansion_promotion_evidence_preflight() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_promotion_evidence_package_preflight_status=dp_camp_v13_promotion_evidence_package_preflight_ready",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_expansion_promotion_evidence_package_preflight_8babbc0_ce1cd14_20260628T100315CST",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_json_sha256=add6e31291b5fb99c6a753c1384cb98fdfd4a8e00d8f506c70c2889b568a1ed7",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_md_sha256=0cf1c1b5ac4dbceefc0da1301fa0b6ceef956437418a03ac4a431e71675c2fbe",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_heads_sha256=9036d98e86459403221d8c0c08cec93739d78f9254002f023e3a4cece5b890cc",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_script_sha256=c0222d1de8ec18fb90868cacc09d7a7df5b26992971eb3eb4a232e09b1af52d7",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_execution_camp_head=ce1cd14e59a03aa278a5c13a7d722a923dfef7a8",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_passed=True",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_failed_checks=[]",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_ready=True",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_manifest_count=10",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_static_integration_contract_status=preflight_ready_contract_pinned",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_default_off_shadow_selector_wiring_status=future_static_contract_plan_required_before_implementation",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_collection_summary_sha256=4addd267d8bf14c73945610cf3b7196db874c5f6994a9725967ea0a07dfd231c",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_pipeline_summary_sha256=a5f9b2651413987d63eee94329af1eedcd6346d27fb97d3b3709ac68f1799e79",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_training_summary_sha256=b23427d33438216eccb51e79c3c901bb81df13abc1e722c9f18d2b5c8030e876",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_weights_json_sha256=490c8ecee1a8981e73888f63217a85b48f8fd7134bccf3f8c4519fdc227c4e30",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_weights_npy_sha256=b7981a9740cc3cfb6354726833997009a4f2da1914dd764a5dfb6b008b48a182",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_atom_scales_json_sha256=3b9abfaaa98e80a1a1b93635cd9ced1f7e8cbe910539549f4722e04b92a6c498",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_collection_records_total=51200",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_collection_records_without_feasible_candidate=14410",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_collection_records_with_feasible_candidate=36790",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_pipeline_records_total=102400",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_pipeline_records_built=28468",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_training_records=22836",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_validation_records=5632",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_score_expression=score_k(w)=a_k^T w",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_static_allowed_operation=argmin_k score_k(w)",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_simplex_master_convex=True",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_cvar_master_convex=True",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_l2_master_convex=True",
+    ]:
+        assert needle in text
+
+
+def test_v13_candidate_expansion_promotion_evidence_preflight_authorizes_only_contract_plan() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_promotion_evidence_package_preflight_authorized_next_work=dp_camp_v13_default_off_shadow_selector_static_integration_contract_plan_only",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_default_off_shadow_selector_contract_plan_authorized=True",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_selector_promotion_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_atom_promotion_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_deployment_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_safety_benefit_claim_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_camp_over_dp_top1_claim_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_training_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_training_execution_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_candidate_generation_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_replay_execution_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_dp_modification_authorized=False",
+        "v13_candidate_expansion_promotion_evidence_package_preflight_online_selector_change_authorized=False",
+        "current_v13_status=candidate_expansion_promotion_evidence_package_preflight_complete",
+        "current_v13_next_scope=default_off_shadow_selector_static_integration_contract_plan_only",
+        "candidate_expansion_promotion_evidence_package_preflight_complete=True",
+        "default_off_shadow_selector_static_contract_plan_authorized=True",
+        "default_off_shadow_selector_static_contract_plan_only_authorized=True",
+        "default_off_shadow_selector_implementation_authorized=False",
+        "actual_selector_promotion_authorized=False",
+        "actual_atom_promotion_authorized=False",
+        "actual_deployment_authorized=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_fixed_dp_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "online_selector_change_authorized=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_static_integration_contract_plan_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
