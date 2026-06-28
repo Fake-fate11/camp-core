@@ -1995,6 +1995,81 @@ def test_v13_candidate_expansion_retraining_result_review_authorizes_only_promot
         assert needle in text
 
 
+def test_v13_audit_records_candidate_expansion_promotion_decision_plan() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_promotion_decision_plan_status=dp_camp_v13_promotion_decision_plan_ready",
+        "v13_candidate_expansion_promotion_decision_plan_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_expansion_promotion_decision_plan_8babbc0_f3eb7d1_20260628T094558CST",
+        "v13_candidate_expansion_promotion_decision_plan_json_sha256=96abd24962490c473db9c6121d2230a668fbdc8a3be7a63476278964021bc4d3",
+        "v13_candidate_expansion_promotion_decision_plan_md_sha256=bcf4a2aa8c31d06687019eb4b6ed07e976c56ffca35dd1e8309d17d0cddffde5",
+        "v13_candidate_expansion_promotion_decision_plan_heads_sha256=2ace3cc4deb127b89d67fffbababbf18dcc5075aade71fc1c3b4af6cbda0732a",
+        "v13_candidate_expansion_promotion_decision_plan_script_sha256=790bd33533ab300ced0539514002ed68a1f7b11be7102bede4f266928721bd8e",
+        "v13_candidate_expansion_promotion_decision_plan_execution_camp_head=f3eb7d10614c9ab28b38388ba7c150a01ed3aa48",
+        "v13_candidate_expansion_promotion_decision_plan_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_candidate_expansion_promotion_decision_plan_passed=True",
+        "v13_candidate_expansion_promotion_decision_plan_failed_checks=[]",
+        "v13_candidate_expansion_promotion_decision_plan_ready=True",
+        "v13_candidate_expansion_promotion_decision_plan_authorized_next_work=dp_camp_v13_promotion_evidence_package_preflight_only",
+        "v13_candidate_expansion_promotion_decision_plan_evidence_package_preflight_authorized=True",
+        "v13_candidate_expansion_promotion_decision_plan_recommendation=do_not_promote_from_current_evidence_alone",
+        "v13_candidate_expansion_promotion_decision_plan_immediate_action=build_evidence_package_preflight_only",
+        "v13_candidate_expansion_promotion_decision_plan_promotion_class_under_consideration=future_default_off_shadow_or_development_reranker_candidate",
+        "v13_candidate_expansion_promotion_decision_plan_source_records_total=102400",
+        "v13_candidate_expansion_promotion_decision_plan_source_records_without_feasible_candidate=28468",
+        "v13_candidate_expansion_promotion_decision_plan_source_records_with_feasible_candidate=73932",
+        "v13_candidate_expansion_promotion_decision_plan_source_training_records=22836",
+        "v13_candidate_expansion_promotion_decision_plan_source_validation_records=5632",
+        "v13_candidate_expansion_promotion_decision_plan_source_num_candidates=8",
+        "v13_candidate_expansion_promotion_decision_plan_source_num_atoms=14",
+        "v13_candidate_expansion_promotion_decision_plan_source_atom_schema_version=dp_camp_v10_14d",
+        "v13_candidate_expansion_promotion_decision_plan_source_score_expression=score_k(w)=a_k^T w",
+    ]:
+        assert needle in text
+
+
+def test_v13_candidate_expansion_promotion_decision_plan_authorizes_only_evidence_preflight() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_promotion_decision_plan_selector_promotion_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_atom_promotion_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_deployment_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_safety_benefit_claim_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_camp_over_dp_top1_claim_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_training_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_training_execution_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_candidate_generation_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_replay_execution_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_dp_modification_authorized=False",
+        "v13_candidate_expansion_promotion_decision_plan_online_selector_change_authorized=False",
+        "current_v13_status=candidate_expansion_promotion_decision_plan_complete",
+        "current_v13_next_scope=promotion_evidence_package_preflight_only",
+        "candidate_expansion_promotion_decision_plan_complete=True",
+        "promotion_evidence_package_preflight_authorized=True",
+        "actual_selector_promotion_authorized=False",
+        "actual_atom_promotion_authorized=False",
+        "actual_deployment_authorized=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_fixed_dp_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "online_selector_change_authorized=False",
+        "next_work_target=dp_camp_v13_promotion_evidence_package_preflight_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
