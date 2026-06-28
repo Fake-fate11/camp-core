@@ -5103,6 +5103,52 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     )
 
 
+def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_preflight() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_status=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_missing_reward_config",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_6b5f4b458_20260629T011031CST",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_exit_code=1",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_error=ValueError: --camp_feasibility_source dp_reward requires --reward_config.",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_missing_reward_config=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_replay_output_created=False",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_candidate_generation_executed=False",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_training_executed=False",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_execution_fail_closed_dp_modified=False",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_status=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_ready",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_6ecdccac_20260629T011656CST",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_json_sha256=f17f703312e143cd79f47a6c439040e92bf9cdf18235aee579906089b04a4f8b",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_md_sha256=019f52fa4872a6806c726b3675fbcbf736c377afb303513fcffdef3fadac76fc",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_execution_camp_head=6ecdccaca9fca384bcdbb0814754ba8a234620dc",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_reward_config=/root/autodl-tmp/camp_core/configs/integrations/dp_camp_reward_eval.json",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_planned_replay_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_shadow_replay_smoke_reward_config_6ecdccac_20260629T011656CST/sample_normal/seed_301/npc_0/spawn_0p3/tl_off/static_shadow",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_command_dp_reward_has_reward_config=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_reward_config_exists=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_command_has_no_guidance_or_reference_blend=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_command_has_no_postselection_relaxation_or_splice=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_manifest_candidate_operation=fixed DP candidate reranking only",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_manifest_executed_output_policy=dp_top1",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_manifest_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_check_count=57",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_passed=True",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_failed_checks=[]",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_training_executed=False",
+        "v13_current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_reward_config_safety_benefit_claim_authorized=False",
+        "runtime_shadow_replay_reward_config_present=True",
+        "runtime_shadow_replay_planned_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_shadow_replay_smoke_reward_config_6ecdccac_20260629T011656CST/sample_normal/seed_301/npc_0/spawn_0p3/tl_off/static_shadow",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
+    )
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
