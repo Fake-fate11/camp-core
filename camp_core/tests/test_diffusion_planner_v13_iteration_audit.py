@@ -7014,6 +7014,7 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         "v13_current_source_large_retraining_safety_benefit_claim_authorized=False",
         "v13_current_source_large_retraining_camp_over_dp_top1_claim_authorized=False",
         "v13_current_source_large_retraining_local_pytest=181 passed in 1.90s",
+        "v13_current_source_large_retraining_autodl_pytest=181 passed in 1.42s",
         "current_v13_status=current_source_large_fallback_risk_static_camp_retraining_complete",
         "current_v13_next_scope=current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_only",
         "large_retraining_complete=True",
