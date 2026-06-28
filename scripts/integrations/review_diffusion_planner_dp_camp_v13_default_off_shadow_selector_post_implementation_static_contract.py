@@ -360,6 +360,7 @@ def _audit_contract_checks(text: str) -> list[dict[str, Any]]:
             current_boundary,
             (
                 "current_v13_status=default_off_shadow_selector_implementation_complete",
+                "current_v13_status=current_source_large_retraining_default_off_shadow_selector_implementation_complete",
                 "current_v13_status=current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete",
             ),
         ),
@@ -368,6 +369,7 @@ def _audit_contract_checks(text: str) -> list[dict[str, Any]]:
             current_boundary,
             (
                 "v13_default_off_shadow_selector_post_implementation_static_contract_review_authorized=True",
+                "default_off_shadow_selector_post_implementation_static_contract_review_authorized=True",
                 "current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
             ),
         ),
