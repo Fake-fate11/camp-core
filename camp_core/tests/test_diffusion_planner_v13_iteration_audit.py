@@ -7504,6 +7504,7 @@ def test_v13_current_source_large_default_off_shadow_selector_static_contract_pl
         "v13_current_source_large_default_off_shadow_selector_static_contract_plan_postselection_authorized=False",
         "v13_current_source_large_default_off_shadow_selector_static_contract_plan_trajectory_mutation_authorized=False",
         "v13_current_source_large_default_off_shadow_selector_static_contract_plan_local_pytest=168 passed in 1.74s with PYTHONPATH=camp_core",
+        "v13_current_source_large_default_off_shadow_selector_static_contract_plan_autodl_pytest=168 passed in 1.46s with PYTHONPATH=camp_core",
         "current_v13_status=current_source_large_retraining_default_off_shadow_selector_static_contract_plan_complete",
         "current_v13_next_scope=default_off_shadow_selector_implementation_plan_only",
         "large_retraining_default_off_shadow_selector_static_contract_plan_complete=True",
