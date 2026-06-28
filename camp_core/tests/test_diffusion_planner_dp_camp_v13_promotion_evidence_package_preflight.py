@@ -21,24 +21,62 @@ CAMP_HEAD = "c3a57b1a512ce1ba77ae0ebae1996835f46b0c7c"
 DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 SCALE_SHA = "52c1ffe117c4661c0b4798e242487fc9d2ed1ef6f44f65fbfa7aa37faef2a1b6"
 DATASET_SHA = "2f41d07adedd28ded0869ec0f13a5e13beabe2f7e5f07a54e97b220df928113b"
+DEFAULT_COUNTS = {
+    "collection_selection_log_count": 512,
+    "collection_expected_replay_commands": 512,
+    "collection_records_total": 51200,
+    "collection_records_without_feasible_candidate": 14058,
+    "collection_records_with_feasible_candidate": 37142,
+    "pipeline_dataset_records_built": 14058,
+    "pipeline_dataset_records_total": 51200,
+    "pipeline_training_records": 11262,
+    "pipeline_validation_records": 2796,
+    "pipeline_scale_fit_records_used": 11262,
+    "training_records": 11262,
+    "training_validation_records": 2796,
+}
+EXPANDED_COUNTS = {
+    "collection_selection_log_count": 512,
+    "collection_expected_replay_commands": 512,
+    "collection_records_total": 51200,
+    "collection_records_without_feasible_candidate": 14058,
+    "collection_records_with_feasible_candidate": 37142,
+    "pipeline_dataset_records_built": 28468,
+    "pipeline_dataset_records_total": 102400,
+    "pipeline_training_records": 22836,
+    "pipeline_validation_records": 5632,
+    "pipeline_scale_fit_records_used": 22836,
+    "training_records": 22836,
+    "training_validation_records": 5632,
+}
 
 
-def _collection() -> dict[str, object]:
+def _counts(overrides: dict[str, int] | None = None) -> dict[str, int]:
+    counts = dict(DEFAULT_COUNTS)
+    if overrides:
+        counts.update(overrides)
+    return counts
+
+
+def _collection(counts: dict[str, int] | None = None) -> dict[str, object]:
+    c = _counts(counts)
     return {
         "status": "complete",
-        "selection_log_count": 512,
-        "expected_replay_commands": 512,
+        "selection_log_count": c["collection_selection_log_count"],
+        "expected_replay_commands": c["collection_expected_replay_commands"],
         "failed_replay_commands": 0,
-        "records_total": 51200,
-        "records_without_feasible_candidate": 14058,
-        "records_with_feasible_candidate": 37142,
+        "records_total": c["collection_records_total"],
+        "records_without_feasible_candidate": c[
+            "collection_records_without_feasible_candidate"
+        ],
+        "records_with_feasible_candidate": c["collection_records_with_feasible_candidate"],
         "records_bad_feasible_mask": 0,
         "candidate_counts": [8],
         "formal_seed_path_matches": 0,
-        "provenance_present_records": 51200,
-        "provenance_payload_valid_records": 51200,
-        "provenance_prepost_equal_records": 51200,
-        "provenance_reference_blend_separated_records": 51200,
+        "provenance_present_records": c["collection_records_total"],
+        "provenance_payload_valid_records": c["collection_records_total"],
+        "provenance_prepost_equal_records": c["collection_records_total"],
+        "provenance_reference_blend_separated_records": c["collection_records_total"],
         "contract_unique_values": [[8, False, None, False]],
         "fixed_dp_candidate_generation_authorized": True,
         "candidate_generation_by_camp_authorized": False,
@@ -47,13 +85,14 @@ def _collection() -> dict[str, object]:
     }
 
 
-def _result_review() -> dict[str, object]:
+def _result_review(counts: dict[str, int] | None = None) -> dict[str, object]:
+    c = _counts(counts)
     return {
         "artifact_summary": {
-            "records_total": 51200,
-            "records_without_feasible_candidate": 14058,
-            "training_records": 11262,
-            "validation_records": 2796,
+            "records_total": c["pipeline_dataset_records_total"],
+            "records_without_feasible_candidate": c["pipeline_dataset_records_built"],
+            "training_records": c["training_records"],
+            "validation_records": c["training_validation_records"],
             "num_candidates": 8,
             "num_atoms": 14,
             "score_expression": "score_k(w)=a_k^T w",
@@ -79,10 +118,15 @@ def _result_review() -> dict[str, object]:
     }
 
 
-def _promotion_plan(*, selector_promotion: bool = False) -> dict[str, object]:
+def _promotion_plan(
+    *,
+    selector_promotion: bool = False,
+    counts: dict[str, int] | None = None,
+) -> dict[str, object]:
+    c = _counts(counts)
     return {
         "source_summary": {
-            "records_total": 51200,
+            "records_total": c["pipeline_dataset_records_total"],
             "score_expression": "score_k(w)=a_k^T w",
         },
         "promotion_decision_plan": {
@@ -151,7 +195,9 @@ def _training(
     atom_scales_sha: str,
     seed: int = 23,
     weights_min: float = 0.0,
+    counts: dict[str, int] | None = None,
 ) -> dict[str, object]:
+    c = _counts(counts)
     return {
         "final_decision": {
             "status": "dp_native_fallback_risk_static_camp_training_complete",
@@ -172,23 +218,31 @@ def _training(
             "objective": "simplex_hinge_cvar_l2",
             "risk_type": "cvar",
             "score_expression": "score_k(w)=a_k^T w",
-            "training_records": 11262,
-            "validation_records": 2796,
+            "training_records": c["training_records"],
+            "validation_records": c["training_validation_records"],
             "weights_sum": 1.0,
             "weights_min": weights_min,
         },
     }
 
 
-def _pipeline(training_sha: str) -> dict[str, object]:
+def _pipeline(
+    training_sha: str, counts: dict[str, int] | None = None
+) -> dict[str, object]:
+    c = _counts(counts)
     return {
         "status": "complete",
         "dataset_record_counts": {
-            "records_built": 14058,
-            "records_total": 51200,
+            "records_built": c["pipeline_dataset_records_built"],
+            "records_total": c["pipeline_dataset_records_total"],
         },
-        "split_record_counts": {"training_records": 11262, "validation_records": 2796},
-        "scale_fit_record_counts": {"fit_records_used": 11262},
+        "split_record_counts": {
+            "training_records": c["pipeline_training_records"],
+            "validation_records": c["pipeline_validation_records"],
+        },
+        "scale_fit_record_counts": {
+            "fit_records_used": c["pipeline_scale_fit_records_used"]
+        },
         "sha256": {
             "dataset_json_sha256": DATASET_SHA,
             "scale_manifest_json_sha256": SCALE_SHA,
@@ -244,6 +298,7 @@ def _write_artifacts(
     selector_promotion: bool = False,
     training_seed: int = 23,
     negative_weights: bool = False,
+    counts: dict[str, int] | None = None,
 ) -> dict[str, Path]:
     paths = {
         "promotion_decision_plan_json": tmp_path / "promotion_decision_plan.json",
@@ -269,12 +324,16 @@ def _write_artifacts(
             atom_scales_sha=atom_scales_sha,
             seed=training_seed,
             weights_min=-0.1 if negative_weights else 0.0,
+            counts=counts,
         ),
     )
-    _write_json(paths["promotion_decision_plan_json"], _promotion_plan(selector_promotion=selector_promotion))
-    _write_json(paths["result_review_json"], _result_review())
-    _write_json(paths["collection_summary_json"], _collection())
-    _write_json(paths["pipeline_summary_json"], _pipeline(training_sha))
+    _write_json(
+        paths["promotion_decision_plan_json"],
+        _promotion_plan(selector_promotion=selector_promotion, counts=counts),
+    )
+    _write_json(paths["result_review_json"], _result_review(counts=counts))
+    _write_json(paths["collection_summary_json"], _collection(counts=counts))
+    _write_json(paths["pipeline_summary_json"], _pipeline(training_sha, counts=counts))
     _write_json(paths["nonpromotion_audit_json"], _nonpromotion())
     _write_json(paths["holdout_audit_json"], _holdout())
     return paths
@@ -303,6 +362,21 @@ def test_evidence_package_preflight_ready_but_does_not_promote(tmp_path: Path) -
     assert decision["candidate_generation_authorized"] is False
     assert len(report["artifact_manifest"]) == 10
     assert report["static_integration_contract"]["score_expression"] == "score_k(w)=a_k^T w"
+
+
+def test_evidence_package_preflight_accepts_expanded_candidate_counts(
+    tmp_path: Path,
+) -> None:
+    report = build_report(
+        **_write_artifacts(tmp_path, counts=EXPANDED_COUNTS),
+        current_camp_head=CAMP_HEAD,
+        current_dp_head=DP_HEAD,
+        enabled=True,
+        expected_counts=EXPANDED_COUNTS,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["failed_checks"] == []
 
 
 def test_evidence_package_preflight_is_default_off(tmp_path: Path) -> None:

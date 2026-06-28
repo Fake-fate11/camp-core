@@ -22,6 +22,20 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 FORMAL_SEEDS = {11, 12, 13}
 ATOM_SCHEMA_VERSION = "dp_camp_v10_14d"
 SCORE_EXPRESSION = "score_k(w)=a_k^T w"
+DEFAULT_EXPECTED_COUNTS = {
+    "collection_selection_log_count": 512,
+    "collection_expected_replay_commands": 512,
+    "collection_records_total": 51200,
+    "collection_records_without_feasible_candidate": 14058,
+    "collection_records_with_feasible_candidate": 37142,
+    "pipeline_dataset_records_built": 14058,
+    "pipeline_dataset_records_total": 51200,
+    "pipeline_training_records": 11262,
+    "pipeline_validation_records": 2796,
+    "pipeline_scale_fit_records_used": 11262,
+    "training_records": 11262,
+    "training_validation_records": 2796,
+}
 
 BLOCKED_ACTIONS = (
     "selector_promotion_authorized",
@@ -64,6 +78,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--current_dp_head", required=True)
     parser.add_argument("--required_dp_head", default=FIXED_DP_HEAD)
     parser.add_argument("--label", default=None)
+    for name, default in DEFAULT_EXPECTED_COUNTS.items():
+        parser.add_argument(f"--expected_{name}", type=int, default=default)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     parser.add_argument(
@@ -92,6 +108,9 @@ def main(argv: list[str] | None = None) -> int:
         required_dp_head=args.required_dp_head,
         label=args.label,
         enabled=args.enable_v13_promotion_evidence_package_preflight,
+        expected_counts={
+            name: getattr(args, f"expected_{name}") for name in DEFAULT_EXPECTED_COUNTS
+        },
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
@@ -121,7 +140,11 @@ def build_report(
     required_dp_head: str = FIXED_DP_HEAD,
     label: str | None = None,
     enabled: bool = False,
+    expected_counts: dict[str, int] | None = None,
 ) -> dict[str, Any]:
+    expected = dict(DEFAULT_EXPECTED_COUNTS)
+    if expected_counts:
+        expected.update(expected_counts)
     paths = {
         "promotion_decision_plan": promotion_decision_plan_json,
         "result_review": result_review_json,
@@ -169,10 +192,10 @@ def build_report(
             payloads[name] = {}
 
     checks.extend(_promotion_plan_checks(payloads["promotion_decision_plan"]))
-    checks.extend(_result_review_checks(payloads["result_review"]))
-    checks.extend(_collection_checks(payloads["collection_summary"]))
-    checks.extend(_pipeline_checks(payloads["pipeline_summary"], report["source_hashes"]))
-    checks.extend(_training_checks(payloads["training_summary"]))
+    checks.extend(_result_review_checks(payloads["result_review"], expected))
+    checks.extend(_collection_checks(payloads["collection_summary"], expected))
+    checks.extend(_pipeline_checks(payloads["pipeline_summary"], report["source_hashes"], expected))
+    checks.extend(_training_checks(payloads["training_summary"], expected))
     checks.extend(_weights_checks(payloads["weights_json"]))
     checks.extend(_atom_scales_checks(payloads["atom_scales_json"]))
     checks.extend(_nonpromotion_checks(payloads["nonpromotion_audit"]))
@@ -371,17 +394,33 @@ def _promotion_plan_checks(plan: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _result_review_checks(review: dict[str, Any]) -> list[dict[str, Any]]:
+def _result_review_checks(
+    review: dict[str, Any], expected_counts: dict[str, int]
+) -> list[dict[str, Any]]:
     decision = _dict(review.get("final_decision"))
     return [
         _expect("result_review_status_ready", decision.get("status"), RESULT_REVIEW_STATUS),
         _expect("result_review_passed", decision.get("passed"), True),
         _expect("result_review_failed_checks_empty", decision.get("failed_checks"), []),
-        _expect("result_review_records_total", _path(review, "artifact_summary.records_total"), 51200),
+        _expect(
+            "result_review_records_total",
+            _path(review, "artifact_summary.records_total"),
+            expected_counts["pipeline_dataset_records_total"],
+        ),
         _expect(
             "result_review_records_without_feasible_candidate",
             _path(review, "artifact_summary.records_without_feasible_candidate"),
-            14058,
+            expected_counts["pipeline_dataset_records_built"],
+        ),
+        _expect(
+            "result_review_training_records",
+            _path(review, "artifact_summary.training_records"),
+            expected_counts["training_records"],
+        ),
+        _expect(
+            "result_review_validation_records",
+            _path(review, "artifact_summary.validation_records"),
+            expected_counts["training_validation_records"],
         ),
         _expect("result_review_num_candidates", _path(review, "artifact_summary.num_candidates"), 8),
         _expect("result_review_num_atoms", _path(review, "artifact_summary.num_atoms"), 14),
@@ -398,16 +437,34 @@ def _result_review_checks(review: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _collection_checks(collection: dict[str, Any]) -> list[dict[str, Any]]:
+def _collection_checks(
+    collection: dict[str, Any], expected_counts: dict[str, int]
+) -> list[dict[str, Any]]:
     records_total = collection.get("records_total")
     return [
         _expect("collection_status_complete", collection.get("status"), "complete"),
-        _expect("collection_selection_log_count", collection.get("selection_log_count"), 512),
-        _expect("collection_expected_replay_commands", collection.get("expected_replay_commands"), 512),
+        _expect(
+            "collection_selection_log_count",
+            collection.get("selection_log_count"),
+            expected_counts["collection_selection_log_count"],
+        ),
+        _expect(
+            "collection_expected_replay_commands",
+            collection.get("expected_replay_commands"),
+            expected_counts["collection_expected_replay_commands"],
+        ),
         _expect("collection_failed_replay_commands", collection.get("failed_replay_commands"), 0),
-        _expect("collection_records_total", records_total, 51200),
-        _expect("collection_records_without_feasible_candidate", collection.get("records_without_feasible_candidate"), 14058),
-        _expect("collection_records_with_feasible_candidate", collection.get("records_with_feasible_candidate"), 37142),
+        _expect("collection_records_total", records_total, expected_counts["collection_records_total"]),
+        _expect(
+            "collection_records_without_feasible_candidate",
+            collection.get("records_without_feasible_candidate"),
+            expected_counts["collection_records_without_feasible_candidate"],
+        ),
+        _expect(
+            "collection_records_with_feasible_candidate",
+            collection.get("records_with_feasible_candidate"),
+            expected_counts["collection_records_with_feasible_candidate"],
+        ),
         _expect("collection_records_bad_feasible_mask", collection.get("records_bad_feasible_mask"), 0),
         _expect("collection_candidate_counts", collection.get("candidate_counts"), [8]),
         _expect("collection_formal_seed_path_matches", collection.get("formal_seed_path_matches"), 0),
@@ -427,14 +484,36 @@ def _collection_checks(collection: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _pipeline_checks(pipeline: dict[str, Any], hashes: dict[str, str]) -> list[dict[str, Any]]:
+def _pipeline_checks(
+    pipeline: dict[str, Any], hashes: dict[str, str], expected_counts: dict[str, int]
+) -> list[dict[str, Any]]:
     return [
         _expect("pipeline_status_complete", pipeline.get("status"), "complete"),
-        _expect("pipeline_dataset_records_built", _path(pipeline, "dataset_record_counts.records_built"), 14058),
-        _expect("pipeline_dataset_records_total", _path(pipeline, "dataset_record_counts.records_total"), 51200),
-        _expect("pipeline_training_records", _path(pipeline, "split_record_counts.training_records"), 11262),
-        _expect("pipeline_validation_records", _path(pipeline, "split_record_counts.validation_records"), 2796),
-        _expect("pipeline_scale_fit_records_used", _path(pipeline, "scale_fit_record_counts.fit_records_used"), 11262),
+        _expect(
+            "pipeline_dataset_records_built",
+            _path(pipeline, "dataset_record_counts.records_built"),
+            expected_counts["pipeline_dataset_records_built"],
+        ),
+        _expect(
+            "pipeline_dataset_records_total",
+            _path(pipeline, "dataset_record_counts.records_total"),
+            expected_counts["pipeline_dataset_records_total"],
+        ),
+        _expect(
+            "pipeline_training_records",
+            _path(pipeline, "split_record_counts.training_records"),
+            expected_counts["pipeline_training_records"],
+        ),
+        _expect(
+            "pipeline_validation_records",
+            _path(pipeline, "split_record_counts.validation_records"),
+            expected_counts["pipeline_validation_records"],
+        ),
+        _expect(
+            "pipeline_scale_fit_records_used",
+            _path(pipeline, "scale_fit_record_counts.fit_records_used"),
+            expected_counts["pipeline_scale_fit_records_used"],
+        ),
         _expect("pipeline_preflight_passed", _path(pipeline, "preflight_final_decision.passed"), True),
         _expect("pipeline_validator_passed", _path(pipeline, "validator_final_decision.passed"), True),
         _expect("pipeline_training_passed", _path(pipeline, "training_final_decision.passed"), True),
@@ -447,7 +526,9 @@ def _pipeline_checks(pipeline: dict[str, Any], hashes: dict[str, str]) -> list[d
     ]
 
 
-def _training_checks(training: dict[str, Any]) -> list[dict[str, Any]]:
+def _training_checks(
+    training: dict[str, Any], expected_counts: dict[str, int]
+) -> list[dict[str, Any]]:
     seed = _path(training, "training.training_seed")
     weights_sum = _path(training, "training.weights_sum")
     weights_min = _path(training, "training.weights_min")
@@ -462,8 +543,16 @@ def _training_checks(training: dict[str, Any]) -> list[dict[str, Any]]:
         _expect("training_objective", _path(training, "training.objective"), "simplex_hinge_cvar_l2"),
         _expect("training_risk_type", _path(training, "training.risk_type"), "cvar"),
         _expect("training_score_expression", _path(training, "training.score_expression"), SCORE_EXPRESSION),
-        _expect("training_records", _path(training, "training.training_records"), 11262),
-        _expect("training_validation_records", _path(training, "training.validation_records"), 2796),
+        _expect(
+            "training_records",
+            _path(training, "training.training_records"),
+            expected_counts["training_records"],
+        ),
+        _expect(
+            "training_validation_records",
+            _path(training, "training.validation_records"),
+            expected_counts["training_validation_records"],
+        ),
         _check("training_seed_not_formal", seed not in FORMAL_SEEDS, seed, "not in {11,12,13}"),
         _check("training_weights_sum_simplex", _almost_equal(weights_sum, 1.0), weights_sum, 1.0),
         _check("training_weights_nonnegative", isinstance(weights_min, (int, float)) and weights_min >= 0.0, weights_min, ">= 0.0"),
