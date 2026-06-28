@@ -488,19 +488,50 @@ def _fallback_master_config_checks(payload: dict[str, Any]) -> list[dict[str, An
 
 
 def _audit_boundary_checks(text: str) -> list[dict[str, Any]]:
+    current_boundary = _current_v13_boundary(text)
     return [
         _contains(
             "audit_current_scope_authorizes_manifest_plan_only",
-            text,
+            current_boundary,
             "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_plan_only",
         ),
-        _contains("audit_artifact_manifest_plan_authorized", text, "artifact_manifest_plan_authorized=True"),
-        _contains("audit_manifest_materialization_blocked", text, "artifact_manifest_materialization_authorized=False"),
-        _contains("audit_runtime_shadow_selector_blocked", text, "runtime_shadow_selector_execution_authorized=False"),
-        _contains("audit_candidate_generation_blocked", text, "candidate_generation_authorized_by_current_boundary=False"),
-        _contains("audit_dp_modification_blocked", text, "dp_modification_authorized_by_current_boundary=False"),
-        _contains("audit_training_authorization_preserved", text, "current_v13_training_authorized_by_user=True"),
+        _contains(
+            "audit_artifact_manifest_plan_authorized",
+            current_boundary,
+            "artifact_manifest_plan_authorized=True",
+        ),
+        _contains(
+            "audit_manifest_materialization_blocked",
+            current_boundary,
+            "artifact_manifest_materialization_authorized=False",
+        ),
+        _contains(
+            "audit_runtime_shadow_selector_blocked",
+            current_boundary,
+            "runtime_shadow_selector_execution_authorized=False",
+        ),
+        _contains(
+            "audit_candidate_generation_blocked",
+            current_boundary,
+            "candidate_generation_authorized_by_current_boundary=False",
+        ),
+        _contains(
+            "audit_dp_modification_blocked",
+            current_boundary,
+            "dp_modification_authorized_by_current_boundary=False",
+        ),
+        _contains(
+            "audit_training_authorization_preserved",
+            current_boundary,
+            "current_v13_training_authorized_by_user=True",
+        ),
     ]
+
+
+def _current_v13_boundary(audit: str) -> str:
+    marker = "\n## Current V13 "
+    index = audit.rfind(marker)
+    return audit[index + 1 :] if index >= 0 else audit
 
 
 def _artifact_summary(

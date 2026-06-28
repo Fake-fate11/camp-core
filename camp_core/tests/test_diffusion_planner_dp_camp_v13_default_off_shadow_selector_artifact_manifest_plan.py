@@ -255,6 +255,57 @@ def test_artifact_manifest_plan_rejects_audit_boundary_drift(tmp_path: Path) -> 
     )
 
 
+def test_artifact_manifest_plan_rejects_stale_audit_boundary(tmp_path: Path) -> None:
+    paths = _write_artifacts(tmp_path)
+    paths["v13_audit_md"].write_text(
+        "\n".join(
+            [
+                "# Audit",
+                "",
+                "## Current V13 Old Manifest Plan Boundary",
+                "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_plan_only",
+                "artifact_manifest_plan_authorized=True",
+                "artifact_manifest_materialization_authorized=False",
+                "runtime_shadow_selector_execution_authorized=False",
+                "candidate_generation_authorized_by_current_boundary=False",
+                "dp_modification_authorized_by_current_boundary=False",
+                "current_v13_training_authorized_by_user=True",
+                "",
+                "## Current V13 Current Post Review Boundary",
+                "current_v13_status=current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete",
+                "next_work_target=dp_camp_v13_default_off_shadow_selector_post_implementation_static_contract_review_only",
+                "artifact_manifest_plan_authorized=False",
+                "artifact_manifest_materialization_authorized=False",
+                "runtime_shadow_selector_execution_authorized=False",
+                "candidate_generation_authorized_by_current_boundary=False",
+                "dp_modification_authorized_by_current_boundary=False",
+                "current_v13_training_authorized_by_user=True",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = build_report(
+        **paths,
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        user_camp_training_authorized=True,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert (
+        "audit_current_scope_authorizes_manifest_plan_only"
+        in report["final_decision"]["failed_checks"]
+    )
+    assert (
+        "audit_artifact_manifest_plan_authorized"
+        in report["final_decision"]["failed_checks"]
+    )
+
+
 def test_artifact_manifest_plan_cli_writes_plan_not_runtime_manifest(
     tmp_path: Path,
 ) -> None:
