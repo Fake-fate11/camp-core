@@ -4107,6 +4107,70 @@ def test_v13_current_source_default_off_shadow_selector_implementation_static_co
         assert needle in text
 
 
+def test_v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_only() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_status=dp_camp_v13_default_off_shadow_selector_implementation_unit_tests_plan_ready",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_e8133e3_20260628T222619CST",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_json_sha256=16943f955c4212096efb828199697c633a7d98e388855cf49e0c1b2e08bca481",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_md_sha256=49a9d527b0b3e6178ac891f2ab199aa4bf2ac93264a89a756c41e9db2c70e16d",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_heads_sha256=18c0794142a788409aded71621b3e29a368cde54149aa365a308278cdee7ce68",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_script_sha256=35c9f3a6f7e6ca376ad227442c6f1e82a41992e37ad6a04e5f69aa842935f253",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_test_sha256=f54674c351cb5da47a26ca341ee6db6db33c9627d4f31c81cf7fc0edd5fca551",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_execution_camp_head=e8133e33779f27d7e1104af5ac8ef02403cacf36",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_passed=True",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_failed_checks=[]",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_static_contract_review_sha256=9c9a4b861a749666bf3832da56be7585e8354d9809acefb8b378c5c3b976f912",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_camp_integration_py_sha256=6b964595bcd50cf10e5edfbdebef2a8cc6b1494990103f6f66bc76d6498fcde7",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_replay_runner_py_sha256=1d5e116cb2c7c473b9c79906a17bc01683dc9b7595a6006c129cc135dedf4813",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_benders_contract_test_py_sha256=bbed165a710f91087b963c6df235764e4ad9c553ff43eed26f4263d51545d301",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_v13_audit_md_sha256=d738c787bea025456e14747b0d62214a536372a79b3e91b45231d35a53390086",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_source_status=dp_camp_v13_default_off_shadow_selector_implementation_static_contract_review_ready",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_source_authorized_next_work=dp_camp_v13_default_off_shadow_selector_implementation_unit_tests_plan_only",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_source_candidate_operation=fixed DP candidate reranking only",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_source_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_source_contracts=default_off_flag_contract,immutable_artifact_hash_contract,fixed_candidate_tensor_contract,affine_benders_atom_score_contract,dp_top1_runtime_output_contract,fail_closed_observability_contract,no_promotion_no_claims_contract",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_status_detail=plan_ready_no_unit_test_code",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_target_test_file=camp_core/tests/test_diffusion_planner_dp_camp_v13_default_off_shadow_selector_implementation_unit_tests.py",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_test_groups=default_off_disabled_contract,immutable_artifact_hash_contract,fixed_candidate_affine_score_contract,dp_top1_shadow_runtime_contract,no_candidate_mutation_contract,benders_and_seed_boundary_contract",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_acceptance_criteria=unit_tests_only_no_production_implementation,deterministic_no_formal_seeds,fail_on_shadow_to_executed_output,fail_on_candidate_generation_mutation_blend_guidance_postselection,pin_affine_score_and_k8",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_forbidden_paths=production_implementation_code_edits,selector_wiring_or_default_changes,training_replay_or_candidate_generation,dp_code_weight_config_or_invocation_modification,selector_or_atom_promotion,deployable_checkpoint_safety_or_camp_over_dp_claim",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_ready=True",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_authorized_next_work=dp_camp_v13_default_off_shadow_selector_implementation_unit_tests_only",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_unit_tests_only_authorized=True",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_implementation_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_selector_promotion_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_atom_promotion_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_deployment_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_safety_benefit_claim_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_camp_over_dp_top1_claim_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_training_execution_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_candidate_generation_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_replay_execution_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_dp_modification_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_unit_tests_plan_online_selector_change_authorized=False",
+        "current_v13_status=current_source_default_off_shadow_selector_implementation_unit_tests_plan_complete",
+        "current_v13_next_scope=default_off_shadow_selector_implementation_unit_tests_only",
+        "current_source_default_off_shadow_selector_implementation_unit_tests_plan_complete=True",
+        "default_off_shadow_selector_implementation_unit_tests_only_authorized=True",
+        "default_off_shadow_selector_implementation_authorized=False",
+        "runtime_shadow_selector_execution_authorized=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "online_selector_change_authorized=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_implementation_unit_tests_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
