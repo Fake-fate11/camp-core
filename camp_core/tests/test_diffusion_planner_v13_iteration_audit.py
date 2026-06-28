@@ -5100,7 +5100,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5146,7 +5146,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5200,7 +5200,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5275,7 +5275,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5339,7 +5339,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5405,7 +5405,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5464,7 +5464,7 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5530,7 +5530,7 @@ def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5594,7 +5594,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_static_contra
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5665,7 +5665,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5735,7 +5735,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5803,7 +5803,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5860,7 +5860,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -5940,7 +5940,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6013,7 +6013,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6103,7 +6103,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6182,7 +6182,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6272,7 +6272,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6348,7 +6348,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6432,7 +6432,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6517,7 +6517,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6598,7 +6598,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6676,7 +6676,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6740,7 +6740,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6780,7 +6780,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_latest_au
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6842,7 +6842,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -6938,7 +6938,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_smoke_execution_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -7038,7 +7038,7 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+    assert latest_status == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
 
 
 def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -> None:
@@ -7155,7 +7155,7 @@ def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -7250,7 +7250,7 @@ def test_v13_current_source_large_retraining_result_review_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+    assert latest_status == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
 
 
 def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned() -> None:
@@ -7336,7 +7336,7 @@ def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned()
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+    assert latest_status == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
 
 
 def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned() -> None:
@@ -7433,7 +7433,7 @@ def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -7537,7 +7537,7 @@ def test_v13_current_source_large_default_off_shadow_selector_static_contract_pl
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -7635,7 +7635,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_pla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -7730,7 +7730,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_sta
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -7820,7 +7820,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -7891,7 +7891,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -7993,7 +7993,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -8084,7 +8084,7 @@ def test_v13_current_source_large_default_off_shadow_selector_post_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -8186,7 +8186,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -8278,7 +8278,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -8372,7 +8372,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
@@ -8450,7 +8450,91 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete"
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
+    )
+
+
+def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_status=dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_6eec7e8_20260629T072720CST",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_json_sha256=c2cad497d4fb6f5a4ef8ba790066ae202a1f3705d8306c76bf6f45a903c71b08",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_md_sha256=92897c22e6c8455ce78ad2c2292ba2007845adccd9b7ec452dad0ff9df0ff3c9",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_stdout_sha256=2ba80e26bd75e5fef639f2b3c86318152e58bf1917d44e5602a261818de1b19f",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_exit_code_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_command_json_sha256=c93a6aae3b9ea7c3981a1de6b0cd3d8a05f1a01f89863dd62db7cb9b527aca50",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_command_txt_sha256=03a658a191d1a78d49856f90d40a0216dc1f789ebbde988d7fd050207e718076",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_execution_camp_head=6eec7e83df9dbbd5ce68bbadc7321da1d2d76c63",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_execution_camp_origin_main=6eec7e83df9dbbd5ce68bbadc7321da1d2d76c63",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_schema=dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_v1",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_script_sha256=7daa0b4b7b0176f376a23f59eff374fe8e0734137e363150ee1ce1a8ed4b44ea",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_test_sha256=dcf16f73363c21beac525c31624a5dba1cdb814742124bdb4cd71b369b4ba4eb",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_source_static_review_json_sha256=9bdc4d16a1353cf1b4e8f772fcf62421719b62646c274a6b222b356917cf9c4f",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_source_materialization_plan_json_sha256=8b834657e2debeca64724ff92c74700fcc5bb7d613f40e3ca3035de40dfc845e",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_static_review_script_sha256=586c462bc04365030780670234273712e60d85d002988be1d23211d421c856da",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_replay_runner_sha256=1d5e116cb2c7c473b9c79906a17bc01683dc9b7595a6006c129cc135dedf4813",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_v13_audit_input_sha256=d610d03c01877f6eb3896dbb2a3eed3a8c65cc3b15396bc722a3e47b9edd13c3",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_future_materializer_script=scripts/integrations/build_diffusion_planner_dp_camp_v13_default_off_shadow_selector_runtime_artifact_manifest.py",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_future_materializer_test=camp_core/tests/test_diffusion_planner_dp_camp_v13_default_off_shadow_selector_runtime_artifact_manifest_materializer.py",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_planned_runtime_manifest_path=/root/autodl-tmp/camp_dp_v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_plan_490514c_20260629T070916CST/planned_runtime/dp_camp_v13_shadow_artifact_manifest_runtime.json",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_materializer_implemented_by_this_gate=False",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_runtime_manifest_written_by_this_gate=False",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_runtime_execution_enabled_by_this_gate=False",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_runtime_manifest_schema_version=dp_camp_v13_default_off_shadow_selector_runtime_v1",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_runtime_entries=atom_scales,static_weights",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_passed=True",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_failed_checks=[]",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_check_count=70",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_authorized_next_work=dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_implementation_static_contract_review_only",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_static_contract_review_authorized=True",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_authorized_by_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_artifact_manifest_materialization_authorized_by_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_runtime_execution_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_replay_execution_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_candidate_generation_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_dp_modification_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_online_selector_change_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_selector_promotion_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_atom_promotion_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_deployment_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_safety_benefit_claim_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_camp_over_dp_top1_claim_authorized_by_materialization_implementation_plan=False",
+        "v13_current_source_large_default_off_shadow_selector_training_executed_by_materialization_implementation_plan=False",
+        "current_v13_status=current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready",
+        "current_v13_next_scope=default_off_shadow_selector_artifact_manifest_materialization_implementation_static_contract_review_only",
+        "current_v13_all_subsequent_training_tasks_authorized_by_user=True",
+        "v13_default_off_shadow_selector_runtime_incompatible_flags_rejected=camp_perfect_tracker_command_postselection,camp_traffic_light_hybrid_postselection,camp_underprogress_relaxation,camp_splice_shadow_rule",
+        "large_retraining_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_complete=True",
+        "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_complete=True",
+        "default_off_shadow_selector_artifact_manifest_materialization_implementation_static_contract_review_authorized=True",
+        "default_off_shadow_selector_artifact_manifest_materialization_implementation_static_contract_review_only_authorized=True",
+        "default_off_shadow_selector_artifact_manifest_materialization_implementation_authorized=False",
+        "default_off_shadow_selector_artifact_manifest_materialization_authorized=False",
+        "runtime_shadow_selector_execution_authorized=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "candidate_generation_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "online_selector_change_authorized=False",
+        "executed_trajectory_change_authorized=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_implementation_static_contract_review_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "current_source_large_default_off_shadow_selector_artifact_manifest_materialization_implementation_plan_ready"
     )
 
 
