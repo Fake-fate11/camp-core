@@ -7223,6 +7223,7 @@ def test_v13_current_source_large_retraining_result_review_is_pinned() -> None:
         "v13_current_source_large_result_review_overlay_training_executed_by_overlay=False",
         "v13_current_source_large_result_review_overlay_dp_modified=False",
         "v13_current_source_large_result_review_local_pytest=191 passed in 2.38s",
+        "v13_current_source_large_result_review_autodl_pytest=191 passed in 1.78s",
         "current_v13_status=current_source_large_retraining_result_review_complete",
         "current_v13_next_scope=current_source_large_retraining_promotion_decision_plan_only",
         "large_retraining_result_review_complete=True",
