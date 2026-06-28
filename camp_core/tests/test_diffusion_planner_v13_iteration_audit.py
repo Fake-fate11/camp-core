@@ -2156,6 +2156,95 @@ def test_v13_candidate_expansion_promotion_evidence_preflight_authorizes_only_co
         assert needle in text
 
 
+def test_v13_audit_records_candidate_expansion_default_off_shadow_selector_static_contract_plan() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_status=dp_camp_v13_default_off_shadow_selector_static_contract_plan_ready",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_expansion_default_off_shadow_selector_static_contract_plan_8babbc0_03830b4_20260628T100954CST",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_json_sha256=3dce55d1635e4a235717ba433f2ce69ea7d7613c7e95a584e6c85d4bb193fa0d",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_md_sha256=bf6a2407e420400bb724769d3231aadf954e8608541d8da8f17d44600c6e1379",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_heads_sha256=8e45cec13fcbb0fd9f59bf542b12d18991cdf934992c1756704ff62f0bcc48a4",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_script_sha256=8994e08fdd02e0237df38866524334cc52a4c1f6338d782305413783f90e366d",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_execution_camp_head=03830b4bce2899c8857e2ad7735ac64256187838",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_passed=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_failed_checks=[]",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_ready=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_evidence_package_preflight_sha256=add6e31291b5fb99c6a753c1384cb98fdfd4a8e00d8f506c70c2889b568a1ed7",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_camp_integration_py_sha256=6b964595bcd50cf10e5edfbdebef2a8cc6b1494990103f6f66bc76d6498fcde7",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_replay_runner_py_sha256=1d5e116cb2c7c473b9c79906a17bc01683dc9b7595a6006c129cc135dedf4813",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_benders_contract_test_py_sha256=bbed165a710f91087b963c6df235764e4ad9c553ff43eed26f4263d51545d301",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_source_preflight_status=dp_camp_v13_promotion_evidence_package_preflight_ready",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_source_manifest_count=10",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_source_static_contract_status=preflight_ready_contract_pinned",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_camp_selector_surface_present=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_runner_selector_mode_present=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_runner_finite_candidate_contract_present=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_benders_affine_score_test_present=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_benders_negative_atom_rejection_test_present=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_selector_phase=default_off_shadow_only",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_runtime_effect=must_log_shadow_decision_without changing DP top1 output",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_candidate_source=fixed current-tick DP candidate tensor before CAMP scoring",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_candidate_count=8",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_score_expression=score_k(w)=a_k^T w",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_selection_rule=argmin_k score_k(w) over finite candidate rows",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_default_off_required=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_kill_switch_required=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_trajectory_mutation_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_postselection_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_formal_seed_usage_authorized=False",
+    ]:
+        assert needle in text
+
+
+def test_v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_authorizes_only_implementation_plan() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_authorized_next_work=dp_camp_v13_default_off_shadow_selector_implementation_plan_only",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_implementation_plan_authorized=True",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_implementation_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_selector_promotion_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_atom_promotion_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_deployment_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_safety_benefit_claim_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_camp_over_dp_top1_claim_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_training_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_training_execution_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_candidate_generation_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_replay_execution_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_dp_modification_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_static_contract_plan_online_selector_change_authorized=False",
+        "current_v13_status=candidate_expansion_default_off_shadow_selector_static_contract_plan_complete",
+        "current_v13_next_scope=default_off_shadow_selector_implementation_plan_only",
+        "candidate_expansion_default_off_shadow_selector_static_contract_plan_complete=True",
+        "default_off_shadow_selector_implementation_plan_authorized=True",
+        "default_off_shadow_selector_implementation_plan_only_authorized=True",
+        "default_off_shadow_selector_implementation_authorized=False",
+        "actual_selector_promotion_authorized=False",
+        "actual_atom_promotion_authorized=False",
+        "actual_deployment_authorized=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_fixed_dp_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "online_selector_change_authorized=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_implementation_plan_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
