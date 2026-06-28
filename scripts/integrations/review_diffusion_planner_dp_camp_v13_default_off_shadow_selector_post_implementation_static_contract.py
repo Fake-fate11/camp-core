@@ -363,6 +363,7 @@ def _audit_contract_checks(text: str) -> list[dict[str, Any]]:
                 "current_v13_status=current_source_large_retraining_default_off_shadow_selector_implementation_complete",
                 "current_v13_status=current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete",
                 "current_v13_status=current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete",
+                "current_v13_status=current_source_large_default_off_shadow_selector_artifact_manifest_plan_ready",
             ),
         ),
         _contains_any(
@@ -373,6 +374,7 @@ def _audit_contract_checks(text: str) -> list[dict[str, Any]]:
                 "default_off_shadow_selector_post_implementation_static_contract_review_authorized=True",
                 "current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
                 "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
+                "large_retraining_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
             ),
         ),
         _contains_any(
@@ -384,6 +386,7 @@ def _audit_contract_checks(text: str) -> list[dict[str, Any]]:
                 "current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
                 "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_status=dp_camp_v13_default_off_shadow_selector_post_implementation_static_contract_review_complete",
                 "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
+                "large_retraining_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
             ),
         ),
         _contains(
