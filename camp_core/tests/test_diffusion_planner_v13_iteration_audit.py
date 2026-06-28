@@ -2793,6 +2793,67 @@ def test_v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_p
         assert needle in text
 
 
+def test_v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_authorizes_only_materialization_plan() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_status=dp_camp_v13_default_off_shadow_selector_artifact_manifest_static_contract_review_complete",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_8babbc0_fa129aa_20260628T111419CST",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_json_sha256=8079927e991b6dd9940cd502d025ca04883095c35d98f2f55f9b00c95c45ff7d",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_md_sha256=84c8646b0d6e056fa36b52774e29a04ae97c1fdd72b79a92a9aa017503884d6d",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_script_sha256=1d75a961995e7229881f860b6552341714e9912748db6010d913c57f42ca332b",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_source_plan_json_sha256=5c593a51530bce6d295a39a188e469c85af8f57ccb609a18b0e973f8fc5ee3d2",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_replay_runner_sha256=1d5e116cb2c7c473b9c79906a17bc01683dc9b7595a6006c129cc135dedf4813",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_execution_camp_head=fa129aaa82071809573d86dad8bb0b1e9a42f290",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_passed=True",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_failed_checks=[]",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_schema=dp_camp_v13_default_off_shadow_selector_artifact_manifest_static_contract_review_v1",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_authorized_next_work=dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_plan_only",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_materialization_plan_authorized=True",
+        "v13_candidate_expansion_default_off_shadow_selector_artifact_manifest_materialization_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_runtime_execution_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_replay_execution_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_candidate_generation_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_dp_modification_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_training_executed=False",
+        "v13_candidate_expansion_default_off_shadow_selector_training_authorization_changed_by_review=False",
+        "v13_candidate_expansion_default_off_shadow_selector_selector_promotion_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_atom_promotion_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_deployment_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_safety_benefit_claim_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_camp_over_dp_top1_claim_authorized=False",
+        "current_v13_status=candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_complete",
+        "current_v13_next_scope=default_off_shadow_selector_artifact_manifest_materialization_plan_only",
+        "current_v13_all_subsequent_training_tasks_authorized_by_user=True",
+        "current_v13_training_authorized_by_user=True",
+        "candidate_expansion_default_off_shadow_selector_artifact_manifest_static_contract_review_complete=True",
+        "default_off_shadow_selector_artifact_manifest_materialization_plan_authorized=True",
+        "default_off_shadow_selector_artifact_manifest_materialization_plan_only_authorized=True",
+        "artifact_manifest_materialization_authorized=False",
+        "runtime_shadow_selector_execution_authorized=False",
+        "default_off_shadow_selector_runtime_execution_authorized=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_fixed_dp_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "online_selector_change_authorized=False",
+        "executed_trajectory_change_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_materialization_plan_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
