@@ -5100,7 +5100,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5146,7 +5146,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5200,7 +5200,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5275,7 +5275,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5339,7 +5339,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5405,7 +5405,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5464,7 +5464,7 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5530,7 +5530,7 @@ def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5594,7 +5594,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_static_contra
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5665,7 +5665,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5735,7 +5735,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5803,7 +5803,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5860,7 +5860,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -5940,7 +5940,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6013,7 +6013,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6103,7 +6103,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6182,7 +6182,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6272,7 +6272,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6348,7 +6348,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6432,7 +6432,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6517,7 +6517,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6598,7 +6598,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6676,7 +6676,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6740,7 +6740,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6780,7 +6780,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_latest_au
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6842,7 +6842,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -6938,7 +6938,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_smoke_execution_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -7038,7 +7038,7 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+    assert latest_status == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
 
 
 def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -> None:
@@ -7155,7 +7155,7 @@ def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -7250,7 +7250,7 @@ def test_v13_current_source_large_retraining_result_review_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+    assert latest_status == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
 
 
 def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned() -> None:
@@ -7336,7 +7336,7 @@ def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned()
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+    assert latest_status == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
 
 
 def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned() -> None:
@@ -7433,7 +7433,7 @@ def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -7537,7 +7537,7 @@ def test_v13_current_source_large_default_off_shadow_selector_static_contract_pl
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -7635,7 +7635,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_pla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -7730,7 +7730,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_sta
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -7820,7 +7820,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -7891,7 +7891,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
@@ -7993,7 +7993,98 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_retraining_default_off_shadow_selector_implementation_complete"
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
+    )
+
+
+def test_v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_status=dp_camp_v13_default_off_shadow_selector_post_implementation_static_contract_review_complete",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_9927cd2_20260629T064330CST",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_json_sha256=975f58db6b3d2543d5299fc4c915ad1a7743f4c3cea9f28d60cfc40b228ca782",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_md_sha256=67d61280f223f1b5b2f28002b23bd8112ebccbe97297f7f13b3b19c89493998f",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_stdout_sha256=183d221d0f7115b3aa76efc979bc09b009f6bdf13ec2252f23ce7221a1a00b40",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_exit_code_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_command_json_sha256=29bbf428629bd5b54d1eeba5dd98a8cc9011c406c0dcbe0b5fd4d8754a7afcdc",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_command_txt_sha256=bf985e455133cebfe9e2f26589f37f4ee66c6ff04f3112a0232a01dafba9a284",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_exit_code=0",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_execution_camp_head=9927cd24666e1960f9eb5039715e1b73e560c7d1",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_execution_camp_origin_main=9927cd24666e1960f9eb5039715e1b73e560c7d1",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_passed=True",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_failed_checks=[]",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_check_count=64",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_authorized_next_work=dp_camp_v13_default_off_shadow_selector_artifact_manifest_plan_only",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_artifact_manifest_plan_authorized=True",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_artifact_manifest_materialization_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_runtime_execution_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_selector_promotion_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_atom_promotion_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_deployment_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_deployable_checkpoint_claim_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_safety_benefit_claim_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_camp_over_dp_top1_claim_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_replay_execution_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_candidate_generation_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_dp_modification_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_online_selector_change_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_production_selector_change_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_training_authorization_changed=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_training_executed=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_script_sha256=855fdd5f1e850e67522fa2a390caeee4c5002edae3f892c657e721fb7179d7bd",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_replay_runner_sha256=1d5e116cb2c7c473b9c79906a17bc01683dc9b7595a6006c129cc135dedf4813",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_camp_integration_sha256=6b964595bcd50cf10e5edfbdebef2a8cc6b1494990103f6f66bc76d6498fcde7",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_unit_tests_sha256=ca87f7b69b4bd51969b94583cd1fddf41efe75185bb953b508cfbf81d3c34457",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_benders_contract_tests_sha256=bbed165a710f91087b963c6df235764e4ad9c553ff43eed26f4263d51545d301",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_v13_audit_input_sha256=ceb55fa0a3cbe398c3cca31f2dde33841191fb32b4759badd52acd4fa902a565",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_default_off=True",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_static_review_only=True",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_runtime_execution=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_training_execution=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_replay_execution=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_candidate_generation_execution=False",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_candidate_operation=fixed DP candidate reranking only",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_runtime_effect=shadow_selected_index may be logged; selected_index and executed_index remain DP candidate 0",
+        "current_v13_status=current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete",
+        "current_v13_next_scope=default_off_shadow_selector_artifact_manifest_plan_only",
+        "current_v13_all_subsequent_training_tasks_authorized_by_user=True",
+        "current_v13_no_further_training_authorization_prompt_required=True",
+        "large_retraining_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
+        "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
+        "default_off_shadow_selector_artifact_manifest_plan_authorized=True",
+        "default_off_shadow_selector_artifact_manifest_materialization_authorized=False",
+        "runtime_shadow_selector_execution_authorized=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_fixed_dp_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "trajectory_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "deployable_checkpoint_claim_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "online_selector_change_authorized=False",
+        "executed_trajectory_change_authorized_by_current_boundary=False",
+        "executed_trajectory_change_authorized=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_plan_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "current_source_large_default_off_shadow_selector_post_implementation_static_contract_review_complete"
     )
 
 
