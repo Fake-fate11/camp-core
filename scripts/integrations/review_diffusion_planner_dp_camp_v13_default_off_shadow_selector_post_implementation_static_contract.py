@@ -355,15 +355,21 @@ def _benders_contract_checks(text: str) -> list[dict[str, Any]]:
 def _audit_contract_checks(text: str) -> list[dict[str, Any]]:
     current_boundary = _current_v13_boundary(text)
     return [
-        _contains(
-            "audit_records_implementation_complete",
+        _contains_any(
+            "audit_records_implementation_or_post_review_complete",
             current_boundary,
-            "current_v13_status=default_off_shadow_selector_implementation_complete",
+            (
+                "current_v13_status=default_off_shadow_selector_implementation_complete",
+                "current_v13_status=current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete",
+            ),
         ),
-        _contains(
-            "audit_authorizes_post_implementation_review",
+        _contains_any(
+            "audit_authorizes_or_completed_post_implementation_review",
             current_boundary,
-            "v13_default_off_shadow_selector_post_implementation_static_contract_review_authorized=True",
+            (
+                "v13_default_off_shadow_selector_post_implementation_static_contract_review_authorized=True",
+                "current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
+            ),
         ),
         _contains_any(
             "audit_current_or_completed_post_review",
@@ -371,6 +377,7 @@ def _audit_contract_checks(text: str) -> list[dict[str, Any]]:
             (
                 "next_work_target=dp_camp_v13_default_off_shadow_selector_post_implementation_static_contract_review_only",
                 "v13_default_off_shadow_selector_post_implementation_static_contract_review_status=dp_camp_v13_default_off_shadow_selector_post_implementation_static_contract_review_complete",
+                "current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
             ),
         ),
         _contains(

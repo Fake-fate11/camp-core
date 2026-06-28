@@ -277,12 +277,49 @@ def test_post_implementation_static_contract_rejects_stale_audit_boundary(
     )
 
     assert report["final_decision"]["status"] == REJECT_STATUS
-    assert "audit_records_implementation_complete" in report["final_decision"][
-        "failed_checks"
-    ]
-    assert "audit_authorizes_post_implementation_review" in report["final_decision"][
-        "failed_checks"
-    ]
+    assert "audit_records_implementation_or_post_review_complete" in report[
+        "final_decision"
+    ]["failed_checks"]
+    assert "audit_authorizes_or_completed_post_implementation_review" in report[
+        "final_decision"
+    ]["failed_checks"]
+
+
+def test_post_implementation_static_contract_accepts_completed_current_boundary(
+    tmp_path: Path,
+) -> None:
+    paths = _write_inputs(tmp_path)
+    paths["v13_audit_md"].write_text(
+        (
+            "# Audit\n"
+            "\n"
+            "## Current V13 Completed Post Review Boundary\n"
+            "\n"
+            "current_v13_status=current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete\n"
+            "current_source_default_off_shadow_selector_post_implementation_static_contract_review_complete=True\n"
+            "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_plan_only\n"
+            "v13_default_off_shadow_selector_runtime_default_off=True\n"
+            "v13_default_off_shadow_selector_runtime_effect=shadow_selected_index may be logged; selected_index and executed_index remain DP candidate 0\n"
+            "v13_default_off_shadow_selector_runtime_incompatible_flags_rejected=camp_perfect_tracker_command_postselection,camp_traffic_light_hybrid_postselection,camp_underprogress_relaxation,camp_splice_shadow_rule\n"
+            "v13_default_off_shadow_selector_score_expression=score_k(w)=a_k^T w\n"
+            "online_selector_change_authorized=False\n"
+            "executed_trajectory_change_authorized=False\n"
+            "candidate_generation_authorized_by_current_boundary=False\n"
+            "current_v13_training_authorized_by_user=True\n"
+        ),
+        encoding="utf-8",
+    )
+
+    report = build_report(
+        **paths,
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["failed_checks"] == []
 
 
 def test_post_implementation_static_contract_markdown_boundary(
