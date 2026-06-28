@@ -353,30 +353,73 @@ def _benders_contract_checks(text: str) -> list[dict[str, Any]]:
 
 
 def _audit_contract_checks(text: str) -> list[dict[str, Any]]:
+    current_boundary = _current_v13_boundary(text)
     return [
-        _contains("audit_records_implementation_complete", text, "current_v13_status=default_off_shadow_selector_implementation_complete"),
+        _contains(
+            "audit_records_implementation_complete",
+            current_boundary,
+            "current_v13_status=default_off_shadow_selector_implementation_complete",
+        ),
         _contains(
             "audit_authorizes_post_implementation_review",
-            text,
+            current_boundary,
             "v13_default_off_shadow_selector_post_implementation_static_contract_review_authorized=True",
         ),
         _contains_any(
             "audit_current_or_completed_post_review",
-            text,
+            current_boundary,
             (
                 "next_work_target=dp_camp_v13_default_off_shadow_selector_post_implementation_static_contract_review_only",
                 "v13_default_off_shadow_selector_post_implementation_static_contract_review_status=dp_camp_v13_default_off_shadow_selector_post_implementation_static_contract_review_complete",
             ),
         ),
-        _contains("audit_pins_runtime_default_off", text, "v13_default_off_shadow_selector_runtime_default_off=True"),
-        _contains("audit_pins_runtime_effect", text, "selected_index and executed_index remain DP candidate 0"),
-        _contains("audit_pins_incompatible_flags", text, "v13_default_off_shadow_selector_runtime_incompatible_flags_rejected="),
-        _contains("audit_pins_score_expression", text, "v13_default_off_shadow_selector_score_expression=score_k(w)=a_k^T w"),
-        _contains("audit_blocks_online_selector_change", text, "online_selector_change_authorized=False"),
-        _contains("audit_blocks_executed_trajectory_change", text, "executed_trajectory_change_authorized=False"),
-        _contains("audit_blocks_candidate_generation", text, "candidate_generation_authorized_by_current_boundary=False"),
-        _contains("audit_training_authorization_update_preserved", text, "current_v13_training_authorized_by_user=True"),
+        _contains(
+            "audit_pins_runtime_default_off",
+            current_boundary,
+            "v13_default_off_shadow_selector_runtime_default_off=True",
+        ),
+        _contains(
+            "audit_pins_runtime_effect",
+            current_boundary,
+            "selected_index and executed_index remain DP candidate 0",
+        ),
+        _contains(
+            "audit_pins_incompatible_flags",
+            current_boundary,
+            "v13_default_off_shadow_selector_runtime_incompatible_flags_rejected=",
+        ),
+        _contains(
+            "audit_pins_score_expression",
+            current_boundary,
+            "v13_default_off_shadow_selector_score_expression=score_k(w)=a_k^T w",
+        ),
+        _contains(
+            "audit_blocks_online_selector_change",
+            current_boundary,
+            "online_selector_change_authorized=False",
+        ),
+        _contains(
+            "audit_blocks_executed_trajectory_change",
+            current_boundary,
+            "executed_trajectory_change_authorized=False",
+        ),
+        _contains(
+            "audit_blocks_candidate_generation",
+            current_boundary,
+            "candidate_generation_authorized_by_current_boundary=False",
+        ),
+        _contains(
+            "audit_training_authorization_update_preserved",
+            current_boundary,
+            "current_v13_training_authorized_by_user=True",
+        ),
     ]
+
+
+def _current_v13_boundary(audit: str) -> str:
+    marker = "\n## Current V13 "
+    index = audit.rfind(marker)
+    return audit[index + 1 :] if index >= 0 else audit
 
 
 def _contract_summary(texts: dict[str, str], hashes: dict[str, str]) -> dict[str, Any]:
