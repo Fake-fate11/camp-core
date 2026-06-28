@@ -82,6 +82,33 @@ def test_promotion_decision_plan_ready_but_does_not_promote() -> None:
     )
 
 
+def test_promotion_decision_plan_accepts_candidate_expansion_expected_counts() -> None:
+    payload = _result_review()
+    payload["artifact_summary"]["records_total"] = 102400  # type: ignore[index]
+    payload["artifact_summary"]["records_without_feasible_candidate"] = 28468  # type: ignore[index]
+    payload["artifact_summary"]["records_with_feasible_candidate"] = 73932  # type: ignore[index]
+    payload["artifact_summary"]["training_records"] = 22836  # type: ignore[index]
+    payload["artifact_summary"]["validation_records"] = 5632  # type: ignore[index]
+
+    report = build_report(
+        result_review=payload,
+        result_review_json="/tmp/result_review.json",
+        current_camp_head=CAMP_HEAD,
+        label="candidate_expansion",
+        expected_counts={
+            "records_total": 102400,
+            "records_without_feasible_candidate": 28468,
+            "training_records": 22836,
+            "validation_records": 5632,
+        },
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["source_summary"]["records_total"] == 102400
+    assert report["final_decision"]["selector_promotion_authorized"] is False
+
+
 def test_promotion_decision_plan_rejects_missing_enable() -> None:
     report = build_report(
         result_review=_result_review(),

@@ -15,6 +15,12 @@ READY_STATUS = "dp_camp_v13_promotion_decision_plan_ready"
 REJECT_STATUS = "dp_camp_v13_promotion_decision_plan_rejected"
 AUTHORIZED_NEXT_WORK = "dp_camp_v13_promotion_evidence_package_preflight_only"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+DEFAULT_EXPECTED_COUNTS = {
+    "records_total": 51200,
+    "records_without_feasible_candidate": 14058,
+    "training_records": 11262,
+    "validation_records": 2796,
+}
 
 BLOCKED_ACTIONS = (
     "selector_promotion_authorized",
@@ -46,6 +52,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--current_camp_head", required=True)
     parser.add_argument("--required_dp_head", default=FIXED_DP_HEAD)
     parser.add_argument("--label", default=None)
+    for name, default in DEFAULT_EXPECTED_COUNTS.items():
+        parser.add_argument(f"--expected_{name}", type=int, default=default)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     parser.add_argument(
@@ -64,6 +72,9 @@ def main(argv: list[str] | None = None) -> int:
         current_camp_head=args.current_camp_head,
         required_dp_head=args.required_dp_head,
         label=args.label,
+        expected_counts={
+            name: getattr(args, f"expected_{name}") for name in DEFAULT_EXPECTED_COUNTS
+        },
         enabled=args.enable_v13_promotion_decision_planning,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -84,15 +95,17 @@ def build_report(
     current_camp_head: str,
     required_dp_head: str = FIXED_DP_HEAD,
     label: str | None = None,
+    expected_counts: dict[str, int] | None = None,
     enabled: bool = False,
 ) -> dict[str, Any]:
+    expected = _expected_counts(expected_counts)
     source_summary = _source_summary(result_review)
     checks = [
         _check_equal("planning_enabled", enabled, True),
         _check_equal("required_dp_head_fixed", required_dp_head, FIXED_DP_HEAD),
         _check_true("current_camp_head_is_sha", _is_git_sha(current_camp_head), current_camp_head),
         *_source_checks(source_summary),
-        *_artifact_contract_checks(source_summary),
+        *_artifact_contract_checks(source_summary, expected),
     ]
     passed = all(check["passed"] for check in checks)
     return {
@@ -274,16 +287,26 @@ def _source_checks(source: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _artifact_contract_checks(source: dict[str, Any]) -> list[dict[str, Any]]:
+def _expected_counts(expected_counts: dict[str, int] | None) -> dict[str, int]:
+    expected = dict(DEFAULT_EXPECTED_COUNTS)
+    if expected_counts:
+        expected.update(expected_counts)
+    return expected
+
+
+def _artifact_contract_checks(
+    source: dict[str, Any],
+    expected: dict[str, int],
+) -> list[dict[str, Any]]:
     return [
-        _check_equal("records_total_v13", source["records_total"], 51200),
+        _check_equal("records_total_v13", source["records_total"], expected["records_total"]),
         _check_equal(
             "records_without_feasible_candidate_v13",
             source["records_without_feasible_candidate"],
-            14058,
+            expected["records_without_feasible_candidate"],
         ),
-        _check_equal("training_records_v13", source["training_records"], 11262),
-        _check_equal("validation_records_v13", source["validation_records"], 2796),
+        _check_equal("training_records_v13", source["training_records"], expected["training_records"]),
+        _check_equal("validation_records_v13", source["validation_records"], expected["validation_records"]),
         _check_equal("num_candidates_fixed", source["num_candidates"], 8),
         _check_equal("num_atoms_expected", source["num_atoms"], 14),
         _check_equal(
