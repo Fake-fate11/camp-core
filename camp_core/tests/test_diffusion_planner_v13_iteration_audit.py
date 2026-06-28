@@ -6077,6 +6077,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
         "v13_current_source_retraining_default_off_shadow_selector_artifact_manifest_plan_safety_benefit_claim_authorized=False",
         "v13_current_source_retraining_default_off_shadow_selector_artifact_manifest_plan_camp_over_dp_top1_claim_authorized=False",
         "current_v13_status=current_source_retraining_default_off_shadow_selector_artifact_manifest_plan_ready",
+        "current_v13_all_subsequent_training_tasks_authorized_by_user=True",
         "current_v13_next_scope=default_off_shadow_selector_artifact_manifest_static_contract_review_only",
         "default_off_shadow_selector_artifact_manifest_plan_complete=True",
         "current_source_retraining_default_off_shadow_selector_artifact_manifest_plan_complete=True",
