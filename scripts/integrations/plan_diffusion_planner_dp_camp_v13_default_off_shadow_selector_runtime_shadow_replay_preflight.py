@@ -62,6 +62,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--route_name", required=True)
     parser.add_argument("--route_path", type=Path, required=True)
     parser.add_argument("--model_path", type=Path, required=True)
+    parser.add_argument("--model_args", type=Path, required=True)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--reward_config", type=Path, required=True)
     parser.add_argument("--planned_replay_output_dir", type=Path, required=True)
@@ -97,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         route_name=args.route_name,
         route_path=args.route_path,
         model_path=args.model_path,
+        model_args=args.model_args,
         config=args.config,
         reward_config=args.reward_config,
         planned_replay_output_dir=args.planned_replay_output_dir,
@@ -134,6 +136,7 @@ def build_report(
     route_name: str,
     route_path: Path,
     model_path: Path,
+    model_args: Path,
     config: Path,
     reward_config: Path,
     planned_replay_output_dir: Path,
@@ -192,6 +195,7 @@ def build_report(
         diffusion_repo=diffusion_repo,
         route_path=route_path,
         model_path=model_path,
+        model_args=model_args,
         config=config,
         reward_config=reward_config,
         planned_replay_output_dir=planned_replay_output_dir,
@@ -226,6 +230,7 @@ def build_report(
         _check("diffusion_repo_exists", diffusion_repo.is_dir(), str(diffusion_repo), "directory exists"),
         _check("route_path_exists", route_path.is_file(), str(route_path), "file exists"),
         _check("model_path_exists", model_path.is_file(), str(model_path), "file exists"),
+        _check("model_args_exists", model_args.is_file(), str(model_args), "file exists"),
         _check("config_exists", config.is_file(), str(config), "file exists"),
         _check(
             "reward_config_exists",
@@ -286,6 +291,10 @@ def build_report(
                 "num_candidates": num_candidates,
                 "planned_replay_output_dir": str(planned_replay_output_dir),
                 "planned_output_absent": not planned_replay_output_dir.exists(),
+                "model_args": str(model_args),
+                "model_args_sha256": _sha256(model_args)
+                if model_args.is_file()
+                else None,
                 "runtime_manifest": str(runtime_manifest_json),
                 "manifest_sha256": _sha256(runtime_manifest_json)
                 if runtime_manifest_json.is_file()
@@ -309,6 +318,7 @@ def _planned_command(
     diffusion_repo: Path,
     route_path: Path,
     model_path: Path,
+    model_args: Path,
     config: Path,
     reward_config: Path,
     planned_replay_output_dir: Path,
@@ -332,6 +342,8 @@ def _planned_command(
         str(route_path),
         "--model_path",
         str(model_path),
+        "--model_args",
+        str(model_args),
         "--config",
         str(config),
         "--reward_config",
@@ -476,6 +488,12 @@ def _command_checks(command: list[str]) -> list[dict[str, Any]]:
             "--reward_config" in command,
             joined,
             "reward config flag present",
+        ),
+        _check(
+            "command_has_model_args",
+            "--model_args" in command,
+            joined,
+            "model args flag present",
         ),
         _check(
             "command_has_no_guidance_or_reference_blend",

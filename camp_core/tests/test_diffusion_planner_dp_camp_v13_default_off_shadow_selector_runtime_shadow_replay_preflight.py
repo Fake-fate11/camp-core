@@ -102,6 +102,7 @@ def _paths(tmp_path: Path, *, manifest_drift: bool = False) -> dict[str, Path]:
     route_path = _write(tmp_path / "route.pkl", "route")
     model_path = tmp_path / "diffusion_planner.pth"
     model_path.write_bytes(b"model")
+    model_args = _write(tmp_path / "diffusion_planner.param.json", "{}")
     config = _write(tmp_path / "replay_default.json", "{}")
     reward_config = _write(tmp_path / "dp_camp_reward_eval.json", "{}")
     runner = _write(tmp_path / "run_diffusion_planner_camp_replay.py", _runner_source())
@@ -113,6 +114,7 @@ def _paths(tmp_path: Path, *, manifest_drift: bool = False) -> dict[str, Path]:
         "diffusion_repo": diffusion_repo,
         "route_path": route_path,
         "model_path": model_path,
+        "model_args": model_args,
         "config": config,
         "reward_config": reward_config,
         "planned_replay_output_dir": tmp_path / "planned" / "replay",
@@ -153,6 +155,7 @@ def test_preflight_is_default_off_and_does_not_read_missing_inputs(tmp_path: Pat
         route_name="sample_normal",
         route_path=missing,
         model_path=missing,
+        model_args=missing,
         config=missing,
         reward_config=missing,
         planned_replay_output_dir=missing,
@@ -181,6 +184,7 @@ def test_preflight_accepts_valid_fixture_and_builds_single_shadow_command(
     assert decision["replay_execution_performed"] is False
     assert "--camp_default_off_shadow_selector" in command
     assert "--camp_shadow_artifact_manifest" in command
+    assert "--model_args" in command
     assert "--reward_config" in command
     assert "--candidate_reference_blend_steps" not in command
     assert "--candidate_guidance_config" not in command
@@ -247,6 +251,8 @@ def test_preflight_cli_writes_json_and_markdown(tmp_path: Path) -> None:
             str(paths["route_path"]),
             "--model_path",
             str(paths["model_path"]),
+            "--model_args",
+            str(paths["model_args"]),
             "--config",
             str(paths["config"]),
             "--reward_config",
