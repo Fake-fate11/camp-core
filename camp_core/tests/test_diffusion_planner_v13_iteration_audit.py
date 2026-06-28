@@ -4357,14 +4357,14 @@ def test_v13_current_source_default_off_shadow_selector_artifact_manifest_plan_o
 
     for needle in [
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_status=dp_camp_v13_default_off_shadow_selector_artifact_manifest_plan_ready",
-        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_artifact_manifest_plan_66d51aa_20260628T231229CST",
-        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_json_sha256=4876c760d4a00a86266a5445ba83186ea6b926486a7aeba6100dc169b243d8df",
-        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_md_sha256=5d26f613ba97f0ce1ee6fb867cf7afd1afdf3ebd4ccf5c419d1e3c1d5a5eb040",
+        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_artifact_manifest_plan_f2adca9_20260628T231954CST",
+        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_json_sha256=fc084057afb05ae26c7498525651b3f3438943bf2665b463de024e245ef3e69c",
+        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_md_sha256=fd0b356d6bae442f351fc014188d3a1f4fc81fb7f39c1f069a8e9820214ffdfd",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_stdout_sha256=ba784ac51c31f172cebd2ecb5c28704ce0db5fe95d91557df36a246dc25395cb",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_exit_code_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
-        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_heads_sha256=2699de70312593dd52aa9592bd8fc91076d44708ab1aae6f977406788e8c6c8e",
-        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_execution_camp_head=66d51aa7c414512c4a31ecfed9a4b072e2c32187",
+        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_heads_sha256=471827c19f7d7ce86a110d9853cab98d62561e7dc7d89a15567a2a97eba6129b",
+        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_execution_camp_head=f2adca9f002990e46e5f7adddc0d9ea0cd5f0ef9",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_script_sha256=0a668850d13f2588786750882b1dae8aad374dd4db4aab6ee021522df740e406",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_test_sha256=81e0b832b4fa428d272da3826662c85820686dae950327c4a0a71a9d101b153b",
@@ -4373,7 +4373,7 @@ def test_v13_current_source_default_off_shadow_selector_artifact_manifest_plan_o
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_static_weights_json_sha256=4979901f489f20eb6b9fd6ea122300d3b390c5d6d0d72490a0b84148ba68b489",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_static_weights_npy_sha256=751fbc3a333af0aae483ed50fcfa1abe02361f7bb3d18d8264bf0425019a4752",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_fallback_master_config_sha256=a9b339b677524b7946f104d7362ac3395e6ddc79f3ffd41e4effb0e6500cfea3",
-        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_v13_audit_input_sha256=01374c80e210264a7626ab076c1663eae4cf5cbcbfd4327448d0b3bf0b4fc362",
+        "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_v13_audit_input_sha256=a3aa86c6c1a74b771ce255a4dc294ed08525739fb42d2ac6b8c4d396a23e37bf",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_runtime_manifest_schema=dp_camp_v13_default_off_shadow_selector_runtime_v1",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_materialized_by_this_gate=False",
         "v13_current_source_default_off_shadow_selector_artifact_manifest_plan_selector_mode=static",
@@ -4424,6 +4424,9 @@ def test_v13_current_source_default_off_shadow_selector_artifact_manifest_plan_o
         "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_static_contract_review_only",
     ]:
         assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert latest_status == "current_source_default_off_shadow_selector_artifact_manifest_plan_ready"
 
 
 def test_v12_audit_points_forward_to_v13() -> None:
