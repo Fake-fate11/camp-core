@@ -7602,6 +7602,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_pla
         "v13_current_source_large_default_off_shadow_selector_implementation_plan_static_review_requirements=default_false,no_shadow_index_routed_to_executed_trajectory,no_candidate_mutation,affine_fixed_candidate_scoring,formal_seeds_forbidden,dp_unmodified,no_claims",
         "v13_current_source_large_default_off_shadow_selector_implementation_plan_forbidden_paths=change_default_selector_mode,route_shadow_index_to_executed_trajectory,generate_or_modify_trajectories,use_future_or_label_inputs,use_formal_seeds,modify_or_retrain_dp,claim_promotion_deployment_safety_or_superiority",
         "v13_current_source_large_default_off_shadow_selector_implementation_plan_local_pytest=176 passed in 2.22s with PYTHONPATH=camp_core",
+        "v13_current_source_large_default_off_shadow_selector_implementation_plan_autodl_pytest=176 passed in 1.41s with PYTHONPATH=camp_core",
         "current_v13_status=current_source_large_retraining_default_off_shadow_selector_implementation_plan_complete",
         "current_v13_next_scope=default_off_shadow_selector_implementation_static_contract_review_only",
         "large_retraining_default_off_shadow_selector_implementation_plan_complete=True",
