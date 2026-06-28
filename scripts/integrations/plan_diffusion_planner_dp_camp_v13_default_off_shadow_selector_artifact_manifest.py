@@ -490,15 +490,21 @@ def _fallback_master_config_checks(payload: dict[str, Any]) -> list[dict[str, An
 def _audit_boundary_checks(text: str) -> list[dict[str, Any]]:
     current_boundary = _current_v13_boundary(text)
     return [
-        _contains(
-            "audit_current_scope_authorizes_manifest_plan_only",
+        _contains_any(
+            "audit_current_scope_authorizes_or_completed_manifest_plan",
             current_boundary,
-            "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_plan_only",
+            (
+                "next_work_target=dp_camp_v13_default_off_shadow_selector_artifact_manifest_plan_only",
+                "current_source_default_off_shadow_selector_artifact_manifest_plan_complete=True",
+            ),
         ),
-        _contains(
-            "audit_artifact_manifest_plan_authorized",
+        _contains_any(
+            "audit_artifact_manifest_plan_authorized_or_complete",
             current_boundary,
-            "artifact_manifest_plan_authorized=True",
+            (
+                "artifact_manifest_plan_authorized=True",
+                "current_source_default_off_shadow_selector_artifact_manifest_plan_complete=True",
+            ),
         ),
         _contains(
             "audit_manifest_materialization_blocked",
@@ -820,6 +826,11 @@ def _is_close(value: Any, expected: float) -> bool:
 
 def _contains(name: str, text: str, needle: str) -> dict[str, Any]:
     return _check(name, needle in text, needle if needle in text else "missing", needle)
+
+
+def _contains_any(name: str, text: str, needles: tuple[str, ...]) -> dict[str, Any]:
+    matched = [needle for needle in needles if needle in text]
+    return _check(name, bool(matched), matched or "missing", list(needles))
 
 
 def _expect(name: str, observed: Any, expected: Any) -> dict[str, Any]:
