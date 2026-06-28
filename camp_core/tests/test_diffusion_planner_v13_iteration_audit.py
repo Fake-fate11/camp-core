@@ -7312,6 +7312,7 @@ def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned()
         "v13_current_source_large_promotion_decision_plan_online_selector_change_authorized=False",
         "v13_current_source_large_promotion_decision_plan_production_selector_change_authorized=False",
         "v13_current_source_large_promotion_decision_plan_local_pytest=199 passed in 2.43s",
+        "v13_current_source_large_promotion_decision_plan_autodl_pytest=199 passed in 1.89s",
         "current_v13_status=current_source_large_retraining_promotion_decision_plan_complete",
         "current_v13_next_scope=current_source_large_retraining_promotion_evidence_package_preflight_only",
         "large_retraining_promotion_decision_plan_complete=True",

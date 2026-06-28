@@ -12049,6 +12049,7 @@ v13_current_source_large_promotion_decision_plan_dp_modification_authorized=Fals
 v13_current_source_large_promotion_decision_plan_online_selector_change_authorized=False
 v13_current_source_large_promotion_decision_plan_production_selector_change_authorized=False
 v13_current_source_large_promotion_decision_plan_local_pytest=199 passed in 2.43s
+v13_current_source_large_promotion_decision_plan_autodl_pytest=199 passed in 1.89s
 ```
 
 ## Current V13 Current-Source Large-Data Promotion-Decision Plan EOF Status Guard
