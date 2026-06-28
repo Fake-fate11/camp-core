@@ -5995,6 +5995,8 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
         "current_v13_next_scope=default_off_shadow_selector_artifact_manifest_plan_only",
         "default_off_shadow_selector_post_implementation_static_contract_review_complete=True",
         "default_off_shadow_selector_artifact_manifest_plan_authorized=True",
+        "artifact_manifest_materialization_authorized=False",
+        "runtime_shadow_selector_execution_authorized=False",
         "default_off_shadow_selector_runtime_execution_authorized=False",
         "training_execution_authorized_by_current_boundary=False",
         "candidate_generation_by_camp_authorized_by_current_boundary=False",
