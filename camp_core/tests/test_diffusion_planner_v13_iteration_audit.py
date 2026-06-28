@@ -5099,7 +5099,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5145,7 +5145,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5199,7 +5199,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5274,7 +5274,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5338,7 +5338,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5404,7 +5404,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5463,7 +5463,7 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5529,7 +5529,7 @@ def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5593,7 +5593,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_static_contra
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5664,7 +5664,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5734,7 +5734,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5802,7 +5802,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5859,7 +5859,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -5939,7 +5939,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6012,7 +6012,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6102,7 +6102,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6181,7 +6181,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6271,7 +6271,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6347,7 +6347,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6431,7 +6431,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6516,7 +6516,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6597,7 +6597,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6675,7 +6675,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 
@@ -6739,7 +6739,47 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
+    )
+
+
+def test_v13_current_source_retraining_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_status=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_script=scripts/integrations/plan_diffusion_planner_dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight.py",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_script_sha256=f0b3c3fc505685e8d9056e37fe1a5a0d9f65ba276a93f19fb947f43768002125",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_test=camp_core/tests/test_diffusion_planner_dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight.py",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_test_sha256=70fdb53b35858018b08aad302c031ebbc927825223f7c989439542b39ca3521b",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_local_pytest=11 passed in 0.46s",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_reads_latest_current_v13_status=True",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_reads_latest_next_work_target=True",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_rejects_stale_history=True",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_accepts_current_source_retraining_status=True",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_runtime_execution=False",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_replay_execution=False",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_training_execution=False",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_candidate_generation_execution=False",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_dp_modification=False",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_authorized_next_work=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_only",
+        "current_v13_status=current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete",
+        "current_v13_next_scope=default_off_shadow_selector_runtime_shadow_replay_preflight_only",
+        "runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete=True",
+        "runtime_shadow_replay_preflight_authorized=True",
+        "runtime_shadow_selector_execution_authorized=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "candidate_generation_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
     )
 
 

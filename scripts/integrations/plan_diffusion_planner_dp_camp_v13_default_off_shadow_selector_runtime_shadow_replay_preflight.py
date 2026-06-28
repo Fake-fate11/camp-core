@@ -32,6 +32,9 @@ REJECT_STATUS = (
 AUTHORIZED_NEXT_WORK = (
     "dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_only"
 )
+AUTHORIZED_PREFLIGHT_WORK = (
+    "dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_only"
+)
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 RUNTIME_MANIFEST_SCHEMA_VERSION = "dp_camp_v13_default_off_shadow_selector_runtime_v1"
 SCORE_EXPRESSION = "score_k(w)=a_k^T w"
@@ -420,34 +423,62 @@ def _runner_checks(source: str) -> list[dict[str, Any]]:
 
 
 def _audit_checks(text: str) -> list[dict[str, Any]]:
+    latest_next_work = _latest_audit_value(text, "next_work_target")
+    latest_status = _latest_audit_value(text, "current_v13_status")
+    latest_runtime_shadow = _latest_audit_value(
+        text,
+        "runtime_shadow_selector_execution_authorized",
+    )
+    latest_training = _latest_audit_value(
+        text,
+        "training_execution_authorized_by_current_boundary",
+    )
+    execution_scope = latest_next_work == AUTHORIZED_NEXT_WORK
     return [
-        _contains_any(
-            "audit_current_scope_allows_preflight_or_remediation",
-            text,
-            (
-                "next_work_target=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_only",
-                "next_work_target=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_only",
+        _check(
+            "audit_latest_scope_allows_preflight_or_remediation",
+            latest_next_work
+            in (
+                AUTHORIZED_PREFLIGHT_WORK,
+                AUTHORIZED_NEXT_WORK,
             ),
+            latest_next_work,
+            f"{AUTHORIZED_PREFLIGHT_WORK} or {AUTHORIZED_NEXT_WORK}",
         ),
-        _contains_any(
-            "audit_current_status_allows_preflight_or_remediation",
-            text,
-            (
-                "current_v13_status=current_source_default_off_shadow_selector_runtime_artifact_manifest_materialized",
-                "current_v13_status=current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_complete",
+        _check(
+            "audit_latest_status_allows_preflight_or_remediation",
+            latest_status
+            in (
+                "current_source_default_off_shadow_selector_runtime_artifact_manifest_materialized",
+                "current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_complete",
+                "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized",
+                "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete",
+                "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_complete",
             ),
+            latest_status,
+            "latest materialized or preflight-complete v13 shadow selector status",
         ),
-        _contains(
-            "audit_runtime_execution_blocked",
-            text,
-            "runtime_shadow_selector_execution_authorized=False",
+        _check(
+            "audit_latest_runtime_execution_blocked_or_execution_scope",
+            latest_runtime_shadow == "False" or execution_scope,
+            latest_runtime_shadow,
+            "False unless latest scope is shadow replay execution only",
         ),
-        _contains(
-            "audit_training_blocked_by_current_boundary",
-            text,
-            "training_execution_authorized_by_current_boundary=False",
+        _check(
+            "audit_latest_training_blocked_by_current_boundary",
+            latest_training == "False",
+            latest_training,
+            "False",
         ),
     ]
+
+
+def _latest_audit_value(text: str, key: str) -> str | None:
+    prefix = f"{key}="
+    for line in reversed(text.splitlines()):
+        if line.startswith(prefix):
+            return line.split("=", 1)[1]
+    return None
 
 
 def _command_checks(command: list[str]) -> list[dict[str, Any]]:

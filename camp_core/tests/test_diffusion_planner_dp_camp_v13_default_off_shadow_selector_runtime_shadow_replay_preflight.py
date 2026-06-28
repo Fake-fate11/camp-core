@@ -42,7 +42,11 @@ shadow_selected_index
     return source
 
 
-def _audit_text(*, wrong_scope: bool = False) -> str:
+def _audit_text(
+    *,
+    wrong_scope: bool = False,
+    status: str = "current_source_default_off_shadow_selector_runtime_artifact_manifest_materialized",
+) -> str:
     next_target = (
         "next_work_target=old_scope"
         if wrong_scope
@@ -50,7 +54,7 @@ def _audit_text(*, wrong_scope: bool = False) -> str:
     )
     return "\n".join(
         [
-            "current_v13_status=current_source_default_off_shadow_selector_runtime_artifact_manifest_materialized",
+            f"current_v13_status={status}",
             next_target,
             "runtime_shadow_selector_execution_authorized=False",
             "training_execution_authorized_by_current_boundary=False",
@@ -123,6 +127,12 @@ def _paths(tmp_path: Path, *, manifest_drift: bool = False) -> dict[str, Path]:
 
 def _report(tmp_path: Path, **overrides):
     paths = _paths(tmp_path, manifest_drift=overrides.pop("manifest_drift", False))
+    audit_status = overrides.pop("audit_status", None)
+    if audit_status is not None:
+        paths["v13_audit_md"].write_text(
+            _audit_text(status=audit_status),
+            encoding="utf-8",
+        )
     if overrides.pop("missing_shadow_flag", False):
         paths["replay_runner_py"].write_text(
             _runner_source(missing_shadow_flag=True),
@@ -192,6 +202,34 @@ def test_preflight_accepts_valid_fixture_and_builds_single_shadow_command(
     assert report["preflight"]["planned_output_absent"] is True
 
 
+def test_preflight_accepts_current_source_retraining_latest_audit_scope(
+    tmp_path: Path,
+) -> None:
+    report = _report(
+        tmp_path,
+        audit_status=(
+            "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        ),
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == AUTHORIZED_NEXT_WORK
+
+
+def test_preflight_accepts_current_source_retraining_hardening_latest_audit_scope(
+    tmp_path: Path,
+) -> None:
+    report = _report(
+        tmp_path,
+        audit_status=(
+            "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete"
+        ),
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == AUTHORIZED_NEXT_WORK
+
+
 def test_preflight_rejects_formal_seed(tmp_path: Path) -> None:
     report = _report(tmp_path, seed=11)
 
@@ -225,7 +263,42 @@ def test_preflight_rejects_wrong_audit_scope(tmp_path: Path) -> None:
     report = _report(tmp_path, wrong_audit_scope=True)
 
     assert report["final_decision"]["status"] == REJECT_STATUS
-    assert "audit_current_scope_allows_preflight_or_remediation" in report["final_decision"][
+    assert "audit_latest_scope_allows_preflight_or_remediation" in report["final_decision"][
+        "failed_checks"
+    ]
+
+
+def test_preflight_rejects_stale_audit_history_when_latest_scope_blocks(
+    tmp_path: Path,
+) -> None:
+    paths = _paths(tmp_path)
+    paths["v13_audit_md"].write_text(
+        "\n".join(
+            [
+                _audit_text(),
+                "current_v13_status=unrelated_later_status",
+                "next_work_target=old_scope",
+                "runtime_shadow_selector_execution_authorized=False",
+                "training_execution_authorized_by_current_boundary=False",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    report = build_report(
+        **paths,
+        route_name="sample_normal",
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        seed=301,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "audit_latest_scope_allows_preflight_or_remediation" in report["final_decision"][
+        "failed_checks"
+    ]
+    assert "audit_latest_status_allows_preflight_or_remediation" in report["final_decision"][
         "failed_checks"
     ]
 
