@@ -366,6 +366,7 @@ def _audit_contract_checks(text: str) -> list[dict[str, Any]]:
                 "current_v13_status=current_source_large_default_off_shadow_selector_artifact_manifest_plan_ready",
                 "current_v13_status=current_source_large_default_off_shadow_selector_artifact_manifest_static_contract_review_complete",
                 "current_v13_status=current_source_large_default_off_shadow_selector_artifact_manifest_materialization_plan_ready",
+                "current_v13_status=current_source_large_default_off_shadow_selector_artifact_manifest_materialization_static_contract_review_complete",
             ),
         ),
         _contains_any(
