@@ -1918,6 +1918,83 @@ def test_v13_candidate_expansion_retraining_post_training_audits_authorize_only_
         assert needle in text
 
 
+def test_v13_audit_records_candidate_expansion_retraining_result_review() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_retraining_result_review_status=dp_camp_v13_offline_nonpromotion_static_reranker_result_review_ready",
+        "v13_candidate_expansion_retraining_result_review_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_expansion_retraining_result_review_8babbc0_e4e2ad8_20260628T094006CST",
+        "v13_candidate_expansion_retraining_result_review_json_sha256=4a349342ad3514e7d2ec9e8dba565c0fd231163710a0b1812e28eb5576872574",
+        "v13_candidate_expansion_retraining_result_review_md_sha256=187a41b026cdef53535a426a2fb49ef758d1850d94f9a0ecdfd9fd5d1c27f0ee",
+        "v13_candidate_expansion_retraining_result_review_heads_sha256=112ed36e52f481317ba0e912c3de24fab885012249ea2ea402be3513d2ebbb79",
+        "v13_candidate_expansion_retraining_result_review_script_sha256=44162cb30f314f5995b181461c7e4023edba2e4305f28e50e0289cbae70eeeae",
+        "v13_candidate_expansion_retraining_result_review_execution_camp_head=e4e2ad86f1070b754e3d04627d7c54349a123824",
+        "v13_candidate_expansion_retraining_result_review_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_candidate_expansion_retraining_result_review_passed=True",
+        "v13_candidate_expansion_retraining_result_review_failed_checks=[]",
+        "v13_candidate_expansion_retraining_result_review_ready=True",
+        "v13_candidate_expansion_retraining_result_review_authorized_next_work=dp_camp_v13_promotion_decision_plan_only_after_explicit_user_authorization",
+        "v13_candidate_expansion_retraining_result_review_collection_summary_sha256=4addd267d8bf14c73945610cf3b7196db874c5f6994a9725967ea0a07dfd231c",
+        "v13_candidate_expansion_retraining_result_review_pipeline_summary_sha256=a5f9b2651413987d63eee94329af1eedcd6346d27fb97d3b3709ac68f1799e79",
+        "v13_candidate_expansion_retraining_result_review_training_summary_sha256=b23427d33438216eccb51e79c3c901bb81df13abc1e722c9f18d2b5c8030e876",
+        "v13_candidate_expansion_retraining_result_review_nonpromotion_audit_sha256=97c8403278e0aef7612e2819da5435dcd16ddc37de3705d2d67eff900559b38d",
+        "v13_candidate_expansion_retraining_result_review_holdout_audit_sha256=ed0d7c907e1bc18d11f2d2ca3827f0430ac5ada1ac13b0e7b4c3cef31e976d9a",
+        "v13_candidate_expansion_retraining_result_review_records_total=102400",
+        "v13_candidate_expansion_retraining_result_review_records_without_feasible_candidate=28468",
+        "v13_candidate_expansion_retraining_result_review_records_with_feasible_candidate=73932",
+        "v13_candidate_expansion_retraining_result_review_training_records=22836",
+        "v13_candidate_expansion_retraining_result_review_validation_records=5632",
+        "v13_candidate_expansion_retraining_result_review_num_candidates=8",
+        "v13_candidate_expansion_retraining_result_review_num_atoms=14",
+        "v13_candidate_expansion_retraining_result_review_atom_schema_version=dp_camp_v10_14d",
+        "v13_candidate_expansion_retraining_result_review_score_expression=score_k(w)=a_k^T w",
+    ]:
+        assert needle in text
+
+
+def test_v13_candidate_expansion_retraining_result_review_authorizes_only_promotion_decision_plan() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_retraining_result_review_promotion_decision_plan_authorized=True",
+        "v13_candidate_expansion_retraining_result_review_selector_promotion_authorized=False",
+        "v13_candidate_expansion_retraining_result_review_atom_promotion_authorized=False",
+        "v13_candidate_expansion_retraining_result_review_deployment_authorized=False",
+        "v13_candidate_expansion_retraining_result_review_safety_benefit_claim_authorized=False",
+        "v13_candidate_expansion_retraining_result_review_camp_over_dp_top1_claim_authorized=False",
+        "v13_candidate_expansion_retraining_result_review_training_authorized=False",
+        "v13_candidate_expansion_retraining_result_review_training_execution_authorized=False",
+        "v13_candidate_expansion_retraining_result_review_candidate_generation_authorized=False",
+        "v13_candidate_expansion_retraining_result_review_replay_execution_authorized=False",
+        "v13_candidate_expansion_retraining_result_review_dp_modification_authorized=False",
+        "current_v13_status=candidate_expansion_retraining_result_review_complete",
+        "current_v13_next_scope=promotion_decision_plan_only_after_explicit_user_authorization",
+        "candidate_expansion_retraining_result_review_complete=True",
+        "promotion_decision_plan_authorized_by_result_review=True",
+        "promotion_decision_plan_only_authorized=True",
+        "actual_selector_promotion_authorized=False",
+        "actual_atom_promotion_authorized=False",
+        "actual_deployment_authorized=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_fixed_dp_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "online_selector_change_authorized=False",
+        "next_work_target=dp_camp_v13_promotion_decision_plan_only_after_explicit_user_authorization",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
