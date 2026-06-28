@@ -105,15 +105,30 @@ def test_robust_margin_master_rejects_negative_atom_coefficients():
 """
 
 
-def _audit_source(*, missing_next_target: bool = False) -> str:
+def _audit_source(
+    *,
+    missing_next_target: bool = False,
+    missing_current_implementation_boundary: bool = False,
+) -> str:
     next_target = (
         "next_work_target=dp_camp_v13_default_off_shadow_selector_implementation_static_contract_review_only"
     )
     if missing_next_target:
         next_target = "next_work_target=old_scope"
+    implementation_boundary = (
+        "default_off_shadow_selector_implementation_authorized=False"
+    )
+    if missing_current_implementation_boundary:
+        implementation_boundary = "default_off_shadow_selector_implementation_authorized=True"
     return f"""
-online_selector_change_authorized=False
+## Earlier V13 Boundary
+
 default_off_shadow_selector_implementation_authorized_by_current_boundary=False
+
+## Current V13 Default-Off Shadow Selector Implementation Static Contract Review Boundary
+
+online_selector_change_authorized=False
+{implementation_boundary}
 {next_target}
 """
 
@@ -124,6 +139,7 @@ def _write_inputs(
     implementation_authorized: bool = False,
     score_expression: str = "score_k(w)=a_k^T w",
     missing_next_target: bool = False,
+    missing_current_implementation_boundary: bool = False,
 ) -> dict[str, Path]:
     paths = {
         "implementation_plan_json": tmp_path / "implementation_plan.json",
@@ -145,7 +161,12 @@ def _write_inputs(
     paths["replay_runner_py"].write_text(_runner_source(), encoding="utf-8")
     paths["benders_contract_test_py"].write_text(_benders_source(), encoding="utf-8")
     paths["v13_audit_md"].write_text(
-        _audit_source(missing_next_target=missing_next_target),
+        _audit_source(
+            missing_next_target=missing_next_target,
+            missing_current_implementation_boundary=(
+                missing_current_implementation_boundary
+            ),
+        ),
         encoding="utf-8",
     )
     return paths
@@ -239,6 +260,22 @@ def test_static_contract_review_requires_current_audit_target(tmp_path: Path) ->
 
     assert report["final_decision"]["status"] == REJECT_STATUS
     assert "audit_authorizes_current_review_only" in report["final_decision"][
+        "failed_checks"
+    ]
+
+
+def test_static_contract_review_ignores_stale_audit_boundary(
+    tmp_path: Path,
+) -> None:
+    report = build_report(
+        **_write_inputs(tmp_path, missing_current_implementation_boundary=True),
+        current_camp_head=CAMP_HEAD,
+        current_dp_head=DP_HEAD,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "audit_blocks_implementation" in report["final_decision"][
         "failed_checks"
     ]
 
