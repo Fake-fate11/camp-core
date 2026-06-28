@@ -5099,7 +5099,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_post_training_audits_complete"
+        == "current_source_retraining_result_review_complete"
     )
 
 
@@ -5145,7 +5145,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_post_training_audits_complete"
+        == "current_source_retraining_result_review_complete"
     )
 
 
@@ -5199,7 +5199,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_post_training_audits_complete"
+        == "current_source_retraining_result_review_complete"
     )
 
 
@@ -5272,7 +5272,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_retraining_post_training_audits_complete"
+    assert latest_status == "current_source_retraining_result_review_complete"
 
 
 def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None:
@@ -5333,7 +5333,70 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_retraining_post_training_audits_complete"
+    assert latest_status == "current_source_retraining_result_review_complete"
+
+
+def test_v13_current_source_retraining_result_review_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_retraining_result_review_initial_status=dp_camp_v13_offline_nonpromotion_static_reranker_result_review_rejected",
+        "v13_current_source_retraining_result_review_initial_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_retraining_result_review_86a092e3_20260629T015625CST",
+        'v13_current_source_retraining_result_review_initial_failed_checks=["pipeline_training_summary_hash_matches_file","cross_pipeline_training_summary_hash"]',
+        "v13_current_source_retraining_result_review_initial_pipeline_training_summary_sha256=01234264e01aa7e8bdb4df1aa7aa818af8643a691f7427adc4e3639e104f77cd",
+        "v13_current_source_retraining_result_review_initial_current_training_summary_sha256=944cc0d46d979dbf5e84ee0c29ef6d8925e68fd83176fdc030fe2c38565b0fd5",
+        "v13_current_source_retraining_result_review_initial_failed_closed=True",
+        "v13_current_source_retraining_result_review_overlay_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_retraining_result_review_86a092e3_20260629T015747CST",
+        "v13_current_source_retraining_result_review_overlay_schema=dp_camp_v13_current_source_retraining_pipeline_summary_overlay_v1",
+        "v13_current_source_retraining_result_review_overlay_json_sha256=0a8c14589e32cd8c93f55bf1397f0673bd7919ffc50fd81bcaff590b3bf64c5a",
+        "v13_current_source_retraining_result_review_overlay_base_pipeline_summary_sha256=bde0f4396017422888b99a9c731a54d6cb007cae7aaab3012cd08cf67bca6b0d",
+        "v13_current_source_retraining_result_review_overlay_current_training_summary_sha256=944cc0d46d979dbf5e84ee0c29ef6d8925e68fd83176fdc030fe2c38565b0fd5",
+        "v13_current_source_retraining_result_review_overlay_read_only_result_review_bridge=True",
+        "v13_current_source_retraining_result_review_overlay_candidate_generation_executed=False",
+        "v13_current_source_retraining_result_review_overlay_replay_executed=False",
+        "v13_current_source_retraining_result_review_overlay_training_executed_by_overlay=False",
+        "v13_current_source_retraining_result_review_overlay_dp_modified=False",
+        "v13_current_source_retraining_result_review_status=dp_camp_v13_offline_nonpromotion_static_reranker_result_review_ready",
+        "v13_current_source_retraining_result_review_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_retraining_result_review_86a092e3_20260629T015747CST",
+        "v13_current_source_retraining_result_review_json_sha256=615088c1046184e08fb9ab20ab07cc9e9f61d27ef4280e94c33e9b915e82cd1e",
+        "v13_current_source_retraining_result_review_md_sha256=cca18108c5f8bff768697d37a4d336baf4b8789deeb7dd73cffc207d3a5809b2",
+        "v13_current_source_retraining_result_review_stdout_sha256=4afbd83f40865c72089a0a8c37e8b4904f8fb8645bde4049b98dc7268b1531e2",
+        "v13_current_source_retraining_result_review_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_current_source_retraining_result_review_camp_head=86a092e31a4a5e5f8073e21271fc9b39577271cf",
+        "v13_current_source_retraining_result_review_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_retraining_result_review_passed=True",
+        "v13_current_source_retraining_result_review_failed_checks=[]",
+        "v13_current_source_retraining_result_review_ready=True",
+        "v13_current_source_retraining_result_review_authorized_next_work=dp_camp_v13_promotion_decision_plan_only_after_explicit_user_authorization",
+        "v13_current_source_retraining_result_review_records_total=51200",
+        "v13_current_source_retraining_result_review_records_without_feasible_candidate=14058",
+        "v13_current_source_retraining_result_review_training_records=11262",
+        "v13_current_source_retraining_result_review_validation_records=2796",
+        "v13_current_source_retraining_result_review_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_retraining_result_review_promotion_decision_plan_authorized=True",
+        "v13_current_source_retraining_result_review_selector_promotion_authorized=False",
+        "v13_current_source_retraining_result_review_atom_promotion_authorized=False",
+        "v13_current_source_retraining_result_review_deployment_authorized=False",
+        "v13_current_source_retraining_result_review_training_authorized=False",
+        "v13_current_source_retraining_result_review_replay_execution_authorized=False",
+        "v13_current_source_retraining_result_review_candidate_generation_authorized=False",
+        "v13_current_source_retraining_result_review_dp_modification_authorized=False",
+        "v13_current_source_retraining_result_review_safety_benefit_claim_authorized=False",
+        "v13_current_source_retraining_result_review_camp_over_dp_top1_claim_authorized=False",
+        "current_v13_status=current_source_retraining_result_review_complete",
+        "current_v13_next_scope=promotion_decision_plan_only_after_explicit_user_authorization",
+        "result_review_complete=True",
+        "promotion_decision_plan_authorized_by_result_review=True",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_promotion_decision_plan_only_after_explicit_user_authorization",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert latest_status == "current_source_retraining_result_review_complete"
 
 
 def test_v12_audit_points_forward_to_v13() -> None:
