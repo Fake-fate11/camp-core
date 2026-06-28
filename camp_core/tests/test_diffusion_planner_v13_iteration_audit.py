@@ -6906,6 +6906,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_smoke_execution_is_
         "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_execution_validation_passed=True",
         "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_execution_validation_failed_checks=[]",
         "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_execution_local_pytest=165 passed in 1.36s",
+        "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_execution_autodl_pytest=165 passed in 0.88s",
         "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_execution_formal_seeds_executed=False",
         "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_execution_training_executed=False",
         "v13_current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_execution_dp_modified=False",
