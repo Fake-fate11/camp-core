@@ -5099,7 +5099,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_promotion_decision_plan_complete"
+        == "current_source_retraining_promotion_evidence_package_preflight_complete"
     )
 
 
@@ -5145,7 +5145,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_promotion_decision_plan_complete"
+        == "current_source_retraining_promotion_evidence_package_preflight_complete"
     )
 
 
@@ -5199,7 +5199,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_retraining_promotion_decision_plan_complete"
+        == "current_source_retraining_promotion_evidence_package_preflight_complete"
     )
 
 
@@ -5272,7 +5272,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_retraining_promotion_decision_plan_complete"
+    assert latest_status == "current_source_retraining_promotion_evidence_package_preflight_complete"
 
 
 def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None:
@@ -5333,7 +5333,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_retraining_promotion_decision_plan_complete"
+    assert latest_status == "current_source_retraining_promotion_evidence_package_preflight_complete"
 
 
 def test_v13_current_source_retraining_result_review_is_pinned() -> None:
@@ -5396,7 +5396,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_retraining_promotion_decision_plan_complete"
+    assert latest_status == "current_source_retraining_promotion_evidence_package_preflight_complete"
 
 
 def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> None:
@@ -5452,7 +5452,73 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_retraining_promotion_decision_plan_complete"
+    assert latest_status == "current_source_retraining_promotion_evidence_package_preflight_complete"
+
+
+def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_retraining_promotion_evidence_package_preflight_status=dp_camp_v13_promotion_evidence_package_preflight_ready",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_retraining_promotion_evidence_package_preflight_8da3d6a0_20260629T020451CST",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_json_sha256=0d9dfade06269889629dfb5414fb9cafe4acdef4357363bdf1cab343a3ec1adc",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_md_sha256=14999b7d70736150122c398253b9e2adcb97a6dac54d122dd3cf353cd7d4ca8d",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_stdout_sha256=86f28ca39e9dfa248c3d264c1189e8f322a6947f1e7b0bf82c0d78927ea0feba",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_execution_camp_head=8da3d6a0760299d99e249c6b4897e95fe5bf3da0",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_passed=True",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_failed_checks=[]",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_ready=True",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_manifest_count=10",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_static_integration_contract_status=preflight_ready_contract_pinned",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_default_off_shadow_selector_wiring_status=future_static_contract_plan_required_before_implementation",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_authorized_next_work=dp_camp_v13_default_off_shadow_selector_static_integration_contract_plan_only",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_default_off_shadow_selector_contract_plan_authorized=True",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_promotion_decision_plan_sha256=291d2c03e53e5b87a76eb2c4616bc3e2e3d6e2e2c2885ebe1a99febb9351a686",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_result_review_sha256=615088c1046184e08fb9ab20ab07cc9e9f61d27ef4280e94c33e9b915e82cd1e",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_pipeline_summary_sha256=0a8c14589e32cd8c93f55bf1397f0673bd7919ffc50fd81bcaff590b3bf64c5a",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_training_summary_sha256=944cc0d46d979dbf5e84ee0c29ef6d8925e68fd83176fdc030fe2c38565b0fd5",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_weights_json_sha256=4979901f489f20eb6b9fd6ea122300d3b390c5d6d0d72490a0b84148ba68b489",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_weights_npy_sha256=751fbc3a333af0aae483ed50fcfa1abe02361f7bb3d18d8264bf0425019a4752",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_atom_scales_json_sha256=24ee58d5c4dd0c37f46ed9195e584458675496d8a3a34d1d2883d09bdf1d7d7e",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_nonpromotion_audit_sha256=19fb0f06b76313909b2895df36bdc3094d920e36d30d2f3b0eb2a9286bb89ab3",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_holdout_audit_sha256=724317c82a1f3b0235282616d54399babb56fef90c7aa6ad886c135899356480",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_collection_records_total=51200",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_collection_records_without_feasible_candidate=14058",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_pipeline_records_built=14058",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_training_records=11262",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_validation_records=2796",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_static_allowed_operation=argmin_k score_k(w)",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_simplex_master_convex=True",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_cvar_master_convex=True",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_l2_master_convex=True",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_candidate_generation_by_camp_authorized=False",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_trajectory_modification_by_camp_authorized=False",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_selector_promotion_authorized=False",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_deployment_authorized=False",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_safety_benefit_claim_authorized=False",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_camp_over_dp_top1_claim_authorized=False",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_training_execution_authorized=False",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_replay_execution_authorized=False",
+        "v13_current_source_retraining_promotion_evidence_package_preflight_dp_modification_authorized=False",
+        "current_v13_status=current_source_retraining_promotion_evidence_package_preflight_complete",
+        "current_v13_next_scope=default_off_shadow_selector_static_integration_contract_plan_only",
+        "promotion_evidence_package_preflight_complete=True",
+        "default_off_shadow_selector_contract_plan_authorized=True",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_static_integration_contract_plan_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "current_source_retraining_promotion_evidence_package_preflight_complete"
+    )
 
 
 def test_v12_audit_points_forward_to_v13() -> None:
