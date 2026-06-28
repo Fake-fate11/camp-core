@@ -5099,7 +5099,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_fallback_risk_static_camp_retraining_complete"
+        == "current_source_retraining_post_training_audits_complete"
     )
 
 
@@ -5145,7 +5145,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_fallback_risk_static_camp_retraining_complete"
+        == "current_source_retraining_post_training_audits_complete"
     )
 
 
@@ -5199,7 +5199,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_fallback_risk_static_camp_retraining_complete"
+        == "current_source_retraining_post_training_audits_complete"
     )
 
 
@@ -5272,7 +5272,68 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_fallback_risk_static_camp_retraining_complete"
+    assert latest_status == "current_source_retraining_post_training_audits_complete"
+
+
+def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_retraining_post_training_audits_status=complete",
+        "v13_current_source_retraining_post_training_audits_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_retraining_post_training_audits_5efc8f64_20260629T015212CST",
+        "v13_current_source_retraining_post_training_audits_camp_head=5efc8f648ece810f1d298fa3e3657ea45c76d5bd",
+        "v13_current_source_retraining_post_training_audits_training_commit=e8aa997ed6d32025765e89d1a7c5766310070d36",
+        "v13_current_source_retraining_post_training_audits_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_retraining_post_training_nonpromotion_audit_json_sha256=19fb0f06b76313909b2895df36bdc3094d920e36d30d2f3b0eb2a9286bb89ab3",
+        "v13_current_source_retraining_post_training_nonpromotion_audit_md_sha256=56def7c7957b88e6732ad88fb59263d75add1d86af8db3edfbef70a45f075d25",
+        "v13_current_source_retraining_post_training_nonpromotion_audit_status=dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_complete",
+        "v13_current_source_retraining_post_training_nonpromotion_artifact_audit_passed=True",
+        "v13_current_source_retraining_post_training_nonpromotion_training_artifacts_nonpromotion=True",
+        "v13_current_source_retraining_post_training_nonpromotion_fixed_dp_candidate_reranking_only=True",
+        "v13_current_source_retraining_post_training_nonpromotion_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_retraining_post_training_nonpromotion_formal_seeds_11_12_13_authorized=False",
+        "v13_current_source_retraining_post_training_nonpromotion_dp_modification_authorized=False",
+        "v13_current_source_retraining_post_training_nonpromotion_selector_promotion_authorized=False",
+        "v13_current_source_retraining_post_training_nonpromotion_safety_benefit_claim_authorized=False",
+        "v13_current_source_retraining_post_training_nonpromotion_camp_over_dp_top1_claim_authorized=False",
+        "v13_current_source_retraining_post_training_holdout_audit_json_sha256=724317c82a1f3b0235282616d54399babb56fef90c7aa6ad886c135899356480",
+        "v13_current_source_retraining_post_training_holdout_audit_md_sha256=b56c07f0b9b538eab1e061ee781aa8929c6390839f6f9cc197706a7b57ea5292",
+        "v13_current_source_retraining_post_training_holdout_audit_status=dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_complete",
+        "v13_current_source_retraining_post_training_development_holdout_acceptance_audit_passed=True",
+        "v13_current_source_retraining_post_training_holdout_records_scope=validation_groups_only",
+        "v13_current_source_retraining_post_training_holdout_fallback_branch_only=True",
+        "v13_current_source_retraining_post_training_holdout_records_without_feasible_candidate_only=True",
+        "v13_current_source_retraining_post_training_holdout_selection_rule=argmin_k score_k(w)",
+        "v13_current_source_retraining_post_training_holdout_fixed_dp_candidate_reranking_only=True",
+        "v13_current_source_retraining_post_training_holdout_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_retraining_post_training_holdout_formal_seeds_11_12_13_authorized=False",
+        "v13_current_source_retraining_post_training_holdout_dp_modification_authorized=False",
+        "v13_current_source_retraining_post_training_holdout_selector_promotion_authorized=False",
+        "v13_current_source_retraining_post_training_holdout_safety_benefit_claim_authorized=False",
+        "v13_current_source_retraining_post_training_holdout_camp_over_dp_top1_claim_authorized=False",
+        "v13_current_source_retraining_post_training_training_executed=False",
+        "v13_current_source_retraining_post_training_replay_executed=False",
+        "v13_current_source_retraining_post_training_candidate_generation_executed=False",
+        "v13_current_source_retraining_post_training_dp_modified=False",
+        "current_v13_status=current_source_retraining_post_training_audits_complete",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "current_v13_status=current_source_retraining_post_training_audits_complete",
+        "current_v13_next_scope=current_source_retraining_result_review_before_any_promotion_decision_only",
+        "post_training_nonpromotion_artifact_audit_passed=True",
+        "development_holdout_acceptance_audit_passed=True",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_current_source_retraining_result_review_before_any_promotion_decision_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert latest_status == "current_source_retraining_post_training_audits_complete"
 
 
 def test_v12_audit_points_forward_to_v13() -> None:
