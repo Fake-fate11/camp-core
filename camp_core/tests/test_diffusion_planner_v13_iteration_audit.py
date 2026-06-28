@@ -3626,6 +3626,75 @@ def test_v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_s
         assert needle in text
 
 
+def test_v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_authorizes_only_training_path_status_review() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_status=dp_camp_v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_complete",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_output_dir=/root/autodl-tmp/camp_dp_v13_nonformal_k8_provenance_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_8babbc0_c9cacc6_20260628T124140CST",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_json_sha256=51e4cc14b55d8c7a46373185d9a631d7bd0d3277402903d2855d72f9bd2c3264",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_md_sha256=164d692a4e12efd9c69746de05776fcc35ae660214acdec37d0f69a4eb26ca92",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_stderr_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_exit_code=0",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_source_validation_json_sha256=eae32503a4c2467156fcf77dd5acad6b754871f8ef995d9f37c2990db34c34e2",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_source_audit_sha256=835a173daee5e7df40b8f569db307671ac0af4cf17136a622eacc5cbeb7fbf05",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_execution_camp_head=c9cacc66031070678388f4ad602fbb228e7649c8",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_completed_run_count=32",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_failed_run_count=0",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_total_records=3200",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_total_shadow_records=3200",
+        'v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_route_records={"nishi_lane_change":800,"nishi_release":800,"sample_normal":800,"sample_tl":800}',
+        'v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_seed_records={"301":1600,"302":1600}',
+        'v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_npc_records={"0":1600,"4":1600}',
+        'v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_traffic_light_records={"off":1600,"on":1600}',
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_executed_indices=[0]",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_selected_indices_in_records=[0]",
+        'v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_shadow_selected_index_counts={"0":695,"1":359,"2":310,"3":370,"4":391,"5":383,"6":390,"7":302}',
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_nonzero_shadow_selection_count=2505",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_manifest_sha256=7535b6e6bc5c560ce1504af3e00fa22c87e869aadea2f0d700a9234b0b87a097",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_atom_scales_sha256=3b9abfaaa98e80a1a1b93635cd9ced1f7e8cbe910539549f4722e04b92a6c498",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_static_weights_sha256=b7981a9740cc3cfb6354726833997009a4f2da1914dd764a5dfb6b008b48a182",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_conclusion=broader_nonformal_default_off_shadow_selector_plumbing_passed_no_safety_or_promotion_claim",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_passed=True",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_failed_checks=[]",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_authorized_next_work=dp_camp_v13_candidate_expansion_training_path_status_and_next_data_need_review_only",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_training_authorized_by_user=True",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_training_executed_by_review=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_replay_execution_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_candidate_generation_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_candidate_generation_by_camp_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_formal_seeds_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_dp_modification_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_selector_promotion_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_atom_promotion_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_deployment_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_safety_benefit_claim_authorized=False",
+        "v13_candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_camp_over_dp_top1_claim_authorized=False",
+        "current_v13_status=candidate_expansion_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_complete",
+        "current_v13_next_scope=candidate_expansion_training_path_status_and_next_data_need_review_only",
+        "broader_nonformal_shadow_replay_batch_result_review_complete=True",
+        "training_path_status_and_next_data_need_review_authorized=True",
+        "runtime_shadow_selector_execution_authorized=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_fixed_dp_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "online_selector_change_authorized=False",
+        "executed_trajectory_change_authorized_by_current_boundary=False",
+        "next_work_target=dp_camp_v13_candidate_expansion_training_path_status_and_next_data_need_review_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
