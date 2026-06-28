@@ -14,6 +14,13 @@ READY_STATUS = "dp_camp_v13_promotion_evidence_package_preflight_ready"
 REJECT_STATUS = "dp_camp_v13_promotion_evidence_package_preflight_rejected"
 SOURCE_PLAN_STATUS = "dp_camp_v13_promotion_decision_plan_ready"
 SOURCE_PLAN_AUTHORIZED_NEXT_WORK = "dp_camp_v13_promotion_evidence_package_preflight_only"
+CURRENT_SOURCE_PLAN_AUTHORIZED_NEXT_WORK = (
+    "dp_camp_v13_current_source_promotion_evidence_package_preflight_only"
+)
+SOURCE_PLAN_AUTHORIZED_NEXT_WORKS = {
+    SOURCE_PLAN_AUTHORIZED_NEXT_WORK,
+    CURRENT_SOURCE_PLAN_AUTHORIZED_NEXT_WORK,
+}
 RESULT_REVIEW_STATUS = "dp_camp_v13_offline_nonpromotion_static_reranker_result_review_ready"
 AUTHORIZED_NEXT_WORK = (
     "dp_camp_v13_default_off_shadow_selector_static_integration_contract_plan_only"
@@ -363,13 +370,21 @@ def _artifact_file_checks(name: str, path: Path) -> list[dict[str, Any]]:
 def _promotion_plan_checks(plan: dict[str, Any]) -> list[dict[str, Any]]:
     decision = _dict(plan.get("final_decision"))
     package = _dict(plan.get("evidence_package_preflight"))
+    authorized_next_work = decision.get("authorized_next_work")
+    legacy_preflight_status_ok = package.get("status") == "planned_not_executed"
+    current_source_preflight_entrypoint_ok = (
+        authorized_next_work == CURRENT_SOURCE_PLAN_AUTHORIZED_NEXT_WORK
+        and _path(plan, "promotion_decision_plan.immediate_action")
+        == "build_current_source_promotion_evidence_package_preflight_only"
+    )
     return [
         _expect("promotion_plan_status_ready", decision.get("status"), SOURCE_PLAN_STATUS),
         _expect("promotion_plan_passed", decision.get("passed"), True),
-        _expect(
+        _check(
             "promotion_plan_authorizes_this_preflight",
-            decision.get("authorized_next_work"),
-            SOURCE_PLAN_AUTHORIZED_NEXT_WORK,
+            authorized_next_work in SOURCE_PLAN_AUTHORIZED_NEXT_WORKS,
+            authorized_next_work,
+            sorted(SOURCE_PLAN_AUTHORIZED_NEXT_WORKS),
         ),
         _expect(
             "promotion_plan_preflight_authorized",
@@ -382,10 +397,12 @@ def _promotion_plan_checks(plan: dict[str, Any]) -> list[dict[str, Any]]:
             _path(plan, "promotion_decision_plan.recommendation"),
             "do_not_promote_from_current_evidence_alone",
         ),
-        _expect(
+        _check(
             "promotion_plan_preflight_status_planned",
-            package.get("status"),
-            "planned_not_executed",
+            legacy_preflight_status_ok or current_source_preflight_entrypoint_ok,
+            package.get("status")
+            or _path(plan, "promotion_decision_plan.immediate_action"),
+            "planned_not_executed or current-source preflight immediate_action",
         ),
         *[
             _expect(f"promotion_plan_{name}_false", decision.get(name), False)
@@ -622,6 +639,14 @@ def _cross_artifact_checks(payloads: dict[str, Any], hashes: dict[str, str]) -> 
     training = payloads["training_summary"]
     weights = payloads["weights_json"]
     atom_scales = payloads["atom_scales_json"]
+    promotion_source_records = (
+        _path(payloads["promotion_decision_plan"], "source_summary.records_total")
+        or _path(
+            payloads["promotion_decision_plan"],
+            "source_summary.result_review_records_total",
+        )
+        or _path(payloads["promotion_decision_plan"], "source_summary.combined_records_total")
+    )
     return [
         _expect("training_output_weights_json_hash_matches_file", _path(training, "output_artifacts.weights_json_sha256"), hashes.get("weights_json_sha256")),
         _expect("training_output_weights_npy_hash_matches_file", _path(training, "output_artifacts.weights_npy_sha256"), hashes.get("weights_npy_sha256")),
@@ -629,7 +654,7 @@ def _cross_artifact_checks(payloads: dict[str, Any], hashes: dict[str, str]) -> 
         _expect("weights_source_dataset_hash_matches_pipeline", _path(weights, "source_hashes.dataset"), _path(payloads["pipeline_summary"], "sha256.dataset_json_sha256")),
         _expect("weights_source_scale_manifest_hash_matches_pipeline", _path(weights, "source_hashes.scale_manifest"), _path(payloads["pipeline_summary"], "sha256.scale_manifest_json_sha256")),
         _expect("atom_scales_source_manifest_hash_matches_pipeline", atom_scales.get("source_scale_manifest_sha256"), _path(payloads["pipeline_summary"], "sha256.scale_manifest_json_sha256")),
-        _expect("promotion_plan_source_records_match_review", _path(payloads["promotion_decision_plan"], "source_summary.records_total"), _path(payloads["result_review"], "artifact_summary.records_total")),
+        _expect("promotion_plan_source_records_match_review", promotion_source_records, _path(payloads["result_review"], "artifact_summary.records_total")),
         _expect("promotion_plan_source_score_expression_match_review", _path(payloads["promotion_decision_plan"], "source_summary.score_expression"), _path(payloads["result_review"], "artifact_summary.score_expression")),
     ]
 

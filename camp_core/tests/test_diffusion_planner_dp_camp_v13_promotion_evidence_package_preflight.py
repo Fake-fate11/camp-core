@@ -122,23 +122,37 @@ def _promotion_plan(
     *,
     selector_promotion: bool = False,
     counts: dict[str, int] | None = None,
+    current_source: bool = False,
 ) -> dict[str, object]:
     c = _counts(counts)
+    source_summary = {
+        "score_expression": "score_k(w)=a_k^T w",
+    }
+    if current_source:
+        source_summary["result_review_records_total"] = c["pipeline_dataset_records_total"]
+        authorized_next_work = (
+            "dp_camp_v13_current_source_promotion_evidence_package_preflight_only"
+        )
+        immediate_action = "build_current_source_promotion_evidence_package_preflight_only"
+        evidence_package_preflight = {}
+    else:
+        source_summary["records_total"] = c["pipeline_dataset_records_total"]
+        authorized_next_work = "dp_camp_v13_promotion_evidence_package_preflight_only"
+        immediate_action = "build_evidence_package_preflight_only"
+        evidence_package_preflight = {
+            "status": "planned_not_executed",
+        }
     return {
-        "source_summary": {
-            "records_total": c["pipeline_dataset_records_total"],
-            "score_expression": "score_k(w)=a_k^T w",
-        },
+        "source_summary": source_summary,
         "promotion_decision_plan": {
+            "immediate_action": immediate_action,
             "recommendation": "do_not_promote_from_current_evidence_alone",
         },
-        "evidence_package_preflight": {
-            "status": "planned_not_executed",
-        },
+        "evidence_package_preflight": evidence_package_preflight,
         "final_decision": {
             "status": "dp_camp_v13_promotion_decision_plan_ready",
             "passed": True,
-            "authorized_next_work": "dp_camp_v13_promotion_evidence_package_preflight_only",
+            "authorized_next_work": authorized_next_work,
             "evidence_package_preflight_authorized": True,
             "failed_checks": [],
             "selector_promotion_authorized": selector_promotion,
@@ -377,6 +391,30 @@ def test_evidence_package_preflight_accepts_expanded_candidate_counts(
 
     assert report["final_decision"]["status"] == READY_STATUS
     assert report["final_decision"]["failed_checks"] == []
+
+
+def test_evidence_package_preflight_accepts_current_source_plan_authorization(
+    tmp_path: Path,
+) -> None:
+    paths = _write_artifacts(tmp_path, counts=EXPANDED_COUNTS)
+    _write_json(
+        paths["promotion_decision_plan_json"],
+        _promotion_plan(counts=EXPANDED_COUNTS, current_source=True),
+    )
+
+    report = build_report(
+        **paths,
+        current_camp_head=CAMP_HEAD,
+        current_dp_head=DP_HEAD,
+        enabled=True,
+        expected_counts=EXPANDED_COUNTS,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["failed_checks"] == []
+    assert report["final_decision"]["selector_promotion_authorized"] is False
+    assert report["final_decision"]["training_execution_authorized"] is False
+    assert report["final_decision"]["candidate_generation_authorized"] is False
 
 
 def test_evidence_package_preflight_is_default_off(tmp_path: Path) -> None:
