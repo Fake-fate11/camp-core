@@ -7128,6 +7128,7 @@ def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -
         "v13_current_source_large_post_audit_safety_benefit_claim_authorized=False",
         "v13_current_source_large_post_audit_camp_over_dp_top1_claim_authorized=False",
         "v13_current_source_large_post_audit_local_pytest=183 passed in 2.48s",
+        "v13_current_source_large_post_audit_autodl_pytest=183 passed in 1.68s",
         "current_v13_status=current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed",
         "current_v13_next_scope=current_source_large_retraining_offline_nonpromotion_static_reranker_result_review_only",
         "large_retraining_post_training_nonpromotion_audit_passed=True",
