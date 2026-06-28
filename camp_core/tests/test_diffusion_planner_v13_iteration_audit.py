@@ -3973,6 +3973,74 @@ def test_v13_current_source_default_off_shadow_selector_static_contract_plan_onl
         assert needle in text
 
 
+def test_v13_current_source_default_off_shadow_selector_implementation_plan_only() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_default_off_shadow_selector_implementation_plan_status=dp_camp_v13_default_off_shadow_selector_implementation_plan_ready",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_default_off_shadow_selector_implementation_plan_2827d52_20260628T220137CST",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_json_sha256=04e3f58fb15cbfdfdd96d210b8ba222e6dee527541d5acd99cbdf84dde4e8622",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_md_sha256=af52f442f1da34f45f9e60578a859d5384044f96491436f0976a54d8e16423d2",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_heads_sha256=feff2b17c1ec4cd7a8ddc73657b404d1893f87176c2e73341d0258c2a2196c96",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_script_sha256=cda9a146de786c0859d4a777385f83635b99c2d09e8d0bbc0c0596bc8f367cb9",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_execution_camp_head=2827d524aba86f7fe4da70e467911664110668e6",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_passed=True",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_failed_checks=[]",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_source_static_contract_sha256=f595e146b8e5f41dcb8a3288e54c9c0f4502c5dcc2941341de934436922b35de",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_camp_integration_py_sha256=6b964595bcd50cf10e5edfbdebef2a8cc6b1494990103f6f66bc76d6498fcde7",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_replay_runner_py_sha256=1d5e116cb2c7c473b9c79906a17bc01683dc9b7595a6006c129cc135dedf4813",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_benders_contract_test_py_sha256=bbed165a710f91087b963c6df235764e4ad9c553ff43eed26f4263d51545d301",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_v13_audit_md_sha256=9af62b71a6918861d8e8e5b002869d30234b5986c9ad376a07818a2b0341637d",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_source_status=dp_camp_v13_default_off_shadow_selector_static_contract_plan_ready",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_source_authorized_next_work=dp_camp_v13_default_off_shadow_selector_implementation_plan_only",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_source_candidate_count=8",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_source_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_source_selection_rule=argmin_k score_k(w) over finite candidate rows",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_source_runtime_effect=must_log_shadow_decision_without changing DP top1 output",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_status_detail=plan_ready_no_implementation",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_selector_phase=future_default_off_shadow_only",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_runtime_effect=log shadow decision while executed output remains DP top1",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_candidate_count=8",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_selection_rule=shadow_selected_index = argmin_k score_k(w)",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_fail_closed_policy=on missing artifact, hash mismatch, K drift, invalid atoms, nonfinite scores, or source mismatch, emit DP top1 and log no shadow selection",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_future_target_files=camp_core/camp_core/integrations/diffusion_planner.py;scripts/integrations/run_diffusion_planner_camp_replay.py;camp_core/tests/test_diffusion_planner_default_off_shadow_selector.py;camp_core/tests/test_diffusion_planner_v13_iteration_audit.py",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_required_steps=add_default_off_shadow_selector_flag_or_config_default_false;load_immutable_v13_weights_atom_scales_and_artifact_hash_manifest_only;verify_fixed_dp_head_k8_atom_schema_score_expression_and_artifact_hashes_before_scoring;compute_normalized_candidate_atoms_and_scores_as_normalized_atoms_at_weights;derive_shadow_selected_index_with_argmin_over_finite_candidate_rows;keep_executed_trajectory_and_online_selector_output_equal_to_dp_top1_during_shadow_phase;fail_closed_to_dp_top1_and_explicit_no_shadow_log_on_any_contract_violation;log_candidate_tensor_hash_feasible_mask_scores_shadow_index_artifact_hashes_and_timing;add_static_contract_tests_before_any_runtime_implementation_is_authorized",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_static_review_requirements=prove_future_implementation_plan_keeps_default_false_configuration;prove_no_shadow_index_is_routed_into_executed_trajectory_output;prove_no_candidate_row_is_created_appended_deleted_blended_or_rewritten;prove_scoring_remains_score_k_w_equals_a_k_transpose_w_over_fixed_current_tick_candidate_atoms;prove_formal_seeds_11_12_13_remain_forbidden;prove_dp_code_dp_weights_and_dp_runtime_configuration_are_not_modified;prove_no_deployability_safety_or_camp_over_dp_top1_claim_is_introduced",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_authorized_next_work=dp_camp_v13_default_off_shadow_selector_implementation_static_contract_review_only",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_static_contract_review_authorized=True",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_ready=True",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_implementation_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_selector_promotion_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_atom_promotion_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_deployment_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_safety_benefit_claim_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_camp_over_dp_top1_claim_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_training_execution_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_candidate_generation_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_replay_execution_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_dp_modification_authorized=False",
+        "v13_current_source_default_off_shadow_selector_implementation_plan_online_selector_change_authorized=False",
+        "current_v13_status=current_source_default_off_shadow_selector_implementation_plan_complete",
+        "current_v13_next_scope=default_off_shadow_selector_implementation_static_contract_review_only",
+        "default_off_shadow_selector_implementation_static_contract_review_authorized=True",
+        "default_off_shadow_selector_implementation_authorized=False",
+        "runtime_shadow_selector_execution_authorized=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "online_selector_change_authorized=False",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_implementation_static_contract_review_only",
+    ]:
+        assert needle in text
+
+
 def test_v12_audit_points_forward_to_v13() -> None:
     text = V12_AUDIT_DOC.read_text(encoding="utf-8")
 
