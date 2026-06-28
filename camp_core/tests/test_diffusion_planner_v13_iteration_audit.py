@@ -7412,6 +7412,7 @@ def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned
         "v13_current_source_large_promotion_evidence_package_preflight_online_selector_change_authorized=False",
         "v13_current_source_large_promotion_evidence_package_preflight_production_selector_change_authorized=False",
         "v13_current_source_large_promotion_evidence_package_preflight_local_pytest=209 passed in 2.60s",
+        "v13_current_source_large_promotion_evidence_package_preflight_autodl_pytest=209 passed in 2.04s",
         "current_v13_status=current_source_large_retraining_promotion_evidence_package_preflight_complete",
         "current_v13_next_scope=default_off_shadow_selector_static_integration_contract_plan_only",
         "large_retraining_promotion_evidence_package_preflight_complete=True",
