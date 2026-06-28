@@ -63,6 +63,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--route_path", type=Path, required=True)
     parser.add_argument("--model_path", type=Path, required=True)
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--reward_config", type=Path, required=True)
     parser.add_argument("--planned_replay_output_dir", type=Path, required=True)
     parser.add_argument("--current_camp_head", required=True)
     parser.add_argument("--current_camp_origin_main", required=True)
@@ -97,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         route_path=args.route_path,
         model_path=args.model_path,
         config=args.config,
+        reward_config=args.reward_config,
         planned_replay_output_dir=args.planned_replay_output_dir,
         current_camp_head=args.current_camp_head,
         current_camp_origin_main=args.current_camp_origin_main,
@@ -133,6 +135,7 @@ def build_report(
     route_path: Path,
     model_path: Path,
     config: Path,
+    reward_config: Path,
     planned_replay_output_dir: Path,
     current_camp_head: str,
     current_camp_origin_main: str,
@@ -190,6 +193,7 @@ def build_report(
         route_path=route_path,
         model_path=model_path,
         config=config,
+        reward_config=reward_config,
         planned_replay_output_dir=planned_replay_output_dir,
         device=device,
         steps=steps,
@@ -223,6 +227,12 @@ def build_report(
         _check("route_path_exists", route_path.is_file(), str(route_path), "file exists"),
         _check("model_path_exists", model_path.is_file(), str(model_path), "file exists"),
         _check("config_exists", config.is_file(), str(config), "file exists"),
+        _check(
+            "reward_config_exists",
+            reward_config.is_file(),
+            str(reward_config),
+            "file exists",
+        ),
         _check(
             "planned_output_absent",
             not planned_replay_output_dir.exists(),
@@ -300,6 +310,7 @@ def _planned_command(
     route_path: Path,
     model_path: Path,
     config: Path,
+    reward_config: Path,
     planned_replay_output_dir: Path,
     device: str,
     steps: int,
@@ -323,6 +334,8 @@ def _planned_command(
         str(model_path),
         "--config",
         str(config),
+        "--reward_config",
+        str(reward_config),
         "--output_dir",
         str(planned_replay_output_dir),
         "--device",
@@ -396,15 +409,21 @@ def _runner_checks(source: str) -> list[dict[str, Any]]:
 
 def _audit_checks(text: str) -> list[dict[str, Any]]:
     return [
-        _contains(
-            "audit_current_scope_authorizes_preflight",
+        _contains_any(
+            "audit_current_scope_allows_preflight_or_remediation",
             text,
-            "next_work_target=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_only",
+            (
+                "next_work_target=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_preflight_only",
+                "next_work_target=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_only",
+            ),
         ),
-        _contains(
-            "audit_runtime_manifest_materialized",
+        _contains_any(
+            "audit_current_status_allows_preflight_or_remediation",
             text,
-            "current_v13_status=current_source_default_off_shadow_selector_runtime_artifact_manifest_materialized",
+            (
+                "current_v13_status=current_source_default_off_shadow_selector_runtime_artifact_manifest_materialized",
+                "current_v13_status=current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_complete",
+            ),
         ),
         _contains(
             "audit_runtime_execution_blocked",
@@ -451,6 +470,12 @@ def _command_checks(command: list[str]) -> list[dict[str, Any]]:
             _argument_value(command, "--camp_feasibility_source") == "dp_reward",
             _argument_value(command, "--camp_feasibility_source"),
             "dp_reward",
+        ),
+        _check(
+            "command_dp_reward_has_reward_config",
+            "--reward_config" in command,
+            joined,
+            "reward config flag present",
         ),
         _check(
             "command_has_no_guidance_or_reference_blend",
@@ -578,6 +603,11 @@ def _dict(value: Any) -> dict[str, Any]:
 
 def _contains(name: str, text: str, needle: str) -> dict[str, Any]:
     return _check(name, needle in text, "present" if needle in text else "missing", needle)
+
+
+def _contains_any(name: str, text: str, needles: tuple[str, ...]) -> dict[str, Any]:
+    matched = next((needle for needle in needles if needle in text), None)
+    return _check(name, matched is not None, matched or "missing", list(needles))
 
 
 def _expect(name: str, observed: Any, expected: Any) -> dict[str, Any]:
