@@ -5099,7 +5099,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5145,7 +5145,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5199,7 +5199,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5274,7 +5274,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5338,7 +5338,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5404,7 +5404,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5463,7 +5463,7 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5529,7 +5529,7 @@ def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5593,7 +5593,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_static_contra
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5664,7 +5664,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5734,7 +5734,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5802,7 +5802,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5859,7 +5859,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -5939,7 +5939,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6012,7 +6012,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6102,7 +6102,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6181,7 +6181,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6271,7 +6271,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6347,7 +6347,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6431,7 +6431,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6516,7 +6516,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6597,7 +6597,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6675,7 +6675,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6739,7 +6739,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6779,7 +6779,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_latest_au
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6841,7 +6841,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -6937,7 +6937,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_smoke_execution_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_fallback_risk_static_camp_retraining_complete"
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
     )
 
 
@@ -7015,7 +7015,7 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         "v13_current_source_large_retraining_camp_over_dp_top1_claim_authorized=False",
         "v13_current_source_large_retraining_local_pytest=181 passed in 1.90s",
         "v13_current_source_large_retraining_autodl_pytest=181 passed in 1.42s",
-        "current_v13_status=current_source_large_fallback_risk_static_camp_retraining_complete",
+        "current_v13_status=current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed",
         "current_v13_next_scope=current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_only",
         "large_retraining_complete=True",
         "large_retraining_train_records=22836",
@@ -7037,7 +7037,124 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_fallback_risk_static_camp_retraining_complete"
+    assert latest_status == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
+
+
+def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_large_post_audit_status=current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed",
+        "v13_current_source_large_post_audit_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_large_retraining_post_training_audits_db38b5fb_9b66ecd5_20260629T050559CST",
+        "v13_current_source_large_post_audit_manifest_sha256=cc4baaafd90af58a1ef840eba32b64792f9a9803b5d1395023881021062bd405",
+        "v13_current_source_large_post_audit_post_sha256=306098200d15e144f680217a35a177673f7377f6ea7b7969b6190a5b1ec66794",
+        "v13_current_source_large_post_audit_heads_sha256=ca0f97473f65ba733b4512b652b12cabcaa7c1df2b5aebb656cd75220f72b11d",
+        "v13_current_source_large_post_audit_training_commit=db38b5fbf8f43f3a1438d36cf92f65b79b046f58",
+        "v13_current_source_large_post_audit_camp_head=9b66ecd5deac027f7d7527095f50cece92201760",
+        "v13_current_source_large_post_audit_camp_origin_main=9b66ecd5deac027f7d7527095f50cece92201760",
+        "v13_current_source_large_post_audit_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_large_post_audit_source_dataset_sha256=7c1294dde5cadd07b1dd887017b25898bebd4a7dc8aa20de70746fb2727280db",
+        "v13_current_source_large_post_audit_source_split_manifest_sha256=c93b446dfec40f5d5cd1084c0587bb7477cc001faff944da32deb5e9ce68c78d",
+        "v13_current_source_large_post_audit_source_scale_manifest_sha256=8a3f4e475c69bee8140c1a021f9c2e2f32fbe75aa27bbc41e4170e16a0e63cb2",
+        "v13_current_source_large_post_audit_source_fallback_master_config_sha256=faf8afcc6fbb975be8042e7ba6188a47d99fe3943cadd510ccdfd0b1331dc296",
+        "v13_current_source_large_post_audit_source_preflight_sha256=3262125ac224e4db18a77dd17a7510a72dbbaf7486346afb6b56aceb5d857222",
+        "v13_current_source_large_post_audit_source_training_summary_sha256=9b008cec97ccdebbd9d6edb3572587db1c893578fc2239dc277f8de04e048c3f",
+        "v13_current_source_large_post_audit_source_weights_json_sha256=490c8ecee1a8981e73888f63217a85b48f8fd7134bccf3f8c4519fdc227c4e30",
+        "v13_current_source_large_post_audit_source_weights_npy_sha256=b7981a9740cc3cfb6354726833997009a4f2da1914dd764a5dfb6b008b48a182",
+        "v13_current_source_large_post_audit_source_atom_scales_sha256=3b9abfaaa98e80a1a1b93635cd9ced1f7e8cbe910539549f4722e04b92a6c498",
+        "v13_current_source_large_nonpromotion_audit_status=dp_native_fallback_risk_static_camp_training_nonpromotion_artifact_audit_complete",
+        "v13_current_source_large_nonpromotion_audit_json_sha256=908950f5fc73f685c64e3e268e2c6bba46b14987dfb0a2697725ec9b8c93bb55",
+        "v13_current_source_large_nonpromotion_audit_md_sha256=ad2261466fe0f6763d3fc4d9e3dddb2e285dcce7f0371447f6397f2630ef2078",
+        "v13_current_source_large_nonpromotion_command_json_sha256=3d363087e93aef0d34000be0ca1b1f7b25e31dfb428e769be5d4c72eff145b48",
+        "v13_current_source_large_nonpromotion_command_txt_sha256=daf2efee553ffd27e6ba8482cee9a9c7bd90dea72533db524ff0b5f214e0b3af",
+        "v13_current_source_large_nonpromotion_stdout_sha256=798df11d416c0c0e5fd4bd00b537391d5cf4d7f3008932dbb286f155e9a9ca38",
+        "v13_current_source_large_nonpromotion_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_current_source_large_nonpromotion_exit_code_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v13_current_source_large_nonpromotion_exit_code=0",
+        "v13_current_source_large_nonpromotion_passed=True",
+        "v13_current_source_large_nonpromotion_errors=[]",
+        "v13_current_source_large_nonpromotion_training_artifacts_nonpromotion=True",
+        "v13_current_source_large_nonpromotion_fixed_dp_candidate_reranking_only=True",
+        "v13_current_source_large_nonpromotion_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_large_nonpromotion_weights_json_simplex_nonnegative=True",
+        "v13_current_source_large_nonpromotion_weights_npy_simplex_nonnegative=True",
+        "v13_current_source_large_nonpromotion_weights_json_matches_npy=True",
+        "v13_current_source_large_nonpromotion_atom_scales_strictly_positive=True",
+        "v13_current_source_large_nonpromotion_num_atoms=14",
+        "v13_current_source_large_nonpromotion_atom_schema_version=dp_camp_v10_14d",
+        "v13_current_source_large_holdout_audit_status=dp_native_fallback_risk_static_camp_training_development_holdout_acceptance_audit_complete",
+        "v13_current_source_large_holdout_audit_json_sha256=7b01488cfba55875b22f3b6b8ae05d9cf018cd5d31cf05bdcdcf979e81cb1b32",
+        "v13_current_source_large_holdout_audit_md_sha256=477286dde54e656c045bbdb25e1bec6c2f6b5c0676040023a4f7a2d2cb5cb062",
+        "v13_current_source_large_holdout_command_json_sha256=4895fce51386fc0454767cc02b0ef76307e43d89566187dc4e28751ffb61be9a",
+        "v13_current_source_large_holdout_command_txt_sha256=ece92830e3c6d807eb63f4829be5e7a8a5eb35a8fcb42db774e2d1b75f0529f6",
+        "v13_current_source_large_holdout_stdout_sha256=c4b0275758fb959b3193d310d5e06097fcd6a8be0b732165e2fbe42f7587966b",
+        "v13_current_source_large_holdout_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_current_source_large_holdout_exit_code_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v13_current_source_large_holdout_exit_code=0",
+        "v13_current_source_large_holdout_passed=True",
+        "v13_current_source_large_holdout_errors=[]",
+        "v13_current_source_large_holdout_records_scope=validation_groups_only",
+        "v13_current_source_large_holdout_records_without_feasible_candidate_only=True",
+        "v13_current_source_large_holdout_fallback_branch_only=True",
+        "v13_current_source_large_holdout_selection_rule=argmin_k score_k(w)",
+        "v13_current_source_large_holdout_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_large_holdout_validation_records=5632",
+        "v13_current_source_large_holdout_records_count=5632",
+        "v13_current_source_large_holdout_candidate_tensor_unchanged=True",
+        "v13_current_source_large_holdout_candidate_count_unchanged=True",
+        "v13_current_source_large_holdout_selected_index_in_range=True",
+        "v13_current_source_large_holdout_source_hashes_present=True",
+        "v13_current_source_large_holdout_static_oracle_match_rate=0.3146306818181818",
+        "v13_current_source_large_holdout_static_mean_margin_violation=1.802658601813674",
+        "v13_current_source_large_holdout_candidate0_oracle_match_rate=0.34144176136363635",
+        "v13_current_source_large_holdout_uniform_oracle_match_rate=0.12855113636363635",
+        "v13_current_source_large_holdout_recorded_oracle_match_rate=0.12855113636363635",
+        "v13_current_source_large_holdout_static_selected_min_red_match_rate=0.8755326704545454",
+        "v13_current_source_large_holdout_static_selected_min_lane_match_rate=0.31392045454545453",
+        "v13_current_source_large_holdout_static_selected_min_quality_match_rate=0.9030539772727273",
+        "v13_current_source_large_holdout_selected_index_distribution={\"0\":5129,\"1\":113,\"2\":88,\"3\":68,\"4\":80,\"5\":46,\"6\":49,\"7\":59}",
+        "v13_current_source_large_post_audit_default_off=True",
+        "v13_current_source_large_post_audit_read_only_existing_artifacts=True",
+        "v13_current_source_large_post_audit_replay_executed=False",
+        "v13_current_source_large_post_audit_candidate_generation_executed=False",
+        "v13_current_source_large_post_audit_camp_retraining_executed_in_audit=False",
+        "v13_current_source_large_post_audit_diffusion_planner_executed=False",
+        "v13_current_source_large_post_audit_dp_modified=False",
+        "v13_current_source_large_post_audit_trajectory_generation_executed=False",
+        "v13_current_source_large_post_audit_trajectory_rewrite_executed=False",
+        "v13_current_source_large_post_audit_selector_promotion_executed=False",
+        "v13_current_source_large_post_audit_atom_promotion_executed=False",
+        "v13_current_source_large_post_audit_deployment_executed=False",
+        "v13_current_source_large_post_audit_safety_benefit_claim_authorized=False",
+        "v13_current_source_large_post_audit_camp_over_dp_top1_claim_authorized=False",
+        "v13_current_source_large_post_audit_local_pytest=183 passed in 2.48s",
+        "current_v13_status=current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed",
+        "current_v13_next_scope=current_source_large_retraining_offline_nonpromotion_static_reranker_result_review_only",
+        "large_retraining_post_training_nonpromotion_audit_passed=True",
+        "large_retraining_development_holdout_audit_passed=True",
+        "large_retraining_post_audit_manifest_sha256=cc4baaafd90af58a1ef840eba32b64792f9a9803b5d1395023881021062bd405",
+        "large_retraining_holdout_validation_records=5632",
+        "large_retraining_holdout_static_oracle_match_rate=0.3146306818181818",
+        "large_retraining_holdout_candidate0_oracle_match_rate=0.34144176136363635",
+        "large_retraining_holdout_uniform_oracle_match_rate=0.12855113636363635",
+        "post_training_audit_training_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "online_selector_change_authorized=False",
+        "executed_trajectory_change_authorized=False",
+        "next_work_target=dp_camp_v13_current_source_large_retraining_offline_nonpromotion_static_reranker_result_review_before_any_promotion_decision",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "current_source_large_retraining_post_training_nonpromotion_and_holdout_audits_passed"
+    )
 
 
 def test_v12_audit_points_forward_to_v13() -> None:
