@@ -181,6 +181,59 @@ def test_v13_result_review_ready(tmp_path: Path) -> None:
     assert report["artifact_summary"]["score_expression"] == "score_k(w)=a_k^T w"
 
 
+def test_v13_result_review_accepts_candidate_expansion_expected_counts(tmp_path: Path) -> None:
+    paths = _write_artifacts(tmp_path)
+    collection = _collection()
+    collection["records_without_feasible_candidate"] = 14410
+    collection["records_with_feasible_candidate"] = 36790
+    _write_json(paths["collection_summary_json"], collection)
+
+    training = _training()
+    training["training"]["training_seed"] = 29  # type: ignore[index]
+    training["training"]["training_records"] = 22836  # type: ignore[index]
+    training["training"]["validation_records"] = 5632  # type: ignore[index]
+    training_sha = _write_json(paths["training_summary_json"], training)
+
+    pipeline = _pipeline(training_sha)
+    pipeline["dataset_record_counts"] = {  # type: ignore[index]
+        "records_built": 28468,
+        "records_total": 102400,
+        "records_with_feasible_candidate": 73932,
+        "records_without_feasible_candidate": 28468,
+    }
+    pipeline["split_record_counts"] = {"training_records": 22836, "validation_records": 5632}  # type: ignore[index]
+    pipeline["scale_fit_record_counts"] = {  # type: ignore[index]
+        "fit_records_used": 22836,
+        "training_records_seen": 22836,
+        "validation_records_seen": 5632,
+    }
+    _write_json(paths["pipeline_summary_json"], pipeline)
+
+    report = build_report(
+        **paths,
+        current_camp_head=CAMP_HEAD,
+        label="candidate_expansion",
+        expected_counts={
+            "collection_records_without_feasible_candidate": 14410,
+            "collection_records_with_feasible_candidate": 36790,
+            "pipeline_dataset_records_built": 28468,
+            "pipeline_dataset_records_total": 102400,
+            "pipeline_training_records": 22836,
+            "pipeline_validation_records": 5632,
+            "pipeline_scale_fit_records_used": 22836,
+            "pipeline_scale_training_records_seen": 22836,
+            "pipeline_scale_validation_records_seen": 5632,
+            "training_records": 22836,
+            "training_validation_records": 5632,
+        },
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["artifact_summary"]["records_total"] == 102400
+    assert report["artifact_summary"]["records_without_feasible_candidate"] == 28468
+
+
 def test_v13_result_review_rejects_collection_contract_drift(tmp_path: Path) -> None:
     paths = _write_artifacts(tmp_path)
     collection = _collection()
