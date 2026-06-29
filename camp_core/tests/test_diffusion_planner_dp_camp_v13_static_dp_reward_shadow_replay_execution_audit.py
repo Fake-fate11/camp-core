@@ -222,6 +222,14 @@ def test_execution_audit_accepts_default_off_shadow_logs(tmp_path: Path) -> None
     assert decision["selector_promotion_authorized"] is False
 
 
+def test_execution_audit_accepts_authorized_next_work_override(tmp_path: Path) -> None:
+    next_work = "dp_camp_v13_shadow_replay_execution_result_review_only"
+    report = _report(tmp_path, authorized_next_work=next_work)
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == next_work
+
+
 def test_execution_audit_rejects_selection_effect(tmp_path: Path) -> None:
     report = _report(tmp_path, selection_effect=True)
 
@@ -271,6 +279,8 @@ def test_execution_audit_cli_writes_json_and_markdown(tmp_path: Path) -> None:
             "3",
             "--expected_records",
             "6",
+            "--authorized_next_work",
+            "dp_camp_v13_shadow_replay_execution_result_review_only",
             "--output_json",
             str(output_json),
             "--output_md",
@@ -282,4 +292,8 @@ def test_execution_audit_cli_writes_json_and_markdown(tmp_path: Path) -> None:
     assert exit_code == 0
     payload = json.loads(output_json.read_text(encoding="utf-8"))
     assert payload["final_decision"]["status"] == READY_STATUS
+    assert (
+        payload["final_decision"]["authorized_next_work"]
+        == "dp_camp_v13_shadow_replay_execution_result_review_only"
+    )
     assert "Runbook exit: `0`" in output_md.read_text(encoding="utf-8")
