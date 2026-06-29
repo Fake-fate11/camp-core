@@ -61,6 +61,10 @@ AUTHORIZED_NEXT_WORK = (
     "dp_reward_shadow_replay_eval_plus_prior_static_dp_reward_training_"
     "execution_only"
 )
+AUDIT_PREFLIGHT_AUTHORIZATION_KEY = (
+    "static_dp_reward_shadow_replay_eval_plus_prior_static_dp_reward_training_"
+    "preflight_authorized"
+)
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 ATOM_SCHEMA_VERSION = "dp_camp_v10_14d"
 SCORE_EXPRESSION = "score_k(w)=a_k^T w"
@@ -409,7 +413,8 @@ def _checks(
         _check("v13_audit_exists", v13_audit_md.is_file(), str(v13_audit_md), "file exists"),
         _check("planned_training_output_dir_absent", not planned_training_output_dir.exists(), str(planned_training_output_dir), "must not already exist"),
         _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
-        _expect("audit_training_preflight_authorized", _latest_audit_value(audit_text, "training_preflight_authorized"), "True"),
+        _expect("audit_latest_current_scope", _latest_audit_value(audit_text, "current_v13_next_scope"), AUTHORIZED_CURRENT_WORK.removeprefix("dp_camp_v13_")),
+        _expect("audit_eval_plus_prior_training_preflight_authorized", _latest_audit_value(audit_text, AUDIT_PREFLIGHT_AUTHORIZATION_KEY), "True"),
         _expect("audit_training_execution_blocked", _latest_audit_value(audit_text, "training_execution_authorized_by_current_boundary"), "False"),
         _expect("audit_replay_execution_blocked", _latest_audit_value(audit_text, "replay_execution_authorized_by_current_boundary"), "False"),
         _expect("audit_dp_modification_blocked", _latest_audit_value(audit_text, "dp_modification_authorized_by_current_boundary"), "False"),

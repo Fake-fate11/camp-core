@@ -7,6 +7,7 @@ from pathlib import Path
 from camp_core.integrations.diffusion_planner import atom_schema_for_dimension
 from scripts.integrations.plan_diffusion_planner_dp_camp_v13_static_dp_reward_eval_plus_prior_training_preflight import (
     ATOM_SCHEMA_VERSION,
+    AUDIT_PREFLIGHT_AUTHORIZATION_KEY,
     AUTHORIZED_CURRENT_WORK,
     AUTHORIZED_NEXT_WORK,
     DISABLED_STATUS,
@@ -145,7 +146,8 @@ def _audit(path: Path, *, wrong_scope: bool = False) -> Path:
         "\n".join(
             [
                 f"next_work_target={'wrong_scope' if wrong_scope else AUTHORIZED_CURRENT_WORK}",
-                "training_preflight_authorized=True",
+                f"current_v13_next_scope={AUTHORIZED_CURRENT_WORK.removeprefix('dp_camp_v13_')}",
+                f"{AUDIT_PREFLIGHT_AUTHORIZATION_KEY}=True",
                 "training_execution_authorized_by_current_boundary=False",
                 "replay_execution_authorized_by_current_boundary=False",
                 "dp_modification_authorized_by_current_boundary=False",
