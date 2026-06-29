@@ -719,3 +719,7 @@ def _stable(value: Any) -> Any:
     if isinstance(value, list):
         return [_stable(item) for item in value]
     return value
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

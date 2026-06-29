@@ -493,3 +493,15 @@ def test_manifest_builder_post_static_review_main_writes_outputs(tmp_path: Path)
     assert payload["final_decision"]["status"] == READY_STATUS
     assert payload["final_decision"]["authorized_next_work"] == AUTHORIZED_NEXT_WORK
     assert "read-only" in output_md.read_text(encoding="utf-8")
+
+
+def test_manifest_builder_post_static_review_script_has_cli_entrypoint() -> None:
+    source = (
+        REPO_ROOT
+        / "scripts"
+        / "integrations"
+        / "review_diffusion_planner_dp_camp_v13_nonoverlap_holdout_data_preparation_manifest_builder_post_implementation_static_contract.py"
+    ).read_text(encoding="utf-8")
+
+    assert 'if __name__ == "__main__":' in source
+    assert "raise SystemExit(main())" in source
