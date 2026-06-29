@@ -22,6 +22,10 @@ from camp_core.integrations.diffusion_planner import atom_schema_for_dimension  
 
 PROVENANCE_SCHEMA_VERSION = "dp_native_candidate_tensor_provenance_payload_v1"
 CANDIDATE_GENERATION_SCHEMA_VERSION = "dp_candidate_generation_contract_v1"
+DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION = (
+    "dp_camp_v13_default_off_shadow_selector_runtime_v1"
+)
+SCORE_EXPRESSION = "score_k(w)=a_k^T w"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -167,6 +171,112 @@ def _validate_provenance_payload(
     return errors
 
 
+def _as_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _validate_default_off_shadow_selector_payload(
+    payload: Any,
+    *,
+    candidate_count: int,
+    selected_index: int,
+    executed_index: int | None,
+    shadow_selected_index: int | None,
+) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(payload, dict):
+        return ["camp_candidate_tensor_provenance_missing"]
+    expected_fields = {
+        "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+        "enabled": True,
+        "default_off": True,
+        "candidate_operation": "fixed DP candidate reranking only",
+        "executed_output_policy": "dp_top1",
+        "score_expression": SCORE_EXPRESSION,
+        "selection_effect": False,
+        "online_selector_change": False,
+    }
+    for field, expected in expected_fields.items():
+        if payload.get(field) != expected:
+            errors.append(f"default_off_shadow_selector_{field}_mismatch")
+    if payload.get("artifact_contract_ready") is not True:
+        errors.append("default_off_shadow_selector_artifact_contract_ready_not_true")
+    if payload.get("failed_closed_reason") is not None:
+        errors.append("default_off_shadow_selector_failed_closed_reason_present")
+    payload_executed_index = _as_int(payload.get("executed_index"))
+    if payload_executed_index != executed_index:
+        errors.append("default_off_shadow_selector_executed_index_mismatch")
+    if executed_index != 0:
+        errors.append("default_off_shadow_selector_executed_index_not_dp_top1")
+    if selected_index != 0:
+        errors.append("default_off_shadow_selector_selected_index_not_dp_top1")
+    payload_shadow_index = _as_int(payload.get("shadow_selected_index"))
+    if payload_shadow_index != shadow_selected_index:
+        errors.append("default_off_shadow_selector_shadow_selected_index_mismatch")
+    if (
+        shadow_selected_index is None
+        or shadow_selected_index < 0
+        or shadow_selected_index >= candidate_count
+    ):
+        errors.append("default_off_shadow_selector_shadow_selected_index_out_of_range")
+
+    tensor_hash = payload.get("candidate_tensor_hash")
+    if not isinstance(tensor_hash, dict):
+        errors.append("default_off_shadow_selector_candidate_tensor_hash_missing")
+        return errors
+    if not _is_hex_sha256(tensor_hash.get("sha256")):
+        errors.append("default_off_shadow_selector_tensor_sha256_missing_or_invalid")
+    shape = tensor_hash.get("shape")
+    if (
+        not isinstance(shape, list)
+        or len(shape) != 3
+        or shape[0] != candidate_count
+        or any(not isinstance(dim, int) or dim <= 0 for dim in shape)
+    ):
+        errors.append("default_off_shadow_selector_tensor_shape_invalid")
+    if tensor_hash.get("dtype") != "float32":
+        errors.append("default_off_shadow_selector_tensor_dtype_mismatch")
+    if tensor_hash.get("hash_input") != "contiguous_candidate_tensor_bytes":
+        errors.append("default_off_shadow_selector_tensor_hash_input_mismatch")
+    if tensor_hash.get("nan_policy") != "preserve_tensor_bytes":
+        errors.append("default_off_shadow_selector_tensor_nan_policy_mismatch")
+    return errors
+
+
+def _validate_candidate_tensor_provenance(
+    record: dict[str, Any],
+    *,
+    candidate_count: int,
+    selected_index: int,
+) -> list[str]:
+    legacy_payload = record.get("camp_candidate_tensor_provenance")
+    if isinstance(legacy_payload, dict):
+        return _validate_provenance_payload(
+            legacy_payload,
+            candidate_count=candidate_count,
+            selected_index=selected_index,
+        )
+    default_off_payload = record.get("default_off_shadow_selector")
+    if isinstance(default_off_payload, dict):
+        executed_index = _as_int(record.get("executed_index"))
+        shadow_selected_index = _as_int(record.get("shadow_selected_index"))
+        return _validate_default_off_shadow_selector_payload(
+            default_off_payload,
+            candidate_count=candidate_count,
+            selected_index=selected_index,
+            executed_index=executed_index,
+            shadow_selected_index=shadow_selected_index,
+        )
+    return _validate_provenance_payload(
+        legacy_payload,
+        candidate_count=candidate_count,
+        selected_index=selected_index,
+    )
+
+
 def _validate_outcome_labels(
     outcomes: Any,
     *,
@@ -233,8 +343,8 @@ def validate_record(record: dict[str, Any]) -> list[str]:
         )
     )
     errors.extend(
-        _validate_provenance_payload(
-            record.get("camp_candidate_tensor_provenance"),
+        _validate_candidate_tensor_provenance(
+            record,
             candidate_count=candidate_count,
             selected_index=selected_index,
         )

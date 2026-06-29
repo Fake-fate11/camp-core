@@ -6,8 +6,6 @@ from pathlib import Path
 from camp_core.integrations.diffusion_planner import atom_schema_for_dimension
 from scripts.integrations.review_diffusion_planner_dp_camp_v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_training_readiness import (
     AUTHORIZED_NEXT_WORK,
-    REMEDIATION_NEXT_WORK,
-    REMEDIATION_STATUS,
     READY_STATUS,
     REJECT_STATUS,
     build_report,
@@ -72,11 +70,13 @@ def _record(
             "schema_version": "dp_camp_v13_default_off_shadow_selector_runtime_v1",
             "enabled": True,
             "default_off": True,
+            "artifact_contract_ready": True,
             "candidate_operation": "fixed DP candidate reranking only",
             "executed_output_policy": "dp_top1",
             "score_expression": "score_k(w)=a_k^T w",
             "selection_effect": False,
             "online_selector_change": False,
+            "failed_closed_reason": None,
             "executed_index": executed_index,
             "shadow_selected_index": shadow_selected_index,
             "candidate_tensor_hash": {
@@ -346,7 +346,7 @@ def test_training_readiness_rejects_label_contract_drift(tmp_path: Path) -> None
     assert report["training_readiness"]["label_failed_record_count"] == 1
 
 
-def test_training_readiness_identifies_default_off_contract_remediation(
+def test_training_readiness_accepts_default_off_contract_after_remediation(
     tmp_path: Path,
 ) -> None:
     paths = _fixture(tmp_path)
@@ -375,14 +375,12 @@ def test_training_readiness_identifies_default_off_contract_remediation(
 
     decision = report["final_decision"]
     readiness = report["training_readiness"]
-    assert decision["status"] == REMEDIATION_STATUS
-    assert decision["authorized_next_work"] == REMEDIATION_NEXT_WORK
-    assert decision["static_dp_reward_training_execution_authorized_next"] is False
+    assert decision["status"] == READY_STATUS
+    assert decision["authorized_next_work"] == AUTHORIZED_NEXT_WORK
+    assert decision["static_dp_reward_training_execution_authorized_next"] is True
     assert readiness["legacy_provenance_missing_records"] == 4
     assert readiness["default_off_shadow_selector_valid_records"] == 4
-    assert readiness["contract_error_counts"] == {
-        "camp_candidate_tensor_provenance_missing": 4
-    }
+    assert readiness["contract_error_counts"] == {}
 
 
 def test_training_readiness_cli_writes_reports(tmp_path: Path, capsys) -> None:

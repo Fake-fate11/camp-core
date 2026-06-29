@@ -75,8 +75,42 @@ def _valid_record() -> dict[str, object]:
     }
 
 
+def _valid_default_off_shadow_record() -> dict[str, object]:
+    record = _valid_record()
+    record["selected_index"] = 0
+    record["executed_index"] = 0
+    record["shadow_selected_index"] = 1
+    record["camp_candidate_tensor_provenance"] = None
+    record["default_off_shadow_selector"] = {
+        "schema_version": "dp_camp_v13_default_off_shadow_selector_runtime_v1",
+        "enabled": True,
+        "default_off": True,
+        "artifact_contract_ready": True,
+        "candidate_operation": "fixed DP candidate reranking only",
+        "executed_output_policy": "dp_top1",
+        "score_expression": "score_k(w)=a_k^T w",
+        "selection_effect": False,
+        "online_selector_change": False,
+        "failed_closed_reason": None,
+        "executed_index": 0,
+        "shadow_selected_index": 1,
+        "candidate_tensor_hash": {
+            "sha256": _sha("b"),
+            "shape": [2, 80, 4],
+            "dtype": "float32",
+            "hash_input": "contiguous_candidate_tensor_bytes",
+            "nan_policy": "preserve_tensor_bytes",
+        },
+    }
+    return record
+
+
 def test_valid_record_satisfies_clean_dp_native_contract() -> None:
     assert validate_record(_valid_record()) == []
+
+
+def test_valid_default_off_shadow_record_satisfies_clean_dp_native_contract() -> None:
+    assert validate_record(_valid_default_off_shadow_record()) == []
 
 
 def test_validator_rejects_missing_provenance() -> None:
@@ -116,6 +150,27 @@ def test_validator_rejects_tensor_mutation_and_outcome_leakage() -> None:
     assert "provenance_pre_post_tensor_hash_equal_not_true" in errors
     assert "provenance_no_coordinate_heading_speed_rewrite_by_camp_not_true" in errors
     assert "provenance_outcome_label_input_not_false" in errors
+
+
+def test_validator_rejects_default_off_shadow_selector_contract_drift() -> None:
+    record = _valid_default_off_shadow_record()
+    record["selected_index"] = 1
+    payload = record["default_off_shadow_selector"]
+    assert isinstance(payload, dict)
+    payload["selection_effect"] = True
+    payload["executed_index"] = 1
+    tensor_hash = payload["candidate_tensor_hash"]
+    assert isinstance(tensor_hash, dict)
+    tensor_hash["sha256"] = "not-a-sha"
+    tensor_hash["shape"] = [3, 80, 4]
+
+    errors = validate_record(record)
+
+    assert "default_off_shadow_selector_selection_effect_mismatch" in errors
+    assert "default_off_shadow_selector_executed_index_mismatch" in errors
+    assert "default_off_shadow_selector_selected_index_not_dp_top1" in errors
+    assert "default_off_shadow_selector_tensor_sha256_missing_or_invalid" in errors
+    assert "default_off_shadow_selector_tensor_shape_invalid" in errors
 
 
 def test_validator_rejects_count_and_schema_mismatches() -> None:
