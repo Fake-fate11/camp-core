@@ -5100,7 +5100,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5146,7 +5146,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5200,7 +5200,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5275,7 +5275,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5339,7 +5339,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5405,7 +5405,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5464,7 +5464,7 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5530,7 +5530,7 @@ def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5594,7 +5594,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_static_contra
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5665,7 +5665,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5735,7 +5735,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5803,7 +5803,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5860,7 +5860,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -5940,7 +5940,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6013,7 +6013,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6103,7 +6103,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6182,7 +6182,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6272,7 +6272,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6348,7 +6348,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6432,7 +6432,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6517,7 +6517,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6598,7 +6598,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6676,7 +6676,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6740,7 +6740,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6780,7 +6780,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_latest_au
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6842,7 +6842,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -6938,7 +6938,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_smoke_execution_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -7038,7 +7038,7 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+    assert latest_status == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
 
 
 def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -> None:
@@ -7155,7 +7155,7 @@ def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -7250,7 +7250,7 @@ def test_v13_current_source_large_retraining_result_review_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+    assert latest_status == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
 
 
 def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned() -> None:
@@ -7336,7 +7336,7 @@ def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned()
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+    assert latest_status == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
 
 
 def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned() -> None:
@@ -7433,7 +7433,7 @@ def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -7537,7 +7537,7 @@ def test_v13_current_source_large_default_off_shadow_selector_static_contract_pl
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -7635,7 +7635,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_pla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -7730,7 +7730,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_sta
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -7820,7 +7820,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -7891,7 +7891,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -7993,7 +7993,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8084,7 +8084,7 @@ def test_v13_current_source_large_default_off_shadow_selector_post_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8186,7 +8186,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8278,7 +8278,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8372,7 +8372,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8450,7 +8450,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8534,7 +8534,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8613,7 +8613,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8692,7 +8692,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8767,7 +8767,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8854,7 +8854,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -8937,7 +8937,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -9033,7 +9033,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -9138,7 +9138,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
@@ -9213,7 +9213,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
         "v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_local_target_pytest_short_path=175 passed",
         "v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_autodl_target_py_compile=passed",
         "v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_autodl_target_pytest=175 passed",
-        "current_v13_status=current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed",
+        "current_v13_status=current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete",
         "current_v13_next_scope=current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_and_training_readiness_preflight_only",
         "broader_nonformal_shadow_replay_batch_execution_passed=True",
         "result_review_and_training_readiness_preflight_authorized=True",
@@ -9234,7 +9234,51 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
+    )
+
+
+def test_v13_current_source_large_runtime_shadow_replay_preflight_35ccbab_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_output_dir=/root/autodl-tmp/camp_dp_v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_35ccbab_20260629T141002CST",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_json_sha256=a863a45d8286eaf95c8b46c6c4485ba22ef95054d844f993497d8f04bd161d17",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_md_sha256=6e1730fd6ddf4f70514cf06969f1fb42e44f82f07e94d0f9f7538d9c95923e90",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_execution_camp_head=35ccbab4cc97a8045e27335617f053f13def5847",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_execution_camp_origin_main=35ccbab4cc97a8045e27335617f053f13def5847",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_runtime_manifest_sha256=3a211c017a5139b4b9a9bb77a676bf8b049b3f1bd7bb738e1c4793e2ed50d9a4",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_planned_output_absent=True",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_command_has_no_guidance_or_reference_blend=True",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_command_has_no_postselection_relaxation_or_splice=True",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_manifest_candidate_operation=fixed DP candidate reranking only",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_manifest_executed_output_policy=dp_top1",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_manifest_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_check_count=59",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_passed=True",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_failed_checks=[]",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_autodl_pytest=12 passed in 0.13s",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_authorized_next_work=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_only",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_replay_execution_performed=False",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_candidate_generation_executed=False",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_candidate_generation_by_camp_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_dp_modification_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_training_executed=False",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_selector_promotion_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_atom_promotion_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_safety_benefit_claim_authorized=False",
+        "v13_current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_camp_over_dp_top1_claim_authorized=False",
+        "current_v13_status=current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete",
+        "current_v13_next_scope=default_off_shadow_selector_runtime_shadow_replay_execution_only",
+        "next_work_target=dp_camp_v13_default_off_shadow_selector_runtime_shadow_replay_execution_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "current_source_large_default_off_shadow_selector_runtime_shadow_replay_preflight_complete"
     )
 
 
