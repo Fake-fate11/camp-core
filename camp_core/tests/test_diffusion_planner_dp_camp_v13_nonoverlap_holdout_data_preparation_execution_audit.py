@@ -256,6 +256,9 @@ def test_execution_audit_rejects_non_dp_top1_execution(tmp_path: Path) -> None:
 def test_execution_audit_main_writes_independent_sha256sums(tmp_path: Path) -> None:
     source = _source_artifact(tmp_path)
     out_dir = tmp_path / "audit_out"
+    _write(out_dir / "audit.stdout.txt", "still open")
+    _write(out_dir / "audit.stderr.txt", "")
+    _write(out_dir / "audit.exit", "0")
     rc = main(
         [
             "--source_artifact_dir",
@@ -288,3 +291,7 @@ def test_execution_audit_main_writes_independent_sha256sums(tmp_path: Path) -> N
     assert (out_dir / "execution_audit.md").is_file()
     assert (out_dir / "source_artifact_post_execution_sha256sums.txt").is_file()
     assert (out_dir / "SHA256SUMS").is_file()
+    sha256sums = (out_dir / "SHA256SUMS").read_text(encoding="utf-8")
+    assert "audit.stdout.txt" not in sha256sums
+    assert "audit.stderr.txt" not in sha256sums
+    assert "audit.exit" not in sha256sums

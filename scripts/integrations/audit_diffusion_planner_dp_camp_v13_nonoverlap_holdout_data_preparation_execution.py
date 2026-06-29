@@ -492,9 +492,21 @@ def _hash_tree(root: Path) -> list[str]:
 
 
 def _write_sha256sums(root: Path) -> None:
+    mutable_wrapper_files = {
+        "audit.exit",
+        "audit.stderr.txt",
+        "audit.stdout.txt",
+        "execution.pid",
+        "execution.stderr.txt",
+        "execution.stdout.txt",
+    }
     lines = []
     for path in sorted(root.rglob("*")):
-        if path.is_file() and path.name != "SHA256SUMS":
+        if (
+            path.is_file()
+            and path.name != "SHA256SUMS"
+            and path.name not in mutable_wrapper_files
+        ):
             lines.append(f"{_sha256(path)}  {path.relative_to(root).as_posix()}")
     (root / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
