@@ -173,6 +173,21 @@ def _write_audit_md(path: Path) -> Path:
     )
 
 
+def _write_current_audit_md(path: Path, *, current_work: str) -> Path:
+    return _write(
+        path,
+        "\n".join(
+            [
+                f"next_work_target={current_work}",
+                "training_execution_authorized_by_current_boundary=False",
+                "dp_modification_authorized_by_current_boundary=False",
+                "formal_seed_11_12_13_execution_authorized=False",
+                "",
+            ]
+        ),
+    )
+
+
 def _report(tmp_path: Path, *, overlap_previous: bool = False, guidance_violation: int = 0) -> dict:
     evaluation = tmp_path / "evaluation"
     previous = tmp_path / "previous"
@@ -213,6 +228,43 @@ def test_result_readiness_accepts_fixed_default_off_eval_logs(tmp_path: Path) ->
     assert report["candidate_tensor_overlap"]["eval_hashes_in_previous_count"] == 0
     assert decision["static_dp_reward_training_execution_authorized_next"] is False
     assert decision["safety_benefit_claim_authorized"] is False
+
+
+def test_result_readiness_accepts_parameterized_current_gate(tmp_path: Path) -> None:
+    current_work = "dp_camp_v13_result_review_only"
+    next_work = "dp_camp_v13_training_preflight_only"
+    evaluation = tmp_path / "evaluation"
+    previous = tmp_path / "previous"
+    _write_logs(evaluation, prefix="eval")
+    _write_logs(previous, prefix="previous")
+    execution_audit = _write_execution_audit(tmp_path / "execution_audit.json")
+    payload = json.loads(execution_audit.read_text(encoding="utf-8"))
+    payload["final_decision"]["authorized_next_work"] = current_work
+    execution_audit.write_text(json.dumps(payload), encoding="utf-8")
+    audit_md = _write_current_audit_md(tmp_path / "audit.md", current_work=current_work)
+
+    report = build_report(
+        evaluation_output_dir=evaluation,
+        execution_audit_json=execution_audit,
+        v13_audit_md=audit_md,
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        previous_training_output_dir=previous,
+        expected_selection_log_count=2,
+        expected_records=6,
+        min_routes=2,
+        min_seeds=2,
+        min_route_tl_buckets=2,
+        min_usable_feasible_records=1,
+        min_multi_feasible_records=1,
+        authorized_current_work=current_work,
+        authorized_next_work=next_work,
+        training_blocked_audit_key="training_execution_authorized_by_current_boundary",
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == next_work
 
 
 def test_result_readiness_rejects_execution_audit_violation(tmp_path: Path) -> None:

@@ -101,6 +101,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max_previous_overlap_rate", type=float, default=0.0)
     parser.add_argument("--reward_key", default="quality_without_progress")
     parser.add_argument("--reward_progress_weight", type=float, default=2.0)
+    parser.add_argument("--authorized_current_work", default=AUTHORIZED_CURRENT_WORK)
+    parser.add_argument("--authorized_next_work", default=AUTHORIZED_NEXT_WORK)
+    parser.add_argument(
+        "--training_blocked_audit_key",
+        default="camp_training_authorized_by_current_boundary",
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     return parser.parse_args(argv)
@@ -129,6 +135,9 @@ def main(argv: list[str] | None = None) -> int:
         max_previous_overlap_rate=args.max_previous_overlap_rate,
         reward_key=args.reward_key,
         reward_progress_weight=args.reward_progress_weight,
+        authorized_current_work=args.authorized_current_work,
+        authorized_next_work=args.authorized_next_work,
+        training_blocked_audit_key=args.training_blocked_audit_key,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
@@ -163,6 +172,9 @@ def build_report(
     max_previous_overlap_rate: float = 0.0,
     reward_key: str = "quality_without_progress",
     reward_progress_weight: float = 2.0,
+    authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
+    authorized_next_work: str = AUTHORIZED_NEXT_WORK,
+    training_blocked_audit_key: str = "camp_training_authorized_by_current_boundary",
 ) -> dict[str, Any]:
     evaluation_output_dir = evaluation_output_dir.resolve()
     execution_audit_json = execution_audit_json.resolve()
@@ -220,6 +232,8 @@ def build_report(
         min_usable_feasible_records=min_usable_feasible_records,
         min_multi_feasible_records=min_multi_feasible_records,
         max_previous_overlap_rate=max_previous_overlap_rate,
+        authorized_current_work=authorized_current_work,
+        training_blocked_audit_key=training_blocked_audit_key,
     )
     failed = [check["name"] for check in checks if not check["passed"]]
     passed = not failed
@@ -289,7 +303,11 @@ def build_report(
         "training_readiness": record_summary,
         "candidate_tensor_overlap": overlap,
         "review_checks": checks,
-        "final_decision": _decision(passed, failed),
+        "final_decision": _decision(
+            passed,
+            failed,
+            authorized_next_work=authorized_next_work,
+        ),
     }
 
 
@@ -319,6 +337,8 @@ def _checks(
     min_usable_feasible_records: int,
     min_multi_feasible_records: int,
     max_previous_overlap_rate: float,
+    authorized_current_work: str,
+    training_blocked_audit_key: str,
 ) -> list[dict[str, Any]]:
     decision = _dict(execution_audit.get("final_decision"))
     execution = _dict(execution_audit.get("execution"))
@@ -332,12 +352,12 @@ def _checks(
         _check("evaluation_output_dir_exists", evaluation_output_dir.is_dir(), str(evaluation_output_dir), "directory exists"),
         _check("execution_audit_json_exists", execution_audit_json.is_file(), str(execution_audit_json), "file exists"),
         _check("v13_audit_exists", v13_audit_md.is_file(), str(v13_audit_md), "file exists"),
-        _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
-        _expect("audit_latest_training_blocked", _latest_audit_value(audit_text, "camp_training_authorized_by_current_boundary"), "False"),
+        _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), authorized_current_work),
+        _expect("audit_latest_training_blocked", _latest_audit_value(audit_text, training_blocked_audit_key), "False"),
         _expect("audit_latest_dp_modification_blocked", _latest_audit_value(audit_text, "dp_modification_authorized_by_current_boundary"), "False"),
         _expect("audit_latest_formal_seeds_blocked", _latest_audit_value(audit_text, "formal_seed_11_12_13_execution_authorized"), "False"),
         _expect("execution_audit_passed", decision.get("passed"), True),
-        _expect("execution_audit_authorized_current_work", decision.get("authorized_next_work"), AUTHORIZED_CURRENT_WORK),
+        _expect("execution_audit_authorized_current_work", decision.get("authorized_next_work"), authorized_current_work),
         _expect("execution_audit_result_review_authorized", decision.get("result_review_and_training_readiness_authorized_next"), True),
         _expect("execution_audit_training_not_performed", decision.get("training_performed_by_this_audit"), False),
         _expect("execution_audit_candidate_generation_not_performed", decision.get("candidate_generation_performed_by_this_audit"), False),
@@ -754,12 +774,17 @@ def render_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _decision(passed: bool, failed_checks: list[str]) -> dict[str, Any]:
+def _decision(
+    passed: bool,
+    failed_checks: list[str],
+    *,
+    authorized_next_work: str,
+) -> dict[str, Any]:
     return {
         "status": READY_STATUS if passed else REJECT_STATUS,
         "passed": bool(passed),
         "failed_checks": failed_checks,
-        "authorized_next_work": AUTHORIZED_NEXT_WORK if passed else None,
+        "authorized_next_work": authorized_next_work if passed else None,
         "static_dp_reward_training_preflight_authorized_next": bool(passed),
         "static_dp_reward_training_execution_authorized_next": False,
         "training_executed": False,
