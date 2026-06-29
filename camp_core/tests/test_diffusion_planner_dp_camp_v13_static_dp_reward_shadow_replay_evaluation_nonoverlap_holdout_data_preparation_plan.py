@@ -25,7 +25,12 @@ def _write(path: Path, text: str) -> Path:
     return path
 
 
-def _result_readiness(path: Path, *, mutation: Any | None = None) -> Path:
+def _result_readiness(
+    path: Path,
+    *,
+    mutation: Any | None = None,
+    count_distribution: bool = False,
+) -> Path:
     payload: dict[str, Any] = {
         "schema_version": (
             "dp_camp_v13_static_dp_reward_shadow_replay_evaluation_"
@@ -64,8 +69,8 @@ def _result_readiness(path: Path, *, mutation: Any | None = None) -> Path:
         "training_readiness": {
             "records_total": 3200,
             "selection_log_count": 32,
-            "candidate_count_values": [8],
-            "atom_count_values": [14],
+            "candidate_count_values": {"8": 3200} if count_distribution else [8],
+            "atom_count_values": {"14": 3200} if count_distribution else [14],
         },
         "final_decision": {
             "status": (
@@ -170,6 +175,22 @@ def test_nonoverlap_holdout_plan_rejects_wrong_audit_scope(tmp_path: Path) -> No
 
     assert report["final_decision"]["status"] == REJECT_STATUS
     assert "current_gate_authorized_in_audit" in report["final_decision"]["failed_checks"]
+
+
+def test_nonoverlap_holdout_plan_accepts_count_distributions(tmp_path: Path) -> None:
+    report = build_report(
+        result_readiness_json=_result_readiness(
+            tmp_path / "result_readiness.json",
+            count_distribution=True,
+        ),
+        v13_audit_md=_audit(tmp_path / "audit.md"),
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["passed"] is True
 
 
 def test_nonoverlap_holdout_plan_rejects_passed_result_review(tmp_path: Path) -> None:

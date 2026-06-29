@@ -392,8 +392,8 @@ def _checks(
         _check("candidate_overlap_intersection_positive", _positive(source_summary["candidate_tensor_overlap_unique_intersection_count"]), source_summary["candidate_tensor_overlap_unique_intersection_count"], "> 0"),
         _check("source_records_meet_minimum", _at_least(source_summary["records_total"], MINIMUM_HOLDOUT_RECORDS), source_summary["records_total"], f">= {MINIMUM_HOLDOUT_RECORDS}"),
         _check("source_logs_meet_minimum", _at_least(source_summary["selection_log_count"], MINIMUM_HOLDOUT_SELECTION_LOGS), source_summary["selection_log_count"], f">= {MINIMUM_HOLDOUT_SELECTION_LOGS}"),
-        _check("source_candidate_count_expected", candidate_count_values == [EXPECTED_CANDIDATE_COUNT], candidate_count_values, [EXPECTED_CANDIDATE_COUNT]),
-        _check("source_atom_count_expected", atom_count_values == [EXPECTED_ATOM_COUNT], atom_count_values, [EXPECTED_ATOM_COUNT]),
+        _check("source_candidate_count_expected", _count_values_match(candidate_count_values, EXPECTED_CANDIDATE_COUNT), candidate_count_values, EXPECTED_CANDIDATE_COUNT),
+        _check("source_atom_count_expected", _count_values_match(atom_count_values, EXPECTED_ATOM_COUNT), atom_count_values, EXPECTED_ATOM_COUNT),
         _check("source_formal_holdout_seeds_empty", source_summary["formal_holdout_seeds"] in ([], None), source_summary["formal_holdout_seeds"], []),
         _check("source_formal_training_seeds_empty", source_summary["formal_training_seeds"] in ([], None), source_summary["formal_training_seeds"], []),
         _expect_summary(source_summary, "training_preflight_authorized_next", False),
@@ -487,6 +487,14 @@ def _positive(value: Any) -> bool:
 
 def _at_least(value: Any, threshold: int) -> bool:
     return isinstance(value, (int, float)) and value >= threshold
+
+
+def _count_values_match(value: Any, expected: int) -> bool:
+    if value == [expected]:
+        return True
+    if isinstance(value, dict):
+        return set(value) == {str(expected)} and all(_positive(count) for count in value.values())
+    return False
 
 
 def _check(name: str, passed: bool, observed: Any, expected: Any) -> dict[str, Any]:
