@@ -89,7 +89,7 @@ def _make_artifacts(
             "require_atom_schema": True,
         },
     )
-    _write(preflight / "training_runbook.sh", "python train.py\n")
+    _write(preflight / "run_training.sh", "python train.py\n")
     schema, names = atom_schema_for_dimension(14)
     assert schema == ATOM_SCHEMA_VERSION
     weights = np.full(14, 1.0 / 14.0, dtype=np.float64)
