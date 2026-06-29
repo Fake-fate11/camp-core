@@ -89,6 +89,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--current_dp_head", required=True)
     parser.add_argument("--required_dp_head", default=FIXED_DP_HEAD)
     parser.add_argument("--previous_training_output_dir", type=Path, default=None)
+    parser.add_argument("--previous_training_summary_json", type=Path, default=None)
     parser.add_argument("--expected_selection_log_count", type=int, default=32)
     parser.add_argument("--expected_records", type=int, default=3200)
     parser.add_argument("--expected_candidate_count", type=int, default=8)
@@ -123,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
         current_dp_head=args.current_dp_head,
         required_dp_head=args.required_dp_head,
         previous_training_output_dir=args.previous_training_output_dir,
+        previous_training_summary_json=args.previous_training_summary_json,
         expected_selection_log_count=args.expected_selection_log_count,
         expected_records=args.expected_records,
         expected_candidate_count=args.expected_candidate_count,
@@ -160,6 +162,7 @@ def build_report(
     current_dp_head: str,
     required_dp_head: str = FIXED_DP_HEAD,
     previous_training_output_dir: Path | None = None,
+    previous_training_summary_json: Path | None = None,
     expected_selection_log_count: int = 32,
     expected_records: int = 3200,
     expected_candidate_count: int = 8,
@@ -184,6 +187,11 @@ def build_report(
         if previous_training_output_dir is not None
         else None
     )
+    previous_training_summary_json = (
+        previous_training_summary_json.resolve()
+        if previous_training_summary_json is not None
+        else None
+    )
     selection_logs = sorted(evaluation_output_dir.rglob("camp_selection_log.json"))
     execution_audit = _load_json_dict(execution_audit_json)
     audit_text = _read_text(v13_audit_md)
@@ -206,12 +214,14 @@ def build_report(
     overlap = _compare_candidate_tensor_hashes(
         evaluation_output_dir=evaluation_output_dir,
         previous_training_output_dir=previous_training_output_dir,
+        previous_training_summary_json=previous_training_summary_json,
     )
     checks = _checks(
         evaluation_output_dir=evaluation_output_dir,
         execution_audit_json=execution_audit_json,
         v13_audit_md=v13_audit_md,
         previous_training_output_dir=previous_training_output_dir,
+        previous_training_summary_json=previous_training_summary_json,
         audit_text=audit_text,
         execution_audit=execution_audit,
         clean_contract=clean_contract,
@@ -274,6 +284,11 @@ def build_report(
                 if previous_training_output_dir is not None
                 else None
             ),
+            "previous_training_summary_json": (
+                str(previous_training_summary_json)
+                if previous_training_summary_json is not None
+                else None
+            ),
         },
         "source_hashes": {
             "execution_audit_json_sha256": (
@@ -317,6 +332,7 @@ def _checks(
     execution_audit_json: Path,
     v13_audit_md: Path,
     previous_training_output_dir: Path | None,
+    previous_training_summary_json: Path | None,
     audit_text: str,
     execution_audit: dict[str, Any],
     clean_contract: dict[str, Any],
@@ -399,10 +415,39 @@ def _checks(
     ]
     for field in REQUIRED_EXECUTION_VIOLATION_ZERO_FIELDS:
         checks.append(_expect(f"execution_audit_violation_zero:{field}", violation_counts.get(field), 0))
-    if previous_training_output_dir is not None:
+    previous_source_requested = (
+        previous_training_output_dir is not None
+        or previous_training_summary_json is not None
+    )
+    if previous_source_requested:
         checks.extend(
             [
-                _check("previous_training_output_dir_exists", previous_training_output_dir.is_dir(), str(previous_training_output_dir), "directory exists"),
+                _check(
+                    "previous_training_output_dir_exists",
+                    (
+                        previous_training_output_dir is None
+                        or previous_training_output_dir.is_dir()
+                    ),
+                    (
+                        str(previous_training_output_dir)
+                        if previous_training_output_dir is not None
+                        else None
+                    ),
+                    "directory exists or omitted",
+                ),
+                _check(
+                    "previous_training_summary_json_exists",
+                    (
+                        previous_training_summary_json is None
+                        or previous_training_summary_json.is_file()
+                    ),
+                    (
+                        str(previous_training_summary_json)
+                        if previous_training_summary_json is not None
+                        else None
+                    ),
+                    "file exists or omitted",
+                ),
                 _expect("eval_candidate_tensor_hashes_complete", overlap["eval_hash_count"], expected_records),
                 _check("previous_candidate_tensor_hashes_present", overlap["previous_hash_count"] > 0, overlap["previous_hash_count"], "> 0"),
                 _check(
@@ -554,13 +599,16 @@ def _compare_candidate_tensor_hashes(
     *,
     evaluation_output_dir: Path,
     previous_training_output_dir: Path | None,
+    previous_training_summary_json: Path | None,
 ) -> dict[str, Any]:
     eval_hashes = _candidate_tensor_hashes(evaluation_output_dir)
-    previous_hashes = (
-        _candidate_tensor_hashes(previous_training_output_dir)
-        if previous_training_output_dir is not None
-        else []
-    )
+    previous_hashes: list[str] = []
+    if previous_training_output_dir is not None:
+        previous_hashes.extend(_candidate_tensor_hashes(previous_training_output_dir))
+    if previous_training_summary_json is not None:
+        previous_hashes.extend(
+            _candidate_tensor_hashes_from_training_summary(previous_training_summary_json)
+        )
     previous_set = set(previous_hashes)
     overlap_count = sum(1 for value in eval_hashes if value in previous_set)
     eval_count = len(eval_hashes)
@@ -571,6 +619,11 @@ def _compare_candidate_tensor_hashes(
         "previous_output_dir": (
             str(previous_training_output_dir)
             if previous_training_output_dir is not None
+            else None
+        ),
+        "previous_training_summary_json": (
+            str(previous_training_summary_json)
+            if previous_training_summary_json is not None
             else None
         ),
         "eval_hash_count": eval_count,
@@ -591,8 +644,23 @@ def _compare_candidate_tensor_hashes(
 def _candidate_tensor_hashes(root: Path | None) -> list[str]:
     if root is None or not root.exists():
         return []
+    return _candidate_tensor_hashes_from_logs(sorted(root.rglob("camp_selection_log.json")))
+
+
+def _candidate_tensor_hashes_from_training_summary(summary_path: Path) -> list[str]:
+    summary = _load_json_dict(summary_path)
+    paths = summary.get("selection_logs")
+    if not isinstance(paths, list):
+        return []
+    log_paths = [Path(path) for path in paths if isinstance(path, str)]
+    return _candidate_tensor_hashes_from_logs(log_paths)
+
+
+def _candidate_tensor_hashes_from_logs(log_paths: list[Path]) -> list[str]:
     hashes: list[str] = []
-    for log_path in sorted(root.rglob("camp_selection_log.json")):
+    for log_path in log_paths:
+        if not log_path.is_file():
+            continue
         for record in _load_json_list(log_path):
             value = _candidate_tensor_hash(record)
             if value is not None:

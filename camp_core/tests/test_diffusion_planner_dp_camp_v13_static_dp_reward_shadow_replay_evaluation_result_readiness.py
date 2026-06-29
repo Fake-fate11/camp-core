@@ -188,6 +188,10 @@ def _write_current_audit_md(path: Path, *, current_work: str) -> Path:
     )
 
 
+def _selection_logs(root: Path) -> list[str]:
+    return [str(path) for path in sorted(root.rglob("camp_selection_log.json"))]
+
+
 def _report(tmp_path: Path, *, overlap_previous: bool = False, guidance_violation: int = 0) -> dict:
     evaluation = tmp_path / "evaluation"
     previous = tmp_path / "previous"
@@ -283,6 +287,43 @@ def test_result_readiness_rejects_previous_candidate_tensor_overlap(tmp_path: Pa
 
     assert report["final_decision"]["status"] == REJECT_STATUS
     assert "candidate_tensor_overlap_rate_within_limit" in report["final_decision"]["failed_checks"]
+    assert report["candidate_tensor_overlap"]["eval_hashes_in_previous_count"] == 6
+
+
+def test_result_readiness_rejects_training_summary_selection_log_overlap(
+    tmp_path: Path,
+) -> None:
+    evaluation = tmp_path / "evaluation"
+    previous = tmp_path / "previous"
+    _write_logs(evaluation, prefix="eval")
+    _write_logs(previous, prefix="previous", overlap_with="eval")
+    summary = _write(
+        tmp_path / "training_summary.json",
+        json.dumps({"selection_logs": _selection_logs(previous)}),
+    )
+    execution_audit = _write_execution_audit(tmp_path / "execution_audit.json")
+    audit_md = _write_audit_md(tmp_path / "audit.md")
+
+    report = build_report(
+        evaluation_output_dir=evaluation,
+        execution_audit_json=execution_audit,
+        v13_audit_md=audit_md,
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        previous_training_summary_json=summary,
+        expected_selection_log_count=2,
+        expected_records=6,
+        min_routes=2,
+        min_seeds=2,
+        min_route_tl_buckets=2,
+        min_usable_feasible_records=1,
+        min_multi_feasible_records=1,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "candidate_tensor_overlap_rate_within_limit" in report["final_decision"]["failed_checks"]
+    assert report["candidate_tensor_overlap"]["previous_hash_count"] == 6
     assert report["candidate_tensor_overlap"]["eval_hashes_in_previous_count"] == 6
 
 
