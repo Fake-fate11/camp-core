@@ -254,6 +254,8 @@ def test_data_preparation_plans_fixed_dp_default_off_commands(tmp_path: Path) ->
     assert commands[-1]["seed"] == 1127
     assert all("--camp_default_off_shadow_selector" in row["command"] for row in commands)
     assert all("--camp_shadow_artifact_manifest" in row["command"] for row in commands)
+    assert all("--camp_atom_scales" in row["command"] for row in commands)
+    assert all("--camp_static_weights" in row["command"] for row in commands)
     assert all("--candidate_guidance_config" not in row["command"] for row in commands)
     assert all("--candidate_reference_blend_steps" not in row["command"] for row in commands)
     assert all("--camp_collect_closed_loop_outcomes" not in row["command"] for row in commands)

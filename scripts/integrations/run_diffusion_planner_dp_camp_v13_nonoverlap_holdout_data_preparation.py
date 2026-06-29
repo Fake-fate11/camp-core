@@ -259,6 +259,9 @@ def build_report(
     runner_text = _read_text(replay_runner_py)
     routes, route_errors = _parse_routes(route_specs)
     requests = _list(request_manifest.get("route_seed_requests"))
+    runtime_artifacts = _dict(runtime_manifest.get("artifacts"))
+    atom_scales_path = _artifact_path(runtime_artifacts, "atom_scales")
+    static_weights_path = _artifact_path(runtime_artifacts, "static_weights")
     commands = _planned_commands(
         requests=requests,
         routes=routes,
@@ -269,6 +272,8 @@ def build_report(
         config=config,
         reward_config=reward_config,
         runtime_manifest_json=runtime_manifest_json,
+        atom_scales_path=atom_scales_path,
+        static_weights_path=static_weights_path,
         base_output_dir=base_output_dir,
         python_executable=python_executable,
         device=device,
@@ -438,6 +443,8 @@ def _planned_commands(
     runtime_manifest_json: Path,
     base_output_dir: Path,
     python_executable: str,
+    atom_scales_path: Path | None,
+    static_weights_path: Path | None,
     device: str,
     steps: int,
     num_candidates: int,
@@ -506,12 +513,20 @@ def _planned_commands(
             "learned",
             "--camp_feasibility_source",
             "dp_reward",
-            "--camp_default_off_shadow_selector",
-            "--camp_shadow_artifact_manifest",
-            str(runtime_manifest_json),
-            "--num_candidates",
-            str(num_candidates),
         ]
+        if atom_scales_path is not None:
+            command.extend(["--camp_atom_scales", str(atom_scales_path)])
+        if static_weights_path is not None:
+            command.extend(["--camp_static_weights", str(static_weights_path)])
+        command.extend(
+            [
+                "--camp_default_off_shadow_selector",
+                "--camp_shadow_artifact_manifest",
+                str(runtime_manifest_json),
+                "--num_candidates",
+                str(num_candidates),
+            ]
+        )
         commands.append(
             {
                 "index": index,
@@ -647,6 +662,8 @@ def _command_checks(commands: list[list[str]]) -> list[dict[str, Any]]:
         _check("commands_fallback_mode_learned", all(_argument_value(command, "--camp_fallback_mode") == "learned" for command in commands), joined, "learned"),
         _check("commands_feasibility_source_dp_reward", all(_argument_value(command, "--camp_feasibility_source") == "dp_reward" for command in commands), joined, "dp_reward"),
         _check("commands_num_candidates_8", all(_argument_value(command, "--num_candidates") == str(EXPECTED_CANDIDATE_COUNT) for command in commands), joined, "8"),
+        _check("commands_have_atom_scales", all("--camp_atom_scales" in command for command in commands), joined, "all"),
+        _check("commands_have_static_weights", all("--camp_static_weights" in command for command in commands), joined, "all"),
         _check("commands_have_reward_config", all("--reward_config" in command for command in commands), joined, "all"),
         _check("commands_have_model_args", all("--model_args" in command for command in commands), joined, "all"),
         _check("commands_no_forbidden_flags", all(all(flag not in command for flag in FORBIDDEN_COMMAND_FLAGS) for command in commands), joined, "no forbidden flags"),
@@ -930,6 +947,14 @@ def _artifact_file_checks(name: str, entry: dict[str, Any]) -> list[dict[str, An
     if path.is_file() and _is_sha256(expected_sha):
         checks.append(_expect(f"{name}_sha256_matches", _sha256(path), expected_sha))
     return checks
+
+
+def _artifact_path(artifacts: dict[str, Any], name: str) -> Path | None:
+    entry = _dict(artifacts.get(name))
+    value = entry.get("path")
+    if not isinstance(value, str) or not value:
+        return None
+    return Path(value)
 
 
 def _checks_from_failures(
