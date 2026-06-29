@@ -41,6 +41,14 @@ AUTHORIZED_PREFLIGHT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_"
     "broader_nonformal_shadow_replay_batch_preflight_only"
 )
+AUTHORIZED_RESULT_REVIEW_PREFLIGHT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_"
+    "runtime_shadow_replay_result_review_and_broader_nonformal_preflight_only"
+)
+ALLOWED_PREFLIGHT_WORK = (
+    AUTHORIZED_PREFLIGHT_WORK,
+    AUTHORIZED_RESULT_REVIEW_PREFLIGHT_WORK,
+)
 LATEST_ALLOWED_STATUS = (
     "current_source_large_default_off_shadow_selector_runtime_shadow_replay_smoke_execution_passed"
 )
@@ -69,6 +77,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--runtime_manifest_json", type=Path, required=True)
     parser.add_argument("--replay_runner_py", type=Path, required=True)
     parser.add_argument("--v13_audit_md", type=Path, required=True)
+    parser.add_argument("--runtime_shadow_replay_execution_artifact_dir", type=Path)
+    parser.add_argument("--runtime_shadow_replay_output_dir", type=Path)
     parser.add_argument("--diffusion_repo", type=Path, required=True)
     parser.add_argument("--route", action="append", required=True)
     parser.add_argument("--model_path", type=Path, required=True)
@@ -104,6 +114,10 @@ def main(argv: list[str] | None = None) -> int:
         runtime_manifest_json=args.runtime_manifest_json,
         replay_runner_py=args.replay_runner_py,
         v13_audit_md=args.v13_audit_md,
+        runtime_shadow_replay_execution_artifact_dir=(
+            args.runtime_shadow_replay_execution_artifact_dir
+        ),
+        runtime_shadow_replay_output_dir=args.runtime_shadow_replay_output_dir,
         diffusion_repo=args.diffusion_repo,
         route_specs=tuple(args.route),
         model_path=args.model_path,
@@ -142,6 +156,8 @@ def build_report(
     runtime_manifest_json: Path,
     replay_runner_py: Path,
     v13_audit_md: Path,
+    runtime_shadow_replay_execution_artifact_dir: Path | None = None,
+    runtime_shadow_replay_output_dir: Path | None = None,
     diffusion_repo: Path,
     route_specs: tuple[str, ...],
     model_path: Path,
@@ -190,6 +206,20 @@ def build_report(
     manifest, manifest_error = _load_json(runtime_manifest_json, "runtime_manifest")
     runner_text = _read_text(replay_runner_py)
     audit_text = _read_text(v13_audit_md)
+    latest_next_work = _latest_audit_value(audit_text, "next_work_target")
+    smoke_result_review_required = (
+        latest_next_work == AUTHORIZED_RESULT_REVIEW_PREFLIGHT_WORK
+    )
+    smoke_static_audit_path = (
+        runtime_shadow_replay_execution_artifact_dir / "execution_static_audit.json"
+        if runtime_shadow_replay_execution_artifact_dir is not None
+        else None
+    )
+    smoke_static_audit, smoke_static_audit_error = (
+        _load_json(smoke_static_audit_path, "runtime_shadow_replay_execution_static_audit")
+        if smoke_static_audit_path is not None
+        else ({}, "runtime_shadow_replay_execution_static_audit_missing")
+    )
     artifacts = _dict(manifest.get("artifacts"))
     atom_scales = _dict(artifacts.get("atom_scales"))
     static_weights = _dict(artifacts.get("static_weights"))
@@ -256,6 +286,16 @@ def build_report(
         _check("output_paths_unique", len(set(output_dirs)) == len(output_dirs), len(set(output_dirs)), len(output_dirs)),
         _check("all_planned_outputs_absent", all(not Path(path).exists() for path in output_dirs), output_dirs, "all absent before replay"),
     ]
+    checks.extend(
+        _smoke_result_review_checks(
+            required=smoke_result_review_required,
+            execution_artifact_dir=runtime_shadow_replay_execution_artifact_dir,
+            replay_output_dir=runtime_shadow_replay_output_dir,
+            static_audit_path=smoke_static_audit_path,
+            static_audit=smoke_static_audit,
+            static_audit_error=smoke_static_audit_error,
+        )
+    )
     for route in routes:
         checks.append(_check(f"route_path_exists:{route['name']}", Path(route["path"]).is_file(), route["path"], "file exists"))
     checks.extend(_artifact_checks("atom_scales", atom_scales))
@@ -299,6 +339,13 @@ def build_report(
                 "all_planned_outputs_absent": all(not Path(path).exists() for path in output_dirs),
                 "output_paths_unique": len(set(output_dirs)) == len(output_dirs),
             },
+            "runtime_shadow_replay_result_review": _smoke_result_review_summary(
+                required=smoke_result_review_required,
+                execution_artifact_dir=runtime_shadow_replay_execution_artifact_dir,
+                replay_output_dir=runtime_shadow_replay_output_dir,
+                static_audit_path=smoke_static_audit_path,
+                static_audit=smoke_static_audit,
+            ),
             "planned_commands": commands,
             "review_checks": checks,
             "final_decision": _decision(passed, failed, enabled=True),
@@ -451,6 +498,145 @@ def _runner_checks(source: str) -> list[dict[str, Any]]:
     ]
 
 
+def _smoke_result_review_checks(
+    *,
+    required: bool,
+    execution_artifact_dir: Path | None,
+    replay_output_dir: Path | None,
+    static_audit_path: Path | None,
+    static_audit: dict[str, Any],
+    static_audit_error: str | None,
+) -> list[dict[str, Any]]:
+    if not required:
+        return []
+    audit_checks = _dict(static_audit.get("checks"))
+    expected_counts = {"0": 100}
+    checks = [
+        _check(
+            "runtime_shadow_replay_result_review_execution_artifact_dir_provided",
+            execution_artifact_dir is not None,
+            str(execution_artifact_dir) if execution_artifact_dir is not None else None,
+            "provided",
+        ),
+        _check(
+            "runtime_shadow_replay_result_review_output_dir_provided",
+            replay_output_dir is not None,
+            str(replay_output_dir) if replay_output_dir is not None else None,
+            "provided",
+        ),
+        _check(
+            "runtime_shadow_replay_result_review_execution_artifact_dir_exists",
+            execution_artifact_dir is not None and execution_artifact_dir.is_dir(),
+            str(execution_artifact_dir) if execution_artifact_dir is not None else None,
+            "directory exists",
+        ),
+        _check(
+            "runtime_shadow_replay_result_review_output_dir_exists",
+            replay_output_dir is not None and replay_output_dir.is_dir(),
+            str(replay_output_dir) if replay_output_dir is not None else None,
+            "directory exists",
+        ),
+        _check(
+            "runtime_shadow_replay_result_review_static_audit_readable",
+            static_audit_error is None,
+            static_audit_error,
+            None,
+        ),
+        _expect("runtime_shadow_replay_result_review_static_audit_passed", static_audit.get("passed"), True),
+        _expect("runtime_shadow_replay_result_review_static_audit_failed_checks", static_audit.get("failed_checks"), []),
+        _expect(
+            "runtime_shadow_replay_result_review_authorized_next_work",
+            static_audit.get("authorized_next_work"),
+            AUTHORIZED_RESULT_REVIEW_PREFLIGHT_WORK,
+        ),
+        _expect("runtime_shadow_replay_result_review_selection_log_count", static_audit.get("selection_log_count"), 100),
+        _expect("runtime_shadow_replay_result_review_metric_log_count", static_audit.get("metric_log_count"), 100),
+        _expect("runtime_shadow_replay_result_review_evaluation_state_log_count", static_audit.get("evaluation_state_log_count"), 100),
+        _expect("runtime_shadow_replay_result_review_trajectory_log_count", static_audit.get("trajectory_log_count"), 100),
+        _expect("runtime_shadow_replay_result_review_selected_indices_dp_top1", static_audit.get("selected_index_counts"), expected_counts),
+        _expect("runtime_shadow_replay_result_review_executed_indices_dp_top1", static_audit.get("executed_index_counts"), expected_counts),
+        _check(
+            "runtime_shadow_replay_result_review_nonzero_shadow_selection_positive",
+            int(static_audit.get("nonzero_shadow_selection_count") or 0) > 0,
+            static_audit.get("shadow_selected_index_counts"),
+            "nonzero shadow selections",
+        ),
+        _expect("runtime_shadow_replay_result_review_candidate_generation_by_fixed_dp_executed", static_audit.get("candidate_generation_by_fixed_dp_executed"), True),
+        _expect("runtime_shadow_replay_result_review_candidate_generation_by_camp_executed", static_audit.get("candidate_generation_by_camp_executed"), False),
+        _expect("runtime_shadow_replay_result_review_training_executed", static_audit.get("training_executed"), False),
+        _expect("runtime_shadow_replay_result_review_dp_modified", static_audit.get("dp_modified"), False),
+        _expect("runtime_shadow_replay_result_review_formal_seeds_not_executed", static_audit.get("formal_seeds_11_12_13_executed"), False),
+        _expect("runtime_shadow_replay_result_review_selector_promotion_blocked", static_audit.get("selector_promotion_authorized"), False),
+        _expect("runtime_shadow_replay_result_review_atom_promotion_blocked", static_audit.get("atom_promotion_authorized"), False),
+        _expect("runtime_shadow_replay_result_review_safety_claim_blocked", static_audit.get("safety_benefit_claim_authorized"), False),
+        _expect("runtime_shadow_replay_result_review_camp_over_dp_claim_blocked", static_audit.get("camp_over_dp_top1_claim_authorized"), False),
+        _expect("runtime_shadow_replay_result_review_check_execution_exit_zero", audit_checks.get("execution_exit_zero"), True),
+        _expect("runtime_shadow_replay_result_review_check_missing_shadow_payload_zero", audit_checks.get("missing_shadow_payload_zero"), True),
+        _expect("runtime_shadow_replay_result_review_check_failed_shadow_records_zero", audit_checks.get("failed_shadow_records_zero"), True),
+        _expect("runtime_shadow_replay_result_review_check_reference_blend_disabled", audit_checks.get("reference_blend_disabled_all_records"), True),
+        _expect("runtime_shadow_replay_result_review_check_guidance_disabled", audit_checks.get("guidance_disabled_all_records"), True),
+        _expect("runtime_shadow_replay_result_review_check_postprocess_disabled", audit_checks.get("postselection_relaxation_splice_disabled"), True),
+    ]
+    if replay_output_dir is not None:
+        checks.append(
+            _expect(
+                "runtime_shadow_replay_result_review_replay_output_dir_matches",
+                static_audit.get("replay_output_dir"),
+                str(replay_output_dir),
+            )
+        )
+        checks.append(
+            _check(
+                "runtime_shadow_replay_result_review_selection_log_exists",
+                (replay_output_dir / "camp_selection_log.json").is_file(),
+                str(replay_output_dir / "camp_selection_log.json"),
+                "file exists",
+            )
+        )
+    if static_audit_path is not None:
+        checks.append(
+            _check(
+                "runtime_shadow_replay_result_review_static_audit_exists",
+                static_audit_path.is_file(),
+                str(static_audit_path),
+                "file exists",
+            )
+        )
+    return checks
+
+
+def _smoke_result_review_summary(
+    *,
+    required: bool,
+    execution_artifact_dir: Path | None,
+    replay_output_dir: Path | None,
+    static_audit_path: Path | None,
+    static_audit: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "required_by_current_audit_scope": required,
+        "execution_artifact_dir": str(execution_artifact_dir) if execution_artifact_dir is not None else None,
+        "replay_output_dir": str(replay_output_dir) if replay_output_dir is not None else None,
+        "static_audit_json": str(static_audit_path) if static_audit_path is not None else None,
+        "static_audit_json_sha256": (
+            _sha256(static_audit_path)
+            if static_audit_path is not None and static_audit_path.is_file()
+            else None
+        ),
+        "passed": static_audit.get("passed"),
+        "failed_checks": static_audit.get("failed_checks"),
+        "selection_log_count": static_audit.get("selection_log_count"),
+        "metric_log_count": static_audit.get("metric_log_count"),
+        "evaluation_state_log_count": static_audit.get("evaluation_state_log_count"),
+        "trajectory_log_count": static_audit.get("trajectory_log_count"),
+        "selected_index_counts": static_audit.get("selected_index_counts"),
+        "executed_index_counts": static_audit.get("executed_index_counts"),
+        "shadow_selected_index_counts": static_audit.get("shadow_selected_index_counts"),
+        "nonzero_shadow_selection_count": static_audit.get("nonzero_shadow_selection_count"),
+        "authorized_next_work": static_audit.get("authorized_next_work"),
+    }
+
+
 def _audit_checks(text: str) -> list[dict[str, Any]]:
     latest_next_work = _latest_audit_value(text, "next_work_target")
     latest_status = _latest_audit_value(text, "current_v13_status")
@@ -458,7 +644,12 @@ def _audit_checks(text: str) -> list[dict[str, Any]]:
     latest_replay = _latest_audit_value(text, "replay_execution_authorized_by_current_boundary")
     latest_training = _latest_audit_value(text, "training_execution_authorized_by_current_boundary")
     return [
-        _expect("audit_latest_scope_allows_batch_preflight", latest_next_work, AUTHORIZED_PREFLIGHT_WORK),
+        _check(
+            "audit_latest_scope_allows_batch_preflight",
+            latest_next_work in ALLOWED_PREFLIGHT_WORK,
+            latest_next_work,
+            list(ALLOWED_PREFLIGHT_WORK),
+        ),
         _expect("audit_latest_status_allows_batch_preflight", latest_status, LATEST_ALLOWED_STATUS),
         _expect("audit_latest_runtime_execution_blocked", latest_runtime_shadow, "False"),
         _expect("audit_latest_replay_execution_blocked", latest_replay, "False"),

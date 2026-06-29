@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from scripts.integrations.plan_diffusion_planner_dp_camp_v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_preflight import (
+    AUTHORIZED_RESULT_REVIEW_PREFLIGHT_WORK,
     AUTHORIZED_NEXT_WORK,
     DISABLED_STATUS,
     READY_STATUS,
@@ -42,10 +43,16 @@ shadow_selected_index
     return source
 
 
-def _audit_text(*, wrong_scope: bool = False) -> str:
+def _audit_text(
+    *,
+    wrong_scope: bool = False,
+    result_review_scope: bool = False,
+) -> str:
     next_target = (
         "next_work_target=old_scope"
         if wrong_scope
+        else f"next_work_target={AUTHORIZED_RESULT_REVIEW_PREFLIGHT_WORK}"
+        if result_review_scope
         else (
             "next_work_target=dp_camp_v13_current_source_large_default_off_"
             "shadow_selector_broader_nonformal_shadow_replay_batch_preflight_only"
@@ -60,6 +67,62 @@ def _audit_text(*, wrong_scope: bool = False) -> str:
             "training_execution_authorized_by_current_boundary=False",
         ]
     )
+
+
+def _write_smoke_result(tmp_path: Path) -> dict[str, Path]:
+    replay_output_dir = (
+        tmp_path
+        / "smoke"
+        / "sample_normal"
+        / "seed_301"
+        / "npc_0"
+        / "spawn_0p3"
+        / "tl_off"
+        / "static_shadow"
+    )
+    replay_output_dir.mkdir(parents=True)
+    (replay_output_dir / "camp_selection_log.json").write_text("[]", encoding="utf-8")
+    execution_artifact_dir = tmp_path / "smoke_execution"
+    execution_artifact_dir.mkdir()
+    static_audit = {
+        "passed": True,
+        "failed_checks": [],
+        "authorized_next_work": AUTHORIZED_RESULT_REVIEW_PREFLIGHT_WORK,
+        "replay_output_dir": str(replay_output_dir),
+        "selection_log_count": 100,
+        "metric_log_count": 100,
+        "evaluation_state_log_count": 100,
+        "trajectory_log_count": 100,
+        "selected_index_counts": {"0": 100},
+        "executed_index_counts": {"0": 100},
+        "shadow_selected_index_counts": {"0": 3, "1": 97},
+        "nonzero_shadow_selection_count": 97,
+        "candidate_generation_by_fixed_dp_executed": True,
+        "candidate_generation_by_camp_executed": False,
+        "training_executed": False,
+        "dp_modified": False,
+        "formal_seeds_11_12_13_executed": False,
+        "selector_promotion_authorized": False,
+        "atom_promotion_authorized": False,
+        "safety_benefit_claim_authorized": False,
+        "camp_over_dp_top1_claim_authorized": False,
+        "checks": {
+            "execution_exit_zero": True,
+            "missing_shadow_payload_zero": True,
+            "failed_shadow_records_zero": True,
+            "reference_blend_disabled_all_records": True,
+            "guidance_disabled_all_records": True,
+            "postselection_relaxation_splice_disabled": True,
+        },
+    }
+    (execution_artifact_dir / "execution_static_audit.json").write_text(
+        json.dumps(static_audit),
+        encoding="utf-8",
+    )
+    return {
+        "execution_artifact_dir": execution_artifact_dir,
+        "replay_output_dir": replay_output_dir,
+    }
 
 
 def _paths(tmp_path: Path, *, missing_shadow_flag: bool = False) -> dict[str, Path]:
@@ -133,8 +196,14 @@ def _report(tmp_path: Path, **overrides):
         tmp_path,
         missing_shadow_flag=overrides.pop("missing_shadow_flag", False),
     )
+    result_review_scope = overrides.pop("result_review_scope", False)
     if overrides.pop("wrong_audit_scope", False):
         paths["v13_audit_md"].write_text(_audit_text(wrong_scope=True), encoding="utf-8")
+    if result_review_scope:
+        paths["v13_audit_md"].write_text(
+            _audit_text(result_review_scope=True),
+            encoding="utf-8",
+        )
     if overrides.pop("existing_output", False):
         paths["base_replay_output_dir"].mkdir(parents=True)
     route_specs = overrides.pop(
@@ -160,6 +229,16 @@ def _report(tmp_path: Path, **overrides):
         "current_dp_head": FIXED_DP_HEAD,
         "enabled": True,
     }
+    if result_review_scope:
+        smoke = _write_smoke_result(tmp_path)
+        params.update(
+            {
+                "runtime_shadow_replay_execution_artifact_dir": smoke[
+                    "execution_artifact_dir"
+                ],
+                "runtime_shadow_replay_output_dir": smoke["replay_output_dir"],
+            }
+        )
     params.update(overrides)
     return build_report(**params)
 
@@ -211,6 +290,56 @@ def test_preflight_accepts_valid_fixture_and_builds_batch_runbook(
     assert all("--candidate_reference_blend_steps" not in item["command"] for item in commands)
     assert all("--candidate_guidance_config" not in item["command"] for item in commands)
     assert all("--camp_underprogress_relaxation" not in item["command"] for item in commands)
+
+
+def test_preflight_accepts_current_result_review_gate_with_smoke_review(
+    tmp_path: Path,
+) -> None:
+    report = _report(tmp_path, result_review_scope=True)
+    decision = report["final_decision"]
+    smoke = report["runtime_shadow_replay_result_review"]
+
+    assert decision["status"] == READY_STATUS
+    assert decision["authorized_next_work"] == AUTHORIZED_NEXT_WORK
+    assert smoke["required_by_current_audit_scope"] is True
+    assert smoke["passed"] is True
+    assert smoke["selection_log_count"] == 100
+    assert smoke["nonzero_shadow_selection_count"] == 97
+
+
+def test_preflight_rejects_current_result_review_gate_without_smoke_review(
+    tmp_path: Path,
+) -> None:
+    paths = _paths(tmp_path)
+    paths["v13_audit_md"].write_text(
+        _audit_text(result_review_scope=True),
+        encoding="utf-8",
+    )
+
+    report = build_report(
+        runtime_manifest_json=paths["runtime_manifest_json"],
+        replay_runner_py=paths["replay_runner_py"],
+        v13_audit_md=paths["v13_audit_md"],
+        diffusion_repo=paths["diffusion_repo"],
+        route_specs=(
+            f"sample_normal={paths['route_normal']}",
+            f"sample_tl={paths['route_tl']}",
+        ),
+        model_path=paths["model_path"],
+        model_args=paths["model_args"],
+        config=paths["config"],
+        reward_config=paths["reward_config"],
+        base_replay_output_dir=paths["base_replay_output_dir"],
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "runtime_shadow_replay_result_review_execution_artifact_dir_provided" in report[
+        "final_decision"
+    ]["failed_checks"]
 
 
 def test_preflight_rejects_formal_seed(tmp_path: Path) -> None:
