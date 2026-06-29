@@ -230,6 +230,33 @@ def test_execution_audit_accepts_authorized_next_work_override(tmp_path: Path) -
     assert report["final_decision"]["authorized_next_work"] == next_work
 
 
+def test_execution_audit_accepts_wrapper_log_file_names(tmp_path: Path) -> None:
+    paths = _make_artifact(tmp_path)
+    execution_dir = paths["execution_dir"]
+    (execution_dir / "runbook.stdout.log").rename(execution_dir / "stdout.log")
+    (execution_dir / "runbook.stderr.log").rename(execution_dir / "stderr.log")
+    (execution_dir / "SHA256SUMS.txt").rename(execution_dir / "SHA256SUMS")
+
+    report = build_report(
+        execution_dir=execution_dir,
+        base_output_dir=paths["base_output"],
+        preflight_json=paths["preflight"],
+        runtime_manifest_json=paths["manifest"],
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        expected_log_count=2,
+        expected_steps_per_log=3,
+        expected_records=6,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["source_hashes"]["execution_stdout"] is not None
+    assert report["source_hashes"]["execution_stderr"] is not None
+    assert report["source_hashes"]["execution_sha256sums"] is not None
+
+
 def test_execution_audit_rejects_selection_effect(tmp_path: Path) -> None:
     report = _report(tmp_path, selection_effect=True)
 

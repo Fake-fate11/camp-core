@@ -155,12 +155,24 @@ def build_report(
         return report
 
     failed: list[str] = []
+    stdout_path = _first_existing(
+        execution_dir / "runbook.stdout.log",
+        execution_dir / "stdout.log",
+    )
+    stderr_path = _first_existing(
+        execution_dir / "runbook.stderr.log",
+        execution_dir / "stderr.log",
+    )
+    sha256sums_path = _first_existing(
+        execution_dir / "SHA256SUMS.txt",
+        execution_dir / "SHA256SUMS",
+    )
     source_paths = {
         "execution_HEADS": execution_dir / "HEADS.txt",
         "execution_runbook_exit": execution_dir / "runbook.exit",
-        "execution_stdout": execution_dir / "runbook.stdout.log",
-        "execution_stderr": execution_dir / "runbook.stderr.log",
-        "execution_sha256sums": execution_dir / "SHA256SUMS.txt",
+        "execution_stdout": stdout_path,
+        "execution_stderr": stderr_path,
+        "execution_sha256sums": sha256sums_path,
         "preflight_json": preflight_json,
         "runtime_manifest_json": runtime_manifest_json,
     }
@@ -182,10 +194,10 @@ def build_report(
     manifest = _read_json(runtime_manifest_json, failed, "runtime_manifest_json")
     preflight = _read_json(preflight_json, failed, "preflight_json")
     runbook_exit = _read_text(execution_dir / "runbook.exit").strip()
-    stderr_text = _read_text(execution_dir / "runbook.stderr.log")
+    stderr_text = _read_text(stderr_path)
     heads_text = _read_text(execution_dir / "HEADS.txt")
-    stdout_lines = _count_lines(execution_dir / "runbook.stdout.log")
-    stderr_lines = _count_lines(execution_dir / "runbook.stderr.log")
+    stdout_lines = _count_lines(stdout_path)
+    stderr_lines = _count_lines(stderr_path)
 
     if runbook_exit != "0":
         failed.append("runbook_exit_zero")
@@ -544,6 +556,13 @@ def _read_text(path: Path) -> str:
 def _count_lines(path: Path) -> int:
     text = _read_text(path)
     return len(text.splitlines()) if text else 0
+
+
+def _first_existing(*paths: Path) -> Path:
+    for path in paths:
+        if path.exists():
+            return path
+    return paths[0]
 
 
 def _sha256(path: Path) -> str:
