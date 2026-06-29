@@ -210,7 +210,10 @@ def build_report(
         failed.append("stderr_without_python_exception_markers")
     if f"dp_head={required_dp_head}" not in heads_text:
         failed.append("heads_dp_head_fixed")
-    if f"camp_head={execution_camp_head}" not in heads_text:
+    if (
+        f"camp_head={execution_camp_head}" not in heads_text
+        and f"execution_camp_head={execution_camp_head}" not in heads_text
+    ):
         failed.append("heads_camp_head_matches_execution")
 
     if manifest:

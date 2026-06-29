@@ -281,6 +281,40 @@ def test_execution_audit_accepts_explicit_execution_camp_head(tmp_path: Path) ->
     assert report["analysis"]["execution_camp_head"] == CAMP_HEAD
 
 
+def test_execution_audit_accepts_execution_head_label_in_heads(tmp_path: Path) -> None:
+    paths = _make_artifact(tmp_path)
+    _write(
+        paths["execution_dir"] / "HEADS.txt",
+        "\n".join(
+            [
+                f"execution_camp_head={CAMP_HEAD}",
+                f"execution_camp_origin_main={CAMP_HEAD}",
+                f"dp_head={FIXED_DP_HEAD}",
+            ]
+        ),
+    )
+
+    report = build_report(
+        execution_dir=paths["execution_dir"],
+        base_output_dir=paths["base_output"],
+        preflight_json=paths["preflight"],
+        runtime_manifest_json=paths["manifest"],
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        execution_camp_head=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        expected_log_count=2,
+        expected_steps_per_log=3,
+        expected_records=6,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert "heads_camp_head_matches_execution" not in report["final_decision"][
+        "failed_checks"
+    ]
+
+
 def test_execution_audit_rejects_selection_effect(tmp_path: Path) -> None:
     report = _report(tmp_path, selection_effect=True)
 
