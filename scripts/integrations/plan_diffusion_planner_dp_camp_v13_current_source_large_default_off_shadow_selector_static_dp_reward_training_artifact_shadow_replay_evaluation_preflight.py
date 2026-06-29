@@ -112,6 +112,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected_training_contract_records", type=int, default=3200)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--python_executable", default="python")
+    parser.add_argument("--pythonpath", default=None)
     parser.add_argument("--authorized_current_work", default=AUTHORIZED_PREFLIGHT_WORK)
     parser.add_argument("--authorized_next_work", default=AUTHORIZED_NEXT_WORK)
     parser.add_argument("--latest_allowed_status", default=LATEST_ALLOWED_STATUS)
@@ -155,6 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         expected_training_contract_records=args.expected_training_contract_records,
         device=args.device,
         python_executable=args.python_executable,
+        pythonpath=args.pythonpath,
         authorized_current_work=args.authorized_current_work,
         authorized_next_work=args.authorized_next_work,
         latest_allowed_status=args.latest_allowed_status,
@@ -202,6 +204,7 @@ def build_report(
     expected_training_contract_records: int = 3200,
     device: str = "cuda",
     python_executable: str = "python",
+    pythonpath: str | None = None,
     authorized_current_work: str = AUTHORIZED_PREFLIGHT_WORK,
     authorized_next_work: str = AUTHORIZED_NEXT_WORK,
     latest_allowed_status: str = LATEST_ALLOWED_STATUS,
@@ -268,6 +271,7 @@ def build_report(
         base_replay_output_dir=base_replay_output_dir,
         device=device,
         python_executable=python_executable,
+        pythonpath=pythonpath,
         steps=steps,
         seeds=seeds,
         max_npcs_values=max_npcs_values,
@@ -367,6 +371,8 @@ def build_report(
         "runtime_manifest_json": str(output_runtime_manifest_json),
         "static_weights": str(static_weights_npy),
         "atom_scales": str(atom_scales_json),
+        "python_executable": python_executable,
+        "pythonpath": pythonpath,
     }
     report["final_decision"] = _decision(
         passed,
@@ -450,6 +456,7 @@ def _planned_commands(
     base_replay_output_dir: Path,
     device: str,
     python_executable: str,
+    pythonpath: str | None,
     steps: int,
     seeds: tuple[int, ...],
     max_npcs_values: tuple[int, ...],
@@ -477,9 +484,16 @@ def _planned_commands(
             / tl_dir
             / "static_shadow"
         )
-        command = [
-            python_executable,
-            str(replay_runner_py),
+        command = []
+        if pythonpath:
+            command.extend(["env", f"PYTHONPATH={pythonpath}"])
+        command.extend(
+            [
+                python_executable,
+                str(replay_runner_py),
+            ]
+        )
+        command.extend([
             "--diffusion_repo",
             str(diffusion_repo),
             "--route",
@@ -521,7 +535,7 @@ def _planned_commands(
             str(runtime_manifest_json),
             "--num_candidates",
             str(num_candidates),
-        ]
+        ])
         planned.append(
             {
                 "route_name": route["name"],

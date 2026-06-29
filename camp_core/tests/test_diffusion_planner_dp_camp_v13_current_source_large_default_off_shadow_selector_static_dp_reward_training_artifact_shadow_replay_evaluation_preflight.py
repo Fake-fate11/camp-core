@@ -203,6 +203,24 @@ def test_preflight_accepts_training_artifact_and_builds_runbook(tmp_path: Path) 
     )
 
 
+def test_preflight_can_prefix_pythonpath_for_python312_replay(tmp_path: Path) -> None:
+    pythonpath = "/fixed/dp:/fixed/dp/diffusion_planner"
+    report = _report(
+        tmp_path,
+        python_executable="/fixed/dp312/bin/python",
+        pythonpath=pythonpath,
+    )
+
+    first_command = report["planned_commands"][0]["command"]
+    assert first_command[:3] == [
+        "env",
+        f"PYTHONPATH={pythonpath}",
+        "/fixed/dp312/bin/python",
+    ]
+    assert report["preflight"]["python_executable"] == "/fixed/dp312/bin/python"
+    assert report["preflight"]["pythonpath"] == pythonpath
+
+
 def test_preflight_rejects_wrong_audit_scope(tmp_path: Path) -> None:
     report = _report(tmp_path, wrong_scope=True)
 
