@@ -56,6 +56,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--runtime_manifest_json", type=Path, required=True)
     parser.add_argument("--current_camp_head", required=True)
     parser.add_argument("--current_camp_origin_main", required=True)
+    parser.add_argument("--execution_camp_head", default=None)
     parser.add_argument("--current_dp_head", required=True)
     parser.add_argument("--required_dp_head", default=FIXED_DP_HEAD)
     parser.add_argument("--expected_log_count", type=int, default=32)
@@ -82,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
         runtime_manifest_json=args.runtime_manifest_json,
         current_camp_head=args.current_camp_head,
         current_camp_origin_main=args.current_camp_origin_main,
+        execution_camp_head=args.execution_camp_head,
         current_dp_head=args.current_dp_head,
         required_dp_head=args.required_dp_head,
         expected_log_count=args.expected_log_count,
@@ -109,6 +111,7 @@ def build_report(
     current_camp_head: str,
     current_camp_origin_main: str,
     current_dp_head: str,
+    execution_camp_head: str | None = None,
     required_dp_head: str = FIXED_DP_HEAD,
     expected_log_count: int = 32,
     expected_steps_per_log: int = 100,
@@ -118,6 +121,7 @@ def build_report(
     authorized_next_work: str = AUTHORIZED_NEXT_WORK,
     enabled: bool = False,
 ) -> dict[str, Any]:
+    execution_camp_head = execution_camp_head or current_camp_head
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "analysis": {
@@ -136,6 +140,7 @@ def build_report(
             "score_expression": SCORE_EXPRESSION,
             "current_camp_head": current_camp_head,
             "current_camp_origin_main": current_camp_origin_main,
+            "execution_camp_head": execution_camp_head,
             "current_dp_head": current_dp_head,
             "required_dp_head": required_dp_head,
         },
@@ -205,8 +210,8 @@ def build_report(
         failed.append("stderr_without_python_exception_markers")
     if f"dp_head={required_dp_head}" not in heads_text:
         failed.append("heads_dp_head_fixed")
-    if f"camp_head={current_camp_head}" not in heads_text:
-        failed.append("heads_camp_head_matches_current")
+    if f"camp_head={execution_camp_head}" not in heads_text:
+        failed.append("heads_camp_head_matches_execution")
 
     if manifest:
         if manifest.get("schema_version") != RUNTIME_MANIFEST_SCHEMA:
