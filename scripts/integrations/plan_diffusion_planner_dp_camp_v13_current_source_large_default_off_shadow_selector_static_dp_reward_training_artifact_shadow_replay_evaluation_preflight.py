@@ -624,10 +624,16 @@ def _audit_checks(
     latest_allowed_status: str,
 ) -> list[dict[str, Any]]:
     runtime_execution = _latest_audit_value(text, "runtime_shadow_selector_execution_authorized")
+    runtime_check_required = authorized_current_work == AUTHORIZED_PREFLIGHT_WORK
     return [
         _expect("audit_latest_scope_allows_preflight", _latest_audit_value(text, "next_work_target"), authorized_current_work),
         _expect("audit_latest_status_allows_preflight", _latest_audit_value(text, "current_v13_status"), latest_allowed_status),
-        _check("audit_latest_runtime_execution_blocked", runtime_execution in {None, "False"}, runtime_execution, "False or absent"),
+        _check(
+            "audit_latest_runtime_execution_blocked",
+            (not runtime_check_required) or runtime_execution == "False",
+            runtime_execution,
+            "False" if runtime_check_required else "not required for parameterized gate",
+        ),
         _expect("audit_latest_replay_execution_blocked", _latest_audit_value(text, "replay_execution_authorized_by_current_boundary"), "False"),
         _expect("audit_latest_candidate_generation_blocked", _latest_audit_value(text, "fixed_dp_candidate_generation_authorized_by_current_boundary"), "False"),
     ]
