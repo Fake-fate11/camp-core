@@ -466,11 +466,16 @@ def _checks(
         _expect_plan(implementation_plan, "scope_train_camp", False),
         _contains("implementation_plan_script_mentions_current_gate", script_text, "nonoverlap_holdout_data_preparation_implementation_plan_only"),
         _contains("implementation_plan_script_mentions_next_gate", script_text, "nonoverlap_holdout_data_preparation_implementation_static_contract_review_only"),
-        _contains("implementation_plan_script_mentions_future_builder", script_text, FUTURE_BUILDER_SCRIPT),
+        _contains("implementation_plan_script_mentions_future_builder_constant", script_text, "FUTURE_BUILDER_SCRIPT"),
+        _contains(
+            "implementation_plan_script_mentions_future_builder_filename",
+            script_text,
+            "nonoverlap_holdout_data_preparation_manifest.py",
+        ),
         _contains("implementation_plan_script_mentions_no_implementation", script_text, "implementation_performed_by_this_gate"),
-        _contains("implementation_plan_test_rejects_data_preparation_auth", test_text, "test_holdout_implementation_plan_rejects_source_data_preparation_auth"),
-        _contains("implementation_plan_test_rejects_zero_intersection_drift", test_text, "test_holdout_implementation_plan_rejects_missing_zero_intersection_contract"),
-        _contains("implementation_plan_test_rejects_dp_head_drift", test_text, "test_holdout_implementation_plan_rejects_dp_head_drift"),
+        _contains("implementation_plan_test_rejects_data_preparation_auth", test_text, "test_holdout_data_preparation_implementation_plan_rejects_data_preparation_auth"),
+        _contains("implementation_plan_test_rejects_zero_intersection_drift", test_text, "test_holdout_data_preparation_implementation_plan_rejects_missing_zero_contract"),
+        _contains("implementation_plan_test_rejects_dp_head_drift", test_text, "test_holdout_data_preparation_implementation_plan_rejects_dp_head_drift"),
     ]
     for output_name in REQUIRED_FUTURE_OUTPUTS:
         checks.append(

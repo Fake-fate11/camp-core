@@ -150,7 +150,8 @@ def _implementation_plan_script(path: Path) -> Path:
             [
                 "nonoverlap_holdout_data_preparation_implementation_plan_only",
                 "nonoverlap_holdout_data_preparation_implementation_static_contract_review_only",
-                FUTURE_BUILDER_SCRIPT,
+                "FUTURE_BUILDER_SCRIPT",
+                "nonoverlap_holdout_data_preparation_manifest.py",
                 "implementation_performed_by_this_gate",
                 "plan_ready_no_implementation",
                 "",
@@ -164,9 +165,9 @@ def _implementation_plan_test(path: Path) -> Path:
         path,
         "\n".join(
             [
-                "def test_holdout_implementation_plan_rejects_source_data_preparation_auth(): pass",
-                "def test_holdout_implementation_plan_rejects_missing_zero_intersection_contract(): pass",
-                "def test_holdout_implementation_plan_rejects_dp_head_drift(): pass",
+                "def test_holdout_data_preparation_implementation_plan_rejects_data_preparation_auth(): pass",
+                "def test_holdout_data_preparation_implementation_plan_rejects_missing_zero_contract(): pass",
+                "def test_holdout_data_preparation_implementation_plan_rejects_dp_head_drift(): pass",
                 "",
             ]
         ),
