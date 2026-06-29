@@ -19,6 +19,7 @@ from scripts.integrations.audit_diffusion_planner_dp_camp_v13_nonoverlap_holdout
 
 
 CAMP_HEAD = "d5350de824c55ff122d670395013642e2dcc6b9a"
+AUDIT_HEAD = "f8be19e97766b276d070eda36928adbce254af8a"
 
 
 def _sha(text: str) -> str:
@@ -217,8 +218,8 @@ def test_execution_audit_accepts_complete_data_with_recorded_launch_warnings(tmp
     report = build_report(
         source_artifact_dir=source,
         v13_audit_md=_audit(tmp_path / "audit.md"),
-        current_camp_head=CAMP_HEAD,
-        current_camp_origin_main=CAMP_HEAD,
+        current_camp_head=AUDIT_HEAD,
+        current_camp_origin_main=AUDIT_HEAD,
         current_dp_head=FIXED_DP_HEAD,
         expected_log_count=2,
         expected_steps_per_log=3,
@@ -241,8 +242,8 @@ def test_execution_audit_rejects_non_dp_top1_execution(tmp_path: Path) -> None:
     report = build_report(
         source_artifact_dir=source,
         v13_audit_md=_audit(tmp_path / "audit.md"),
-        current_camp_head=CAMP_HEAD,
-        current_camp_origin_main=CAMP_HEAD,
+        current_camp_head=AUDIT_HEAD,
+        current_camp_origin_main=AUDIT_HEAD,
         current_dp_head=FIXED_DP_HEAD,
         expected_log_count=2,
         expected_steps_per_log=3,
@@ -266,9 +267,9 @@ def test_execution_audit_main_writes_independent_sha256sums(tmp_path: Path) -> N
             "--v13_audit_md",
             str(_audit(tmp_path / "audit.md")),
             "--current_camp_head",
-            CAMP_HEAD,
+            AUDIT_HEAD,
             "--current_camp_origin_main",
-            CAMP_HEAD,
+            AUDIT_HEAD,
             "--current_dp_head",
             FIXED_DP_HEAD,
             "--expected_log_count",

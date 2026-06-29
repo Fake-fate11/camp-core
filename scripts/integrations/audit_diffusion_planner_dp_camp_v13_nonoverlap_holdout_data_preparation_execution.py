@@ -209,11 +209,15 @@ def build_report(
     check("training_data_contract_records", training_contract.get("records") == expected_records, training_contract.get("records"), expected_records)
     check("training_data_contract_failed_records_zero", training_contract.get("failed_records") == 0, training_contract.get("failed_records"), 0)
     check("training_input_contract_satisfied", training_contract.get("future_training_input_contract_satisfied") is True, training_contract.get("future_training_input_contract_satisfied"))
-    check("current_camp_head", heads.get("current_camp_head") == current_camp_head, heads.get("current_camp_head"), current_camp_head)
-    check("current_camp_origin_main", heads.get("current_camp_origin_main") == current_camp_origin_main, heads.get("current_camp_origin_main"), current_camp_origin_main)
-    check("current_dp_head", heads.get("current_dp_head") == current_dp_head, heads.get("current_dp_head"), current_dp_head)
-    check("required_dp_head", heads.get("required_dp_head") == required_dp_head, heads.get("required_dp_head"), required_dp_head)
-    check("dp_fixed_to_required", current_dp_head == required_dp_head, current_dp_head, required_dp_head)
+    check("source_camp_head_present", _is_sha(heads.get("current_camp_head")), heads.get("current_camp_head"), "40-hex sha")
+    check("source_camp_origin_main_present", _is_sha(heads.get("current_camp_origin_main")), heads.get("current_camp_origin_main"), "40-hex sha")
+    check("source_camp_head_matches_origin_main", heads.get("current_camp_head") == heads.get("current_camp_origin_main"), heads, "source CAMP head equals source origin/main")
+    check("audit_camp_head_present", _is_sha(current_camp_head), current_camp_head, "40-hex sha")
+    check("audit_camp_origin_main_present", _is_sha(current_camp_origin_main), current_camp_origin_main, "40-hex sha")
+    check("audit_camp_head_matches_origin_main", current_camp_head == current_camp_origin_main, {"current": current_camp_head, "origin": current_camp_origin_main}, "audit CAMP head equals audit origin/main")
+    check("source_current_dp_head", heads.get("current_dp_head") == required_dp_head, heads.get("current_dp_head"), required_dp_head)
+    check("source_required_dp_head", heads.get("required_dp_head") == required_dp_head, heads.get("required_dp_head"), required_dp_head)
+    check("audit_current_dp_head", current_dp_head == required_dp_head, current_dp_head, required_dp_head)
     check("audit_current_next_work", f"next_work_target={authorized_current_work}" in audit_text, _latest_value(audit_text, "next_work_target"), authorized_current_work)
     check("audit_data_preparation_authorized", "data_preparation_authorized_by_current_boundary=True" in audit_text, "data_preparation_authorized_by_current_boundary=True")
     check("audit_training_execution_not_authorized", "training_execution_authorized_by_current_boundary=False" in audit_text, "training_execution_authorized_by_current_boundary=False")
@@ -246,12 +250,13 @@ def build_report(
         },
         "source_artifact_dir": str(source_root),
         "source_summary_json": str(summary_path),
-        "heads": {
+        "audit_heads": {
             "current_camp_head": current_camp_head,
             "current_camp_origin_main": current_camp_origin_main,
             "current_dp_head": current_dp_head,
             "required_dp_head": required_dp_head,
         },
+        "source_heads": heads,
         "source_decision": decision,
         "source_execution": execution,
         "selection_log_summary": selection_summary,
@@ -556,6 +561,10 @@ def _formal_seed_mentions(path: Path) -> int:
         if int(match.group(1)) in FORMAL_SEEDS:
             count += 1
     return count
+
+
+def _is_sha(value: Any) -> bool:
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value) is not None
 
 
 def _latest_value(text: str, key: str) -> Optional[str]:
