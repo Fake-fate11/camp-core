@@ -69,6 +69,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--v13_audit_md", type=Path, required=True)
     parser.add_argument("--current_camp_head", required=True)
     parser.add_argument("--current_camp_origin_main", required=True)
+    parser.add_argument("--execution_camp_head", default=None)
     parser.add_argument("--current_dp_head", required=True)
     parser.add_argument("--required_dp_head", default=FIXED_DP_HEAD)
     parser.add_argument("--expected_selection_log_count", type=int, default=64)
@@ -95,6 +96,7 @@ def main(argv: list[str] | None = None) -> int:
         v13_audit_md=args.v13_audit_md,
         current_camp_head=args.current_camp_head,
         current_camp_origin_main=args.current_camp_origin_main,
+        execution_camp_head=args.execution_camp_head,
         current_dp_head=args.current_dp_head,
         required_dp_head=args.required_dp_head,
         expected_selection_log_count=args.expected_selection_log_count,
@@ -122,6 +124,7 @@ def build_report(
     current_camp_head: str,
     current_camp_origin_main: str,
     current_dp_head: str,
+    execution_camp_head: str | None = None,
     required_dp_head: str = FIXED_DP_HEAD,
     expected_selection_log_count: int = 64,
     expected_contract_records: int = 6400,
@@ -168,6 +171,7 @@ def build_report(
         "heads": {
             "current_camp_head": current_camp_head,
             "current_camp_origin_main": current_camp_origin_main,
+            "execution_camp_head": execution_camp_head or current_camp_head,
             "current_dp_head": current_dp_head,
             "required_dp_head": required_dp_head,
         },
@@ -222,6 +226,7 @@ def build_report(
         artifact=artifact,
         current_camp_head=current_camp_head,
         current_camp_origin_main=current_camp_origin_main,
+        execution_camp_head=execution_camp_head or current_camp_head,
         current_dp_head=current_dp_head,
         required_dp_head=required_dp_head,
         expected_selection_log_count=expected_selection_log_count,
@@ -256,6 +261,7 @@ def _checks(
     artifact: dict[str, Any],
     current_camp_head: str,
     current_camp_origin_main: str,
+    execution_camp_head: str,
     current_dp_head: str,
     required_dp_head: str,
     expected_selection_log_count: int,
@@ -269,6 +275,7 @@ def _checks(
     atom_schema = _dict(summary.get("atom_schema"))
     checks = [
         _check("current_camp_head_is_sha", _is_git_sha(current_camp_head), current_camp_head, "40-char git sha"),
+        _check("execution_camp_head_is_sha", _is_git_sha(execution_camp_head), execution_camp_head, "40-char git sha"),
         _expect("current_camp_head_matches_origin", current_camp_head, current_camp_origin_main),
         _expect("current_dp_head_fixed", current_dp_head, FIXED_DP_HEAD),
         _expect("required_dp_head_fixed", required_dp_head, FIXED_DP_HEAD),
@@ -281,7 +288,7 @@ def _checks(
         _check("weights_npy_exists", paths["weights_npy"].is_file(), str(paths["weights_npy"]), "file exists"),
         _expect("execution_exit_zero", exit_text, "0"),
         _check("stderr_has_no_traceback", "Traceback" not in stderr_text, "Traceback" in stderr_text, False),
-        _check("heads_camp_head_matches", f"camp_head={current_camp_head}" in heads_text, heads_text, f"camp_head={current_camp_head}"),
+        _check("heads_camp_head_matches_execution", f"camp_head={execution_camp_head}" in heads_text, heads_text, f"camp_head={execution_camp_head}"),
         _check("heads_dp_head_fixed", f"dp_head={required_dp_head}" in heads_text, heads_text, f"dp_head={required_dp_head}"),
         _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
         _expect("audit_training_execution_authorized", _latest_audit_value(audit_text, "training_execution_authorized_by_current_boundary"), "True"),
