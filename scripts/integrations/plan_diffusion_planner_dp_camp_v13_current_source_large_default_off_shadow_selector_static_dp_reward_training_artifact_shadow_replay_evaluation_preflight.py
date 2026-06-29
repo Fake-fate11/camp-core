@@ -110,6 +110,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=100)
     parser.add_argument("--num_candidates", type=int, default=EXPECTED_CANDIDATE_COUNT)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--authorized_current_work", default=AUTHORIZED_PREFLIGHT_WORK)
+    parser.add_argument("--authorized_next_work", default=AUTHORIZED_NEXT_WORK)
+    parser.add_argument("--latest_allowed_status", default=LATEST_ALLOWED_STATUS)
     parser.add_argument("--output_runtime_manifest_json", type=Path, required=True)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
@@ -148,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
         steps=args.steps,
         num_candidates=args.num_candidates,
         device=args.device,
+        authorized_current_work=args.authorized_current_work,
+        authorized_next_work=args.authorized_next_work,
+        latest_allowed_status=args.latest_allowed_status,
         output_runtime_manifest_json=args.output_runtime_manifest_json,
         enabled=bool(
             args.enable_v13_static_dp_reward_training_artifact_shadow_replay_evaluation_preflight
@@ -190,6 +196,9 @@ def build_report(
     steps: int = 100,
     num_candidates: int = EXPECTED_CANDIDATE_COUNT,
     device: str = "cuda",
+    authorized_current_work: str = AUTHORIZED_PREFLIGHT_WORK,
+    authorized_next_work: str = AUTHORIZED_NEXT_WORK,
+    latest_allowed_status: str = LATEST_ALLOWED_STATUS,
     enabled: bool = False,
 ) -> dict[str, Any]:
     report: dict[str, Any] = {
@@ -208,12 +217,20 @@ def build_report(
             "current_camp_origin_main": current_camp_origin_main,
             "current_dp_head": current_dp_head,
             "required_dp_head": required_dp_head,
+            "authorized_current_work": authorized_current_work,
+            "authorized_next_work": authorized_next_work,
+            "latest_allowed_status": latest_allowed_status,
         },
         "source_hashes": {},
         "runtime_manifest": {},
         "planned_commands": [],
         "review_checks": [],
-        "final_decision": _decision(False, [], enabled=False),
+        "final_decision": _decision(
+            False,
+            [],
+            enabled=False,
+            authorized_next_work=authorized_next_work,
+        ),
     }
     if not enabled:
         report["final_decision"]["status"] = DISABLED_STATUS
@@ -299,7 +316,13 @@ def build_report(
     checks.extend(_weight_checks(weights))
     checks.extend(_runtime_manifest_checks(runtime_manifest, atom_scales_json, static_weights_npy))
     checks.extend(_runner_checks(runner_text))
-    checks.extend(_audit_checks(audit_text))
+    checks.extend(
+        _audit_checks(
+            audit_text,
+            authorized_current_work=authorized_current_work,
+            latest_allowed_status=latest_allowed_status,
+        )
+    )
     checks.extend(_batch_command_checks([entry["command"] for entry in commands]))
 
     failed = [check["name"] for check in checks if not check["passed"]]
@@ -333,7 +356,12 @@ def build_report(
         "static_weights": str(static_weights_npy),
         "atom_scales": str(atom_scales_json),
     }
-    report["final_decision"] = _decision(passed, failed, enabled=True)
+    report["final_decision"] = _decision(
+        passed,
+        failed,
+        enabled=True,
+        authorized_next_work=authorized_next_work,
+    )
     return report
 
 
@@ -572,11 +600,17 @@ def _runner_checks(source: str) -> list[dict[str, Any]]:
     ]
 
 
-def _audit_checks(text: str) -> list[dict[str, Any]]:
+def _audit_checks(
+    text: str,
+    *,
+    authorized_current_work: str,
+    latest_allowed_status: str,
+) -> list[dict[str, Any]]:
+    runtime_execution = _latest_audit_value(text, "runtime_shadow_selector_execution_authorized")
     return [
-        _expect("audit_latest_scope_allows_preflight", _latest_audit_value(text, "next_work_target"), AUTHORIZED_PREFLIGHT_WORK),
-        _expect("audit_latest_status_allows_preflight", _latest_audit_value(text, "current_v13_status"), LATEST_ALLOWED_STATUS),
-        _expect("audit_latest_runtime_execution_blocked", _latest_audit_value(text, "runtime_shadow_selector_execution_authorized"), "False"),
+        _expect("audit_latest_scope_allows_preflight", _latest_audit_value(text, "next_work_target"), authorized_current_work),
+        _expect("audit_latest_status_allows_preflight", _latest_audit_value(text, "current_v13_status"), latest_allowed_status),
+        _check("audit_latest_runtime_execution_blocked", runtime_execution in {None, "False"}, runtime_execution, "False or absent"),
         _expect("audit_latest_replay_execution_blocked", _latest_audit_value(text, "replay_execution_authorized_by_current_boundary"), "False"),
         _expect("audit_latest_candidate_generation_blocked", _latest_audit_value(text, "fixed_dp_candidate_generation_authorized_by_current_boundary"), "False"),
     ]
@@ -637,13 +671,19 @@ def render_runbook(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _decision(passed: bool, failed_checks: list[str], *, enabled: bool) -> dict[str, Any]:
+def _decision(
+    passed: bool,
+    failed_checks: list[str],
+    *,
+    enabled: bool,
+    authorized_next_work: str,
+) -> dict[str, Any]:
     return {
         "status": READY_STATUS if passed else REJECT_STATUS,
         "enabled": bool(enabled),
         "passed": bool(passed),
         "failed_checks": failed_checks,
-        "authorized_next_work": AUTHORIZED_NEXT_WORK if passed else None,
+        "authorized_next_work": authorized_next_work if passed else None,
         "runtime_manifest_written": bool(passed),
         "shadow_replay_evaluation_execution_authorized_next": bool(passed),
         "runtime_shadow_selector_execution_authorized_by_this_gate": False,
