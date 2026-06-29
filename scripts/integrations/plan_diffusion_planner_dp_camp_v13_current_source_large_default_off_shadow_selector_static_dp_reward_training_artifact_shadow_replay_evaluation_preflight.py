@@ -110,6 +110,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=100)
     parser.add_argument("--num_candidates", type=int, default=EXPECTED_CANDIDATE_COUNT)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--python_executable", default="python")
     parser.add_argument("--authorized_current_work", default=AUTHORIZED_PREFLIGHT_WORK)
     parser.add_argument("--authorized_next_work", default=AUTHORIZED_NEXT_WORK)
     parser.add_argument("--latest_allowed_status", default=LATEST_ALLOWED_STATUS)
@@ -151,6 +152,7 @@ def main(argv: list[str] | None = None) -> int:
         steps=args.steps,
         num_candidates=args.num_candidates,
         device=args.device,
+        python_executable=args.python_executable,
         authorized_current_work=args.authorized_current_work,
         authorized_next_work=args.authorized_next_work,
         latest_allowed_status=args.latest_allowed_status,
@@ -196,6 +198,7 @@ def build_report(
     steps: int = 100,
     num_candidates: int = EXPECTED_CANDIDATE_COUNT,
     device: str = "cuda",
+    python_executable: str = "python",
     authorized_current_work: str = AUTHORIZED_PREFLIGHT_WORK,
     authorized_next_work: str = AUTHORIZED_NEXT_WORK,
     latest_allowed_status: str = LATEST_ALLOWED_STATUS,
@@ -261,6 +264,7 @@ def build_report(
         reward_config=reward_config,
         base_replay_output_dir=base_replay_output_dir,
         device=device,
+        python_executable=python_executable,
         steps=steps,
         seeds=seeds,
         max_npcs_values=max_npcs_values,
@@ -437,6 +441,7 @@ def _planned_commands(
     reward_config: Path,
     base_replay_output_dir: Path,
     device: str,
+    python_executable: str,
     steps: int,
     seeds: tuple[int, ...],
     max_npcs_values: tuple[int, ...],
@@ -465,7 +470,7 @@ def _planned_commands(
             / "static_shadow"
         )
         command = [
-            "python",
+            python_executable,
             str(replay_runner_py),
             "--diffusion_repo",
             str(diffusion_repo),
