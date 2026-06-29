@@ -109,6 +109,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--traffic_light_modes", default="on,off")
     parser.add_argument("--steps", type=int, default=100)
     parser.add_argument("--num_candidates", type=int, default=EXPECTED_CANDIDATE_COUNT)
+    parser.add_argument("--expected_training_contract_records", type=int, default=3200)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--python_executable", default="python")
     parser.add_argument("--authorized_current_work", default=AUTHORIZED_PREFLIGHT_WORK)
@@ -151,6 +152,7 @@ def main(argv: list[str] | None = None) -> int:
         traffic_light_modes=_parse_strings(args.traffic_light_modes),
         steps=args.steps,
         num_candidates=args.num_candidates,
+        expected_training_contract_records=args.expected_training_contract_records,
         device=args.device,
         python_executable=args.python_executable,
         authorized_current_work=args.authorized_current_work,
@@ -197,6 +199,7 @@ def build_report(
     traffic_light_modes: tuple[str, ...] = ("on", "off"),
     steps: int = 100,
     num_candidates: int = EXPECTED_CANDIDATE_COUNT,
+    expected_training_contract_records: int = 3200,
     device: str = "cuda",
     python_executable: str = "python",
     authorized_current_work: str = AUTHORIZED_PREFLIGHT_WORK,
@@ -315,7 +318,12 @@ def build_report(
             report["source_hashes"][path.name] = _sha256(path)
     for route in routes:
         checks.append(_check(f"route_path_exists:{route['name']}", Path(route["path"]).is_file(), route["path"], "file exists"))
-    checks.extend(_training_checks(training_summary))
+    checks.extend(
+        _training_checks(
+            training_summary,
+            expected_contract_records=expected_training_contract_records,
+        )
+    )
     checks.extend(_atom_scale_checks(atom_scales))
     checks.extend(_weight_checks(weights))
     checks.extend(_runtime_manifest_checks(runtime_manifest, atom_scales_json, static_weights_npy))
@@ -528,7 +536,11 @@ def _planned_commands(
     return planned
 
 
-def _training_checks(summary: dict[str, Any]) -> list[dict[str, Any]]:
+def _training_checks(
+    summary: dict[str, Any],
+    *,
+    expected_contract_records: int,
+) -> list[dict[str, Any]]:
     contract = summary.get("dp_native_training_data_contract")
     if not isinstance(contract, dict):
         contract = {}
@@ -541,7 +553,7 @@ def _training_checks(summary: dict[str, Any]) -> list[dict[str, Any]]:
         _expect("training_atom_schema", summary.get("atom_schema_version"), ATOM_SCHEMA_VERSION),
         _check("training_records_positive", int(summary.get("num_records", 0)) > 0, summary.get("num_records"), "> 0"),
         _expect("training_contract_passed", contract.get("passed"), True),
-        _expect("training_contract_records_3200", contract.get("records"), 3200),
+        _expect("training_contract_records", contract.get("records"), expected_contract_records),
         _expect("training_no_closed_loop_label", summary.get("label_source") != "closed_loop_outcome", True),
         _expect("training_no_safety_cost_label", summary.get("label_source") != "safety_cost_v1_hard_guarded", True),
     ]
