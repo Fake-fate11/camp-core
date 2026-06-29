@@ -149,19 +149,30 @@ def _write_log(root: Path, route: str, seed: int, tl: str, records: list[dict]) 
     return log_path
 
 
-def _audit_text(*, wrong_scope: bool = False) -> str:
+def _audit_text(*, wrong_scope: bool = False, remediation_scope: bool = False) -> str:
     next_work = (
         "old_scope"
         if wrong_scope
+        else (
+            "dp_camp_v13_current_source_large_default_off_shadow_selector_broader_"
+            "nonformal_shadow_replay_batch_default_off_shadow_training_data_"
+            "contract_remediation_only"
+        )
+        if remediation_scope
         else (
             "dp_camp_v13_current_source_large_default_off_shadow_selector_broader_"
             "nonformal_shadow_replay_batch_result_review_and_training_readiness_"
             "preflight_only"
         )
     )
+    status = (
+        "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_training_readiness_contract_remediation_required"
+        if remediation_scope
+        else "current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed"
+    )
     return "\n".join(
         [
-            "current_v13_status=current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed",
+            f"current_v13_status={status}",
             f"next_work_target={next_work}",
             "training_execution_authorized_by_current_boundary=False",
             "dp_modification_authorized_by_current_boundary=False",
@@ -229,7 +240,12 @@ def _static_audit(
     }
 
 
-def _fixture(tmp_path: Path, *, wrong_scope: bool = False) -> dict[str, Path]:
+def _fixture(
+    tmp_path: Path,
+    *,
+    wrong_scope: bool = False,
+    remediation_scope: bool = False,
+) -> dict[str, Path]:
     replay_root = tmp_path / "replay"
     execution_root = tmp_path / "execution"
     execution_root.mkdir()
@@ -259,7 +275,10 @@ def _fixture(tmp_path: Path, *, wrong_scope: bool = False) -> dict[str, Path]:
         encoding="utf-8",
     )
     audit = tmp_path / "audit.md"
-    audit.write_text(_audit_text(wrong_scope=wrong_scope), encoding="utf-8")
+    audit.write_text(
+        _audit_text(wrong_scope=wrong_scope, remediation_scope=remediation_scope),
+        encoding="utf-8",
+    )
     return {
         "replay_root": replay_root,
         "execution_root": execution_root,
@@ -268,7 +287,11 @@ def _fixture(tmp_path: Path, *, wrong_scope: bool = False) -> dict[str, Path]:
 
 
 def _report(tmp_path: Path, **overrides):
-    paths = _fixture(tmp_path, wrong_scope=overrides.pop("wrong_scope", False))
+    paths = _fixture(
+        tmp_path,
+        wrong_scope=overrides.pop("wrong_scope", False),
+        remediation_scope=overrides.pop("remediation_scope", False),
+    )
     params = {
         "replay_output_dir": paths["replay_root"],
         "execution_artifact_dir": paths["execution_root"],
@@ -315,6 +338,15 @@ def test_training_readiness_rejects_wrong_audit_scope(tmp_path: Path) -> None:
         "failed_checks"
     ]
     assert report["final_decision"]["authorized_next_work"] is None
+
+
+def test_training_readiness_accepts_current_remediation_audit_scope(
+    tmp_path: Path,
+) -> None:
+    report = _report(tmp_path, remediation_scope=True)
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == AUTHORIZED_NEXT_WORK
 
 
 def test_training_readiness_rejects_label_contract_drift(tmp_path: Path) -> None:

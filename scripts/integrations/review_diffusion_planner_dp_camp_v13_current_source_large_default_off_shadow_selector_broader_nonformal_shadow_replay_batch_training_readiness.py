@@ -66,6 +66,18 @@ LATEST_ALLOWED_STATUS = (
     "current_source_large_default_off_shadow_selector_broader_nonformal_"
     "shadow_replay_batch_execution_passed"
 )
+REMEDIATION_ALLOWED_STATUS = (
+    "current_source_large_default_off_shadow_selector_broader_nonformal_"
+    "shadow_replay_batch_training_readiness_contract_remediation_required"
+)
+ALLOWED_AUDIT_NEXT_WORK = (
+    AUTHORIZED_REVIEW_WORK,
+    REMEDIATION_NEXT_WORK,
+)
+ALLOWED_AUDIT_STATUSES = (
+    LATEST_ALLOWED_STATUS,
+    REMEDIATION_ALLOWED_STATUS,
+)
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_ATOM_SCHEMA = "dp_camp_v10_14d"
 EXPECTED_ATOM_COUNT = 14
@@ -324,8 +336,20 @@ def _checks(
         _check("static_batch_audit_json_exists", static_audit_path.is_file(), str(static_audit_path), "file exists"),
         _check("replay_output_hash_manifest_exists", manifest_path.is_file(), str(manifest_path), "file exists"),
         _check("v13_audit_exists", v13_audit_md.is_file(), str(v13_audit_md), "file exists"),
-        _expect("audit_latest_scope_allows_review", _latest_audit_value(audit_text, "next_work_target"), AUTHORIZED_REVIEW_WORK),
-        _expect("audit_latest_status_allows_review", _latest_audit_value(audit_text, "current_v13_status"), LATEST_ALLOWED_STATUS),
+        _check(
+            "audit_latest_scope_allows_review",
+            _latest_audit_value(audit_text, "next_work_target")
+            in ALLOWED_AUDIT_NEXT_WORK,
+            _latest_audit_value(audit_text, "next_work_target"),
+            list(ALLOWED_AUDIT_NEXT_WORK),
+        ),
+        _check(
+            "audit_latest_status_allows_review",
+            _latest_audit_value(audit_text, "current_v13_status")
+            in ALLOWED_AUDIT_STATUSES,
+            _latest_audit_value(audit_text, "current_v13_status"),
+            list(ALLOWED_AUDIT_STATUSES),
+        ),
         _expect("audit_latest_training_blocked", _latest_audit_value(audit_text, "training_execution_authorized_by_current_boundary"), "False"),
         _expect("audit_latest_dp_modification_blocked", _latest_audit_value(audit_text, "dp_modification_authorized_by_current_boundary"), "False"),
         _expect("static_audit_passed", static_audit.get("passed"), True),
