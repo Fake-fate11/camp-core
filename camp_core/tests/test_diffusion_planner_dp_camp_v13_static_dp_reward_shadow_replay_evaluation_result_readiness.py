@@ -192,11 +192,83 @@ def _selection_logs(root: Path) -> list[str]:
     return [str(path) for path in sorted(root.rglob("camp_selection_log.json"))]
 
 
+def _eval_hashes() -> list[str]:
+    return [_sha(f"eval-a-{index}") for index in range(3)] + [
+        _sha(f"eval-b-{index}") for index in range(3)
+    ]
+
+
+def _write_nonoverlap_artifacts(
+    root: Path,
+    *,
+    split_overlap: bool = False,
+    formal_seed: bool = False,
+    candidate_overlap: bool = False,
+    path_overlap: bool = False,
+    record_overlap: bool = False,
+) -> dict[str, Path]:
+    training_root = root / "previous"
+    holdout_root = training_root if split_overlap else root / "evaluation"
+    training_candidate_hashes = (
+        [_eval_hashes()[0]]
+        if candidate_overlap
+        else [_sha(f"previous-a-{index}") for index in range(3)]
+    )
+    evaluation_path_signatures = ["eval_path_a", "eval_path_b"]
+    training_path_signatures = (
+        ["eval_path_a"] if path_overlap else ["previous_path_a", "previous_path_b"]
+    )
+    evaluation_record_identities = [f"eval_record_{index}" for index in range(6)]
+    training_record_identities = (
+        ["eval_record_0"]
+        if record_overlap
+        else [f"previous_record_{index}" for index in range(6)]
+    )
+    split = {
+        "training": {
+            "selection_log_roots": [str(training_root)],
+            "seeds": [301],
+        },
+        "holdout": {
+            "selection_log_roots": [str(holdout_root)],
+            "seeds": [11 if formal_seed else 302],
+        },
+    }
+    candidate_registry = {
+        "training": {"values": training_candidate_hashes},
+        "evaluation": {"values": _eval_hashes()},
+    }
+    path_registry = {
+        "training": {"values": training_path_signatures},
+        "evaluation": {"values": evaluation_path_signatures},
+    }
+    record_registry = {
+        "training": {"values": training_record_identities},
+        "evaluation": {"values": evaluation_record_identities},
+    }
+    return {
+        "split_manifest_json": _write(root / "split_manifest.json", json.dumps(split)),
+        "candidate_tensor_hash_registry_json": _write(
+            root / "candidate_tensor_hash_registry.json",
+            json.dumps(candidate_registry),
+        ),
+        "path_signature_registry_json": _write(
+            root / "path_signature_registry.json",
+            json.dumps(path_registry),
+        ),
+        "record_identity_hash_registry_json": _write(
+            root / "record_identity_hash_registry.json",
+            json.dumps(record_registry),
+        ),
+    }
+
+
 def _report(tmp_path: Path, *, overlap_previous: bool = False, guidance_violation: int = 0) -> dict:
     evaluation = tmp_path / "evaluation"
     previous = tmp_path / "previous"
     _write_logs(evaluation, prefix="eval")
     _write_logs(previous, prefix="previous", overlap_with="eval" if overlap_previous else None)
+    artifacts = _write_nonoverlap_artifacts(tmp_path)
     execution_audit = _write_execution_audit(
         tmp_path / "execution_audit.json",
         guidance_violation=guidance_violation,
@@ -210,6 +282,7 @@ def _report(tmp_path: Path, *, overlap_previous: bool = False, guidance_violatio
         current_camp_origin_main=CAMP_HEAD,
         current_dp_head=FIXED_DP_HEAD,
         previous_training_output_dir=previous,
+        **artifacts,
         expected_selection_log_count=2,
         expected_records=6,
         min_routes=2,
@@ -230,6 +303,11 @@ def test_result_readiness_accepts_fixed_default_off_eval_logs(tmp_path: Path) ->
     assert report["training_readiness"]["records_total"] == 6
     assert report["training_readiness"]["usable_feasible_records"] == 6
     assert report["candidate_tensor_overlap"]["eval_hashes_in_previous_count"] == 0
+    assert report["split_manifest"]["root_intersection_count"] == 0
+    assert report["split_manifest"]["formal_seed_count"] == 0
+    assert report["candidate_tensor_hash_registry"]["intersection_count"] == 0
+    assert report["path_signature_registry"]["intersection_count"] == 0
+    assert report["record_identity_hash_registry"]["intersection_count"] == 0
     assert decision["static_dp_reward_training_execution_authorized_next"] is False
     assert decision["safety_benefit_claim_authorized"] is False
 
@@ -241,6 +319,7 @@ def test_result_readiness_accepts_parameterized_current_gate(tmp_path: Path) -> 
     previous = tmp_path / "previous"
     _write_logs(evaluation, prefix="eval")
     _write_logs(previous, prefix="previous")
+    artifacts = _write_nonoverlap_artifacts(tmp_path)
     execution_audit = _write_execution_audit(tmp_path / "execution_audit.json")
     payload = json.loads(execution_audit.read_text(encoding="utf-8"))
     payload["final_decision"]["authorized_next_work"] = current_work
@@ -255,6 +334,7 @@ def test_result_readiness_accepts_parameterized_current_gate(tmp_path: Path) -> 
         current_camp_origin_main=CAMP_HEAD,
         current_dp_head=FIXED_DP_HEAD,
         previous_training_output_dir=previous,
+        **artifacts,
         expected_selection_log_count=2,
         expected_records=6,
         min_routes=2,
@@ -297,6 +377,7 @@ def test_result_readiness_rejects_training_summary_selection_log_overlap(
     previous = tmp_path / "previous"
     _write_logs(evaluation, prefix="eval")
     _write_logs(previous, prefix="previous", overlap_with="eval")
+    artifacts = _write_nonoverlap_artifacts(tmp_path)
     summary = _write(
         tmp_path / "training_summary.json",
         json.dumps({"selection_logs": _selection_logs(previous)}),
@@ -312,6 +393,7 @@ def test_result_readiness_rejects_training_summary_selection_log_overlap(
         current_camp_origin_main=CAMP_HEAD,
         current_dp_head=FIXED_DP_HEAD,
         previous_training_summary_json=summary,
+        **artifacts,
         expected_selection_log_count=2,
         expected_records=6,
         min_routes=2,
@@ -327,11 +409,178 @@ def test_result_readiness_rejects_training_summary_selection_log_overlap(
     assert report["candidate_tensor_overlap"]["eval_hashes_in_previous_count"] == 6
 
 
+def test_result_readiness_rejects_split_manifest_overlap(tmp_path: Path) -> None:
+    evaluation = tmp_path / "evaluation"
+    previous = tmp_path / "previous"
+    _write_logs(evaluation, prefix="eval")
+    _write_logs(previous, prefix="previous")
+    artifacts = _write_nonoverlap_artifacts(tmp_path, split_overlap=True)
+    execution_audit = _write_execution_audit(tmp_path / "execution_audit.json")
+    audit_md = _write_audit_md(tmp_path / "audit.md")
+
+    report = build_report(
+        evaluation_output_dir=evaluation,
+        execution_audit_json=execution_audit,
+        v13_audit_md=audit_md,
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        previous_training_output_dir=previous,
+        **artifacts,
+        expected_selection_log_count=2,
+        expected_records=6,
+        min_routes=2,
+        min_seeds=2,
+        min_route_tl_buckets=2,
+        min_usable_feasible_records=1,
+        min_multi_feasible_records=1,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert (
+        "split_manifest_training_holdout_root_intersection_zero"
+        in report["final_decision"]["failed_checks"]
+    )
+
+
+def test_result_readiness_rejects_formal_seed_in_split_manifest(tmp_path: Path) -> None:
+    evaluation = tmp_path / "evaluation"
+    previous = tmp_path / "previous"
+    _write_logs(evaluation, prefix="eval")
+    _write_logs(previous, prefix="previous")
+    artifacts = _write_nonoverlap_artifacts(tmp_path, formal_seed=True)
+    execution_audit = _write_execution_audit(tmp_path / "execution_audit.json")
+    audit_md = _write_audit_md(tmp_path / "audit.md")
+
+    report = build_report(
+        evaluation_output_dir=evaluation,
+        execution_audit_json=execution_audit,
+        v13_audit_md=audit_md,
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        previous_training_output_dir=previous,
+        **artifacts,
+        expected_selection_log_count=2,
+        expected_records=6,
+        min_routes=2,
+        min_seeds=2,
+        min_route_tl_buckets=2,
+        min_usable_feasible_records=1,
+        min_multi_feasible_records=1,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "split_manifest_formal_seed_records_zero" in report["final_decision"][
+        "failed_checks"
+    ]
+
+
+def test_result_readiness_rejects_candidate_tensor_registry_overlap(tmp_path: Path) -> None:
+    evaluation = tmp_path / "evaluation"
+    previous = tmp_path / "previous"
+    _write_logs(evaluation, prefix="eval")
+    _write_logs(previous, prefix="previous")
+    artifacts = _write_nonoverlap_artifacts(tmp_path, candidate_overlap=True)
+    execution_audit = _write_execution_audit(tmp_path / "execution_audit.json")
+    audit_md = _write_audit_md(tmp_path / "audit.md")
+
+    report = build_report(
+        evaluation_output_dir=evaluation,
+        execution_audit_json=execution_audit,
+        v13_audit_md=audit_md,
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        previous_training_output_dir=previous,
+        **artifacts,
+        expected_selection_log_count=2,
+        expected_records=6,
+        min_routes=2,
+        min_seeds=2,
+        min_route_tl_buckets=2,
+        min_usable_feasible_records=1,
+        min_multi_feasible_records=1,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "candidate_tensor_hash_registry_intersection_zero" in report[
+        "final_decision"
+    ]["failed_checks"]
+
+
+def test_result_readiness_rejects_path_signature_registry_overlap(tmp_path: Path) -> None:
+    evaluation = tmp_path / "evaluation"
+    previous = tmp_path / "previous"
+    _write_logs(evaluation, prefix="eval")
+    _write_logs(previous, prefix="previous")
+    artifacts = _write_nonoverlap_artifacts(tmp_path, path_overlap=True)
+    execution_audit = _write_execution_audit(tmp_path / "execution_audit.json")
+    audit_md = _write_audit_md(tmp_path / "audit.md")
+
+    report = build_report(
+        evaluation_output_dir=evaluation,
+        execution_audit_json=execution_audit,
+        v13_audit_md=audit_md,
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        previous_training_output_dir=previous,
+        **artifacts,
+        expected_selection_log_count=2,
+        expected_records=6,
+        min_routes=2,
+        min_seeds=2,
+        min_route_tl_buckets=2,
+        min_usable_feasible_records=1,
+        min_multi_feasible_records=1,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "path_signature_registry_intersection_zero" in report["final_decision"][
+        "failed_checks"
+    ]
+
+
+def test_result_readiness_rejects_record_identity_registry_overlap(tmp_path: Path) -> None:
+    evaluation = tmp_path / "evaluation"
+    previous = tmp_path / "previous"
+    _write_logs(evaluation, prefix="eval")
+    _write_logs(previous, prefix="previous")
+    artifacts = _write_nonoverlap_artifacts(tmp_path, record_overlap=True)
+    execution_audit = _write_execution_audit(tmp_path / "execution_audit.json")
+    audit_md = _write_audit_md(tmp_path / "audit.md")
+
+    report = build_report(
+        evaluation_output_dir=evaluation,
+        execution_audit_json=execution_audit,
+        v13_audit_md=audit_md,
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        previous_training_output_dir=previous,
+        **artifacts,
+        expected_selection_log_count=2,
+        expected_records=6,
+        min_routes=2,
+        min_seeds=2,
+        min_route_tl_buckets=2,
+        min_usable_feasible_records=1,
+        min_multi_feasible_records=1,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "record_identity_hash_registry_intersection_zero" in report[
+        "final_decision"
+    ]["failed_checks"]
+
+
 def test_result_readiness_cli_writes_json_and_markdown(tmp_path: Path) -> None:
     evaluation = tmp_path / "evaluation"
     previous = tmp_path / "previous"
     _write_logs(evaluation, prefix="eval")
     _write_logs(previous, prefix="previous")
+    artifacts = _write_nonoverlap_artifacts(tmp_path)
     execution_audit = _write_execution_audit(tmp_path / "execution_audit.json")
     audit_md = _write_audit_md(tmp_path / "audit.md")
     output_json = tmp_path / "out" / "readiness.json"
@@ -353,6 +602,14 @@ def test_result_readiness_cli_writes_json_and_markdown(tmp_path: Path) -> None:
             FIXED_DP_HEAD,
             "--previous_training_output_dir",
             str(previous),
+            "--split_manifest_json",
+            str(artifacts["split_manifest_json"]),
+            "--candidate_tensor_hash_registry_json",
+            str(artifacts["candidate_tensor_hash_registry_json"]),
+            "--path_signature_registry_json",
+            str(artifacts["path_signature_registry_json"]),
+            "--record_identity_hash_registry_json",
+            str(artifacts["record_identity_hash_registry_json"]),
             "--expected_selection_log_count",
             "2",
             "--expected_records",

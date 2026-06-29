@@ -32,7 +32,7 @@ from scripts.integrations.validate_dp_native_training_data_contract import (  # 
 )
 
 
-SCHEMA_VERSION = "dp_camp_v13_static_dp_reward_shadow_replay_evaluation_result_readiness_v1"
+SCHEMA_VERSION = "dp_camp_v13_static_dp_reward_shadow_replay_evaluation_result_readiness_v2"
 READY_STATUS = (
     "dp_camp_v13_static_dp_reward_shadow_replay_evaluation_result_readiness_"
     "ready_for_training_preflight"
@@ -90,6 +90,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--required_dp_head", default=FIXED_DP_HEAD)
     parser.add_argument("--previous_training_output_dir", type=Path, default=None)
     parser.add_argument("--previous_training_summary_json", type=Path, default=None)
+    parser.add_argument("--split_manifest_json", type=Path, default=None)
+    parser.add_argument("--candidate_tensor_hash_registry_json", type=Path, default=None)
+    parser.add_argument("--path_signature_registry_json", type=Path, default=None)
+    parser.add_argument("--record_identity_hash_registry_json", type=Path, default=None)
     parser.add_argument("--expected_selection_log_count", type=int, default=32)
     parser.add_argument("--expected_records", type=int, default=3200)
     parser.add_argument("--expected_candidate_count", type=int, default=8)
@@ -125,6 +129,10 @@ def main(argv: list[str] | None = None) -> int:
         required_dp_head=args.required_dp_head,
         previous_training_output_dir=args.previous_training_output_dir,
         previous_training_summary_json=args.previous_training_summary_json,
+        split_manifest_json=args.split_manifest_json,
+        candidate_tensor_hash_registry_json=args.candidate_tensor_hash_registry_json,
+        path_signature_registry_json=args.path_signature_registry_json,
+        record_identity_hash_registry_json=args.record_identity_hash_registry_json,
         expected_selection_log_count=args.expected_selection_log_count,
         expected_records=args.expected_records,
         expected_candidate_count=args.expected_candidate_count,
@@ -163,6 +171,10 @@ def build_report(
     required_dp_head: str = FIXED_DP_HEAD,
     previous_training_output_dir: Path | None = None,
     previous_training_summary_json: Path | None = None,
+    split_manifest_json: Path | None = None,
+    candidate_tensor_hash_registry_json: Path | None = None,
+    path_signature_registry_json: Path | None = None,
+    record_identity_hash_registry_json: Path | None = None,
     expected_selection_log_count: int = 32,
     expected_records: int = 3200,
     expected_candidate_count: int = 8,
@@ -192,6 +204,24 @@ def build_report(
         if previous_training_summary_json is not None
         else None
     )
+    split_manifest_json = (
+        split_manifest_json.resolve() if split_manifest_json is not None else None
+    )
+    candidate_tensor_hash_registry_json = (
+        candidate_tensor_hash_registry_json.resolve()
+        if candidate_tensor_hash_registry_json is not None
+        else None
+    )
+    path_signature_registry_json = (
+        path_signature_registry_json.resolve()
+        if path_signature_registry_json is not None
+        else None
+    )
+    record_identity_hash_registry_json = (
+        record_identity_hash_registry_json.resolve()
+        if record_identity_hash_registry_json is not None
+        else None
+    )
     selection_logs = sorted(evaluation_output_dir.rglob("camp_selection_log.json"))
     execution_audit = _load_json_dict(execution_audit_json)
     audit_text = _read_text(v13_audit_md)
@@ -216,17 +246,43 @@ def build_report(
         previous_training_output_dir=previous_training_output_dir,
         previous_training_summary_json=previous_training_summary_json,
     )
+    split_manifest = _split_manifest_summary(split_manifest_json)
+    candidate_tensor_registry = _registry_overlap_summary(
+        candidate_tensor_hash_registry_json,
+        value_keys=(
+            "candidate_tensor_hash",
+            "candidate_tensor_sha256",
+            "sha256",
+            "hash",
+        ),
+    )
+    path_signature_registry = _registry_overlap_summary(
+        path_signature_registry_json,
+        value_keys=("path_signature", "signature", "sha256", "hash"),
+    )
+    record_identity_registry = _registry_overlap_summary(
+        record_identity_hash_registry_json,
+        value_keys=("record_identity_hash", "identity_hash", "sha256", "hash"),
+    )
     checks = _checks(
         evaluation_output_dir=evaluation_output_dir,
         execution_audit_json=execution_audit_json,
         v13_audit_md=v13_audit_md,
         previous_training_output_dir=previous_training_output_dir,
         previous_training_summary_json=previous_training_summary_json,
+        split_manifest_json=split_manifest_json,
+        candidate_tensor_hash_registry_json=candidate_tensor_hash_registry_json,
+        path_signature_registry_json=path_signature_registry_json,
+        record_identity_hash_registry_json=record_identity_hash_registry_json,
         audit_text=audit_text,
         execution_audit=execution_audit,
         clean_contract=clean_contract,
         record_summary=record_summary,
         overlap=overlap,
+        split_manifest=split_manifest,
+        candidate_tensor_registry=candidate_tensor_registry,
+        path_signature_registry=path_signature_registry,
+        record_identity_registry=record_identity_registry,
         selection_logs=selection_logs,
         current_camp_head=current_camp_head,
         current_camp_origin_main=current_camp_origin_main,
@@ -289,6 +345,24 @@ def build_report(
                 if previous_training_summary_json is not None
                 else None
             ),
+            "split_manifest_json": (
+                str(split_manifest_json) if split_manifest_json is not None else None
+            ),
+            "candidate_tensor_hash_registry_json": (
+                str(candidate_tensor_hash_registry_json)
+                if candidate_tensor_hash_registry_json is not None
+                else None
+            ),
+            "path_signature_registry_json": (
+                str(path_signature_registry_json)
+                if path_signature_registry_json is not None
+                else None
+            ),
+            "record_identity_hash_registry_json": (
+                str(record_identity_hash_registry_json)
+                if record_identity_hash_registry_json is not None
+                else None
+            ),
         },
         "source_hashes": {
             "execution_audit_json_sha256": (
@@ -299,6 +373,29 @@ def build_report(
             "v13_audit_md_sha256": _sha256(v13_audit_md)
             if v13_audit_md.is_file()
             else None,
+            "split_manifest_json_sha256": (
+                _sha256(split_manifest_json)
+                if split_manifest_json is not None and split_manifest_json.is_file()
+                else None
+            ),
+            "candidate_tensor_hash_registry_json_sha256": (
+                _sha256(candidate_tensor_hash_registry_json)
+                if candidate_tensor_hash_registry_json is not None
+                and candidate_tensor_hash_registry_json.is_file()
+                else None
+            ),
+            "path_signature_registry_json_sha256": (
+                _sha256(path_signature_registry_json)
+                if path_signature_registry_json is not None
+                and path_signature_registry_json.is_file()
+                else None
+            ),
+            "record_identity_hash_registry_json_sha256": (
+                _sha256(record_identity_hash_registry_json)
+                if record_identity_hash_registry_json is not None
+                and record_identity_hash_registry_json.is_file()
+                else None
+            ),
         },
         "heads": {
             "current_camp_head": current_camp_head,
@@ -317,6 +414,10 @@ def build_report(
         },
         "training_readiness": record_summary,
         "candidate_tensor_overlap": overlap,
+        "split_manifest": split_manifest,
+        "candidate_tensor_hash_registry": candidate_tensor_registry,
+        "path_signature_registry": path_signature_registry,
+        "record_identity_hash_registry": record_identity_registry,
         "review_checks": checks,
         "final_decision": _decision(
             passed,
@@ -333,11 +434,19 @@ def _checks(
     v13_audit_md: Path,
     previous_training_output_dir: Path | None,
     previous_training_summary_json: Path | None,
+    split_manifest_json: Path | None,
+    candidate_tensor_hash_registry_json: Path | None,
+    path_signature_registry_json: Path | None,
+    record_identity_hash_registry_json: Path | None,
     audit_text: str,
     execution_audit: dict[str, Any],
     clean_contract: dict[str, Any],
     record_summary: dict[str, Any],
     overlap: dict[str, Any],
+    split_manifest: dict[str, Any],
+    candidate_tensor_registry: dict[str, Any],
+    path_signature_registry: dict[str, Any],
+    record_identity_registry: dict[str, Any],
     selection_logs: list[Path],
     current_camp_head: str,
     current_camp_origin_main: str,
@@ -368,6 +477,43 @@ def _checks(
         _check("evaluation_output_dir_exists", evaluation_output_dir.is_dir(), str(evaluation_output_dir), "directory exists"),
         _check("execution_audit_json_exists", execution_audit_json.is_file(), str(execution_audit_json), "file exists"),
         _check("v13_audit_exists", v13_audit_md.is_file(), str(v13_audit_md), "file exists"),
+        _check(
+            "split_manifest_json_exists",
+            split_manifest_json is not None and split_manifest_json.is_file(),
+            str(split_manifest_json) if split_manifest_json is not None else None,
+            "file exists",
+        ),
+        _check(
+            "candidate_tensor_hash_registry_json_exists",
+            candidate_tensor_hash_registry_json is not None
+            and candidate_tensor_hash_registry_json.is_file(),
+            (
+                str(candidate_tensor_hash_registry_json)
+                if candidate_tensor_hash_registry_json is not None
+                else None
+            ),
+            "file exists",
+        ),
+        _check(
+            "path_signature_registry_json_exists",
+            path_signature_registry_json is not None
+            and path_signature_registry_json.is_file(),
+            str(path_signature_registry_json)
+            if path_signature_registry_json is not None
+            else None,
+            "file exists",
+        ),
+        _check(
+            "record_identity_hash_registry_json_exists",
+            record_identity_hash_registry_json is not None
+            and record_identity_hash_registry_json.is_file(),
+            (
+                str(record_identity_hash_registry_json)
+                if record_identity_hash_registry_json is not None
+                else None
+            ),
+            "file exists",
+        ),
         _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), authorized_current_work),
         _expect("audit_latest_training_blocked", _latest_audit_value(audit_text, training_blocked_audit_key), "False"),
         _expect("audit_latest_dp_modification_blocked", _latest_audit_value(audit_text, "dp_modification_authorized_by_current_boundary"), "False"),
@@ -394,6 +540,101 @@ def _checks(
         _check("seeds_at_least_min", len(record_summary["seed_records"]) >= min_seeds, record_summary["seed_records"], f">= {min_seeds} seeds"),
         _check("route_tl_buckets_at_least_min", len(record_summary["route_tl_records"]) >= min_route_tl_buckets, record_summary["route_tl_records"], f">= {min_route_tl_buckets} route/tl buckets"),
         _expect("formal_seed_records_zero", record_summary["formal_seed_records"], 0),
+        _check(
+            "split_manifest_json_is_object",
+            bool(split_manifest["is_object"]),
+            split_manifest["is_object"],
+            True,
+        ),
+        _check(
+            "split_manifest_training_roots_present",
+            split_manifest["training_root_count"] > 0,
+            split_manifest["training_roots"],
+            "> 0 training roots",
+        ),
+        _check(
+            "split_manifest_holdout_roots_present",
+            split_manifest["holdout_root_count"] > 0,
+            split_manifest["holdout_roots"],
+            "> 0 holdout roots",
+        ),
+        _expect(
+            "split_manifest_training_holdout_root_intersection_zero",
+            split_manifest["root_intersection_count"],
+            0,
+        ),
+        _expect(
+            "split_manifest_formal_seed_records_zero",
+            split_manifest["formal_seed_count"],
+            0,
+        ),
+        _check(
+            "candidate_tensor_hash_registry_json_is_object",
+            bool(candidate_tensor_registry["is_object"]),
+            candidate_tensor_registry["is_object"],
+            True,
+        ),
+        _check(
+            "candidate_tensor_hash_registry_training_values_present",
+            candidate_tensor_registry["training_value_count"] > 0,
+            candidate_tensor_registry["training_value_count"],
+            "> 0 training hashes",
+        ),
+        _expect(
+            "candidate_tensor_hash_registry_eval_values_complete",
+            candidate_tensor_registry["evaluation_value_count"],
+            expected_records,
+        ),
+        _expect(
+            "candidate_tensor_hash_registry_intersection_zero",
+            candidate_tensor_registry["intersection_count"],
+            0,
+        ),
+        _check(
+            "path_signature_registry_json_is_object",
+            bool(path_signature_registry["is_object"]),
+            path_signature_registry["is_object"],
+            True,
+        ),
+        _check(
+            "path_signature_registry_training_values_present",
+            path_signature_registry["training_value_count"] > 0,
+            path_signature_registry["training_value_count"],
+            "> 0 training path signatures",
+        ),
+        _check(
+            "path_signature_registry_evaluation_values_present",
+            path_signature_registry["evaluation_value_count"] > 0,
+            path_signature_registry["evaluation_value_count"],
+            "> 0 evaluation path signatures",
+        ),
+        _expect(
+            "path_signature_registry_intersection_zero",
+            path_signature_registry["intersection_count"],
+            0,
+        ),
+        _check(
+            "record_identity_hash_registry_json_is_object",
+            bool(record_identity_registry["is_object"]),
+            record_identity_registry["is_object"],
+            True,
+        ),
+        _check(
+            "record_identity_hash_registry_training_values_present",
+            record_identity_registry["training_value_count"] > 0,
+            record_identity_registry["training_value_count"],
+            "> 0 training record identities",
+        ),
+        _expect(
+            "record_identity_hash_registry_eval_values_complete",
+            record_identity_registry["evaluation_value_count"],
+            expected_records,
+        ),
+        _expect(
+            "record_identity_hash_registry_intersection_zero",
+            record_identity_registry["intersection_count"],
+            0,
+        ),
         _check("usable_feasible_records_at_least_min", record_summary["usable_feasible_records"] >= min_usable_feasible_records, record_summary["usable_feasible_records"], f">= {min_usable_feasible_records}"),
         _check("multi_feasible_records_at_least_min", record_summary["multi_feasible_records"] >= min_multi_feasible_records, record_summary["multi_feasible_records"], f">= {min_multi_feasible_records}"),
         _expect("finite_reward_records", record_summary["finite_reward_records"], expected_records),
@@ -459,6 +700,179 @@ def _checks(
             ]
         )
     return checks
+
+
+def _split_manifest_summary(path: Path | None) -> dict[str, Any]:
+    payload = _load_json_dict(path) if path is not None else {}
+    training_section = _merged_sections(payload, ("training", "train"))
+    holdout_section = _merged_sections(payload, ("holdout", "evaluation", "eval"))
+    training_roots = _roots_from_section(training_section) + _values_for_keys(
+        payload,
+        ("training_selection_log_roots", "train_selection_log_roots"),
+    )
+    holdout_roots = _roots_from_section(holdout_section) + _values_for_keys(
+        payload,
+        (
+            "holdout_selection_log_roots",
+            "evaluation_selection_log_roots",
+            "eval_selection_log_roots",
+        ),
+    )
+    training_root_set = {_normalize_root(value) for value in training_roots if value}
+    holdout_root_set = {_normalize_root(value) for value in holdout_roots if value}
+    root_intersection = sorted(training_root_set.intersection(holdout_root_set))
+    training_seeds = _seeds_from_section(training_section)
+    holdout_seeds = _seeds_from_section(holdout_section)
+    formal_training = sorted(seed for seed in training_seeds if seed in FORMAL_SEEDS)
+    formal_holdout = sorted(seed for seed in holdout_seeds if seed in FORMAL_SEEDS)
+    return {
+        "path": str(path) if path is not None else None,
+        "is_object": isinstance(payload, dict) and bool(payload),
+        "training_roots": sorted(training_root_set),
+        "holdout_roots": sorted(holdout_root_set),
+        "training_root_count": len(training_root_set),
+        "holdout_root_count": len(holdout_root_set),
+        "root_intersection": root_intersection,
+        "root_intersection_count": len(root_intersection),
+        "training_seeds": sorted(training_seeds),
+        "holdout_seeds": sorted(holdout_seeds),
+        "formal_training_seeds": formal_training,
+        "formal_holdout_seeds": formal_holdout,
+        "formal_seed_count": len(formal_training) + len(formal_holdout),
+    }
+
+
+def _registry_overlap_summary(
+    path: Path | None,
+    *,
+    value_keys: tuple[str, ...],
+) -> dict[str, Any]:
+    payload = _load_json_dict(path) if path is not None else {}
+    training_section = _merged_sections(
+        payload,
+        ("training", "train", "previous", "prior_training"),
+    )
+    evaluation_section = _merged_sections(payload, ("evaluation", "eval", "holdout"))
+    training_values = _registry_values(training_section, value_keys=value_keys)
+    evaluation_values = _registry_values(evaluation_section, value_keys=value_keys)
+    training_set = set(training_values)
+    evaluation_set = set(evaluation_values)
+    intersection = sorted(evaluation_set.intersection(training_set))
+    return {
+        "path": str(path) if path is not None else None,
+        "is_object": isinstance(payload, dict) and bool(payload),
+        "training_value_count": len(training_values),
+        "training_unique_value_count": len(training_set),
+        "evaluation_value_count": len(evaluation_values),
+        "evaluation_unique_value_count": len(evaluation_set),
+        "intersection_count": len(intersection),
+        "intersection_values": intersection[:20],
+    }
+
+
+def _merged_sections(payload: dict[str, Any], names: tuple[str, ...]) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    for name in names:
+        value = payload.get(name)
+        if isinstance(value, dict):
+            merged.update(value)
+    return merged
+
+
+def _roots_from_section(section: dict[str, Any]) -> list[str]:
+    roots: list[str] = []
+    for key in (
+        "selection_log_roots",
+        "selection_roots",
+        "source_roots",
+        "roots",
+        "selection_logs",
+    ):
+        roots.extend(_values_for_keys(section, (key,)))
+    return roots
+
+
+def _values_for_keys(payload: dict[str, Any], keys: tuple[str, ...]) -> list[str]:
+    values: list[str] = []
+    for key in keys:
+        values.extend(_flatten_strings(payload.get(key)))
+    return values
+
+
+def _registry_values(section: Any, *, value_keys: tuple[str, ...]) -> list[str]:
+    if isinstance(section, str):
+        return [section]
+    if isinstance(section, list):
+        values: list[str] = []
+        for item in section:
+            values.extend(_registry_values(item, value_keys=value_keys))
+        return values
+    if not isinstance(section, dict):
+        return []
+    direct_values: list[str] = []
+    for key in value_keys:
+        value = section.get(key)
+        if isinstance(value, str):
+            direct_values.append(value)
+        elif isinstance(value, dict):
+            direct_values.extend(_registry_values(value, value_keys=value_keys))
+        elif isinstance(value, list):
+            direct_values.extend(_flatten_strings(value))
+    for list_key in ("values", "hashes", "signatures", "record_identities", "records", "entries"):
+        direct_values.extend(_registry_values(section.get(list_key), value_keys=value_keys))
+    return [value for value in direct_values if value]
+
+
+def _flatten_strings(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        flattened: list[str] = []
+        for item in value:
+            flattened.extend(_flatten_strings(item))
+        return flattened
+    if isinstance(value, dict):
+        return [
+            str(item)
+            for item in value.values()
+            if isinstance(item, (str, int, float))
+        ]
+    return []
+
+
+def _seeds_from_section(section: dict[str, Any]) -> set[int]:
+    seeds: set[int] = set()
+    _collect_seeds(section, seeds)
+    return seeds
+
+
+def _collect_seeds(value: Any, seeds: set[int]) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "seed" and isinstance(item, int):
+                seeds.add(item)
+            elif key == "seeds" and isinstance(item, list):
+                for seed in item:
+                    if isinstance(seed, int):
+                        seeds.add(seed)
+                    elif isinstance(seed, str) and seed.isdigit():
+                        seeds.add(int(seed))
+            else:
+                _collect_seeds(item, seeds)
+    elif isinstance(value, list):
+        for item in value:
+            _collect_seeds(item, seeds)
+    elif isinstance(value, str):
+        for part in value.replace("\\", "/").split("/"):
+            if part.startswith("seed_"):
+                try:
+                    seeds.add(int(part.split("_", 1)[1]))
+                except ValueError:
+                    pass
+
+
+def _normalize_root(value: str) -> str:
+    return str(value).replace("\\", "/").rstrip("/")
 
 
 def _summarize_records(
@@ -798,6 +1212,10 @@ def render_markdown(report: dict[str, Any]) -> str:
     decision = report["final_decision"]
     readiness = report["training_readiness"]
     overlap = report["candidate_tensor_overlap"]
+    split_manifest = report["split_manifest"]
+    candidate_registry = report["candidate_tensor_hash_registry"]
+    path_registry = report["path_signature_registry"]
+    record_registry = report["record_identity_hash_registry"]
     lines = [
         "# V13 Static DP-Reward Shadow Replay Evaluation Result Readiness",
         "",
@@ -812,6 +1230,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Dropped by static DP-reward training: `{readiness['records_dropped_without_feasible_candidate_by_static_training']}`",
         f"- Shadow differs from DP Top-1 records: `{readiness['shadow_differs_from_dp_top1_records']}`",
         f"- Eval hashes in previous training logs: `{overlap['eval_hashes_in_previous_count']}`",
+        f"- Split manifest root intersection: `{split_manifest['root_intersection_count']}`",
+        f"- Candidate tensor registry intersection: `{candidate_registry['intersection_count']}`",
+        f"- Path signature registry intersection: `{path_registry['intersection_count']}`",
+        f"- Record identity registry intersection: `{record_registry['intersection_count']}`",
         "",
         "This is a read-only result review. It does not run replay, generate "
         "candidates, train CAMP, modify DP, promote selectors/atoms, deploy, "
@@ -832,6 +1254,10 @@ def render_markdown(report: dict[str, Any]) -> str:
                     "shadow_selected_index_counts"
                 ],
                 "candidate_tensor_overlap": overlap,
+                "split_manifest": split_manifest,
+                "candidate_tensor_hash_registry": candidate_registry,
+                "path_signature_registry": path_registry,
+                "record_identity_hash_registry": record_registry,
             },
             indent=2,
             sort_keys=True,
