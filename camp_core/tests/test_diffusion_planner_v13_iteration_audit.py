@@ -9211,6 +9211,8 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
         "v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_camp_over_dp_top1_claim_authorized=False",
         "v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_local_py_compile=passed",
         "v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_local_target_pytest_short_path=175 passed",
+        "v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_autodl_target_py_compile=passed",
+        "v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_autodl_target_pytest=175 passed",
         "current_v13_status=current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_execution_passed",
         "current_v13_next_scope=current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_result_review_and_training_readiness_preflight_only",
         "broader_nonformal_shadow_replay_batch_execution_passed=True",
