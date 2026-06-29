@@ -271,7 +271,9 @@ def _audit_selection_logs(
         "atom_schema": 0,
         "shape": 0,
         "affine_score": 0,
+        "selection_score_mask": 0,
     }
+    masked_selection_score_inf_count = 0
 
     for log_path in logs:
         route = _route_name_from_path(log_path)
@@ -326,7 +328,9 @@ def _audit_selection_logs(
 
             normalized_atoms = record.get("selection_normalized_atoms", record.get("normalized_atoms"))
             weights = record.get("selection_weights", record.get("weights"))
-            scores = record.get("selection_scores", record.get("scores"))
+            scores = record.get("scores")
+            selection_scores = record.get("selection_scores")
+            feasible = record.get("feasible_mask")
             if not _valid_shapes(
                 normalized_atoms,
                 weights,
@@ -344,7 +348,14 @@ def _audit_selection_logs(
                         violation_counts["affine_score"] += 1
                         break
 
-            feasible = record.get("feasible_mask")
+            mask_errors, masked_inf = _selection_score_mask_errors(
+                selection_scores,
+                feasible,
+                expected_num_candidates,
+            )
+            violation_counts["selection_score_mask"] += mask_errors
+            masked_selection_score_inf_count += masked_inf
+
             if isinstance(feasible, list) and any(bool(item) for item in feasible):
                 feasible_records += 1
             if record.get("used_fallback") is True:
@@ -363,6 +374,7 @@ def _audit_selection_logs(
             "shadow_differs_from_dp_top1_records": shadow_differs,
             "feasible_records": feasible_records,
             "used_fallback_records": used_fallback_records,
+            "masked_selection_score_inf_count": masked_selection_score_inf_count,
             "max_affine_score_error": max_affine_error,
             "violation_counts": violation_counts,
         },
@@ -469,6 +481,27 @@ def _valid_shapes(
         if not all(_finite_number(item) for item in row):
             return False
     return all(_finite_number(item) for item in scores)
+
+
+def _selection_score_mask_errors(
+    selection_scores: Any,
+    feasible_mask: Any,
+    expected_num_candidates: int,
+) -> tuple[int, int]:
+    if not isinstance(selection_scores, list) or len(selection_scores) != expected_num_candidates:
+        return 1, 0
+    if not isinstance(feasible_mask, list) or len(feasible_mask) != expected_num_candidates:
+        return 1, 0
+    errors = 0
+    masked_inf = 0
+    for score, feasible in zip(selection_scores, feasible_mask):
+        if _finite_number(score):
+            continue
+        if isinstance(score, (int, float)) and math.isinf(float(score)) and not bool(feasible):
+            masked_inf += 1
+            continue
+        errors += 1
+    return errors, masked_inf
 
 
 def _finite_number(value: Any) -> bool:

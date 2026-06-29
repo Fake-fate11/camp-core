@@ -23,11 +23,21 @@ def _write(path: Path, text: str) -> Path:
     return path
 
 
-def _record(*, selection_effect: bool = False, affine_delta: float = 0.0) -> dict:
+def _record(
+    *,
+    selection_effect: bool = False,
+    affine_delta: float = 0.0,
+    masked_selection_score: bool = False,
+) -> dict:
     weights = [1.0 / 14.0] * 14
     atoms = [[float(candidate + atom) / 100.0 for atom in range(14)] for candidate in range(8)]
     scores = [sum(a * w for a, w in zip(row, weights)) for row in atoms]
     scores[0] += affine_delta
+    selection_scores = list(scores)
+    feasible_mask = [True] * 8
+    if masked_selection_score:
+        feasible_mask[3] = False
+        selection_scores[3] = float("inf")
     return {
         "default_off_shadow_selector": {
             "schema_version": "dp_camp_v13_default_off_shadow_selector_runtime_v1",
@@ -50,8 +60,9 @@ def _record(*, selection_effect: bool = False, affine_delta: float = 0.0) -> dic
         "atom_schema_version": "dp_camp_v10_14d",
         "selection_weights": weights,
         "selection_normalized_atoms": atoms,
-        "selection_scores": scores,
-        "feasible_mask": [True] * 8,
+        "scores": scores,
+        "selection_scores": selection_scores,
+        "feasible_mask": feasible_mask,
         "used_fallback": False,
         "candidate_reference_blend_steps": None,
         "perfect_tracker_command_postselection": None,
@@ -79,6 +90,7 @@ def _make_artifact(
     *,
     selection_effect: bool = False,
     affine_delta: float = 0.0,
+    masked_selection_score: bool = False,
 ) -> dict[str, Path]:
     execution_dir = tmp_path / "execution"
     base_output = tmp_path / "base"
@@ -138,6 +150,8 @@ def _make_artifact(
             json.dumps(
                 [
                     _record(selection_effect=selection_effect, affine_delta=affine_delta)
+                    if not masked_selection_score
+                    else _record(masked_selection_score=True)
                     for _ in range(3)
                 ]
             ),
@@ -155,6 +169,7 @@ def _report(tmp_path: Path, **overrides):
         tmp_path,
         selection_effect=overrides.pop("selection_effect", False),
         affine_delta=overrides.pop("affine_delta", 0.0),
+        masked_selection_score=overrides.pop("masked_selection_score", False),
     )
     params = {
         "execution_dir": paths["execution_dir"],
@@ -219,6 +234,14 @@ def test_execution_audit_rejects_non_affine_scores(tmp_path: Path) -> None:
 
     assert report["final_decision"]["status"] == REJECT_STATUS
     assert "affine_score_violations" in report["final_decision"]["failed_checks"]
+
+
+def test_execution_audit_allows_infeasible_selection_score_inf_mask(tmp_path: Path) -> None:
+    report = _report(tmp_path, masked_selection_score=True)
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["records"]["masked_selection_score_inf_count"] == 6
+    assert report["records"]["violation_counts"]["selection_score_mask"] == 0
 
 
 def test_execution_audit_cli_writes_json_and_markdown(tmp_path: Path) -> None:
