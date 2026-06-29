@@ -5100,7 +5100,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5146,7 +5146,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5200,7 +5200,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5275,7 +5275,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5339,7 +5339,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5405,7 +5405,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5464,7 +5464,7 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5530,7 +5530,7 @@ def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5594,7 +5594,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_static_contra
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5665,7 +5665,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5735,7 +5735,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5803,7 +5803,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5860,7 +5860,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -5940,7 +5940,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6013,7 +6013,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6103,7 +6103,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6182,7 +6182,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6272,7 +6272,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6348,7 +6348,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6432,7 +6432,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6517,7 +6517,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6598,7 +6598,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6676,7 +6676,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6740,7 +6740,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6780,7 +6780,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_latest_au
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6842,7 +6842,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -6938,7 +6938,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_smoke_execution_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -7038,7 +7038,7 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
 
 
 def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -> None:
@@ -7155,7 +7155,7 @@ def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -7250,7 +7250,7 @@ def test_v13_current_source_large_retraining_result_review_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
 
 
 def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned() -> None:
@@ -7336,7 +7336,7 @@ def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned()
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
 
 
 def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned() -> None:
@@ -7433,7 +7433,7 @@ def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -7537,7 +7537,7 @@ def test_v13_current_source_large_default_off_shadow_selector_static_contract_pl
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -7635,7 +7635,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_pla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -7730,7 +7730,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_sta
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -7820,7 +7820,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -7891,7 +7891,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -7993,7 +7993,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8084,7 +8084,7 @@ def test_v13_current_source_large_default_off_shadow_selector_post_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8186,7 +8186,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8278,7 +8278,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8372,7 +8372,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8450,7 +8450,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8534,7 +8534,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8613,7 +8613,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8692,7 +8692,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8767,7 +8767,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8854,7 +8854,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -8937,7 +8937,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9033,7 +9033,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9138,7 +9138,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9234,7 +9234,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9278,7 +9278,7 @@ def test_v13_current_source_large_runtime_shadow_replay_preflight_35ccbab_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9323,7 +9323,7 @@ def test_v13_current_source_large_runtime_shadow_replay_execution_d9eddbd_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9383,7 +9383,7 @@ def test_v13_current_source_large_result_review_broader_preflight_ed47895_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9458,7 +9458,7 @@ def test_v13_current_source_large_broader_shadow_replay_execution_8641135_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9525,7 +9525,7 @@ def test_v13_current_source_large_broader_shadow_replay_training_readiness_b422c
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9608,7 +9608,7 @@ def test_v13_current_source_large_broader_static_dp_reward_training_763a80b_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9679,7 +9679,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9754,7 +9754,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9831,7 +9831,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -9926,7 +9926,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_preflight_5fa0dc0_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_training_execution_f252502_is_pinned() -> None:
@@ -10001,7 +10001,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_execution_f252502_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+    assert latest_status == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_preflight_5c196e8_is_pinned() -> None:
@@ -10076,7 +10076,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -10131,7 +10131,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
@@ -10194,7 +10194,77 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_preflight_ready"
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
+    )
+
+
+def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_status=passed",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_artifact=/root/autodl-tmp/camp_dp_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_ca7e6e3_20260629T184405CST",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_artifact=/root/autodl-tmp/camp_dp_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_b383320_20260629T191539CST",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_execution_camp_head=ca7e6e3ea3188aba93243cb1049509f10bd4359d",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_camp_head=b383320d1009220c44e796e9f45afdee48b9233d",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_sha256sums_sha256=492ac626b228ec92ed217fdf15f9b50d3cf998c795776bf1ccf3bd5892ec4447",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_json_sha256=30e3488221935eb25be439591561b0c5574bae18b2cfefd80980418181cc3aa6",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_exit=0",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed=True",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_failed_checks=[]",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_selection_log_count=32",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_steps_per_log_min=100",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_steps_per_log_max=100",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_records=3200",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_route_log_counts={\"nishi_lane_change\":8,\"nishi_release\":8,\"sample_normal\":8,\"sample_tl\":8}",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_selected_indices={\"0\":3200}",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_executed_indices={\"0\":3200}",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_shadow_selected_index_counts={\"0\":139,\"1\":485,\"2\":440,\"3\":489,\"4\":379,\"5\":418,\"6\":502,\"7\":348}",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_shadow_differs_from_dp_top1_records=3061",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_masked_selection_score_inf_count=597",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_max_affine_score_error=8.881784197001252e-16",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_violation_counts={\"affine_score\":0,\"atom_schema\":0,\"closed_loop_outcomes\":0,\"default_off_contract\":0,\"executed_index\":0,\"guidance\":0,\"postselection\":0,\"reference_blend\":0,\"selection_score_mask\":0,\"shape\":0}",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_candidate_operation=fixed DP candidate reranking only",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_score_expression=score_k(w)=a_k^T w",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_candidate_generation_by_fixed_dp_executed=True",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_candidate_generation_by_camp_executed=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_training_executed=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_dp_modified=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_formal_seed_11_12_13_executed=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_reference_blend_used=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_guidance_used=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_postprocess_or_postselection_used=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_closed_loop_outcome_used=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_selector_promotion_authorized=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_atom_promotion_authorized=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_safety_benefit_claim_authorized=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_camp_over_dp_top1_claim_authorized=False",
+        "v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_authorized_next_work=dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_result_review_only",
+        "current_v13_status=static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed",
+        "current_v13_next_scope=current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_result_review_only",
+        "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_result_review_authorized=True",
+        "runtime_shadow_selector_execution_authorized=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "reference_blend_authorized=False",
+        "guidance_authorized=False",
+        "postprocess_or_postselection_authorized=False",
+        "closed_loop_outcome_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_result_review_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_python312_execution_audit_passed"
     )
 
 
