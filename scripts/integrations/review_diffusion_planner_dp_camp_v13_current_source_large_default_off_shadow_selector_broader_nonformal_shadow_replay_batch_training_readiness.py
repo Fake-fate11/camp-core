@@ -40,6 +40,10 @@ READY_STATUS = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_broader_"
     "nonformal_shadow_replay_batch_training_readiness_ready"
 )
+REMEDIATION_STATUS = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_broader_"
+    "nonformal_shadow_replay_batch_training_readiness_contract_remediation_required"
+)
 REJECT_STATUS = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_broader_"
     "nonformal_shadow_replay_batch_training_readiness_rejected"
@@ -52,6 +56,11 @@ AUTHORIZED_REVIEW_WORK = (
 AUTHORIZED_NEXT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_broader_"
     "nonformal_shadow_replay_batch_static_dp_reward_training_execution_only"
+)
+REMEDIATION_NEXT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_broader_"
+    "nonformal_shadow_replay_batch_default_off_shadow_training_data_contract_"
+    "remediation_only"
 )
 LATEST_ALLOWED_STATUS = (
     "current_source_large_default_off_shadow_selector_broader_nonformal_"
@@ -271,7 +280,7 @@ def build_report(
         "static_batch_audit_evidence": _static_audit_evidence(static_audit),
         "training_readiness": record_summary,
         "review_checks": checks,
-        "final_decision": _decision(passed, failed),
+        "final_decision": _decision(passed, failed, record_summary),
     }
 
 
@@ -343,6 +352,7 @@ def _checks(
         _expect("records_available_after_static_dp_reward_drop", record_summary["records_available_for_static_dp_reward_training"], record_summary["usable_feasible_records"]),
         _expect("contract_failed_records_zero", record_summary["contract_failed_record_count"], 0),
         _expect("label_failed_records_zero", record_summary["label_failed_record_count"], 0),
+        _expect("default_off_shadow_selector_valid_records", record_summary["default_off_shadow_selector_valid_records"], expected_records),
         _expect("closed_loop_outcome_records_zero", record_summary["closed_loop_outcome_records"], 0),
         _expect("reference_blend_enabled_records_zero", record_summary["reference_blend_enabled_records"], 0),
         _expect("guidance_enabled_records_zero", record_summary["guidance_enabled_records"], 0),
@@ -373,6 +383,8 @@ def _summarize_records(
     formal_seed_records = 0
     contract_failed: list[dict[str, Any]] = []
     label_failed: list[dict[str, Any]] = []
+    default_off_failed: list[dict[str, Any]] = []
+    contract_error_counts: Counter[str] = Counter()
     route_records: Counter[str] = Counter()
     route_tl_records: Counter[str] = Counter()
     seed_records: Counter[str] = Counter()
@@ -389,6 +401,9 @@ def _summarize_records(
     camp_candidate_generation_effect_records = 0
     dp_modification_records = 0
     finite_quality_records = 0
+    default_off_shadow_selector_records = 0
+    default_off_shadow_selector_valid_records = 0
+    legacy_provenance_missing_records = 0
 
     for log_path in selection_logs:
         rows = _load_json_list(log_path)
@@ -430,6 +445,24 @@ def _summarize_records(
             shadow_selected_index_counts[str(record.get("shadow_selected_index"))] += 1
             if record.get("candidate_closed_loop_outcomes") is not None:
                 closed_loop_outcome_records += 1
+            if not isinstance(record.get("camp_candidate_tensor_provenance"), dict):
+                legacy_provenance_missing_records += 1
+            default_off_errors = _default_off_shadow_selector_errors(
+                record,
+                candidate_count=candidate_count,
+            )
+            if isinstance(record.get("default_off_shadow_selector"), dict):
+                default_off_shadow_selector_records += 1
+            if not default_off_errors:
+                default_off_shadow_selector_valid_records += 1
+            else:
+                default_off_failed.append(
+                    {
+                        "log_path": str(log_path),
+                        "record_index": record_index,
+                        "errors": sorted(set(default_off_errors)),
+                    }
+                )
             if record.get("candidate_reference_blend_steps") is not None:
                 reference_blend_enabled_records += 1
             generation = _dict(record.get("candidate_generation_contract"))
@@ -444,6 +477,7 @@ def _summarize_records(
                 dp_modification_records += 1
 
             contract_errors = validate_record(record)
+            contract_error_counts.update(contract_errors)
             if contract_errors:
                 contract_failed.append(
                     {
@@ -498,11 +532,57 @@ def _summarize_records(
         "camp_candidate_generation_effect_records": camp_candidate_generation_effect_records,
         "dp_modification_records": dp_modification_records,
         "finite_quality_without_progress_records": finite_quality_records,
+        "default_off_shadow_selector_records": default_off_shadow_selector_records,
+        "default_off_shadow_selector_valid_records": default_off_shadow_selector_valid_records,
+        "legacy_provenance_missing_records": legacy_provenance_missing_records,
         "contract_failed_record_count": len(contract_failed),
         "label_failed_record_count": len(label_failed),
+        "default_off_shadow_selector_failed_record_count": len(default_off_failed),
+        "contract_error_counts": dict(sorted(contract_error_counts.items())),
         "contract_failed_records": contract_failed[:20],
         "label_failed_records": label_failed[:20],
+        "default_off_shadow_selector_failed_records": default_off_failed[:20],
     }
+
+
+def _default_off_shadow_selector_errors(
+    record: dict[str, Any],
+    *,
+    candidate_count: int,
+) -> list[str]:
+    payload = record.get("default_off_shadow_selector")
+    if not isinstance(payload, dict):
+        return ["default_off_shadow_selector_missing"]
+    errors: list[str] = []
+    expected = {
+        "schema_version": "dp_camp_v13_default_off_shadow_selector_runtime_v1",
+        "enabled": True,
+        "default_off": True,
+        "candidate_operation": "fixed DP candidate reranking only",
+        "executed_output_policy": "dp_top1",
+        "score_expression": "score_k(w)=a_k^T w",
+        "selection_effect": False,
+        "online_selector_change": False,
+    }
+    for key, expected_value in expected.items():
+        if payload.get(key) != expected_value:
+            errors.append(f"default_off_shadow_selector_{key}_mismatch")
+    if payload.get("executed_index") != record.get("executed_index"):
+        errors.append("default_off_shadow_selector_executed_index_mismatch")
+    if payload.get("shadow_selected_index") != record.get("shadow_selected_index"):
+        errors.append("default_off_shadow_selector_shadow_selected_index_mismatch")
+    tensor_hash = _dict(payload.get("candidate_tensor_hash"))
+    if not _is_sha256(tensor_hash.get("sha256")):
+        errors.append("default_off_shadow_selector_tensor_sha256_missing_or_invalid")
+    if tensor_hash.get("shape") != [candidate_count, 80, 4]:
+        errors.append("default_off_shadow_selector_tensor_shape_mismatch")
+    if tensor_hash.get("dtype") != "float32":
+        errors.append("default_off_shadow_selector_tensor_dtype_mismatch")
+    if tensor_hash.get("hash_input") != "contiguous_candidate_tensor_bytes":
+        errors.append("default_off_shadow_selector_tensor_hash_input_mismatch")
+    if tensor_hash.get("nan_policy") != "preserve_tensor_bytes":
+        errors.append("default_off_shadow_selector_tensor_nan_policy_mismatch")
+    return errors
 
 
 def _dp_reward_errors(
@@ -636,16 +716,48 @@ def render_markdown(report: dict[str, Any]) -> str:
                 + ", ".join(f"`{error}`" for error in row["errors"])
             )
         lines.append("")
+    if readiness["legacy_provenance_missing_records"]:
+        lines.extend(
+            [
+                "## Contract Gap",
+                "",
+                "- Existing `validate_dp_native_training_data_contract.py` requires "
+                "`camp_candidate_tensor_provenance` as a dict.",
+                "- This v13 default-off artifact instead logs "
+                "`default_off_shadow_selector`, which is reviewed separately above.",
+                "",
+            ]
+        )
     return "\n".join(lines)
 
 
-def _decision(passed: bool, failed_checks: list[str]) -> dict[str, Any]:
+def _decision(
+    passed: bool,
+    failed_checks: list[str],
+    readiness: dict[str, Any],
+) -> dict[str, Any]:
+    remediation_required = _contract_remediation_required(failed_checks, readiness)
     return {
-        "status": READY_STATUS if passed else REJECT_STATUS,
+        "status": (
+            READY_STATUS
+            if passed
+            else REMEDIATION_STATUS
+            if remediation_required
+            else REJECT_STATUS
+        ),
         "passed": bool(passed),
         "failed_checks": failed_checks,
-        "authorized_next_work": AUTHORIZED_NEXT_WORK if passed else None,
+        "authorized_next_work": (
+            AUTHORIZED_NEXT_WORK
+            if passed
+            else REMEDIATION_NEXT_WORK
+            if remediation_required
+            else None
+        ),
         "static_dp_reward_training_execution_authorized_next": bool(passed),
+        "training_data_contract_remediation_authorized_next": bool(
+            remediation_required
+        ),
         "training_executed": False,
         "replay_executed": False,
         "candidate_generation_executed": False,
@@ -661,6 +773,20 @@ def _decision(passed: bool, failed_checks: list[str]) -> dict[str, Any]:
         "safety_benefit_claim_authorized": False,
         "camp_over_dp_top1_claim_authorized": False,
     }
+
+
+def _contract_remediation_required(
+    failed_checks: list[str],
+    readiness: dict[str, Any],
+) -> bool:
+    return (
+        failed_checks == ["contract_failed_records_zero"]
+        and readiness["records_total"] > 0
+        and readiness["legacy_provenance_missing_records"] == readiness["records_total"]
+        and readiness["default_off_shadow_selector_valid_records"]
+        == readiness["records_total"]
+        and readiness["label_failed_record_count"] == 0
+    )
 
 
 def _load_json_dict(path: Path) -> dict[str, Any]:
@@ -728,6 +854,12 @@ def _stable(value: Any) -> Any:
 
 def _is_git_sha(value: str) -> bool:
     return len(value) == 40 and all(ch in "0123456789abcdef" for ch in value.lower())
+
+
+def _is_sha256(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    return len(value) == 64 and all(ch in "0123456789abcdef" for ch in value.lower())
 
 
 if __name__ == "__main__":

@@ -4,6 +4,8 @@ from pathlib import Path
 from camp_core.integrations.diffusion_planner import atom_schema_for_dimension
 from scripts.integrations.review_diffusion_planner_dp_camp_v13_current_source_large_default_off_shadow_selector_broader_nonformal_shadow_replay_batch_training_readiness import (
     AUTHORIZED_NEXT_WORK,
+    REMEDIATION_NEXT_WORK,
+    REMEDIATION_STATUS,
     READY_STATUS,
     REJECT_STATUS,
     build_report,
@@ -30,6 +32,7 @@ def _record(
     feasible_mask: list[bool] | None = None,
     include_rewards: bool = True,
     closed_loop_outcomes=None,
+    legacy_provenance: bool = True,
 ) -> dict:
     version, names = atom_schema_for_dimension(14)
     candidate_count = 8
@@ -63,7 +66,29 @@ def _record(
             "guidance_enabled": False,
             "changes_diffusion_planner_weights": False,
         },
-        "camp_candidate_tensor_provenance": {
+        "default_off_shadow_selector": {
+            "schema_version": "dp_camp_v13_default_off_shadow_selector_runtime_v1",
+            "enabled": True,
+            "default_off": True,
+            "candidate_operation": "fixed DP candidate reranking only",
+            "executed_output_policy": "dp_top1",
+            "score_expression": "score_k(w)=a_k^T w",
+            "selection_effect": False,
+            "online_selector_change": False,
+            "executed_index": executed_index,
+            "shadow_selected_index": shadow_selected_index,
+            "candidate_tensor_hash": {
+                "sha256": _sha("b"),
+                "shape": [candidate_count, 80, 4],
+                "dtype": "float32",
+                "hash_input": "contiguous_candidate_tensor_bytes",
+                "nan_policy": "preserve_tensor_bytes",
+            },
+        },
+        "camp_candidate_tensor_provenance": None,
+    }
+    if legacy_provenance:
+        record["camp_candidate_tensor_provenance"] = {
             "schema_version": PROVENANCE_SCHEMA_VERSION,
             "selection_effect": False,
             "candidate_generation_effect": False,
@@ -96,8 +121,7 @@ def _record(
                 "hash_input": "contiguous_candidate_tensor_bytes",
                 "nan_policy": "preserve_tensor_bytes",
             },
-        },
-    }
+        }
     if include_rewards:
         record["dp_candidate_rewards"] = [
             {"total": float(8 - index), "progress": 0.1 * index}
@@ -318,6 +342,45 @@ def test_training_readiness_rejects_label_contract_drift(tmp_path: Path) -> None
     assert report["final_decision"]["status"] == REJECT_STATUS
     assert "label_failed_records_zero" in report["final_decision"]["failed_checks"]
     assert report["training_readiness"]["label_failed_record_count"] == 1
+
+
+def test_training_readiness_identifies_default_off_contract_remediation(
+    tmp_path: Path,
+) -> None:
+    paths = _fixture(tmp_path)
+    for log_path in paths["replay_root"].rglob("camp_selection_log.json"):
+        records = json.loads(log_path.read_text(encoding="utf-8"))
+        for record in records:
+            record["camp_candidate_tensor_provenance"] = None
+        log_path.write_text(json.dumps(records), encoding="utf-8")
+
+    report = build_report(
+        replay_output_dir=paths["replay_root"],
+        execution_artifact_dir=paths["execution_root"],
+        v13_audit_md=paths["audit"],
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        expected_selection_log_count=2,
+        expected_validation_log_count=2,
+        expected_records=4,
+        min_routes=2,
+        min_seeds=2,
+        min_route_tl_buckets=2,
+        min_usable_feasible_records=2,
+        min_multi_feasible_records=2,
+    )
+
+    decision = report["final_decision"]
+    readiness = report["training_readiness"]
+    assert decision["status"] == REMEDIATION_STATUS
+    assert decision["authorized_next_work"] == REMEDIATION_NEXT_WORK
+    assert decision["static_dp_reward_training_execution_authorized_next"] is False
+    assert readiness["legacy_provenance_missing_records"] == 4
+    assert readiness["default_off_shadow_selector_valid_records"] == 4
+    assert readiness["contract_error_counts"] == {
+        "camp_candidate_tensor_provenance_missing": 4
+    }
 
 
 def test_training_readiness_cli_writes_reports(tmp_path: Path, capsys) -> None:
