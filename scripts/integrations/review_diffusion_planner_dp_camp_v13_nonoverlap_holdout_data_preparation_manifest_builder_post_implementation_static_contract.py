@@ -316,7 +316,7 @@ def _checks(
             )
         )
 
-    checks.extend(_builder_artifact_checks(builder_payload, current_camp_head, current_dp_head))
+    checks.extend(_builder_artifact_checks(builder_payload))
     checks.extend(_request_manifest_checks(request_manifest))
     checks.extend(_exclusion_manifest_checks(exclusion_manifest))
     checks.extend(_expected_artifact_manifest_checks(expected_artifact_manifest))
@@ -328,11 +328,7 @@ def _checks(
     return checks
 
 
-def _builder_artifact_checks(
-    payload: dict[str, Any],
-    current_camp_head: str,
-    current_dp_head: str,
-) -> list[dict[str, Any]]:
+def _builder_artifact_checks(payload: dict[str, Any]) -> list[dict[str, Any]]:
     decision = _dict(payload.get("final_decision"))
     analysis = _dict(payload.get("analysis"))
     heads = _dict(payload.get("heads"))
@@ -380,8 +376,18 @@ def _builder_artifact_checks(
         _expect("builder_analysis_manifest_only", analysis.get("manifest_builder_only"), True),
         _expect("builder_analysis_candidate_operation", analysis.get("candidate_operation"), "fixed DP candidate reranking only"),
         _expect("builder_analysis_score_expression", analysis.get("score_expression"), SCORE_EXPRESSION),
-        _expect("builder_head_matches_current", heads.get("current_camp_head"), current_camp_head),
-        _expect("builder_dp_head_matches_current", heads.get("current_dp_head"), current_dp_head),
+        _check(
+            "builder_artifact_camp_head_is_sha",
+            _is_git_sha(str(heads.get("current_camp_head", ""))),
+            heads.get("current_camp_head"),
+            "40-char git sha",
+        ),
+        _expect(
+            "builder_artifact_camp_head_matches_origin",
+            heads.get("current_camp_head"),
+            heads.get("current_camp_origin_main"),
+        ),
+        _expect("builder_artifact_dp_head_fixed", heads.get("current_dp_head"), FIXED_DP_HEAD),
         _expect("builder_required_dp_head_fixed", heads.get("required_dp_head"), FIXED_DP_HEAD),
     ]
 
