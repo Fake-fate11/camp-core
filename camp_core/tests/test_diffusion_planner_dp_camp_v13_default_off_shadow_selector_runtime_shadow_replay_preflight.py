@@ -216,6 +216,21 @@ def test_preflight_accepts_current_source_retraining_latest_audit_scope(
     assert report["final_decision"]["authorized_next_work"] == AUTHORIZED_NEXT_WORK
 
 
+def test_preflight_accepts_current_source_large_latest_audit_scope(
+    tmp_path: Path,
+) -> None:
+    report = _report(
+        tmp_path,
+        audit_status=(
+            "current_source_large_default_off_shadow_selector_runtime_artifact_manifest_materialized"
+        ),
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == AUTHORIZED_NEXT_WORK
+    assert report["final_decision"]["replay_execution_performed"] is False
+
+
 def test_preflight_accepts_current_source_retraining_hardening_latest_audit_scope(
     tmp_path: Path,
 ) -> None:

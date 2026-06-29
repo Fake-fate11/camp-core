@@ -450,6 +450,7 @@ def _audit_checks(text: str) -> list[dict[str, Any]]:
             latest_status
             in (
                 "current_source_default_off_shadow_selector_runtime_artifact_manifest_materialized",
+                "current_source_large_default_off_shadow_selector_runtime_artifact_manifest_materialized",
                 "current_source_default_off_shadow_selector_runtime_shadow_replay_preflight_complete",
                 "current_source_retraining_default_off_shadow_selector_runtime_artifact_manifest_materialized",
                 "current_source_retraining_default_off_shadow_selector_runtime_shadow_replay_preflight_latest_audit_boundary_hardening_complete",
