@@ -139,7 +139,8 @@ def _implementation_plan_script(path: Path) -> Path:
         path,
         "\n".join(
             [
-                AUTHORIZED_CURRENT_WORK,
+                "nonoverlap_data_remediation_implementation_plan_only",
+                "nonoverlap_data_remediation_implementation_static_contract_review_only",
                 "--split_manifest_json",
                 "--candidate_tensor_hash_registry_json",
                 "--path_signature_registry_json",

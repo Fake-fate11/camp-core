@@ -499,8 +499,16 @@ def _checks(
         _expect_plan(planned_implementation, "expected_atom_count", EXPECTED_ATOM_COUNT),
         _expect_plan(planned_implementation, "candidate_operation", "fixed DP candidate reranking only"),
         _expect_plan(planned_implementation, "score_expression", SCORE_EXPRESSION),
-        _contains("implementation_plan_script_mentions_current_gate", implementation_plan_script_text, AUTHORIZED_CURRENT_WORK),
-        _contains("implementation_plan_script_mentions_next_gate", implementation_plan_script_text, AUTHORIZED_CURRENT_WORK),
+        _contains(
+            "implementation_plan_script_mentions_plan_current_gate",
+            implementation_plan_script_text,
+            "nonoverlap_data_remediation_implementation_plan_only",
+        ),
+        _contains(
+            "implementation_plan_script_mentions_plan_next_gate",
+            implementation_plan_script_text,
+            "nonoverlap_data_remediation_implementation_static_contract_review_only",
+        ),
         _contains("implementation_plan_script_mentions_plan_status", implementation_plan_script_text, "plan_ready_no_implementation"),
         _contains(
             "implementation_plan_script_mentions_no_implementation",
