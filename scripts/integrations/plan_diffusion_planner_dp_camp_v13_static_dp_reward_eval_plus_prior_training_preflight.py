@@ -131,6 +131,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--lr", type=float, default=0.2)
     parser.add_argument("--l2_reg", type=float, default=0.01)
     parser.add_argument("--scale_percentile", type=float, default=95.0)
+    parser.add_argument("--authorized_current_work", default=AUTHORIZED_CURRENT_WORK)
+    parser.add_argument("--authorized_next_work", default=AUTHORIZED_NEXT_WORK)
+    parser.add_argument(
+        "--audit_preflight_authorization_key",
+        default=AUDIT_PREFLIGHT_AUTHORIZATION_KEY,
+    )
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     parser.add_argument("--output_selection_manifest_json", type=Path, required=True)
@@ -170,6 +176,9 @@ def main(argv: list[str] | None = None) -> int:
         lr=args.lr,
         l2_reg=args.l2_reg,
         scale_percentile=args.scale_percentile,
+        authorized_current_work=args.authorized_current_work,
+        authorized_next_work=args.authorized_next_work,
+        audit_preflight_authorization_key=args.audit_preflight_authorization_key,
         enabled=bool(args.enable_v13_static_dp_reward_eval_plus_prior_training_preflight),
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -219,6 +228,9 @@ def build_report(
     lr: float = 0.2,
     l2_reg: float = 0.01,
     scale_percentile: float = 95.0,
+    authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
+    authorized_next_work: str = AUTHORIZED_NEXT_WORK,
+    audit_preflight_authorization_key: str = AUDIT_PREFLIGHT_AUTHORIZATION_KEY,
     enabled: bool = False,
 ) -> dict[str, Any]:
     prior_output_dir = prior_output_dir.resolve()
@@ -266,7 +278,12 @@ def build_report(
         "selection_manifest": {},
         "training_command_plan": {},
         "review_checks": [],
-        "final_decision": _decision(False, [], enabled=False),
+        "final_decision": _decision(
+            False,
+            [],
+            enabled=False,
+            authorized_next_work=authorized_next_work,
+        ),
     }
     if not enabled:
         return report
@@ -357,13 +374,20 @@ def build_report(
         label_source=label_source,
         reward_key=reward_key,
         reward_progress_weight=reward_progress_weight,
+        authorized_current_work=authorized_current_work,
+        audit_preflight_authorization_key=audit_preflight_authorization_key,
     )
     failed = [check["name"] for check in checks if not check["passed"]]
     passed = not failed
     report["review_checks"] = checks
     report["analysis"]["selection_manifest_materialized"] = bool(passed)
     report["analysis"]["training_command_plan_materialized"] = bool(passed)
-    report["final_decision"] = _decision(passed, failed, enabled=True)
+    report["final_decision"] = _decision(
+        passed,
+        failed,
+        enabled=True,
+        authorized_next_work=authorized_next_work,
+    )
     return report
 
 
@@ -396,6 +420,8 @@ def _checks(
     label_source: str,
     reward_key: str,
     reward_progress_weight: float,
+    authorized_current_work: str,
+    audit_preflight_authorization_key: str,
 ) -> list[dict[str, Any]]:
     expected_total_logs = (
         expected_prior_selection_log_count + expected_evaluation_selection_log_count
@@ -412,9 +438,9 @@ def _checks(
         _check("trainer_py_exists", trainer_py.is_file(), str(trainer_py), "file exists"),
         _check("v13_audit_exists", v13_audit_md.is_file(), str(v13_audit_md), "file exists"),
         _check("planned_training_output_dir_absent", not planned_training_output_dir.exists(), str(planned_training_output_dir), "must not already exist"),
-        _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
-        _expect("audit_latest_current_scope", _latest_audit_value(audit_text, "current_v13_next_scope"), AUTHORIZED_CURRENT_WORK.removeprefix("dp_camp_v13_")),
-        _expect("audit_eval_plus_prior_training_preflight_authorized", _latest_audit_value(audit_text, AUDIT_PREFLIGHT_AUTHORIZATION_KEY), "True"),
+        _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), authorized_current_work),
+        _expect("audit_latest_current_scope", _latest_audit_value(audit_text, "current_v13_next_scope"), authorized_current_work.removeprefix("dp_camp_v13_")),
+        _expect("audit_eval_plus_prior_training_preflight_authorized", _latest_audit_value(audit_text, audit_preflight_authorization_key), "True"),
         _expect("audit_training_execution_blocked", _latest_audit_value(audit_text, "training_execution_authorized_by_current_boundary"), "False"),
         _expect("audit_replay_execution_blocked", _latest_audit_value(audit_text, "replay_execution_authorized_by_current_boundary"), "False"),
         _expect("audit_dp_modification_blocked", _latest_audit_value(audit_text, "dp_modification_authorized_by_current_boundary"), "False"),
@@ -928,7 +954,13 @@ def render_runbook(report: dict[str, Any]) -> str:
     )
 
 
-def _decision(passed: bool, failed_checks: list[str], *, enabled: bool) -> dict[str, Any]:
+def _decision(
+    passed: bool,
+    failed_checks: list[str],
+    *,
+    enabled: bool,
+    authorized_next_work: str,
+) -> dict[str, Any]:
     if not enabled:
         status = DISABLED_STATUS
     else:
@@ -937,7 +969,7 @@ def _decision(passed: bool, failed_checks: list[str], *, enabled: bool) -> dict[
         "status": status,
         "passed": bool(passed) if enabled else False,
         "failed_checks": failed_checks,
-        "authorized_next_work": AUTHORIZED_NEXT_WORK if passed and enabled else None,
+        "authorized_next_work": authorized_next_work if passed and enabled else None,
         "static_dp_reward_training_preflight_complete": bool(passed and enabled),
         "static_dp_reward_training_execution_authorized_next": bool(passed and enabled),
         "training_executed": False,

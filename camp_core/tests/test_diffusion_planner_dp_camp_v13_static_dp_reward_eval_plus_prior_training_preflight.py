@@ -20,6 +20,20 @@ from scripts.integrations.plan_diffusion_planner_dp_camp_v13_static_dp_reward_ev
 
 
 CAMP_HEAD = "6dd68caaf494cf66fb0ebf2cbf6fb7529227d882"
+NONOVERLAP_CURRENT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+    "dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_"
+    "nonoverlap_holdout_static_dp_reward_training_preflight_only"
+)
+NONOVERLAP_NEXT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+    "dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_"
+    "nonoverlap_holdout_static_dp_reward_training_execution_only"
+)
+NONOVERLAP_AUTH_KEY = (
+    "static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_"
+    "nonoverlap_holdout_static_dp_reward_training_preflight_authorized"
+)
 
 
 def _write(path: Path, text: str) -> Path:
@@ -140,14 +154,20 @@ def _trainer(path: Path) -> Path:
     )
 
 
-def _audit(path: Path, *, wrong_scope: bool = False) -> Path:
+def _audit(
+    path: Path,
+    *,
+    wrong_scope: bool = False,
+    authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
+    authorization_key: str = AUDIT_PREFLIGHT_AUTHORIZATION_KEY,
+) -> Path:
     return _write(
         path,
         "\n".join(
             [
-                f"next_work_target={'wrong_scope' if wrong_scope else AUTHORIZED_CURRENT_WORK}",
-                f"current_v13_next_scope={AUTHORIZED_CURRENT_WORK.removeprefix('dp_camp_v13_')}",
-                f"{AUDIT_PREFLIGHT_AUTHORIZATION_KEY}=True",
+                f"next_work_target={'wrong_scope' if wrong_scope else authorized_current_work}",
+                f"current_v13_next_scope={authorized_current_work.removeprefix('dp_camp_v13_')}",
+                f"{authorization_key}=True",
                 "training_execution_authorized_by_current_boundary=False",
                 "replay_execution_authorized_by_current_boundary=False",
                 "dp_modification_authorized_by_current_boundary=False",
@@ -229,6 +249,42 @@ def test_preflight_accepts_fixed_prior_plus_eval_logs(tmp_path: Path) -> None:
     assert report["training_command_plan"]["require_dp_native_training_data_contract"] is True
     assert report["training_command_plan"]["require_atom_schema"] is True
     assert "--label_source dp_reward" in report["training_command_plan"]["command"]
+
+
+def test_preflight_accepts_parameterized_nonoverlap_holdout_scope(tmp_path: Path) -> None:
+    prior = tmp_path / "prior"
+    evaluation = tmp_path / "evaluation"
+    _write_logs(prior, prefix="prior", seed=301)
+    _write_logs(evaluation, prefix="eval", seed=1000)
+    trainer = _trainer(tmp_path / "train_diffusion_planner_static_camp.py")
+    audit = _audit(
+        tmp_path / "audit.md",
+        authorized_current_work=NONOVERLAP_CURRENT_WORK,
+        authorization_key=NONOVERLAP_AUTH_KEY,
+    )
+
+    report = build_report(
+        prior_output_dir=prior,
+        evaluation_output_dir=evaluation,
+        trainer_py=trainer,
+        v13_audit_md=audit,
+        planned_training_output_dir=tmp_path / "planned_training",
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        expected_prior_selection_log_count=2,
+        expected_evaluation_selection_log_count=2,
+        expected_prior_records=6,
+        expected_evaluation_records=6,
+        authorized_current_work=NONOVERLAP_CURRENT_WORK,
+        authorized_next_work=NONOVERLAP_NEXT_WORK,
+        audit_preflight_authorization_key=NONOVERLAP_AUTH_KEY,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == NONOVERLAP_NEXT_WORK
+    assert report["training_input_summary"]["combined"]["records_total"] == 12
 
 
 def test_preflight_rejects_wrong_audit_scope(tmp_path: Path) -> None:
