@@ -883,10 +883,18 @@ def _write_report_artifacts(
 
 
 def _write_sha256sums(root: Path) -> None:
+    mutable_wrapper_files = {
+        "execution.pid",
+        "execution.stderr.txt",
+        "execution.stdout.txt",
+        "run_data_preparation.exit",
+    }
     files = [
         path
         for path in sorted(root.rglob("*"))
-        if path.is_file() and path.name != "SHA256SUMS"
+        if path.is_file()
+        and path.name != "SHA256SUMS"
+        and path.name not in mutable_wrapper_files
     ]
     lines = [f"{_sha256(path)}  {path.relative_to(root).as_posix()}" for path in files]
     (root / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")

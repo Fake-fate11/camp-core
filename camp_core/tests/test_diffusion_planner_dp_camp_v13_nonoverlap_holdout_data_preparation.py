@@ -15,6 +15,7 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v13_nonoverlap_holdout_d
     REJECT_STATUS,
     build_report,
     _materialize_registries,
+    _write_sha256sums,
 )
 
 
@@ -338,3 +339,20 @@ def test_registry_materialization_requires_dp_top1_execution(tmp_path: Path) -> 
     )
 
     assert "executed_index_dp_top1" in failures
+
+
+def test_sha256sums_skip_mutable_wrapper_files(tmp_path: Path) -> None:
+    _write(tmp_path / "data_preparation_summary.json", "{}")
+    _write(tmp_path / "execution.stdout.txt", "still being written")
+    _write(tmp_path / "execution.stderr.txt", "")
+    _write(tmp_path / "execution.pid", "123")
+    _write(tmp_path / "run_data_preparation.exit", "0")
+
+    _write_sha256sums(tmp_path)
+
+    sha256sums = (tmp_path / "SHA256SUMS").read_text(encoding="utf-8")
+    assert "data_preparation_summary.json" in sha256sums
+    assert "execution.stdout.txt" not in sha256sums
+    assert "execution.stderr.txt" not in sha256sums
+    assert "execution.pid" not in sha256sums
+    assert "run_data_preparation.exit" not in sha256sums
