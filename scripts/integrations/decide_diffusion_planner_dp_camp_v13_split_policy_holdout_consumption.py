@@ -63,6 +63,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--required_dp_head", default=FIXED_DP_HEAD)
     parser.add_argument("--decision", choices=sorted(APPROVED_DECISIONS), default=DEFAULT_DECISION)
     parser.add_argument("--next_work_target", default=DEFAULT_NEXT_WORK_TARGET)
+    parser.add_argument("--expected_training_log_count", type=int, default=224)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     return parser.parse_args(argv)
@@ -80,6 +81,7 @@ def main(argv: list[str] | None = None) -> int:
         required_dp_head=args.required_dp_head,
         decision=args.decision,
         next_work_target=args.next_work_target,
+        expected_training_log_count=args.expected_training_log_count,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
@@ -103,6 +105,7 @@ def build_report(
     required_dp_head: str = FIXED_DP_HEAD,
     decision: str = DEFAULT_DECISION,
     next_work_target: str = DEFAULT_NEXT_WORK_TARGET,
+    expected_training_log_count: int = 224,
 ) -> dict[str, Any]:
     result_readiness_json = result_readiness_json.resolve()
     registry_manifest_json = registry_manifest_json.resolve()
@@ -152,6 +155,7 @@ def build_report(
         current_dp_head=current_dp_head,
         required_dp_head=required_dp_head,
         decision=decision,
+        expected_training_log_count=expected_training_log_count,
     )
     failed = [check["name"] for check in checks if not check["passed"]]
     passed = not failed
@@ -236,6 +240,7 @@ def _checks(
     current_dp_head: str,
     required_dp_head: str,
     decision: str,
+    expected_training_log_count: int,
 ) -> list[dict[str, Any]]:
     final_decision = _dict(readiness.get("final_decision"))
     heads = _dict(readiness.get("heads"))
@@ -288,7 +293,11 @@ def _checks(
         _expect("candidate_tensor_eval_hashes_in_previous_zero", evidence["candidate_tensor_eval_hashes_in_previous_count"], 0),
         _check("decision_is_approved", decision in APPROVED_DECISIONS, decision, sorted(APPROVED_DECISIONS)),
         _expect("default_decision_preserves_holdout", decision, DEFAULT_DECISION),
-        _expect("registry_training_log_count", evidence["training_log_count"], 224),
+        _expect(
+            "registry_training_log_count",
+            evidence["training_log_count"],
+            expected_training_log_count,
+        ),
         _expect("registry_evaluation_log_count", evidence["evaluation_log_count"], 32),
         _check(
             "registry_training_candidate_hash_count",

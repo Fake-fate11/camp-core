@@ -222,6 +222,32 @@ def test_split_policy_accepts_current_source_registry_summary_aliases(tmp_path: 
     assert report["input_evidence"]["evaluation_record_identity_count"] == 3200
 
 
+def test_split_policy_accepts_parameterized_training_log_count(tmp_path: Path) -> None:
+    paths = _fixture(
+        tmp_path,
+        current_status=CURRENT_SOURCE_RESULT_REVIEW_STATUS,
+        next_work_target=GATE_NAME,
+    )
+    registry = _registry_manifest()
+    registry["training_log_count"] = 288
+    registry["training_candidate_hash_count"] = 28800
+    _write(paths["registry"], registry)
+
+    report = build_report(
+        result_readiness_json=paths["result"],
+        registry_manifest_json=paths["registry"],
+        v13_audit_md=paths["audit"],
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        expected_training_log_count=288,
+    )
+
+    assert report["final_decision"]["passed"] is True
+    assert report["input_evidence"]["training_log_count"] == 288
+    assert report["input_evidence"]["training_candidate_hash_count"] == 28800
+
+
 def test_split_policy_rejects_overlap(tmp_path: Path) -> None:
     paths = _fixture(tmp_path, overlap=1)
     report = build_report(
