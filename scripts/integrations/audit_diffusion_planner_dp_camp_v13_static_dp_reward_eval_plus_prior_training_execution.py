@@ -78,6 +78,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected_dropped_records", type=int, default=1101)
     parser.add_argument("--expected_candidate_count", type=int, default=8)
     parser.add_argument("--expected_atom_count", type=int, default=14)
+    parser.add_argument("--authorized_current_work", default=AUTHORIZED_CURRENT_WORK)
+    parser.add_argument("--authorized_next_work", default=AUTHORIZED_NEXT_WORK)
     parser.add_argument("--output_json", type=Path, required=True)
     parser.add_argument("--output_md", type=Path, required=True)
     parser.add_argument(
@@ -105,6 +107,8 @@ def main(argv: list[str] | None = None) -> int:
         expected_dropped_records=args.expected_dropped_records,
         expected_candidate_count=args.expected_candidate_count,
         expected_atom_count=args.expected_atom_count,
+        authorized_current_work=args.authorized_current_work,
+        authorized_next_work=args.authorized_next_work,
         enabled=bool(args.enable_v13_static_dp_reward_eval_plus_prior_training_execution_audit),
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -132,6 +136,8 @@ def build_report(
     expected_dropped_records: int = 1101,
     expected_candidate_count: int = 8,
     expected_atom_count: int = 14,
+    authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
+    authorized_next_work: str = AUTHORIZED_NEXT_WORK,
     enabled: bool = False,
 ) -> dict[str, Any]:
     execution_artifact_dir = execution_artifact_dir.resolve()
@@ -235,12 +241,18 @@ def build_report(
         expected_dropped_records=expected_dropped_records,
         expected_candidate_count=expected_candidate_count,
         expected_atom_count=expected_atom_count,
+        authorized_current_work=authorized_current_work,
     )
     failed = [check["name"] for check in checks if not check["passed"]]
     passed = not failed
     report["review_checks"] = checks
     report["analysis"]["training_execution_audited"] = bool(passed)
-    report["final_decision"] = _decision(passed, failed, enabled=True)
+    report["final_decision"] = _decision(
+        passed,
+        failed,
+        enabled=True,
+        authorized_next_work=authorized_next_work,
+    )
     return report
 
 
@@ -270,6 +282,7 @@ def _checks(
     expected_dropped_records: int,
     expected_candidate_count: int,
     expected_atom_count: int,
+    authorized_current_work: str,
 ) -> list[dict[str, Any]]:
     dp_contract = _dict(summary.get("dp_native_training_data_contract"))
     atom_schema = _dict(summary.get("atom_schema"))
@@ -291,7 +304,7 @@ def _checks(
         _check("stderr_has_no_traceback", "Traceback" not in stderr_text, "Traceback" in stderr_text, False),
         _check("heads_camp_head_matches_execution", f"camp_head={execution_camp_head}" in heads_text, heads_text, f"camp_head={execution_camp_head}"),
         _check("heads_dp_head_fixed", f"dp_head={required_dp_head}" in heads_text, heads_text, f"dp_head={required_dp_head}"),
-        _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
+        _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), authorized_current_work),
         _expect("audit_training_execution_authorized", _latest_audit_value(audit_text, "training_execution_authorized_by_current_boundary"), "True"),
         _expect("audit_replay_execution_blocked", _latest_audit_value(audit_text, "replay_execution_authorized_by_current_boundary"), "False"),
         _expect("audit_dp_modification_blocked", _latest_audit_value(audit_text, "dp_modification_authorized_by_current_boundary"), "False"),
@@ -402,7 +415,13 @@ def render_markdown(report: dict[str, Any]) -> str:
     )
 
 
-def _decision(passed: bool, failed_checks: list[str], *, enabled: bool) -> dict[str, Any]:
+def _decision(
+    passed: bool,
+    failed_checks: list[str],
+    *,
+    enabled: bool,
+    authorized_next_work: str = AUTHORIZED_NEXT_WORK,
+) -> dict[str, Any]:
     if not enabled:
         status = DISABLED_STATUS
     else:
@@ -411,7 +430,7 @@ def _decision(passed: bool, failed_checks: list[str], *, enabled: bool) -> dict[
         "status": status,
         "passed": bool(passed) if enabled else False,
         "failed_checks": failed_checks,
-        "authorized_next_work": AUTHORIZED_NEXT_WORK if passed and enabled else None,
+        "authorized_next_work": authorized_next_work if passed and enabled else None,
         "shadow_replay_evaluation_preflight_authorized_next": bool(passed and enabled),
         "training_execution_audited": bool(passed and enabled),
         "training_executed_by_audit": False,

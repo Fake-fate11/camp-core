@@ -32,12 +32,17 @@ def _write_json(path: Path, payload: dict) -> Path:
     return _write(path, json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
 
-def _audit_md(path: Path, *, wrong_scope: bool = False) -> Path:
+def _audit_md(
+    path: Path,
+    *,
+    wrong_scope: bool = False,
+    authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
+) -> Path:
     return _write(
         path,
         "\n".join(
             [
-                f"next_work_target={'wrong_scope' if wrong_scope else AUTHORIZED_CURRENT_WORK}",
+                f"next_work_target={'wrong_scope' if wrong_scope else authorized_current_work}",
                 "training_execution_authorized_by_current_boundary=True",
                 "replay_execution_authorized_by_current_boundary=False",
                 "dp_modification_authorized_by_current_boundary=False",
@@ -53,6 +58,7 @@ def _make_artifacts(
     wrong_scope: bool = False,
     bad_weights: bool = False,
     label_source: str = "dp_reward",
+    authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
 ) -> dict[str, Path]:
     execution = tmp_path / "execution"
     preflight = tmp_path / "preflight"
@@ -134,7 +140,11 @@ def _make_artifacts(
             "atom_scales_path": str(training / "atom_scales_dp_static.json"),
         },
     )
-    audit_md = _audit_md(tmp_path / "audit.md", wrong_scope=wrong_scope)
+    audit_md = _audit_md(
+        tmp_path / "audit.md",
+        wrong_scope=wrong_scope,
+        authorized_current_work=authorized_current_work,
+    )
     return {
         "execution": execution,
         "preflight": preflight,
@@ -184,6 +194,35 @@ def test_training_execution_audit_accepts_nonpromotion_artifact(tmp_path: Path) 
     assert report["training_artifact"]["weights_nonnegative"] is True
     assert report["training_artifact"]["weights_match_summary"] is True
     assert report["training_artifact"]["deployable_checkpoint_claim_authorized"] is False
+
+
+def test_training_execution_audit_accepts_parameterized_current_and_next_work(tmp_path: Path) -> None:
+    current_work = (
+        "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_"
+        "eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_execution_only"
+    )
+    next_work = (
+        "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_"
+        "eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_"
+        "shadow_replay_evaluation_preflight_only"
+    )
+    paths = _make_artifacts(tmp_path, authorized_current_work=current_work)
+
+    report = build_report(
+        execution_artifact_dir=paths["execution"],
+        preflight_artifact_dir=paths["preflight"],
+        training_output_dir=paths["training"],
+        v13_audit_md=paths["audit"],
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        authorized_current_work=current_work,
+        authorized_next_work=next_work,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == next_work
 
 
 def test_training_execution_audit_rejects_wrong_scope(tmp_path: Path) -> None:
