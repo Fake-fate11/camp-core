@@ -31,6 +31,14 @@ RESULT_REVIEW_STATUS = (
     "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_"
     "artifact_shadow_replay_evaluation_result_review_passed"
 )
+CURRENT_SOURCE_RESULT_REVIEW_STATUS = (
+    "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
+    "shadow_replay_evaluation_result_review_passed"
+)
+RESULT_REVIEW_STATUSES = {
+    RESULT_REVIEW_STATUS,
+    CURRENT_SOURCE_RESULT_REVIEW_STATUS,
+}
 RESULT_READINESS_STATUS = (
     "dp_camp_v13_static_dp_reward_shadow_replay_evaluation_result_readiness_"
     "ready_for_training_preflight"
@@ -243,12 +251,18 @@ def _checks(
         _expect("result_artifact_required_dp_head_fixed", heads.get("required_dp_head"), FIXED_DP_HEAD),
         _expect("result_readiness_passed", final_decision.get("passed"), True),
         _expect("result_readiness_status", final_decision.get("status"), RESULT_READINESS_STATUS),
-        _expect("audit_latest_status", latest["current_v13_status"], RESULT_REVIEW_STATUS),
         _check(
-            "audit_latest_next_work_is_none",
-            str(latest["next_work_target"]).startswith("none"),
+            "audit_latest_status",
+            latest["current_v13_status"] in RESULT_REVIEW_STATUSES,
+            latest["current_v13_status"],
+            sorted(RESULT_REVIEW_STATUSES),
+        ),
+        _check(
+            "audit_latest_next_work_authorizes_split_policy",
+            str(latest["next_work_target"]).startswith("none")
+            or latest["next_work_target"] == GATE_NAME,
             latest["next_work_target"],
-            "none*",
+            f"none* or {GATE_NAME}",
         ),
         _expect("audit_result_review_passed", latest["result_review_passed"], "True"),
         _expect("audit_training_preflight_clean_data_available", latest["training_preflight_clean_data_available"], "True"),

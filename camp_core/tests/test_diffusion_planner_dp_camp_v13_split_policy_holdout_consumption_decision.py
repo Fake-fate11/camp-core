@@ -4,8 +4,10 @@ import json
 from pathlib import Path
 
 from scripts.integrations.decide_diffusion_planner_dp_camp_v13_split_policy_holdout_consumption import (
+    CURRENT_SOURCE_RESULT_REVIEW_STATUS,
     DEFAULT_NEXT_WORK_TARGET,
     FIXED_DP_HEAD,
+    GATE_NAME,
     PASS_STATUS,
     RESULT_READINESS_STATUS,
     RESULT_REVIEW_STATUS,
@@ -92,10 +94,15 @@ def _registry_manifest(*, candidate_overlap: int = 0) -> dict:
     }
 
 
-def _audit_text(*, holdout_signal: bool = True) -> str:
+def _audit_text(
+    *,
+    holdout_signal: bool = True,
+    current_status: str = RESULT_REVIEW_STATUS,
+    next_work_target: str = "none_result_review_passed_no_promotion_or_safety_claim_authorized",
+) -> str:
     return "\n".join(
         [
-            f"current_v13_status={RESULT_REVIEW_STATUS}",
+            f"current_v13_status={current_status}",
             "static_dp_reward_training_artifact_shadow_replay_evaluation_result_review_passed=True",
             "static_dp_reward_training_artifact_shadow_replay_evaluation_result_review_training_preflight_clean_data_available=True",
             "static_dp_reward_training_artifact_shadow_replay_evaluation_holdout_consumption_requires_split_policy_decision="
@@ -103,17 +110,31 @@ def _audit_text(*, holdout_signal: bool = True) -> str:
             "training_execution_authorized_by_current_boundary=False",
             "replay_execution_authorized_by_current_boundary=False",
             "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
-            "next_work_target=none_result_review_passed_no_promotion_or_safety_claim_authorized",
+            f"next_work_target={next_work_target}",
             "",
         ]
     )
 
 
-def _fixture(tmp_path: Path, *, overlap: int = 0, holdout_signal: bool = True) -> dict[str, Path]:
+def _fixture(
+    tmp_path: Path,
+    *,
+    overlap: int = 0,
+    holdout_signal: bool = True,
+    current_status: str = RESULT_REVIEW_STATUS,
+    next_work_target: str = "none_result_review_passed_no_promotion_or_safety_claim_authorized",
+) -> dict[str, Path]:
     return {
         "result": _write(tmp_path / "result_readiness.json", _result_readiness(overlap=overlap)),
         "registry": _write(tmp_path / "registry_manifest.json", _registry_manifest(candidate_overlap=overlap)),
-        "audit": _write(tmp_path / "audit.md", _audit_text(holdout_signal=holdout_signal)),
+        "audit": _write(
+            tmp_path / "audit.md",
+            _audit_text(
+                holdout_signal=holdout_signal,
+                current_status=current_status,
+                next_work_target=next_work_target,
+            ),
+        ),
     }
 
 
@@ -135,6 +156,28 @@ def test_split_policy_preserves_current_holdout_by_default(tmp_path: Path) -> No
     assert report["policy_decision"]["current_holdout_consumed"] is False
     assert report["policy_decision"]["training_from_current_holdout_authorized"] is False
     assert report["policy_decision"]["next_work_target"] == DEFAULT_NEXT_WORK_TARGET
+
+
+def test_split_policy_accepts_current_source_result_review_and_explicit_gate(tmp_path: Path) -> None:
+    paths = _fixture(
+        tmp_path,
+        current_status=CURRENT_SOURCE_RESULT_REVIEW_STATUS,
+        next_work_target=GATE_NAME,
+    )
+
+    report = build_report(
+        result_readiness_json=paths["result"],
+        registry_manifest_json=paths["registry"],
+        v13_audit_md=paths["audit"],
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["passed"] is True
+    assert report["policy_decision"]["decision"] == "preserve_current_holdout"
+    assert report["policy_decision"]["current_holdout_preserved"] is True
+    assert report["final_decision"]["authorized_next_work"] == DEFAULT_NEXT_WORK_TARGET
 
 
 def test_split_policy_rejects_overlap(tmp_path: Path) -> None:

@@ -12954,6 +12954,8 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_ar
         "v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_result_review_autodl_target_pytest=passed_count_250",
         "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_result_review_passed",
         "static_dp_reward_training_artifact_shadow_replay_evaluation_result_review_clean_contract_passed=True",
+        "static_dp_reward_training_artifact_shadow_replay_evaluation_result_review_training_preflight_clean_data_available=True",
+        "static_dp_reward_training_artifact_shadow_replay_evaluation_holdout_consumption_requires_split_policy_decision=True",
         "static_dp_reward_training_artifact_shadow_replay_evaluation_result_review_overlap_counts_zero=True",
         "split_policy_holdout_consumption_decision_gate_authorized=True",
         "training_execution_authorized_by_current_boundary=False",
