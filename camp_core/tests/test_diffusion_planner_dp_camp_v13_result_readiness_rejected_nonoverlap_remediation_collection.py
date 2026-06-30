@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from scripts.integrations import (
@@ -93,3 +94,42 @@ def test_remediation_readiness_accepts_clean_nonoverlap_summary() -> None:
     )
 
     assert failures == []
+
+
+def test_preflight_report_can_authorize_parameterized_next_work(tmp_path: Path) -> None:
+    report = remediation._base_report(
+        artifact_dir=tmp_path,
+        heads={"camp_head": "abc", "camp_origin_main": "abc", "dp_head": remediation.FIXED_DP_HEAD},
+        execute=False,
+        status="preflight_passed_not_executed",
+        passed=True,
+        failed_checks=[],
+        authorized_next_work="dp_camp_v13_fresh_nonoverlap_dp_native_development_collection_execution_only",
+    )
+
+    assert (
+        report["final_decision"]["authorized_next_work"]
+        == "dp_camp_v13_fresh_nonoverlap_dp_native_development_collection_execution_only"
+    )
+
+
+def test_scope_plan_uses_parameterized_authorized_next_work(tmp_path: Path) -> None:
+    remediation._write_scope_plan(
+        artifact_dir=tmp_path,
+        routes=[{"name": "sample_normal", "path": "/assets/sample_normal.pkl"}],
+        seeds=(1700, 1701),
+        max_npcs_values=(0, 4),
+        traffic_light_modes=("on", "off"),
+        steps=100,
+        num_candidates=8,
+        spawn_probability=0.3,
+        previous_training_output_dir=Path("/training"),
+        rejected_eval_output_dir=Path("/eval"),
+        authorized_next_work="dp_camp_v13_fresh_nonoverlap_dp_native_development_collection_execution_only",
+    )
+
+    payload = json.loads((tmp_path / "scope_plan.json").read_text(encoding="utf-8"))
+    assert (
+        payload["authorized_next_if_passed"]
+        == "dp_camp_v13_fresh_nonoverlap_dp_native_development_collection_execution_only"
+    )

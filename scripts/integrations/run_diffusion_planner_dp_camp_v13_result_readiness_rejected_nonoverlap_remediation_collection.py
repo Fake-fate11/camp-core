@@ -97,6 +97,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=100)
     parser.add_argument("--num_candidates", type=int, default=8)
     parser.add_argument("--spawn_probability", type=float, default=0.3)
+    parser.add_argument("--authorized_next_work", default=NEXT_GATE)
     parser.add_argument("--execute", action="store_true")
     return parser.parse_args(argv)
 
@@ -123,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
         steps=args.steps,
         num_candidates=args.num_candidates,
         spawn_probability=args.spawn_probability,
+        authorized_next_work=args.authorized_next_work,
         execute=bool(args.execute),
     )
     print(json.dumps(_stable(report["final_decision"]), indent=2))
@@ -147,6 +149,7 @@ def run_collection(
     steps: int,
     num_candidates: int,
     spawn_probability: float,
+    authorized_next_work: str,
     execute: bool,
 ) -> dict[str, Any]:
     artifact_dir = artifact_dir.resolve()
@@ -201,6 +204,7 @@ def run_collection(
         spawn_probability=spawn_probability,
         previous_training_output_dir=previous_training_output_dir,
         rejected_eval_output_dir=rejected_eval_output_dir,
+        authorized_next_work=authorized_next_work,
     )
     _write_json(artifact_dir / "commands.json", commands)
     _write_runbook(artifact_dir / "run_nonoverlap_remediation.sh", commands)
@@ -235,6 +239,7 @@ def run_collection(
             status="preflight_rejected",
             passed=False,
             failed_checks=failures,
+            authorized_next_work=authorized_next_work,
         )
         _write_report(artifact_dir, report, exit_code=2)
         return report
@@ -246,6 +251,7 @@ def run_collection(
             status="preflight_passed_not_executed",
             passed=True,
             failed_checks=[],
+            authorized_next_work=authorized_next_work,
         )
         _write_report(artifact_dir, report, exit_code=0)
         return report
@@ -266,6 +272,7 @@ def run_collection(
             status="collection_failed",
             passed=False,
             failed_checks=["command_execution_failed"],
+            authorized_next_work=authorized_next_work,
         )
         report["execution"] = execution
         _write_report(artifact_dir, report, exit_code=3)
@@ -322,7 +329,7 @@ def run_collection(
             ),
             passed=passed,
             failed_checks=failed_checks,
-            authorized_next_work=NEXT_GATE if passed else None,
+            authorized_next_work=authorized_next_work if passed else None,
         ),
     }
     _write_report(artifact_dir, report, exit_code=0 if passed else 1)
@@ -478,6 +485,7 @@ def _write_scope_plan(
     spawn_probability: float,
     previous_training_output_dir: Path,
     rejected_eval_output_dir: Path,
+    authorized_next_work: str,
 ) -> None:
     _write_json(
         artifact_dir / "scope_plan.json",
@@ -497,7 +505,7 @@ def _write_scope_plan(
             "forbidden_flags": list(FORBIDDEN_FLAGS),
             "previous_training_output_dir": str(previous_training_output_dir),
             "rejected_eval_output_dir": str(rejected_eval_output_dir),
-            "authorized_next_if_passed": NEXT_GATE,
+            "authorized_next_if_passed": authorized_next_work,
         },
     )
 
@@ -1074,6 +1082,7 @@ def _base_report(
     status: str,
     passed: bool,
     failed_checks: list[str],
+    authorized_next_work: str,
 ) -> dict[str, Any]:
     return {
         "schema_version": READINESS_SCHEMA_VERSION,
@@ -1085,7 +1094,7 @@ def _base_report(
             status=status,
             passed=passed,
             failed_checks=failed_checks,
-            authorized_next_work=NEXT_GATE if passed and execute else None,
+            authorized_next_work=authorized_next_work if passed else None,
         ),
     }
 
