@@ -133,6 +133,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--l2_reg", type=float, default=0.01)
     parser.add_argument("--scale_percentile", type=float, default=95.0)
     parser.add_argument("--authorized_current_work", default=AUTHORIZED_CURRENT_WORK)
+    parser.add_argument("--authorized_current_scope", default=None)
     parser.add_argument("--authorized_next_work", default=AUTHORIZED_NEXT_WORK)
     parser.add_argument(
         "--audit_preflight_authorization_key",
@@ -179,6 +180,7 @@ def main(argv: list[str] | None = None) -> int:
         l2_reg=args.l2_reg,
         scale_percentile=args.scale_percentile,
         authorized_current_work=args.authorized_current_work,
+        authorized_current_scope=args.authorized_current_scope,
         authorized_next_work=args.authorized_next_work,
         audit_preflight_authorization_key=args.audit_preflight_authorization_key,
         enabled=bool(args.enable_v13_static_dp_reward_eval_plus_prior_training_preflight),
@@ -232,6 +234,7 @@ def build_report(
     l2_reg: float = 0.01,
     scale_percentile: float = 95.0,
     authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
+    authorized_current_scope: str | None = None,
     authorized_next_work: str = AUTHORIZED_NEXT_WORK,
     audit_preflight_authorization_key: str = AUDIT_PREFLIGHT_AUTHORIZATION_KEY,
     enabled: bool = False,
@@ -403,6 +406,7 @@ def build_report(
         reward_key=reward_key,
         reward_progress_weight=reward_progress_weight,
         authorized_current_work=authorized_current_work,
+        authorized_current_scope=authorized_current_scope,
         audit_preflight_authorization_key=audit_preflight_authorization_key,
     )
     failed = [check["name"] for check in checks if not check["passed"]]
@@ -451,6 +455,7 @@ def _checks(
     reward_key: str,
     reward_progress_weight: float,
     authorized_current_work: str,
+    authorized_current_scope: str | None,
     audit_preflight_authorization_key: str,
 ) -> list[dict[str, Any]]:
     expected_total_logs = (
@@ -458,6 +463,11 @@ def _checks(
     )
     expected_total_records = expected_prior_records + expected_evaluation_records
     command = str(command_plan.get("command", ""))
+    expected_current_scope = (
+        authorized_current_scope
+        if authorized_current_scope is not None
+        else authorized_current_work.removeprefix("dp_camp_v13_")
+    )
     checks = [
         _check("current_camp_head_is_sha", _is_git_sha(current_camp_head), current_camp_head, "40-char git sha"),
         _expect("current_camp_head_matches_origin", current_camp_head, current_camp_origin_main),
@@ -505,7 +515,7 @@ def _checks(
         _check("v13_audit_exists", v13_audit_md.is_file(), str(v13_audit_md), "file exists"),
         _check("planned_training_output_dir_absent", not planned_training_output_dir.exists(), str(planned_training_output_dir), "must not already exist"),
         _expect("audit_latest_next_work_target", _latest_audit_value(audit_text, "next_work_target"), authorized_current_work),
-        _expect("audit_latest_current_scope", _latest_audit_value(audit_text, "current_v13_next_scope"), authorized_current_work.removeprefix("dp_camp_v13_")),
+        _expect("audit_latest_current_scope", _latest_audit_value(audit_text, "current_v13_next_scope"), expected_current_scope),
         _expect("audit_eval_plus_prior_training_preflight_authorized", _latest_audit_value(audit_text, audit_preflight_authorization_key), "True"),
         _expect("audit_training_execution_blocked", _latest_audit_value(audit_text, "training_execution_authorized_by_current_boundary"), "False"),
         _expect("audit_replay_execution_blocked", _latest_audit_value(audit_text, "replay_execution_authorized_by_current_boundary"), "False"),

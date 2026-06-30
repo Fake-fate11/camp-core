@@ -160,14 +160,20 @@ def _audit(
     *,
     wrong_scope: bool = False,
     authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
+    authorized_current_scope: str | None = None,
     authorization_key: str = AUDIT_PREFLIGHT_AUTHORIZATION_KEY,
 ) -> Path:
+    current_scope = (
+        authorized_current_scope
+        if authorized_current_scope is not None
+        else authorized_current_work.removeprefix("dp_camp_v13_")
+    )
     return _write(
         path,
         "\n".join(
             [
                 f"next_work_target={'wrong_scope' if wrong_scope else authorized_current_work}",
-                f"current_v13_next_scope={authorized_current_work.removeprefix('dp_camp_v13_')}",
+                f"current_v13_next_scope={current_scope}",
                 f"{authorization_key}=True",
                 "training_execution_authorized_by_current_boundary=False",
                 "replay_execution_authorized_by_current_boundary=False",
@@ -285,6 +291,48 @@ def test_preflight_accepts_parameterized_nonoverlap_holdout_scope(tmp_path: Path
 
     assert report["final_decision"]["status"] == READY_STATUS
     assert report["final_decision"]["authorized_next_work"] == NONOVERLAP_NEXT_WORK
+    assert report["training_input_summary"]["combined"]["records_total"] == 12
+
+
+def test_preflight_accepts_decoupled_audit_scope(tmp_path: Path) -> None:
+    current_work = (
+        "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_"
+        "eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_preflight_only"
+    )
+    current_scope = "static_dp_reward_training_preflight_only"
+    auth_key = "static_dp_reward_training_preflight_authorized"
+    prior = tmp_path / "prior"
+    evaluation = tmp_path / "evaluation"
+    _write_logs(prior, prefix="prior", seed=301)
+    _write_logs(evaluation, prefix="eval", seed=1400)
+    trainer = _trainer(tmp_path / "train_diffusion_planner_static_camp.py")
+    audit = _audit(
+        tmp_path / "audit.md",
+        authorized_current_work=current_work,
+        authorized_current_scope=current_scope,
+        authorization_key=auth_key,
+    )
+
+    report = build_report(
+        prior_output_dir=prior,
+        evaluation_output_dir=evaluation,
+        trainer_py=trainer,
+        v13_audit_md=audit,
+        planned_training_output_dir=tmp_path / "planned_training",
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        expected_prior_selection_log_count=2,
+        expected_evaluation_selection_log_count=2,
+        expected_prior_records=6,
+        expected_evaluation_records=6,
+        authorized_current_work=current_work,
+        authorized_current_scope=current_scope,
+        audit_preflight_authorization_key=auth_key,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
     assert report["training_input_summary"]["combined"]["records_total"] == 12
 
 
