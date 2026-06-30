@@ -12,6 +12,7 @@ from scripts.integrations.plan_diffusion_planner_dp_camp_v13_static_dp_reward_ev
     AUTHORIZED_NEXT_WORK,
     DISABLED_STATUS,
     FIXED_DP_HEAD,
+    MANIFEST_SCHEMA_VERSION,
     READY_STATUS,
     REJECT_STATUS,
     build_report,
@@ -285,6 +286,62 @@ def test_preflight_accepts_parameterized_nonoverlap_holdout_scope(tmp_path: Path
     assert report["final_decision"]["status"] == READY_STATUS
     assert report["final_decision"]["authorized_next_work"] == NONOVERLAP_NEXT_WORK
     assert report["training_input_summary"]["combined"]["records_total"] == 12
+
+
+def test_preflight_accepts_prior_selection_manifest(tmp_path: Path) -> None:
+    prior_source = tmp_path / "prior_source"
+    prior_manifest_root = tmp_path / "prior_manifest_root"
+    evaluation = tmp_path / "evaluation"
+    prior_manifest_root.mkdir()
+    _write_logs(prior_source, prefix="prior", seed=301)
+    _write_logs(evaluation, prefix="eval", seed=401)
+    prior_logs = sorted(prior_source.rglob("camp_selection_log.json"))
+    manifest = {
+        "schema_version": MANIFEST_SCHEMA_VERSION,
+        "selection_log_count": len(prior_logs),
+        "records_total": 6,
+        "entries": [
+            {
+                "source": "prior",
+                "path": str(path),
+                "relative_path": str(path.relative_to(prior_source)),
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "records": 3,
+            }
+            for path in prior_logs
+        ],
+    }
+    manifest_path = tmp_path / "prior_manifest.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    trainer = _trainer(tmp_path / "train_diffusion_planner_static_camp.py")
+    audit = _audit(tmp_path / "audit.md")
+
+    report = build_report(
+        prior_output_dir=prior_manifest_root,
+        prior_selection_manifest_json=manifest_path,
+        evaluation_output_dir=evaluation,
+        trainer_py=trainer,
+        v13_audit_md=audit,
+        planned_training_output_dir=tmp_path / "planned_training",
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        expected_prior_selection_log_count=2,
+        expected_evaluation_selection_log_count=2,
+        expected_prior_records=6,
+        expected_evaluation_records=6,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["source_paths"]["prior_selection_manifest_json"] == str(manifest_path.resolve())
+    assert report["training_input_summary"]["prior"]["route_records"] == {
+        "sample_normal": 3,
+        "sample_tl": 3,
+    }
+    assert report["selection_manifest"]["prior_selection_manifest_json"] == str(
+        manifest_path.resolve()
+    )
 
 
 def test_preflight_rejects_wrong_audit_scope(tmp_path: Path) -> None:

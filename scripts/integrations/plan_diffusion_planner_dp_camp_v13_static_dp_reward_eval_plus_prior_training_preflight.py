@@ -108,6 +108,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         )
     )
     parser.add_argument("--prior_output_dir", type=Path, required=True)
+    parser.add_argument("--prior_selection_manifest_json", type=Path, default=None)
     parser.add_argument("--evaluation_output_dir", type=Path, required=True)
     parser.add_argument("--trainer_py", type=Path, required=True)
     parser.add_argument("--v13_audit_md", type=Path, required=True)
@@ -153,6 +154,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     report = build_report(
         prior_output_dir=args.prior_output_dir,
+        prior_selection_manifest_json=args.prior_selection_manifest_json,
         evaluation_output_dir=args.evaluation_output_dir,
         trainer_py=args.trainer_py,
         v13_audit_md=args.v13_audit_md,
@@ -205,6 +207,7 @@ def main(argv: list[str] | None = None) -> int:
 def build_report(
     *,
     prior_output_dir: Path,
+    prior_selection_manifest_json: Path | None = None,
     evaluation_output_dir: Path,
     trainer_py: Path,
     v13_audit_md: Path,
@@ -234,6 +237,11 @@ def build_report(
     enabled: bool = False,
 ) -> dict[str, Any]:
     prior_output_dir = prior_output_dir.resolve()
+    prior_selection_manifest_json = (
+        prior_selection_manifest_json.resolve()
+        if prior_selection_manifest_json is not None
+        else None
+    )
     evaluation_output_dir = evaluation_output_dir.resolve()
     trainer_py = trainer_py.resolve()
     v13_audit_md = v13_audit_md.resolve()
@@ -260,6 +268,11 @@ def build_report(
         },
         "source_paths": {
             "prior_output_dir": str(prior_output_dir),
+            "prior_selection_manifest_json": (
+                str(prior_selection_manifest_json)
+                if prior_selection_manifest_json is not None
+                else None
+            ),
             "evaluation_output_dir": str(evaluation_output_dir),
             "trainer_py": str(trainer_py),
             "v13_audit_md": str(v13_audit_md),
@@ -288,7 +301,17 @@ def build_report(
     if not enabled:
         return report
 
-    prior_logs = _selection_logs(prior_output_dir)
+    prior_manifest = (
+        _load_selection_manifest(prior_selection_manifest_json)
+        if prior_selection_manifest_json is not None
+        else {}
+    )
+    prior_manifest_relative_paths = _manifest_relative_paths(prior_manifest)
+    prior_logs = (
+        _selection_logs_from_manifest(prior_manifest)
+        if prior_selection_manifest_json is not None
+        else _selection_logs(prior_output_dir)
+    )
     eval_logs = _selection_logs(evaluation_output_dir)
     all_logs = prior_logs + eval_logs
     trainer_text = _read_text(trainer_py)
@@ -302,6 +325,7 @@ def build_report(
         prior_logs=prior_logs,
         eval_logs=eval_logs,
         prior_output_dir=prior_output_dir,
+        prior_relative_paths=prior_manifest_relative_paths,
         evaluation_output_dir=evaluation_output_dir,
         reward_key=reward_key,
         reward_progress_weight=reward_progress_weight,
@@ -309,6 +333,8 @@ def build_report(
     overlap = _tensor_overlap(prior_logs, eval_logs)
     selection_manifest = _selection_manifest(
         prior_output_dir=prior_output_dir,
+        prior_selection_manifest_json=prior_selection_manifest_json,
+        prior_relative_paths=prior_manifest_relative_paths,
         evaluation_output_dir=evaluation_output_dir,
         prior_logs=prior_logs,
         eval_logs=eval_logs,
@@ -348,6 +374,8 @@ def build_report(
 
     checks = _checks(
         prior_output_dir=prior_output_dir,
+        prior_selection_manifest_json=prior_selection_manifest_json,
+        prior_manifest=prior_manifest,
         evaluation_output_dir=evaluation_output_dir,
         trainer_py=trainer_py,
         v13_audit_md=v13_audit_md,
@@ -394,6 +422,8 @@ def build_report(
 def _checks(
     *,
     prior_output_dir: Path,
+    prior_selection_manifest_json: Path | None,
+    prior_manifest: dict[str, Any],
     evaluation_output_dir: Path,
     trainer_py: Path,
     v13_audit_md: Path,
@@ -434,6 +464,42 @@ def _checks(
         _expect("current_dp_head_fixed", current_dp_head, FIXED_DP_HEAD),
         _expect("required_dp_head_fixed", required_dp_head, FIXED_DP_HEAD),
         _check("prior_output_dir_exists", prior_output_dir.is_dir(), str(prior_output_dir), "directory exists"),
+        _check(
+            "prior_selection_manifest_exists",
+            prior_selection_manifest_json is None or prior_selection_manifest_json.is_file(),
+            str(prior_selection_manifest_json)
+            if prior_selection_manifest_json is not None
+            else None,
+            "file exists when provided",
+        ),
+        _check(
+            "prior_selection_manifest_schema",
+            prior_selection_manifest_json is None
+            or prior_manifest.get("schema_version") == MANIFEST_SCHEMA_VERSION,
+            prior_manifest.get("schema_version")
+            if prior_selection_manifest_json is not None
+            else None,
+            MANIFEST_SCHEMA_VERSION,
+        ),
+        _check(
+            "prior_selection_manifest_log_count",
+            prior_selection_manifest_json is None
+            or int(prior_manifest.get("selection_log_count", -1))
+            == expected_prior_selection_log_count,
+            prior_manifest.get("selection_log_count")
+            if prior_selection_manifest_json is not None
+            else None,
+            expected_prior_selection_log_count,
+        ),
+        _check(
+            "prior_selection_manifest_records_total",
+            prior_selection_manifest_json is None
+            or int(prior_manifest.get("records_total", -1)) == expected_prior_records,
+            prior_manifest.get("records_total")
+            if prior_selection_manifest_json is not None
+            else None,
+            expected_prior_records,
+        ),
         _check("evaluation_output_dir_exists", evaluation_output_dir.is_dir(), str(evaluation_output_dir), "directory exists"),
         _check("trainer_py_exists", trainer_py.is_file(), str(trainer_py), "file exists"),
         _check("v13_audit_exists", v13_audit_md.is_file(), str(v13_audit_md), "file exists"),
@@ -493,6 +559,7 @@ def _summarize_sources(
     prior_logs: list[Path],
     eval_logs: list[Path],
     prior_output_dir: Path,
+    prior_relative_paths: dict[str, str],
     evaluation_output_dir: Path,
     reward_key: str,
     reward_progress_weight: float,
@@ -500,6 +567,7 @@ def _summarize_sources(
     prior = _summarize_records(
         logs=prior_logs,
         root=prior_output_dir,
+        relative_paths=prior_relative_paths,
         reward_key=reward_key,
         reward_progress_weight=reward_progress_weight,
     )
@@ -517,6 +585,7 @@ def _summarize_records(
     *,
     logs: list[Path],
     root: Path,
+    relative_paths: dict[str, str] | None = None,
     reward_key: str,
     reward_progress_weight: float,
 ) -> dict[str, Any]:
@@ -544,7 +613,8 @@ def _summarize_records(
     tensor_hash_count = 0
 
     for log_path in logs:
-        meta = _metadata_from_log_path(log_path, root)
+        relative_hint = _dict(relative_paths).get(str(log_path))
+        meta = _metadata_from_log_path(log_path, root, relative_path=relative_hint)
         for record in _load_json_list(log_path):
             records_total += 1
             route_records[meta["route"]] += 1
@@ -674,6 +744,8 @@ def _merge_summaries(left: dict[str, Any], right: dict[str, Any]) -> dict[str, A
 def _selection_manifest(
     *,
     prior_output_dir: Path,
+    prior_selection_manifest_json: Path | None,
+    prior_relative_paths: dict[str, str],
     evaluation_output_dir: Path,
     prior_logs: list[Path],
     eval_logs: list[Path],
@@ -688,11 +760,16 @@ def _selection_manifest(
     ):
         for path in logs:
             rows = _load_json_list(path)
+            relative_path = (
+                prior_relative_paths.get(str(path))
+                if source == "prior"
+                else None
+            )
             entries.append(
                 {
                     "source": source,
                     "path": str(path),
-                    "relative_path": str(path.relative_to(root)),
+                    "relative_path": relative_path or _relative_to_root(path, root),
                     "sha256": _sha256(path),
                     "records": len(rows),
                 }
@@ -702,6 +779,11 @@ def _selection_manifest(
         "camp_head": current_camp_head,
         "dp_head": current_dp_head,
         "prior_output_dir": str(prior_output_dir),
+        "prior_selection_manifest_json": (
+            str(prior_selection_manifest_json)
+            if prior_selection_manifest_json is not None
+            else None
+        ),
         "evaluation_output_dir": str(evaluation_output_dir),
         "selection_log_count": len(entries),
         "records_total": input_summary["combined"]["records_total"],
@@ -993,6 +1075,49 @@ def _selection_logs(root: Path) -> list[Path]:
     return sorted(root.rglob("camp_selection_log.json")) if root.exists() else []
 
 
+def _load_selection_manifest(path: Path) -> dict[str, Any]:
+    loaded = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(loaded, dict):
+        raise ValueError(f"{path} must contain a JSON object.")
+    return loaded
+
+
+def _selection_logs_from_manifest(manifest: dict[str, Any]) -> list[Path]:
+    entries = manifest.get("entries")
+    if not isinstance(entries, list):
+        return []
+    paths: list[Path] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        value = entry.get("path")
+        if isinstance(value, str):
+            paths.append(Path(value))
+    return sorted(paths)
+
+
+def _manifest_relative_paths(manifest: dict[str, Any]) -> dict[str, str]:
+    entries = manifest.get("entries")
+    if not isinstance(entries, list):
+        return {}
+    relative_paths: dict[str, str] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        path = entry.get("path")
+        relative_path = entry.get("relative_path")
+        if isinstance(path, str) and isinstance(relative_path, str):
+            relative_paths[str(Path(path))] = relative_path
+    return relative_paths
+
+
+def _relative_to_root(path: Path, root: Path) -> str:
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
+
+
 def _load_json_list(path: Path) -> list[dict[str, Any]]:
     loaded = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, list) or not all(isinstance(row, dict) for row in loaded):
@@ -1008,11 +1133,19 @@ def _candidate_count(record: dict[str, Any]) -> int:
     return len(atoms) if isinstance(atoms, list) else 0
 
 
-def _metadata_from_log_path(path: Path, root: Path) -> dict[str, Any]:
-    try:
-        parts = path.relative_to(root).parts
-    except ValueError:
-        parts = path.parts
+def _metadata_from_log_path(
+    path: Path,
+    root: Path,
+    *,
+    relative_path: str | None = None,
+) -> dict[str, Any]:
+    if relative_path:
+        parts = Path(relative_path).parts
+    else:
+        try:
+            parts = path.relative_to(root).parts
+        except ValueError:
+            parts = path.parts
     route = parts[0] if len(parts) >= 1 else "unknown"
     seed: int | None = None
     for part in parts:
