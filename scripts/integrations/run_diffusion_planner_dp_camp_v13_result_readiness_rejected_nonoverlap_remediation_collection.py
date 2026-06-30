@@ -174,6 +174,8 @@ def run_collection(
         artifact_dir=artifact_dir,
         template_path=runtime_manifest_template_json,
         heads=heads,
+        previous_training_output_dir=previous_training_output_dir,
+        previous_training_summary_json=previous_training_summary_json,
     )
     routes = _default_routes(assets_dir)
     commands = _planned_commands(
@@ -965,6 +967,8 @@ def _write_runtime_manifest(
     artifact_dir: Path,
     template_path: Path,
     heads: dict[str, str],
+    previous_training_output_dir: Path,
+    previous_training_summary_json: Path,
 ) -> Path:
     payload = _read_json_dict(template_path)
     payload["schema_version"] = "dp_camp_v13_default_off_shadow_selector_runtime_v1"
@@ -982,11 +986,36 @@ def _write_runtime_manifest(
     payload["dp_modification_authorized"] = False
     payload["safety_benefit_claim_authorized"] = False
     payload["camp_over_dp_top1_claim_authorized"] = False
+    atom_scales = previous_training_output_dir / "atom_scales_dp_static.json"
+    static_weights = previous_training_output_dir / "offline_weights_dp_static.npy"
+    payload["artifacts"] = {
+        "atom_scales": _runtime_artifact_manifest_entry(
+            "atom_scales",
+            atom_scales,
+        ),
+        "static_weights": _runtime_artifact_manifest_entry(
+            "static_weights",
+            static_weights,
+        ),
+    }
+    payload["training_summary"] = _runtime_artifact_manifest_entry(
+        "training_summary",
+        previous_training_summary_json,
+    )
     runtime_dir = artifact_dir / "runtime"
     runtime_dir.mkdir(parents=True, exist_ok=True)
     output = runtime_dir / "dp_camp_v13_nonoverlap_remediation_static_shadow_manifest_runtime.json"
     _write_json(output, payload)
     return output
+
+
+def _runtime_artifact_manifest_entry(logical_name: str, path: Path) -> dict[str, Any]:
+    return {
+        "logical_name": logical_name,
+        "path": str(path),
+        "required": True,
+        "sha256": _sha256(path) if path.is_file() else None,
+    }
 
 
 def _git(args: list[str], cwd: Path) -> str:

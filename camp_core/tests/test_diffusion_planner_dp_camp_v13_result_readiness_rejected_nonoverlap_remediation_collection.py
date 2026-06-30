@@ -133,3 +133,55 @@ def test_scope_plan_uses_parameterized_authorized_next_work(tmp_path: Path) -> N
         payload["authorized_next_if_passed"]
         == "dp_camp_v13_fresh_nonoverlap_dp_native_development_collection_execution_only"
     )
+
+
+def test_runtime_manifest_rebinds_current_training_artifacts(tmp_path: Path) -> None:
+    template = tmp_path / "template.json"
+    template.write_text(
+        json.dumps(
+            {
+                "artifacts": {
+                    "atom_scales": {
+                        "logical_name": "atom_scales",
+                        "path": "/old/atom_scales.json",
+                        "required": True,
+                        "sha256": "old",
+                    },
+                    "static_weights": {
+                        "logical_name": "static_weights",
+                        "path": "/old/weights.npy",
+                        "required": True,
+                        "sha256": "old",
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    training = tmp_path / "training"
+    training.mkdir()
+    atom_scales = training / "atom_scales_dp_static.json"
+    static_weights = training / "offline_weights_dp_static.npy"
+    summary = training / "training_summary.json"
+    atom_scales.write_text('{"ok": true}\n', encoding="utf-8")
+    static_weights.write_bytes(b"weights")
+    summary.write_text('{"selection_logs": []}\n', encoding="utf-8")
+
+    manifest = remediation._write_runtime_manifest(
+        artifact_dir=tmp_path / "artifact",
+        template_path=template,
+        heads={
+            "camp_head": "abc",
+            "camp_origin_main": "abc",
+            "dp_head": remediation.FIXED_DP_HEAD,
+        },
+        previous_training_output_dir=training,
+        previous_training_summary_json=summary,
+    )
+
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    assert payload["artifacts"]["atom_scales"]["path"] == str(atom_scales)
+    assert payload["artifacts"]["static_weights"]["path"] == str(static_weights)
+    assert payload["artifacts"]["atom_scales"]["sha256"] != "old"
+    assert payload["artifacts"]["static_weights"]["sha256"] != "old"
+    assert payload["training_summary"]["path"] == str(summary)
