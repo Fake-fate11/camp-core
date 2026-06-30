@@ -5099,7 +5099,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5145,7 +5145,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5199,7 +5199,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5274,7 +5274,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5338,7 +5338,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5404,7 +5404,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5463,7 +5463,7 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5529,7 +5529,7 @@ def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5593,7 +5593,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_static_contra
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5664,7 +5664,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5734,7 +5734,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5802,7 +5802,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5859,7 +5859,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -5939,7 +5939,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6012,7 +6012,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6102,7 +6102,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6181,7 +6181,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6271,7 +6271,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6347,7 +6347,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6431,7 +6431,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6516,7 +6516,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6597,7 +6597,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6675,7 +6675,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6739,7 +6739,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6779,7 +6779,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_latest_au
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6841,7 +6841,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -6937,7 +6937,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_smoke_execution_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -7037,7 +7037,7 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
 
 
 def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -> None:
@@ -7154,7 +7154,7 @@ def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -7249,7 +7249,7 @@ def test_v13_current_source_large_retraining_result_review_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
 
 
 def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned() -> None:
@@ -7335,7 +7335,7 @@ def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned()
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
 
 
 def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned() -> None:
@@ -7432,7 +7432,7 @@ def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -7536,7 +7536,7 @@ def test_v13_current_source_large_default_off_shadow_selector_static_contract_pl
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -7634,7 +7634,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_pla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -7729,7 +7729,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_sta
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -7819,7 +7819,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -7890,7 +7890,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -7992,7 +7992,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8083,7 +8083,7 @@ def test_v13_current_source_large_default_off_shadow_selector_post_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8185,7 +8185,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8277,7 +8277,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8371,7 +8371,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8449,7 +8449,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8533,7 +8533,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8612,7 +8612,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8691,7 +8691,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8766,7 +8766,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8853,7 +8853,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -8936,7 +8936,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9032,7 +9032,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9137,7 +9137,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9233,7 +9233,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9277,7 +9277,7 @@ def test_v13_current_source_large_runtime_shadow_replay_preflight_35ccbab_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9322,7 +9322,7 @@ def test_v13_current_source_large_runtime_shadow_replay_execution_d9eddbd_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9382,7 +9382,7 @@ def test_v13_current_source_large_result_review_broader_preflight_ed47895_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9457,7 +9457,7 @@ def test_v13_current_source_large_broader_shadow_replay_execution_8641135_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9524,7 +9524,7 @@ def test_v13_current_source_large_broader_shadow_replay_training_readiness_b422c
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9607,7 +9607,7 @@ def test_v13_current_source_large_broader_static_dp_reward_training_763a80b_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9678,7 +9678,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9753,7 +9753,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9830,7 +9830,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -9925,7 +9925,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_preflight_5fa0dc0_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_training_execution_f252502_is_pinned() -> None:
@@ -10000,7 +10000,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_execution_f252502_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+    assert latest_status == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_preflight_5c196e8_is_pinned() -> None:
@@ -10075,7 +10075,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10130,7 +10130,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10193,7 +10193,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10263,7 +10263,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10320,7 +10320,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10382,7 +10382,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10447,7 +10447,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10516,7 +10516,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10590,7 +10590,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10661,7 +10661,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10729,7 +10729,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10791,7 +10791,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10855,7 +10855,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -10930,7 +10930,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11005,7 +11005,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11085,7 +11085,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11162,7 +11162,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11245,7 +11245,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11314,7 +11314,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11383,7 +11383,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11466,7 +11466,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11545,7 +11545,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11611,7 +11611,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11672,7 +11672,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11733,7 +11733,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11809,7 +11809,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_training_artifa
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11882,7 +11882,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_training_artifa
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -11943,7 +11943,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -12014,7 +12014,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -12057,7 +12057,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
         "v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_training_artifact_shadow_replay_evaluation_static_dp_reward_training_artifact_shadow_replay_evaluation_result_readiness_static_dp_reward_training_preflight_authorized_next=False",
         "v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_training_artifact_shadow_replay_evaluation_static_dp_reward_training_artifact_shadow_replay_evaluation_result_readiness_static_dp_reward_training_execution_authorized_next=False",
         "v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_training_artifact_shadow_replay_evaluation_static_dp_reward_training_artifact_shadow_replay_evaluation_result_readiness_training_preflight_rejected_because_previous_overlap=True",
-        "current_v13_status=result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready",
+        "current_v13_status=result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed",
         "current_v13_next_scope=none_failed_gate_requires_user_review_or_nonoverlap_remediation_plan_authorization",
         "static_dp_reward_training_preflight_authorized=False",
         "training_execution_authorized_by_current_boundary=False",
@@ -12077,7 +12077,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
@@ -12147,7 +12147,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
         "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_local_py_compile=passed",
         "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_local_pytest_target=blocked_by_unrelated_windows_missing_long_path_collection_error",
         "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_local_direct_target_test_functions=passed_count_221",
-        "current_v13_status=result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready",
+        "current_v13_status=result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed",
         "current_v13_next_scope=none_static_dp_reward_training_execution_requires_explicit_user_authorization",
         "static_dp_reward_training_execution_authorized=False",
         "training_execution_authorized_by_current_boundary=False",
@@ -12168,7 +12168,98 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_ready"
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
+    )
+
+
+def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_status=static_dp_reward_training_execution_static_audit_passed",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_artifact=/root/autodl-tmp/camp_dp_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_b333972366_20260630T134001CST",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_preflight_artifact=/root/autodl-tmp/camp_dp_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_preflight_590144658c_20260630T121210CST",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_training_output_dir=/root/autodl-tmp/camp_dp_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_590144658c_20260630T121210CST/training",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_training_summary_json=/root/autodl-tmp/camp_dp_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_590144658c_20260630T121210CST/training/training_summary.json",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_static_weights=/root/autodl-tmp/camp_dp_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_590144658c_20260630T121210CST/training/offline_weights_dp_static.npy",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_atom_scales=/root/autodl-tmp/camp_dp_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_590144658c_20260630T121210CST/training/atom_scales_dp_static.json",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_camp_head=b333972366fae522f67d0c37103b393b990f45b0",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_heads_sha256=e8d16240792822a6c0f690c29e25dca2d281f82a636862041e4c1efafbc9fe5d",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_training_command_plan_sha256=a7d404fca1a9498f59487ecbc6354edd5987dee3dfc8d28c432a860993e36600",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_selection_manifest_sha256=4d5dde119d8a23fc9341ce975f856238d32e591c26a8b7256c0fd830ffdc7c90",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_execution_runbook_sha256=68d05bba748f99126ea64cda536df1e55d706a8cdb7e8bff250097da6febc094",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_stdout_sha256=cf0645828d1dca2f8bf6044dd6c5e8d61f4c869762099c4d567ae1990b5209c8",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_static_audit_json_sha256=3880ce72108e8ca9de9e06f13532930188d92ba9e8f17b6212a949742c0e6dcd",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_static_audit_md_sha256=96c1bed487a1ba4b25c60f626e7166275e32942c2c6032783a130849988353b2",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_training_summary_sha256=ec5f5f5b05b1df8a4fca0a3e2538c8fc2698c08617d39fd44285b05bea0bb562",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_static_weights_sha256=20806fd9421a655a598a61418627b9dd28473728bb45151bf8744f43dad89e47",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_atom_scales_sha256=d6d1e4c462339ca05198c457539fcc4c7ff22189289227e2f031346ca1d7065f",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_exit=0",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_static_audit_passed=True",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_static_audit_failed_checks=[]",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_selection_log_count=224",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_contract_records=22400",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_dp_native_contract_passed=True",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_trained_records=19135",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_dropped_records_without_feasible_candidate=3265",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_num_candidates=8",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_num_atoms=14",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_atom_schema_version=dp_camp_v10_14d",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_label_source=dp_reward",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_reward_key=quality_without_progress",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_reward_progress_weight=2.0",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_oracle_match_rate=0.1765351450222106",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_weights_len=14",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_weights_sum=0.9999999999999999",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_weights_all_finite=True",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_weights_nonnegative=True",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_weights_simplex_close=True",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_atom_scales_count=14",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_atom_scales_strictly_positive=True",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_training_executed=True",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_replay_executed=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_candidate_generation_executed=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_candidate_generation_by_camp_executed=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_dp_modification_executed=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_reference_blend_used=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_guidance_used=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_postprocess_or_postselection_used=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_closed_loop_outcome_used=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_selector_promotion_authorized=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_safety_benefit_claim_authorized=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_camp_over_dp_top1_claim_authorized=False",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_candidate_operation=fixed DP candidate reranking only",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_score_expression=score_k(w)=a_k^T w",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_simplex_cvar_l2_master_convexity_preserved=True",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_local_py_compile=passed",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_local_pytest_target=blocked_by_unrelated_windows_missing_long_path_collection_error",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_local_direct_audit_test_functions=passed_count_211",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_local_direct_training_preflight_tests=fixture_tests_skipped_passed_0_skipped_9_failed_0",
+        "v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_local_direct_collection_tests=partial_passed_1_skipped_1_failed_0",
+        "current_v13_status=result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed",
+        "current_v13_next_scope=current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_preflight_only",
+        "static_dp_reward_training_artifact_shadow_replay_evaluation_preflight_authorized=True",
+        "training_execution_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_preflight_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "result_readiness_rejected_nonoverlap_remediation_static_dp_reward_training_execution_passed"
     )
 
 
