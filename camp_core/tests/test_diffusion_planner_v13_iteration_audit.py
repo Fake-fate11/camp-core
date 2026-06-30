@@ -13184,6 +13184,58 @@ def test_v13_current_source_split_policy_holdout_consumption_decision_is_pinned(
     assert latest_status == "split_policy_holdout_consumption_decision_passed"
 
 
+def test_v13_current_source_split_policy_holdout_consumption_decision_sync_validation_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_status=split_policy_holdout_consumption_decision_sync_validated",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_artifact=/root/autodl-tmp/camp_dp_v13_split_policy_holdout_consumption_decision_67775d3254_20260701T043007CST",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_artifact_camp_head=67775d32541162945c4fcfcc030fa8178e20c75a",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_local_head=d44557ba9716a09ca9f91917e633738fd6e9f97a",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_origin_main=d44557ba9716a09ca9f91917e633738fd6e9f97a",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_github_main=d44557ba9716a09ca9f91917e633738fd6e9f97a",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_autodl_camp_head=d44557ba9716a09ca9f91917e633738fd6e9f97a",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_autodl_camp_origin_main=d44557ba9716a09ca9f91917e633738fd6e9f97a",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_required_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_local_py_compile=passed",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_local_v13_audit_pytest=passed_count_235",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_autodl_py_compile=passed",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_autodl_pytest_env=conda_camp_pytest_7.1.2",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_autodl_v13_audit_pytest=passed_count_235",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_current_holdout_preserved=True",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_current_holdout_consumed=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_training_from_current_holdout_authorized=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_replay_executed=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_fixed_dp_candidate_generation_executed=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_candidate_generation_by_camp_executed=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_training_executed=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_dp_modified=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_selector_promotion_authorized=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_atom_promotion_authorized=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_deployment_authorized=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_safety_benefit_claim_authorized=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_camp_over_dp_top1_claim_authorized=False",
+        "v13_current_source_split_policy_holdout_consumption_decision_sync_validation_authorized_next_work=dp_camp_v13_fresh_nonoverlap_dp_native_development_collection_preflight_only",
+        "current_v13_status=split_policy_holdout_consumption_decision_passed",
+        "split_policy_holdout_consumption_decision_sync_validated=True",
+        "fresh_nonoverlap_dp_native_development_collection_preflight_authorized=True",
+        "training_execution_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_fresh_nonoverlap_dp_native_development_collection_preflight_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert latest_status == "split_policy_holdout_consumption_decision_passed"
+
+
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_preflight_is_pinned() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
 
