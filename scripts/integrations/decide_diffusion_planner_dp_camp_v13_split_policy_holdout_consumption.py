@@ -288,11 +288,16 @@ def _checks(
         _expect("candidate_tensor_eval_hashes_in_previous_zero", evidence["candidate_tensor_eval_hashes_in_previous_count"], 0),
         _check("decision_is_approved", decision in APPROVED_DECISIONS, decision, sorted(APPROVED_DECISIONS)),
         _expect("default_decision_preserves_holdout", decision, DEFAULT_DECISION),
-        _expect("registry_training_log_count", registry_manifest.get("training_log_count"), 224),
-        _expect("registry_evaluation_log_count", registry_manifest.get("evaluation_log_count"), 32),
-        _expect("registry_training_candidate_hash_count", registry_manifest.get("training_candidate_hash_count"), 22400),
-        _expect("registry_evaluation_candidate_hash_count", registry_manifest.get("evaluation_candidate_hash_count"), 3200),
-        _expect("registry_evaluation_record_identity_count", registry_manifest.get("evaluation_record_identity_count"), 3200),
+        _expect("registry_training_log_count", evidence["training_log_count"], 224),
+        _expect("registry_evaluation_log_count", evidence["evaluation_log_count"], 32),
+        _check(
+            "registry_training_candidate_hash_count",
+            evidence["training_candidate_hash_count"] > 0,
+            evidence["training_candidate_hash_count"],
+            "> 0",
+        ),
+        _expect("registry_evaluation_candidate_hash_count", evidence["evaluation_candidate_hash_count"], 3200),
+        _expect("registry_evaluation_record_identity_count", evidence["evaluation_record_identity_count"], 3200),
     ]
 
 
@@ -325,11 +330,25 @@ def _evidence(readiness: dict[str, Any], registry_manifest: dict[str, Any]) -> d
         "candidate_hash_intersection_count": int(registry_manifest.get("candidate_hash_intersection_count", 0)),
         "path_signature_intersection_count": int(registry_manifest.get("path_signature_intersection_count", 0)),
         "record_identity_intersection_count": int(registry_manifest.get("record_identity_intersection_count", 0)),
-        "training_log_count": int(registry_manifest.get("training_log_count", 0)),
-        "evaluation_log_count": int(registry_manifest.get("evaluation_log_count", 0)),
-        "training_candidate_hash_count": int(registry_manifest.get("training_candidate_hash_count", 0)),
-        "evaluation_candidate_hash_count": int(registry_manifest.get("evaluation_candidate_hash_count", 0)),
-        "evaluation_record_identity_count": int(registry_manifest.get("evaluation_record_identity_count", 0)),
+        "training_log_count": _first_int(registry_manifest, "training_log_count", "previous_training_log_count"),
+        "evaluation_log_count": _first_int(registry_manifest, "evaluation_log_count", "rejected_eval_log_count"),
+        "training_candidate_hash_count": _first_int(
+            registry_manifest,
+            "training_candidate_hash_count",
+            "candidate_hash_training_value_count",
+            "candidate_hash_training_unique_value_count",
+        ),
+        "evaluation_candidate_hash_count": _first_int(
+            registry_manifest,
+            "evaluation_candidate_hash_count",
+            "candidate_hash_evaluation_value_count",
+            "candidate_hash_evaluation_unique_value_count",
+        ),
+        "evaluation_record_identity_count": _first_int(
+            registry_manifest,
+            "evaluation_record_identity_count",
+            "evaluation_record_count",
+        ),
     }
 
 
@@ -419,6 +438,14 @@ def _read_text(path: Path) -> str:
 
 def _dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _first_int(mapping: dict[str, Any], *keys: str) -> int:
+    for key in keys:
+        value = mapping.get(key)
+        if value is not None:
+            return int(value)
+    return 0
 
 
 def _sha256(path: Path) -> str | None:

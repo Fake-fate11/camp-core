@@ -94,6 +94,24 @@ def _registry_manifest(*, candidate_overlap: int = 0) -> dict:
     }
 
 
+def _current_source_registry_summary(*, candidate_overlap: int = 0) -> dict:
+    return {
+        "previous_training_log_count": 224,
+        "evaluation_log_count": 32,
+        "rejected_eval_log_count": 32,
+        "candidate_hash_training_value_count": 25600,
+        "candidate_hash_training_unique_value_count": 22000,
+        "candidate_hash_evaluation_value_count": 3200,
+        "candidate_hash_evaluation_unique_value_count": 2400,
+        "evaluation_record_count": 3200,
+        "candidate_hash_intersection_count": candidate_overlap,
+        "path_signature_intersection_count": 0,
+        "record_identity_intersection_count": 0,
+        "eval_hashes_in_previous_count": 0,
+        "eval_hashes_in_previous_rate": 0.0,
+    }
+
+
 def _audit_text(
     *,
     holdout_signal: bool = True,
@@ -178,6 +196,30 @@ def test_split_policy_accepts_current_source_result_review_and_explicit_gate(tmp
     assert report["policy_decision"]["decision"] == "preserve_current_holdout"
     assert report["policy_decision"]["current_holdout_preserved"] is True
     assert report["final_decision"]["authorized_next_work"] == DEFAULT_NEXT_WORK_TARGET
+
+
+def test_split_policy_accepts_current_source_registry_summary_aliases(tmp_path: Path) -> None:
+    paths = _fixture(
+        tmp_path,
+        current_status=CURRENT_SOURCE_RESULT_REVIEW_STATUS,
+        next_work_target=GATE_NAME,
+    )
+    _write(paths["registry"], _current_source_registry_summary())
+
+    report = build_report(
+        result_readiness_json=paths["result"],
+        registry_manifest_json=paths["registry"],
+        v13_audit_md=paths["audit"],
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["passed"] is True
+    assert report["input_evidence"]["training_log_count"] == 224
+    assert report["input_evidence"]["training_candidate_hash_count"] == 25600
+    assert report["input_evidence"]["evaluation_candidate_hash_count"] == 3200
+    assert report["input_evidence"]["evaluation_record_identity_count"] == 3200
 
 
 def test_split_policy_rejects_overlap(tmp_path: Path) -> None:
