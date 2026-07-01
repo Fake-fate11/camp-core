@@ -5099,7 +5099,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5145,7 +5145,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5199,7 +5199,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5274,7 +5274,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5338,7 +5338,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5404,7 +5404,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5463,7 +5463,7 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5529,7 +5529,7 @@ def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5593,7 +5593,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_static_contra
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5664,7 +5664,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5734,7 +5734,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5802,7 +5802,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5859,7 +5859,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -5939,7 +5939,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6012,7 +6012,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6102,7 +6102,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6181,7 +6181,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6271,7 +6271,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6347,7 +6347,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6431,7 +6431,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6516,7 +6516,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6597,7 +6597,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6675,7 +6675,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6739,7 +6739,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6779,7 +6779,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_latest_au
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6841,7 +6841,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -6937,7 +6937,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_smoke_execution_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -7037,7 +7037,7 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -> None:
@@ -7154,7 +7154,7 @@ def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -7249,7 +7249,7 @@ def test_v13_current_source_large_retraining_result_review_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned() -> None:
@@ -7335,7 +7335,7 @@ def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned()
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned() -> None:
@@ -7432,7 +7432,7 @@ def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -7536,7 +7536,7 @@ def test_v13_current_source_large_default_off_shadow_selector_static_contract_pl
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -7634,7 +7634,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_pla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -7729,7 +7729,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_sta
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -7819,7 +7819,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -7890,7 +7890,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -7992,7 +7992,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8083,7 +8083,7 @@ def test_v13_current_source_large_default_off_shadow_selector_post_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8185,7 +8185,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8277,7 +8277,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8371,7 +8371,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8449,7 +8449,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8533,7 +8533,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8612,7 +8612,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8691,7 +8691,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8766,7 +8766,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8853,7 +8853,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -8936,7 +8936,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9032,7 +9032,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9137,7 +9137,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9233,7 +9233,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9277,7 +9277,7 @@ def test_v13_current_source_large_runtime_shadow_replay_preflight_35ccbab_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9322,7 +9322,7 @@ def test_v13_current_source_large_runtime_shadow_replay_execution_d9eddbd_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9382,7 +9382,7 @@ def test_v13_current_source_large_result_review_broader_preflight_ed47895_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9457,7 +9457,7 @@ def test_v13_current_source_large_broader_shadow_replay_execution_8641135_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9524,7 +9524,7 @@ def test_v13_current_source_large_broader_shadow_replay_training_readiness_b422c
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9607,7 +9607,7 @@ def test_v13_current_source_large_broader_static_dp_reward_training_763a80b_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9678,7 +9678,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9753,7 +9753,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9830,7 +9830,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -9925,7 +9925,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_preflight_5fa0dc0_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_training_execution_f252502_is_pinned() -> None:
@@ -10000,7 +10000,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_execution_f252502_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_preflight_5c196e8_is_pinned() -> None:
@@ -10075,7 +10075,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10130,7 +10130,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10193,7 +10193,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10263,7 +10263,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10320,7 +10320,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10382,7 +10382,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10447,7 +10447,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10516,7 +10516,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10590,7 +10590,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10661,7 +10661,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10729,7 +10729,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10791,7 +10791,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10855,7 +10855,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -10930,7 +10930,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11005,7 +11005,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11085,7 +11085,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11162,7 +11162,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11245,7 +11245,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11314,7 +11314,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11383,7 +11383,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11466,7 +11466,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11545,7 +11545,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11611,7 +11611,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11672,7 +11672,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11733,7 +11733,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11809,7 +11809,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_training_artifa
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11882,7 +11882,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_training_artifa
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -11943,7 +11943,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -12014,7 +12014,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -12077,7 +12077,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -12168,7 +12168,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -12266,7 +12266,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -12339,7 +12339,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -12397,7 +12397,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -12455,7 +12455,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -12516,7 +12516,7 @@ def test_v13_split_policy_holdout_consumption_decision_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_fresh_nonoverlap_dp_native_development_collection_preflight_is_pinned() -> None:
@@ -12573,7 +12573,7 @@ def test_v13_fresh_nonoverlap_dp_native_development_collection_preflight_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_fresh_nonoverlap_dp_native_development_collection_execution_is_pinned() -> None:
@@ -12639,7 +12639,7 @@ def test_v13_fresh_nonoverlap_dp_native_development_collection_execution_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_preflight_is_pinned() -> None:
@@ -12712,7 +12712,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_pr
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_eval_plus_prior_nonoverlap_training_execution_b1f9236_is_pinned() -> None:
@@ -12787,7 +12787,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_execution_b1f923
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_execution_audit_is_pinned() -> None:
@@ -12860,7 +12860,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_ex
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_preflight_is_pinned() -> None:
@@ -12921,7 +12921,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_ar
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_execution_is_pinned() -> None:
@@ -12983,7 +12983,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_ar
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_result_review_is_pinned() -> None:
@@ -13067,7 +13067,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_ar
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_split_policy_holdout_consumption_decision_is_pinned() -> None:
@@ -13181,7 +13181,7 @@ def test_v13_current_source_split_policy_holdout_consumption_decision_is_pinned(
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_split_policy_holdout_consumption_decision_sync_validation_is_pinned() -> None:
@@ -13233,7 +13233,7 @@ def test_v13_current_source_split_policy_holdout_consumption_decision_sync_valid
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_preflight_4ae1cb5_is_pinned() -> None:
@@ -13282,7 +13282,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_pr
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_python39_failure_9daef13_is_pinned() -> None:
@@ -13339,7 +13339,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_ex
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -13422,7 +13422,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_ex
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -13504,7 +13504,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_preflight_6c9cd6
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -13607,7 +13607,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_pr
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_is_pinned() -> None:
@@ -13740,7 +13740,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_ex
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_eval_plus_prior_nonoverlap_training_preflight_is_pinned() -> None:
@@ -13807,7 +13807,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_preflight_is_pin
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_replay_preflight_6599ca9_is_pinned() -> None:
@@ -13870,7 +13870,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -13938,7 +13938,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14009,7 +14009,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_preflight_d17b3e
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14088,7 +14088,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_execution_acb703
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14157,7 +14157,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14223,7 +14223,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14294,7 +14294,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14366,7 +14366,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_execution_afb3df
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14440,7 +14440,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14514,7 +14514,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14589,7 +14589,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
     )
 
 
@@ -14652,7 +14652,7 @@ def test_v13_current_source_split_policy_holdout_consumption_decision_ff5df3d_is
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
 
 
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_preflight_a082af4_is_pinned() -> None:
@@ -14731,7 +14731,99 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_pr
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_preflight_passed"
+    assert latest_status == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
+
+
+def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_1be4378_python312_nopng_is_pinned() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+
+    for needle in [
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_status=nonoverlap_remediation_readiness_passed",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_source_preflight_artifact=/root/autodl-tmp/camp_dp_v13_current_source_fresh_nonoverlap_dp_native_development_collection_preflight_a082af4cf9_20260701T090129CST",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_failed_disk_full_artifact=/root/camp_failed_artifacts/camp_dp_v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_1be4378583_py312_20260701T091756CST",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_failed_disk_full_attribution=autodl_tmp_disk_full_during_upstream_png_frame_write",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_artifact=/root/autodl-tmp/camp_dp_v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_1be4378583_py312_nopng_20260701T093114CST",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_camp_head=1be43785832159ce602104a6dcedff809fc6e4fd",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_python=/root/miniconda3/bin/python3.12",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_replay_no_png=True",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_png_file_count=0",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_heads_txt_sha256=8e68a0cfd6400c406825860169707466b71aef5617edee2af4be75201af7338d",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_sha256sums_post_execution_sha256=2619232549c4825522bb8f69deedf48729d66a7dfd5ad345a360c9926fa1d639",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_sha256sums_post_execution_check_ok_count=376",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_sha256sums_post_execution_check=passed",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_nonoverlap_readiness_json_sha256=3d199b7dd6062027243ab4536ec1b23917f87c270f70986d35b4e0546b56c8a4",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_runtime_manifest_sha256=a4e4379c2b4303050f9c45c8289caf35265cb0b59c1c369ece183490309e6e91",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_exit=0",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_passed=True",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_commands_planned=32",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_commands_completed=32",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_failed_commands=[]",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_selection_log_count=32",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_clean_contract_passed=True",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_clean_contract_records=3200",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_clean_contract_failed_records=0",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_future_training_input_contract_satisfied=True",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_records_total=3200",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_usable_feasible_records=2671",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_multi_feasible_records=2629",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_all_infeasible_records=529",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_candidate_tensor_provenance_records=3200",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_default_off_shadow_selector_valid_records=3200",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_atom_schema_versions={\"dp_camp_v10_14d\":3200}",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_candidate_count_values={\"8\":3200}",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_seed_records={\"2100\":1600,\"2101\":1600}",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_selected_index_counts={\"0\":3200}",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_executed_index_counts={\"0\":3200}",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_shadow_selected_index_counts={\"0\":155,\"1\":478,\"2\":363,\"3\":380,\"4\":407,\"5\":566,\"6\":405,\"7\":446}",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_shadow_differs_from_dp_top1_records=3045",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_candidate_hash_training_value_count=38400",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_candidate_hash_evaluation_value_count=3200",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_candidate_hash_intersection_count=0",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_path_signature_intersection_count=0",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_record_identity_intersection_count=0",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_candidate_tensor_eval_hashes_in_previous_count=0",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_split_manifest_root_intersection_count=0",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_runtime_manifest_candidate_operation=fixed DP candidate reranking only",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_runtime_manifest_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_runtime_manifest_default_off=True",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_runtime_manifest_executed_output_policy=dp_top1",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_replay_executed=True",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_fixed_dp_candidate_generation_executed=True",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_candidate_generation_by_camp_executed=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_trajectory_modification_by_camp_executed=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_training_executed=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_dp_modified=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_reference_blend_used=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_guidance_used=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_postprocess_or_postselection_used=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_closed_loop_outcome_used=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_selector_promotion_authorized=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_atom_promotion_authorized=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_deployment_authorized=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_safety_benefit_claim_authorized=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_camp_over_dp_top1_claim_authorized=False",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_candidate_operation=fixed DP candidate reranking only",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_authorized_next_work=dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_preflight_only",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_local_py_compile=passed",
+        "v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_local_v13_audit_direct_import_tests=passed_count_246",
+        "current_v13_status=fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed",
+        "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed=True",
+        "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_preflight_authorized=True",
+        "training_execution_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_preflight_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "fresh_nonoverlap_dp_native_development_collection_execution_python312_nopng_passed"
+    )
 
 
 def test_v12_audit_points_forward_to_v13() -> None:
