@@ -5099,7 +5099,7 @@ def test_v13_current_source_default_off_shadow_selector_runtime_shadow_replay_pr
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5145,7 +5145,7 @@ def test_v13_current_source_shadow_replay_reward_config_fail_closed_and_prefligh
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5199,7 +5199,7 @@ def test_v13_current_source_shadow_replay_model_args_preflight_and_smoke_executi
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5274,7 +5274,7 @@ def test_v13_current_source_retraining_execution_is_audited_without_promotion() 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5338,7 +5338,7 @@ def test_v13_current_source_retraining_post_training_audits_are_pinned() -> None
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5404,7 +5404,7 @@ def test_v13_current_source_retraining_result_review_is_pinned() -> None:
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5463,7 +5463,7 @@ def test_v13_current_source_retraining_promotion_decision_plan_is_pinned() -> No
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5529,7 +5529,7 @@ def test_v13_current_source_retraining_promotion_evidence_package_preflight_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5593,7 +5593,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_static_contra
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5664,7 +5664,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5734,7 +5734,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5802,7 +5802,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5859,7 +5859,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -5939,7 +5939,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6012,7 +6012,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_post_implemen
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6102,7 +6102,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6181,7 +6181,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6271,7 +6271,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6347,7 +6347,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6431,7 +6431,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6516,7 +6516,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_artifact_mani
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6597,7 +6597,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6675,7 +6675,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6739,7 +6739,7 @@ def test_v13_current_source_retraining_default_off_shadow_selector_runtime_artif
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6779,7 +6779,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_latest_au
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6841,7 +6841,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -6937,7 +6937,7 @@ def test_v13_current_source_retraining_runtime_shadow_replay_smoke_execution_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -7037,7 +7037,7 @@ def test_v13_current_source_large_retraining_execution_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -> None:
@@ -7154,7 +7154,7 @@ def test_v13_current_source_large_retraining_post_training_audits_are_pinned() -
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -7249,7 +7249,7 @@ def test_v13_current_source_large_retraining_result_review_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned() -> None:
@@ -7335,7 +7335,7 @@ def test_v13_current_source_large_retraining_promotion_decision_plan_is_pinned()
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned() -> None:
@@ -7432,7 +7432,7 @@ def test_v13_current_source_large_promotion_evidence_package_preflight_is_pinned
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -7536,7 +7536,7 @@ def test_v13_current_source_large_default_off_shadow_selector_static_contract_pl
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -7634,7 +7634,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_pla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -7729,7 +7729,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_sta
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -7819,7 +7819,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -7890,7 +7890,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_uni
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -7992,7 +7992,7 @@ def test_v13_current_source_large_default_off_shadow_selector_implementation_is_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8083,7 +8083,7 @@ def test_v13_current_source_large_default_off_shadow_selector_post_implementatio
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8185,7 +8185,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8277,7 +8277,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8371,7 +8371,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8449,7 +8449,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8533,7 +8533,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8612,7 +8612,7 @@ def test_v13_current_source_large_default_off_shadow_selector_artifact_manifest_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8691,7 +8691,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8766,7 +8766,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8853,7 +8853,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_artifact_m
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -8936,7 +8936,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9032,7 +9032,7 @@ def test_v13_current_source_large_default_off_shadow_selector_runtime_shadow_rep
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9137,7 +9137,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9233,7 +9233,7 @@ def test_v13_current_source_large_default_off_shadow_selector_broader_nonformal_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9277,7 +9277,7 @@ def test_v13_current_source_large_runtime_shadow_replay_preflight_35ccbab_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9322,7 +9322,7 @@ def test_v13_current_source_large_runtime_shadow_replay_execution_d9eddbd_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9382,7 +9382,7 @@ def test_v13_current_source_large_result_review_broader_preflight_ed47895_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9457,7 +9457,7 @@ def test_v13_current_source_large_broader_shadow_replay_execution_8641135_is_pin
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9524,7 +9524,7 @@ def test_v13_current_source_large_broader_shadow_replay_training_readiness_b422c
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9607,7 +9607,7 @@ def test_v13_current_source_large_broader_static_dp_reward_training_763a80b_is_p
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9678,7 +9678,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9753,7 +9753,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9830,7 +9830,7 @@ def test_v13_current_source_large_broader_static_dp_reward_artifact_shadow_repla
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -9925,7 +9925,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_preflight_5fa0dc0_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_training_execution_f252502_is_pinned() -> None:
@@ -10000,7 +10000,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_execution_f252502_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_evaluation_preflight_5c196e8_is_pinned() -> None:
@@ -10075,7 +10075,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10130,7 +10130,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10193,7 +10193,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10263,7 +10263,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10320,7 +10320,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10382,7 +10382,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10447,7 +10447,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10516,7 +10516,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10590,7 +10590,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10661,7 +10661,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10729,7 +10729,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10791,7 +10791,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10855,7 +10855,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -10930,7 +10930,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11005,7 +11005,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11085,7 +11085,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11162,7 +11162,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11245,7 +11245,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11314,7 +11314,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11383,7 +11383,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11466,7 +11466,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11545,7 +11545,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11611,7 +11611,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11672,7 +11672,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11733,7 +11733,7 @@ def test_v13_static_dp_reward_eval_plus_prior_training_artifact_shadow_replay_ev
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11809,7 +11809,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_training_artifa
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11882,7 +11882,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_training_artifa
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -11943,7 +11943,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -12014,7 +12014,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -12077,7 +12077,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_holdout_static_training
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -12168,7 +12168,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -12266,7 +12266,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -12339,7 +12339,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -12397,7 +12397,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -12455,7 +12455,7 @@ def test_v13_result_readiness_rejected_nonoverlap_remediation_static_dp_reward_t
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -12516,7 +12516,7 @@ def test_v13_split_policy_holdout_consumption_decision_is_pinned() -> None:
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_fresh_nonoverlap_dp_native_development_collection_preflight_is_pinned() -> None:
@@ -12573,7 +12573,7 @@ def test_v13_fresh_nonoverlap_dp_native_development_collection_preflight_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_fresh_nonoverlap_dp_native_development_collection_execution_is_pinned() -> None:
@@ -12639,7 +12639,7 @@ def test_v13_fresh_nonoverlap_dp_native_development_collection_execution_is_pinn
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_preflight_is_pinned() -> None:
@@ -12712,7 +12712,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_pr
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_eval_plus_prior_nonoverlap_training_execution_b1f9236_is_pinned() -> None:
@@ -12787,7 +12787,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_execution_b1f923
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_execution_audit_is_pinned() -> None:
@@ -12860,7 +12860,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_ex
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_preflight_is_pinned() -> None:
@@ -12921,7 +12921,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_ar
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_execution_is_pinned() -> None:
@@ -12983,7 +12983,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_ar
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_result_review_is_pinned() -> None:
@@ -13067,7 +13067,7 @@ def test_v13_static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_ar
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_split_policy_holdout_consumption_decision_is_pinned() -> None:
@@ -13181,7 +13181,7 @@ def test_v13_current_source_split_policy_holdout_consumption_decision_is_pinned(
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_split_policy_holdout_consumption_decision_sync_validation_is_pinned() -> None:
@@ -13233,7 +13233,7 @@ def test_v13_current_source_split_policy_holdout_consumption_decision_sync_valid
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_preflight_4ae1cb5_is_pinned() -> None:
@@ -13282,7 +13282,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_pr
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_python39_failure_9daef13_is_pinned() -> None:
@@ -13339,7 +13339,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_ex
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -13422,7 +13422,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_ex
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -13504,7 +13504,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_preflight_6c9cd6
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -13607,7 +13607,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_pr
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_is_pinned() -> None:
@@ -13740,7 +13740,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_ex
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_eval_plus_prior_nonoverlap_training_preflight_is_pinned() -> None:
@@ -13807,7 +13807,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_preflight_is_pin
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_replay_preflight_6599ca9_is_pinned() -> None:
@@ -13870,7 +13870,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -13938,7 +13938,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14009,7 +14009,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_preflight_d17b3e
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14088,7 +14088,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_execution_acb703
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14157,7 +14157,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14223,7 +14223,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14294,7 +14294,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14366,7 +14366,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_execution_afb3df
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14440,7 +14440,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14514,7 +14514,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14589,7 +14589,7 @@ def test_v13_current_source_eval_plus_prior_nonoverlap_training_artifact_shadow_
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14652,7 +14652,7 @@ def test_v13_current_source_split_policy_holdout_consumption_decision_ff5df3d_is
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_preflight_a082af4_is_pinned() -> None:
@@ -14731,7 +14731,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_pr
         assert needle in text
 
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+    assert latest_status == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
 
 
 def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_execution_1be4378_python312_nopng_is_pinned() -> None:
@@ -14822,7 +14822,7 @@ def test_v13_current_source_fresh_nonoverlap_dp_native_development_collection_ex
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
 
 
@@ -14874,11 +14874,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_remediat
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -14933,11 +14933,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_remediat
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -14995,11 +14995,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_remediat
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15055,11 +15055,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_remediat
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15119,11 +15119,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_remediat
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15180,11 +15180,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_remediat
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15240,11 +15240,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_remediat
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15298,11 +15298,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15354,11 +15354,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15428,11 +15428,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15501,11 +15501,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15582,11 +15582,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15881,11 +15881,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -15995,7 +15995,7 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -16080,11 +16080,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -16173,11 +16173,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -16271,11 +16271,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -16525,11 +16525,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -16626,11 +16626,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -16755,11 +16755,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -16883,11 +16883,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -17013,11 +17013,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -17141,11 +17141,11 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
@@ -17256,15 +17256,15 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
-def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_review_b66_is_eof() -> None:
+def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_review_b66_precedes_8d4_rejection() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V13 Static DP-Reward Eval-Plus-Prior Non-Overlap "
@@ -17278,10 +17278,16 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
         "Failure Remediation Fresh Evaluation Split Member Source "
         "Materialization Post-Implementation Static Contract Review After b66d21df"
     )
+    next_section_title = (
+        "## Current V13 Static DP-Reward Eval-Plus-Prior Non-Overlap "
+        "Remediation Training Artifact Shadow Replay Evaluation Non-Overlap "
+        "Failure Remediation Fresh Evaluation Split Member Source "
+        "Materialization-Only Rejection After 8d49f7c"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(section_title) < text.rfind(next_section_title)
 
     for needle in [
         "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_review_b66_artifact=/root/autodl-tmp/camp_dp_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_b66d21dfc2_20260702T001326CST",
@@ -17351,11 +17357,86 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_post_implementation_static_contract_review_passed"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_materialization_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
+    )
+
+
+def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_rejection_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V13 Static DP-Reward Eval-Plus-Prior Non-Overlap "
+        "Remediation Training Artifact Shadow Replay Evaluation Non-Overlap "
+        "Failure Remediation Fresh Evaluation Split Member Source "
+        "Materialization Post-Implementation Static Contract Review After b66d21df"
+    )
+    section_title = (
+        "## Current V13 Static DP-Reward Eval-Plus-Prior Non-Overlap "
+        "Remediation Training Artifact Shadow Replay Evaluation Non-Overlap "
+        "Failure Remediation Fresh Evaluation Split Member Source "
+        "Materialization-Only Rejection After 8d49f7c"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_artifact=/root/autodl-tmp/camp_dp_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d49f7cca0_20260702T004350CST",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_incomplete_wrapper_accepted_as_evidence=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_gate_wiring_fix_commit=f7017c4aa780f19326bd9ee9ff30dd1199748505",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_missing_candidate_fail_closed_fix_commit=14512582a4543726008f86aba9394ff54a75ea70",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_nested_registry_parser_fix_commit=8d49f7cca00ef2eebc24891bc4ecca404cba5ba4",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_camp_head=8d49f7cca00ef2eebc24891bc4ecca404cba5ba4",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_heads_sha256=a83239303738dfb3ec843786835bf3be4470be4e33f82b816052422ff868936e",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_command_sha256=792b59b3d1b14ebddf6fb091b17bb5a0398ab6a63ae0dc147d7de84f2148a27c",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_exit=1",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_status=dp_camp_v13_fresh_evaluation_split_member_source_materializer_rejected",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_passed=False",
+        'v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_failed_checks=["candidate_member_source_manifest_json_exists","training_split_manifest_roots_json_exists","training_split_manifest_roots_nonempty","candidate_member_source_members_nonempty","fresh_member_source_candidates_after_filters_nonempty"]',
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_candidate_member_source_manifest_structures_found=0",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_training_candidate_tensor_hash_count=28580",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_training_path_signature_count=352",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_training_record_identity_hash_count=35200",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_training_split_manifest_root_count=0",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_member_source_manifest_written=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_validation_preflight_authorized_next=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_training_execution_authorized_next=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_replay_execution_authorized_next=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_fixed_dp_candidate_generation_authorized_next=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_candidate_generation_by_camp_authorized=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_dp_modification_authorized=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_decision=reject_materialization_only_due_to_missing_candidate_member_source_manifest_and_training_split_manifest_root_registry",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_8d4_authorized_next_work=dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only",
+        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest",
+        "current_v13_artifact_scope=offline_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_only_rejected_8d49f7c",
+        "candidate_member_source_manifest_missing=True",
+        "training_split_manifest_root_registry_missing=True",
+        "training_execution_authorized_by_current_boundary=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
+    latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_rejected_missing_candidate_member_source_manifest"
+    )
+    assert (
+        latest_target
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_materialization_failure_remediation_plan_only"
     )
 
 
