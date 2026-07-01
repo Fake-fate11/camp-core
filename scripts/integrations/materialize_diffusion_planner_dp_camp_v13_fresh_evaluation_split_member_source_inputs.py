@@ -355,18 +355,20 @@ def build_materialization_report(
         ),
     )
     checks.extend(base._selection_checks(selection))
-    planned_outputs = base._build_outputs(
-        review_summary=review_summary,
-        candidate_member_source_manifest_json=candidate_member_source_manifest_json,
-        training_bundle=training_bundle,
-        recovered_bundle=recovered_bundle,
-        rejected_bundle=rejected_bundle,
-        selection=selection,
-        output_dir=output_dir,
-        current_camp_head=current_camp_head,
-        current_dp_head=current_dp_head,
-    )
-    checks.extend(base._output_absence_checks(planned_outputs, output_json, output_md))
+    planned_outputs: dict[str, Any] = {}
+    if candidate_member_source_manifest_json.is_file():
+        planned_outputs = base._build_outputs(
+            review_summary=review_summary,
+            candidate_member_source_manifest_json=candidate_member_source_manifest_json,
+            training_bundle=training_bundle,
+            recovered_bundle=recovered_bundle,
+            rejected_bundle=rejected_bundle,
+            selection=selection,
+            output_dir=output_dir,
+            current_camp_head=current_camp_head,
+            current_dp_head=current_dp_head,
+        )
+        checks.extend(base._output_absence_checks(planned_outputs, output_json, output_md))
 
     passed = all(check["passed"] for check in checks)
     report["checks"] = checks
@@ -381,7 +383,21 @@ def build_materialization_report(
         "rejected_overlap_source_registry": base._bundle_summary(rejected_bundle),
     }
     report["selection_summary"] = selection["summary"]
-    report["planned_outputs"] = {key: str(value["path"]) for key, value in planned_outputs.items()}
+    report["planned_outputs"] = (
+        {key: str(value["path"]) for key, value in planned_outputs.items()}
+        if planned_outputs
+        else {
+            "member_source_manifest": str(
+                output_dir / "fresh_evaluation_split_member_source_manifest.json"
+            ),
+            "nonoverlap_report": str(
+                output_dir / "fresh_evaluation_split_member_source_nonoverlap_report.json"
+            ),
+            "preflight_inputs": str(
+                output_dir / "fresh_evaluation_split_member_source_preflight_inputs.json"
+            ),
+        }
+    )
 
     if passed:
         output_dir.mkdir(parents=True, exist_ok=True)

@@ -424,6 +424,63 @@ def test_member_source_materializer_rejects_missing_registry(tmp_path: Path) -> 
     ]
 
 
+def test_member_source_materializer_rejects_missing_candidate_manifest_without_crash(
+    tmp_path: Path,
+) -> None:
+    out = tmp_path / "out"
+    review = _review(tmp_path / "review.json")
+
+    report = build_materialization_report(
+        implementation_static_contract_review_json=review,
+        expected_static_contract_review_sha256=_sha256(review),
+        candidate_member_source_manifest_json=tmp_path / "missing_candidates.json",
+        training_candidate_tensor_hash_registry_json=_registry(
+            tmp_path / "training_candidate.json",
+            ["train_cand"],
+            "candidate_tensor_hashes",
+        ),
+        training_path_signature_registry_json=_registry(
+            tmp_path / "training_path.json",
+            ["train_path"],
+            "path_signatures",
+        ),
+        training_record_identity_registry_json=_registry(
+            tmp_path / "training_record.json",
+            ["train_record"],
+            "record_identity_hashes",
+        ),
+        training_split_manifest_root_registry_json=_registry(
+            tmp_path / "training_split.json",
+            ["train_split"],
+            "split_manifest_roots",
+        ),
+        recovered_prior_registry_manifest_json=_source_registry_manifest(
+            tmp_path / "recovered" / "registry_manifest.json",
+            "recovered",
+        ),
+        rejected_overlap_source_registry_manifest_json=_source_registry_manifest(
+            tmp_path / "rejected" / "registry_manifest.json",
+            "rejected",
+        ),
+        v13_audit_md=_audit(tmp_path / "audit.md"),
+        output_dir=out,
+        output_json=out / "report.json",
+        output_md=out / "report.md",
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "candidate_member_source_manifest_json_exists" in report["final_decision"][
+        "failed_checks"
+    ]
+    assert report["planned_outputs"]["member_source_manifest"] == str(
+        out / "fresh_evaluation_split_member_source_manifest.json"
+    )
+
+
 def test_member_source_materializer_rejects_split_root_only_acceptance(
     tmp_path: Path,
 ) -> None:
