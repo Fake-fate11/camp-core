@@ -140,11 +140,12 @@ def _nonoverlap(path: Path) -> Path:
         path,
         {
             "schema_version": NONOVERLAP_REPORT_SCHEMA,
-            "all_required_intersections_zero": True,
-            "candidate_tensor_hash_intersection_count": 0,
-            "path_signature_intersection_count": 0,
-            "record_identity_intersection_count": 0,
-            "split_manifest_root_intersection_count": 0,
+            "zero_intersection_counts": {
+                "candidate_tensor_hash_intersection_count": 0,
+                "path_signature_intersection_count": 0,
+                "record_identity_intersection_count": 0,
+                "split_manifest_root_intersection_count": 0,
+            },
         },
     )
 

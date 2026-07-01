@@ -496,8 +496,9 @@ def _member_source_summary(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _nonoverlap_summary(payload: dict[str, Any]) -> dict[str, Any]:
     result = _dict(payload.get("preflight_result")) or payload
+    counts = _dict(result.get("zero_intersection_counts")) or result
     summary = {
-        key: _int(result.get(key))
+        key: _int(counts.get(key))
         for key in ZERO_INTERSECTION_KEYS
     }
     summary["schema_version"] = payload.get("schema_version")
