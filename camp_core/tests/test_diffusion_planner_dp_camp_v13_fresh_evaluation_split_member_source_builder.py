@@ -32,6 +32,10 @@ LATEST_STATUS = (
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_member_source_remediation_implementation_static_contract_review_passed"
 )
+DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION = (
+    "dp_camp_v13_default_off_shadow_selector_runtime_v1"
+)
+SCORE_EXPRESSION = "score_k(w)=a_k^T w"
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> Path:
@@ -42,6 +46,42 @@ def _write_json(path: Path, payload: dict[str, Any]) -> Path:
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _selection_log(
+    root: Path,
+    member_id: str,
+    *,
+    selected_index: int = 0,
+    executed_index: int = 0,
+    shadow_selected_index: int = 2,
+    include_selector: bool = True,
+) -> str:
+    path = root / "candidate" / member_id / "camp_selection_log.json"
+    record: dict[str, Any] = {
+        "selected_index": selected_index,
+        "executed_index": executed_index,
+        "shadow_selected_index": shadow_selected_index,
+        "num_candidates": 8,
+        "selection_scores": [float(index) for index in range(8)],
+        "selection_weights": [1.0, 0.0],
+        "selection_normalized_atoms": [[float(index), 1.0] for index in range(8)],
+    }
+    if include_selector:
+        record["default_off_shadow_selector"] = {
+            "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+            "enabled": True,
+            "default_off": True,
+            "candidate_operation": "fixed DP candidate reranking only",
+            "executed_output_policy": "dp_top1",
+            "score_expression": SCORE_EXPRESSION,
+            "selection_effect": False,
+            "online_selector_change": False,
+            "executed_index": executed_index,
+            "shadow_selected_index": shadow_selected_index,
+        }
+    _write_json(path, {"records": [record]})
+    return str(path)
 
 
 def _review(path: Path, *, mutation: Any | None = None) -> Path:
@@ -134,12 +174,13 @@ def _source_registry_manifest(path: Path, prefix: str) -> Path:
 
 
 def _candidates(path: Path, *, mutation: Any | None = None) -> Path:
+    root = path.parent
     payload = {
         "schema_version": "dp_camp_v13_fresh_member_source_candidates_v1",
         "members": [
             {
                 "member_id": "fresh-a",
-                "source_path": "/candidate/fresh-a/camp_selection_log.json",
+                "source_path": _selection_log(root, "fresh-a"),
                 "route": "sample_normal",
                 "seed": 2100,
                 "candidate_tensor_hashes": ["fresh_cand_a"],
@@ -149,7 +190,7 @@ def _candidates(path: Path, *, mutation: Any | None = None) -> Path:
             },
             {
                 "member_id": "overlap-candidate",
-                "source_path": "/candidate/overlap/camp_selection_log.json",
+                "source_path": _selection_log(root, "overlap"),
                 "route": "sample_tl",
                 "seed": 2101,
                 "candidate_tensor_hashes": ["train_cand"],
@@ -450,7 +491,7 @@ def test_member_source_builder_rejects_split_root_only_acceptance(tmp_path: Path
         payload["members"] = [
             {
                 "member_id": "root-only-would-look-clean",
-                "source_path": "/candidate/root-clean/camp_selection_log.json",
+                "source_path": _selection_log(tmp_path, "root-clean"),
                 "route": "sample_normal",
                 "seed": 2100,
                 "candidate_tensor_hashes": ["train_cand"],
@@ -470,13 +511,47 @@ def test_member_source_builder_rejects_split_root_only_acceptance(tmp_path: Path
     assert report["selection_summary"]["rejected_member_count"] == 1
 
 
+def test_member_source_builder_rejects_legacy_non_default_off_selection_log(
+    tmp_path: Path,
+) -> None:
+    def legacy_source_only(payload: dict[str, Any]) -> None:
+        payload["members"] = [
+            {
+                "member_id": "legacy-source",
+                "source_path": _selection_log(
+                    tmp_path,
+                    "legacy-source",
+                    selected_index=3,
+                    executed_index=3,
+                    include_selector=False,
+                ),
+                "route": "sample_normal",
+                "seed": 2100,
+                "candidate_tensor_hashes": ["fresh_cand_legacy"],
+                "path_signatures": ["fresh_path_legacy"],
+                "record_identity_hashes": ["fresh_record_legacy"],
+                "split_manifest_roots": ["fresh_split_legacy"],
+            }
+        ]
+
+    report = _build(tmp_path, candidate_mutation=legacy_source_only)
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "fresh_member_source_candidates_after_filters_nonempty" in report[
+        "final_decision"
+    ]["failed_checks"]
+    assert report["selection_summary"]["selected_member_count"] == 0
+    assert report["selection_summary"]["rejected_member_count"] == 1
+    assert report["selection_summary"]["rejected_default_off_contract_failed_count"] == 1
+
+
 def test_member_source_builder_rejects_rejected_source_reuse(tmp_path: Path) -> None:
     def rejected_source_only(payload: dict[str, Any]) -> None:
         payload["members"] = [
             {
                 "member_id": "rejected-source",
                 "source_role": "rejected_overlap_source",
-                "source_path": "/candidate/rejected/camp_selection_log.json",
+                "source_path": _selection_log(tmp_path, "rejected"),
                 "route": "sample_normal",
                 "seed": 2100,
                 "candidate_tensor_hashes": ["fresh_cand_c"],
@@ -498,7 +573,7 @@ def test_member_source_builder_rejects_formal_seed_and_full36(tmp_path: Path) ->
         payload["members"] = [
             {
                 "member_id": "formal",
-                "source_path": "/candidate/seed_11/full36/camp_selection_log.json",
+                "source_path": _selection_log(tmp_path, "seed_11_full36"),
                 "route": "full36",
                 "seed": 11,
                 "is_full36": True,

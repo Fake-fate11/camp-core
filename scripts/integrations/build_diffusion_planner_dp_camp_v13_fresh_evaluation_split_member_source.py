@@ -20,6 +20,9 @@ from typing import Any
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 SCORE_EXPRESSION = "score_k(w)=a_k^T w"
+DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION = (
+    "dp_camp_v13_default_off_shadow_selector_runtime_v1"
+)
 SCHEMA_VERSION = "dp_camp_v13_fresh_evaluation_split_member_source_builder_v1"
 DISABLED_STATUS = (
     "dp_camp_v13_fresh_evaluation_split_member_source_builder_default_off_disabled"
@@ -779,6 +782,7 @@ def _select_fresh_members(
             reasons.append("full36")
         if any(len(member_sets[key]) == 0 for key in member_sets):
             reasons.append("missing_member_identity_fields")
+        reasons.extend(_member_default_off_contract_errors(member))
         if reasons:
             rejected.append(
                 {
@@ -824,6 +828,15 @@ def _select_fresh_members(
             "selected_member_count": len(selected),
             "rejected_member_count": len(rejected),
             "zero_intersection_counts": zero_counts,
+            "selected_default_off_contract_failed_count": 0,
+            "rejected_default_off_contract_failed_count": sum(
+                1
+                for member in rejected
+                if any(
+                    str(reason).startswith("default_off_contract_")
+                    for reason in member.get("reasons", [])
+                )
+            ),
             "selected_formal_seed_count": sum(_member_formal_seed_count(member) for member in selected),
             "selected_full36_count": sum(1 for member in selected if _member_is_full36(member)),
             "selected_rejected_source_count": sum(
@@ -863,6 +876,7 @@ def _selection_checks(selection: dict[str, Any]) -> list[dict[str, Any]]:
         _check("rejected_overlap_source_excluded", summary["selected_rejected_source_count"] == 0, summary["selected_rejected_source_count"], 0),
         _check("formal_seeds_excluded", summary["selected_formal_seed_count"] == 0, summary["selected_formal_seed_count"], 0),
         _check("full36_excluded", summary["selected_full36_count"] == 0, summary["selected_full36_count"], 0),
+        _check("selected_default_off_contract_failures_zero", summary["selected_default_off_contract_failed_count"] == 0, summary["selected_default_off_contract_failed_count"], 0),
     ]
 
 
@@ -1153,6 +1167,98 @@ def _first_existing_reference(payload: dict[str, Any], keys: tuple[str, ...]) ->
         if isinstance(value, str) and value:
             return Path(value)
     return None
+
+
+def _member_default_off_contract_errors(member: dict[str, Any]) -> list[str]:
+    source_path_value = member.get("source_path")
+    if not isinstance(source_path_value, str) or not source_path_value:
+        return ["default_off_contract_source_path_missing"]
+    source_path = Path(source_path_value)
+    if not source_path.is_file():
+        return ["default_off_contract_source_path_not_file"]
+    records = _load_selection_records(source_path)
+    if not records:
+        return ["default_off_contract_records_missing"]
+
+    errors: set[str] = set()
+    for record in records:
+        if not isinstance(record, dict):
+            errors.add("default_off_contract_record_not_object")
+            continue
+        selected_index = _as_int(record.get("selected_index"))
+        executed_index = _as_int(record.get("executed_index"))
+        shadow_selected_index = _as_int(record.get("shadow_selected_index"))
+        candidate_count = _as_int(record.get("num_candidates"))
+        if candidate_count is None:
+            candidates = record.get("selection_scores", record.get("scores"))
+            if isinstance(candidates, list):
+                candidate_count = len(candidates)
+        if candidate_count is None:
+            candidates = record.get(
+                "selection_normalized_atoms",
+                record.get("normalized_atoms", record.get("atoms")),
+            )
+            if isinstance(candidates, list):
+                candidate_count = len(candidates)
+
+        selector = _dict(record.get("default_off_shadow_selector"))
+        if selected_index != 0:
+            errors.add("default_off_contract_selected_index_not_dp_top1")
+        if executed_index != 0:
+            errors.add("default_off_contract_executed_index_not_dp_top1")
+        if shadow_selected_index is None:
+            errors.add("default_off_contract_shadow_selected_index_missing")
+        if (
+            candidate_count is None
+            or candidate_count <= 0
+            or shadow_selected_index is None
+            or shadow_selected_index < 0
+            or shadow_selected_index >= candidate_count
+        ):
+            errors.add("default_off_contract_shadow_selected_index_out_of_range")
+        if not selector:
+            errors.add("default_off_contract_default_off_shadow_selector_missing")
+            continue
+        expected_fields = {
+            "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+            "enabled": True,
+            "default_off": True,
+            "candidate_operation": "fixed DP candidate reranking only",
+            "executed_output_policy": "dp_top1",
+            "score_expression": SCORE_EXPRESSION,
+            "selection_effect": False,
+            "online_selector_change": False,
+        }
+        for field, expected in expected_fields.items():
+            if selector.get(field) != expected:
+                errors.add(f"default_off_contract_{field}_mismatch")
+        if _as_int(selector.get("executed_index")) != executed_index:
+            errors.add("default_off_contract_selector_executed_index_mismatch")
+        if _as_int(selector.get("shadow_selected_index")) != shadow_selected_index:
+            errors.add("default_off_contract_selector_shadow_selected_index_mismatch")
+    return sorted(errors)
+
+
+def _load_selection_records(path: Path) -> list[Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        for key in ("records", "selection_records", "steps"):
+            records = payload.get(key)
+            if isinstance(records, list):
+                return records
+    return []
+
+
+def _as_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _member_uses_rejected_source(member: dict[str, Any], rejected_manifest: str) -> bool:
