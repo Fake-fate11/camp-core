@@ -158,7 +158,7 @@ REQUIRED_PLAN_SCRIPT_TERMS = (
     "must_reject_if_no_existing_member_source_evidence",
     "must_not_synthesize_identity_hashes",
     "split_root_zero_alone_is_insufficient",
-    "materialization_failure_remediation_implementation_plan_only",
+    "failure_remediation_implementation_plan_only",
     "materialization_failure_remediation_implementation_static_contract_review_only",
     SCORE_EXPRESSION,
 )
