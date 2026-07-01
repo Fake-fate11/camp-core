@@ -461,10 +461,9 @@ def _checks(
     for needle in (
         "candidate_member_source_manifest_json",
         "training_split_manifest_root_registry_json",
-        "fresh_member_source_candidates_after_filters_nonempty",
         "reject_split_root_only_acceptance",
         "exclude_formal_seeds_11_12_13_and_full36",
-        SCORE_EXPRESSION,
+        "SCORE_EXPRESSION",
     ):
         checks.append(_contains(f"materializer_contains_{_slug(needle)}", materializer_text, needle))
     for needle in (

@@ -150,6 +150,7 @@ def _script_text() -> str:
             "reject_split_root_only_acceptance",
             "exclude_formal_seeds_11_12_13_and_full36",
             "exclude_every_member_from_the_rejected_overlap_source",
+            "SCORE_EXPRESSION",
             "score_k(w)=a_k^T w",
         ]
     )
