@@ -213,6 +213,56 @@ def test_fixed_dp_candidate_generation_implementation_plan_rejects_execution_aut
     ]["failed_checks"]
 
 
+def test_fixed_dp_candidate_generation_implementation_plan_accepts_legacy_missing_optional_flags(
+    tmp_path: Path,
+) -> None:
+    def legacy(payload: dict[str, Any]) -> None:
+        for flag in [
+            "reference_blend_authorized",
+            "guidance_authorized",
+            "postprocess_or_postselection_authorized",
+            "closed_loop_outcome_authorized",
+            "deployable_checkpoint_claim_authorized",
+        ]:
+            payload["final_decision"].pop(flag)
+
+    report = build_report(
+        static_review_json=_source_review(tmp_path / "static_review.json", mutation=legacy),
+        static_review_artifact_dir=_artifact_dir(tmp_path / "artifact"),
+        static_review_script=_source_script(tmp_path / "static_review.py"),
+        static_review_test=_source_test(tmp_path / "test_static_review.py"),
+        v13_audit_md=_audit(tmp_path / "audit.md"),
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+
+
+def test_fixed_dp_candidate_generation_implementation_plan_rejects_optional_boundary_true(
+    tmp_path: Path,
+) -> None:
+    def leak(payload: dict[str, Any]) -> None:
+        payload["final_decision"]["guidance_authorized"] = True
+
+    report = build_report(
+        static_review_json=_source_review(tmp_path / "static_review.json", mutation=leak),
+        static_review_artifact_dir=_artifact_dir(tmp_path / "artifact"),
+        static_review_script=_source_script(tmp_path / "static_review.py"),
+        static_review_test=_source_test(tmp_path / "test_static_review.py"),
+        v13_audit_md=_audit(tmp_path / "audit.md"),
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert "source_does_not_authorize_guidance_authorized" in report["final_decision"][
+        "failed_checks"
+    ]
+
+
 def test_fixed_dp_candidate_generation_implementation_plan_rejects_missing_source_contract(
     tmp_path: Path,
 ) -> None:

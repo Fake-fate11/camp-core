@@ -92,10 +92,6 @@ SOURCE_FALSE_FLAGS = (
     "candidate_generation_by_camp_authorized",
     "trajectory_generation_by_camp_authorized",
     "trajectory_modification_by_camp_authorized",
-    "reference_blend_authorized",
-    "guidance_authorized",
-    "postprocess_or_postselection_authorized",
-    "closed_loop_outcome_authorized",
     "data_preparation_authorized_next",
     "replay_execution_authorized_next",
     "training_preflight_authorized_next",
@@ -104,9 +100,15 @@ SOURCE_FALSE_FLAGS = (
     "selector_promotion_authorized",
     "atom_promotion_authorized",
     "deployment_authorized",
-    "deployable_checkpoint_claim_authorized",
     "safety_benefit_claim_authorized",
     "camp_over_dp_top1_claim_authorized",
+)
+OPTIONAL_SOURCE_BOUNDARY_FLAGS = (
+    "reference_blend_authorized",
+    "guidance_authorized",
+    "postprocess_or_postselection_authorized",
+    "closed_loop_outcome_authorized",
+    "deployable_checkpoint_claim_authorized",
 )
 AUDIT_FALSE_FLAGS = (
     "fixed_dp_candidate_generation_authorized_next",
@@ -361,6 +363,8 @@ def _checks(
     )
     for flag in SOURCE_FALSE_FLAGS:
         add(_expect(f"source_forbids_{flag}", source_decision.get(flag), False))
+    for flag in OPTIONAL_SOURCE_BOUNDARY_FLAGS:
+        add(_expect(f"source_does_not_authorize_{flag}", source_decision.get(flag) is True, False))
     add(_expect("source_candidate_operation", source_decision.get("candidate_operation"), "fixed DP candidate reranking only"))
     add(_expect("source_score_expression", source_decision.get("score_expression"), SCORE_EXPRESSION))
     add(_expect("camp_head_matches_origin", current_camp_head, current_camp_origin_main))
