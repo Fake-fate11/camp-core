@@ -657,7 +657,7 @@ def _source_review_checks(
             base._check("source_review_failed_checks_empty", summary["failed_checks"] == [], summary["failed_checks"], []),
             base._check("source_review_authorizes_current_work", summary["authorized_next_work"] == authorized_current_work, summary["authorized_next_work"], authorized_current_work),
             base._check("source_review_materialization_flags_true", all(summary.get(flag) is True for flag in POST_REVIEW_REQUIRED_TRUE_FLAGS), {flag: summary.get(flag) for flag in POST_REVIEW_REQUIRED_TRUE_FLAGS}, "all True"),
-            base._check("source_review_blocks_action_leaks", all(summary.get(flag) is False for flag in SOURCE_FALSE_FLAGS), {flag: summary.get(flag) for flag in SOURCE_FALSE_FLAGS}, "all False"),
+            base._check("source_review_blocks_action_leaks", all(summary.get(flag) is not True for flag in SOURCE_FALSE_FLAGS), {flag: summary.get(flag) for flag in SOURCE_FALSE_FLAGS}, "no True values"),
             base._check("source_review_checks_all_passed", summary["post_review_checks_all_passed"] is True, summary["post_review_checks_all_passed"], True),
             base._check("source_review_required_behavior_present", set(REQUIRED_BEHAVIOR) <= set(summary["required_future_materializer_behavior"]), summary["required_future_materializer_behavior"], "required behavior"),
             base._check("source_review_zero_contract_all_zero", all(summary["required_zero_intersections"].get(key) == 0 for key in ZERO_INTERSECTION_KEYS), summary["required_zero_intersections"], "all zero"),

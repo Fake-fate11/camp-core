@@ -1083,7 +1083,7 @@ def _candidate_hash_keys() -> tuple[str, ...]:
 
 
 def _path_signature_keys() -> tuple[str, ...]:
-    return ("path_signatures", "path_signature", "path_signature_hashes")
+    return ("path_signatures", "path_signature", "path_signature_hashes", "signatures")
 
 
 def _record_identity_keys() -> tuple[str, ...]:
@@ -1108,12 +1108,11 @@ def _split_root_keys() -> tuple[str, ...]:
 def _extract_registry_values(payload: Any, keys: tuple[str, ...]) -> set[str]:
     values: set[str] = set()
     if isinstance(payload, dict):
-        for key in keys:
-            if key in payload:
-                values |= _string_values(payload[key])
-        for fallback in ("values", "items"):
-            if not values and fallback in payload:
-                values |= _string_values(payload[fallback])
+        for key, value in payload.items():
+            if key in keys or key in ("values", "items"):
+                values |= _string_values(value)
+            elif isinstance(value, (dict, list)):
+                values |= _extract_registry_values(value, keys)
         entries = payload.get("entries")
         if isinstance(entries, list):
             for entry in entries:

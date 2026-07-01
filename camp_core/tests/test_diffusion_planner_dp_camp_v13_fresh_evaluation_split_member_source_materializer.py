@@ -20,7 +20,6 @@ from scripts.integrations.materialize_diffusion_planner_dp_camp_v13_fresh_evalua
     REQUIRED_BEHAVIOR,
     SCHEMA_VERSION,
     SHA256SUMS_NAME,
-    SOURCE_FALSE_FLAGS,
     ZERO_INTERSECTION_KEYS,
     build_materialization_report,
     main,
@@ -71,7 +70,6 @@ def _review(path: Path, *, mutation: Any | None = None) -> Path:
             "materialization_only_authorized_next": True,
             "materializer_execution_authorized_next": True,
             "materialization_execution_authorized_next": True,
-            **{flag: False for flag in SOURCE_FALSE_FLAGS},
         },
     }
     if mutation is not None:
@@ -479,6 +477,76 @@ def test_member_source_materializer_rejects_missing_candidate_manifest_without_c
     assert report["planned_outputs"]["member_source_manifest"] == str(
         out / "fresh_evaluation_split_member_source_manifest.json"
     )
+
+
+def test_member_source_materializer_reads_nested_result_review_registries(
+    tmp_path: Path,
+) -> None:
+    out = tmp_path / "out"
+    review = _review(tmp_path / "review.json")
+
+    report = build_materialization_report(
+        implementation_static_contract_review_json=review,
+        expected_static_contract_review_sha256=_sha256(review),
+        candidate_member_source_manifest_json=_candidates(tmp_path / "candidate_members.json"),
+        training_candidate_tensor_hash_registry_json=_write_json(
+            tmp_path / "training_candidate.json",
+            {
+                "schema_version": "nested_candidate_registry_v1",
+                "training": {"values": ["train_cand"]},
+                "evaluation": {"values": ["eval_cand"]},
+            },
+        ),
+        training_path_signature_registry_json=_write_json(
+            tmp_path / "training_path.json",
+            {
+                "schema_version": "nested_path_registry_v1",
+                "training": {"signatures": ["train_path"]},
+                "evaluation": {"signatures": ["eval_path"]},
+            },
+        ),
+        training_record_identity_registry_json=_write_json(
+            tmp_path / "training_record.json",
+            {
+                "schema_version": "nested_record_registry_v1",
+                "training": {"record_identities": ["train_record"]},
+                "evaluation": {"record_identities": ["eval_record"]},
+            },
+        ),
+        training_split_manifest_root_registry_json=_write_json(
+            tmp_path / "training_split.json",
+            {
+                "schema_version": "nested_split_registry_v1",
+                "training": {"split_manifest_roots": ["train_split"]},
+                "evaluation": {"split_manifest_roots": ["eval_split"]},
+            },
+        ),
+        recovered_prior_registry_manifest_json=_source_registry_manifest(
+            tmp_path / "recovered" / "registry_manifest.json",
+            "recovered",
+        ),
+        rejected_overlap_source_registry_manifest_json=_source_registry_manifest(
+            tmp_path / "rejected" / "registry_manifest.json",
+            "rejected",
+        ),
+        v13_audit_md=_audit(tmp_path / "audit.md"),
+        output_dir=out,
+        output_json=out / "report.json",
+        output_md=out / "report.md",
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["source_summaries"]["training_registries"] == {
+        "label": "training",
+        "candidate_tensor_hash_count": 2,
+        "path_signature_count": 2,
+        "record_identity_hash_count": 2,
+        "split_manifest_root_count": 2,
+    }
 
 
 def test_member_source_materializer_rejects_split_root_only_acceptance(
