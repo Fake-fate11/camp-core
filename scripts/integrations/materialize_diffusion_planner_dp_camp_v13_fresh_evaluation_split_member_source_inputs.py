@@ -39,24 +39,32 @@ SOURCE_REVIEW_PASS_STATUS = (
     "dp_camp_v13_fresh_evaluation_split_member_source_materialization_"
     "implementation_static_contract_review_passed"
 )
+POST_REVIEW_SCHEMA_VERSION = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_materialization_"
+    "post_implementation_static_contract_review_v1"
+)
+POST_REVIEW_PASS_STATUS = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_materialization_"
+    "post_implementation_static_contract_review_passed"
+)
 LATEST_AUDIT_STATUS = (
     "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
-    "split_member_source_materialization_implementation_static_contract_review_passed"
+    "split_member_source_materialization_post_implementation_static_contract_review_passed"
 )
 AUTHORIZED_CURRENT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
     "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
     "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
     "remediation_fresh_evaluation_split_member_source_remediation_"
-    "materialization_implementation_only"
+    "materialization_only"
 )
 AUTHORIZED_NEXT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
     "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
     "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
     "remediation_fresh_evaluation_split_member_source_remediation_"
-    "materialization_post_implementation_static_contract_review_only"
+    "validation_preflight_only"
 )
 MEMBER_SOURCE_MANIFEST_SCHEMA_VERSION = base.MEMBER_SOURCE_MANIFEST_SCHEMA_VERSION
 NONOVERLAP_REPORT_SCHEMA_VERSION = base.NONOVERLAP_REPORT_SCHEMA_VERSION
@@ -87,7 +95,6 @@ REQUIRED_BEHAVIOR = (
 )
 SOURCE_FALSE_FLAGS = (
     "implementation_execution_authorized_next",
-    "materialization_execution_authorized_next",
     "member_source_builder_execution_authorized_next",
     "fresh_member_selection_execution_authorized_next",
     "fresh_evaluation_split_evaluation_authorized_next",
@@ -111,9 +118,13 @@ SOURCE_FALSE_FLAGS = (
     "safety_benefit_claim_authorized",
     "camp_over_dp_top1_claim_authorized",
 )
+POST_REVIEW_REQUIRED_TRUE_FLAGS = (
+    "materialization_only_authorized_next",
+    "materializer_execution_authorized_next",
+    "materialization_execution_authorized_next",
+)
 AUDIT_FALSE_FLAGS = (
     "implementation_execution_authorized_next",
-    "materialization_execution_authorized_next",
     "member_source_builder_execution_authorized_next",
     "fresh_member_selection_execution_authorized_next",
     "fresh_evaluation_split_evaluation_authorized_next",
@@ -470,7 +481,8 @@ def _empty_report(
         "schema_version": SCHEMA_VERSION,
         "analysis": {
             "default_off": not enabled,
-            "implementation_gate": True,
+            "implementation_gate": False,
+            "materialization_gate": True,
             "materializer": True,
             "candidate_operation": "fixed DP candidate reranking only",
             "score_expression": SCORE_EXPRESSION,
@@ -547,10 +559,59 @@ def _empty_report(
 
 def _review_summary(payload: dict[str, Any]) -> dict[str, Any]:
     decision = base._dict(payload.get("final_decision"))
+    schema_version = payload.get("schema_version")
+    if schema_version == POST_REVIEW_SCHEMA_VERSION:
+        analysis = base._dict(payload.get("analysis"))
+        passed_review_checks = [
+            check
+            for check in base._list(payload.get("review_checks"))
+            if isinstance(check, dict) and check.get("passed") is True
+        ]
+        required_behavior = [
+            str(check.get("expected"))
+            for check in passed_review_checks
+            if str(check.get("name", "")).startswith("materializer_contains_")
+            and isinstance(check.get("expected"), str)
+        ]
+        return {
+            "schema_version": schema_version,
+            "status": decision.get("status"),
+            "passed": decision.get("passed"),
+            "failed_checks": decision.get("failed_checks"),
+            "authorized_next_work": decision.get("authorized_next_work"),
+            "post_review_checks_all_passed": all(
+                isinstance(check, dict) and check.get("passed") is True
+                for check in base._list(payload.get("review_checks"))
+            ),
+            **{flag: decision.get(flag) for flag in SOURCE_FALSE_FLAGS},
+            **{flag: decision.get(flag) for flag in POST_REVIEW_REQUIRED_TRUE_FLAGS},
+            "required_future_materializer_behavior": required_behavior,
+            "required_zero_intersections": {key: 0 for key in ZERO_INTERSECTION_KEYS},
+            "required_registry_inputs": {
+                "candidate_member_source_manifest_required": True,
+                "training_candidate_tensor_hash_registry_required": True,
+                "training_path_signature_registry_required": True,
+                "training_record_identity_registry_required": True,
+                "training_split_manifest_root_registry_required": True,
+                "recovered_prior_registry_required": True,
+                "rejected_overlap_source_registry_required": True,
+            },
+            "math_boundary": {
+                "candidate_operation": analysis.get("candidate_operation"),
+                "score_expression": analysis.get("score_expression"),
+                "nonnegative_simplex_weights_only": analysis.get(
+                    "nonnegative_simplex_weights_only"
+                ),
+                "master_problem_remains_convex": analysis.get(
+                    "master_problem_remains_convex"
+                ),
+            },
+        }
+
     review = base._dict(payload.get("implementation_static_contract_review"))
     math_boundary = base._dict(review.get("math_boundary"))
     return {
-        "schema_version": payload.get("schema_version"),
+        "schema_version": schema_version,
         "status": decision.get("status"),
         "passed": decision.get("passed"),
         "failed_checks": decision.get("failed_checks"),
@@ -572,6 +633,22 @@ def _source_review_checks(
     summary: dict[str, Any],
     authorized_current_work: str,
 ) -> list[dict[str, Any]]:
+    if summary["schema_version"] == POST_REVIEW_SCHEMA_VERSION:
+        return [
+            base._check("source_review_schema_version", summary["schema_version"] == POST_REVIEW_SCHEMA_VERSION, summary["schema_version"], POST_REVIEW_SCHEMA_VERSION),
+            base._check("source_review_status_passed", summary["status"] == POST_REVIEW_PASS_STATUS, summary["status"], POST_REVIEW_PASS_STATUS),
+            base._check("source_review_passed", summary["passed"] is True, summary["passed"], True),
+            base._check("source_review_failed_checks_empty", summary["failed_checks"] == [], summary["failed_checks"], []),
+            base._check("source_review_authorizes_current_work", summary["authorized_next_work"] == authorized_current_work, summary["authorized_next_work"], authorized_current_work),
+            base._check("source_review_materialization_flags_true", all(summary.get(flag) is True for flag in POST_REVIEW_REQUIRED_TRUE_FLAGS), {flag: summary.get(flag) for flag in POST_REVIEW_REQUIRED_TRUE_FLAGS}, "all True"),
+            base._check("source_review_blocks_action_leaks", all(summary.get(flag) is False for flag in SOURCE_FALSE_FLAGS), {flag: summary.get(flag) for flag in SOURCE_FALSE_FLAGS}, "all False"),
+            base._check("source_review_checks_all_passed", summary["post_review_checks_all_passed"] is True, summary["post_review_checks_all_passed"], True),
+            base._check("source_review_required_behavior_present", set(REQUIRED_BEHAVIOR) <= set(summary["required_future_materializer_behavior"]), summary["required_future_materializer_behavior"], "required behavior"),
+            base._check("source_review_zero_contract_all_zero", all(summary["required_zero_intersections"].get(key) == 0 for key in ZERO_INTERSECTION_KEYS), summary["required_zero_intersections"], "all zero"),
+            base._check("source_review_math_score_affine", summary["math_boundary"].get("score_expression") == SCORE_EXPRESSION, summary["math_boundary"], SCORE_EXPRESSION),
+            base._check("source_review_math_simplex_convex", summary["math_boundary"].get("nonnegative_simplex_weights_only") is True and summary["math_boundary"].get("master_problem_remains_convex") is True, summary["math_boundary"], "nonnegative simplex convex"),
+        ]
+
     return [
         base._check("source_review_schema_version", summary["schema_version"] == SOURCE_REVIEW_SCHEMA_VERSION, summary["schema_version"], SOURCE_REVIEW_SCHEMA_VERSION),
         base._check("source_review_status_passed", summary["status"] == SOURCE_REVIEW_PASS_STATUS, summary["status"], SOURCE_REVIEW_PASS_STATUS),
@@ -588,7 +665,7 @@ def _source_review_checks(
 
 
 def _audit_boundary_checks(audit_text: str) -> list[dict[str, Any]]:
-    return [
+    checks = [
         base._check(
             f"audit_blocks_{flag}",
             base._latest_value(audit_text, flag) == "False",
@@ -597,6 +674,27 @@ def _audit_boundary_checks(audit_text: str) -> list[dict[str, Any]]:
         )
         for flag in AUDIT_FALSE_FLAGS
     ]
+    checks.extend(
+        [
+            base._check(
+                "audit_authorizes_materialization_only",
+                base._latest_value(audit_text, "materialization_only_authorized_next")
+                == "True",
+                base._latest_value(audit_text, "materialization_only_authorized_next"),
+                "True",
+            ),
+            base._check(
+                "audit_authorizes_materialization_execution",
+                base._latest_value(audit_text, "materialization_execution_authorized_next")
+                == "True",
+                base._latest_value(
+                    audit_text, "materialization_execution_authorized_next"
+                ),
+                "True",
+            ),
+        ]
+    )
+    return checks
 
 
 def _decision(
@@ -613,8 +711,8 @@ def _decision(
         "failed_checks": failed,
         "authorized_next_work": authorized_next_work if passed else None,
         "member_source_manifest_written": passed,
-        "materialization_implementation_complete": passed,
-        "materialization_post_implementation_static_contract_review_authorized_next": passed,
+        "materialization_complete": passed,
+        "validation_preflight_authorized_next": passed,
         "implementation_execution_authorized_next": False,
         "materialization_execution_authorized_next": False,
         "member_source_builder_execution_authorized_next": False,

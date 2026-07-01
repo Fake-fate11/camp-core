@@ -13,14 +13,14 @@ from scripts.integrations.materialize_diffusion_planner_dp_camp_v13_fresh_evalua
     MEMBER_SOURCE_MANIFEST_SCHEMA_VERSION,
     NONOVERLAP_REPORT_SCHEMA_VERSION,
     PREFLIGHT_INPUTS_SCHEMA_VERSION,
+    POST_REVIEW_PASS_STATUS,
+    POST_REVIEW_SCHEMA_VERSION,
     READY_STATUS,
     REJECT_STATUS,
     REQUIRED_BEHAVIOR,
     SCHEMA_VERSION,
     SHA256SUMS_NAME,
     SOURCE_FALSE_FLAGS,
-    SOURCE_REVIEW_PASS_STATUS,
-    SOURCE_REVIEW_SCHEMA_VERSION,
     ZERO_INTERSECTION_KEYS,
     build_materialization_report,
     main,
@@ -31,7 +31,7 @@ CAMP_HEAD = "d70f02fd2f53689ba0cc5752b81671d2da271a3b"
 LATEST_STATUS = (
     "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
-    "split_member_source_materialization_implementation_static_contract_review_passed"
+    "split_member_source_materialization_post_implementation_static_contract_review_passed"
 )
 
 
@@ -47,33 +47,30 @@ def _sha256(path: Path) -> str:
 
 def _review(path: Path, *, mutation: Any | None = None) -> Path:
     payload = {
-        "schema_version": SOURCE_REVIEW_SCHEMA_VERSION,
-        "implementation_static_contract_review": {
-            "required_future_materializer_behavior": list(REQUIRED_BEHAVIOR),
-            "required_zero_intersections": {key: 0 for key in ZERO_INTERSECTION_KEYS},
-            "required_registry_inputs": {
-                "candidate_member_source_manifest_required": True,
-                "training_candidate_tensor_hash_registry_required": True,
-                "training_path_signature_registry_required": True,
-                "training_record_identity_registry_required": True,
-                "training_split_manifest_root_registry_required": True,
-                "recovered_prior_registry_required": True,
-                "rejected_overlap_source_registry_required": True,
-            },
-            "math_boundary": {
-                "candidate_operation": "fixed DP candidate reranking only",
-                "score_expression": "score_k(w)=a_k^T w",
-                "nonnegative_simplex_weights_only": True,
-                "master_problem_remains_convex": True,
-            },
+        "schema_version": POST_REVIEW_SCHEMA_VERSION,
+        "analysis": {
+            "candidate_operation": "fixed DP candidate reranking only",
+            "score_expression": "score_k(w)=a_k^T w",
+            "nonnegative_simplex_weights_only": True,
+            "master_problem_remains_convex": True,
         },
+        "review_checks": [
+            {
+                "name": f"materializer_contains_{behavior}",
+                "observed": "present",
+                "expected": behavior,
+                "passed": True,
+            }
+            for behavior in REQUIRED_BEHAVIOR
+        ],
         "final_decision": {
-            "status": SOURCE_REVIEW_PASS_STATUS,
+            "status": POST_REVIEW_PASS_STATUS,
             "passed": True,
             "failed_checks": [],
             "authorized_next_work": AUTHORIZED_CURRENT_WORK,
-            "materialization_implementation_static_contract_review_passed": True,
-            "materialization_implementation_authorized_next": True,
+            "materialization_only_authorized_next": True,
+            "materializer_execution_authorized_next": True,
+            "materialization_execution_authorized_next": True,
             **{flag: False for flag in SOURCE_FALSE_FLAGS},
         },
     }
@@ -141,10 +138,11 @@ def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
         "\n".join(
             [
                 f"current_v13_status={LATEST_STATUS}",
-                "materialization_implementation_authorized_next=True",
+                "materialization_only_authorized_next=True",
+                "materializer_execution_authorized_next=True",
+                "materialization_execution_authorized_next=True",
                 f"next_work_target={target}",
                 "implementation_execution_authorized_next=False",
-                "materialization_execution_authorized_next=False",
                 "member_source_builder_execution_authorized_next=False",
                 "fresh_member_selection_execution_authorized_next=False",
                 "fresh_evaluation_split_evaluation_authorized_next=False",
