@@ -35,6 +35,17 @@ LATEST_STATUS = (
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_member_source_builder_post_implementation_static_contract_review_complete"
 )
+MATERIALIZATION_COMPLETE_STATUS = (
+    "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
+    "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
+    "split_member_source_remediation_materialization_complete"
+)
+MATERIALIZER_SCHEMA = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_materializer_v1"
+)
+MATERIALIZER_STATUS = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_materializer_complete"
+)
 ZERO_COUNTS = {
     "candidate_tensor_hash_intersection_count": 0,
     "path_signature_intersection_count": 0,
@@ -90,6 +101,55 @@ def _post_review(path: Path, *, mutation: Any | None = None) -> Path:
             "failed_checks": [],
             "authorized_next_work": AUTHORIZED_CURRENT_WORK,
             "validation_preflight_authorized_next": True,
+            **flags,
+        },
+    }
+    if mutation is not None:
+        mutation(payload)
+    return _write_json(path, payload)
+
+
+def _materializer_report(path: Path, *, mutation: Any | None = None) -> Path:
+    flags = {
+        "fresh_member_selection_execution_authorized_next": False,
+        "fresh_evaluation_split_evaluation_authorized_next": False,
+        "data_preparation_authorized_next": False,
+        "training_preflight_authorized_next": False,
+        "training_execution_authorized_next": False,
+        "replay_execution_authorized_next": False,
+        "fixed_dp_candidate_generation_authorized_next": False,
+        "candidate_generation_by_camp_authorized": False,
+        "trajectory_generation_by_camp_authorized": False,
+        "trajectory_modification_by_camp_authorized": False,
+        "reference_blend_authorized": False,
+        "guidance_authorized": False,
+        "postprocess_or_postselection_authorized": False,
+        "closed_loop_outcome_authorized": False,
+        "dp_modification_authorized": False,
+        "selector_promotion_authorized": False,
+        "atom_promotion_authorized": False,
+        "deployment_authorized": False,
+        "deployable_checkpoint_claim_authorized": False,
+        "safety_benefit_claim_authorized": False,
+        "camp_over_dp_top1_claim_authorized": False,
+        "fixed_dp_candidate_generation_executed": False,
+        "candidate_generation_by_camp_executed": False,
+        "trajectory_generation_by_camp_executed": False,
+        "trajectory_modification_by_camp_executed": False,
+        "replay_executed": False,
+        "training_executed": False,
+        "dp_modification_executed": False,
+    }
+    payload = {
+        "schema_version": MATERIALIZER_SCHEMA,
+        "final_decision": {
+            "status": MATERIALIZER_STATUS,
+            "passed": True,
+            "failed_checks": [],
+            "authorized_next_work": AUTHORIZED_CURRENT_WORK,
+            "validation_preflight_authorized_next": True,
+            "materialization_complete": True,
+            "member_source_manifest_written": True,
             **flags,
         },
     }
@@ -184,7 +244,12 @@ def _member_source_artifacts(root: Path, *, mutation: Any | None = None) -> dict
     return paths
 
 
-def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
+def _audit(
+    path: Path,
+    *,
+    target: str = AUTHORIZED_CURRENT_WORK,
+    status: str = MATERIALIZATION_COMPLETE_STATUS,
+) -> Path:
     flags = [
         "fresh_member_selection_execution_authorized_next=False",
         "fresh_evaluation_split_evaluation_authorized_next=False",
@@ -215,7 +280,7 @@ def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
     path.write_text(
         "\n".join(
             [
-                f"current_v13_status={LATEST_STATUS}",
+                f"current_v13_status={status}",
                 f"next_work_target={target}",
                 "fresh_evaluation_split_member_source_remediation_validation_preflight_authorized_next=True",
                 *flags,
@@ -265,6 +330,28 @@ def test_member_source_validation_preflight_passes_zero_overlap_artifacts(tmp_pa
     assert decision["member_source_builder_executed"] is False
     assert decision["real_fresh_member_selection_executed"] is False
     assert report["member_source_summary"]["selected_member_count"] == 1
+
+
+def test_member_source_validation_preflight_accepts_materializer_report_source(
+    tmp_path: Path,
+) -> None:
+    source = _materializer_report(tmp_path / "materialization_report.json")
+    artifacts = _member_source_artifacts(tmp_path / "member_source")
+    report = build_report(
+        post_review_json=source,
+        expected_post_review_json_sha256=_sha256(source),
+        member_source_manifest_json=artifacts["fresh_evaluation_split_member_source_manifest.json"],
+        nonoverlap_report_json=artifacts["fresh_evaluation_split_member_source_nonoverlap_report.json"],
+        preflight_inputs_json=artifacts["fresh_evaluation_split_member_source_preflight_inputs.json"],
+        sha256sums_txt=artifacts["SHA256SUMS.txt"],
+        v13_audit_md=_audit(tmp_path / "audit.md"),
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+    )
+
+    assert report["final_decision"]["status"] == PASS_STATUS
+    assert report["final_decision"]["authorized_next_work"] == AUTHORIZED_PASS_NEXT_WORK
 
 
 def test_member_source_validation_preflight_fail_closes_missing_artifacts(tmp_path: Path) -> None:

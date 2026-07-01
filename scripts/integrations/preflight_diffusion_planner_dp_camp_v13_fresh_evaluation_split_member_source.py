@@ -51,6 +51,21 @@ LATEST_AUDIT_STATUS = (
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_member_source_builder_post_implementation_static_contract_review_complete"
 )
+MATERIALIZATION_COMPLETE_AUDIT_STATUS = (
+    "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
+    "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
+    "split_member_source_remediation_materialization_complete"
+)
+AUTHORIZED_AUDIT_STATUSES = (
+    LATEST_AUDIT_STATUS,
+    MATERIALIZATION_COMPLETE_AUDIT_STATUS,
+)
+MATERIALIZER_SCHEMA_VERSION = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_materializer_v1"
+)
+MATERIALIZER_STATUS = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_materializer_complete"
+)
 AUTHORIZED_CURRENT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
     "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
@@ -346,7 +361,12 @@ def _checks(
             expected_post_review_json_sha256,
             "sha256",
         ),
-        _expect("audit_latest_status", _latest_value(audit_text, "current_v13_status"), LATEST_AUDIT_STATUS),
+        _check(
+            "audit_latest_status",
+            _latest_value(audit_text, "current_v13_status") in AUTHORIZED_AUDIT_STATUSES,
+            _latest_value(audit_text, "current_v13_status"),
+            list(AUTHORIZED_AUDIT_STATUSES),
+        ),
         _expect("audit_latest_next_work", _latest_value(audit_text, "next_work_target"), authorized_current_work),
         _expect(
             "audit_authorizes_validation_preflight",
@@ -380,6 +400,29 @@ def _post_review_checks(
     authorized_current_work: str,
 ) -> list[dict[str, Any]]:
     decision = _dict(post_review.get("final_decision"))
+    if post_review.get("schema_version") == MATERIALIZER_SCHEMA_VERSION:
+        return [
+            _expect("source_schema_version", post_review.get("schema_version"), MATERIALIZER_SCHEMA_VERSION),
+            _expect("source_status", decision.get("status"), MATERIALIZER_STATUS),
+            _expect("source_passed", decision.get("passed"), True),
+            _expect("source_failed_checks_empty", decision.get("failed_checks"), []),
+            _expect("source_authorizes_this_preflight", decision.get("authorized_next_work"), authorized_current_work),
+            _expect("source_validation_preflight_authorized", decision.get("validation_preflight_authorized_next"), True),
+            _expect("source_materialization_complete", decision.get("materialization_complete"), True),
+            _expect("source_member_source_manifest_written", decision.get("member_source_manifest_written"), True),
+            *[
+                _expect(f"source_blocks_{flag}", decision.get(flag), False)
+                for flag in POST_REVIEW_FALSE_FLAGS
+            ],
+            _expect("source_fixed_dp_candidate_generation_not_executed", decision.get("fixed_dp_candidate_generation_executed"), False),
+            _expect("source_candidate_generation_by_camp_not_executed", decision.get("candidate_generation_by_camp_executed"), False),
+            _expect("source_trajectory_generation_by_camp_not_executed", decision.get("trajectory_generation_by_camp_executed"), False),
+            _expect("source_trajectory_modification_by_camp_not_executed", decision.get("trajectory_modification_by_camp_executed"), False),
+            _expect("source_replay_not_executed", decision.get("replay_executed"), False),
+            _expect("source_training_not_executed", decision.get("training_executed"), False),
+            _expect("source_dp_modification_not_executed", decision.get("dp_modification_executed"), False),
+        ]
+
     return [
         _expect("post_review_schema_version", post_review.get("schema_version"), POST_REVIEW_SCHEMA_VERSION),
         _expect("post_review_status", decision.get("status"), POST_REVIEW_STATUS),
