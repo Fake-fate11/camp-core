@@ -16,6 +16,9 @@ from scripts.integrations.build_diffusion_planner_dp_camp_v13_fresh_evaluation_s
     READY_STATUS,
     REJECT_STATUS,
     REQUIRED_BEHAVIOR,
+    REMATERIALIZATION_AUTHORIZED_CURRENT_WORK,
+    REMATERIALIZATION_AUTHORIZED_NEXT_WORK,
+    REMATERIALIZATION_LATEST_AUDIT_STATUS,
     SCHEMA_VERSION,
     SHA256SUMS_NAME,
     SOURCE_REVIEW_PASS_STATUS,
@@ -205,12 +208,17 @@ def _candidates(path: Path, *, mutation: Any | None = None) -> Path:
     return _write_json(path, payload)
 
 
-def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
+def _audit(
+    path: Path,
+    *,
+    target: str = AUTHORIZED_CURRENT_WORK,
+    status: str = LATEST_STATUS,
+) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         "\n".join(
             [
-                f"current_v13_status={LATEST_STATUS}",
+                f"current_v13_status={status}",
                 f"next_work_target={target}",
                 "fresh_member_selection_execution_authorized_next=False",
                 "fresh_evaluation_split_evaluation_authorized_next=False",
@@ -380,6 +388,78 @@ def test_member_source_builder_writes_only_fresh_nonoverlap_outputs(tmp_path: Pa
     assert nonoverlap["split_root_only_acceptance"] is False
     assert preflight["schema_version"] == PREFLIGHT_INPUTS_SCHEMA_VERSION
     assert preflight["authorized_next_work"] == AUTHORIZED_NEXT_WORK
+
+
+def test_member_source_builder_supports_rematerialization_gate_overrides(
+    tmp_path: Path,
+) -> None:
+    review = _review(tmp_path / "review.json")
+    out = tmp_path / "out"
+    report = build_member_source_report(
+        implementation_static_contract_review_json=review,
+        expected_static_contract_review_sha256=_sha256(review),
+        candidate_member_source_manifest_json=_candidates(
+            tmp_path / "candidate_members.json"
+        ),
+        training_candidate_tensor_hash_registry_json=_registry(
+            tmp_path / "training_candidate.json",
+            ["train_cand"],
+            "candidate_tensor_hashes",
+        ),
+        training_path_signature_registry_json=_registry(
+            tmp_path / "training_path.json",
+            ["train_path"],
+            "path_signatures",
+        ),
+        training_record_identity_registry_json=_registry(
+            tmp_path / "training_record.json",
+            ["train_record"],
+            "record_identity_hashes",
+        ),
+        training_split_manifest_root_registry_json=_registry(
+            tmp_path / "training_split.json",
+            ["train_split"],
+            "split_manifest_roots",
+        ),
+        recovered_prior_registry_manifest_json=_source_registry_manifest(
+            tmp_path / "recovered" / "registry_manifest.json",
+            "recovered",
+        ),
+        rejected_overlap_source_registry_manifest_json=_source_registry_manifest(
+            tmp_path / "rejected" / "registry_manifest.json",
+            "rejected",
+        ),
+        v13_audit_md=_audit(
+            tmp_path / "audit.md",
+            target=REMATERIALIZATION_AUTHORIZED_CURRENT_WORK,
+            status=REMATERIALIZATION_LATEST_AUDIT_STATUS,
+        ),
+        output_dir=out,
+        output_json=out / "member_source_builder_report.json",
+        output_md=out / "member_source_builder_report.md",
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        authorized_current_work=REMATERIALIZATION_AUTHORIZED_CURRENT_WORK,
+        authorized_next_work=REMATERIALIZATION_AUTHORIZED_NEXT_WORK,
+        required_latest_audit_status=REMATERIALIZATION_LATEST_AUDIT_STATUS,
+        source_review_authorized_work=AUTHORIZED_CURRENT_WORK,
+        enabled=True,
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == REMATERIALIZATION_AUTHORIZED_NEXT_WORK
+    assert report["inputs"]["source_review_authorized_work"] == AUTHORIZED_CURRENT_WORK
+    assert (
+        report["inputs"]["required_latest_audit_status"]
+        == REMATERIALIZATION_LATEST_AUDIT_STATUS
+    )
+    preflight = json.loads(
+        (out / "fresh_evaluation_split_member_source_preflight_inputs.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert preflight["authorized_next_work"] == REMATERIALIZATION_AUTHORIZED_NEXT_WORK
 
 
 def test_member_source_builder_main_writes_report_and_sha256sums(tmp_path: Path) -> None:

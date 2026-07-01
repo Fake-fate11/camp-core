@@ -56,6 +56,28 @@ AUTHORIZED_NEXT_WORK = (
     "remediation_fresh_evaluation_split_member_source_remediation_"
     "post_implementation_static_contract_review_only"
 )
+REMATERIALIZATION_LATEST_AUDIT_STATUS = (
+    "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
+    "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
+    "split_evaluation_executed_index_contract_failure_remediation_fresh_member_"
+    "source_rematerialization_plan_ready"
+)
+REMATERIALIZATION_AUTHORIZED_CURRENT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+    "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
+    "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
+    "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
+    "failure_remediation_fresh_member_source_rematerialization_"
+    "implementation_only"
+)
+REMATERIALIZATION_AUTHORIZED_NEXT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+    "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
+    "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
+    "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
+    "failure_remediation_fresh_member_source_rematerialization_"
+    "post_implementation_static_contract_review_only"
+)
 MEMBER_SOURCE_MANIFEST_SCHEMA_VERSION = (
     "dp_camp_v13_fresh_evaluation_split_member_source_manifest_v1"
 )
@@ -177,6 +199,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--required_dp_head", default=FIXED_DP_HEAD)
     parser.add_argument("--authorized_current_work", default=AUTHORIZED_CURRENT_WORK)
     parser.add_argument("--authorized_next_work", default=AUTHORIZED_NEXT_WORK)
+    parser.add_argument("--required_latest_audit_status", default=LATEST_AUDIT_STATUS)
+    parser.add_argument("--source_review_authorized_work")
     parser.add_argument(
         "--enable_v13_fresh_evaluation_split_member_source_builder",
         action="store_true",
@@ -216,6 +240,8 @@ def main(argv: list[str] | None = None) -> int:
         required_dp_head=args.required_dp_head,
         authorized_current_work=args.authorized_current_work,
         authorized_next_work=args.authorized_next_work,
+        required_latest_audit_status=args.required_latest_audit_status,
+        source_review_authorized_work=args.source_review_authorized_work,
         enabled=args.enable_v13_fresh_evaluation_split_member_source_builder,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -252,8 +278,13 @@ def build_member_source_report(
     required_dp_head: str = FIXED_DP_HEAD,
     authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
     authorized_next_work: str = AUTHORIZED_NEXT_WORK,
+    required_latest_audit_status: str = LATEST_AUDIT_STATUS,
+    source_review_authorized_work: str | None = None,
     enabled: bool = False,
 ) -> dict[str, Any]:
+    source_review_authorized_work = (
+        source_review_authorized_work or authorized_current_work
+    )
     report = _empty_report(
         enabled=enabled,
         implementation_static_contract_review_json=(
@@ -281,6 +312,8 @@ def build_member_source_report(
         required_dp_head=required_dp_head,
         authorized_current_work=authorized_current_work,
         authorized_next_work=authorized_next_work,
+        required_latest_audit_status=required_latest_audit_status,
+        source_review_authorized_work=source_review_authorized_work,
     )
     if not enabled:
         return report
@@ -311,9 +344,9 @@ def build_member_source_report(
         _check("output_md_under_output_dir", _is_relative_to(output_md, output_dir), str(output_md), str(output_dir)),
         _check(
             "latest_audit_status_authorizes_builder",
-            _latest_value(audit_text, "current_v13_status") == LATEST_AUDIT_STATUS,
+            _latest_value(audit_text, "current_v13_status") == required_latest_audit_status,
             _latest_value(audit_text, "current_v13_status"),
-            LATEST_AUDIT_STATUS,
+            required_latest_audit_status,
         ),
         _check(
             "latest_audit_target_authorizes_builder",
@@ -347,7 +380,7 @@ def build_member_source_report(
         )
 
     review_summary = _review_summary(review_payload)
-    checks.extend(_source_review_checks(review_summary, authorized_current_work))
+    checks.extend(_source_review_checks(review_summary, source_review_authorized_work))
 
     training_bundle = _training_registry_bundle(
         candidate_path=training_candidate_tensor_hash_registry_json,
@@ -389,6 +422,7 @@ def build_member_source_report(
         output_dir=output_dir,
         current_camp_head=current_camp_head,
         current_dp_head=current_dp_head,
+        authorized_next_work=authorized_next_work,
     )
     checks.extend(_output_absence_checks(planned_outputs, output_json, output_md))
 
@@ -500,6 +534,8 @@ def _empty_report(
     required_dp_head: str,
     authorized_current_work: str,
     authorized_next_work: str,
+    required_latest_audit_status: str,
+    source_review_authorized_work: str,
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -559,6 +595,8 @@ def _empty_report(
             "output_dir": str(output_dir),
             "output_json": str(output_json),
             "output_md": str(output_md),
+            "required_latest_audit_status": required_latest_audit_status,
+            "source_review_authorized_work": source_review_authorized_work,
         },
         "source_hashes": {},
         "output_hashes": {},
@@ -891,6 +929,7 @@ def _build_outputs(
     output_dir: Path,
     current_camp_head: str,
     current_dp_head: str,
+    authorized_next_work: str,
 ) -> dict[str, dict[str, Any]]:
     selected_members = selection["selected_members"]
     zero_counts = selection["summary"]["zero_intersection_counts"]
@@ -957,7 +996,7 @@ def _build_outputs(
             output_dir / "fresh_evaluation_split_member_source_nonoverlap_report.json"
         ),
         "expected_zero_intersections": {key: 0 for key in ZERO_INTERSECTION_KEYS},
-        "authorized_next_work": AUTHORIZED_NEXT_WORK,
+        "authorized_next_work": authorized_next_work,
         "forbidden_next_actions": {
             "fixed_dp_candidate_generation": True,
             "replay": True,

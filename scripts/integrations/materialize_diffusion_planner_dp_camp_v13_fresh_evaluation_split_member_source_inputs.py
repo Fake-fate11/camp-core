@@ -377,6 +377,7 @@ def build_materialization_report(
             output_dir=output_dir,
             current_camp_head=current_camp_head,
             current_dp_head=current_dp_head,
+            authorized_next_work=authorized_next_work,
         )
         checks.extend(base._output_absence_checks(planned_outputs, output_json, output_md))
 
