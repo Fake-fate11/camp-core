@@ -17212,7 +17212,7 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
         assert needle in text
 
 
-def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_implementation_b1_is_eof() -> None:
+def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_implementation_b1_is_pinned() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V13 Static DP-Reward Eval-Plus-Prior Non-Overlap "
@@ -17226,10 +17226,16 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
         "Failure Remediation Fresh Evaluation Split Evaluation "
         "Implementation After b1ab2742"
     )
+    next_section_title = (
+        "## Current V13 Static DP-Reward Eval-Plus-Prior Non-Overlap "
+        "Remediation Training Artifact Shadow Replay Evaluation Non-Overlap "
+        "Failure Remediation Fresh Evaluation Split Evaluation "
+        "Post-Implementation Static Contract Review After cb721ae9"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_implementation_b1_script=scripts/integrations/evaluate_diffusion_planner_dp_camp_v13_fresh_evaluation_split.py",
@@ -17276,15 +17282,79 @@ def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_
     ]:
         assert needle in text
 
+def test_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V13 Static DP-Reward Eval-Plus-Prior Non-Overlap "
+        "Remediation Training Artifact Shadow Replay Evaluation Non-Overlap "
+        "Failure Remediation Fresh Evaluation Split Evaluation "
+        "Implementation After b1ab2742"
+    )
+    section_title = (
+        "## Current V13 Static DP-Reward Eval-Plus-Prior Non-Overlap "
+        "Remediation Training Artifact Shadow Replay Evaluation Non-Overlap "
+        "Failure Remediation Fresh Evaluation Split Evaluation "
+        "Post-Implementation Static Contract Review After cb721ae9"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_script=scripts/integrations/review_diffusion_planner_dp_camp_v13_fresh_evaluation_split_evaluation_post_implementation_static_contract.py",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_test=camp_core/tests/test_diffusion_planner_dp_camp_v13_fresh_evaluation_split_evaluation_post_implementation_static_contract.py",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_support_commit=cb721ae971bcd0e3359247ccc299746f46c4e4a0",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_camp_head=cb721ae971bcd0e3359247ccc299746f46c4e4a0",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_script_sha256=f6a3f26c8c6daf0fea1b8100095cfe5d240d9edf4138fe39535b6762a3effeee",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_test_sha256=d60c1aadb610362dfd2eff4f84195804c316bb80295281ae87ab67a055d6843c",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_artifact=/root/autodl-tmp/camp_dp_v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_implementation_static_contract_review_cb721ae971_20260702T035605CST",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_heads_sha256=9ad74908ea56d10ce5def9cddb6436bd66d42fc766135b8b90d29b2dd48abd99",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_command_sha256=d02bd68571e9b86f5693016cfe0559711359603def5f4dad12ea49a19af46ec8",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_json_sha256=2ba19f385d71aee131e6c749a8ab4834346a40376b269213e0d8076fd526d37f",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_sha256sums_artifact_check_exit=0",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_exit=0",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_status=dp_camp_v13_fresh_evaluation_split_evaluation_post_implementation_static_contract_review_passed",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_passed=True",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_failed_checks=[]",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_candidate_operation=fixed DP candidate reranking only",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_score_expression=score_k(w)=a_k^T w",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_local_direct_plus_v13_audit_tests_before_audit_update=295 passed",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_autodl_direct_plus_v13_audit_tests_before_artifact=295 passed",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_fresh_evaluation_split_evaluation_post_implementation_static_contract_review_passed=True",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_fresh_evaluation_split_evaluation_execution_authorized_next=True",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_training_preflight_authorized_next=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_training_execution_authorized_next=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_fixed_dp_candidate_generation_authorized_next=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_candidate_generation_by_camp_authorized=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_dp_modification_authorized=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_training_executed=False",
+        "v13_current_source_static_dp_reward_eval_plus_prior_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_impl_static_review_cb_decision=post_implementation_static_contract_review_passed_fresh_evaluation_execution_only_authorized",
+        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_implementation_static_contract_review_passed",
+        "fresh_evaluation_split_evaluation_post_implementation_static_contract_review_passed=True",
+        "fresh_evaluation_split_evaluation_execution_authorized_next=True",
+        "training_preflight_authorized_next=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_execution_only",
+    ]:
+        assert needle in text
+
     latest_status = text.rsplit("current_v13_status=", maxsplit=1)[1].splitlines()[0]
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_implementation_complete"
+        == "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_implementation_static_contract_review_passed"
     )
     assert (
         latest_target
-        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_post_implementation_static_contract_review_only"
+        == "dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_execution_only"
     )
 
 
