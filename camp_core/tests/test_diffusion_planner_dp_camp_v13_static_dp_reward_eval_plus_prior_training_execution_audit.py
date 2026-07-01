@@ -59,6 +59,7 @@ def _make_artifacts(
     bad_weights: bool = False,
     label_source: str = "dp_reward",
     authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
+    runbook_name: str = "run_training.sh",
 ) -> dict[str, Path]:
     execution = tmp_path / "execution"
     preflight = tmp_path / "preflight"
@@ -95,7 +96,7 @@ def _make_artifacts(
             "require_atom_schema": True,
         },
     )
-    _write(preflight / "run_training.sh", "python train.py\n")
+    _write(preflight / runbook_name, "python train.py\n")
     schema, names = atom_schema_for_dimension(14)
     assert schema == ATOM_SCHEMA_VERSION
     weights = np.full(14, 1.0 / 14.0, dtype=np.float64)
@@ -194,6 +195,13 @@ def test_training_execution_audit_accepts_nonpromotion_artifact(tmp_path: Path) 
     assert report["training_artifact"]["weights_nonnegative"] is True
     assert report["training_artifact"]["weights_match_summary"] is True
     assert report["training_artifact"]["deployable_checkpoint_claim_authorized"] is False
+
+
+def test_training_execution_audit_accepts_materialized_training_runbook_name(tmp_path: Path) -> None:
+    report = _report(tmp_path, runbook_name="training_runbook.sh")
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["source_hashes"]["preflight_runbook_sha256"] is not None
 
 
 def test_training_execution_audit_accepts_parameterized_current_and_next_work(tmp_path: Path) -> None:

@@ -195,7 +195,7 @@ def build_report(
         "execution_stderr": execution_artifact_dir / "training.stderr.log",
         "execution_sha256sums": execution_artifact_dir / "SHA256SUMS.txt",
         "preflight_command_plan": preflight_artifact_dir / "training_command_plan.json",
-        "preflight_runbook": preflight_artifact_dir / "run_training.sh",
+        "preflight_runbook": _preflight_runbook_path(preflight_artifact_dir),
         "training_summary": training_output_dir / "training_summary.json",
         "atom_scales": training_output_dir / "atom_scales_dp_static.json",
         "weights_npy": training_output_dir / "offline_weights_dp_static.npy",
@@ -477,6 +477,16 @@ def _same_path(observed: Any, expected: Path) -> bool:
         return Path(observed).resolve() == expected.resolve()
     except OSError:
         return observed == str(expected)
+
+
+def _preflight_runbook_path(preflight_artifact_dir: Path) -> Path:
+    canonical = preflight_artifact_dir / "run_training.sh"
+    if canonical.is_file():
+        return canonical
+    materialized = preflight_artifact_dir / "training_runbook.sh"
+    if materialized.is_file():
+        return materialized
+    return canonical
 
 
 def _latest_audit_value(text: str, key: str) -> str | None:
