@@ -52,6 +52,16 @@ LATEST_AUDIT_STATUS = (
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_member_source_materialization_post_implementation_static_contract_review_passed"
 )
+MISSING_INPUT_MATERIALIZATION_COMPLETE_AUDIT_STATUS = (
+    "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
+    "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
+    "split_member_source_materialization_failure_remediation_missing_input_"
+    "materialization_complete"
+)
+AUTHORIZED_AUDIT_STATUSES = (
+    LATEST_AUDIT_STATUS,
+    MISSING_INPUT_MATERIALIZATION_COMPLETE_AUDIT_STATUS,
+)
 AUTHORIZED_CURRENT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
     "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
@@ -295,7 +305,7 @@ def build_materialization_report(
         base._check("output_dir_is_not_file", not output_dir.is_file(), str(output_dir), "not a file"),
         base._check("output_json_under_output_dir", base._is_relative_to(output_json, output_dir), str(output_json), str(output_dir)),
         base._check("output_md_under_output_dir", base._is_relative_to(output_md, output_dir), str(output_md), str(output_dir)),
-        base._check("latest_audit_status_authorizes_materializer", base._latest_value(audit_text, "current_v13_status") == LATEST_AUDIT_STATUS, base._latest_value(audit_text, "current_v13_status"), LATEST_AUDIT_STATUS),
+        base._check("latest_audit_status_authorizes_materializer", base._latest_value(audit_text, "current_v13_status") in AUTHORIZED_AUDIT_STATUSES, base._latest_value(audit_text, "current_v13_status"), list(AUTHORIZED_AUDIT_STATUSES)),
         base._check("latest_audit_target_authorizes_materializer", base._latest_value(audit_text, "next_work_target") == authorized_current_work, base._latest_value(audit_text, "next_work_target"), authorized_current_work),
     ]
     checks.extend(_audit_boundary_checks(audit_text))

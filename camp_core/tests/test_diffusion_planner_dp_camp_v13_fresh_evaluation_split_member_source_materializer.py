@@ -32,6 +32,12 @@ LATEST_STATUS = (
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_member_source_materialization_post_implementation_static_contract_review_passed"
 )
+MISSING_INPUT_MATERIALIZATION_COMPLETE_STATUS = (
+    "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
+    "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
+    "split_member_source_materialization_failure_remediation_missing_input_"
+    "materialization_complete"
+)
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> Path:
@@ -130,12 +136,17 @@ def _candidates(path: Path, *, mutation: Any | None = None) -> Path:
     return _write_json(path, payload)
 
 
-def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
+def _audit(
+    path: Path,
+    *,
+    target: str = AUTHORIZED_CURRENT_WORK,
+    status: str = MISSING_INPUT_MATERIALIZATION_COMPLETE_STATUS,
+) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         "\n".join(
             [
-                f"current_v13_status={LATEST_STATUS}",
+                f"current_v13_status={status}",
                 "materialization_only_authorized_next=True",
                 "materializer_execution_authorized_next=True",
                 "materialization_execution_authorized_next=True",
@@ -184,6 +195,7 @@ def _build(
     candidate_mutation: Any | None = None,
     current_dp_head: str = FIXED_DP_HEAD,
     output_dir: Path | None = None,
+    audit_status: str = MISSING_INPUT_MATERIALIZATION_COMPLETE_STATUS,
 ) -> dict[str, Any]:
     review = _review(tmp_path / "review.json", mutation=review_mutation)
     out = output_dir or (tmp_path / "out")
@@ -222,7 +234,7 @@ def _build(
             tmp_path / "rejected" / "registry_manifest.json",
             "rejected",
         ),
-        v13_audit_md=_audit(tmp_path / "audit.md", target=target),
+        v13_audit_md=_audit(tmp_path / "audit.md", target=target, status=audit_status),
         output_dir=out,
         output_json=out / "member_source_materializer_report.json",
         output_md=out / "member_source_materializer_report.md",
@@ -314,6 +326,15 @@ def test_member_source_materializer_writes_only_fresh_nonoverlap_outputs(
     assert nonoverlap["split_root_only_acceptance"] is False
     assert preflight["schema_version"] == PREFLIGHT_INPUTS_SCHEMA_VERSION
     assert preflight["authorized_next_work"] == AUTHORIZED_NEXT_WORK
+
+
+def test_member_source_materializer_still_accepts_post_review_audit_status(
+    tmp_path: Path,
+) -> None:
+    report = _build(tmp_path, audit_status=LATEST_STATUS)
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["authorized_next_work"] == AUTHORIZED_NEXT_WORK
 
 
 def test_member_source_materializer_main_writes_report_and_sha256sums(
