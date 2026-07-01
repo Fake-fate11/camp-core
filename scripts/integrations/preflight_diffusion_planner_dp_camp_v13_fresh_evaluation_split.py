@@ -35,6 +35,21 @@ SCOPE_MANIFEST_SCHEMA_VERSION = "dp_camp_v13_fresh_evaluation_split_scope_manife
 REGISTRY_REPORT_SCHEMA_VERSION = (
     "dp_camp_v13_fresh_evaluation_split_nonoverlap_registry_report_v1"
 )
+MEMBER_SOURCE_VALIDATION_SCHEMA_VERSION = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_validation_preflight_v1"
+)
+MEMBER_SOURCE_VALIDATION_STATUS = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_validation_preflight_passed"
+)
+MEMBER_SOURCE_MANIFEST_SCHEMA_VERSION = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_manifest_v1"
+)
+MEMBER_SOURCE_NONOVERLAP_REPORT_SCHEMA_VERSION = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_nonoverlap_report_v1"
+)
+MEMBER_SOURCE_PREFLIGHT_INPUTS_SCHEMA_VERSION = (
+    "dp_camp_v13_fresh_evaluation_split_member_source_preflight_inputs_v1"
+)
 SOURCE_REGISTRY_SCHEMA_VERSION = (
     "dp_camp_v13_current_source_result_review_source_registry_manifest_v1"
 )
@@ -43,11 +58,23 @@ LATEST_AUDIT_STATUS = (
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_manifest_builder_post_implementation_static_contract_review_complete"
 )
+MEMBER_SOURCE_REMEDIATION_AUDIT_STATUS = (
+    "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
+    "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
+    "split_member_source_remediation_validation_preflight_passed"
+)
 AUTHORIZED_CURRENT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
     "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
     "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
     "remediation_fresh_evaluation_split_preflight_only"
+)
+MEMBER_SOURCE_REMEDIATION_AUTHORIZED_CURRENT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+    "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
+    "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
+    "remediation_fresh_evaluation_split_member_source_remediation_"
+    "fresh_evaluation_split_preflight_only"
 )
 AUTHORIZED_PASS_NEXT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
@@ -66,6 +93,12 @@ TARGET_RECORDS = 3200
 EXPECTED_CANDIDATE_COUNT = 8
 EXPECTED_ATOM_COUNT = 14
 FORMAL_SEEDS = {11, 12, 13}
+ZERO_INTERSECTION_KEYS = (
+    "candidate_tensor_hash_intersection_count",
+    "path_signature_intersection_count",
+    "record_identity_intersection_count",
+    "split_manifest_root_intersection_count",
+)
 BLOCKED_FLAGS = (
     "data_preparation_authorized_next",
     "training_preflight_authorized_next",
@@ -97,10 +130,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Read-only v13 fresh evaluation split preflight."
     )
-    parser.add_argument("--manifest_builder_json", type=Path, required=True)
-    parser.add_argument("--expected_manifest_builder_json_sha256", required=True)
-    parser.add_argument("--scope_manifest_json", type=Path, required=True)
-    parser.add_argument("--nonoverlap_registry_report_json", type=Path, required=True)
+    parser.add_argument("--manifest_builder_json", type=Path)
+    parser.add_argument("--expected_manifest_builder_json_sha256")
+    parser.add_argument("--scope_manifest_json", type=Path)
+    parser.add_argument("--nonoverlap_registry_report_json", type=Path)
+    parser.add_argument("--member_source_validation_json", type=Path)
+    parser.add_argument("--expected_member_source_validation_json_sha256")
+    parser.add_argument("--member_source_manifest_json", type=Path)
+    parser.add_argument("--member_source_nonoverlap_report_json", type=Path)
+    parser.add_argument("--member_source_preflight_inputs_json", type=Path)
     parser.add_argument("--sha256sums_txt", type=Path, required=True)
     parser.add_argument("--v13_audit_md", type=Path, required=True)
     parser.add_argument("--current_camp_head", required=True)
@@ -120,21 +158,70 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    report = build_report(
-        manifest_builder_json=args.manifest_builder_json,
-        expected_manifest_builder_json_sha256=args.expected_manifest_builder_json_sha256,
-        scope_manifest_json=args.scope_manifest_json,
-        nonoverlap_registry_report_json=args.nonoverlap_registry_report_json,
-        sha256sums_txt=args.sha256sums_txt,
-        v13_audit_md=args.v13_audit_md,
-        current_camp_head=args.current_camp_head,
-        current_camp_origin_main=args.current_camp_origin_main,
-        current_dp_head=args.current_dp_head,
-        required_dp_head=args.required_dp_head,
-        authorized_current_work=args.authorized_current_work,
-        authorized_pass_next_work=args.authorized_pass_next_work,
-        authorized_remediation_next_work=args.authorized_remediation_next_work,
-    )
+    if _has_member_source_args(args):
+        report = build_member_source_remediation_report(
+            member_source_validation_json=_required_path(
+                args.member_source_validation_json,
+                "--member_source_validation_json",
+            ),
+            expected_member_source_validation_json_sha256=_required_str(
+                args.expected_member_source_validation_json_sha256,
+                "--expected_member_source_validation_json_sha256",
+            ),
+            member_source_manifest_json=_required_path(
+                args.member_source_manifest_json,
+                "--member_source_manifest_json",
+            ),
+            member_source_nonoverlap_report_json=_required_path(
+                args.member_source_nonoverlap_report_json,
+                "--member_source_nonoverlap_report_json",
+            ),
+            member_source_preflight_inputs_json=_required_path(
+                args.member_source_preflight_inputs_json,
+                "--member_source_preflight_inputs_json",
+            ),
+            sha256sums_txt=args.sha256sums_txt,
+            v13_audit_md=args.v13_audit_md,
+            current_camp_head=args.current_camp_head,
+            current_camp_origin_main=args.current_camp_origin_main,
+            current_dp_head=args.current_dp_head,
+            required_dp_head=args.required_dp_head,
+            authorized_current_work=(
+                args.authorized_current_work
+                if args.authorized_current_work != AUTHORIZED_CURRENT_WORK
+                else MEMBER_SOURCE_REMEDIATION_AUTHORIZED_CURRENT_WORK
+            ),
+            authorized_pass_next_work=args.authorized_pass_next_work,
+            authorized_remediation_next_work=args.authorized_remediation_next_work,
+        )
+    else:
+        report = build_report(
+            manifest_builder_json=_required_path(
+                args.manifest_builder_json,
+                "--manifest_builder_json",
+            ),
+            expected_manifest_builder_json_sha256=_required_str(
+                args.expected_manifest_builder_json_sha256,
+                "--expected_manifest_builder_json_sha256",
+            ),
+            scope_manifest_json=_required_path(
+                args.scope_manifest_json,
+                "--scope_manifest_json",
+            ),
+            nonoverlap_registry_report_json=_required_path(
+                args.nonoverlap_registry_report_json,
+                "--nonoverlap_registry_report_json",
+            ),
+            sha256sums_txt=args.sha256sums_txt,
+            v13_audit_md=args.v13_audit_md,
+            current_camp_head=args.current_camp_head,
+            current_camp_origin_main=args.current_camp_origin_main,
+            current_dp_head=args.current_dp_head,
+            required_dp_head=args.required_dp_head,
+            authorized_current_work=args.authorized_current_work,
+            authorized_pass_next_work=args.authorized_pass_next_work,
+            authorized_remediation_next_work=args.authorized_remediation_next_work,
+        )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(_stable(report), indent=2) + "\n", encoding="utf-8")
@@ -233,6 +320,112 @@ def build_report(
         ),
         "source_hashes": _source_hashes(paths, scope),
         "manifest_summary": _manifest_summary(builder, scope, registry_report),
+        "preflight_result": split_result,
+        "preflight_checks": checks,
+        "final_decision": _decision(
+            passed=passed,
+            failed_checks=failed_checks,
+            failure_class=failure_class,
+            authorized_current_work=authorized_current_work,
+            authorized_pass_next_work=authorized_pass_next_work,
+            authorized_remediation_next_work=authorized_remediation_next_work,
+        ),
+    }
+
+
+def build_member_source_remediation_report(
+    *,
+    member_source_validation_json: Path,
+    expected_member_source_validation_json_sha256: str,
+    member_source_manifest_json: Path,
+    member_source_nonoverlap_report_json: Path,
+    member_source_preflight_inputs_json: Path,
+    sha256sums_txt: Path,
+    v13_audit_md: Path,
+    current_camp_head: str,
+    current_camp_origin_main: str,
+    current_dp_head: str,
+    required_dp_head: str = FIXED_DP_HEAD,
+    authorized_current_work: str = MEMBER_SOURCE_REMEDIATION_AUTHORIZED_CURRENT_WORK,
+    authorized_pass_next_work: str = AUTHORIZED_PASS_NEXT_WORK,
+    authorized_remediation_next_work: str = AUTHORIZED_REMEDIATION_NEXT_WORK,
+) -> dict[str, Any]:
+    paths = {
+        "member_source_validation_json": member_source_validation_json.resolve(),
+        "member_source_manifest_json": member_source_manifest_json.resolve(),
+        "member_source_nonoverlap_report_json": member_source_nonoverlap_report_json.resolve(),
+        "member_source_preflight_inputs_json": member_source_preflight_inputs_json.resolve(),
+        "sha256sums_txt": sha256sums_txt.resolve(),
+        "v13_audit_md": v13_audit_md.resolve(),
+    }
+    validation = _load_json_dict(paths["member_source_validation_json"])
+    manifest = _load_json_dict(paths["member_source_manifest_json"])
+    nonoverlap = _load_json_dict(paths["member_source_nonoverlap_report_json"])
+    preflight_inputs = _load_json_dict(paths["member_source_preflight_inputs_json"])
+    audit_text = _read_text(paths["v13_audit_md"])
+    split_result = _member_source_split_result(manifest, nonoverlap)
+    checks = _member_source_remediation_checks(
+        paths=paths,
+        validation=validation,
+        manifest=manifest,
+        nonoverlap=nonoverlap,
+        preflight_inputs=preflight_inputs,
+        audit_text=audit_text,
+        expected_member_source_validation_json_sha256=expected_member_source_validation_json_sha256,
+        current_camp_head=current_camp_head,
+        current_camp_origin_main=current_camp_origin_main,
+        current_dp_head=current_dp_head,
+        required_dp_head=required_dp_head,
+        authorized_current_work=authorized_current_work,
+    )
+    failed_checks = [check["name"] for check in checks if not check["passed"]]
+    zero_proof_passed = split_result["all_required_intersections_zero"]
+    passed = not failed_checks and zero_proof_passed
+    failure_class = None if passed else _failure_class(failed_checks, split_result)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "analysis": {
+            "read_only": True,
+            "preflight_only": True,
+            "fixed_manifest_inputs_only": True,
+            "member_source_remediation_mode": True,
+            "fresh_split_member_selection_execution": False,
+            "data_preparation_execution": False,
+            "fixed_dp_candidate_generation_execution": False,
+            "replay_execution": False,
+            "training_execution": False,
+            "dp_modification": False,
+            "candidate_generation_by_camp": False,
+            "trajectory_generation_by_camp": False,
+            "trajectory_modification_by_camp": False,
+            "reference_blend": False,
+            "guidance": False,
+            "postprocess_or_postselection": False,
+            "closed_loop_outcome_input": False,
+            "selector_promotion": False,
+            "atom_promotion": False,
+            "deployment": False,
+            "safety_benefit_claim": False,
+            "camp_over_dp_top1_claim": False,
+            "candidate_operation": "fixed DP candidate reranking only",
+            "score_expression": SCORE_EXPRESSION,
+        },
+        "heads": {
+            "current_camp_head": current_camp_head,
+            "current_camp_origin_main": current_camp_origin_main,
+            "current_dp_head": current_dp_head,
+            "required_dp_head": required_dp_head,
+        },
+        "inputs": {name: str(path) for name, path in paths.items()},
+        "source_hashes": {
+            f"{name}_sha256": _sha256_if_file(path) for name, path in paths.items()
+        },
+        "manifest_summary": _member_source_manifest_summary(
+            validation,
+            manifest,
+            nonoverlap,
+            preflight_inputs,
+        ),
         "preflight_result": split_result,
         "preflight_checks": checks,
         "final_decision": _decision(
@@ -364,6 +557,139 @@ def _checks(
     return checks
 
 
+def _member_source_remediation_checks(
+    *,
+    paths: dict[str, Path],
+    validation: dict[str, Any],
+    manifest: dict[str, Any],
+    nonoverlap: dict[str, Any],
+    preflight_inputs: dict[str, Any],
+    audit_text: str,
+    expected_member_source_validation_json_sha256: str,
+    current_camp_head: str,
+    current_camp_origin_main: str,
+    current_dp_head: str,
+    required_dp_head: str,
+    authorized_current_work: str,
+) -> list[dict[str, Any]]:
+    decision = _dict(validation.get("final_decision"))
+    manifest_boundary = _dict(manifest.get("math_and_runtime_boundary"))
+    nonoverlap_boundary = _dict(nonoverlap.get("math_and_runtime_boundary"))
+    forbidden = _dict(preflight_inputs.get("forbidden_next_actions"))
+    zero_counts = _member_source_zero_counts(manifest, nonoverlap)
+    selected_members = _list(manifest.get("selected_members"))
+    selected_count = _int(manifest.get("selected_member_count"))
+    checks = [
+        _check("current_camp_head_is_sha", _is_git_sha(current_camp_head), current_camp_head, "git sha"),
+        _expect("camp_head_matches_origin_main", current_camp_head, current_camp_origin_main),
+        _expect("current_dp_head_fixed", current_dp_head, FIXED_DP_HEAD),
+        _expect("required_dp_head_fixed", required_dp_head, FIXED_DP_HEAD),
+        _check(
+            "expected_member_source_validation_json_sha256_valid",
+            _is_sha256(expected_member_source_validation_json_sha256),
+            expected_member_source_validation_json_sha256,
+            "sha256",
+        ),
+        _expect("audit_latest_status", _latest_value(audit_text, "current_v13_status"), MEMBER_SOURCE_REMEDIATION_AUDIT_STATUS),
+        _expect("audit_latest_next_work", _latest_value(audit_text, "next_work_target"), authorized_current_work),
+        _expect("audit_preflight_authorized", _latest_value(audit_text, "fresh_evaluation_split_preflight_authorized_next"), "True"),
+    ]
+    for flag in BLOCKED_FLAGS:
+        checks.append(_expect(f"audit_blocks_{flag}", _latest_value(audit_text, flag), "False"))
+    for name, path in paths.items():
+        checks.append(_check(f"{name}_exists", path.is_file(), str(path), "file exists"))
+    if paths["member_source_validation_json"].is_file():
+        checks.append(
+            _expect(
+                "member_source_validation_json_sha256_matches_expected",
+                _sha256(paths["member_source_validation_json"]),
+                expected_member_source_validation_json_sha256.lower(),
+            )
+        )
+    checks.extend(
+        [
+            _expect("validation_schema_version", validation.get("schema_version"), MEMBER_SOURCE_VALIDATION_SCHEMA_VERSION),
+            _expect("validation_status", decision.get("status"), MEMBER_SOURCE_VALIDATION_STATUS),
+            _expect("validation_passed", decision.get("passed"), True),
+            _expect("validation_failed_checks_empty", decision.get("failed_checks"), []),
+            _expect("validation_authorizes_this_preflight", decision.get("authorized_next_work"), authorized_current_work),
+            _expect("validation_preflight_authorized_next", decision.get("fresh_evaluation_split_preflight_authorized_next"), True),
+            _expect("validation_member_source_builder_not_executed", decision.get("member_source_builder_executed"), False),
+            _expect("validation_real_fresh_member_selection_not_executed", decision.get("real_fresh_member_selection_executed"), False),
+            _expect("validation_fixed_dp_generation_not_executed", decision.get("fixed_dp_candidate_generation_executed"), False),
+            _expect("validation_replay_not_executed", decision.get("replay_executed"), False),
+            _expect("validation_training_not_executed", decision.get("training_executed"), False),
+            _expect("validation_dp_modification_not_executed", decision.get("dp_modification_executed"), False),
+            _expect("member_source_manifest_schema_version", manifest.get("schema_version"), MEMBER_SOURCE_MANIFEST_SCHEMA_VERSION),
+            _expect("member_source_nonoverlap_schema_version", nonoverlap.get("schema_version"), MEMBER_SOURCE_NONOVERLAP_REPORT_SCHEMA_VERSION),
+            _expect("member_source_preflight_inputs_schema_version", preflight_inputs.get("schema_version"), MEMBER_SOURCE_PREFLIGHT_INPUTS_SCHEMA_VERSION),
+            _expect("member_source_selected_count", selected_count, TARGET_SELECTION_LOGS),
+            _expect("member_source_selected_count_matches_list", len(selected_members), selected_count),
+            _expect("nonoverlap_zero_proof_executed", nonoverlap.get("zero_intersection_proof_executed_by_this_builder"), True),
+            _expect("nonoverlap_split_root_only_acceptance_false", nonoverlap.get("split_root_only_acceptance"), False),
+            _expect("nonoverlap_rejected_overlap_source_reuse_false", nonoverlap.get("rejected_overlap_source_reuse"), False),
+            _expect("nonoverlap_formal_seed_false", nonoverlap.get("formal_seed_11_12_13"), False),
+            _expect("nonoverlap_full36_false", nonoverlap.get("full36"), False),
+            _expect("manifest_score_affine", manifest_boundary.get("score_expression"), SCORE_EXPRESSION),
+            _expect("nonoverlap_score_affine", nonoverlap_boundary.get("score_expression"), SCORE_EXPRESSION),
+            _expect("manifest_fixed_dp_reranking_only", manifest_boundary.get("candidate_operation"), "fixed DP candidate reranking only"),
+            _expect("manifest_nonnegative_simplex", manifest_boundary.get("nonnegative_simplex_weights_only"), True),
+            _expect("manifest_master_convex", manifest_boundary.get("master_problem_remains_convex"), True),
+            _expect("manifest_default_off_shadow_selector", manifest_boundary.get("default_off_shadow_selector"), True),
+            _expect("manifest_executed_trajectory_dp_top1", manifest_boundary.get("executed_trajectory_remains_dp_top1"), True),
+            _expect(
+                "preflight_inputs_manifest_path_matches",
+                _path_matches(preflight_inputs.get("fresh_member_source_manifest_json"), paths["member_source_manifest_json"]),
+                True,
+            ),
+            _expect(
+                "preflight_inputs_nonoverlap_path_matches",
+                _path_matches(preflight_inputs.get("fresh_member_source_nonoverlap_report_json"), paths["member_source_nonoverlap_report_json"]),
+                True,
+            ),
+        ]
+    )
+    for key in ZERO_INTERSECTION_KEYS:
+        checks.append(_expect(f"{key}_is_zero", zero_counts.get(key), 0))
+        checks.append(
+            _expect(
+                f"preflight_inputs_expect_zero_{key}",
+                _dict(preflight_inputs.get("expected_zero_intersections")).get(key),
+                0,
+            )
+        )
+    for key in (
+        "fixed_dp_candidate_generation",
+        "candidate_generation_by_camp",
+        "trajectory_generation_by_camp",
+        "trajectory_modification_by_camp",
+        "reference_blend",
+        "guidance",
+        "postprocess_or_postselection",
+        "closed_loop_outcome_input",
+        "replay",
+        "training",
+        "dp_modification",
+        "promotion",
+        "deployment",
+        "safety_or_camp_over_dp_claim",
+    ):
+        checks.append(_expect(f"manifest_boundary_blocks_{key}", manifest_boundary.get(key), False))
+        checks.append(_expect(f"nonoverlap_boundary_blocks_{key}", nonoverlap_boundary.get(key), False))
+    for key in (
+        "fixed_dp_candidate_generation",
+        "replay",
+        "training",
+        "dp_modification",
+        "promotion",
+        "deployment",
+        "safety_or_camp_over_dp_claim",
+    ):
+        checks.append(_expect(f"preflight_inputs_forbid_{key}", forbidden.get(key), True))
+    checks.extend(_member_source_sha256sum_checks(paths))
+    return checks
+
+
 def _audit_checks(text: str, authorized_current_work: str) -> list[dict[str, Any]]:
     checks = [
         _expect("audit_latest_status", _latest_value(text, "current_v13_status"), LATEST_AUDIT_STATUS),
@@ -414,6 +740,37 @@ def _compute_split_result(source_registry: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _member_source_split_result(
+    manifest: dict[str, Any],
+    nonoverlap: dict[str, Any],
+) -> dict[str, Any]:
+    zero_counts = _member_source_zero_counts(manifest, nonoverlap)
+    result = {
+        "candidate_tensor_hash_intersection_count": zero_counts.get(
+            "candidate_tensor_hash_intersection_count"
+        ),
+        "path_signature_intersection_count": zero_counts.get(
+            "path_signature_intersection_count"
+        ),
+        "record_identity_intersection_count": zero_counts.get(
+            "record_identity_intersection_count"
+        ),
+        "split_manifest_root_intersection_count": zero_counts.get(
+            "split_manifest_root_intersection_count"
+        ),
+        "evaluation_source_log_count": _int(manifest.get("selected_member_count")),
+        "selected_member_count": _int(manifest.get("selected_member_count")),
+        "candidate_tensor_hash_intersection_sample": [],
+        "path_signature_intersection_sample": [],
+        "record_identity_intersection_sample": [],
+        "split_manifest_root_intersection_sample": [],
+    }
+    result["all_required_intersections_zero"] = all(
+        result[key] == 0 for key in ZERO_INTERSECTION_KEYS
+    )
+    return result
+
+
 def _registry_sets(payload: dict[str, Any], field: str) -> tuple[set[str], set[str]]:
     evaluation = set(str(value) for value in _list(_dict(payload.get("evaluation")).get(field)))
     training = set(str(value) for value in _list(_dict(payload.get("training")).get(field)))
@@ -439,6 +796,30 @@ def _sha256sum_checks(sha256sums_txt: Path, paths: dict[str, Path]) -> list[dict
     return checks
 
 
+def _member_source_sha256sum_checks(paths: dict[str, Path]) -> list[dict[str, Any]]:
+    entries = _sha256_entries_by_name(paths["sha256sums_txt"])
+    required = {
+        "fresh_evaluation_split_member_source_manifest.json": paths["member_source_manifest_json"],
+        "fresh_evaluation_split_member_source_nonoverlap_report.json": paths[
+            "member_source_nonoverlap_report_json"
+        ],
+        "fresh_evaluation_split_member_source_preflight_inputs.json": paths[
+            "member_source_preflight_inputs_json"
+        ],
+    }
+    checks = []
+    for filename, path in required.items():
+        checks.append(_check(f"sha256sums_entry_{_slug(filename)}", filename in entries, sorted(entries), filename))
+        checks.append(
+            _expect(
+                f"sha256sums_match_{_slug(filename)}",
+                _sha256_if_file(path),
+                entries.get(filename),
+            )
+        )
+    return checks
+
+
 def _source_hashes(paths: dict[str, Path], scope: dict[str, Any]) -> dict[str, str | None]:
     hashes: dict[str, str | None] = {
         f"{name}_sha256": _sha256(path) if path.is_file() else None
@@ -452,6 +833,24 @@ def _source_hashes(paths: dict[str, Path], scope: dict[str, Any]) -> dict[str, s
         path = Path(str(scope.get(key, "")))
         hashes[f"{key}_sha256"] = _sha256(path) if path.is_file() else None
     return hashes
+
+
+def _member_source_manifest_summary(
+    validation: dict[str, Any],
+    manifest: dict[str, Any],
+    nonoverlap: dict[str, Any],
+    preflight_inputs: dict[str, Any],
+) -> dict[str, Any]:
+    decision = _dict(validation.get("final_decision"))
+    return {
+        "validation_status": decision.get("status"),
+        "validation_passed": decision.get("passed"),
+        "selected_member_count": _int(manifest.get("selected_member_count")),
+        "zero_intersection_counts": _member_source_zero_counts(manifest, nonoverlap),
+        "manifest_role": manifest.get("manifest_role"),
+        "nonoverlap_report_role": nonoverlap.get("manifest_role"),
+        "preflight_inputs_role": preflight_inputs.get("manifest_role"),
+    }
 
 
 def _manifest_summary(
@@ -475,6 +874,16 @@ def _manifest_summary(
             "future_zero_intersection_preflight_required"
         ),
     }
+
+
+def _member_source_zero_counts(
+    manifest: dict[str, Any],
+    nonoverlap: dict[str, Any],
+) -> dict[str, int | None]:
+    values = _dict(manifest.get("zero_intersection_counts"))
+    if not values:
+        values = _dict(nonoverlap.get("zero_intersection_counts"))
+    return {key: _int(values.get(key)) if key in values else None for key in ZERO_INTERSECTION_KEYS}
 
 
 def _decision(
@@ -559,6 +968,19 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _sha256_if_file(path: Path) -> str | None:
+    return _sha256(path) if path.is_file() else None
+
+
+def _sha256_entries_by_name(path: Path) -> dict[str, str]:
+    entries: dict[str, str] = {}
+    for line in _read_text(path).splitlines():
+        parts = line.strip().split(maxsplit=1)
+        if len(parts) == 2 and _is_sha256(parts[0]):
+            entries[Path(parts[1].lstrip("*")).name] = parts[0].lower()
+    return entries
+
+
 def _is_sha256(value: str) -> bool:
     return bool(re.fullmatch(r"[0-9a-fA-F]{64}", value or ""))
 
@@ -583,8 +1005,47 @@ def _list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
+def _int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _path_matches(value: Any, expected: Path) -> bool:
+    try:
+        return Path(str(value)).resolve() == expected.resolve()
+    except OSError:
+        return False
+
+
 def _slug(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9]+", "_", value).strip("_")
+
+
+def _has_member_source_args(args: argparse.Namespace) -> bool:
+    return any(
+        getattr(args, name) is not None
+        for name in (
+            "member_source_validation_json",
+            "expected_member_source_validation_json_sha256",
+            "member_source_manifest_json",
+            "member_source_nonoverlap_report_json",
+            "member_source_preflight_inputs_json",
+        )
+    )
+
+
+def _required_path(value: Path | None, flag: str) -> Path:
+    if value is None:
+        raise SystemExit(f"missing required argument {flag}")
+    return value
+
+
+def _required_str(value: str | None, flag: str) -> str:
+    if value is None:
+        raise SystemExit(f"missing required argument {flag}")
+    return value
 
 
 def _stable(value: Any) -> Any:

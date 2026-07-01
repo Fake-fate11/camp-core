@@ -9,11 +9,13 @@ from scripts.integrations.preflight_diffusion_planner_dp_camp_v13_fresh_evaluati
     AUTHORIZED_CURRENT_WORK,
     AUTHORIZED_REMEDIATION_NEXT_WORK,
     FIXED_DP_HEAD,
+    MEMBER_SOURCE_REMEDIATION_AUTHORIZED_CURRENT_WORK,
     PASS_STATUS,
     REJECT_STATUS,
     SCHEMA_VERSION,
     SOURCE_BUILDER_AUTHORIZED_NEXT_WORK,
     build_report,
+    build_member_source_remediation_report,
     main,
 )
 
@@ -59,6 +61,40 @@ def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         f"next_work_target={target}",
+        "",
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
+
+
+def _member_source_audit(path: Path) -> Path:
+    lines = [
+        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_member_source_remediation_validation_preflight_passed",
+        "fresh_evaluation_split_preflight_authorized_next=True",
+        "data_preparation_authorized_next=False",
+        "training_preflight_authorized_next=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "runtime_shadow_selector_execution_authorized=False",
+        "replay_execution_authorized_by_current_boundary=False",
+        "fixed_dp_candidate_generation_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "reference_blend_authorized=False",
+        "guidance_authorized=False",
+        "postprocess_or_postselection_authorized=False",
+        "closed_loop_outcome_authorized=False",
+        "online_selector_change_authorized=False",
+        "executed_trajectory_change_authorized=False",
+        "selector_promotion_authorized=False",
+        "atom_promotion_authorized=False",
+        "deployment_authorized=False",
+        "deployable_checkpoint_claim_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        f"next_work_target={MEMBER_SOURCE_REMEDIATION_AUTHORIZED_CURRENT_WORK}",
         "",
     ]
     path.write_text("\n".join(lines), encoding="utf-8")
@@ -242,6 +278,146 @@ def _build(tmp_path: Path, *, overlap: bool = False, target: str = AUTHORIZED_CU
     )
 
 
+def _member_source_boundary() -> dict[str, Any]:
+    return {
+        "candidate_operation": "fixed DP candidate reranking only",
+        "score_expression": "score_k(w)=a_k^T w",
+        "nonnegative_simplex_weights_only": True,
+        "master_problem_remains_convex": True,
+        "default_off_shadow_selector": True,
+        "executed_trajectory_remains_dp_top1": True,
+        "fixed_dp_candidate_generation": False,
+        "candidate_generation_by_camp": False,
+        "trajectory_generation_by_camp": False,
+        "trajectory_modification_by_camp": False,
+        "reference_blend": False,
+        "guidance": False,
+        "postprocess_or_postselection": False,
+        "closed_loop_outcome_input": False,
+        "replay": False,
+        "training": False,
+        "dp_modification": False,
+        "promotion": False,
+        "deployment": False,
+        "safety_or_camp_over_dp_claim": False,
+    }
+
+
+def _member_source_fixtures(tmp_path: Path, *, candidate_overlap: int = 0) -> dict[str, Path]:
+    artifact = tmp_path / "member_source"
+    zero_counts = {
+        "candidate_tensor_hash_intersection_count": candidate_overlap,
+        "path_signature_intersection_count": 0,
+        "record_identity_intersection_count": 0,
+        "split_manifest_root_intersection_count": 0,
+    }
+    manifest = _write_json(
+        artifact / "fresh_evaluation_split_member_source_manifest.json",
+        {
+            "schema_version": "dp_camp_v13_fresh_evaluation_split_member_source_manifest_v1",
+            "manifest_role": "fresh_evaluation_split_member_source_manifest",
+            "selected_member_count": 32,
+            "selected_members": [{"member_id": f"member_{idx:02d}"} for idx in range(32)],
+            "zero_intersection_counts": zero_counts,
+            "math_and_runtime_boundary": _member_source_boundary(),
+        },
+    )
+    nonoverlap = _write_json(
+        artifact / "fresh_evaluation_split_member_source_nonoverlap_report.json",
+        {
+            "schema_version": "dp_camp_v13_fresh_evaluation_split_member_source_nonoverlap_report_v1",
+            "manifest_role": "fresh_evaluation_split_member_source_nonoverlap_report",
+            "zero_intersection_counts": zero_counts,
+            "zero_intersection_proof_executed_by_this_builder": True,
+            "split_root_only_acceptance": False,
+            "rejected_overlap_source_reuse": False,
+            "formal_seed_11_12_13": False,
+            "full36": False,
+            "math_and_runtime_boundary": _member_source_boundary(),
+        },
+    )
+    preflight_inputs = _write_json(
+        artifact / "fresh_evaluation_split_member_source_preflight_inputs.json",
+        {
+            "schema_version": "dp_camp_v13_fresh_evaluation_split_member_source_preflight_inputs_v1",
+            "manifest_role": "fresh_evaluation_split_member_source_preflight_inputs",
+            "fresh_member_source_manifest_json": str(manifest),
+            "fresh_member_source_nonoverlap_report_json": str(nonoverlap),
+            "expected_zero_intersections": {
+                "candidate_tensor_hash_intersection_count": 0,
+                "path_signature_intersection_count": 0,
+                "record_identity_intersection_count": 0,
+                "split_manifest_root_intersection_count": 0,
+            },
+            "forbidden_next_actions": {
+                "fixed_dp_candidate_generation": True,
+                "replay": True,
+                "training": True,
+                "dp_modification": True,
+                "promotion": True,
+                "deployment": True,
+                "safety_or_camp_over_dp_claim": True,
+            },
+        },
+    )
+    validation = _write_json(
+        artifact / "validation_preflight_report.json",
+        {
+            "schema_version": "dp_camp_v13_fresh_evaluation_split_member_source_validation_preflight_v1",
+            "final_decision": {
+                "status": "dp_camp_v13_fresh_evaluation_split_member_source_validation_preflight_passed",
+                "passed": True,
+                "failed_checks": [],
+                "authorized_next_work": MEMBER_SOURCE_REMEDIATION_AUTHORIZED_CURRENT_WORK,
+                "fresh_evaluation_split_preflight_authorized_next": True,
+                "member_source_builder_executed": False,
+                "real_fresh_member_selection_executed": False,
+                "fixed_dp_candidate_generation_executed": False,
+                "replay_executed": False,
+                "training_executed": False,
+                "dp_modification_executed": False,
+            },
+        },
+    )
+    sha256sums = artifact / "SHA256SUMS.txt"
+    sha256sums.write_text(
+        "\n".join(
+            [
+                f"{_sha256(manifest)}  fresh_evaluation_split_member_source_manifest.json",
+                f"{_sha256(nonoverlap)}  fresh_evaluation_split_member_source_nonoverlap_report.json",
+                f"{_sha256(preflight_inputs)}  fresh_evaluation_split_member_source_preflight_inputs.json",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    audit = _member_source_audit(tmp_path / "audit.md")
+    return {
+        "validation": validation,
+        "manifest": manifest,
+        "nonoverlap": nonoverlap,
+        "preflight_inputs": preflight_inputs,
+        "sha256sums": sha256sums,
+        "audit": audit,
+    }
+
+
+def _build_member_source(tmp_path: Path, *, candidate_overlap: int = 0) -> dict[str, Any]:
+    paths = _member_source_fixtures(tmp_path, candidate_overlap=candidate_overlap)
+    return build_member_source_remediation_report(
+        member_source_validation_json=paths["validation"],
+        expected_member_source_validation_json_sha256=_sha256(paths["validation"]),
+        member_source_manifest_json=paths["manifest"],
+        member_source_nonoverlap_report_json=paths["nonoverlap"],
+        member_source_preflight_inputs_json=paths["preflight_inputs"],
+        sha256sums_txt=paths["sha256sums"],
+        v13_audit_md=paths["audit"],
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+    )
+
+
 def test_fresh_evaluation_split_preflight_rejects_overlap_fail_closed(tmp_path: Path) -> None:
     report = _build(tmp_path, overlap=True)
 
@@ -270,6 +446,34 @@ def test_fresh_evaluation_split_preflight_passes_zero_intersection(tmp_path: Pat
     assert report["final_decision"]["passed"] is True
     assert report["final_decision"]["fresh_evaluation_split_evaluation_authorized_next"] is True
     assert report["preflight_result"]["all_required_intersections_zero"] is True
+
+
+def test_member_source_remediation_fresh_evaluation_split_preflight_passes_zero_intersection(tmp_path: Path) -> None:
+    report = _build_member_source(tmp_path)
+
+    assert report["final_decision"]["status"] == PASS_STATUS
+    assert report["final_decision"]["passed"] is True
+    assert (
+        report["final_decision"]["authorized_current_work"]
+        == MEMBER_SOURCE_REMEDIATION_AUTHORIZED_CURRENT_WORK
+    )
+    assert report["final_decision"]["fresh_evaluation_split_evaluation_authorized_next"] is True
+    assert report["final_decision"]["training_execution_authorized_next"] is False
+    assert report["preflight_result"]["selected_member_count"] == 32
+    assert report["preflight_result"]["all_required_intersections_zero"] is True
+
+
+def test_member_source_remediation_fresh_evaluation_split_preflight_rejects_nonzero_overlap(tmp_path: Path) -> None:
+    report = _build_member_source(tmp_path, candidate_overlap=1)
+
+    assert report["final_decision"]["status"] == REJECT_STATUS
+    assert report["final_decision"]["passed"] is False
+    assert (
+        report["final_decision"]["failure_class"]
+        == "candidate_tensor_hash_overlap_with_training_registry"
+    )
+    assert report["final_decision"]["training_execution_authorized_next"] is False
+    assert report["final_decision"]["fixed_dp_candidate_generation_authorized_next"] is False
 
 
 def test_fresh_evaluation_split_preflight_rejects_wrong_audit_target(tmp_path: Path) -> None:
