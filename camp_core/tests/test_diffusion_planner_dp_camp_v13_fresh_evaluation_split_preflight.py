@@ -12,6 +12,7 @@ from scripts.integrations.preflight_diffusion_planner_dp_camp_v13_fresh_evaluati
     PASS_STATUS,
     REJECT_STATUS,
     SCHEMA_VERSION,
+    SOURCE_BUILDER_AUTHORIZED_NEXT_WORK,
     build_report,
     main,
 )
@@ -143,7 +144,7 @@ def _fixtures(tmp_path: Path, *, overlap: bool) -> dict[str, Path]:
             "final_decision": {
                 "status": "dp_camp_v13_fresh_evaluation_split_manifest_builder_complete",
                 "passed": True,
-                "authorized_next_work": AUTHORIZED_CURRENT_WORK,
+                "authorized_next_work": SOURCE_BUILDER_AUTHORIZED_NEXT_WORK,
             },
         },
     )

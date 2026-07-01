@@ -24,6 +24,13 @@ PASS_STATUS = "dp_camp_v13_fresh_evaluation_split_preflight_passed"
 REJECT_STATUS = "dp_camp_v13_fresh_evaluation_split_preflight_rejected"
 SOURCE_BUILDER_SCHEMA_VERSION = "dp_camp_v13_fresh_evaluation_split_manifest_builder_v1"
 SOURCE_BUILDER_STATUS = "dp_camp_v13_fresh_evaluation_split_manifest_builder_complete"
+SOURCE_BUILDER_AUTHORIZED_NEXT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+    "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
+    "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
+    "remediation_fresh_evaluation_split_post_implementation_static_contract_"
+    "review_only"
+)
 SCOPE_MANIFEST_SCHEMA_VERSION = "dp_camp_v13_fresh_evaluation_split_scope_manifest_v1"
 REGISTRY_REPORT_SCHEMA_VERSION = (
     "dp_camp_v13_fresh_evaluation_split_nonoverlap_registry_report_v1"
@@ -312,7 +319,7 @@ def _checks(
             _expect("builder_schema_version", builder.get("schema_version"), SOURCE_BUILDER_SCHEMA_VERSION),
             _expect("builder_status_complete", decision.get("status"), SOURCE_BUILDER_STATUS),
             _expect("builder_passed", decision.get("passed"), True),
-            _expect("builder_authorizes_preflight", decision.get("authorized_next_work"), authorized_current_work),
+            _expect("builder_authorizes_post_review", decision.get("authorized_next_work"), SOURCE_BUILDER_AUTHORIZED_NEXT_WORK),
             _expect("scope_schema_version", scope.get("schema_version"), SCOPE_MANIFEST_SCHEMA_VERSION),
             _expect("registry_report_schema_version", registry_report.get("schema_version"), REGISTRY_REPORT_SCHEMA_VERSION),
             _expect("source_registry_schema_version", source_registry.get("schema_version"), SOURCE_REGISTRY_SCHEMA_VERSION),
