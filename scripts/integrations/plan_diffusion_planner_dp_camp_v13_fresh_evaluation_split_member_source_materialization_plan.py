@@ -164,7 +164,8 @@ REQUIRED_PREFLIGHT_TERMS = (
     "PREFLIGHT_INPUTS_SCHEMA_VERSION",
     "sha256sums_matches",
     "fresh_member_source_artifact_missing",
-    AUTHORIZED_CURRENT_WORK,
+    "AUTHORIZED_MISSING_INPUT_NEXT_WORK",
+    "materialization_plan_only",
 )
 
 
