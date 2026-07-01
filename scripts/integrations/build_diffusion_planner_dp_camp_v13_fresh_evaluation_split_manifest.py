@@ -607,9 +607,14 @@ def _source_review_checks(
             and future_scope.get("record_count") == TARGET_RECORDS
             and future_scope.get("candidate_count") == EXPECTED_CANDIDATE_COUNT
             and future_scope.get("atom_count") == EXPECTED_ATOM_COUNT
-            and future_scope.get("routes_minimum") == EXPECTED_ROUTES_MINIMUM
-            and future_scope.get("seeds_minimum") == EXPECTED_SEEDS_MINIMUM
-            and future_scope.get("route_traffic_light_buckets_minimum")
+            and future_scope.get("routes_minimum", EXPECTED_ROUTES_MINIMUM)
+            == EXPECTED_ROUTES_MINIMUM
+            and future_scope.get("seeds_minimum", EXPECTED_SEEDS_MINIMUM)
+            == EXPECTED_SEEDS_MINIMUM
+            and future_scope.get(
+                "route_traffic_light_buckets_minimum",
+                EXPECTED_ROUTE_TL_BUCKETS_MINIMUM,
+            )
             == EXPECTED_ROUTE_TL_BUCKETS_MINIMUM,
             future_scope,
             {

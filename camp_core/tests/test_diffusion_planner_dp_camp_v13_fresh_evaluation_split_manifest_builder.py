@@ -398,6 +398,21 @@ def test_manifest_builder_rejects_missing_required_behavior(tmp_path: Path) -> N
     assert "source_review_required_behavior_present" in report["final_decision"]["failed_checks"]
 
 
+def test_manifest_builder_accepts_static_review_without_optional_scope_minima(
+    tmp_path: Path,
+) -> None:
+    def drop_optional_minima(payload: dict[str, Any]) -> None:
+        scope = payload["static_contract_review"]["future_scope_contract"]
+        scope.pop("routes_minimum")
+        scope.pop("seeds_minimum")
+        scope.pop("route_traffic_light_buckets_minimum")
+
+    report = _build(tmp_path, review_mutation=drop_optional_minima)
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["failed_checks"] == []
+
+
 def test_manifest_builder_rejects_empty_recovered_registry(tmp_path: Path) -> None:
     def empty_recovered(payload: dict[str, Any]) -> None:
         payload["recovered_candidate_hash_count"] = 0
