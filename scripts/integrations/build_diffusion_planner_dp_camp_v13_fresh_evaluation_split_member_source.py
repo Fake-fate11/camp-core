@@ -170,6 +170,14 @@ AUDIT_FALSE_FLAGS = (
     "safety_benefit_claim_authorized",
     "camp_over_dp_top1_claim_authorized",
 )
+AUDIT_FALSE_FLAG_ALIASES = {
+    "fresh_member_selection_execution_authorized_next": (
+        "fresh_member_source_materialization_execution_authorized_next",
+    ),
+    "fresh_evaluation_split_evaluation_authorized_next": (
+        "fresh_evaluation_split_evaluation_execution_authorized_next",
+    ),
+}
 FORMAL_SEEDS = {11, 12, 13}
 
 
@@ -1060,8 +1068,8 @@ def _audit_boundary_checks(audit_text: str) -> list[dict[str, Any]]:
     return [
         _check(
             f"audit_blocks_{flag}",
-            _latest_value(audit_text, flag) == "False",
-            _latest_value(audit_text, flag),
+            _latest_flag_value(audit_text, flag) == "False",
+            _latest_flag_value(audit_text, flag),
             "False",
         )
         for flag in AUDIT_FALSE_FLAGS
@@ -1366,6 +1374,21 @@ def _read_text_if_exists(path: Path) -> str:
 def _latest_value(text: str, key: str) -> str | None:
     matches = re.findall(rf"^{re.escape(key)}=(.+)$", text, flags=re.MULTILINE)
     return matches[-1].strip() if matches else None
+
+
+def _latest_flag_value(text: str, key: str) -> str | None:
+    keys = (key, *AUDIT_FALSE_FLAG_ALIASES.get(key, ()))
+    matches: list[tuple[int, str]] = []
+    for candidate in keys:
+        for match in re.finditer(
+            rf"^{re.escape(candidate)}=(.+)$",
+            text,
+            flags=re.MULTILINE,
+        ):
+            matches.append((match.start(), match.group(1).strip()))
+    if not matches:
+        return None
+    return max(matches, key=lambda item: item[0])[1]
 
 
 def _sha256(path: Path) -> str:

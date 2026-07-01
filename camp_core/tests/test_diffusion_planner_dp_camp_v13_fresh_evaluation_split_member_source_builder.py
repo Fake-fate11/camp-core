@@ -395,6 +395,23 @@ def test_member_source_builder_supports_rematerialization_gate_overrides(
 ) -> None:
     review = _review(tmp_path / "review.json")
     out = tmp_path / "out"
+    audit = _audit(
+        tmp_path / "audit.md",
+        target=REMATERIALIZATION_AUTHORIZED_CURRENT_WORK,
+        status=REMATERIALIZATION_LATEST_AUDIT_STATUS,
+    )
+    audit.write_text(
+        audit.read_text(encoding="utf-8").replace(
+            "fresh_evaluation_split_evaluation_authorized_next=False",
+            "\n".join(
+                [
+                    "fresh_evaluation_split_evaluation_authorized_next=True",
+                    "fresh_evaluation_split_evaluation_execution_authorized_next=False",
+                ]
+            ),
+        ),
+        encoding="utf-8",
+    )
     report = build_member_source_report(
         implementation_static_contract_review_json=review,
         expected_static_contract_review_sha256=_sha256(review),
@@ -429,11 +446,7 @@ def test_member_source_builder_supports_rematerialization_gate_overrides(
             tmp_path / "rejected" / "registry_manifest.json",
             "rejected",
         ),
-        v13_audit_md=_audit(
-            tmp_path / "audit.md",
-            target=REMATERIALIZATION_AUTHORIZED_CURRENT_WORK,
-            status=REMATERIALIZATION_LATEST_AUDIT_STATUS,
-        ),
+        v13_audit_md=audit,
         output_dir=out,
         output_json=out / "member_source_builder_report.json",
         output_md=out / "member_source_builder_report.md",
