@@ -86,12 +86,15 @@ work to v13.
 - The latest runtime artifact manifest materializer implementation ran locally
   and on AutoDL with CAMP synchronized at
   `9b772d78233cafe508fd2f140188b3f391382d11`.
+- The latest runtime artifact manifest materializer post-implementation static
+  contract review ran on AutoDL with CAMP synchronized at
+  `97754f14ee1f5511ba3e779520a186600a63bfca`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_implementation_complete`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_only`.
 
 ## What Changed
 
@@ -1178,6 +1181,8 @@ Verified locally and on AutoDL at 2026-07-03 CST:
 
 - Implementation commit:
   `9b772d78233cafe508fd2f140188b3f391382d11`
+- Implementation status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_implementation_complete`
 - Materializer script:
   `scripts/integrations/build_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest.py`
 - Materializer script SHA256:
@@ -1208,6 +1213,69 @@ atomic replace. The implementation and tests do not run replay, train CAMP,
 generate candidates, touch DP source files, change online selector behavior, or
 materialize the real planned runtime manifest.
 
+## Default-Off Shadow Selector Runtime Artifact Manifest Materializer Post-Implementation Static Review
+
+Verified on AutoDL at 2026-07-03 03:58 CST:
+
+- Static review initial support commit:
+  `169e5d10c41f50882c3990b336c79a566739a875`
+- Static review remediation commit:
+  `97754f14ee1f5511ba3e779520a186600a63bfca`
+- Static review script:
+  `scripts/integrations/review_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract.py`
+- Static review script SHA256:
+  `018a5545ee01c64cf025e5f94976b25558b362c428cef07975f0598dffb6bf3b`
+- Static review test:
+  `camp_core/tests/test_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract.py`
+- Static review test SHA256:
+  `7d30a023ee0d3f2fed83557a8f1539046bf99a5fe20b89ec9464472e3bb0c35b`
+- First failed artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_169e5d10c4_20260703T035722CST`
+- First failed checks:
+  `materializer_schema_constant`, `materializer_source_plan_schema`
+- First failed report JSON SHA256:
+  `556f1f1dbed1f8ba45f049a5f53b030ce2bf061d7e297dbee024693273d90ca4`
+- Successful artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_97754f14ee_20260703T035849CST`
+- CAMP head and origin/main:
+  `97754f14ee1f5511ba3e779520a186600a63bfca`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code:
+  `0`
+- Local pytest:
+  `10 passed`
+- AutoDL pytest:
+  `10 passed`
+- Review status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_passed`
+- Authorized current work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_only`
+- Review checks:
+  `121`
+- Failed checks:
+  `[]`
+- Planned runtime manifest exists:
+  `False`
+- Successful report JSON SHA256:
+  `5c6056f4f25574ec44de05eac017022f4dcc3827daee6cd69695f14956835886`
+- Successful report MD SHA256:
+  `1e19b1043b2c14e1e9a42ce199f66922494da71fcb6fc6f3fba167998b9f7625`
+- Successful artifact SHA256SUMS SHA256:
+  `72d87c7b27d160a2ffbb03b02c4089fab4ec39783c5e60f3221f122f4e66a68f`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_only`
+
+The first static review failed because two source-surface checks expected full
+long schema constants in contiguous source text, while the materializer uses
+adjacent string literals. The remediation changed those checks to contract
+suffix checks and reran the same gate successfully.
+
+This review was static only. It did not materialize the real runtime manifest,
+run replay, train CAMP, generate candidates, modify DP, promote, deploy, or
+authorize runtime execution or safety/CAMP-over-DP claims. It authorizes only
+the next runtime artifact manifest materialization gate.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1221,17 +1289,17 @@ plan, implementation unit-tests-only gate, and implementation-only gate have
 also passed. The post-implementation static contract review and runtime
 artifact manifest plan-only/static-review/materialization-plan-only/static-review
 and materialization implementation-plan/static-review gates have passed. The
-runtime artifact manifest materializer implementation is complete. The next
-gate is post-implementation static contract review only, and still does not
-authorize materialization execution, runtime execution, promotion, deployment,
-training, replay, candidate generation, or safety-benefit claims.
+runtime artifact manifest materializer implementation and post-implementation
+static contract review are complete. The next gate is runtime artifact manifest
+materialization only, and still does not authorize runtime execution, promotion,
+deployment, training, replay, candidate generation, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_implementation_complete
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_only
 
 ## Cleanup Policy
 
