@@ -381,7 +381,15 @@ def _write_outputs(artifact_dir: Path, report: dict[str, Any]) -> None:
     report_path = artifact_dir / "execution_report.json"
     report_path.write_text(json.dumps(_stable(_without_commands(report)), indent=2) + "\n", encoding="utf-8")
     (artifact_dir / "execution_report.md").write_text(_render_markdown(report), encoding="utf-8")
-    sha_paths = [path for path in artifact_dir.iterdir() if path.is_file() and path.name != "SHA256SUMS"]
+    externally_mutated = {
+        "SHA256SUMS",
+        "wrapper.stdout.log",
+        "wrapper.stderr.log",
+        "wrapper.exit",
+    }
+    sha_paths = [
+        path for path in artifact_dir.iterdir() if path.is_file() and path.name not in externally_mutated
+    ]
     lines = [f"{_sha256(path)}  {path.name}" for path in sorted(sha_paths)]
     (artifact_dir / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

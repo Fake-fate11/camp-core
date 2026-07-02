@@ -226,3 +226,41 @@ def test_v14_execution_cli_writes_report_and_sha(tmp_path: Path, monkeypatch) ->
     report = json.loads((kwargs["execution_artifact_dir"] / "execution_report.json").read_text())
     assert report["final_decision"]["status"] == module.EXECUTION_PASSED_STATUS
     assert "SHA256SUMS" in {path.name for path in kwargs["execution_artifact_dir"].iterdir()}
+
+
+def test_v14_execution_internal_sha_excludes_wrapper_mutating_logs(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module, kwargs, _candidate_root = _fixture(tmp_path)
+    monkeypatch.setenv(module.GUARD_ENV_VAR, "1")
+    artifact_dir = kwargs["execution_artifact_dir"]
+    (artifact_dir / "wrapper.stdout.log").write_text("still mutating", encoding="utf-8")
+    (artifact_dir / "wrapper.stderr.log").write_text("still mutating", encoding="utf-8")
+    (artifact_dir / "wrapper.exit").write_text("", encoding="utf-8")
+
+    exit_code = module.main(
+        [
+            "--preflight_json",
+            str(kwargs["preflight_json"]),
+            "--v14_audit_md",
+            str(kwargs["v14_audit_md"]),
+            "--current_status_md",
+            str(kwargs["current_status_md"]),
+            "--execution_artifact_dir",
+            str(artifact_dir),
+            "--current_camp_head",
+            kwargs["current_camp_head"],
+            "--current_camp_origin_main",
+            kwargs["current_camp_origin_main"],
+            "--current_dp_head",
+            kwargs["current_dp_head"],
+        ]
+    )
+
+    assert exit_code == 0
+    sha_text = (artifact_dir / "SHA256SUMS").read_text(encoding="utf-8")
+    assert "execution_report.json" in sha_text
+    assert "command_01.stdout.log" in sha_text
+    assert "wrapper.stdout.log" not in sha_text
+    assert "wrapper.stderr.log" not in sha_text
+    assert "wrapper.exit" not in sha_text

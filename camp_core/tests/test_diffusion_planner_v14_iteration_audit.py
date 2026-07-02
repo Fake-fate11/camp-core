@@ -220,7 +220,7 @@ def test_v14_public_simulator_source_reclassification_is_historical() -> None:
         assert needle in text
 
 
-def test_v14_public_simulator_fixed_dp_candidate_generation_preflight_ready_is_eof() -> None:
+def test_v14_public_simulator_fixed_dp_candidate_generation_preflight_ready_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Public Simulator Source Reclassification Unblocked "
@@ -230,10 +230,14 @@ def test_v14_public_simulator_fixed_dp_candidate_generation_preflight_ready_is_e
         "## Current V14 Public Simulator Fixed-DP Candidate Generation "
         "Preflight Ready After 1ffff59"
     )
+    next_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate Generation "
+        "Execution Passed After 458c66c"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_fixed_dp_candidate_generation_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_preflight_1ffff597eb_20260702T172252CST",
@@ -285,13 +289,82 @@ def test_v14_public_simulator_fixed_dp_candidate_generation_preflight_ready_is_e
     ]:
         assert needle in text
 
+
+def test_v14_public_simulator_fixed_dp_candidate_generation_execution_passed_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate Generation "
+        "Preflight Ready After 1ffff59"
+    )
+    section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate Generation "
+        "Execution Passed After 458c66c"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_execution_458c66c8ae_20260702T173540CST_artifact",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_execution_1ffff597eb_20260702T172252CST",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_camp_head=458c66c8aeac8b9eb15ba3f06a7f87e5c9ef0740",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_camp_origin_main=458c66c8aeac8b9eb15ba3f06a7f87e5c9ef0740",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_exit=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_status=public_simulator_fixed_dp_candidate_generation_execution_passed",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_passed=True",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_command_count=32",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_commands_started=32",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_commands_succeeded=32",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_first_failed_command=None",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_validation_summary_count=32",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_replay_summary_count=32",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_default_off_shadow_selector_summary_count=32",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_candidate_tensor_provenance_summary_count=32",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_unique_seeds=1,2,3,4",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_formal_seed_intersection=[]",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_unique_steps=100",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_route_count=4",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_closed_loop_collect_count=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_report_sha256=66207d1620b9fa24304b7f545a8c2f536f2c0e8a88fb5f52c604685d385f0ae1",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_post_execution_sha256s_sha256=41c1e038fa9f6e26da404b111c451facb4aa6a8d3547921c0efd5facc8350840",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_fixed_dp_candidate_generation_executed=True",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_fixed_dp_candidate_generation_execution_passed=True",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_zero_overlap_validation_authorized_next=True",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_candidate_generation_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_trajectory_modification_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_training_execution_authorized_next=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_dp_modification_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_execution_score_expression=score_k(w)=a_k^T w",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_execution_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_zero_overlap_validation",
+        "public_simulator_fixed_dp_candidate_generation_execution_passed=True",
+        "fixed_dp_candidate_generation_executed=True",
+        "zero_overlap_validation_authorized_next=True",
+        "training_preflight_authorized_next=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "closed_loop_outcome_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_zero_overlap_validation",
+    ]:
+        assert needle in text
+
     latest_status = text.rsplit("current_v14_status=", maxsplit=1)[1].splitlines()[0]
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_preflight_ready"
+        == "public_simulator_fixed_dp_candidate_generation_execution_passed"
     )
-    assert latest_target == "public_simulator_fixed_dp_candidate_generation_execution"
+    assert latest_target == "public_simulator_fixed_dp_candidate_generation_zero_overlap_validation"
 
 
 def test_current_status_and_readme_point_to_v14() -> None:
@@ -302,19 +375,24 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "do not keep appending current\nwork to v13" in status_text
     assert "88fd3cac6722aedfd4ca13b41f904b4a3331c219" in status_text
     assert "1ffff597ebdc0cc598daff7db2150df2d5d898ab" in status_text
+    assert "458c66c8aeac8b9eb15ba3f06a7f87e5c9ef0740" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
-        "public_simulator_fixed_dp_candidate_generation_preflight_ready"
+        "public_simulator_fixed_dp_candidate_generation_execution_passed"
         in status_text
     )
     assert (
-        "public_simulator_fixed_dp_candidate_generation_execution"
+        "public_simulator_fixed_dp_candidate_generation_zero_overlap_validation"
         in status_text
     )
     assert (
         "public_simulator_fixed_dp_candidate_generation_preflight"
         in status_text
     )
+    assert "Commands started/succeeded: `32/32`" in status_text
+    assert "Default-off shadow selector summaries: `32`" in status_text
+    assert "Candidate tensor provenance summaries: `32`" in status_text
+    assert "Closed-loop outcome collection count: `0`" in status_text
     assert "NuScenes is present and must not be marked missing" in status_text
     assert "/autodl-pub/data/nuScenes" in status_text
     assert "they are not the TIER IV" in status_text

@@ -14,12 +14,15 @@ work to v13.
 - The latest public simulator fixed-DP candidate generation preflight executed
   on AutoDL after local, GitHub `origin/main`, and AutoDL CAMP were
   synchronized at `1ffff597ebdc0cc598daff7db2150df2d5d898ab`.
+- The latest public simulator fixed-DP candidate generation execution ran on
+  AutoDL with CAMP synchronized at
+  `458c66c8aeac8b9eb15ba3f06a7f87e5c9ef0740`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_preflight_ready`.
+  `public_simulator_fixed_dp_candidate_generation_execution_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_execution`.
+  `public_simulator_fixed_dp_candidate_generation_zero_overlap_validation`.
 
 ## What Changed
 
@@ -88,18 +91,41 @@ The preflight generated a guarded runbook only. It did not execute fixed-DP
 candidate generation, train CAMP, modify DP, change the online selector,
 promote, deploy, or make any safety-benefit/CAMP-over-DP claim.
 
+## Execution Result
+
+Verified on AutoDL at 2026-07-02 18:48 CST:
+
+- Artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_execution_458c66c8ae_20260702T173540CST_artifact`
+- Candidate output root:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_execution_1ffff597eb_20260702T172252CST`
+- Exit code: `0`
+- Commands started/succeeded: `32/32`
+- Validation summaries: `32`
+- Replay summaries: `32`
+- Default-off shadow selector summaries: `32`
+- Candidate tensor provenance summaries: `32`
+- Seeds: `1,2,3,4`; formal seed intersection: `[]`
+- Steps per command: `100`
+- Routes: `4`
+- Traffic-light values: `False,True`
+- Closed-loop outcome collection count: `0`
+
+This generated fixed DP candidate replay artifacts for later CAMP reranking
+and validation. It did not train CAMP, generate trajectories with CAMP, modify
+DP, change executed trajectory selection online, promote, deploy, or make any
+safety-benefit/CAMP-over-DP claim.
+
 ## Distance To Training
 
 Training is no longer blocked on an external DP-native source `.npz` manifest.
 The remaining gates are the minimum evidence needed to keep the fixed-DP
 selector boundary auditable:
 
-1. Execute the guarded
-   `public_simulator_fixed_dp_candidate_generation_execution` runbook.
-2. Run zero-overlap validation across `candidate_tensor_hash`,
+1. Run zero-overlap validation across `candidate_tensor_hash`,
    `path_signature`, `record_identity`, and `split_manifest_root`.
-3. Run data-preparation and training preflight.
-4. Start CAMP training only if the preflight authorizes it.
+2. Run data-preparation and training preflight.
+3. Start CAMP training only if the preflight authorizes it.
 
 This does not authorize CAMP generation, DP modification, postprocessing,
 guidance, reference blending, closed-loop outcome labels, formal seeds 11/12/13,
