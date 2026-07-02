@@ -7,7 +7,7 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 
 
-def test_v14_audit_rollover_is_current_eof() -> None:
+def test_v14_audit_rollover_points_forward() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     section_title = "## Current V14 Audit Rollover"
     next_section_title = (
@@ -43,18 +43,6 @@ def test_v14_audit_rollover_is_current_eof() -> None:
     ]:
         assert needle in text
 
-    latest_status = text.rsplit("current_v14_status=", maxsplit=1)[1].splitlines()[0]
-    latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
-    assert (
-        latest_status
-        == "approved_source_manifest_remediation_rejected_no_valid_nonfixture_dp_native_npz_source_or_manifest"
-    )
-    assert (
-        latest_target
-        == "external_valid_nonfixture_dp_native_npz_source_manifest_required_before_fixed_dp_candidate_generation_execution"
-    )
-
-
 def test_v14_approved_source_manifest_remediation_rejected_no_nonfixture_source_is_eof() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Current V14 Audit Rollover"
@@ -62,10 +50,14 @@ def test_v14_approved_source_manifest_remediation_rejected_no_nonfixture_source_
         "## Current V14 Approved Source Manifest Remediation Validated "
         "Rejected No Nonfixture DP-Native Source After 040f1f0"
     )
+    next_section_title = (
+        "## Current V14 Source Data Availability Audit Rejected Missing "
+        "Raw DP Source After 6f5bf60"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_approved_source_manifest_remediation_validated_scan_artifact=/root/autodl-tmp/camp_dp_v14_approved_source_manifest_remediation_validated_scan_040f1f0_20260702T144603CST",
@@ -105,8 +97,70 @@ def test_v14_approved_source_manifest_remediation_rejected_no_nonfixture_source_
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "approved_source_manifest_remediation_rejected_no_valid_nonfixture_dp_native_npz_source_or_manifest"
+        == "source_data_unavailable_external_nonfixture_dp_native_npz_required"
     )
+    assert (
+        latest_target
+        == "external_valid_nonfixture_dp_native_npz_source_manifest_required_before_fixed_dp_candidate_generation_execution"
+    )
+
+
+def test_v14_source_data_availability_audit_rejected_missing_raw_source_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Approved Source Manifest Remediation Validated "
+        "Rejected No Nonfixture DP-Native Source After 040f1f0"
+    )
+    section_title = (
+        "## Current V14 Source Data Availability Audit Rejected Missing "
+        "Raw DP Source After 6f5bf60"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_source_data_availability_audit_artifact=/root/autodl-tmp/camp_dp_v14_source_data_availability_audit_6f5bf60_20260702T145358CST",
+        "v14_source_data_availability_audit_exit=0",
+        "v14_source_data_availability_audit_json_sha256=48c0250881e09b4c2d58a2765d3305ba1ac0381966a3e53d4d2d816356e266df",
+        "v14_source_data_availability_audit_status=source_data_unavailable_external_nonfixture_dp_native_npz_required",
+        "v14_source_data_availability_audit_passed=False",
+        "v14_source_data_availability_audit_failure_class=missing_raw_dp_source_data_for_nonfixture_npz_generation",
+        "v14_source_data_availability_audit_bag_metadata_count=0",
+        "v14_source_data_availability_audit_rosbag_db3_count=0",
+        "v14_source_data_availability_audit_mcap_count=0",
+        "v14_source_data_availability_audit_lanelet_map_count=2",
+        "v14_source_data_availability_audit_cpp_training_binary_candidate_count=0",
+        "v14_source_data_availability_audit_route_pickle_count=7",
+        "v14_source_data_availability_audit_standard_rosbag_to_npz_possible_now=False",
+        "v14_source_data_availability_audit_cpp_binary_to_npz_possible_now=False",
+        "v14_source_data_availability_audit_replay_dump_npz_disallowed_as_training_or_online_input=True",
+        "v14_source_data_availability_audit_synthetic_static_source_manifest_not_authorized_by_current_eof=True",
+        "v14_source_data_availability_audit_fixed_dp_candidate_generation_executed=False",
+        "v14_source_data_availability_audit_training_authorized_next=False",
+        "v14_source_data_availability_audit_dp_modification=False",
+        "v14_source_data_availability_audit_camp_generation=False",
+        "current_v14_status=source_data_unavailable_external_nonfixture_dp_native_npz_required",
+        "valid_nonfixture_dp_native_source_manifest_available=False",
+        "raw_dp_source_data_available=False",
+        "fixed_dp_candidate_generation_authorized_next=False",
+        "fixed_dp_candidate_generation_execution_authorized_next=False",
+        "fixed_dp_candidate_generation_executed=False",
+        "training_preflight_authorized_next=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "closed_loop_outcome_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=external_valid_nonfixture_dp_native_npz_source_manifest_required_before_fixed_dp_candidate_generation_execution",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v14_status=", maxsplit=1)[1].splitlines()[0]
+    latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
+    assert latest_status == "source_data_unavailable_external_nonfixture_dp_native_npz_required"
     assert (
         latest_target
         == "external_valid_nonfixture_dp_native_npz_source_manifest_required_before_fixed_dp_candidate_generation_execution"
@@ -119,12 +173,13 @@ def test_current_status_and_readme_point_to_v14() -> None:
 
     assert "docs/diffusion_planner_v14_iteration_audit.md" in status_text
     assert "do not keep appending current\nwork to v13" in status_text
-    assert "040f1f007d4f972f52d49d0155466e073ada7b6b" in status_text
+    assert "6f5bf60d5cd0bf5a3237972a97588b9830267e58" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
         "external_valid_nonfixture_dp_native_npz_source_manifest_required_before_fixed_dp_candidate_generation_execution"
         in status_text
     )
+    assert "no raw rosbag metadata, `.db3`, `.mcap`,\nor C++ training binary files" in status_text
 
     assert "docs/diffusion_planner_current_status.md" in readme_text
     assert "docs/diffusion_planner_v14_iteration_audit.md" in readme_text
