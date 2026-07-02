@@ -137,7 +137,10 @@ CANDIDATE_TENSOR_PROVENANCE_POST_SELECTOR_STAGE = (
     "post_camp_selector_candidate_tensor_reference"
 )
 DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION = (
-    "dp_camp_v13_default_off_shadow_selector_runtime_v1"
+    "dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_v1"
+)
+DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE = (
+    "public_simulator_fixed_dp_candidate_tensor"
 )
 DEFAULT_OFF_SHADOW_SELECTOR_EXPECTED_K = 8
 TRAFFIC_LIGHT_HYBRID_POSTSELECTION_BUDGETS = {
@@ -1576,6 +1579,7 @@ def _default_off_shadow_selector_contract(args: argparse.Namespace) -> dict[str,
         "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
         "enabled": enabled,
         "default_off": True,
+        "source_scope": DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE,
         "selection_effect": False,
         "candidate_operation": "fixed DP candidate reranking only",
         "executed_output_policy": "dp_top1",
@@ -4428,6 +4432,7 @@ def _summarize_default_off_shadow_selector_records(
         "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
         "enabled": bool(enabled),
         "default_off": True,
+        "source_scope": DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE,
         "selection_effect": False,
         "online_selector_change": False,
         "candidate_operation": "fixed DP candidate reranking only",
@@ -5251,6 +5256,7 @@ def _install_camp_predictor(
                 "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
                 "enabled": True,
                 "default_off": True,
+                "source_scope": DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE,
                 "selection_effect": False,
                 "online_selector_change": False,
                 "candidate_operation": "fixed DP candidate reranking only",

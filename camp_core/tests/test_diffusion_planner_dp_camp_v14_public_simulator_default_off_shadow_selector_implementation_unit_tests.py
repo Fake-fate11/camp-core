@@ -25,6 +25,7 @@ from camp_core.integrations.diffusion_planner import (
 from scripts.integrations.run_diffusion_planner_camp_replay import (
     DEFAULT_OFF_SHADOW_SELECTOR_EXPECTED_K,
     DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+    DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE,
     _default_off_shadow_selector_contract,
     _summarize_default_off_shadow_selector_records,
     _validate_args,
@@ -194,8 +195,17 @@ def test_default_off_disabled_contract_returns_dp_top1_before_artifact_reads() -
     )
 
     assert contract["schema_version"] == DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION
+    assert (
+        DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION
+        == "dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_v1"
+    )
+    assert "v13" not in DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION
     assert contract["enabled"] is False
     assert contract["default_off"] is True
+    assert contract["source_scope"] == DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE
+    assert DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE == (
+        "public_simulator_fixed_dp_candidate_tensor"
+    )
     assert contract["executed_output_policy"] == "dp_top1"
     assert contract["selection_effect"] is False
     assert contract["ready"] is False
@@ -283,6 +293,8 @@ def test_dp_top1_shadow_runtime_contract_logs_shadow_without_routing() -> None:
         {
             "selected_index": 0,
             "default_off_shadow_selector": {
+                "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+                "source_scope": DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE,
                 "shadow_selected_index": 3,
             },
         }
@@ -295,6 +307,8 @@ def test_dp_top1_shadow_runtime_contract_logs_shadow_without_routing() -> None:
     )
 
     assert summary["executed_top1_all"] is True
+    assert summary["schema_version"] == DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION
+    assert summary["source_scope"] == DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE
     assert summary["selection_effect"] is False
     assert summary["shadow_selection_logged_records"] == 1
     assert summary["shadow_selected_index_counts"] == {"3": 1}
