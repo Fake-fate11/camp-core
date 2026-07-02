@@ -83,12 +83,15 @@ work to v13.
 - The latest runtime artifact manifest materialization implementation static
   contract review ran on AutoDL with CAMP synchronized at
   `af4064d7baacb7f073a8aded89a588233e4e80ce`.
+- The latest runtime artifact manifest materializer implementation ran locally
+  and on AutoDL with CAMP synchronized at
+  `9b772d78233cafe508fd2f140188b3f391382d11`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_implementation_static_contract_review_passed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_implementation_complete`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_implementation_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_only`.
 
 ## What Changed
 
@@ -1169,6 +1172,42 @@ or materialize the runtime manifest, run replay, train CAMP, generate
 candidates, modify DP, promote, deploy, or authorize safety/CAMP-over-DP
 claims.
 
+## Default-Off Shadow Selector Runtime Artifact Manifest Materializer Implementation
+
+Verified locally and on AutoDL at 2026-07-03 CST:
+
+- Implementation commit:
+  `9b772d78233cafe508fd2f140188b3f391382d11`
+- Materializer script:
+  `scripts/integrations/build_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest.py`
+- Materializer script SHA256:
+  `9219b03efe692b00eb92ed7d9af9ceaa372937ead1afbe957a9edc48e855ae89`
+- Materializer test:
+  `camp_core/tests/test_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materializer.py`
+- Materializer test SHA256:
+  `95b7e1dc6ceffc9c4093facc4f73f807b635c37d1e07e0599383334802e22af7`
+- Local py_compile:
+  `0`
+- Local pytest:
+  `12 passed`
+- AutoDL py312 py_compile:
+  `0`
+- AutoDL camp-env pytest:
+  `12 passed`
+- AutoDL CAMP head and origin/main:
+  `9b772d78233cafe508fd2f140188b3f391382d11`
+- AutoDL DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+
+The materializer is default-off before reading missing inputs, fail-closed
+without output, verifies the implementation-plan SHA256, verifies the fixed DP
+head, verifies that the output path equals the plan, verifies the
+`atom_scales` and `static_weights` file hashes, writes exactly one runtime
+manifest only when explicitly enabled, and uses a same-directory temp file plus
+atomic replace. The implementation and tests do not run replay, train CAMP,
+generate candidates, touch DP source files, change online selector behavior, or
+materialize the real planned runtime manifest.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1182,17 +1221,17 @@ plan, implementation unit-tests-only gate, and implementation-only gate have
 also passed. The post-implementation static contract review and runtime
 artifact manifest plan-only/static-review/materialization-plan-only/static-review
 and materialization implementation-plan/static-review gates have passed. The
-next gate is default-off shadow selector runtime artifact manifest materializer
-implementation only, and still does not authorize materialization execution,
-runtime execution, promotion, deployment, training, replay, candidate
-generation, or safety-benefit claims.
+runtime artifact manifest materializer implementation is complete. The next
+gate is post-implementation static contract review only, and still does not
+authorize materialization execution, runtime execution, promotion, deployment,
+training, replay, candidate generation, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_implementation_static_contract_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_implementation_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_implementation_complete
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materializer_post_implementation_static_contract_review_only
 
 ## Cleanup Policy
 
