@@ -458,8 +458,8 @@ def _source_surface_checks(texts: dict[str, str]) -> list[dict[str, Any]]:
     test = texts.get("implementation_plan_test", "")
     return [
         _contains("script_schema_constant", script, "SCHEMA_VERSION"),
-        _contains("script_implementation_plan_schema", script, SOURCE_PLAN_SCHEMA_VERSION),
-        _contains("script_authorizes_static_review_only", script, SOURCE_AUTHORIZED_NEXT_WORK),
+        _contains("script_implementation_plan_schema_suffix", script, "runtime_artifact_manifest_materialization_implementation_plan_v1"),
+        _contains("script_authorizes_static_review_only_suffix", script, "runtime_artifact_manifest_materialization_implementation_static_contract_review_only"),
         _contains("script_runtime_schema", script, RUNTIME_SCHEMA_VERSION),
         _contains("script_source_scope", script, SOURCE_SCOPE),
         _contains("script_write_strategy", script, "same-directory temp file plus atomic replace"),
