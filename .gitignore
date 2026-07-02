@@ -85,6 +85,8 @@ adaptive-prediction/experiments/nuScenes/figures/
 /my-session.codex-session*/
 *.codex-session/
 /codex-session-exporter/
+/camp-dp-session-*/
+/camp-dp-session-*-HANDOFF.md
 
 # Slurm and shell run outputs
 *.out
@@ -94,6 +96,7 @@ adaptive-prediction/experiments/nuScenes/figures/
 _*.pptx
 _wandb_env.js
 _wandb_run_page.html
+/slides prompt.md
 
 # Project report/deck source artifacts kept outside code sync
 /Adaptive_Risk-Aware_Motion_Prediction_rebuilt.md

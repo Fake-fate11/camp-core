@@ -118,6 +118,13 @@ Check the printed `Map source counts`; `vector_map` should dominate. Rebuilding 
 
 The CAMP-Select computational graph is summarized in [`docs/camp_computational_graph.md`](docs/camp_computational_graph.md). The diagram separates the shared Trajectron++ / atom-extraction path, the offline training-time Benders optimization loop, and the one-shot inference-time selector.
 
+The current fixed TiERIV Diffusion Planner integration status is summarized in
+[`docs/diffusion_planner_v13_current_status.md`](docs/diffusion_planner_v13_current_status.md).
+The authoritative append-only audit remains
+[`docs/diffusion_planner_v13_iteration_audit.md`](docs/diffusion_planner_v13_iteration_audit.md);
+use its EOF `current_v13_status` and `next_work_target` before running any
+new DP-CAMP gate.
+
 The TIER IV Diffusion Planner simulator bridge is documented in
 [`docs/diffusion_planner_integration.md`](docs/diffusion_planner_integration.md).
 It generates multiple Diffusion Planner ego candidates, selects one with CAMP,
