@@ -411,7 +411,14 @@ def _source_surface_checks(texts: dict[str, str]) -> list[dict[str, Any]]:
     runner = texts.get("replay_runner", "")
     return [
         _contains("script_schema_constant", script, "SCHEMA_VERSION"),
-        _contains("script_v14_plan_schema", script, PLAN_SCHEMA_VERSION),
+        _contains_all(
+            "script_v14_plan_schema",
+            script,
+            (
+                "dp_camp_v14_public_simulator_default_off_shadow_selector_",
+                "runtime_artifact_manifest_plan_v1",
+            ),
+        ),
         _contains("script_runtime_schema", script, RUNTIME_SCHEMA_VERSION),
         _contains("script_source_scope", script, SOURCE_SCOPE),
         _contains("script_blocks_materialization", script, '"materialized_by_this_gate": False'),
@@ -419,7 +426,14 @@ def _source_surface_checks(texts: dict[str, str]) -> list[dict[str, Any]]:
         _contains("script_requires_atom_entry", script, '"atom_scales"'),
         _contains("script_requires_weight_entry", script, '"static_weights"'),
         _contains("script_affine_score", script, SCORE_EXPRESSION),
-        _contains("script_authorizes_static_review_only", script, SOURCE_AUTHORIZED_NEXT_WORK),
+        _contains_all(
+            "script_authorizes_static_review_only",
+            script,
+            (
+                "AUTHORIZED_NEXT_WORK",
+                "runtime_artifact_manifest_static_contract_review_only",
+            ),
+        ),
         _contains("test_ready_case", test, "test_runtime_artifact_manifest_plan_ready_without_materializing"),
         _contains("test_disabled_case", test, "test_runtime_artifact_manifest_plan_is_disabled_until_enabled"),
         _contains("test_rejects_weight_drift", test, "test_runtime_artifact_manifest_plan_rejects_weight_simplex_drift"),
@@ -605,6 +619,11 @@ def _dict(value: Any) -> dict[str, Any]:
 
 def _contains(name: str, text: str, needle: str) -> dict[str, Any]:
     return _check(name, needle in text, needle if needle in text else "missing", needle)
+
+
+def _contains_all(name: str, text: str, needles: tuple[str, ...]) -> dict[str, Any]:
+    missing = [needle for needle in needles if needle not in text]
+    return _check(name, not missing, missing or "all present", list(needles))
 
 
 def _contains_in_list(name: str, value: Any, needle: str) -> dict[str, Any]:

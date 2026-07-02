@@ -331,6 +331,33 @@ def test_runtime_artifact_manifest_static_review_accepts_completed_boundary(
     assert report["final_decision"]["failed_checks"] == []
 
 
+def test_current_repo_runtime_artifact_manifest_static_review_source_surface_passes(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    kwargs = _fixture(tmp_path, module)
+    kwargs["runtime_artifact_manifest_plan_script_py"] = (
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "plan_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest.py"
+    )
+    kwargs["runtime_artifact_manifest_plan_test_py"] = (
+        ROOT
+        / "camp_core"
+        / "tests"
+        / "test_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_plan.py"
+    )
+    kwargs["replay_runner_py"] = (
+        ROOT / "scripts" / "integrations" / "run_diffusion_planner_camp_replay.py"
+    )
+
+    report = module.build_report(**kwargs)
+
+    assert report["final_decision"]["status"] == module.READY_STATUS
+    assert report["final_decision"]["failed_checks"] == []
+
+
 def test_runtime_artifact_manifest_static_review_cli_writes_outputs(
     tmp_path: Path,
     monkeypatch,
