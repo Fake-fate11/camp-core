@@ -24,20 +24,20 @@ RUNNER_SCRIPT = (
     "scripts/integrations/run_diffusion_planner_dp_camp_v13_fixed_candidate_generation.py"
 )
 SOURCE_SCHEMA_VERSION = (
-    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_remediation_"
-    "post_implementation_static_contract_review_v1"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_contract_and_input_"
+    "remediation_post_implementation_static_contract_review_v1"
 )
 SOURCE_READY_STATUS = (
-    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_remediation_"
-    "post_implementation_static_contract_review_passed"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_contract_and_input_"
+    "remediation_post_implementation_static_contract_review_passed"
 )
 RUNNER_SCHEMA_VERSION = (
-    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
-    "remediation_runner_implementation_v1"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_contract_and_input_"
+    "remediation_implementation_v1"
 )
 RUNNER_READY_STATUS = (
-    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
-    "remediation_runner_implementation_ready"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_contract_and_input_"
+    "remediation_implementation_ready"
 )
 INPUT_CONTRACT_SCHEMA_VERSION = (
     "dp_camp_v13_fixed_dp_candidate_generation_execution_inputs_materialization_v1"
@@ -53,8 +53,8 @@ LATEST_AUDIT_STATUS = (
     "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_evaluation_executed_index_contract_failure_remediation_fixed_dp_"
-    "candidate_generation_execution_preflight_runner_contract_remediation_"
-    "post_implementation_static_contract_review_passed"
+    "candidate_generation_execution_contract_and_input_remediation_post_"
+    "implementation_static_contract_review_passed"
 )
 AUTHORIZED_CURRENT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
@@ -404,7 +404,7 @@ def _checks(
         _expect(
             "source_post_review_passed",
             source_decision.get(
-                "runner_contract_remediation_post_implementation_static_contract_review_passed"
+                "fixed_dp_candidate_generation_execution_contract_and_input_remediation_post_implementation_static_contract_review_passed"
             ),
             True,
         )

@@ -153,7 +153,7 @@ def _source_decision() -> dict[str, Any]:
         "passed": True,
         "failed_checks": [],
         "authorized_next_work": AUTHORIZED_CURRENT_WORK,
-        "runner_contract_remediation_post_implementation_static_contract_review_passed": True,
+        "fixed_dp_candidate_generation_execution_contract_and_input_remediation_post_implementation_static_contract_review_passed": True,
         "fixed_dp_candidate_generation_execution_preflight_authorized_next": True,
         "fixed_dp_candidate_generation_authorized_next": False,
         "fixed_dp_candidate_generation_execution_authorized_next": False,
@@ -209,8 +209,8 @@ def _post_review(path: Path, runner_json: Path, *, mutation: Any | None = None) 
 
 def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
     lines = [
-        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_executed_index_contract_failure_remediation_fixed_dp_candidate_generation_execution_preflight_runner_contract_remediation_post_implementation_static_contract_review_passed",
-        "runner_contract_remediation_post_implementation_static_contract_review_passed=True",
+        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_executed_index_contract_failure_remediation_fixed_dp_candidate_generation_execution_contract_and_input_remediation_post_implementation_static_contract_review_passed",
+        "fixed_dp_candidate_generation_execution_contract_and_input_remediation_post_implementation_static_contract_review_passed=True",
         "fixed_dp_candidate_generation_execution_preflight_authorized_next=True",
     ]
     for flag in AUDIT_FALSE_FLAGS:
