@@ -143,7 +143,10 @@ def _result_review(module) -> dict:
 
 def _training_summary() -> dict:
     return {
-        "dp_native_training_data_contract": "fixed_dp_candidate_tensor",
+        "dp_native_training_data_contract": {
+            "schema_version": "clean_dp_native_training_data_contract_validator_v1",
+            "selection_logs": [f"/tmp/selection_log_{index}.json" for index in range(32)],
+        },
         "num_records": 2914,
         "dropped_records_without_feasible_candidate": 286,
         "num_candidates": 8,

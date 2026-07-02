@@ -628,6 +628,8 @@ def _training_summary_checks(
     expected: dict[str, int],
 ) -> list[dict[str, Any]]:
     weights = training_summary.get("trained_weights")
+    contract = _dict(training_summary.get("dp_native_training_data_contract"))
+    selection_logs = contract.get("selection_logs")
     checks = [
         _expect("training_summary_num_records", training_summary.get("num_records"), expected["training_records"]),
         _expect(
@@ -637,10 +639,19 @@ def _training_summary_checks(
         ),
         _expect("training_summary_num_candidates", training_summary.get("num_candidates"), expected["num_candidates"]),
         _expect("training_summary_num_atoms", training_summary.get("num_atoms"), expected["num_atoms"]),
-        _expect(
+        _check(
             "training_summary_contract",
-            training_summary.get("dp_native_training_data_contract"),
-            "fixed_dp_candidate_tensor",
+            contract.get("schema_version") == "clean_dp_native_training_data_contract_validator_v1"
+            and isinstance(selection_logs, list)
+            and len(selection_logs) == expected["selection_log_count"],
+            {
+                "schema_version": contract.get("schema_version"),
+                "selection_log_count": len(selection_logs) if isinstance(selection_logs, list) else None,
+            },
+            {
+                "schema_version": "clean_dp_native_training_data_contract_validator_v1",
+                "selection_log_count": expected["selection_log_count"],
+            },
         ),
         _check(
             "training_summary_weights_nonnegative_simplex",
