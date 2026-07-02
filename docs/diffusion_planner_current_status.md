@@ -1320,6 +1320,35 @@ artifact entries. Its authorizations keep runtime execution, replay, candidate
 generation, DP modification, online selector change, promotion, deployment,
 training, and safety/CAMP-over-DP claims disabled.
 
+## Default-Off Selector Runtime Shadow Replay Preflight
+
+Verified on AutoDL at 2026-07-03 04:29 CST:
+
+- Preflight artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_preflight_b4f312801c_20260703T042928CST`
+- Planned runtime shadow replay output root:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_preflight_b4f312801c_20260703T042928CST_planned_runtime_shadow_replay_execution`
+- CAMP head and origin/main:
+  `b4f312801c5256f73ae6b4f97a6638ce47441bb0`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Runtime manifest SHA256:
+  `92e82fbf2e7bb26847b6f24b8ccc9d78242addb451bc7301aa77997592569bd2`
+- Planned command count / expected records:
+  `32 / 3200`
+- Check count:
+  `470`
+- Exit code:
+  `0`
+- Failed checks:
+  `[]`
+
+This preflight only generated a guarded runbook for the next gate. It did not
+run replay, generate candidates, train CAMP, modify DP, promote, deploy, or
+authorize safety/CAMP-over-DP claims. The planned commands keep CAMP as a
+default-off shadow reranker over fixed DP candidate tensors and keep the
+executed trajectory policy at DP Top-1.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1334,17 +1363,19 @@ also passed. The post-implementation static contract review and runtime
 artifact manifest plan-only/static-review/materialization-plan-only/static-review
 and materialization implementation-plan/static-review gates have passed. The
 runtime artifact manifest materializer implementation and post-implementation
-static contract review are complete, and the runtime artifact manifest has been
-materialized. The next gate is default-off selector runtime shadow replay
-preflight only, and still does not authorize runtime execution, promotion,
-deployment, training, candidate generation, or safety-benefit claims.
+static contract review are complete, the runtime artifact manifest has been
+materialized, and the default-off selector runtime shadow replay preflight has
+passed. The next gate is runtime shadow replay execution only. That next gate
+may execute the guarded runbook but still does not authorize promotion,
+deployment, training, candidate generation, DP modification, or safety-benefit
+claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialized
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_preflight_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_only
 
 ## Cleanup Policy
 
