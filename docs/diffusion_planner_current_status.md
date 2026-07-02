@@ -817,6 +817,44 @@ default-off and fail-closed: executed output remains `dp_top1`, CAMP only logs
 It did not train CAMP, run replay, generate candidates, modify DP, promote,
 deploy, or authorize safety/CAMP-over-DP claims.
 
+## Default-Off Shadow Selector Post-Implementation Static Review
+
+Verified on AutoDL at 2026-07-03 01:35 CST:
+
+- Review commit:
+  `2610c4a89f20f86a4ffbe8a8f275ae56a6b85b3a`
+- Review script:
+  `scripts/integrations/review_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_post_implementation_static_contract.py`
+- Review test:
+  `camp_core/tests/test_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_post_implementation_static_contract.py`
+- Source implementation artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_implementation_98e495749e_20260703T011920CST/result.json`
+- Review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_post_implementation_static_contract_review_2610c4a89f_20260703T013539CST`
+- CAMP head:
+  `2610c4a89f20f86a4ffbe8a8f275ae56a6b85b3a`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code:
+  `0`
+- Local pytest:
+  `44 passed`
+- AutoDL pytest:
+  `44 passed`
+- Review decision:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_post_implementation_static_contract_review_passed`
+- Artifact SHA256SUMS SHA256:
+  `706ce66d9f9bfa5a9dc75c2053d3dd0689e304e508b64240346d9f13b87da705`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_plan_only`
+
+This gate is static-review-only. It verified the v14 runtime schema/source
+scope, default-off fail-closed behavior, immutable artifact hash boundary,
+fixed-candidate reranking contract, affine score contract, DP Top-1 runtime
+output contract, and no-promotion/no-claims boundary. It did not train CAMP,
+run replay, generate candidates, modify DP, promote, deploy, or authorize
+safety/CAMP-over-DP claims.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -827,16 +865,17 @@ promotion evidence-package preflight have also passed. The default-off shadow
 selector static integration contract plan, implementation plan, and
 implementation static contract review have passed. The implementation unit-test
 plan, implementation unit-tests-only gate, and implementation-only gate have
-also passed. The next gate is default-off shadow selector post-implementation
-static contract review only, and still does not authorize promotion,
-deployment, training, replay, candidate generation, or safety-benefit claims.
+also passed. The post-implementation static contract review has passed. The
+next gate is default-off shadow selector runtime artifact manifest planning
+only, and still does not authorize promotion, deployment, training, replay,
+candidate generation, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_post_implementation_static_contract_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_post_implementation_static_contract_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_plan_only
 
 ## Cleanup Policy
 
