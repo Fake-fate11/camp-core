@@ -218,18 +218,55 @@ command plan only. It did not train CAMP, run replay, generate trajectories
 with CAMP, modify DP, promote, deploy, or make any safety-benefit/CAMP-over-DP
 claim.
 
+## Training Execution Result
+
+Verified on AutoDL at 2026-07-02 19:52 CST:
+
+- Artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_execution_67f8062de6_20260702T195230CST`
+- Source preflight artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_preflight_aff9b0533f_20260702T194544CST`
+- Training output dir:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_execution_aff9b0533f_20260702T194544CST_planned`
+- CAMP head:
+  `67f8062de6cd36fc9f0480223ad262b1f3f09af5`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code: `0`
+- Training type:
+  `diffusion_planner_static_candidate_preference`
+- Label source:
+  `dp_reward`
+- Records used / dropped all-infeasible:
+  `2914 / 286`
+- Candidates / atoms:
+  `8 / 9`
+- Atom schema:
+  `camp_legacy_v1_9d`
+- Weights sum / min / max:
+  `0.9999999999999999 / 0.059347218886831296 / 0.1735927811151367`
+- First / final logged loss:
+  `2.0419425862497667 / 2.036233432086801`
+- Output files:
+  `offline_weights_dp_static.npy`, `atom_scales_dp_static.json`,
+  `training_summary.json`
+
+This is a training artifact only. It is not a deployable checkpoint claim, not
+selector promotion, and not evidence of safety benefit or CAMP superiority over
+DP Top-1.
+
 ## Distance To Training
 
-Training preflight is complete. The next gate may start CAMP training execution
-from the fixed-DP selection logs and the guarded command plan produced above.
+CAMP training has started and completed for this v14 fixed-DP candidate source.
+The next gate is a static contract review of the training artifact before any
+shadow replay/evaluation gate.
 
-The current boundary authorizes only that training execution gate. It does not
-authorize CAMP generation, DP modification, postprocessing, guidance, reference
-blending, closed-loop outcome labels, formal seeds 11/12/13, promotion,
-deployment, or safety-benefit claims.
+The current boundary does not authorize CAMP generation, DP modification,
+postprocessing, guidance, reference blending, closed-loop outcome labels,
+formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_training_preflight_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_training_execution
+current_v14_status=public_simulator_fixed_dp_candidate_generation_training_execution_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review
 
 ## Cleanup Policy
 

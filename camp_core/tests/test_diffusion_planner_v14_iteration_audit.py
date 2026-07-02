@@ -524,12 +524,15 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_training_preflight_ready"
+        == "public_simulator_fixed_dp_candidate_generation_training_execution_passed"
     )
-    assert latest_target == "public_simulator_fixed_dp_candidate_generation_training_execution"
+    assert (
+        latest_target
+        == "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review"
+    )
 
 
-def test_v14_public_simulator_fixed_dp_candidate_training_preflight_ready_is_eof() -> None:
+def test_v14_public_simulator_fixed_dp_candidate_training_preflight_ready_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Public Simulator Fixed-DP Candidate "
@@ -539,10 +542,14 @@ def test_v14_public_simulator_fixed_dp_candidate_training_preflight_ready_is_eof
         "## Current V14 Public Simulator Fixed-DP Candidate "
         "Training Preflight Ready After aff9b05"
     )
+    next_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate "
+        "Training Execution Passed After 67f806"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_fixed_dp_candidate_training_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_preflight_aff9b0533f_20260702T194544CST",
@@ -606,6 +613,94 @@ def test_v14_public_simulator_fixed_dp_candidate_training_preflight_ready_is_eof
         assert needle in text
 
 
+def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate "
+        "Training Preflight Ready After aff9b05"
+    )
+    section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate "
+        "Training Execution Passed After 67f806"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_fixed_dp_candidate_training_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_execution_67f8062de6_20260702T195230CST",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_preflight_aff9b0533f_20260702T194544CST",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_output_dir=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_execution_aff9b0533f_20260702T194544CST_planned",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_camp_head=67f8062de6cd36fc9f0480223ad262b1f3f09af5",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_camp_origin_main=67f8062de6cd36fc9f0480223ad262b1f3f09af5",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_exit=0",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_training_type=diffusion_planner_static_candidate_preference",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_label_source=dp_reward",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_reward_key=quality_without_progress",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_num_records=2914",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_dropped_records_without_feasible_candidate=286",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_num_candidates=8",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_num_atoms=9",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_atom_schema_version=camp_legacy_v1_9d",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_oracle_match_rate=0.22786547700754975",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_first_loss=2.0419425862497667",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_last_loss=2.036233432086801",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_weights_sum=0.9999999999999999",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_weights_min=0.059347218886831296",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_contract_failed_records=0",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_output_files=atom_scales_dp_static.json,offline_weights_dp_static.npy,training_summary.json",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_training_summary_sha256=783684d1fd7038587efc43a47e4ca4f88eb392267187eb4e0042ed346b9fc6a0",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_atom_scales_sha256=2239fb09e2231405dbc58b1a79486ff3f3c111a9bab96c24d88e6832f2325b8b",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_offline_weights_sha256=5bfe692465c0e0cdbf2fb937737674e53b3f41a31ea932a65f65a6321f4c0dde",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_training_executed=True",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_replay_executed=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_candidate_generation_executed=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_candidate_generation_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_trajectory_generation_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_trajectory_modification_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_reference_blend_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_guidance_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_postprocess_or_postselection_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_closed_loop_outcome_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_dp_modification_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_selector_promotion_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_deployment_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_deployable_checkpoint_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_approved_atoms_nonnegative_simplex_only=True",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_simplex_cvar_l2_master_convexity_preserved=True",
+        "v14_public_simulator_fixed_dp_candidate_training_execution_score_expression=score_k(w)=a_k^T w",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_training_execution_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review",
+        "training_execution_passed=True",
+        "camp_training_executed=True",
+        "training_artifact_static_contract_review_authorized_next=True",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review",
+    ]:
+        assert needle in text
+
+    latest_status = text.rsplit("current_v14_status=", maxsplit=1)[1].splitlines()[0]
+    latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
+    assert (
+        latest_status
+        == "public_simulator_fixed_dp_candidate_generation_training_execution_passed"
+    )
+    assert (
+        latest_target
+        == "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review"
+    )
+
+
 def test_current_status_and_readme_point_to_v14() -> None:
     status_text = CURRENT_STATUS_DOC.read_text(encoding="utf-8")
     readme_text = README.read_text(encoding="utf-8")
@@ -618,13 +713,14 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "2e17d119941b8134fc4adb7b607204d7ee95899e" in status_text
     assert "356ce6301cd02a59dedb971f85aac8481be0a7fd" in status_text
     assert "aff9b0533ff63172f834dfede3836e5553bb05e0" in status_text
+    assert "67f8062de6cd36fc9f0480223ad262b1f3f09af5" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
-        "public_simulator_fixed_dp_candidate_generation_training_preflight_ready"
+        "public_simulator_fixed_dp_candidate_generation_training_execution_passed"
         in status_text
     )
     assert (
-        "public_simulator_fixed_dp_candidate_generation_training_execution"
+        "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review"
         in status_text
     )
     assert (
@@ -651,11 +747,17 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "Dropped all-infeasible records: `286`" in status_text
     assert "Training execution authorized next: `True`" in status_text
     assert "CAMP training executed: `False`" in status_text
+    assert "## Training Execution Result" in status_text
+    assert "Records used / dropped all-infeasible:" in status_text
+    assert "`2914 / 286`" in status_text
+    assert "Weights sum / min / max:" in status_text
+    assert "offline_weights_dp_static.npy" in status_text
+    assert "not a deployable checkpoint claim" in status_text
     assert "NuScenes is present and must not be marked missing" in status_text
     assert "/autodl-pub/data/nuScenes" in status_text
     assert "they are not the TIER IV" in status_text
     assert "official rosbag-to-DP `.npz` training source" in status_text
-    assert "Training preflight is complete" in status_text
+    assert "CAMP training has started and completed" in status_text
 
     assert "docs/diffusion_planner_current_status.md" in readme_text
     assert "docs/diffusion_planner_v14_iteration_audit.md" in readme_text
