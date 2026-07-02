@@ -9,6 +9,7 @@ from scripts.integrations.preflight_diffusion_planner_dp_camp_v13_fixed_dp_candi
     AUTHORIZED_CURRENT_WORK,
     AUTHORIZED_NEXT_WORK,
     DISABLED_STATUS,
+    EXECUTION_NEXT_WORK,
     FIXED_DP_HEAD,
     GUARD_ENV_VAR,
     READY_STATUS,
@@ -70,21 +71,22 @@ def _runner_implementation(
 ) -> Path:
     planned_command = [
         "python",
-        "planner_generate.py",
-        "--output_dir",
+        "-m",
+        "torch.distributed.run",
+        "--nnodes",
+        "1",
+        "--nproc-per-node",
+        "1",
+        "--standalone",
+        "diffusion_planner/valid_predictor.py",
+        "--valid_set_list",
+        "/tmp/valid_set_list.txt",
+        "--resume_model_path",
+        "/tmp/best_model.pth",
+        "--args_json_path",
+        "/tmp/args.json",
+        "--save_predictions_dir",
         str(path.parent / "candidate_output_not_created"),
-        "--fixed_dp_head",
-        FIXED_DP_HEAD,
-        "--candidate_operation",
-        "fixed DP candidate reranking only",
-        "--score_expression",
-        SCORE_EXPRESSION,
-        "--forbid_full36",
-        "--forbid_formal_seeds",
-        "11",
-        "12",
-        "13",
-        "--write_zero_overlap_registries",
     ]
     payload = {
         "schema_version": RUNNER_SCHEMA_VERSION,
@@ -99,6 +101,10 @@ def _runner_implementation(
             "guard_env_var": GUARD_ENV_VAR,
             "planned_command": planned_command,
             "required_zero_overlap_keys": list(ZERO_OVERLAP_KEYS),
+            "required_fixed_dp_head": FIXED_DP_HEAD,
+            "forbid_full36": True,
+            "forbidden_formal_seeds": ["11", "12", "13"],
+            "write_zero_overlap_registries": True,
             "fixed_dp_candidate_generation_executed": False,
             "candidate_generation_by_camp": False,
             "dp_modification": False,
@@ -120,7 +126,7 @@ def _source_decision() -> dict[str, Any]:
         "passed": True,
         "failed_checks": [],
         "authorized_next_work": AUTHORIZED_CURRENT_WORK,
-        "entrypoint_contract_remediation_post_implementation_static_contract_review_passed": True,
+        "runner_contract_remediation_post_implementation_static_contract_review_passed": True,
         "fixed_dp_candidate_generation_execution_preflight_authorized_next": True,
         "fixed_dp_candidate_generation_authorized_next": False,
         "fixed_dp_candidate_generation_execution_authorized_next": False,
@@ -176,8 +182,8 @@ def _post_review(path: Path, runner_json: Path, *, mutation: Any | None = None) 
 
 def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
     lines = [
-        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_executed_index_contract_failure_remediation_fixed_dp_candidate_generation_entrypoint_contract_remediation_post_implementation_static_contract_review_passed",
-        "entrypoint_contract_remediation_post_implementation_static_contract_review_passed=True",
+        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_executed_index_contract_failure_remediation_fixed_dp_candidate_generation_execution_preflight_runner_contract_remediation_post_implementation_static_contract_review_passed",
+        "runner_contract_remediation_post_implementation_static_contract_review_passed=True",
         "fixed_dp_candidate_generation_execution_preflight_authorized_next=True",
     ]
     for flag in AUDIT_FALSE_FLAGS:
@@ -198,7 +204,7 @@ def _repos(
     dp_repo.mkdir()
     _runner_script(camp_repo, hard_reject_execute=hard_reject_execute)
     if command_entrypoint:
-        _write(dp_repo / "planner_generate.py", "print('fixed dp candidate export')\n")
+        _write(dp_repo / "diffusion_planner" / "valid_predictor.py", "print('fixed dp candidate export')\n")
     return camp_repo, dp_repo
 
 
@@ -263,20 +269,36 @@ def test_execution_preflight_authorizes_fixed_dp_execution_only(tmp_path: Path) 
     assert decision["training_preflight_authorized_next"] is False
     assert decision["training_execution_authorized_next"] is False
     assert decision["dp_modification_authorized"] is False
-    assert preflight["base_dp_command"] == ["python", "planner_generate.py"]
+    assert preflight["base_dp_command"] == [
+        "python",
+        "-m",
+        "torch.distributed.run",
+        "--nnodes",
+        "1",
+        "--nproc-per-node",
+        "1",
+        "--standalone",
+        "diffusion_planner/valid_predictor.py",
+        "--valid_set_list",
+        "/tmp/valid_set_list.txt",
+        "--resume_model_path",
+        "/tmp/best_model.pth",
+        "--args_json_path",
+        "/tmp/args.json",
+    ]
     assert preflight["base_dp_command_entrypoint_exists"] is True
     command = preflight["planned_command"]
     assert GUARD_ENV_VAR in " ".join(command)
-    assert RUNNER_SCRIPT in " ".join(command)
+    assert RUNNER_SCRIPT in " ".join(command).replace("\\", "/")
     assert "--execute" in command
     assert "--dp_command" in command
     assert FIXED_DP_HEAD in command
+    assert AUTHORIZED_NEXT_WORK in command
+    assert EXECUTION_NEXT_WORK in command
     source_command = preflight["source_runner_planned_command"]
-    assert "--forbid_full36" in source_command
-    assert "--forbid_formal_seeds" in source_command
-    assert "--write_zero_overlap_registries" in source_command
-    assert "fixed DP candidate reranking only" in source_command
-    assert SCORE_EXPRESSION in source_command
+    assert "diffusion_planner/valid_predictor.py" in source_command
+    assert "--save_predictions_dir" in source_command
+    assert "--save_predictions_dir" not in preflight["base_dp_command"]
 
 
 def test_execution_preflight_rejects_missing_dp_command_entrypoint(tmp_path: Path) -> None:

@@ -14,7 +14,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
@@ -24,20 +24,20 @@ RUNNER_SCRIPT = (
     "scripts/integrations/run_diffusion_planner_dp_camp_v13_fixed_candidate_generation.py"
 )
 SOURCE_SCHEMA_VERSION = (
-    "dp_camp_v13_fixed_dp_candidate_generation_entrypoint_contract_remediation_"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_remediation_"
     "post_implementation_static_contract_review_v1"
 )
 SOURCE_READY_STATUS = (
-    "dp_camp_v13_fixed_dp_candidate_generation_entrypoint_contract_remediation_"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_remediation_"
     "post_implementation_static_contract_review_passed"
 )
 RUNNER_SCHEMA_VERSION = (
-    "dp_camp_v13_fixed_dp_candidate_generation_entrypoint_contract_remediation_"
-    "runner_implementation_v1"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
+    "remediation_runner_implementation_v1"
 )
 RUNNER_READY_STATUS = (
-    "dp_camp_v13_fixed_dp_candidate_generation_entrypoint_contract_remediation_"
-    "runner_implementation_ready"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
+    "remediation_runner_implementation_ready"
 )
 SCHEMA_VERSION = "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_v1"
 READY_STATUS = "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_ready"
@@ -47,8 +47,8 @@ LATEST_AUDIT_STATUS = (
     "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_evaluation_executed_index_contract_failure_remediation_fixed_dp_"
-    "candidate_generation_entrypoint_contract_remediation_post_implementation_"
-    "static_contract_review_passed"
+    "candidate_generation_execution_preflight_runner_contract_remediation_"
+    "post_implementation_static_contract_review_passed"
 )
 AUTHORIZED_CURRENT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
@@ -63,6 +63,13 @@ AUTHORIZED_NEXT_WORK = (
     "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
     "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
     "failure_remediation_fixed_dp_candidate_generation_execution_only"
+)
+EXECUTION_NEXT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+    "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
+    "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
+    "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
+    "failure_remediation_fixed_dp_candidate_generation_zero_overlap_validation_only"
 )
 REMEDIATION_NEXT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
@@ -355,6 +362,7 @@ def _checks(
     source_command_text = " ".join(source_runner_planned_command).lower()
     planned_command_text = " ".join(planned_command).lower()
     zero_keys = set(_list(runner_contract.get("required_zero_overlap_keys")))
+    source_output_arg = _option_value(source_runner_planned_command, "--save_predictions_dir")
     base_entrypoint_exists = (
         base_dp_command_entrypoint_path is not None and base_dp_command_entrypoint_path.is_file()
     )
@@ -371,7 +379,7 @@ def _checks(
         _expect(
             "source_post_review_passed",
             source_decision.get(
-                "entrypoint_contract_remediation_post_implementation_static_contract_review_passed"
+                "runner_contract_remediation_post_implementation_static_contract_review_passed"
             ),
             True,
         )
@@ -413,20 +421,19 @@ def _checks(
     for flag in AUDIT_FALSE_FLAGS:
         add(_expect(f"audit_forbids_{flag}", _latest_value(audit_text, flag), "False"))
 
-    add(_expect("source_runner_command_has_output_dir", "--output_dir" in source_runner_planned_command, True))
-    add(_expect("source_runner_command_has_fixed_dp_head", FIXED_DP_HEAD in source_runner_planned_command, True))
-    add(_expect("source_runner_command_forbids_full36", "--forbid_full36" in source_runner_planned_command, True))
-    add(
-        _expect(
-            "source_runner_command_forbids_formal_seeds",
-            all(seed in source_runner_planned_command for seed in ("11", "12", "13")),
-            True,
-        )
-    )
-    add(_expect("source_runner_command_writes_zero_overlap_registries", "--write_zero_overlap_registries" in source_runner_planned_command, True))
-    add(_expect("source_runner_command_candidate_operation", "fixed DP candidate reranking only" in source_runner_planned_command, True))
-    add(_expect("source_runner_command_score_affine", SCORE_EXPRESSION in source_runner_planned_command, True))
+    add(_expect("runner_contract_required_fixed_dp_head", runner_contract.get("required_fixed_dp_head"), FIXED_DP_HEAD))
+    add(_expect("runner_contract_forbids_full36", runner_contract.get("forbid_full36"), True))
+    add(_expect("runner_contract_forbids_formal_seeds", runner_contract.get("forbidden_formal_seeds"), ["11", "12", "13"]))
+    add(_expect("runner_contract_writes_zero_overlap_registries", runner_contract.get("write_zero_overlap_registries"), True))
+    add(_expect("source_runner_command_uses_valid_predictor", _uses_valid_dp_export_entrypoint(source_runner_planned_command), True))
+    add(_expect("source_runner_command_has_valid_set_list", "--valid_set_list" in source_runner_planned_command, True))
+    add(_expect("source_runner_command_has_resume_model_path", "--resume_model_path" in source_runner_planned_command, True))
+    add(_expect("source_runner_command_has_args_json_path", "--args_json_path" in source_runner_planned_command, True))
+    add(_expect("source_runner_command_has_save_predictions_dir", source_output_arg is not None, True))
+    add(_expect("source_runner_command_does_not_use_planner_generate_placeholder", "planner_generate.py" in source_command_text, False))
     add(_expect("base_dp_command_nonempty", bool(base_dp_command), True))
+    add(_expect("base_dp_command_strips_save_predictions_dir", "--save_predictions_dir" in base_dp_command, False))
+    add(_expect("base_dp_command_uses_valid_predictor", _uses_valid_dp_export_entrypoint(base_dp_command), True))
     add(_expect("base_dp_command_entrypoint_exists", base_entrypoint_exists, True))
 
     add(_expect("planned_command_uses_guard", GUARD_ENV_VAR.lower() in planned_command_text, True))
@@ -435,6 +442,8 @@ def _checks(
     add(_expect("planned_command_uses_execute", "--execute" in planned_command, True))
     add(_expect("planned_command_delegates_dp_command", "--dp_command" in planned_command, True))
     add(_expect("planned_command_has_required_dp_head", FIXED_DP_HEAD in planned_command, True))
+    add(_expect("planned_command_sets_execution_gate_work", AUTHORIZED_NEXT_WORK in planned_command, True))
+    add(_expect("planned_command_sets_execution_next_work", EXECUTION_NEXT_WORK in planned_command, True))
     for snippet in FORBIDDEN_COMMAND_SNIPPETS:
         combined = f"{source_command_text} {planned_command_text}"
         add(_expect(f"planned_command_forbids_{_slug(snippet)}", snippet in combined, False))
@@ -698,6 +707,10 @@ def _planned_command(
         current_dp_head,
         "--required_dp_head",
         required_dp_head,
+        "--authorized_current_work",
+        AUTHORIZED_NEXT_WORK,
+        "--authorized_next_work",
+        EXECUTION_NEXT_WORK,
         "--output_json",
         str(runner_json),
         "--output_md",
@@ -710,25 +723,54 @@ def _planned_command(
 
 def _base_dp_command(source_runner_planned_command: list[str]) -> list[str]:
     if "--output_dir" not in source_runner_planned_command:
-        return list(source_runner_planned_command)
-    return list(source_runner_planned_command[: source_runner_planned_command.index("--output_dir")])
+        return _without_option_value(source_runner_planned_command, "--save_predictions_dir")
+    return _without_option_value(
+        list(source_runner_planned_command[: source_runner_planned_command.index("--output_dir")]),
+        "--save_predictions_dir",
+    )
 
 
 def _command_entrypoint_path(dp_repo: Path, command: list[str]) -> Path | None:
+    for part in command:
+        text = str(part).replace("\\", "/")
+        if text.endswith(".py"):
+            path = Path(part)
+            return path if path.is_absolute() else dp_repo / path
     if not command:
         return None
     executable = Path(command[0]).name.lower()
     if executable.startswith("python"):
-        for part in command[1:]:
-            if part == "-m":
-                return None
-            if part.startswith("-"):
-                continue
-            path = Path(part)
-            return path if path.is_absolute() else dp_repo / path
         return None
     path = Path(command[0])
     return path if path.is_absolute() else dp_repo / path
+
+
+def _uses_valid_dp_export_entrypoint(command: Sequence[str]) -> bool:
+    return any(str(part).replace("\\", "/") == "diffusion_planner/valid_predictor.py" for part in command)
+
+
+def _option_value(command: Sequence[str], option: str) -> str | None:
+    parts = [str(part) for part in command]
+    if option not in parts:
+        return None
+    index = parts.index(option)
+    if index + 1 >= len(parts):
+        return None
+    return parts[index + 1]
+
+
+def _without_option_value(command: Sequence[str], option: str) -> list[str]:
+    result: list[str] = []
+    skip_next = False
+    for part in command:
+        if skip_next:
+            skip_next = False
+            continue
+        if part == option:
+            skip_next = True
+            continue
+        result.append(str(part))
+    return result
 
 
 def _repo_path(repo: Path, value: str) -> Path:
