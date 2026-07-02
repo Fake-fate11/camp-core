@@ -396,8 +396,8 @@ def _planned_runtime_manifest_checks(payload: dict[str, Any]) -> list[dict[str, 
 
 def _materializer_source_checks(source: str) -> list[dict[str, Any]]:
     return [
-        _contains("materializer_schema_constant", source, MATERIALIZER_SCHEMA_VERSION),
-        _contains("materializer_source_plan_schema", source, SOURCE_PLAN_SCHEMA_VERSION),
+        _contains("materializer_schema_constant_suffix", source, "runtime_artifact_manifest_materializer_v1"),
+        _contains("materializer_source_plan_schema_suffix", source, "runtime_artifact_manifest_materialization_implementation_plan_v1"),
         _contains("materializer_default_off_status", source, "runtime_artifact_manifest_materializer_default_off_disabled"),
         _contains("materializer_enable_flag", source, "--enable_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materializer"),
         _contains("materializer_default_off_short_circuit", source, "if not enabled:"),
