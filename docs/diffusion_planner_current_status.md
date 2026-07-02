@@ -1,6 +1,6 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-02, Asia/Shanghai.
+Last verified: 2026-07-03, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v14_iteration_audit.md`. The v13 audit is
@@ -50,12 +50,15 @@ work to v13.
 - The latest default-off shadow selector static integration contract plan ran
   on AutoDL with CAMP synchronized at
   `8fe12a0fbaa2083613cfaf83f5d0f8693423e6c1`.
+- The latest default-off shadow selector implementation plan ran on AutoDL
+  with CAMP synchronized at
+  `55c360b8047834271a1667a2ebd3353e914358c6`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_static_contract_review_only`.
 
 ## What Changed
 
@@ -609,6 +612,49 @@ affine atom tests. It did not implement selector wiring, train CAMP, replay,
 generate candidates, modify DP, promote, deploy, or authorize safety/CAMP-over-DP
 claims.
 
+## Default-Off Shadow Selector Implementation Plan
+
+Verified on AutoDL at 2026-07-03 00:15 CST:
+
+- Passing artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_implementation_plan_55c360b804_20260703T001526CST`
+- First rejected artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_implementation_plan_55c360b804_20260703T001423CST`
+- First rejected failure class:
+  `source_static_contract_plan_failure`
+- Source static contract plan:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_static_integration_contract_plan_8fe12a0fba_20260702T235910CST/report/default_off_shadow_selector_static_integration_contract_plan.json`
+- CAMP head:
+  `55c360b8047834271a1667a2ebd3353e914358c6`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code:
+  `0`
+- Plan status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_ready`
+- Failed checks:
+  `[]`
+- Runtime effect:
+  `log shadow_selected_index while executed output remains DP Top-1`
+- Candidate source:
+  `fixed current-tick DP candidate tensor before CAMP scoring`
+- Selection rule:
+  `shadow_selected_index = argmin_k score_k(w)`
+- Implementation static contract review authorized:
+  `True`
+- Implementation authorized:
+  `False`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_static_contract_review_only`
+- Implementation plan JSON SHA256:
+  `553c09c55ae87cb65dcfce6e0497a0b1773b1b68e4c574b34f93ff03e15df398`
+- Artifact SHA256SUMS SHA256:
+  `08fdb3c7eae8d89708ae229151248c24724eb1b283fe7cef2a4c3b12360ae88e`
+
+This gate is plan-only. It did not implement selector wiring, train CAMP, run
+replay, generate candidates, modify DP, promote, deploy, or authorize
+safety/CAMP-over-DP claims. The next gate is static contract review only.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -616,17 +662,17 @@ The training artifact static contract review, trained default-off shadow
 replay/evaluation preflight, and guarded shadow replay/evaluation execution
 have passed. The read-only result review, promotion-decision planning gate, and
 promotion evidence-package preflight have also passed. The default-off shadow
-selector static integration contract plan has passed. The next gate is
-default-off shadow selector implementation planning only, and still does not
-authorize implementation, promotion, deployment, training, replay, candidate
-generation, or safety-benefit claims.
+selector static integration contract plan and implementation plan have passed.
+The next gate is default-off shadow selector implementation static contract
+review only, and still does not authorize implementation, promotion,
+deployment, training, replay, candidate generation, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_static_contract_review_only
 
 ## Cleanup Policy
 

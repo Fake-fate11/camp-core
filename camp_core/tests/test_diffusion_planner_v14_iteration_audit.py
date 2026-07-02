@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_ready"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_static_contract_review_only"
     )
 
 
@@ -697,11 +697,11 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_ready"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_static_contract_review_only"
     )
 
 
@@ -1185,7 +1185,7 @@ def test_v14_public_simulator_trained_shadow_promotion_evidence_package_prefligh
         assert needle in text
 
 
-def test_v14_default_off_shadow_selector_static_integration_contract_plan_ready_is_eof() -> None:
+def test_v14_default_off_shadow_selector_static_integration_contract_plan_ready_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Trained Shadow Replay/Evaluation Promotion "
@@ -1195,10 +1195,14 @@ def test_v14_default_off_shadow_selector_static_integration_contract_plan_ready_
         "## Current V14 Default-Off Shadow Selector Static Integration "
         "Contract Plan Ready After 8fe12a"
     )
+    next_section_title = (
+        "## Current V14 Default-Off Shadow Selector Implementation Plan "
+        "Ready After 55c360"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_default_off_shadow_selector_static_integration_contract_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_static_integration_contract_plan_8fe12a0fba_20260702T235910CST",
@@ -1264,6 +1268,84 @@ def test_v14_default_off_shadow_selector_static_integration_contract_plan_ready_
         assert needle in text
 
 
+def test_v14_default_off_shadow_selector_implementation_plan_ready_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Default-Off Shadow Selector Static Integration "
+        "Contract Plan Ready After 8fe12a"
+    )
+    section_title = (
+        "## Current V14 Default-Off Shadow Selector Implementation Plan "
+        "Ready After 55c360"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_script=scripts/integrations/plan_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_implementation.py",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_test=camp_core/tests/test_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_implementation_plan.py",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_local_py_compile_exit=0",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_local_pytest=13 passed",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_failed_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_implementation_plan_55c360b804_20260703T001423CST",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_failed_exit=1",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_failed_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_rejected",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_failed_failure_class=source_static_contract_plan_failure",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_failed_failed_checks_include=static_contract_plan_exists",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_failed_json_sha256=b15ddfebb3c529efff11b134e0e0b6b72135de7bf50584b2f7e98110c310d39b",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_implementation_plan_55c360b804_20260703T001526CST",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_camp_head=55c360b8047834271a1667a2ebd3353e914358c6",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_camp_origin_main=55c360b8047834271a1667a2ebd3353e914358c6",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_source_static_contract_plan=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_static_integration_contract_plan_8fe12a0fba_20260702T235910CST/report/default_off_shadow_selector_static_integration_contract_plan.json",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_exit=0",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_ready",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_passed=True",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_failed_checks=[]",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_failure_class=None",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_authorized_current_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_only",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_static_contract_review_only",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_ready=True",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_static_contract_review_authorized=True",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_implementation_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_source_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_ready",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_source_candidate_count=8",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_source_score_expression=score_k(w)=a_k^T w",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_runtime_effect=log shadow_selected_index while executed output remains DP Top-1",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_candidate_source=fixed current-tick DP candidate tensor before CAMP scoring",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_selection_rule=shadow_selected_index = argmin_k score_k(w)",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_score_expression=score_k(w)=a_k^T w",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_heads_sha256=393edb83fdd2b02b01d2914251278609464f90da1b239bb505766f436d17e500",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_command_sha256=af900895b65845d2a799b64097c41fa7bc328759755a47000ae79127069936a6",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_stdout_sha256=398e7dadc6316d0e5fa8b142a242a0640e268cb503033e8b8f81818da8354744",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_json_sha256=553c09c55ae87cb65dcfce6e0497a0b1773b1b68e4c574b34f93ff03e15df398",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_md_sha256=d3bad2e0ae50cf1c1fc8078410593566e69d17c7a1bfa246bd971755743f5fdb",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_sha256s_sha256=08fdb3c7eae8d89708ae229151248c24724eb1b283fe7cef2a4c3b12360ae88e",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_training_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_replay_execution_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_candidate_generation_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_dp_modification_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_online_selector_change_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_executed_trajectory_change_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_selector_promotion_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_deployment_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_implementation_plan_camp_over_dp_top1_claim_authorized=False",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_ready",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_static_contract_review_only",
+        "default_off_shadow_selector_static_contract_plan_ready=True",
+        "default_off_shadow_selector_implementation_plan_ready=True",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_static_contract_review_only",
+    ]:
+        assert needle in text
+
+
 def test_current_status_and_readme_point_to_v14() -> None:
     status_text = CURRENT_STATUS_DOC.read_text(encoding="utf-8")
     readme_text = README.read_text(encoding="utf-8")
@@ -1284,6 +1366,7 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "4b17b353024a45b2f89d360f3e63c20ae76eac01" in status_text
     assert "9aea47cc48aad4be26d8221e3c6c40dcf612d9d1" in status_text
     assert "8fe12a0fbaa2083613cfaf83f5d0f8693423e6c1" in status_text
+    assert "55c360b8047834271a1667a2ebd3353e914358c6" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
         "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed"
@@ -1331,6 +1414,14 @@ def test_current_status_and_readme_point_to_v14() -> None:
     )
     assert (
         "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_only"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_ready"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_static_contract_review_only"
         in status_text
     )
     assert (
@@ -1424,7 +1515,7 @@ def test_current_status_and_readme_point_to_v14() -> None:
         in status_text
     )
     assert "promotion evidence-package preflight have also passed" in status_text
-    assert "default-off shadow\nselector static integration contract plan has passed" in status_text
+    assert "selector static integration contract plan and implementation plan have passed" in status_text
 
     assert "docs/diffusion_planner_current_status.md" in readme_text
     assert "docs/diffusion_planner_v14_iteration_audit.md" in readme_text
