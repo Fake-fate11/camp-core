@@ -185,18 +185,51 @@ This preflight wrote only data-preparation/training-input evidence. It did not
 materialize training arrays, train CAMP, generate trajectories with CAMP,
 modify DP, promote, deploy, or make any safety-benefit/CAMP-over-DP claim.
 
+## Training Preflight Result
+
+Verified on AutoDL at 2026-07-02 19:45 CST:
+
+- Artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_preflight_aff9b0533f_20260702T194544CST`
+- Data-preparation artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_356ce6301c_20260702T192546CST`
+- Planned training output dir:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_execution_aff9b0533f_20260702T194544CST_planned`
+- CAMP head:
+  `aff9b0533ff63172f834dfede3836e5553bb05e0`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code: `0`
+- Status:
+  `public_simulator_fixed_dp_candidate_generation_training_preflight_ready`
+- Selection logs: `32`
+- Records: `3200`
+- Clean contract failed records: `0`
+- Future training input contract satisfied: `True`
+- Usable feasible records: `2914`
+- Dropped all-infeasible records: `286`
+- Atom schema versions: `{'camp_legacy_v1_9d': 3200}`
+- Selected/executed index counts: `{'0': 3200}` / `{'0': 3200}`
+- Training execution authorized next: `True`
+- CAMP training executed: `False`
+
+This preflight wrote the fixed selection-log manifest and guarded training
+command plan only. It did not train CAMP, run replay, generate trajectories
+with CAMP, modify DP, promote, deploy, or make any safety-benefit/CAMP-over-DP
+claim.
+
 ## Distance To Training
 
-Training is no longer blocked on an external DP-native source `.npz` manifest.
-The remaining gates are the minimum evidence needed to keep the fixed-DP
-selector boundary auditable:
+Training preflight is complete. The next gate may start CAMP training execution
+from the fixed-DP selection logs and the guarded command plan produced above.
 
-1. Run training preflight over the data-preparation training input manifest.
-2. Start CAMP training only if the preflight authorizes it.
+The current boundary authorizes only that training execution gate. It does not
+authorize CAMP generation, DP modification, postprocessing, guidance, reference
+blending, closed-loop outcome labels, formal seeds 11/12/13, promotion,
+deployment, or safety-benefit claims.
 
-This does not authorize CAMP generation, DP modification, postprocessing,
-guidance, reference blending, closed-loop outcome labels, formal seeds 11/12/13,
-promotion, deployment, or safety-benefit claims.
+current_v14_status=public_simulator_fixed_dp_candidate_generation_training_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_training_execution
 
 ## Cleanup Policy
 

@@ -443,7 +443,7 @@ def test_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validat
         assert needle in text
 
 
-def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_ready_is_eof() -> None:
+def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_ready_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Public Simulator Fixed-DP Candidate Generation "
@@ -453,10 +453,14 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
         "## Current V14 Public Simulator Fixed-DP Candidate "
         "Data-Preparation Preflight Ready After 356ce63"
     )
+    next_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate "
+        "Training Preflight Ready After aff9b05"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_356ce6301c_20260702T192546CST",
@@ -520,9 +524,86 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_ready"
+        == "public_simulator_fixed_dp_candidate_generation_training_preflight_ready"
     )
-    assert latest_target == "public_simulator_fixed_dp_candidate_generation_training_preflight"
+    assert latest_target == "public_simulator_fixed_dp_candidate_generation_training_execution"
+
+
+def test_v14_public_simulator_fixed_dp_candidate_training_preflight_ready_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate "
+        "Data-Preparation Preflight Ready After 356ce63"
+    )
+    section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate "
+        "Training Preflight Ready After aff9b05"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_preflight_aff9b0533f_20260702T194544CST",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_data_preparation_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_356ce6301c_20260702T192546CST",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_planned_training_output_dir=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_execution_aff9b0533f_20260702T194544CST_planned",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_camp_head=aff9b0533ff63172f834dfede3836e5553bb05e0",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_camp_origin_main=aff9b0533ff63172f834dfede3836e5553bb05e0",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_exit=0",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_status=public_simulator_fixed_dp_candidate_generation_training_preflight_ready",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_passed=True",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_failed_checks=[]",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_selection_log_count=32",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_records=3200",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_clean_contract_failed_records=0",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_future_training_input_contract_satisfied=True",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_usable_feasible_records=2914",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_all_infeasible_records=286",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_atom_schema_versions={'camp_legacy_v1_9d': 3200}",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_selected_index_counts={'0': 3200}",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_executed_index_counts={'0': 3200}",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_finite_reward_records=3200",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_default_off_shadow_selector_valid_records=3200",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_command_forbidden_tokens_absent=True",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_report_json_sha256=d5d4b28c90961289a74e067257d49a1f3b71bb4b6d55f6d87d3ce7d359e4b641",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_command_plan_sha256=28cb10c5d14c35ad9a52266f21bb25937b908404ac917a5f7d9afeb5075053d0",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_runbook_sha256=1b17d9d3d99dd55c776306a35bb69a26ab2b8846bdf9b201de52ef171c23a6ae",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_training_execution_authorized_next=True",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_training_executed=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_replay_executed=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_candidate_generation_executed=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_candidate_generation_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_trajectory_generation_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_trajectory_modification_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_reference_blend_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_guidance_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_postprocess_or_postselection_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_closed_loop_outcome_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_dp_modification_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_selector_promotion_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_deployment_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_approved_atoms_nonnegative_simplex_only=True",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_simplex_cvar_l2_master_convexity_preserved=True",
+        "v14_public_simulator_fixed_dp_candidate_training_preflight_score_expression=score_k(w)=a_k^T w",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_training_preflight_ready",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_training_execution",
+        "training_preflight_passed=True",
+        "training_execution_authorized_by_current_boundary=True",
+        "camp_training_executed=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_training_execution",
+    ]:
+        assert needle in text
 
 
 def test_current_status_and_readme_point_to_v14() -> None:
@@ -536,13 +617,14 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "458c66c8aeac8b9eb15ba3f06a7f87e5c9ef0740" in status_text
     assert "2e17d119941b8134fc4adb7b607204d7ee95899e" in status_text
     assert "356ce6301cd02a59dedb971f85aac8481be0a7fd" in status_text
+    assert "aff9b0533ff63172f834dfede3836e5553bb05e0" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
-        "public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_ready"
+        "public_simulator_fixed_dp_candidate_generation_training_preflight_ready"
         in status_text
     )
     assert (
-        "public_simulator_fixed_dp_candidate_generation_training_preflight"
+        "public_simulator_fixed_dp_candidate_generation_training_execution"
         in status_text
     )
     assert (
@@ -564,11 +646,16 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "Failed records: `0`" in status_text
     assert "Future training input contract satisfied: `True`" in status_text
     assert "training_input_manifest.json" in status_text
+    assert "## Training Preflight Result" in status_text
+    assert "Usable feasible records: `2914`" in status_text
+    assert "Dropped all-infeasible records: `286`" in status_text
+    assert "Training execution authorized next: `True`" in status_text
+    assert "CAMP training executed: `False`" in status_text
     assert "NuScenes is present and must not be marked missing" in status_text
     assert "/autodl-pub/data/nuScenes" in status_text
     assert "they are not the TIER IV" in status_text
     assert "official rosbag-to-DP `.npz` training source" in status_text
-    assert "Training is no longer blocked on an external DP-native source `.npz` manifest" in status_text
+    assert "Training preflight is complete" in status_text
 
     assert "docs/diffusion_planner_current_status.md" in readme_text
     assert "docs/diffusion_planner_v14_iteration_audit.md" in readme_text
