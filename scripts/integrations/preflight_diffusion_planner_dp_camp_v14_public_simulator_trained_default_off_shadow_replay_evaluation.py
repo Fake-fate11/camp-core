@@ -15,10 +15,18 @@ import hashlib
 import json
 import math
 import shlex
+import sys
 from pathlib import Path
 from typing import Any, Sequence
 
 import numpy as np
+
+ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_ROOT = ROOT / "camp_core"
+for _path in (ROOT, PACKAGE_ROOT):
+    _path_str = str(_path)
+    if _path_str not in sys.path:
+        sys.path.insert(0, _path_str)
 
 from camp_core.integrations.diffusion_planner import atom_schema_for_dimension
 
