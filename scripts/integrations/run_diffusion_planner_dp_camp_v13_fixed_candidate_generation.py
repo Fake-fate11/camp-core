@@ -25,24 +25,24 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 SCORE_EXPRESSION = "score_k(w)=a_k^T w"
 GUARD_ENV_VAR = "DP_CAMP_V13_FIXED_DP_CANDIDATE_GENERATION_EXECUTE"
 SOURCE_SCHEMA_VERSION = (
-    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_contract_and_input_"
     "remediation_implementation_static_contract_review_v1"
 )
 SOURCE_PASS_STATUS = (
-    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_contract_and_input_"
     "remediation_implementation_static_contract_review_passed"
 )
 SCHEMA_VERSION = (
-    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
-    "remediation_runner_implementation_v1"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_contract_and_input_"
+    "remediation_implementation_v1"
 )
 READY_STATUS = (
-    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
-    "remediation_runner_implementation_ready"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_contract_and_input_"
+    "remediation_implementation_ready"
 )
 REJECT_STATUS = (
-    "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
-    "remediation_runner_implementation_rejected"
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_contract_and_input_"
+    "remediation_implementation_rejected"
 )
 DISABLED_STATUS = (
     "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_remediation_"
@@ -52,24 +52,24 @@ LATEST_AUDIT_STATUS = (
     "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_evaluation_executed_index_contract_failure_remediation_fixed_dp_"
-    "candidate_generation_execution_preflight_runner_contract_remediation_"
-    "implementation_static_contract_review_passed"
+    "candidate_generation_execution_contract_and_input_remediation_implementation_"
+    "static_contract_review_passed"
 )
 AUTHORIZED_CURRENT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
     "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
     "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
     "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
-    "failure_remediation_fixed_dp_candidate_generation_execution_preflight_"
-    "runner_contract_remediation_implementation_only"
+    "failure_remediation_fixed_dp_candidate_generation_execution_contract_and_"
+    "input_remediation_implementation_only"
 )
 AUTHORIZED_NEXT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
     "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
     "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
     "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
-    "failure_remediation_fixed_dp_candidate_generation_execution_preflight_"
-    "runner_contract_remediation_post_implementation_static_contract_review_only"
+    "failure_remediation_fixed_dp_candidate_generation_execution_contract_and_"
+    "input_remediation_post_implementation_static_contract_review_only"
 )
 EXECUTION_GATE_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
@@ -118,7 +118,6 @@ FORBIDDEN_COMMAND_SNIPPETS = (
     "closed_loop",
 )
 SOURCE_FALSE_FLAGS = (
-    "fixed_dp_candidate_generation_execution_preflight_authorized_next",
     "fixed_dp_candidate_generation_authorized_next",
     "fixed_dp_candidate_generation_execution_authorized_next",
     "fixed_dp_candidate_generation_executed",
@@ -142,7 +141,6 @@ SOURCE_FALSE_FLAGS = (
     "camp_over_dp_top1_claim_authorized",
 )
 AUDIT_FALSE_FLAGS = (
-    "fixed_dp_candidate_generation_execution_preflight_authorized_next",
     "fixed_dp_candidate_generation_authorized_next",
     "fixed_dp_candidate_generation_execution_authorized_next",
     "fixed_dp_candidate_generation_executed",
@@ -381,6 +379,9 @@ def _checks(
     output_arg = _option_value(planned_command, "--save_predictions_dir")
     execution_gate_authorized = authorized_current_work == EXECUTION_GATE_WORK
     expected_audit_status = _expected_audit_status(authorized_current_work)
+    expected_source_next_work = (
+        AUTHORIZED_CURRENT_WORK if execution_gate_authorized else authorized_current_work
+    )
     checks: list[dict[str, Any]] = [
         _expect("implementation_static_contract_review_json_exists", implementation_static_contract_review_json.exists(), True),
         _expect("v13_audit_exists", v13_audit_md.exists(), True),
@@ -388,8 +389,14 @@ def _checks(
         _expect("source_status", source_decision.get("status"), SOURCE_PASS_STATUS),
         _expect("source_passed", source_decision.get("passed"), True),
         _expect("source_failed_checks_empty", source_decision.get("failed_checks"), []),
-        _expect("source_authorized_next_work", source_decision.get("authorized_next_work"), authorized_current_work),
-        _expect("source_authorizes_implementation", source_decision.get("runner_contract_remediation_implementation_authorized_next"), True),
+        _expect("source_authorized_next_work", source_decision.get("authorized_next_work"), expected_source_next_work),
+        _expect(
+            "source_authorizes_implementation",
+            source_decision.get(
+                "fixed_dp_candidate_generation_execution_contract_and_input_remediation_implementation_authorized_next"
+            ),
+            True,
+        ),
         _expect("camp_head_matches_origin", current_camp_head, current_camp_origin_main),
         _expect("current_dp_head_fixed", current_dp_head, required_dp_head),
         _expect("required_dp_head_fixed", required_dp_head, FIXED_DP_HEAD),
@@ -400,7 +407,11 @@ def _checks(
         _expect("execute_requires_guard_env_var", not execute or os.environ.get(GUARD_ENV_VAR) == "1", True),
         _expect("audit_latest_status", _latest_value(audit_text, "current_v13_status"), expected_audit_status),
         _expect("audit_latest_next_work", _latest_value(audit_text, "next_work_target"), authorized_current_work),
-        _expect("audit_authorizes_implementation", _latest_value(audit_text, "runner_contract_remediation_implementation_authorized_next"), "True"),
+        _expect(
+            "audit_authorizes_current_gate",
+            _audit_authorization_value(audit_text, execution_gate_authorized),
+            "True",
+        ),
         _expect("planned_command_uses_valid_predictor", _uses_valid_dp_export_entrypoint(planned_command), True),
         _expect("planned_command_entrypoint_exists", entrypoint_path is not None and entrypoint_path.is_file(), True),
         _expect("planned_command_has_valid_set_list", "--valid_set_list" in planned_command, True),
@@ -412,7 +423,7 @@ def _checks(
     ]
     for flag in SOURCE_FALSE_FLAGS:
         checks.append(_expect(f"source_forbids_{flag}", source_decision.get(flag), False))
-    for flag in AUDIT_FALSE_FLAGS:
+    for flag in _audit_false_flags(execution_gate_authorized):
         checks.append(_expect(f"audit_forbids_{flag}", _latest_value(audit_text, flag), "False"))
     for snippet in FORBIDDEN_COMMAND_SNIPPETS:
         checks.append(_expect(f"planned_command_forbids_{_slug(snippet)}", snippet in command_text, False))
@@ -423,6 +434,29 @@ def _expected_audit_status(authorized_current_work: str) -> str:
     if authorized_current_work == EXECUTION_GATE_WORK:
         return EXECUTION_AUDIT_STATUS
     return LATEST_AUDIT_STATUS
+
+
+def _audit_authorization_value(audit_text: str, execution_gate_authorized: bool) -> str | None:
+    if execution_gate_authorized:
+        return _latest_value(audit_text, "fixed_dp_candidate_generation_execution_authorized_next")
+    return _latest_value(
+        audit_text,
+        "fixed_dp_candidate_generation_execution_contract_and_input_remediation_implementation_authorized_next",
+    )
+
+
+def _audit_false_flags(execution_gate_authorized: bool) -> tuple[str, ...]:
+    if not execution_gate_authorized:
+        return AUDIT_FALSE_FLAGS
+    return tuple(
+        flag
+        for flag in AUDIT_FALSE_FLAGS
+        if flag
+        not in {
+            "fixed_dp_candidate_generation_authorized_next",
+            "fixed_dp_candidate_generation_execution_authorized_next",
+        }
+    )
 
 
 def _uses_valid_dp_export_entrypoint(command: Sequence[str]) -> bool:
@@ -469,8 +503,8 @@ def _decision(
         "failed_checks": failed,
         "authorized_current_work": authorized_current_work,
         "authorized_next_work": authorized_next_work if passed else None,
-        "runner_contract_remediation_implementation_complete": passed,
-        "runner_contract_remediation_post_implementation_static_contract_review_authorized_next": passed,
+        "fixed_dp_candidate_generation_execution_contract_and_input_remediation_implementation_complete": passed,
+        "fixed_dp_candidate_generation_execution_contract_and_input_remediation_post_implementation_static_contract_review_authorized_next": passed,
         "fixed_dp_candidate_generation_preflight_authorized_next": False,
         "fixed_dp_candidate_generation_execution_preflight_authorized_next": False,
         "fixed_dp_candidate_generation_authorized_next": False,

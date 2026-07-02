@@ -39,6 +39,12 @@ RUNNER_READY_STATUS = (
     "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_runner_contract_"
     "remediation_runner_implementation_ready"
 )
+INPUT_CONTRACT_SCHEMA_VERSION = (
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_inputs_materialization_v1"
+)
+INPUT_CONTRACT_READY_STATUS = (
+    "dp_camp_v13_fixed_dp_candidate_generation_execution_inputs_materialized"
+)
 SCHEMA_VERSION = "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_v1"
 READY_STATUS = "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_ready"
 REJECT_STATUS = "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_rejected"
@@ -154,6 +160,7 @@ FORBIDDEN_COMMAND_SNIPPETS = (
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--post_review_json", type=Path, required=True)
+    parser.add_argument("--input_contract_json", type=Path)
     parser.add_argument("--v13_audit_md", type=Path, required=True)
     parser.add_argument("--candidate_output_dir", type=Path, required=True)
     parser.add_argument("--current_camp_head", required=True)
@@ -178,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     report = build_report(
         post_review_json=args.post_review_json,
+        input_contract_json=args.input_contract_json,
         v13_audit_md=args.v13_audit_md,
         candidate_output_dir=args.candidate_output_dir,
         current_camp_head=args.current_camp_head,
@@ -214,6 +222,7 @@ def build_report(
     authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
     authorized_next_work: str = AUTHORIZED_NEXT_WORK,
     enabled: bool,
+    input_contract_json: Path | None = None,
 ) -> dict[str, Any]:
     post_review = _load_json_if_exists(post_review_json)
     source_decision = _dict(post_review.get("final_decision"))
@@ -223,13 +232,17 @@ def build_report(
     runner_implementation = _load_json_if_exists(runner_implementation_json)
     runner_decision = _dict(runner_implementation.get("final_decision"))
     runner_contract = _dict(runner_implementation.get("runner_contract"))
+    input_contract_path = _path_or_missing(input_contract_json)
+    input_contract_payload = _load_json_if_exists(input_contract_path)
+    input_decision = _dict(input_contract_payload.get("final_decision"))
+    input_contract = _dict(input_contract_payload.get("input_contract"))
     source_static_review = _dict(runner_implementation.get("source_static_review"))
     source_static_review_json = _path_or_missing(source_static_review.get("path"))
     runner_script = str(runner_contract.get("runner_script") or RUNNER_SCRIPT)
     runner_script_path = _repo_path(camp_repo, runner_script)
     runner_script_text = _read_text_if_exists(runner_script_path)
     source_runner_planned_command = [str(part) for part in _list(runner_contract.get("planned_command"))]
-    base_dp_command = _base_dp_command(source_runner_planned_command)
+    base_dp_command = _base_dp_command(source_runner_planned_command, input_contract)
     base_dp_command_entrypoint_path = _command_entrypoint_path(dp_repo, base_dp_command)
     candidate_output_dir = candidate_output_dir.resolve()
     planned_command = _planned_command(
@@ -249,6 +262,7 @@ def build_report(
         return _base_report(
             enabled=enabled,
             post_review_json=post_review_json,
+            input_contract_json=input_contract_path,
             runner_implementation_json=runner_implementation_json,
             runner_artifact_dir=runner_artifact_dir,
             source_static_review_json=source_static_review_json,
@@ -274,10 +288,14 @@ def build_report(
     audit_text = _read_text_if_exists(v13_audit_md)
     checks = _checks(
         post_review_json=post_review_json,
+        input_contract_json=input_contract_path,
         v13_audit_md=v13_audit_md,
         post_review=post_review,
         source_decision=source_decision,
         source_runner_summary=source_runner_summary,
+        input_contract_payload=input_contract_payload,
+        input_decision=input_decision,
+        input_contract=input_contract,
         runner_implementation_json=runner_implementation_json,
         runner_artifact_dir=runner_artifact_dir,
         runner_implementation=runner_implementation,
@@ -305,6 +323,7 @@ def build_report(
     return _base_report(
         enabled=enabled,
         post_review_json=post_review_json,
+        input_contract_json=input_contract_path,
         runner_implementation_json=runner_implementation_json,
         runner_artifact_dir=runner_artifact_dir,
         source_static_review_json=source_static_review_json,
@@ -331,10 +350,14 @@ def build_report(
 def _checks(
     *,
     post_review_json: Path,
+    input_contract_json: Path,
     v13_audit_md: Path,
     post_review: dict[str, Any],
     source_decision: dict[str, Any],
     source_runner_summary: dict[str, Any],
+    input_contract_payload: dict[str, Any],
+    input_decision: dict[str, Any],
+    input_contract: dict[str, Any],
     runner_implementation_json: Path,
     runner_artifact_dir: Path,
     runner_implementation: dict[str, Any],
@@ -362,12 +385,14 @@ def _checks(
     source_command_text = " ".join(source_runner_planned_command).lower()
     planned_command_text = " ".join(planned_command).lower()
     zero_keys = set(_list(runner_contract.get("required_zero_overlap_keys")))
+    input_zero_keys = set(_list(input_contract.get("required_zero_overlap_keys")))
     source_output_arg = _option_value(source_runner_planned_command, "--save_predictions_dir")
     base_entrypoint_exists = (
         base_dp_command_entrypoint_path is not None and base_dp_command_entrypoint_path.is_file()
     )
 
     add(_expect("post_review_json_exists", post_review_json.exists(), True))
+    add(_expect("input_contract_json_exists", input_contract_json.is_file(), True))
     add(_expect("v13_audit_exists", v13_audit_md.exists(), True))
     add(_expect("source_schema_version", post_review.get("schema_version"), SOURCE_SCHEMA_VERSION))
     add(_expect("source_status", source_decision.get("status"), SOURCE_READY_STATUS))
@@ -388,6 +413,22 @@ def _checks(
         add(_expect(f"source_forbids_{flag}", source_decision.get(flag), False))
     add(_expect("source_candidate_operation", source_decision.get("candidate_operation"), "fixed DP candidate reranking only"))
     add(_expect("source_score_expression", source_decision.get("score_expression"), SCORE_EXPRESSION))
+
+    add(_expect("input_contract_schema_version", input_contract_payload.get("schema_version"), INPUT_CONTRACT_SCHEMA_VERSION))
+    add(_expect("input_contract_status", input_decision.get("status"), INPUT_CONTRACT_READY_STATUS))
+    add(_expect("input_contract_passed", input_decision.get("passed"), True))
+    add(_expect("input_contract_failed_checks_empty", input_decision.get("failed_checks"), []))
+    add(_expect("input_contract_no_fixed_dp_execution", input_decision.get("fixed_dp_candidate_generation_executed"), False))
+    add(_expect("input_contract_no_camp_generation", input_decision.get("candidate_generation_by_camp_authorized"), False))
+    add(_expect("input_contract_no_dp_modification", input_decision.get("dp_modification_authorized"), False))
+    add(_expect("input_contract_valid_set_list_exists", _path_or_missing(input_contract.get("valid_set_list")).is_file(), True))
+    add(_expect("input_contract_valid_set_list_nonempty", bool(_list(input_contract.get("valid_set_files"))), True))
+    add(_expect("input_contract_fixed_dp_checkpoint_exists", _path_or_missing(input_contract.get("fixed_dp_checkpoint")).is_file(), True))
+    add(_expect("input_contract_fixed_dp_args_json_exists", _path_or_missing(input_contract.get("fixed_dp_args_json")).is_file(), True))
+    add(_expect("input_contract_closed_loop_not_read", input_contract.get("closed_loop_outcome_read"), False))
+    add(_expect("input_contract_dp_modification_false", input_contract.get("dp_modification"), False))
+    for key in ZERO_OVERLAP_KEYS:
+        add(_expect(f"input_contract_requires_zero_overlap_{key}", key in input_zero_keys, True))
 
     add(_expect("runner_implementation_json_exists", runner_implementation_json.exists(), True))
     add(_expect("runner_artifact_dir_exists", runner_artifact_dir.exists(), True))
@@ -454,6 +495,7 @@ def _base_report(
     *,
     enabled: bool,
     post_review_json: Path,
+    input_contract_json: Path,
     runner_implementation_json: Path,
     runner_artifact_dir: Path,
     source_static_review_json: Path,
@@ -510,6 +552,10 @@ def _base_report(
         "source_artifacts": {
             "post_review_json": str(post_review_json),
             "post_review_json_sha256": _sha256(post_review_json) if post_review_json.is_file() else None,
+            "input_contract_json": str(input_contract_json),
+            "input_contract_json_sha256": _sha256(input_contract_json)
+            if input_contract_json.is_file()
+            else None,
             "runner_implementation_json": str(runner_implementation_json),
             "runner_implementation_json_sha256": _sha256(runner_implementation_json)
             if runner_implementation_json.is_file()
@@ -721,7 +767,25 @@ def _planned_command(
     ]
 
 
-def _base_dp_command(source_runner_planned_command: list[str]) -> list[str]:
+def _base_dp_command(source_runner_planned_command: list[str], input_contract: dict[str, Any]) -> list[str]:
+    if input_contract:
+        return [
+            "python",
+            "-m",
+            "torch.distributed.run",
+            "--nnodes",
+            "1",
+            "--nproc-per-node",
+            "1",
+            "--standalone",
+            "diffusion_planner/valid_predictor.py",
+            "--valid_set_list",
+            str(input_contract.get("valid_set_list")),
+            "--resume_model_path",
+            str(input_contract.get("fixed_dp_checkpoint")),
+            "--args_json_path",
+            str(input_contract.get("fixed_dp_args_json")),
+        ]
     if "--output_dir" not in source_runner_planned_command:
         return _without_option_value(source_runner_planned_command, "--save_predictions_dir")
     return _without_option_value(
@@ -779,6 +843,8 @@ def _repo_path(repo: Path, value: str) -> Path:
 
 
 def _path_or_missing(value: Any) -> Path:
+    if isinstance(value, Path):
+        return value
     if isinstance(value, str) and value:
         return Path(value)
     return Path("__missing_path__")

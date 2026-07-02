@@ -21,14 +21,14 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v13_fixed_candidate_gene
 )
 
 
-CAMP_HEAD = "63c1cf37d0bf8631f24e83f85b81ae9cccd70c5b"
+CAMP_HEAD = "bf60cad38974100b78f9ef3955f8fd0fd943e1e9"
 SCORE_EXPRESSION = "score_k(w)=a_k^T w"
 LATEST_STATUS = (
     "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_evaluation_executed_index_contract_failure_remediation_fixed_dp_"
-    "candidate_generation_execution_preflight_runner_contract_remediation_"
-    "implementation_static_contract_review_passed"
+    "candidate_generation_execution_contract_and_input_remediation_implementation_"
+    "static_contract_review_passed"
 )
 
 
@@ -50,8 +50,8 @@ def _review(path: Path, *, mutation: Any | None = None) -> Path:
         "passed": True,
         "failed_checks": [],
         "authorized_next_work": AUTHORIZED_CURRENT_WORK,
-        "runner_contract_remediation_implementation_static_contract_review_passed": True,
-        "runner_contract_remediation_implementation_authorized_next": True,
+        "fixed_dp_candidate_generation_execution_contract_and_input_remediation_implementation_static_contract_review_passed": True,
+        "fixed_dp_candidate_generation_execution_contract_and_input_remediation_implementation_authorized_next": True,
         "candidate_operation": "fixed DP candidate reranking only",
         "score_expression": SCORE_EXPRESSION,
     }
@@ -66,7 +66,7 @@ def _review(path: Path, *, mutation: Any | None = None) -> Path:
 def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
     lines = [
         f"current_v13_status={LATEST_STATUS}",
-        "runner_contract_remediation_implementation_authorized_next=True",
+        "fixed_dp_candidate_generation_execution_contract_and_input_remediation_implementation_authorized_next=True",
     ]
     for flag in AUDIT_FALSE_FLAGS:
         lines.append(f"{flag}=False")
@@ -142,10 +142,15 @@ def test_runner_implementation_is_default_off_and_authorizes_post_review_only(
     assert report["schema_version"] == SCHEMA_VERSION
     assert decision["status"] == READY_STATUS
     assert decision["authorized_next_work"] == AUTHORIZED_NEXT_WORK
-    assert decision["runner_contract_remediation_implementation_complete"] is True
     assert (
         decision[
-            "runner_contract_remediation_post_implementation_static_contract_review_authorized_next"
+            "fixed_dp_candidate_generation_execution_contract_and_input_remediation_implementation_complete"
+        ]
+        is True
+    )
+    assert (
+        decision[
+            "fixed_dp_candidate_generation_execution_contract_and_input_remediation_post_implementation_static_contract_review_authorized_next"
         ]
         is True
     )
@@ -169,6 +174,60 @@ def test_runner_rejects_execute_in_implementation_gate(tmp_path: Path) -> None:
     assert "execute_requires_authorized_execution_gate" in report["final_decision"][
         "failed_checks"
     ]
+
+
+def test_runner_accepts_execution_gate_audit_without_requiring_source_execution_auth(
+    tmp_path: Path,
+) -> None:
+    camp_repo, dp_repo = _repos(tmp_path)
+    lines = [
+        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_executed_index_contract_failure_remediation_fixed_dp_candidate_generation_execution_preflight_ready",
+        "fixed_dp_candidate_generation_authorized_next=True",
+        "fixed_dp_candidate_generation_execution_authorized_next=True",
+    ]
+    for flag in AUDIT_FALSE_FLAGS:
+        if flag not in {
+            "fixed_dp_candidate_generation_authorized_next",
+            "fixed_dp_candidate_generation_execution_authorized_next",
+        }:
+            lines.append(f"{flag}=False")
+    lines.extend(
+        [
+            "next_work_target=dp_camp_v13_current_source_large_default_off_shadow_selector_static_dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_executed_index_contract_failure_remediation_fixed_dp_candidate_generation_execution_only",
+            "",
+        ]
+    )
+    audit = "\n".join(lines)
+    audit_path = _write(tmp_path / "execution_audit.md", audit)
+
+    report = build_report(
+        implementation_static_contract_review_json=_review(tmp_path / "review.json"),
+        v13_audit_md=audit_path,
+        dp_repo=dp_repo,
+        camp_repo=camp_repo,
+        output_dir=tmp_path / "candidate_output",
+        dp_command=_valid_dp_command(tmp_path / "candidate_output"),
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        authorized_current_work=(
+            "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+            "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
+            "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
+            "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
+            "failure_remediation_fixed_dp_candidate_generation_execution_only"
+        ),
+        authorized_next_work=(
+            "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+            "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
+            "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
+            "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
+            "failure_remediation_fixed_dp_candidate_generation_zero_overlap_validation_only"
+        ),
+    )
+
+    assert report["final_decision"]["status"] == READY_STATUS
+    assert report["final_decision"]["failed_checks"] == []
 
 
 def test_runner_rejects_wrong_audit_target(tmp_path: Path) -> None:

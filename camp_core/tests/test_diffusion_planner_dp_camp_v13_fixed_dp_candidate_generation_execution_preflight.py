@@ -63,6 +63,33 @@ def _static_review(path: Path) -> Path:
     return _write_json(path, {"schema_version": "source_static_review_v1"})
 
 
+def _input_contract(path: Path) -> Path:
+    valid_set_list = _write_json(path.parent / "valid_set_list.json", {"files": ["/tmp/source.npz"]})
+    checkpoint = _write(path.parent / "diffusion_planner.pth", "checkpoint")
+    args_json = _write_json(path.parent / "diffusion_planner.args.json", {"model": "fixed_dp"})
+    payload = {
+        "schema_version": "dp_camp_v13_fixed_dp_candidate_generation_execution_inputs_materialization_v1",
+        "input_contract": {
+            "valid_set_list": str(valid_set_list),
+            "valid_set_files": ["/tmp/source.npz"],
+            "fixed_dp_checkpoint": str(checkpoint),
+            "fixed_dp_args_json": str(args_json),
+            "closed_loop_outcome_read": False,
+            "dp_modification": False,
+            "required_zero_overlap_keys": list(ZERO_OVERLAP_KEYS),
+        },
+        "final_decision": {
+            "status": "dp_camp_v13_fixed_dp_candidate_generation_execution_inputs_materialized",
+            "passed": True,
+            "failed_checks": [],
+            "fixed_dp_candidate_generation_executed": False,
+            "candidate_generation_by_camp_authorized": False,
+            "dp_modification_authorized": False,
+        },
+    }
+    return _write_json(path, payload)
+
+
 def _runner_implementation(
     path: Path,
     static_review: Path,
@@ -215,6 +242,7 @@ def _report(
     hard_reject_execute: bool = False,
 ) -> dict[str, Any]:
     static_review = _static_review(tmp_path / "runner" / "static_review.json")
+    input_contract = _input_contract(tmp_path / "inputs" / "input_contract.json")
     runner_json = _runner_implementation(tmp_path / "runner" / "runner.json", static_review)
     post_review = _post_review(tmp_path / "post_review.json", runner_json)
     camp_repo, dp_repo = _repos(
@@ -224,6 +252,7 @@ def _report(
     )
     return build_report(
         post_review_json=post_review,
+        input_contract_json=input_contract,
         v13_audit_md=_audit(tmp_path / "audit.md"),
         candidate_output_dir=tmp_path / "candidate_output",
         current_camp_head=CAMP_HEAD,
@@ -238,6 +267,7 @@ def _report(
 def test_execution_preflight_disabled_has_no_next_work(tmp_path: Path) -> None:
     report = build_report(
         post_review_json=tmp_path / "missing.json",
+        input_contract_json=tmp_path / "missing_input_contract.json",
         v13_audit_md=tmp_path / "missing.md",
         candidate_output_dir=tmp_path / "candidate_output",
         current_camp_head=CAMP_HEAD,
@@ -280,11 +310,11 @@ def test_execution_preflight_authorizes_fixed_dp_execution_only(tmp_path: Path) 
         "--standalone",
         "diffusion_planner/valid_predictor.py",
         "--valid_set_list",
-        "/tmp/valid_set_list.txt",
+        str(tmp_path / "inputs" / "valid_set_list.json"),
         "--resume_model_path",
-        "/tmp/best_model.pth",
+        str(tmp_path / "inputs" / "diffusion_planner.pth"),
         "--args_json_path",
-        "/tmp/args.json",
+        str(tmp_path / "inputs" / "diffusion_planner.args.json"),
     ]
     assert preflight["base_dp_command_entrypoint_exists"] is True
     command = preflight["planned_command"]
@@ -325,12 +355,14 @@ def test_execution_preflight_rejects_runner_that_still_hard_rejects_execute(tmp_
 
 def test_execution_preflight_rejects_wrong_audit_target(tmp_path: Path) -> None:
     static_review = _static_review(tmp_path / "runner" / "static_review.json")
+    input_contract = _input_contract(tmp_path / "inputs" / "input_contract.json")
     runner_json = _runner_implementation(tmp_path / "runner" / "runner.json", static_review)
     post_review = _post_review(tmp_path / "post_review.json", runner_json)
     camp_repo, dp_repo = _repos(tmp_path)
 
     report = build_report(
         post_review_json=post_review,
+        input_contract_json=input_contract,
         v13_audit_md=_audit(tmp_path / "audit.md", target="old_gate"),
         candidate_output_dir=tmp_path / "candidate_output",
         current_camp_head=CAMP_HEAD,
@@ -351,12 +383,14 @@ def test_execution_preflight_rejects_source_execution_leak(tmp_path: Path) -> No
         payload["final_decision"]["fixed_dp_candidate_generation_execution_authorized_next"] = True
 
     static_review = _static_review(tmp_path / "runner" / "static_review.json")
+    input_contract = _input_contract(tmp_path / "inputs" / "input_contract.json")
     runner_json = _runner_implementation(tmp_path / "runner" / "runner.json", static_review)
     post_review = _post_review(tmp_path / "post_review.json", runner_json, mutation=leak)
     camp_repo, dp_repo = _repos(tmp_path)
 
     report = build_report(
         post_review_json=post_review,
+        input_contract_json=input_contract,
         v13_audit_md=_audit(tmp_path / "audit.md"),
         candidate_output_dir=tmp_path / "candidate_output",
         current_camp_head=CAMP_HEAD,
@@ -375,6 +409,7 @@ def test_execution_preflight_rejects_source_execution_leak(tmp_path: Path) -> No
 
 def test_execution_preflight_main_writes_reports_and_runbook(tmp_path: Path) -> None:
     static_review = _static_review(tmp_path / "runner" / "static_review.json")
+    input_contract = _input_contract(tmp_path / "inputs" / "input_contract.json")
     runner_json = _runner_implementation(tmp_path / "runner" / "runner.json", static_review)
     post_review = _post_review(tmp_path / "post_review.json", runner_json)
     camp_repo, dp_repo = _repos(tmp_path)
@@ -386,6 +421,8 @@ def test_execution_preflight_main_writes_reports_and_runbook(tmp_path: Path) -> 
         [
             "--post_review_json",
             str(post_review),
+            "--input_contract_json",
+            str(input_contract),
             "--v13_audit_md",
             str(_audit(tmp_path / "audit.md")),
             "--candidate_output_dir",
