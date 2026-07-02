@@ -23,6 +23,14 @@ SCHEMA_VERSION = "dp_camp_v13_fixed_dp_candidate_generation_execution_inputs_mat
 READY_STATUS = "dp_camp_v13_fixed_dp_candidate_generation_execution_inputs_materialized"
 REJECT_STATUS = "dp_camp_v13_fixed_dp_candidate_generation_execution_inputs_rejected"
 APPROVED_SOURCE_KIND = "fresh_nonformal_fixed_dp_npz"
+APPROVED_SOURCE_REMEDIATION_NEXT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+    "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
+    "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
+    "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
+    "failure_remediation_fixed_dp_candidate_generation_execution_approved_"
+    "source_manifest_remediation_only"
+)
 ZERO_OVERLAP_KEYS = (
     "candidate_tensor_hash",
     "path_signature",
@@ -43,7 +51,7 @@ FORBIDDEN_SOURCE_PATTERNS = (
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source_npz", action="append", type=Path, required=True)
+    parser.add_argument("--source_npz", action="append", type=Path, default=[])
     parser.add_argument("--approved_source_manifest_json", type=Path)
     parser.add_argument("--source_manifest_root", required=True)
     parser.add_argument("--fixed_dp_checkpoint", type=Path, required=True)
@@ -211,6 +219,8 @@ def _decision(*, passed: bool, failed: list[str]) -> dict[str, Any]:
         "status": READY_STATUS if passed else REJECT_STATUS,
         "passed": passed,
         "failed_checks": failed,
+        "failure_class": None if passed else _failure_class(failed),
+        "recommended_next_work": None if passed else APPROVED_SOURCE_REMEDIATION_NEXT_WORK,
         "fixed_dp_candidate_generation_execution_inputs_materialized": passed,
         "fixed_dp_candidate_generation_executed": False,
         "fixed_dp_candidate_generation_authorized_next": False,
@@ -232,6 +242,21 @@ def _decision(*, passed: bool, failed: list[str]) -> dict[str, Any]:
         "candidate_operation": "fixed DP candidate reranking only",
         "score_expression": SCORE_EXPRESSION,
     }
+
+
+def _failure_class(failed: list[str]) -> str:
+    if any(
+        check == "source_npz_nonempty"
+        or check.startswith("source_npz_manifest_approved")
+        or check.startswith("approved_source_manifest")
+        for check in failed
+    ):
+        return "missing_approved_fixed_dp_source_npz_manifest"
+    if any(check.startswith("fixed_dp_") for check in failed):
+        return "missing_fixed_dp_asset"
+    if any(check.endswith("_dp_head_fixed") for check in failed):
+        return "fixed_dp_head_mismatch"
+    return "fixed_dp_execution_input_materialization_contract_failure"
 
 
 def render_markdown(report: dict[str, Any]) -> str:
