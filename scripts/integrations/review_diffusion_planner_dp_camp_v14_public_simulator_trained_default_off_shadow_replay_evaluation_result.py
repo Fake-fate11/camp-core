@@ -45,6 +45,12 @@ AUTHORIZED_NEXT_WORK = (
     "shadow_replay_evaluation_promotion_decision_plan_only_after_explicit_"
     "user_authorization"
 )
+EXECUTION_CAMP_HEAD_AUDIT_KEY = (
+    "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_camp_head"
+)
+EXECUTION_CAMP_ORIGIN_AUDIT_KEY = (
+    "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_camp_origin_main"
+)
 READY_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_"
     "shadow_replay_evaluation_result_review_passed"
@@ -564,8 +570,17 @@ def _checks(
         _expect("current_dp_head_fixed", current_dp_head, required_dp_head),
         _expect("artifact_dp_head_fixed", heads.get("DP_HEAD"), required_dp_head),
         _expect("current_camp_head_matches_origin", current_camp_head, current_camp_origin_main),
-        _expect("artifact_camp_head_matches_current", heads.get("CAMP_HEAD"), current_camp_head),
-        _expect("artifact_camp_origin_matches_current", heads.get("CAMP_ORIGIN_MAIN"), current_camp_origin_main),
+        _expect(
+            "artifact_camp_head_matches_audit_execution_head",
+            heads.get("CAMP_HEAD"),
+            _latest_value(v14_text, EXECUTION_CAMP_HEAD_AUDIT_KEY) or current_camp_head,
+        ),
+        _expect(
+            "artifact_camp_origin_matches_audit_execution_origin",
+            heads.get("CAMP_ORIGIN_MAIN"),
+            _latest_value(v14_text, EXECUTION_CAMP_ORIGIN_AUDIT_KEY)
+            or current_camp_origin_main,
+        ),
         _expect(
             "audit_latest_status",
             _latest_value(v14_text, "current_v14_status"),

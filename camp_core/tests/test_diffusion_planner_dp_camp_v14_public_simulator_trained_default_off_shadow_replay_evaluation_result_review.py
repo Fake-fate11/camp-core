@@ -18,6 +18,7 @@ SCRIPT_PATH = (
     / "review_diffusion_planner_dp_camp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_result.py"
 )
 CAMP_HEAD = "11515f4d63628b6e7c1a4c2cd00650a8d9e71c5f"
+ARTIFACT_CAMP_HEAD = "72fdb3e4c880751948a47d25b0330e3818975162"
 
 
 def _load_module():
@@ -82,8 +83,8 @@ def _fixture(tmp_path: Path, module, *, wrong_eof: bool = False, selection_effec
         artifact / "HEADS",
         "\n".join(
             [
-                f"CAMP_HEAD={CAMP_HEAD}",
-                f"CAMP_ORIGIN_MAIN={CAMP_HEAD}",
+                f"CAMP_HEAD={ARTIFACT_CAMP_HEAD}",
+                f"CAMP_ORIGIN_MAIN={ARTIFACT_CAMP_HEAD}",
                 f"DP_HEAD={module.FIXED_DP_HEAD}",
                 "",
             ]
@@ -118,6 +119,8 @@ def _fixture(tmp_path: Path, module, *, wrong_eof: bool = False, selection_effec
             [
                 f"current_v14_status={module.EXPECTED_CURRENT_STATUS}",
                 f"next_work_target={next_work}",
+                f"{module.EXECUTION_CAMP_HEAD_AUDIT_KEY}={ARTIFACT_CAMP_HEAD}",
+                f"{module.EXECUTION_CAMP_ORIGIN_AUDIT_KEY}={ARTIFACT_CAMP_HEAD}",
                 "",
             ]
         ),
