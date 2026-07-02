@@ -8,18 +8,19 @@ from scripts.integrations.preflight_diffusion_planner_dp_camp_v13_fixed_dp_candi
     AUDIT_FALSE_FLAGS,
     AUTHORIZED_CURRENT_WORK,
     AUTHORIZED_NEXT_WORK,
-    BUILDER_READY_STATUS,
-    BUILDER_SCHEMA_VERSION,
     DISABLED_STATUS,
     FIXED_DP_HEAD,
     GUARD_ENV_VAR,
-    MANIFEST_SCHEMA_VERSION,
     READY_STATUS,
     REJECT_STATUS,
     REMEDIATION_NEXT_WORK,
+    RUNNER_READY_STATUS,
+    RUNNER_SCHEMA_VERSION,
+    RUNNER_SCRIPT,
     SCHEMA_VERSION,
     SOURCE_READY_STATUS,
     SOURCE_SCHEMA_VERSION,
+    ZERO_OVERLAP_KEYS,
     build_report,
     main,
 )
@@ -41,82 +42,85 @@ def _write_json(path: Path, payload: dict[str, Any]) -> Path:
     return path
 
 
-def _builder_artifact(
-    root: Path,
+def _runner_script(camp_repo: Path, *, hard_reject_execute: bool = False) -> Path:
+    text = "\n".join(
+        [
+            "def execute_fixed_dp_command(command, dp_repo):",
+            "    return None",
+            (
+                "runner_is_default_off_for_this_gate = True"
+                if hard_reject_execute
+                else "fixed_dp_candidate_generation_execution_gate_supported = True"
+            ),
+            "",
+        ]
+    )
+    return _write(camp_repo / RUNNER_SCRIPT, text)
+
+
+def _static_review(path: Path) -> Path:
+    return _write_json(path, {"schema_version": "source_static_review_v1"})
+
+
+def _runner_implementation(
+    path: Path,
+    static_review: Path,
     *,
-    dp_entrypoint: str = "tools/camp_fixed_candidate_generation.py",
     mutation: Any | None = None,
 ) -> Path:
-    generated = root / "generated"
-    manifest = generated / "fixed_dp_candidate_generation_manifest.json"
-    runbook = generated / "run_fixed_dp_candidate_generation.sh"
-    _write_json(
-        manifest,
-        {
-            "schema_version": MANIFEST_SCHEMA_VERSION,
-            "candidate_generation_by_camp": False,
-            "dp_entrypoint": dp_entrypoint,
-            "dp_modification": False,
-            "fixed_dp_candidate_generation_executed": False,
-            "required_dp_head": FIXED_DP_HEAD,
-            "required_zero_overlap_keys": [
-                "candidate_tensor_hash",
-                "path_signature",
-                "record_identity",
-                "split_manifest_root",
-            ],
-            "target_candidates_per_member": 8,
-            "target_min_candidate_members": 1024,
-        },
-    )
-    _write(
-        runbook,
-        "\n".join(
-            [
-                f"if [ \"${{{GUARD_ENV_VAR}:-}}\" != \"1\" ]; then",
-                "  exit 40",
-                "fi",
-                "echo 'DP HEAD mismatch' >&2",
-                "--forbid_formal_seeds 11 12 13",
-                "--write_zero_overlap_registries",
-                "",
-            ]
-        ),
-    )
-    decision = {
-        "status": BUILDER_READY_STATUS,
-        "passed": True,
-        "failed_checks": [],
-        "fixed_dp_candidate_generation_executed": False,
-    }
+    planned_command = [
+        "python",
+        "planner_generate.py",
+        "--output_dir",
+        str(path.parent / "candidate_output_not_created"),
+        "--fixed_dp_head",
+        FIXED_DP_HEAD,
+        "--candidate_operation",
+        "fixed DP candidate reranking only",
+        "--score_expression",
+        SCORE_EXPRESSION,
+        "--forbid_full36",
+        "--forbid_formal_seeds",
+        "11",
+        "12",
+        "13",
+        "--write_zero_overlap_registries",
+    ]
     payload = {
-        "schema_version": BUILDER_SCHEMA_VERSION,
-        "generation_builder": {
-            "manifest_written": True,
-            "required_zero_overlap_keys": [
-                "candidate_tensor_hash",
-                "path_signature",
-                "record_identity",
-                "split_manifest_root",
-            ],
-            "runbook_guard_env_var": GUARD_ENV_VAR,
+        "schema_version": RUNNER_SCHEMA_VERSION,
+        "source_static_review": {
+            "path": str(static_review),
+            "schema_version": "source_static_review_v1",
+            "status": "passed",
+            "passed": True,
         },
-        "final_decision": decision,
+        "runner_contract": {
+            "runner_script": RUNNER_SCRIPT,
+            "guard_env_var": GUARD_ENV_VAR,
+            "planned_command": planned_command,
+            "required_zero_overlap_keys": list(ZERO_OVERLAP_KEYS),
+            "fixed_dp_candidate_generation_executed": False,
+            "candidate_generation_by_camp": False,
+            "dp_modification": False,
+        },
+        "final_decision": {
+            "status": RUNNER_READY_STATUS,
+            "passed": True,
+            "failed_checks": [],
+        },
     }
     if mutation is not None:
-        mutation(payload, manifest, runbook)
-    return _write_json(root / "builder.json", payload)
+        mutation(payload)
+    return _write_json(path, payload)
 
 
-def _post_review(path: Path, builder_json: Path, *, mutation: Any | None = None) -> Path:
-    manifest = builder_json.parent / "generated" / "fixed_dp_candidate_generation_manifest.json"
-    runbook = builder_json.parent / "generated" / "run_fixed_dp_candidate_generation.sh"
-    decision = {
+def _source_decision() -> dict[str, Any]:
+    return {
         "status": SOURCE_READY_STATUS,
         "passed": True,
         "failed_checks": [],
         "authorized_next_work": AUTHORIZED_CURRENT_WORK,
-        "fixed_dp_candidate_generation_post_implementation_static_contract_review_passed": True,
+        "entrypoint_contract_remediation_post_implementation_static_contract_review_passed": True,
         "fixed_dp_candidate_generation_execution_preflight_authorized_next": True,
         "fixed_dp_candidate_generation_authorized_next": False,
         "fixed_dp_candidate_generation_execution_authorized_next": False,
@@ -142,13 +146,26 @@ def _post_review(path: Path, builder_json: Path, *, mutation: Any | None = None)
         "candidate_operation": "fixed DP candidate reranking only",
         "score_expression": SCORE_EXPRESSION,
     }
+
+
+def _post_review(path: Path, runner_json: Path, *, mutation: Any | None = None) -> Path:
+    decision = _source_decision()
     payload = {
         "schema_version": SOURCE_SCHEMA_VERSION,
-        "artifact_summary": {
-            "builder_artifact_dir": str(builder_json.parent),
-            "builder_json": str(builder_json),
-            "manifest_path": str(manifest),
-            "runbook_path": str(runbook),
+        "source_runner_implementation": {
+            "path": str(runner_json),
+            "artifact_dir": str(runner_json.parent),
+            "schema_version": RUNNER_SCHEMA_VERSION,
+            "status": RUNNER_READY_STATUS,
+            "passed": True,
+        },
+        "runner_contract_review": {
+            "runner_script": RUNNER_SCRIPT,
+            "guard_env_var": GUARD_ENV_VAR,
+            "required_zero_overlap_keys": list(ZERO_OVERLAP_KEYS),
+            "fixed_dp_candidate_generation_executed": False,
+            "candidate_generation_by_camp": False,
+            "dp_modification": False,
         },
         "final_decision": decision,
     }
@@ -159,7 +176,8 @@ def _post_review(path: Path, builder_json: Path, *, mutation: Any | None = None)
 
 def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
     lines = [
-        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_executed_index_contract_failure_remediation_fixed_dp_candidate_generation_post_implementation_static_contract_review_passed",
+        "current_v13_status=static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_split_evaluation_executed_index_contract_failure_remediation_fixed_dp_candidate_generation_entrypoint_contract_remediation_post_implementation_static_contract_review_passed",
+        "entrypoint_contract_remediation_post_implementation_static_contract_review_passed=True",
         "fixed_dp_candidate_generation_execution_preflight_authorized_next=True",
     ]
     for flag in AUDIT_FALSE_FLAGS:
@@ -168,20 +186,36 @@ def _audit(path: Path, *, target: str = AUTHORIZED_CURRENT_WORK) -> Path:
     return _write(path, "\n".join(lines))
 
 
-def _repos(tmp_path: Path, *, entrypoint: bool = True) -> tuple[Path, Path]:
+def _repos(
+    tmp_path: Path,
+    *,
+    command_entrypoint: bool = True,
+    hard_reject_execute: bool = False,
+) -> tuple[Path, Path]:
     camp_repo = tmp_path / "camp_core"
     dp_repo = tmp_path / "Diffusion-Planner"
     camp_repo.mkdir()
     dp_repo.mkdir()
-    if entrypoint:
-        _write(dp_repo / "tools" / "camp_fixed_candidate_generation.py", "print('fixed dp')\n")
+    _runner_script(camp_repo, hard_reject_execute=hard_reject_execute)
+    if command_entrypoint:
+        _write(dp_repo / "planner_generate.py", "print('fixed dp candidate export')\n")
     return camp_repo, dp_repo
 
 
-def _report(tmp_path: Path, *, entrypoint: bool = True) -> dict[str, Any]:
-    builder_json = _builder_artifact(tmp_path / "builder")
-    post_review = _post_review(tmp_path / "post_review.json", builder_json)
-    camp_repo, dp_repo = _repos(tmp_path, entrypoint=entrypoint)
+def _report(
+    tmp_path: Path,
+    *,
+    command_entrypoint: bool = True,
+    hard_reject_execute: bool = False,
+) -> dict[str, Any]:
+    static_review = _static_review(tmp_path / "runner" / "static_review.json")
+    runner_json = _runner_implementation(tmp_path / "runner" / "runner.json", static_review)
+    post_review = _post_review(tmp_path / "post_review.json", runner_json)
+    camp_repo, dp_repo = _repos(
+        tmp_path,
+        command_entrypoint=command_entrypoint,
+        hard_reject_execute=hard_reject_execute,
+    )
     return build_report(
         post_review_json=post_review,
         v13_audit_md=_audit(tmp_path / "audit.md"),
@@ -229,30 +263,48 @@ def test_execution_preflight_authorizes_fixed_dp_execution_only(tmp_path: Path) 
     assert decision["training_preflight_authorized_next"] is False
     assert decision["training_execution_authorized_next"] is False
     assert decision["dp_modification_authorized"] is False
+    assert preflight["base_dp_command"] == ["python", "planner_generate.py"]
+    assert preflight["base_dp_command_entrypoint_exists"] is True
     command = preflight["planned_command"]
     assert GUARD_ENV_VAR in " ".join(command)
-    assert "--forbid_full36" in command
-    assert "--forbid_formal_seeds" in command
-    assert "--write_zero_overlap_registries" in command
-    assert "fixed DP candidate reranking only" in command
-    assert SCORE_EXPRESSION in command
+    assert RUNNER_SCRIPT in " ".join(command)
+    assert "--execute" in command
+    assert "--dp_command" in command
+    assert FIXED_DP_HEAD in command
+    source_command = preflight["source_runner_planned_command"]
+    assert "--forbid_full36" in source_command
+    assert "--forbid_formal_seeds" in source_command
+    assert "--write_zero_overlap_registries" in source_command
+    assert "fixed DP candidate reranking only" in source_command
+    assert SCORE_EXPRESSION in source_command
 
 
-def test_execution_preflight_rejects_missing_dp_entrypoint(tmp_path: Path) -> None:
-    report = _report(tmp_path, entrypoint=False)
+def test_execution_preflight_rejects_missing_dp_command_entrypoint(tmp_path: Path) -> None:
+    report = _report(tmp_path, command_entrypoint=False)
     decision = report["final_decision"]
 
     assert decision["status"] == REJECT_STATUS
-    assert "dp_entrypoint_exists" in decision["failed_checks"]
+    assert "base_dp_command_entrypoint_exists" in decision["failed_checks"]
     assert decision["authorized_next_work"] is None
     assert decision["recommended_next_work"] == REMEDIATION_NEXT_WORK
-    assert decision["failure_class"] == "missing_fixed_dp_candidate_generation_entrypoint"
+    assert decision["failure_class"] == "missing_fixed_dp_candidate_generation_command"
+    assert decision["fixed_dp_candidate_generation_execution_authorized_next"] is False
+
+
+def test_execution_preflight_rejects_runner_that_still_hard_rejects_execute(tmp_path: Path) -> None:
+    report = _report(tmp_path, hard_reject_execute=True)
+    decision = report["final_decision"]
+
+    assert decision["status"] == REJECT_STATUS
+    assert "runner_script_does_not_hard_reject_execute" in decision["failed_checks"]
+    assert decision["failure_class"] == "runner_execution_contract_not_authorized"
     assert decision["fixed_dp_candidate_generation_execution_authorized_next"] is False
 
 
 def test_execution_preflight_rejects_wrong_audit_target(tmp_path: Path) -> None:
-    builder_json = _builder_artifact(tmp_path / "builder")
-    post_review = _post_review(tmp_path / "post_review.json", builder_json)
+    static_review = _static_review(tmp_path / "runner" / "static_review.json")
+    runner_json = _runner_implementation(tmp_path / "runner" / "runner.json", static_review)
+    post_review = _post_review(tmp_path / "post_review.json", runner_json)
     camp_repo, dp_repo = _repos(tmp_path)
 
     report = build_report(
@@ -276,8 +328,9 @@ def test_execution_preflight_rejects_source_execution_leak(tmp_path: Path) -> No
     def leak(payload: dict[str, Any]) -> None:
         payload["final_decision"]["fixed_dp_candidate_generation_execution_authorized_next"] = True
 
-    builder_json = _builder_artifact(tmp_path / "builder")
-    post_review = _post_review(tmp_path / "post_review.json", builder_json, mutation=leak)
+    static_review = _static_review(tmp_path / "runner" / "static_review.json")
+    runner_json = _runner_implementation(tmp_path / "runner" / "runner.json", static_review)
+    post_review = _post_review(tmp_path / "post_review.json", runner_json, mutation=leak)
     camp_repo, dp_repo = _repos(tmp_path)
 
     report = build_report(
@@ -299,8 +352,9 @@ def test_execution_preflight_rejects_source_execution_leak(tmp_path: Path) -> No
 
 
 def test_execution_preflight_main_writes_reports_and_runbook(tmp_path: Path) -> None:
-    builder_json = _builder_artifact(tmp_path / "builder")
-    post_review = _post_review(tmp_path / "post_review.json", builder_json)
+    static_review = _static_review(tmp_path / "runner" / "static_review.json")
+    runner_json = _runner_implementation(tmp_path / "runner" / "runner.json", static_review)
+    post_review = _post_review(tmp_path / "post_review.json", runner_json)
     camp_repo, dp_repo = _repos(tmp_path)
     output_json = tmp_path / "report.json"
     output_md = tmp_path / "report.md"
@@ -341,3 +395,4 @@ def test_execution_preflight_main_writes_reports_and_runbook(tmp_path: Path) -> 
     assert GUARD_ENV_VAR in runbook
     assert "DP HEAD mismatch" in runbook
     assert "Candidate output dir already exists" in runbook
+    assert "--dp_command" in runbook

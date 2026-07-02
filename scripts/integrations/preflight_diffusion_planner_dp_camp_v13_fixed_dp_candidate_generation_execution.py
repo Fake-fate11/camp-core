@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Execution preflight for v13 fixed-DP candidate generation.
 
-This gate validates the prior fixed-DP candidate-generation builder and
-post-implementation review artifacts, then emits an execution runbook for a
-future gate. It does not run Diffusion Planner, generate candidates, train
-CAMP, modify DP, promote, deploy, or make safety/CAMP-over-DP claims.
+This gate validates the already-reviewed CAMP-owned fixed-DP runner and emits
+an execution runbook for a future gate. It does not run Diffusion Planner,
+generate candidates, train CAMP, modify DP, promote, deploy, or make
+safety/CAMP-over-DP claims.
 """
 
 from __future__ import annotations
@@ -20,15 +20,25 @@ from typing import Any
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 SCORE_EXPRESSION = "score_k(w)=a_k^T w"
 GUARD_ENV_VAR = "DP_CAMP_V13_FIXED_DP_CANDIDATE_GENERATION_EXECUTE"
+RUNNER_SCRIPT = (
+    "scripts/integrations/run_diffusion_planner_dp_camp_v13_fixed_candidate_generation.py"
+)
 SOURCE_SCHEMA_VERSION = (
-    "dp_camp_v13_fixed_dp_candidate_generation_post_implementation_static_contract_review_v1"
+    "dp_camp_v13_fixed_dp_candidate_generation_entrypoint_contract_remediation_"
+    "post_implementation_static_contract_review_v1"
 )
 SOURCE_READY_STATUS = (
-    "dp_camp_v13_fixed_dp_candidate_generation_post_implementation_static_contract_review_passed"
+    "dp_camp_v13_fixed_dp_candidate_generation_entrypoint_contract_remediation_"
+    "post_implementation_static_contract_review_passed"
 )
-BUILDER_SCHEMA_VERSION = "dp_camp_v13_fixed_dp_candidate_generation_builder_v1"
-BUILDER_READY_STATUS = "dp_camp_v13_fixed_dp_candidate_generation_builder_complete"
-MANIFEST_SCHEMA_VERSION = "dp_camp_v13_fixed_dp_candidate_generation_manifest_v1"
+RUNNER_SCHEMA_VERSION = (
+    "dp_camp_v13_fixed_dp_candidate_generation_entrypoint_contract_remediation_"
+    "runner_implementation_v1"
+)
+RUNNER_READY_STATUS = (
+    "dp_camp_v13_fixed_dp_candidate_generation_entrypoint_contract_remediation_"
+    "runner_implementation_ready"
+)
 SCHEMA_VERSION = "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_v1"
 READY_STATUS = "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_ready"
 REJECT_STATUS = "dp_camp_v13_fixed_dp_candidate_generation_execution_preflight_rejected"
@@ -37,7 +47,8 @@ LATEST_AUDIT_STATUS = (
     "static_dp_reward_eval_plus_prior_nonoverlap_remediation_training_artifact_"
     "shadow_replay_evaluation_nonoverlap_failure_remediation_fresh_evaluation_"
     "split_evaluation_executed_index_contract_failure_remediation_fixed_dp_"
-    "candidate_generation_post_implementation_static_contract_review_passed"
+    "candidate_generation_entrypoint_contract_remediation_post_implementation_"
+    "static_contract_review_passed"
 )
 AUTHORIZED_CURRENT_WORK = (
     "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
@@ -59,10 +70,8 @@ REMEDIATION_NEXT_WORK = (
     "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
     "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
     "failure_remediation_fixed_dp_candidate_generation_execution_preflight_"
-    "entrypoint_contract_remediation_plan_only"
+    "runner_contract_remediation_plan_only"
 )
-TARGET_MIN_CANDIDATE_MEMBERS = 1024
-TARGET_CANDIDATES_PER_MEMBER = 8
 ZERO_OVERLAP_KEYS = (
     "candidate_tensor_hash",
     "path_signature",
@@ -124,12 +133,14 @@ AUDIT_FALSE_FLAGS = (
     "camp_over_dp_top1_claim_authorized",
 )
 FORBIDDEN_COMMAND_SNIPPETS = (
-    "--candidate_reference_blend_steps",
-    "--candidate_guidance_config",
-    "--candidate_guidance_scale",
-    "--camp_traffic_light_hybrid_postselection",
-    "--camp_underprogress_relaxation",
-    "--camp_splice_shadow_rule",
+    "reference_blend",
+    "guidance",
+    "postprocess",
+    "postselection",
+    "splice",
+    "repair",
+    "rewrite",
+    "closed_loop",
 )
 
 
@@ -199,41 +210,49 @@ def build_report(
 ) -> dict[str, Any]:
     post_review = _load_json_if_exists(post_review_json)
     source_decision = _dict(post_review.get("final_decision"))
-    source_summary = _dict(post_review.get("artifact_summary"))
-    builder_json = Path(str(source_summary.get("builder_json", "")))
-    builder_artifact_dir = Path(str(source_summary.get("builder_artifact_dir", "")))
-    manifest_path = Path(str(source_summary.get("manifest_path", "")))
-    builder_runbook_path = Path(str(source_summary.get("runbook_path", "")))
-    builder = _load_json_if_exists(builder_json)
-    builder_decision = _dict(builder.get("final_decision"))
-    generation_builder = _dict(builder.get("generation_builder"))
-    manifest = _load_json_if_exists(manifest_path)
-    builder_runbook = _read_text_if_exists(builder_runbook_path)
-    audit_text = _read_text_if_exists(v13_audit_md)
-    dp_entrypoint = str(manifest.get("dp_entrypoint", ""))
-    dp_entrypoint_path = _entrypoint_path(dp_repo, dp_entrypoint)
+    source_runner_summary = _dict(post_review.get("source_runner_implementation"))
+    runner_implementation_json = _path_or_missing(source_runner_summary.get("path"))
+    runner_artifact_dir = _path_or_missing(source_runner_summary.get("artifact_dir"))
+    runner_implementation = _load_json_if_exists(runner_implementation_json)
+    runner_decision = _dict(runner_implementation.get("final_decision"))
+    runner_contract = _dict(runner_implementation.get("runner_contract"))
+    source_static_review = _dict(runner_implementation.get("source_static_review"))
+    source_static_review_json = _path_or_missing(source_static_review.get("path"))
+    runner_script = str(runner_contract.get("runner_script") or RUNNER_SCRIPT)
+    runner_script_path = _repo_path(camp_repo, runner_script)
+    runner_script_text = _read_text_if_exists(runner_script_path)
+    source_runner_planned_command = [str(part) for part in _list(runner_contract.get("planned_command"))]
+    base_dp_command = _base_dp_command(source_runner_planned_command)
+    base_dp_command_entrypoint_path = _command_entrypoint_path(dp_repo, base_dp_command)
     candidate_output_dir = candidate_output_dir.resolve()
     planned_command = _planned_command(
+        camp_repo=camp_repo,
+        runner_script_path=runner_script_path,
+        source_static_review_json=source_static_review_json,
+        v13_audit_md=v13_audit_md,
         dp_repo=dp_repo,
-        dp_entrypoint=dp_entrypoint,
         candidate_output_dir=candidate_output_dir,
-        target_min_candidate_members=int(manifest.get("target_min_candidate_members") or 0),
-        target_candidates_per_member=int(manifest.get("target_candidates_per_member") or 0),
+        current_camp_head=current_camp_head,
+        current_camp_origin_main=current_camp_origin_main,
+        current_dp_head=current_dp_head,
         required_dp_head=required_dp_head,
+        base_dp_command=base_dp_command,
     )
     if not enabled:
         return _base_report(
             enabled=enabled,
             post_review_json=post_review_json,
-            builder_json=builder_json,
-            builder_artifact_dir=builder_artifact_dir,
-            manifest_path=manifest_path,
-            builder_runbook_path=builder_runbook_path,
+            runner_implementation_json=runner_implementation_json,
+            runner_artifact_dir=runner_artifact_dir,
+            source_static_review_json=source_static_review_json,
             candidate_output_dir=candidate_output_dir,
             dp_repo=dp_repo,
             camp_repo=camp_repo,
-            dp_entrypoint=dp_entrypoint,
-            dp_entrypoint_path=dp_entrypoint_path,
+            runner_script=runner_script,
+            runner_script_path=runner_script_path,
+            source_runner_planned_command=source_runner_planned_command,
+            base_dp_command=base_dp_command,
+            base_dp_command_entrypoint_path=base_dp_command_entrypoint_path,
             planned_command=planned_command,
             current_camp_head=current_camp_head,
             current_camp_origin_main=current_camp_origin_main,
@@ -245,20 +264,21 @@ def build_report(
             authorized_next_work=authorized_next_work,
         )
 
+    audit_text = _read_text_if_exists(v13_audit_md)
     checks = _checks(
         post_review_json=post_review_json,
         v13_audit_md=v13_audit_md,
         post_review=post_review,
         source_decision=source_decision,
-        builder_json=builder_json,
-        builder_artifact_dir=builder_artifact_dir,
-        builder=builder,
-        builder_decision=builder_decision,
-        generation_builder=generation_builder,
-        manifest_path=manifest_path,
-        manifest=manifest,
-        builder_runbook_path=builder_runbook_path,
-        builder_runbook=builder_runbook,
+        source_runner_summary=source_runner_summary,
+        runner_implementation_json=runner_implementation_json,
+        runner_artifact_dir=runner_artifact_dir,
+        runner_implementation=runner_implementation,
+        runner_decision=runner_decision,
+        runner_contract=runner_contract,
+        source_static_review_json=source_static_review_json,
+        runner_script_path=runner_script_path,
+        runner_script_text=runner_script_text,
         audit_text=audit_text,
         current_camp_head=current_camp_head,
         current_camp_origin_main=current_camp_origin_main,
@@ -267,8 +287,9 @@ def build_report(
         candidate_output_dir=candidate_output_dir,
         dp_repo=dp_repo,
         camp_repo=camp_repo,
-        dp_entrypoint=dp_entrypoint,
-        dp_entrypoint_path=dp_entrypoint_path,
+        source_runner_planned_command=source_runner_planned_command,
+        base_dp_command=base_dp_command,
+        base_dp_command_entrypoint_path=base_dp_command_entrypoint_path,
         planned_command=planned_command,
         authorized_current_work=authorized_current_work,
     )
@@ -277,15 +298,17 @@ def build_report(
     return _base_report(
         enabled=enabled,
         post_review_json=post_review_json,
-        builder_json=builder_json,
-        builder_artifact_dir=builder_artifact_dir,
-        manifest_path=manifest_path,
-        builder_runbook_path=builder_runbook_path,
+        runner_implementation_json=runner_implementation_json,
+        runner_artifact_dir=runner_artifact_dir,
+        source_static_review_json=source_static_review_json,
         candidate_output_dir=candidate_output_dir,
         dp_repo=dp_repo,
         camp_repo=camp_repo,
-        dp_entrypoint=dp_entrypoint,
-        dp_entrypoint_path=dp_entrypoint_path,
+        runner_script=runner_script,
+        runner_script_path=runner_script_path,
+        source_runner_planned_command=source_runner_planned_command,
+        base_dp_command=base_dp_command,
+        base_dp_command_entrypoint_path=base_dp_command_entrypoint_path,
         planned_command=planned_command,
         current_camp_head=current_camp_head,
         current_camp_origin_main=current_camp_origin_main,
@@ -304,15 +327,15 @@ def _checks(
     v13_audit_md: Path,
     post_review: dict[str, Any],
     source_decision: dict[str, Any],
-    builder_json: Path,
-    builder_artifact_dir: Path,
-    builder: dict[str, Any],
-    builder_decision: dict[str, Any],
-    generation_builder: dict[str, Any],
-    manifest_path: Path,
-    manifest: dict[str, Any],
-    builder_runbook_path: Path,
-    builder_runbook: str,
+    source_runner_summary: dict[str, Any],
+    runner_implementation_json: Path,
+    runner_artifact_dir: Path,
+    runner_implementation: dict[str, Any],
+    runner_decision: dict[str, Any],
+    runner_contract: dict[str, Any],
+    source_static_review_json: Path,
+    runner_script_path: Path,
+    runner_script_text: str,
     audit_text: str,
     current_camp_head: str,
     current_camp_origin_main: str,
@@ -321,13 +344,21 @@ def _checks(
     candidate_output_dir: Path,
     dp_repo: Path,
     camp_repo: Path,
-    dp_entrypoint: str,
-    dp_entrypoint_path: Path,
+    source_runner_planned_command: list[str],
+    base_dp_command: list[str],
+    base_dp_command_entrypoint_path: Path | None,
     planned_command: list[str],
     authorized_current_work: str,
 ) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     add = checks.append
+    source_command_text = " ".join(source_runner_planned_command).lower()
+    planned_command_text = " ".join(planned_command).lower()
+    zero_keys = set(_list(runner_contract.get("required_zero_overlap_keys")))
+    base_entrypoint_exists = (
+        base_dp_command_entrypoint_path is not None and base_dp_command_entrypoint_path.is_file()
+    )
+
     add(_expect("post_review_json_exists", post_review_json.exists(), True))
     add(_expect("v13_audit_exists", v13_audit_md.exists(), True))
     add(_expect("source_schema_version", post_review.get("schema_version"), SOURCE_SCHEMA_VERSION))
@@ -336,42 +367,42 @@ def _checks(
     add(_expect("source_failed_checks_empty", source_decision.get("failed_checks"), []))
     add(_expect("source_authorized_next_work", source_decision.get("authorized_next_work"), authorized_current_work))
     add(_expect("source_preflight_authorized", source_decision.get("fixed_dp_candidate_generation_execution_preflight_authorized_next"), True))
-    add(_expect("source_post_review_passed", source_decision.get("fixed_dp_candidate_generation_post_implementation_static_contract_review_passed"), True))
+    add(
+        _expect(
+            "source_post_review_passed",
+            source_decision.get(
+                "entrypoint_contract_remediation_post_implementation_static_contract_review_passed"
+            ),
+            True,
+        )
+    )
     for flag in SOURCE_FALSE_FLAGS:
         add(_expect(f"source_forbids_{flag}", source_decision.get(flag), False))
     add(_expect("source_candidate_operation", source_decision.get("candidate_operation"), "fixed DP candidate reranking only"))
     add(_expect("source_score_expression", source_decision.get("score_expression"), SCORE_EXPRESSION))
-    add(_expect("builder_json_exists", builder_json.exists(), True))
-    add(_expect("builder_artifact_dir_exists", builder_artifact_dir.exists(), True))
-    add(_expect("builder_schema_version", builder.get("schema_version"), BUILDER_SCHEMA_VERSION))
-    add(_expect("builder_status", builder_decision.get("status"), BUILDER_READY_STATUS))
-    add(_expect("builder_passed", builder_decision.get("passed"), True))
-    add(_expect("builder_generation_not_executed", builder_decision.get("fixed_dp_candidate_generation_executed"), False))
-    add(_expect("builder_manifest_written", generation_builder.get("manifest_written"), True))
-    add(_expect("builder_guard_env_var", generation_builder.get("runbook_guard_env_var"), GUARD_ENV_VAR))
-    add(_expect("manifest_exists", manifest_path.exists(), True))
-    add(_expect("builder_runbook_exists", builder_runbook_path.exists(), True))
-    add(_expect("manifest_schema_version", manifest.get("schema_version"), MANIFEST_SCHEMA_VERSION))
-    add(_expect("manifest_fixed_dp_generation_not_executed", manifest.get("fixed_dp_candidate_generation_executed"), False))
-    add(_expect("manifest_candidate_generation_by_camp_false", manifest.get("candidate_generation_by_camp"), False))
-    add(_expect("manifest_dp_modification_false", manifest.get("dp_modification"), False))
-    add(_expect("manifest_required_dp_head", manifest.get("required_dp_head"), FIXED_DP_HEAD))
-    add(_expect("manifest_target_members_at_least_1000", int(manifest.get("target_min_candidate_members") or 0) >= TARGET_MIN_CANDIDATE_MEMBERS, True))
-    add(_expect("manifest_candidates_per_member", int(manifest.get("target_candidates_per_member") or 0), TARGET_CANDIDATES_PER_MEMBER))
-    manifest_zero_keys = set(_list(manifest.get("required_zero_overlap_keys")))
-    builder_zero_keys = set(_list(generation_builder.get("required_zero_overlap_keys")))
+
+    add(_expect("runner_implementation_json_exists", runner_implementation_json.exists(), True))
+    add(_expect("runner_artifact_dir_exists", runner_artifact_dir.exists(), True))
+    add(_expect("runner_summary_schema_version", source_runner_summary.get("schema_version"), RUNNER_SCHEMA_VERSION))
+    add(_expect("runner_summary_status", source_runner_summary.get("status"), RUNNER_READY_STATUS))
+    add(_expect("runner_summary_passed", source_runner_summary.get("passed"), True))
+    add(_expect("runner_schema_version", runner_implementation.get("schema_version"), RUNNER_SCHEMA_VERSION))
+    add(_expect("runner_status", runner_decision.get("status"), RUNNER_READY_STATUS))
+    add(_expect("runner_passed", runner_decision.get("passed"), True))
+    add(_expect("runner_failed_checks_empty", runner_decision.get("failed_checks"), []))
+    add(_expect("runner_source_static_review_exists", source_static_review_json.exists(), True))
+    add(_expect("runner_script_contract", runner_contract.get("runner_script"), RUNNER_SCRIPT))
+    add(_expect("runner_script_exists", runner_script_path.exists(), True))
+    add(_expect("runner_contract_guard_env", runner_contract.get("guard_env_var"), GUARD_ENV_VAR))
+    add(_expect("runner_contract_execution_false", runner_contract.get("fixed_dp_candidate_generation_executed"), False))
+    add(_expect("runner_contract_candidate_generation_by_camp_false", runner_contract.get("candidate_generation_by_camp"), False))
+    add(_expect("runner_contract_dp_modification_false", runner_contract.get("dp_modification"), False))
+    add(_expect("runner_script_does_not_hard_reject_execute", "runner_is_default_off_for_this_gate" in runner_script_text, False))
     for key in ZERO_OVERLAP_KEYS:
-        add(_expect(f"manifest_requires_zero_overlap_{key}", key in manifest_zero_keys, True))
-        add(_expect(f"builder_requires_zero_overlap_{key}", key in builder_zero_keys, True))
-    add(_expect("builder_runbook_guard_env_present", GUARD_ENV_VAR in builder_runbook, True))
-    add(_expect("builder_runbook_checks_dp_head", "DP HEAD mismatch" in builder_runbook, True))
-    add(_expect("builder_runbook_forbids_formal_seeds", "--forbid_formal_seeds 11 12 13" in builder_runbook, True))
-    add(_expect("builder_runbook_writes_zero_overlap_registries", "--write_zero_overlap_registries" in builder_runbook, True))
+        add(_expect(f"runner_contract_requires_zero_overlap_{key}", key in zero_keys, True))
+
     add(_expect("camp_repo_exists", camp_repo.is_dir(), True))
     add(_expect("dp_repo_exists", dp_repo.is_dir(), True))
-    add(_expect("dp_entrypoint_manifest_nonempty", bool(dp_entrypoint), True))
-    add(_expect("dp_entrypoint_manifest_relative", bool(dp_entrypoint) and not Path(dp_entrypoint).is_absolute(), True))
-    add(_expect("dp_entrypoint_exists", dp_entrypoint_path.is_file(), True))
     add(_expect("candidate_output_dir_absent", candidate_output_dir.exists(), False))
     add(_expect("camp_head_matches_origin", current_camp_head, current_camp_origin_main))
     add(_expect("current_dp_head_fixed", current_dp_head, required_dp_head))
@@ -381,16 +412,32 @@ def _checks(
     add(_expect("audit_authorizes_preflight", _latest_value(audit_text, "fixed_dp_candidate_generation_execution_preflight_authorized_next"), "True"))
     for flag in AUDIT_FALSE_FLAGS:
         add(_expect(f"audit_forbids_{flag}", _latest_value(audit_text, flag), "False"))
-    command_text = " ".join(planned_command)
-    add(_expect("planned_command_uses_guard", GUARD_ENV_VAR in command_text, True))
-    add(_expect("planned_command_uses_fixed_dp_entrypoint", str(dp_entrypoint_path) in command_text, True))
-    add(_expect("planned_command_forbids_full36", "--forbid_full36" in planned_command, True))
-    add(_expect("planned_command_forbids_formal_seeds", "--forbid_formal_seeds" in planned_command and "11" in planned_command and "12" in planned_command and "13" in planned_command, True))
-    add(_expect("planned_command_writes_zero_overlap_registries", "--write_zero_overlap_registries" in planned_command, True))
-    add(_expect("planned_command_candidate_operation", "fixed DP candidate reranking only" in planned_command, True))
-    add(_expect("planned_command_score_affine", SCORE_EXPRESSION in planned_command, True))
+
+    add(_expect("source_runner_command_has_output_dir", "--output_dir" in source_runner_planned_command, True))
+    add(_expect("source_runner_command_has_fixed_dp_head", FIXED_DP_HEAD in source_runner_planned_command, True))
+    add(_expect("source_runner_command_forbids_full36", "--forbid_full36" in source_runner_planned_command, True))
+    add(
+        _expect(
+            "source_runner_command_forbids_formal_seeds",
+            all(seed in source_runner_planned_command for seed in ("11", "12", "13")),
+            True,
+        )
+    )
+    add(_expect("source_runner_command_writes_zero_overlap_registries", "--write_zero_overlap_registries" in source_runner_planned_command, True))
+    add(_expect("source_runner_command_candidate_operation", "fixed DP candidate reranking only" in source_runner_planned_command, True))
+    add(_expect("source_runner_command_score_affine", SCORE_EXPRESSION in source_runner_planned_command, True))
+    add(_expect("base_dp_command_nonempty", bool(base_dp_command), True))
+    add(_expect("base_dp_command_entrypoint_exists", base_entrypoint_exists, True))
+
+    add(_expect("planned_command_uses_guard", GUARD_ENV_VAR.lower() in planned_command_text, True))
+    add(_expect("planned_command_uses_camp_runner", str(runner_script_path) in " ".join(planned_command), True))
+    add(_expect("planned_command_uses_source_static_review", str(source_static_review_json) in " ".join(planned_command), True))
+    add(_expect("planned_command_uses_execute", "--execute" in planned_command, True))
+    add(_expect("planned_command_delegates_dp_command", "--dp_command" in planned_command, True))
+    add(_expect("planned_command_has_required_dp_head", FIXED_DP_HEAD in planned_command, True))
     for snippet in FORBIDDEN_COMMAND_SNIPPETS:
-        add(_expect(f"planned_command_forbids_{_slug(snippet)}", snippet in command_text, False))
+        combined = f"{source_command_text} {planned_command_text}"
+        add(_expect(f"planned_command_forbids_{_slug(snippet)}", snippet in combined, False))
     return checks
 
 
@@ -398,15 +445,17 @@ def _base_report(
     *,
     enabled: bool,
     post_review_json: Path,
-    builder_json: Path,
-    builder_artifact_dir: Path,
-    manifest_path: Path,
-    builder_runbook_path: Path,
+    runner_implementation_json: Path,
+    runner_artifact_dir: Path,
+    source_static_review_json: Path,
     candidate_output_dir: Path,
     dp_repo: Path,
     camp_repo: Path,
-    dp_entrypoint: str,
-    dp_entrypoint_path: Path,
+    runner_script: str,
+    runner_script_path: Path,
+    source_runner_planned_command: list[str],
+    base_dp_command: list[str],
+    base_dp_command_entrypoint_path: Path | None,
     planned_command: list[str],
     current_camp_head: str,
     current_camp_origin_main: str,
@@ -452,24 +501,34 @@ def _base_report(
         "source_artifacts": {
             "post_review_json": str(post_review_json),
             "post_review_json_sha256": _sha256(post_review_json) if post_review_json.is_file() else None,
-            "builder_json": str(builder_json),
-            "builder_json_sha256": _sha256(builder_json) if builder_json.is_file() else None,
-            "builder_artifact_dir": str(builder_artifact_dir),
-            "manifest_path": str(manifest_path),
-            "manifest_sha256": _sha256(manifest_path) if manifest_path.is_file() else None,
-            "builder_runbook_path": str(builder_runbook_path),
-            "builder_runbook_sha256": _sha256(builder_runbook_path) if builder_runbook_path.is_file() else None,
+            "runner_implementation_json": str(runner_implementation_json),
+            "runner_implementation_json_sha256": _sha256(runner_implementation_json)
+            if runner_implementation_json.is_file()
+            else None,
+            "runner_artifact_dir": str(runner_artifact_dir),
+            "source_static_review_json": str(source_static_review_json),
+            "source_static_review_json_sha256": _sha256(source_static_review_json)
+            if source_static_review_json.is_file()
+            else None,
         },
         "execution_preflight": {
             "candidate_output_dir": str(candidate_output_dir),
             "candidate_output_dir_exists": candidate_output_dir.exists(),
             "dp_repo": str(dp_repo),
             "camp_repo": str(camp_repo),
-            "dp_entrypoint": dp_entrypoint,
-            "dp_entrypoint_path": str(dp_entrypoint_path),
-            "dp_entrypoint_exists": dp_entrypoint_path.is_file(),
+            "runner_script": runner_script,
+            "runner_script_path": str(runner_script_path),
+            "runner_script_exists": runner_script_path.exists(),
+            "base_dp_command": base_dp_command,
+            "base_dp_command_entrypoint_path": str(base_dp_command_entrypoint_path)
+            if base_dp_command_entrypoint_path is not None
+            else None,
+            "base_dp_command_entrypoint_exists": (
+                base_dp_command_entrypoint_path is not None and base_dp_command_entrypoint_path.is_file()
+            ),
             "guard_env_var": GUARD_ENV_VAR,
             "required_zero_overlap_keys": list(ZERO_OVERLAP_KEYS),
+            "source_runner_planned_command": source_runner_planned_command,
             "planned_command": planned_command,
         },
         "checks": checks,
@@ -546,8 +605,10 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"- Authorized next work: `{decision.get('authorized_next_work')}`",
             f"- Recommended next work: `{decision.get('recommended_next_work')}`",
             f"- Candidate output dir: `{preflight.get('candidate_output_dir')}`",
-            f"- DP entrypoint path: `{preflight.get('dp_entrypoint_path')}`",
-            f"- DP entrypoint exists: `{preflight.get('dp_entrypoint_exists')}`",
+            f"- Runner script path: `{preflight.get('runner_script_path')}`",
+            f"- Runner script exists: `{preflight.get('runner_script_exists')}`",
+            f"- Base DP command entrypoint: `{preflight.get('base_dp_command_entrypoint_path')}`",
+            f"- Base DP command entrypoint exists: `{preflight.get('base_dp_command_entrypoint_exists')}`",
             f"- Fixed-DP generation executed: `{decision.get('fixed_dp_candidate_generation_executed')}`",
             f"- CAMP candidate generation authorized: `{decision.get('candidate_generation_by_camp_authorized')}`",
             f"- Training preflight authorized next: `{decision.get('training_preflight_authorized_next')}`",
@@ -600,45 +661,85 @@ def render_runbook(report: dict[str, Any]) -> str:
 
 def _planned_command(
     *,
+    camp_repo: Path,
+    runner_script_path: Path,
+    source_static_review_json: Path,
+    v13_audit_md: Path,
     dp_repo: Path,
-    dp_entrypoint: str,
     candidate_output_dir: Path,
-    target_min_candidate_members: int,
-    target_candidates_per_member: int,
+    current_camp_head: str,
+    current_camp_origin_main: str,
+    current_dp_head: str,
     required_dp_head: str,
+    base_dp_command: list[str],
 ) -> list[str]:
-    entrypoint = _entrypoint_path(dp_repo, dp_entrypoint)
+    runner_json = candidate_output_dir.parent / f"{candidate_output_dir.name}_runner_execution.json"
+    runner_md = candidate_output_dir.parent / f"{candidate_output_dir.name}_runner_execution.md"
     return [
         "env",
         f"{GUARD_ENV_VAR}=1",
         "python",
-        str(entrypoint),
+        str(runner_script_path),
+        "--implementation_static_contract_review_json",
+        str(source_static_review_json),
+        "--v13_audit_md",
+        str(v13_audit_md),
+        "--dp_repo",
+        str(dp_repo),
+        "--camp_repo",
+        str(camp_repo),
         "--output_dir",
         str(candidate_output_dir),
-        "--target_min_candidate_members",
-        str(target_min_candidate_members),
-        "--target_candidates_per_member",
-        str(target_candidates_per_member),
-        "--forbid_full36",
-        "--forbid_formal_seeds",
-        "11",
-        "12",
-        "13",
-        "--fixed_dp_head",
+        "--current_camp_head",
+        current_camp_head,
+        "--current_camp_origin_main",
+        current_camp_origin_main,
+        "--current_dp_head",
+        current_dp_head,
+        "--required_dp_head",
         required_dp_head,
-        "--candidate_operation",
-        "fixed DP candidate reranking only",
-        "--score_expression",
-        SCORE_EXPRESSION,
-        "--write_zero_overlap_registries",
+        "--output_json",
+        str(runner_json),
+        "--output_md",
+        str(runner_md),
+        "--execute",
+        "--dp_command",
+        *base_dp_command,
     ]
 
 
-def _entrypoint_path(dp_repo: Path, dp_entrypoint: str) -> Path:
-    if not dp_entrypoint:
-        return dp_repo
-    path = Path(dp_entrypoint)
+def _base_dp_command(source_runner_planned_command: list[str]) -> list[str]:
+    if "--output_dir" not in source_runner_planned_command:
+        return list(source_runner_planned_command)
+    return list(source_runner_planned_command[: source_runner_planned_command.index("--output_dir")])
+
+
+def _command_entrypoint_path(dp_repo: Path, command: list[str]) -> Path | None:
+    if not command:
+        return None
+    executable = Path(command[0]).name.lower()
+    if executable.startswith("python"):
+        for part in command[1:]:
+            if part == "-m":
+                return None
+            if part.startswith("-"):
+                continue
+            path = Path(part)
+            return path if path.is_absolute() else dp_repo / path
+        return None
+    path = Path(command[0])
     return path if path.is_absolute() else dp_repo / path
+
+
+def _repo_path(repo: Path, value: str) -> Path:
+    path = Path(value)
+    return path if path.is_absolute() else repo / path
+
+
+def _path_or_missing(value: Any) -> Path:
+    if isinstance(value, str) and value:
+        return Path(value)
+    return Path("__missing_path__")
 
 
 def _load_json_if_exists(path: Path) -> dict[str, Any]:
@@ -686,12 +787,14 @@ def _shell_quote(value: str) -> str:
 
 
 def _failure_class(failed: list[str]) -> str:
-    if any("dp_entrypoint" in check for check in failed):
-        return "missing_fixed_dp_candidate_generation_entrypoint"
+    if any("runner_script_does_not_hard_reject_execute" in check for check in failed):
+        return "runner_execution_contract_not_authorized"
+    if any("base_dp_command" in check for check in failed):
+        return "missing_fixed_dp_candidate_generation_command"
     if any("audit" in check for check in failed):
         return "audit_authorization_mismatch"
-    if any("source" in check or "builder" in check or "manifest" in check for check in failed):
-        return "source_artifact_contract_mismatch"
+    if any("source" in check or "runner" in check for check in failed):
+        return "source_runner_artifact_contract_mismatch"
     return "execution_preflight_contract_failure"
 
 
