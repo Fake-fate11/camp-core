@@ -255,18 +255,51 @@ This is a training artifact only. It is not a deployable checkpoint claim, not
 selector promotion, and not evidence of safety benefit or CAMP superiority over
 DP Top-1.
 
+## Training Artifact Static Contract Review
+
+Verified on AutoDL at 2026-07-02 20:02 CST:
+
+- Artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_b075ec0854_20260702T200227CST`
+- Training execution artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_execution_67f8062de6_20260702T195230CST`
+- Current CAMP head:
+  `b075ec0854dc7f9d6522fbf6423f8ec1ae00539c`
+- Training artifact CAMP head:
+  `67f8062de6cd36fc9f0480223ad262b1f3f09af5`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code: `0`
+- Status:
+  `public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed`
+- Failed checks:
+  `[]`
+- Weights sum / min / max:
+  `1.0 / 0.059347218886831296 / 0.1735927811151367`
+- Weights nonnegative:
+  `True`
+- Weight file matches summary:
+  `True`
+- Atom scales positive finite:
+  `True`
+- Authorized next:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight`
+
+This review did not train, replay, generate candidates, modify DP, promote,
+deploy, or make safety-benefit/CAMP-over-DP claims.
+
 ## Distance To Training
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
-The next gate is a static contract review of the training artifact before any
-shadow replay/evaluation gate.
+The training artifact static contract review has also passed. The next gate is
+a preflight for trained default-off shadow replay/evaluation.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_training_execution_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review
+current_v14_status=public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight
 
 ## Cleanup Policy
 
