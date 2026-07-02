@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review"
     )
 
 
@@ -697,11 +697,11 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review"
     )
 
 
@@ -776,7 +776,7 @@ def test_v14_public_simulator_fixed_dp_candidate_training_artifact_static_contra
         assert needle in text
 
 
-def test_v14_public_simulator_trained_default_off_shadow_replay_preflight_ready_is_eof() -> None:
+def test_v14_public_simulator_trained_default_off_shadow_replay_preflight_ready_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Public Simulator Fixed-DP Candidate Training "
@@ -786,10 +786,14 @@ def test_v14_public_simulator_trained_default_off_shadow_replay_preflight_ready_
         "## Current V14 Public Simulator Trained Default-Off Shadow "
         "Replay/Evaluation Preflight Ready After adc714"
     )
+    next_section_title = (
+        "## Current V14 Public Simulator Trained Default-Off Shadow "
+        "Replay/Evaluation Execution Passed After 72fdb3"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_failed_import_path_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_bedc10752b_20260702T202857CST",
@@ -856,6 +860,101 @@ def test_v14_public_simulator_trained_default_off_shadow_replay_preflight_ready_
         assert needle in text
 
 
+def test_v14_public_simulator_trained_default_off_shadow_replay_execution_passed_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Public Simulator Trained Default-Off Shadow "
+        "Replay/Evaluation Preflight Ready After adc714"
+    )
+    section_title = (
+        "## Current V14 Public Simulator Trained Default-Off Shadow "
+        "Replay/Evaluation Execution Passed After 72fdb3"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_stale_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_artifact_5b23ae8f25_20260702T204229CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_stale_execution_exit=41",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_stale_execution_failure_class=stale_runbook_camp_head_mismatch",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_stale_execution_output_root_exists=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_current_head_preflight_refresh_commit=72fdb3e4c880751948a47d25b0330e3818975162",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_current_head_preflight_refresh_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_refresh_72fdb3e4c8_20260702T204702CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_current_head_preflight_refresh_exit=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_current_head_preflight_refresh_failed_checks=[]",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_current_head_preflight_refresh_planned_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_72fdb3e4c8_20260702T204702CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_current_head_preflight_refresh_runbook_sha256=67da338711919141f0b076fd1012830054bd1ebe751d9c79f9d37b99704fc58f",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_artifact_72fdb3e4c8_20260702T204752CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_72fdb3e4c8_20260702T204702CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_camp_head=72fdb3e4c880751948a47d25b0330e3818975162",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_exit=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution_passed",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_passed=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_selection_log_count=32",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_validation_summary_count=32",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_replay_summary_count=32",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_records_total=3200",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_records_per_log_min=100",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_records_per_log_max=100",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_shadow_selected_index_nonzero_records=2832",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_executed_top1_records=3200",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_selected_index_matches_executed_index_records=3200",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_shadow_selected_index_differs_from_executed_index_records=2832",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_default_off_selector_records=3200",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_artifact_contract_ready_records=3200",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_selection_effect_true_count=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_online_change_true_count=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_policy_non_top1_count=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_score_bad_count=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_operation_bad_count=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_candidate_reference_blend_steps_nonzero=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_candidate_closed_loop_outcome_weights_nonzero=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_candidate_closed_loop_outcomes_nonzero=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_perfect_tracker_command_postselection_active=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_traffic_light_hybrid_postselection_active=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_used_fallback_count=286",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_formal_seed_path_count=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_camp_candidate_tensor_provenance_schema=dp_native_candidate_tensor_provenance_payload_v1",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_camp_provenance_forbidden_effects=[]",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_atom_schema_version=camp_legacy_v1_9d",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_num_candidates=8",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_weights_sum=1.0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_score_expression=score_k(w)=a_k^T w",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_candidate_operation=fixed DP candidate reranking only",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_executed_output_policy=dp_top1",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_sha256s_sha256=5bb414a4a0cc8d3013ade90be55efa9608ced26c7a0ca6c9056d722a137bfeca",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_replay_executed=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_candidate_generation_executed=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_training_executed=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_candidate_generation_by_camp_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_trajectory_generation_by_camp_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_trajectory_modification_by_camp_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_closed_loop_outcome_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_dp_modification_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_online_selector_change_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_executed_trajectory_change_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_selector_promotion_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_deployment_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_approved_atoms_nonnegative_simplex_only=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_simplex_cvar_l2_master_convexity_preserved=True",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review",
+        "trained_default_off_shadow_replay_evaluation_execution_passed=True",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review",
+    ]:
+        assert needle in text
+
+
 def test_current_status_and_readme_point_to_v14() -> None:
     status_text = CURRENT_STATUS_DOC.read_text(encoding="utf-8")
     readme_text = README.read_text(encoding="utf-8")
@@ -871,6 +970,7 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "67f8062de6cd36fc9f0480223ad262b1f3f09af5" in status_text
     assert "b075ec0854dc7f9d6522fbf6423f8ec1ae00539c" in status_text
     assert "adc71422af56711f8baec545259fe47626f955ef" in status_text
+    assert "72fdb3e4c880751948a47d25b0330e3818975162" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
         "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed"
@@ -881,7 +981,11 @@ def test_current_status_and_readme_point_to_v14() -> None:
         in status_text
     )
     assert (
-        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution"
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution_passed"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review"
         in status_text
     )
     assert (
@@ -927,12 +1031,21 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "Executed output policy:" in status_text
     assert "`dp_top1`" in status_text
     assert "Closed-loop outcome command flag present:" in status_text
+    assert "## Trained Shadow Replay/Evaluation Execution" in status_text
+    assert "stale_runbook_camp_head_mismatch / 41" in status_text
+    assert "Shadow selected non-Top-1 records:" in status_text
+    assert "Executed DP Top-1 records:" in status_text
+    assert "Selection-effect / online-selector-change counts:" in status_text
+    assert "Reference-blend steps, closed-loop outcome weights, and postselection active" in status_text
+    assert "Forbidden CAMP provenance effects:" in status_text
+    assert "5bb414a4a0cc8d3013ade90be55efa9608ced26c7a0ca6c9056d722a137bfeca" in status_text
+    assert "CAMP\ncomputed shadow scores and shadow selected indices over fixed DP candidate" in status_text
     assert "NuScenes is present and must not be marked missing" in status_text
     assert "/autodl-pub/data/nuScenes" in status_text
     assert "they are not the TIER IV" in status_text
     assert "official rosbag-to-DP `.npz` training source" in status_text
     assert (
-        "The training artifact static contract review and trained default-off shadow"
+        "The training artifact static contract review, trained default-off shadow"
         in status_text
     )
 

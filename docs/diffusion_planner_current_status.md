@@ -35,12 +35,15 @@ work to v13.
 - The latest trained default-off shadow replay/evaluation preflight ran on
   AutoDL with CAMP synchronized at
   `adc71422af56711f8baec545259fe47626f955ef`.
+- The latest trained default-off shadow replay/evaluation execution ran on
+  AutoDL with CAMP synchronized at
+  `72fdb3e4c880751948a47d25b0330e3818975162`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review`.
 
 ## What Changed
 
@@ -343,19 +346,69 @@ trained default-off shadow replay/evaluation execution. It did not run replay,
 generate candidates, train CAMP, modify DP, change executed trajectory
 selection, promote, deploy, or make safety-benefit/CAMP-over-DP claims.
 
+## Trained Shadow Replay/Evaluation Execution
+
+Verified on AutoDL at 2026-07-02 21:54 CST:
+
+- Execution artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_artifact_72fdb3e4c8_20260702T204752CST`
+- Refreshed current-head preflight:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_refresh_72fdb3e4c8_20260702T204702CST`
+- Stale runbook failure artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_artifact_5b23ae8f25_20260702T204229CST`
+- Stale runbook failure class / exit:
+  `stale_runbook_camp_head_mismatch / 41`
+- CAMP head:
+  `72fdb3e4c880751948a47d25b0330e3818975162`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code: `0`
+- Selection logs / records:
+  `32 / 3200`
+- Validation summaries / replay summaries:
+  `32 / 32`
+- Records per log:
+  `100`
+- Shadow selected non-Top-1 records:
+  `2832`
+- Executed DP Top-1 records:
+  `3200`
+- `selected_index` matches executed index records:
+  `3200`
+- Selection-effect / online-selector-change counts:
+  `0 / 0`
+- Reference-blend steps, closed-loop outcome weights, and postselection active
+  counts:
+  `0 / 0 / 0`
+- Formal seed path count:
+  `0`
+- CAMP candidate tensor provenance schema:
+  `dp_native_candidate_tensor_provenance_payload_v1`
+- Forbidden CAMP provenance effects:
+  `[]`
+- Execution SHA256SUMS SHA256:
+  `5bb414a4a0cc8d3013ade90be55efa9608ced26c7a0ca6c9056d722a137bfeca`
+
+This execution ran the guarded default-off shadow replay/evaluation. CAMP
+computed shadow scores and shadow selected indices over fixed DP candidate
+tensors, but the online/executed trajectory remained DP Top-1 for every record.
+This is not selector promotion, deployment, a deployable checkpoint claim,
+safety-benefit evidence, or a CAMP-over-DP claim.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
-The training artifact static contract review and trained default-off shadow
-replay/evaluation preflight have both passed. The next gate is execution of the
-guarded shadow replay/evaluation runbook.
+The training artifact static contract review, trained default-off shadow
+replay/evaluation preflight, and guarded shadow replay/evaluation execution
+have passed. The next gate is read-only result review of the execution artifact
+and selection logs.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review
 
 ## Cleanup Policy
 
