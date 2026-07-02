@@ -779,6 +779,44 @@ selector wiring, train CAMP, run replay, generate candidates, modify DP,
 promote, deploy, or authorize safety/CAMP-over-DP claims. The next gate is
 implementation-only and requires explicit authorization.
 
+## Default-Off Shadow Selector Implementation
+
+Verified on AutoDL at 2026-07-03 01:19 CST:
+
+- Implementation commit:
+  `98e495749e605304f1094bff62e47ab7c8317775`
+- Source file:
+  `scripts/integrations/run_diffusion_planner_camp_replay.py`
+- Test file:
+  `camp_core/tests/test_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_implementation_unit_tests.py`
+- Runtime schema:
+  `dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_v1`
+- Source scope:
+  `public_simulator_fixed_dp_candidate_tensor`
+- Artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_implementation_98e495749e_20260703T011920CST`
+- CAMP head:
+  `98e495749e605304f1094bff62e47ab7c8317775`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code:
+  `0`
+- Local pytest:
+  `42 passed`
+- AutoDL pytest:
+  `42 passed`
+- Artifact SHA256SUMS SHA256:
+  `d0be444a9e3454545ce0cacbf0828007d33ae4dfaff8b8d0aab5cae77e9ae3ea`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_post_implementation_static_contract_review_only`
+
+This gate implemented only the default-off shadow selector runtime schema/source
+scope pinning already covered by the unit tests. It keeps the selector
+default-off and fail-closed: executed output remains `dp_top1`, CAMP only logs
+`shadow_selected_index`, and scoring remains affine as `score_k(w)=a_k^T w`.
+It did not train CAMP, run replay, generate candidates, modify DP, promote,
+deploy, or authorize safety/CAMP-over-DP claims.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -788,17 +826,17 @@ have passed. The read-only result review, promotion-decision planning gate, and
 promotion evidence-package preflight have also passed. The default-off shadow
 selector static integration contract plan, implementation plan, and
 implementation static contract review have passed. The implementation unit-test
-plan and implementation unit-tests-only gate have also passed. The next gate is
-default-off shadow selector implementation-only after explicit authorization,
-and still does not authorize promotion, deployment, training, replay, candidate
-generation, or safety-benefit claims.
+plan, implementation unit-tests-only gate, and implementation-only gate have
+also passed. The next gate is default-off shadow selector post-implementation
+static contract review only, and still does not authorize promotion,
+deployment, training, replay, candidate generation, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_unit_tests_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_only_after_explicit_user_authorization
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_post_implementation_static_contract_review_only
 
 ## Cleanup Policy
 
