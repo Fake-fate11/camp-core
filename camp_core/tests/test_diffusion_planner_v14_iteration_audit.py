@@ -290,7 +290,7 @@ def test_v14_public_simulator_fixed_dp_candidate_generation_preflight_ready_is_h
         assert needle in text
 
 
-def test_v14_public_simulator_fixed_dp_candidate_generation_execution_passed_is_eof() -> None:
+def test_v14_public_simulator_fixed_dp_candidate_generation_execution_passed_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Public Simulator Fixed-DP Candidate Generation "
@@ -300,10 +300,14 @@ def test_v14_public_simulator_fixed_dp_candidate_generation_execution_passed_is_
         "## Current V14 Public Simulator Fixed-DP Candidate Generation "
         "Execution Passed After 458c66c"
     )
+    next_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate Generation "
+        "Zero-Overlap Validation Passed After 2e17d11"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_fixed_dp_candidate_generation_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_execution_458c66c8ae_20260702T173540CST_artifact",
@@ -358,13 +362,89 @@ def test_v14_public_simulator_fixed_dp_candidate_generation_execution_passed_is_
     ]:
         assert needle in text
 
+
+def test_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate Generation "
+        "Execution Passed After 458c66c"
+    )
+    section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate Generation "
+        "Zero-Overlap Validation Passed After 2e17d11"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_incomplete_reference_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_2e17d11994_20260702T190418CST",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_incomplete_reference_exit=1",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_incomplete_reference_status=public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_rejected",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_incomplete_reference_failure_class=reference_training_registry_missing_or_empty",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_2e17d11994_20260702T190542CST_complete_reference",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_execution_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_execution_1ffff597eb_20260702T172252CST",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_reference_registry_root=/root/autodl-tmp/camp_dp_v13_default_off_member_source_generation_implementation_7ca9b6848b_20260702T061630CST/generated_outputs",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_camp_head=2e17d119941b8134fc4adb7b607204d7ee95899e",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_exit=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_status=public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed=True",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_selection_log_count=32",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_record_count=3200",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_unique_candidate_tensor_hash_count=3080",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_unique_path_signature_count=32",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_unique_record_identity_hash_count=3200",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_unique_split_manifest_root_count=4",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_formal_seed_intersection=[]",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_tensor_hash_mismatches=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_executed_non_top1=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_closed_loop_collect_count=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_forbidden_runtime_flags=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_reference_counts_candidate_tensor_hashes=1",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_reference_counts_path_signatures=1",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_reference_counts_record_identity_hashes=1",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_reference_counts_split_manifest_roots=1",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_candidate_tensor_hash_intersection_count=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_path_signature_intersection_count=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_record_identity_intersection_count=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_split_manifest_root_intersection_count=0",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_report_sha256=d33f110143482f09216d686f905c5ee0e7015f0d4c522e5597f536bde03d5ef8",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_post_execution_sha256s_sha256=0bfb38a24a7c10a17263176dbd3c1076916fa2814ffb1e1eac574822d5cb355e",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_data_preparation_preflight_authorized_next=True",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_training_preflight_authorized_next=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_training_execution_authorized_next=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_candidate_generation_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_trajectory_modification_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_dp_modification_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_score_expression=score_k(w)=a_k^T w",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_data_preparation_preflight",
+        "zero_overlap_validation_passed=True",
+        "data_preparation_preflight_authorized_next=True",
+        "training_preflight_authorized_next=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_data_preparation_preflight",
+    ]:
+        assert needle in text
+
     latest_status = text.rsplit("current_v14_status=", maxsplit=1)[1].splitlines()[0]
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_execution_passed"
+        == "public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed"
     )
-    assert latest_target == "public_simulator_fixed_dp_candidate_generation_zero_overlap_validation"
+    assert latest_target == "public_simulator_fixed_dp_candidate_generation_data_preparation_preflight"
 
 
 def test_current_status_and_readme_point_to_v14() -> None:
@@ -376,13 +456,14 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "88fd3cac6722aedfd4ca13b41f904b4a3331c219" in status_text
     assert "1ffff597ebdc0cc598daff7db2150df2d5d898ab" in status_text
     assert "458c66c8aeac8b9eb15ba3f06a7f87e5c9ef0740" in status_text
+    assert "2e17d119941b8134fc4adb7b607204d7ee95899e" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
-        "public_simulator_fixed_dp_candidate_generation_execution_passed"
+        "public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed"
         in status_text
     )
     assert (
-        "public_simulator_fixed_dp_candidate_generation_zero_overlap_validation"
+        "public_simulator_fixed_dp_candidate_generation_data_preparation_preflight"
         in status_text
     )
     assert (
@@ -393,6 +474,13 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "Default-off shadow selector summaries: `32`" in status_text
     assert "Candidate tensor provenance summaries: `32`" in status_text
     assert "Closed-loop outcome collection count: `0`" in status_text
+    assert "## Zero-Overlap Validation Result" in status_text
+    assert "Selection logs: `32`" in status_text
+    assert "Records: `3200`" in status_text
+    assert "Overlap counts:" in status_text
+    assert "`candidate_tensor_hash=0`, `path_signature=0`" in status_text
+    assert "`record_identity=0`, `split_manifest_root=0`" in status_text
+    assert "reference_training_registry_missing_or_empty" in status_text
     assert "NuScenes is present and must not be marked missing" in status_text
     assert "/autodl-pub/data/nuScenes" in status_text
     assert "they are not the TIER IV" in status_text

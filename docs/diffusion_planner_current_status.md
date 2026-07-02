@@ -17,12 +17,15 @@ work to v13.
 - The latest public simulator fixed-DP candidate generation execution ran on
   AutoDL with CAMP synchronized at
   `458c66c8aeac8b9eb15ba3f06a7f87e5c9ef0740`.
+- The latest public simulator fixed-DP candidate generation zero-overlap
+  validation ran on AutoDL with CAMP synchronized at
+  `2e17d119941b8134fc4adb7b607204d7ee95899e`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_execution_passed`.
+  `public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_zero_overlap_validation`.
+  `public_simulator_fixed_dp_candidate_generation_data_preparation_preflight`.
 
 ## What Changed
 
@@ -116,15 +119,51 @@ and validation. It did not train CAMP, generate trajectories with CAMP, modify
 DP, change executed trajectory selection online, promote, deploy, or make any
 safety-benefit/CAMP-over-DP claim.
 
+## Zero-Overlap Validation Result
+
+Verified on AutoDL at 2026-07-02 19:05 CST:
+
+- Passing artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_2e17d11994_20260702T190542CST_complete_reference`
+- Candidate output root:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_execution_1ffff597eb_20260702T172252CST`
+- Complete reference registry root:
+  `/root/autodl-tmp/camp_dp_v13_default_off_member_source_generation_implementation_7ca9b6848b_20260702T061630CST/generated_outputs`
+- Exit code: `0`
+- Status:
+  `public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed`
+- Selection logs: `32`
+- Records: `3200`
+- Unique candidate tensor hashes: `3080`
+- Unique path signatures: `32`
+- Unique record identities: `3200`
+- Unique split manifest roots: `4`
+- Formal seed intersection: `[]`
+- Tensor hash mismatches: `0`
+- Executed non-Top-1 count: `0`
+- Closed-loop outcome collection count: `0`
+- Forbidden runtime flag count: `0`
+- Overlap counts:
+  `candidate_tensor_hash=0`, `path_signature=0`,
+  `record_identity=0`, `split_manifest_root=0`
+
+A prior attempt against
+`/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_2e17d11994_20260702T190418CST`
+correctly rejected with
+`reference_training_registry_missing_or_empty` because the reference registry
+root had only one candidate tensor hash and empty path, record, and split-root
+registries. That rejected artifact is recorded as reference-root evidence, not
+as a passing holdout claim.
+
 ## Distance To Training
 
 Training is no longer blocked on an external DP-native source `.npz` manifest.
 The remaining gates are the minimum evidence needed to keep the fixed-DP
 selector boundary auditable:
 
-1. Run zero-overlap validation across `candidate_tensor_hash`,
-   `path_signature`, `record_identity`, and `split_manifest_root`.
-2. Run data-preparation and training preflight.
+1. Run data-preparation preflight over the zero-overlap fixed-DP candidate
+   source.
+2. Run training preflight.
 3. Start CAMP training only if the preflight authorizes it.
 
 This does not authorize CAMP generation, DP modification, postprocessing,
