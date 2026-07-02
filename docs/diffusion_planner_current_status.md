@@ -23,12 +23,24 @@ work to v13.
 - The latest public simulator fixed-DP candidate data-preparation preflight
   ran on AutoDL with CAMP synchronized at
   `356ce6301cd02a59dedb971f85aac8481be0a7fd`.
+- The latest public simulator fixed-DP candidate training preflight ran on
+  AutoDL with CAMP synchronized at
+  `aff9b0533ff63172f834dfede3836e5553bb05e0`.
+- The latest public simulator fixed-DP candidate training execution ran on
+  AutoDL with CAMP synchronized at
+  `67f8062de6cd36fc9f0480223ad262b1f3f09af5`.
+- The latest public simulator fixed-DP candidate training artifact static
+  contract review ran on AutoDL with CAMP synchronized at
+  `b075ec0854dc7f9d6522fbf6423f8ec1ae00539c`.
+- The latest trained default-off shadow replay/evaluation preflight ran on
+  AutoDL with CAMP synchronized at
+  `adc71422af56711f8baec545259fe47626f955ef`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_training_preflight`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution`.
 
 ## What Changed
 
@@ -288,18 +300,62 @@ Verified on AutoDL at 2026-07-02 20:02 CST:
 This review did not train, replay, generate candidates, modify DP, promote,
 deploy, or make safety-benefit/CAMP-over-DP claims.
 
-## Distance To Training
+## Trained Shadow Replay/Evaluation Preflight
+
+Verified on AutoDL at 2026-07-02 20:30 CST:
+
+- Passing artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_adc71422af_20260702T203050CST`
+- First failed import-path artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_bedc10752b_20260702T202857CST`
+- Failure class:
+  `script_import_path_missing`, fixed by
+  `adc71422af56711f8baec545259fe47626f955ef`
+- Training execution artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_execution_67f8062de6_20260702T195230CST`
+- Training artifact static contract review:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_b075ec0854_20260702T200227CST`
+- Runtime manifest:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_adc71422af_20260702T203050CST/runtime/dp_camp_v14_trained_default_off_shadow_runtime_manifest.json`
+- Planned replay output root:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_adc71422af_20260702T203050CST`
+- Exit code: `0`
+- Status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready`
+- Failed checks: `[]`
+- Planned command count / expected records:
+  `32 / 3200`
+- Runtime manifest default-off / fail-closed:
+  `True / True`
+- Executed output policy:
+  `dp_top1`
+- Weights sum / min / max:
+  `1.0 / 0.059347218886831296 / 0.1735927811151367`
+- Weights SHA256:
+  `5bfe692465c0e0cdbf2fb937737674e53b3f41a31ea932a65f65a6321f4c0dde`
+- Atom scales SHA256:
+  `2239fb09e2231405dbc58b1a79486ff3f3c111a9bab96c24d88e6832f2325b8b`
+- Closed-loop outcome command flag present:
+  `False`
+
+This preflight wrote only a guarded runbook and runtime manifest for a future
+trained default-off shadow replay/evaluation execution. It did not run replay,
+generate candidates, train CAMP, modify DP, change executed trajectory
+selection, promote, deploy, or make safety-benefit/CAMP-over-DP claims.
+
+## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
-The training artifact static contract review has also passed. The next gate is
-a preflight for trained default-off shadow replay/evaluation.
+The training artifact static contract review and trained default-off shadow
+replay/evaluation preflight have both passed. The next gate is execution of the
+guarded shadow replay/evaluation runbook.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution
 
 ## Cleanup Policy
 

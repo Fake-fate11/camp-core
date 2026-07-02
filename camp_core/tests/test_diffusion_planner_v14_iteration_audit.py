@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution"
     )
 
 
@@ -613,7 +613,7 @@ def test_v14_public_simulator_fixed_dp_candidate_training_preflight_ready_is_his
         assert needle in text
 
 
-def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_eof() -> None:
+def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Public Simulator Fixed-DP Candidate "
@@ -697,15 +697,15 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_eo
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution"
     )
 
 
-def test_v14_public_simulator_fixed_dp_candidate_training_artifact_static_contract_review_passed_is_eof() -> None:
+def test_v14_public_simulator_fixed_dp_candidate_training_artifact_static_contract_review_passed_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Public Simulator Fixed-DP Candidate "
@@ -715,10 +715,14 @@ def test_v14_public_simulator_fixed_dp_candidate_training_artifact_static_contra
         "## Current V14 Public Simulator Fixed-DP Candidate Training "
         "Artifact Static Contract Review Passed After b075ec"
     )
+    next_section_title = (
+        "## Current V14 Public Simulator Trained Default-Off Shadow "
+        "Replay/Evaluation Preflight Ready After adc714"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_fixed_dp_candidate_training_artifact_static_contract_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_b075ec0854_20260702T200227CST",
@@ -772,6 +776,86 @@ def test_v14_public_simulator_fixed_dp_candidate_training_artifact_static_contra
         assert needle in text
 
 
+def test_v14_public_simulator_trained_default_off_shadow_replay_preflight_ready_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate Training "
+        "Artifact Static Contract Review Passed After b075ec"
+    )
+    section_title = (
+        "## Current V14 Public Simulator Trained Default-Off Shadow "
+        "Replay/Evaluation Preflight Ready After adc714"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_failed_import_path_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_bedc10752b_20260702T202857CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_failed_import_path_failure_class=script_import_path_missing",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_import_path_remediation_commit=adc71422af56711f8baec545259fe47626f955ef",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_adc71422af_20260702T203050CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_training_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_execution_67f8062de6_20260702T195230CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_training_artifact_static_contract_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_b075ec0854_20260702T200227CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_camp_head=adc71422af56711f8baec545259fe47626f955ef",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_exit=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_passed=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_failed_checks=[]",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_planned_command_count=32",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_expected_records=3200",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_check_count=392",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_failed_check_count=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_runtime_schema=dp_camp_v13_default_off_shadow_selector_runtime_v1",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_runtime_default_off=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_runtime_fail_closed=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_executed_output_policy=dp_top1",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_candidate_operation=fixed DP candidate reranking only",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_score_expression=score_k(w)=a_k^T w",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_atom_schema_version=camp_legacy_v1_9d",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_weights_sha256=5bfe692465c0e0cdbf2fb937737674e53b3f41a31ea932a65f65a6321f4c0dde",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_atom_scales_sha256=2239fb09e2231405dbc58b1a79486ff3f3c111a9bab96c24d88e6832f2325b8b",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_commands_contain_closed_loop_outcomes=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_formal_seeds_11_12_13_excluded=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_runbook_sha256=4644ea5625bb23d24541b52e0e9621262fa4d2dc90d0df2e6a26f5f3f0dde928",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_runtime_manifest_sha256=d6b73453579c71962ca1fa7e0706b28dd18e5269fad12b5f4ec3caf38cac5490",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_report_json_sha256=e5e50eba92103eafc3c740d3df5edce383678d76ebe53476fd0dbd348b0ce343",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_complete=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_execution_authorized_next=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_preflight_only=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_replay_executed=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_candidate_generation_executed=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_training_executed=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_candidate_generation_by_camp_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_trajectory_generation_by_camp_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_trajectory_modification_by_camp_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_closed_loop_outcome_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_dp_modification_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_online_selector_change_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_executed_trajectory_change_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_selector_promotion_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_deployment_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_approved_atoms_nonnegative_simplex_only=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_simplex_cvar_l2_master_convexity_preserved=True",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution",
+        "trained_default_off_shadow_replay_evaluation_preflight_passed=True",
+        "trained_default_off_shadow_replay_evaluation_execution_authorized_next=True",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "formal_seed_11_12_13_execution_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution",
+    ]:
+        assert needle in text
+
+
 def test_current_status_and_readme_point_to_v14() -> None:
     status_text = CURRENT_STATUS_DOC.read_text(encoding="utf-8")
     readme_text = README.read_text(encoding="utf-8")
@@ -786,13 +870,18 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "aff9b0533ff63172f834dfede3836e5553bb05e0" in status_text
     assert "67f8062de6cd36fc9f0480223ad262b1f3f09af5" in status_text
     assert "b075ec0854dc7f9d6522fbf6423f8ec1ae00539c" in status_text
+    assert "adc71422af56711f8baec545259fe47626f955ef" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
         "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed"
         in status_text
     )
     assert (
-        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight"
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_preflight_ready"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_execution"
         in status_text
     )
     assert (
@@ -829,11 +918,23 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "Weight file matches summary:" in status_text
     assert "Atom scales positive finite:" in status_text
     assert "This review did not train, replay, generate candidates" in status_text
+    assert "## Trained Shadow Replay/Evaluation Preflight" in status_text
+    assert "script_import_path_missing" in status_text
+    assert "Planned command count / expected records:" in status_text
+    assert "`32 / 3200`" in status_text
+    assert "Runtime manifest default-off / fail-closed:" in status_text
+    assert "`True / True`" in status_text
+    assert "Executed output policy:" in status_text
+    assert "`dp_top1`" in status_text
+    assert "Closed-loop outcome command flag present:" in status_text
     assert "NuScenes is present and must not be marked missing" in status_text
     assert "/autodl-pub/data/nuScenes" in status_text
     assert "they are not the TIER IV" in status_text
     assert "official rosbag-to-DP `.npz` training source" in status_text
-    assert "The training artifact static contract review has also passed" in status_text
+    assert (
+        "The training artifact static contract review and trained default-off shadow"
+        in status_text
+    )
 
     assert "docs/diffusion_planner_current_status.md" in readme_text
     assert "docs/diffusion_planner_v14_iteration_audit.md" in readme_text
