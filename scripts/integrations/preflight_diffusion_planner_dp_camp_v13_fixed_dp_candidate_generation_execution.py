@@ -85,6 +85,14 @@ REMEDIATION_NEXT_WORK = (
     "failure_remediation_fixed_dp_candidate_generation_execution_preflight_"
     "runner_contract_remediation_plan_only"
 )
+INPUT_CONTRACT_REMEDIATION_NEXT_WORK = (
+    "dp_camp_v13_current_source_large_default_off_shadow_selector_static_"
+    "dp_reward_eval_plus_prior_nonoverlap_remediation_static_dp_reward_"
+    "training_artifact_shadow_replay_evaluation_nonoverlap_failure_"
+    "remediation_fresh_evaluation_split_evaluation_executed_index_contract_"
+    "failure_remediation_fixed_dp_candidate_generation_execution_input_"
+    "contract_materialization_only"
+)
 ZERO_OVERLAP_KEYS = (
     "candidate_tensor_hash",
     "path_signature",
@@ -616,7 +624,7 @@ def _decision(
         "failed_checks": failed,
         "authorized_current_work": authorized_current_work,
         "authorized_next_work": authorized_next_work if passed else None,
-        "recommended_next_work": None if passed or not enabled else REMEDIATION_NEXT_WORK,
+        "recommended_next_work": None if passed or not enabled else _recommended_next_work(failed),
         "failure_class": None if passed else ("disabled" if not enabled else _failure_class(failed)),
         "fixed_dp_candidate_generation_execution_preflight_passed": passed,
         "fixed_dp_candidate_generation_authorized_next": passed,
@@ -895,6 +903,8 @@ def _shell_quote(value: str) -> str:
 
 
 def _failure_class(failed: list[str]) -> str:
+    if _has_input_contract_failure(failed):
+        return "missing_fixed_dp_execution_input_contract"
     if any("runner_script_does_not_hard_reject_execute" in check for check in failed):
         return "runner_execution_contract_not_authorized"
     if any("base_dp_command" in check for check in failed):
@@ -904,6 +914,16 @@ def _failure_class(failed: list[str]) -> str:
     if any("source" in check or "runner" in check for check in failed):
         return "source_runner_artifact_contract_mismatch"
     return "execution_preflight_contract_failure"
+
+
+def _recommended_next_work(failed: list[str]) -> str:
+    if _has_input_contract_failure(failed):
+        return INPUT_CONTRACT_REMEDIATION_NEXT_WORK
+    return REMEDIATION_NEXT_WORK
+
+
+def _has_input_contract_failure(failed: list[str]) -> bool:
+    return any(check.startswith("input_contract_") for check in failed)
 
 
 def _stable(value: Any) -> Any:

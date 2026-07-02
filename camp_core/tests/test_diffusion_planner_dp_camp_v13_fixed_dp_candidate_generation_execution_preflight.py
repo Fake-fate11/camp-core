@@ -12,6 +12,7 @@ from scripts.integrations.preflight_diffusion_planner_dp_camp_v13_fixed_dp_candi
     EXECUTION_NEXT_WORK,
     FIXED_DP_HEAD,
     GUARD_ENV_VAR,
+    INPUT_CONTRACT_REMEDIATION_NEXT_WORK,
     READY_STATUS,
     REJECT_STATUS,
     REMEDIATION_NEXT_WORK,
@@ -340,6 +341,36 @@ def test_execution_preflight_rejects_missing_dp_command_entrypoint(tmp_path: Pat
     assert decision["authorized_next_work"] is None
     assert decision["recommended_next_work"] == REMEDIATION_NEXT_WORK
     assert decision["failure_class"] == "missing_fixed_dp_candidate_generation_command"
+    assert decision["fixed_dp_candidate_generation_execution_authorized_next"] is False
+
+
+def test_execution_preflight_rejects_missing_input_contract_with_materialization_remediation(
+    tmp_path: Path,
+) -> None:
+    static_review = _static_review(tmp_path / "runner" / "static_review.json")
+    runner_json = _runner_implementation(tmp_path / "runner" / "runner.json", static_review)
+    post_review = _post_review(tmp_path / "post_review.json", runner_json)
+    camp_repo, dp_repo = _repos(tmp_path)
+
+    report = build_report(
+        post_review_json=post_review,
+        input_contract_json=tmp_path / "missing_input_contract.json",
+        v13_audit_md=_audit(tmp_path / "audit.md"),
+        candidate_output_dir=tmp_path / "candidate_output",
+        current_camp_head=CAMP_HEAD,
+        current_camp_origin_main=CAMP_HEAD,
+        current_dp_head=FIXED_DP_HEAD,
+        dp_repo=dp_repo,
+        camp_repo=camp_repo,
+        enabled=True,
+    )
+    decision = report["final_decision"]
+
+    assert decision["status"] == REJECT_STATUS
+    assert "input_contract_json_exists" in decision["failed_checks"]
+    assert decision["failure_class"] == "missing_fixed_dp_execution_input_contract"
+    assert decision["recommended_next_work"] == INPUT_CONTRACT_REMEDIATION_NEXT_WORK
+    assert decision["authorized_next_work"] is None
     assert decision["fixed_dp_candidate_generation_execution_authorized_next"] is False
 
 
