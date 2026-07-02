@@ -1007,6 +1007,52 @@ static-review requirements, but did not write the runtime manifest, run replay,
 train CAMP, generate candidates, modify DP, promote, deploy, or authorize
 safety/CAMP-over-DP claims. The planned runtime manifest remains unmaterialized.
 
+## Default-Off Shadow Selector Runtime Artifact Manifest Materialization Static Review
+
+Verified on AutoDL at 2026-07-03 02:43 CST:
+
+- Static review support commit:
+  `844e46604c460027fc0c8602903b7c365ef91d6b`
+- Static review script:
+  `scripts/integrations/review_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materialization_static_contract.py`
+- Static review test:
+  `camp_core/tests/test_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materialization_static_contract.py`
+- Source materialization plan artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materialization_plan_ddce7a1725_20260703T023207CST/report/runtime_artifact_manifest_materialization_plan.json`
+- Successful artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_materialization_static_contract_review_844e46604c_20260703T024304CST`
+- CAMP head:
+  `844e46604c460027fc0c8602903b7c365ef91d6b`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code:
+  `0`
+- Local pytest:
+  `8 passed`
+- AutoDL pytest:
+  `8 passed`
+- Review status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_static_contract_review_passed`
+- Review checks:
+  `114`
+- Failed checks:
+  `[]`
+- Planned runtime manifest exists after this gate:
+  `False`
+- Successful report JSON SHA256:
+  `aa3b096059d671cd42d888f7929114800fecd8c50b65af319dbb6e28b52b7134`
+- Successful artifact SHA256SUMS SHA256:
+  `b3a34cfbaaedd8493c3a91f550d358e52a8190ff67065217bfe2ff757ee6f746`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_implementation_plan_only`
+
+This review is static only. It verified the materialization plan is not a
+runtime manifest, no runtime manifest was written, future entries are
+`atom_scales` and `static_weights`, the v14 runtime schema/source scope remain
+pinned, and default-off fail-closed execution remains DP Top-1. It did not
+materialize the runtime manifest, run replay, train CAMP, generate candidates,
+modify DP, promote, deploy, or authorize safety/CAMP-over-DP claims.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1018,18 +1064,18 @@ selector static integration contract plan, implementation plan, and
 implementation static contract review have passed. The implementation unit-test
 plan, implementation unit-tests-only gate, and implementation-only gate have
 also passed. The post-implementation static contract review and runtime
-artifact manifest plan-only/static-review/materialization-plan-only gates have
-passed. The next gate is default-off shadow selector runtime artifact manifest
-materialization static contract review only, and still does not authorize
-materialization itself, runtime execution, promotion, deployment, training,
-replay, candidate generation, or safety-benefit claims.
+artifact manifest plan-only/static-review/materialization-plan-only/static-review
+gates have passed. The next gate is default-off shadow selector runtime
+artifact manifest materialization implementation planning only, and still does
+not authorize materialization itself, runtime execution, promotion, deployment,
+training, replay, candidate generation, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_static_contract_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_static_contract_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_implementation_plan_only
 
 ## Cleanup Policy
 
