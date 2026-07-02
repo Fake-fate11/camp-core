@@ -622,20 +622,20 @@ def _build_checks(
     audit_next = _latest_value(audit_text, "next_work_target")
     status_doc_status = _latest_value(status_text, "current_v14_status")
     status_doc_next = _latest_value(status_text, "next_work_target")
-    status_doc_preflight_authorized = _latest_value(
-        status_text,
+    audit_preflight_authorized = _latest_value(
+        audit_text,
         "default_off_shadow_selector_runtime_shadow_replay_preflight_authorized",
     )
-    status_doc_runtime_authorized = _latest_value(
-        status_text,
+    audit_runtime_authorized = _latest_value(
+        audit_text,
         "default_off_shadow_selector_runtime_execution_authorized",
     )
-    status_doc_safety_claim = _latest_value(
-        status_text,
+    audit_safety_claim = _latest_value(
+        audit_text,
         "safety_benefit_claim_authorized",
     )
-    status_doc_camp_claim = _latest_value(
-        status_text,
+    audit_camp_claim = _latest_value(
+        audit_text,
         "camp_over_dp_top1_claim_authorized",
     )
 
@@ -647,10 +647,10 @@ def _build_checks(
     add(_expect("audit_latest_next_work", audit_next, authorized_current_work))
     add(_expect("status_doc_latest_status", status_doc_status, expected_current_status))
     add(_expect("status_doc_latest_next_work", status_doc_next, authorized_current_work))
-    add(_expect("status_doc_preflight_authorized", status_doc_preflight_authorized, "True"))
-    add(_expect("status_doc_runtime_execution_not_yet_authorized", status_doc_runtime_authorized, "False"))
-    add(_expect("status_doc_safety_claim_blocked", status_doc_safety_claim, "False"))
-    add(_expect("status_doc_camp_over_dp_top1_claim_blocked", status_doc_camp_claim, "False"))
+    add(_expect("audit_preflight_authorized", audit_preflight_authorized, "True"))
+    add(_expect("audit_runtime_execution_not_yet_authorized", audit_runtime_authorized, "False"))
+    add(_expect("audit_safety_claim_blocked", audit_safety_claim, "False"))
+    add(_expect("audit_camp_over_dp_top1_claim_blocked", audit_camp_claim, "False"))
 
     add(_expect("runtime_manifest_readable", manifest_error, None))
     add(_check("runtime_manifest_sha256_valid", manifest_sha is not None and _is_sha256(manifest_sha), manifest_sha, "sha256"))

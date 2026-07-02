@@ -61,6 +61,16 @@ def _audit_text(module, *, wrong_gate: bool = False) -> str:
     )
 
 
+def _current_status_text(module) -> str:
+    return "\n".join(
+        [
+            f"current_v14_status={module.EXPECTED_CURRENT_STATUS}",
+            f"next_work_target={module.AUTHORIZED_CURRENT_WORK}",
+            "",
+        ]
+    )
+
+
 def _fixture(tmp_path: Path, module, monkeypatch, **overrides):
     assets_dir = tmp_path / "assets"
     patched_assets = []
@@ -134,7 +144,7 @@ def _fixture(tmp_path: Path, module, monkeypatch, **overrides):
     runtime_manifest = tmp_path / "runtime_manifest.json"
     runtime_manifest.write_text(json.dumps(manifest), encoding="utf-8")
     v14_audit = _write(tmp_path / "v14_audit.md", _audit_text(module, wrong_gate=overrides.pop("wrong_gate", False)))
-    current_status = _write(tmp_path / "current_status.md", _audit_text(module))
+    current_status = _write(tmp_path / "current_status.md", _current_status_text(module))
     replay_output_root = tmp_path / "planned_runtime_shadow_replay"
     if overrides.pop("existing_output", False):
         replay_output_root.mkdir(parents=True)
