@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review_passed"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_ready"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_only_after_explicit_user_authorization"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_only"
     )
 
 
@@ -697,11 +697,11 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review_passed"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_ready"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_only_after_explicit_user_authorization"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_only"
     )
 
 
@@ -969,10 +969,14 @@ def test_v14_public_simulator_trained_default_off_shadow_replay_result_review_pa
         "## Current V14 Public Simulator Trained Default-Off Shadow "
         "Replay/Evaluation Result Review Passed After 2dd27b"
     )
+    next_section_title = (
+        "## Current V14 Trained Shadow Replay/Evaluation Promotion-Decision "
+        "Plan Ready After 4b17b3"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_trained_default_off_shadow_replay_evaluation_result_review_initial_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_result_review_3642c74a10_20260702T222136CST",
@@ -1035,6 +1039,71 @@ def test_v14_public_simulator_trained_default_off_shadow_replay_result_review_pa
         assert needle in text
 
 
+def test_v14_public_simulator_trained_shadow_promotion_decision_plan_ready_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Public Simulator Trained Default-Off Shadow "
+        "Replay/Evaluation Result Review Passed After 2dd27b"
+    )
+    section_title = (
+        "## Current V14 Trained Shadow Replay/Evaluation Promotion-Decision "
+        "Plan Ready After 4b17b3"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_initial_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_4b17b35302_20260702T231157CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_initial_exit=127",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_initial_failure_class=python_alias_missing_in_runbook",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_4b17b35302_20260702T231416CST",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_source_result_review_json=/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_result_review_2dd27b50b8_20260702T222425CST/review/result_review_report.json",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_source_result_review_json_sha256=41484dde58c3e89b4f2a9a644f3c8f1700e3f198f76e6f20fae8a7c254a17e78",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_camp_head=4b17b353024a45b2f89d360f3e63c20ae76eac01",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_exit=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_py_compile_exit=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_pytest_exit=1",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_pytest_failure_class=autodl_python_environment_missing_pytest",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_ready",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_passed=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_failed_checks=[]",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_recommendation=do_not_promote_from_current_evidence_alone",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_immediate_action=build_promotion_evidence_package_preflight_only",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_only",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_evidence_package_preflight_authorized=True",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_selector_promotion_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_atom_promotion_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_deployment_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_training_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_candidate_generation_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_replay_execution_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_dp_modification_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_online_selector_change_authorized=False",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_records_total=3200",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_training_records=2914",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_shadow_selected_index_nonzero_records=2832",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_executed_top1_records=3200",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_selection_effect_true_count=0",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_score_expression=score_k(w)=a_k^T w",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_json_sha256=c33a5c47b532fb22d73d82e47a6c80094a308e07837a5e96f560dd85b7bcdd77",
+        "v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_sha256s_sha256=18a3059edc457835635e51f4fc21228fdf19b2bce5db607d8fe832df7ab79bb1",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_ready",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_only",
+        "promotion_decision_plan_ready=True",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_only",
+    ]:
+        assert needle in text
+
+
 def test_current_status_and_readme_point_to_v14() -> None:
     status_text = CURRENT_STATUS_DOC.read_text(encoding="utf-8")
     readme_text = README.read_text(encoding="utf-8")
@@ -1052,6 +1121,7 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "adc71422af56711f8baec545259fe47626f955ef" in status_text
     assert "72fdb3e4c880751948a47d25b0330e3818975162" in status_text
     assert "2dd27b50b8172fb6f31df9a154e55c329f6ae2f9" in status_text
+    assert "4b17b353024a45b2f89d360f3e63c20ae76eac01" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
         "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed"
@@ -1075,6 +1145,14 @@ def test_current_status_and_readme_point_to_v14() -> None:
     )
     assert (
         "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_only_after_explicit_user_authorization"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_ready"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_only"
         in status_text
     )
     assert (
@@ -1138,6 +1216,14 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "9ba54de606c2aff79a2a85cb5015af3ef59468b963492dc3f2e763bbe930f3fe" in status_text
     assert "The result review is read-only" in status_text
     assert "It authorizes only a future\npromotion-decision plan gate, not promotion itself" in status_text
+    assert "## Trained Shadow Replay/Evaluation Promotion-Decision Plan" in status_text
+    assert "python_alias_missing_in_runbook" in status_text
+    assert "do_not_promote_from_current_evidence_alone" in status_text
+    assert "build_promotion_evidence_package_preflight_only" in status_text
+    assert "Evidence-package preflight authorized:" in status_text
+    assert "Plan JSON SHA256:" in status_text
+    assert "c33a5c47b532fb22d73d82e47a6c80094a308e07837a5e96f560dd85b7bcdd77" in status_text
+    assert "The conservative\ndecision is that the current evidence is sufficient" in status_text
     assert "NuScenes is present and must not be marked missing" in status_text
     assert "/autodl-pub/data/nuScenes" in status_text
     assert "they are not the TIER IV" in status_text
@@ -1146,7 +1232,7 @@ def test_current_status_and_readme_point_to_v14() -> None:
         "The training artifact static contract review, trained default-off shadow"
         in status_text
     )
-    assert "The read-only result review has also passed" in status_text
+    assert "The read-only result review and promotion-decision planning gate\nhave also passed" in status_text
 
     assert "docs/diffusion_planner_current_status.md" in readme_text
     assert "docs/diffusion_planner_v14_iteration_audit.md" in readme_text

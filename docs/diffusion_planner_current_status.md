@@ -41,12 +41,15 @@ work to v13.
 - The latest trained default-off shadow replay/evaluation result review ran on
   AutoDL with CAMP synchronized at
   `2dd27b50b8172fb6f31df9a154e55c329f6ae2f9`.
+- The latest trained default-off shadow replay/evaluation promotion-decision
+  plan ran on AutoDL with CAMP synchronized at
+  `4b17b353024a45b2f89d360f3e63c20ae76eac01`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review_passed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_only_after_explicit_user_authorization`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_only`.
 
 ## What Changed
 
@@ -456,21 +459,80 @@ train CAMP, modify DP, change executed trajectory selection, promote, deploy,
 or make safety-benefit/CAMP-over-DP claims. It authorizes only a future
 promotion-decision plan gate, not promotion itself.
 
+## Trained Shadow Replay/Evaluation Promotion-Decision Plan
+
+Verified on AutoDL at 2026-07-02 23:14 CST:
+
+- Passing artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_4b17b35302_20260702T231416CST`
+- First rejected artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_4b17b35302_20260702T231157CST`
+- First rejected failure class:
+  `python_alias_missing_in_runbook`
+- Source result-review status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review_passed`
+- Source result-review authorized work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_only_after_explicit_user_authorization`
+- CAMP head:
+  `4b17b353024a45b2f89d360f3e63c20ae76eac01`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code:
+  `0`
+- Plan status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_ready`
+- Failed checks:
+  `[]`
+- Recommendation:
+  `do_not_promote_from_current_evidence_alone`
+- Immediate action:
+  `build_promotion_evidence_package_preflight_only`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_only`
+- Evidence-package preflight authorized:
+  `True`
+- Source selection logs / records:
+  `32 / 3200`
+- Source training records / dropped all-infeasible:
+  `2914 / 286`
+- Shadow selected non-Top-1 / executed DP Top-1 records:
+  `2832 / 3200`
+- Selection-effect / online-selector-change counts:
+  `0 / 0`
+- Reference-blend, closed-loop outcome, formal seed, and forbidden CAMP
+  provenance counts:
+  `0 / 0 / 0 / 0`
+- First loss / last loss:
+  `2.0419425862497667 / 2.036233432086801`
+- Oracle match rate / feasible candidate rate:
+  `0.22786547700754975 / 0.9781228551818806`
+- Plan JSON SHA256:
+  `c33a5c47b532fb22d73d82e47a6c80094a308e07837a5e96f560dd85b7bcdd77`
+- Artifact SHA256SUMS SHA256:
+  `18a3059edc457835635e51f4fc21228fdf19b2bce5db607d8fe832df7ab79bb1`
+
+This gate is planning-only. It does not promote atoms or selectors, deploy a
+checkpoint, train CAMP, run replay, generate candidates, modify DP, change
+online selection, or authorize safety/CAMP-over-DP claims. The conservative
+decision is that the current evidence is sufficient to plan the evidence
+package preflight, but not sufficient for promotion.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
 The training artifact static contract review, trained default-off shadow
 replay/evaluation preflight, and guarded shadow replay/evaluation execution
-have passed. The read-only result review has also passed. The next gate is
-promotion-decision planning only, and still does not authorize promotion,
-deployment, or safety-benefit claims.
+have passed. The read-only result review and promotion-decision planning gate
+have also passed. The next gate is promotion evidence-package preflight only,
+and still does not authorize promotion, deployment, training, replay,
+candidate generation, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_result_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_only_after_explicit_user_authorization
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_decision_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_only
 
 ## Cleanup Policy
 
