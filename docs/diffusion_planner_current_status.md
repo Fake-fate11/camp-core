@@ -855,6 +855,61 @@ output contract, and no-promotion/no-claims boundary. It did not train CAMP,
 run replay, generate candidates, modify DP, promote, deploy, or authorize
 safety/CAMP-over-DP claims.
 
+## Default-Off Shadow Selector Runtime Artifact Manifest Plan
+
+Verified on AutoDL at 2026-07-03 01:58 CST:
+
+- Plan commit:
+  `2456037d6f3b214f31ea5991a28732aa52e7bed4`
+- Plan script:
+  `scripts/integrations/plan_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest.py`
+- Plan test:
+  `camp_core/tests/test_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_plan.py`
+- Artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_plan_2456037d6f_20260703T015846CST`
+- CAMP head:
+  `2456037d6f3b214f31ea5991a28732aa52e7bed4`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code:
+  `0`
+- Local pytest:
+  `8 passed`
+- AutoDL pytest:
+  `8 passed`
+- Plan status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_plan_ready`
+- Plan checks:
+  `121`
+- Failed checks:
+  `[]`
+- Runtime schema:
+  `dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_v1`
+- Source scope:
+  `public_simulator_fixed_dp_candidate_tensor`
+- Required runtime entries:
+  `atom_scales,static_weights`
+- Required evidence entries:
+  `training_summary,post_static_review,implementation_result,replay_runner`
+- Training summary SHA256:
+  `783684d1fd7038587efc43a47e4ca4f88eb392267187eb4e0042ed346b9fc6a0`
+- Atom scales SHA256:
+  `2239fb09e2231405dbc58b1a79486ff3f3c111a9bab96c24d88e6832f2325b8b`
+- Static weights SHA256:
+  `5bfe692465c0e0cdbf2fb937737674e53b3f41a31ea932a65f65a6321f4c0dde`
+- Report JSON SHA256:
+  `be3734e2d897c85c797ad6cb03ccf3f7af6c88202a0db26954dc9e4e1f984b74`
+- Artifact SHA256SUMS SHA256:
+  `321998d25ec45bfee32890636a4acae76a0b7ce342cae17ca7efd55f7d1e995b`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_only`
+
+This gate is plan-only. It writes only the plan artifact and future static
+review requirements for a default-off runtime artifact manifest. It did not
+write the future runtime manifest, run replay, train CAMP, generate candidates,
+modify DP, promote atoms or selectors, deploy, or authorize safety/CAMP-over-DP
+claims.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -865,17 +920,18 @@ promotion evidence-package preflight have also passed. The default-off shadow
 selector static integration contract plan, implementation plan, and
 implementation static contract review have passed. The implementation unit-test
 plan, implementation unit-tests-only gate, and implementation-only gate have
-also passed. The post-implementation static contract review has passed. The
-next gate is default-off shadow selector runtime artifact manifest planning
-only, and still does not authorize promotion, deployment, training, replay,
+also passed. The post-implementation static contract review and runtime
+artifact manifest plan-only gate have passed. The next gate is default-off
+shadow selector runtime artifact manifest static contract review only, and still
+does not authorize materialization, promotion, deployment, training, replay,
 candidate generation, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_post_implementation_static_contract_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_plan_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_only
 
 ## Cleanup Policy
 
