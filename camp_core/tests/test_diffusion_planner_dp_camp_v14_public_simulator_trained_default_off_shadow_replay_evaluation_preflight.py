@@ -66,6 +66,7 @@ def _fixture(
     module,
     *,
     wrong_gate: bool = False,
+    audit_status: str | None = None,
     negative_weight: bool = False,
     seeds: tuple[int, ...] = (1, 2),
 ) -> dict:
@@ -167,11 +168,12 @@ def _fixture(
     docs = tmp_path / "docs"
     docs.mkdir()
     target = "old_gate" if wrong_gate else module.AUTHORIZED_CURRENT_WORK
+    status = audit_status or module.EXPECTED_CURRENT_STATUS
     v14_audit = docs / "diffusion_planner_v14_iteration_audit.md"
     v14_audit.write_text(
         "\n".join(
             [
-                f"current_v14_status={module.EXPECTED_CURRENT_STATUS}",
+                f"current_v14_status={status}",
                 f"next_work_target={target}",
                 "",
             ]
@@ -180,7 +182,7 @@ def _fixture(
     )
     current_status = docs / "diffusion_planner_current_status.md"
     current_status.write_text(
-        "\n".join([module.EXPECTED_CURRENT_STATUS, module.AUTHORIZED_CURRENT_WORK, ""]),
+        "\n".join([status, module.AUTHORIZED_CURRENT_WORK, ""]),
         encoding="utf-8",
     )
 
@@ -283,6 +285,41 @@ def test_trained_default_off_shadow_replay_preflight_rejects_wrong_eof(
     assert report["final_decision"]["passed"] is False
     assert "audit_latest_next_work" in report["final_decision"]["failed_checks"]
     assert report["final_decision"]["failure_class"] == "v14_eof_contract_mismatch"
+
+
+def test_trained_default_off_shadow_replay_preflight_accepts_execution_gate_refresh(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = _load_module()
+    _patch_small(module, monkeypatch)
+    kwargs = _fixture(
+        tmp_path,
+        module,
+        audit_status=module.READY_STATUS,
+    )
+    kwargs["authorized_current_work"] = module.AUTHORIZED_NEXT_WORK
+    kwargs["expected_current_status"] = module.READY_STATUS
+    kwargs["v14_audit_md"].write_text(
+        "\n".join(
+            [
+                f"current_v14_status={module.READY_STATUS}",
+                f"next_work_target={module.AUTHORIZED_NEXT_WORK}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    kwargs["current_status_md"].write_text(
+        "\n".join([module.READY_STATUS, module.AUTHORIZED_NEXT_WORK, ""]),
+        encoding="utf-8",
+    )
+
+    report = module.build_report(**kwargs)
+
+    assert report["final_decision"]["passed"] is True
+    assert report["final_decision"]["authorized_current_work"] == module.AUTHORIZED_NEXT_WORK
+    assert report["checks"][0]["passed"] is True
+    assert report["shadow_replay_preflight"]["planned_command_count"] == module.EXPECTED_LOG_COUNT
 
 
 def test_trained_default_off_shadow_replay_preflight_rejects_negative_weight(

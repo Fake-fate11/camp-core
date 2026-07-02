@@ -201,6 +201,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--authorized_current_work", default=AUTHORIZED_CURRENT_WORK)
     parser.add_argument("--authorized_next_work", default=AUTHORIZED_NEXT_WORK)
+    parser.add_argument("--expected_current_status", default=EXPECTED_CURRENT_STATUS)
+    parser.add_argument(
+        "--expected_source_review_authorized_next",
+        default=AUTHORIZED_CURRENT_WORK,
+    )
     return parser.parse_args(argv)
 
 
@@ -235,6 +240,10 @@ def main(argv: list[str] | None = None) -> int:
         traffic_light_modes=_parse_strings(args.traffic_light_modes),
         authorized_current_work=args.authorized_current_work,
         authorized_next_work=args.authorized_next_work,
+        expected_current_status=args.expected_current_status,
+        expected_source_review_authorized_next=(
+            args.expected_source_review_authorized_next
+        ),
     )
     write_outputs(
         output_json=args.output_json,
@@ -275,6 +284,8 @@ def build_report(
     traffic_light_modes: tuple[str, ...] = DEFAULT_TRAFFIC_LIGHT_MODES,
     authorized_current_work: str = AUTHORIZED_CURRENT_WORK,
     authorized_next_work: str = AUTHORIZED_NEXT_WORK,
+    expected_current_status: str = EXPECTED_CURRENT_STATUS,
+    expected_source_review_authorized_next: str = AUTHORIZED_CURRENT_WORK,
 ) -> dict[str, Any]:
     training_dir = training_execution_artifact_dir.resolve()
     review_dir = training_artifact_static_contract_review_artifact_dir.resolve()
@@ -368,6 +379,8 @@ def build_report(
         seeds=seeds,
         traffic_light_modes=traffic_light_modes,
         authorized_current_work=authorized_current_work,
+        expected_current_status=expected_current_status,
+        expected_source_review_authorized_next=expected_source_review_authorized_next,
         expected_public_assets=EXPECTED_PUBLIC_ASSETS,
     )
     failed = [check["name"] for check in checks if not check["passed"]]
@@ -707,6 +720,8 @@ def _checks(
     seeds: tuple[int, ...],
     traffic_light_modes: tuple[str, ...],
     authorized_current_work: str,
+    expected_current_status: str,
+    expected_source_review_authorized_next: str,
     expected_public_assets: Sequence[dict[str, str]],
 ) -> list[dict[str, Any]]:
     expected_atom_schema, expected_atom_names = atom_schema_for_dimension(
@@ -720,9 +735,9 @@ def _checks(
 
     add(_expect("v14_audit_exists", v14_audit_md.is_file(), True))
     add(_expect("current_status_exists", current_status_md.is_file(), True))
-    add(_expect("audit_latest_status", _latest_value(v14_text, "current_v14_status"), EXPECTED_CURRENT_STATUS))
+    add(_expect("audit_latest_status", _latest_value(v14_text, "current_v14_status"), expected_current_status))
     add(_expect("audit_latest_next_work", _latest_value(v14_text, "next_work_target"), authorized_current_work))
-    add(_expect("status_doc_current_status", EXPECTED_CURRENT_STATUS in status_text, True))
+    add(_expect("status_doc_current_status", expected_current_status in status_text, True))
     add(_expect("status_doc_next_work", authorized_current_work in status_text, True))
     add(_expect("camp_head_matches_origin", current_camp_head, current_camp_origin_main))
     add(_expect("current_dp_head_fixed", current_dp_head, required_dp_head))
@@ -746,7 +761,7 @@ def _checks(
     add(_expect("review_artifact_dp_head_fixed", review_heads.get("DP_HEAD"), FIXED_DP_HEAD))
     add(_expect("source_review_passed", review_decision.get("passed"), True))
     add(_expect("source_review_status", review_decision.get("status"), EXPECTED_CURRENT_STATUS))
-    add(_expect("source_review_authorized_next", review_decision.get("authorized_next_work"), authorized_current_work))
+    add(_expect("source_review_authorized_next", review_decision.get("authorized_next_work"), expected_source_review_authorized_next))
 
     add(_expect("training_type", summary.get("training_type"), EXPECTED_TRAINING_TYPE))
     add(_expect("label_source", summary.get("label_source"), EXPECTED_LABEL_SOURCE))
