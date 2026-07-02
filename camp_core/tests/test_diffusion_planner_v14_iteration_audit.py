@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_plan_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_plan_only"
     )
 
 
@@ -697,11 +697,11 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_plan_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_plan_only"
     )
 
 
@@ -1783,7 +1783,11 @@ def test_v14_default_off_shadow_selector_runtime_artifact_manifest_plan_ready_is
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    next_section_title = (
+        "## Current V14 Default-Off Shadow Selector Runtime Artifact Manifest "
+        "Static Review Passed After 11f1f7"
+    )
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_plan_script=scripts/integrations/plan_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest.py",
@@ -1878,6 +1882,81 @@ def test_v14_default_off_shadow_selector_runtime_artifact_manifest_plan_ready_is
         assert needle in text
 
 
+def test_v14_default_off_shadow_selector_runtime_artifact_manifest_static_review_passed_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Default-Off Shadow Selector Runtime Artifact Manifest "
+        "Plan Ready After 2456037"
+    )
+    section_title = (
+        "## Current V14 Default-Off Shadow Selector Runtime Artifact Manifest "
+        "Static Review Passed After 11f1f7"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_script=scripts/integrations/review_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_contract.py",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_test=camp_core/tests/test_diffusion_planner_dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_contract.py",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_script_sha256=3be08a737a20fd0957697b586e72fee50dfbf9dafd024aa58fb28d3222fcf8b8",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_test_sha256=05cdbbf8df6ca469e7b939142d5a545b6da88f88f4fa3e4bb4e171a059923309",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_initial_failed_commit=e8fd20270e9a8993c78d34c4e55086749eba07a5",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_initial_failed_failure_class=runtime_artifact_manifest_static_contract_failure",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_initial_failed_checks=script_v14_plan_schema,script_authorizes_static_review_only",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_remediation_commit=11f1f7f853e66eec5327184479fb24ab133cb5bc",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_success_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_11f1f7f853_20260703T021546CST",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_camp_head=11f1f7f853e66eec5327184479fb24ab133cb5bc",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_exit=0",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_autodl_pytest=9 passed",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_passed",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_failed_checks=[]",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_failure_class=None",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_authorized_current_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_only",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_plan_only",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_passed=True",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_check_count=110",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_runtime_schema=dp_camp_v14_public_simulator_default_off_shadow_selector_runtime_v1",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_source_scope=public_simulator_fixed_dp_candidate_tensor",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_source_plan_materialized_by_this_gate=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_required_runtime_entries=atom_scales,static_weights",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_required_evidence_entries=implementation_result,post_static_review,replay_runner,training_summary",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_score_expression=score_k(w)=a_k^T w",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_exit_code_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_report_json_sha256=e9bbd2f62de4bbc06f740bef784c3fec5f7cf768c9878ddb5da3ad12b3e4d7cb",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_sha256s_sha256=554384a654840f5bfcc5ea4d9b4d6e6ba550a0b314e5daccd64cd7238bc05fb6",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_materialization_plan_authorized=True",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_materialization_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_runtime_execution_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_training_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_candidate_generation_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_dp_modification_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_selector_promotion_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_deployment_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_default_off_shadow_selector_runtime_artifact_manifest_static_review_runtime_manifest_materialized_by_this_gate=False",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_plan_only",
+        "runtime_artifact_manifest_static_contract_review_passed=True",
+        "runtime_artifact_manifest_materialization_plan_authorized=True",
+        "runtime_artifact_manifest_materialization_authorized=False",
+        "default_off_shadow_selector_runtime_execution_authorized=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_plan_only",
+    ]:
+        assert needle in text
+
+
 def test_current_status_and_readme_point_to_v14() -> None:
     status_text = CURRENT_STATUS_DOC.read_text(encoding="utf-8")
     readme_text = README.read_text(encoding="utf-8")
@@ -1905,6 +1984,7 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "98e495749e605304f1094bff62e47ab7c8317775" in status_text
     assert "2610c4a89f20f86a4ffbe8a8f275ae56a6b85b3a" in status_text
     assert "2456037d6f3b214f31ea5991a28732aa52e7bed4" in status_text
+    assert "11f1f7f853e66eec5327184479fb24ab133cb5bc" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
         "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed"
@@ -2004,6 +2084,14 @@ def test_current_status_and_readme_point_to_v14() -> None:
     )
     assert (
         "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_only"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_static_contract_review_passed"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialization_plan_only"
         in status_text
     )
     assert (
@@ -2117,6 +2205,12 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "Plan checks:" in status_text
     assert "`121`" in status_text
     assert "did not\nwrite the future runtime manifest" in status_text
+    assert "## Default-Off Shadow Selector Runtime Artifact Manifest Static Review" in status_text
+    assert "554384a654840f5bfcc5ea4d9b4d6e6ba550a0b314e5daccd64cd7238bc05fb6" in status_text
+    assert "e9bbd2f62de4bbc06f740bef784c3fec5f7cf768c9878ddb5da3ad12b3e4d7cb" in status_text
+    assert "First failed artifact:" in status_text
+    assert "runtime_artifact_manifest_static_contract_failure" in status_text
+    assert "script_v14_plan_schema,script_authorizes_static_review_only" in status_text
     assert "NuScenes is present and must not be marked missing" in status_text
     assert "/autodl-pub/data/nuScenes" in status_text
     assert "they are not the TIER IV" in status_text
@@ -2137,11 +2231,11 @@ def test_current_status_and_readme_point_to_v14() -> None:
     )
     assert (
         "The post-implementation static contract review and runtime\n"
-        "artifact manifest plan-only gate have passed"
+        "artifact manifest plan-only/static-review gates have passed"
         in status_text
     )
     assert (
-        "next gate is default-off\nshadow selector runtime artifact manifest static contract review only"
+        "next gate is\ndefault-off shadow selector runtime artifact manifest materialization planning\nonly"
         in status_text
     )
 
