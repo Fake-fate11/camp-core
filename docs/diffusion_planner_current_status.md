@@ -20,12 +20,15 @@ work to v13.
 - The latest public simulator fixed-DP candidate generation zero-overlap
   validation ran on AutoDL with CAMP synchronized at
   `2e17d119941b8134fc4adb7b607204d7ee95899e`.
+- The latest public simulator fixed-DP candidate data-preparation preflight
+  ran on AutoDL with CAMP synchronized at
+  `356ce6301cd02a59dedb971f85aac8481be0a7fd`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed`.
+  `public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_data_preparation_preflight`.
+  `public_simulator_fixed_dp_candidate_generation_training_preflight`.
 
 ## What Changed
 
@@ -155,16 +158,41 @@ root had only one candidate tensor hash and empty path, record, and split-root
 registries. That rejected artifact is recorded as reference-root evidence, not
 as a passing holdout claim.
 
+## Data-Preparation Preflight Result
+
+Verified on AutoDL at 2026-07-02 19:25 CST:
+
+- Artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_356ce6301c_20260702T192546CST`
+- Candidate output root:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_execution_1ffff597eb_20260702T172252CST`
+- Zero-overlap artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_2e17d11994_20260702T190542CST_complete_reference`
+- Exit code: `0`
+- Status:
+  `public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_ready`
+- Selection logs: `32`
+- Records: `3200`
+- Failed records: `0`
+- Future training input contract satisfied: `True`
+- Zero-overlap counts remain:
+  `candidate_tensor_hash=0`, `path_signature=0`,
+  `record_identity=0`, `split_manifest_root=0`
+- Training input manifest:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_356ce6301c_20260702T192546CST/training_input_manifest.json`
+
+This preflight wrote only data-preparation/training-input evidence. It did not
+materialize training arrays, train CAMP, generate trajectories with CAMP,
+modify DP, promote, deploy, or make any safety-benefit/CAMP-over-DP claim.
+
 ## Distance To Training
 
 Training is no longer blocked on an external DP-native source `.npz` manifest.
 The remaining gates are the minimum evidence needed to keep the fixed-DP
 selector boundary auditable:
 
-1. Run data-preparation preflight over the zero-overlap fixed-DP candidate
-   source.
-2. Run training preflight.
-3. Start CAMP training only if the preflight authorizes it.
+1. Run training preflight over the data-preparation training input manifest.
+2. Start CAMP training only if the preflight authorizes it.
 
 This does not authorize CAMP generation, DP modification, postprocessing,
 guidance, reference blending, closed-loop outcome labels, formal seeds 11/12/13,

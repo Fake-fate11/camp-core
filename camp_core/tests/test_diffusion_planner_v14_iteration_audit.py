@@ -363,7 +363,7 @@ def test_v14_public_simulator_fixed_dp_candidate_generation_execution_passed_is_
         assert needle in text
 
 
-def test_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed_is_eof() -> None:
+def test_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Public Simulator Fixed-DP Candidate Generation "
@@ -373,10 +373,14 @@ def test_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validat
         "## Current V14 Public Simulator Fixed-DP Candidate Generation "
         "Zero-Overlap Validation Passed After 2e17d11"
     )
+    next_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate "
+        "Data-Preparation Preflight Ready After 356ce63"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_incomplete_reference_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_2e17d11994_20260702T190418CST",
@@ -438,13 +442,87 @@ def test_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validat
     ]:
         assert needle in text
 
+
+def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_ready_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate Generation "
+        "Zero-Overlap Validation Passed After 2e17d11"
+    )
+    section_title = (
+        "## Current V14 Public Simulator Fixed-DP Candidate "
+        "Data-Preparation Preflight Ready After 356ce63"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_356ce6301c_20260702T192546CST",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_execution_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_execution_1ffff597eb_20260702T172252CST",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_zero_overlap_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_2e17d11994_20260702T190542CST_complete_reference",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_camp_head=356ce6301cd02a59dedb971f85aac8481be0a7fd",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_camp_origin_main=356ce6301cd02a59dedb971f85aac8481be0a7fd",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_exit=0",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_status=public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_ready",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_passed=True",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_failed_checks=[]",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_selection_log_count=32",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_records=3200",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_failed_records=0",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_future_training_input_contract_satisfied=True",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_zero_overlap_record_count=3200",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_zero_overlap_candidate_tensor_hash_intersection_count=0",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_zero_overlap_path_signature_intersection_count=0",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_zero_overlap_record_identity_intersection_count=0",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_zero_overlap_split_manifest_root_intersection_count=0",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_training_input_manifest=/root/autodl-tmp/camp_dp_v14_public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_356ce6301c_20260702T192546CST/training_input_manifest.json",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_report_json_sha256=49775ba22bc399603f78f29afe1c1b3dad3126159fa4304f66b95805a3f21334",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_training_input_manifest_sha256=98c63d7f5907615b864a0acc867bb15589bbd5d6bed47783fc673b6f856e2500",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_post_execution_sha256s_sha256=d0d53f2602d7f2a8257772e643d1e964b39e74621065465172329bc91875dcda",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_training_preflight_authorized_next=True",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_training_execution_authorized_next=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_data_preparation_executed=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_candidate_generation_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_trajectory_generation_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_trajectory_modification_by_camp_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_reference_blend_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_guidance_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_postprocess_or_postselection_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_closed_loop_outcome_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_dp_modification_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_selector_promotion_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_deployment_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_approved_atoms_nonnegative_simplex_only=True",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_simplex_cvar_l2_master_convexity_preserved=True",
+        "v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_score_expression=score_k(w)=a_k^T w",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_ready",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_training_preflight",
+        "data_preparation_preflight_passed=True",
+        "training_preflight_authorized_next=True",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_training_preflight",
+    ]:
+        assert needle in text
+
     latest_status = text.rsplit("current_v14_status=", maxsplit=1)[1].splitlines()[0]
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed"
+        == "public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_ready"
     )
-    assert latest_target == "public_simulator_fixed_dp_candidate_generation_data_preparation_preflight"
+    assert latest_target == "public_simulator_fixed_dp_candidate_generation_training_preflight"
 
 
 def test_current_status_and_readme_point_to_v14() -> None:
@@ -457,13 +535,14 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "1ffff597ebdc0cc598daff7db2150df2d5d898ab" in status_text
     assert "458c66c8aeac8b9eb15ba3f06a7f87e5c9ef0740" in status_text
     assert "2e17d119941b8134fc4adb7b607204d7ee95899e" in status_text
+    assert "356ce6301cd02a59dedb971f85aac8481be0a7fd" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
-        "public_simulator_fixed_dp_candidate_generation_zero_overlap_validation_passed"
+        "public_simulator_fixed_dp_candidate_generation_data_preparation_preflight_ready"
         in status_text
     )
     assert (
-        "public_simulator_fixed_dp_candidate_generation_data_preparation_preflight"
+        "public_simulator_fixed_dp_candidate_generation_training_preflight"
         in status_text
     )
     assert (
@@ -481,6 +560,10 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "`candidate_tensor_hash=0`, `path_signature=0`" in status_text
     assert "`record_identity=0`, `split_manifest_root=0`" in status_text
     assert "reference_training_registry_missing_or_empty" in status_text
+    assert "## Data-Preparation Preflight Result" in status_text
+    assert "Failed records: `0`" in status_text
+    assert "Future training input contract satisfied: `True`" in status_text
+    assert "training_input_manifest.json" in status_text
     assert "NuScenes is present and must not be marked missing" in status_text
     assert "/autodl-pub/data/nuScenes" in status_text
     assert "they are not the TIER IV" in status_text
