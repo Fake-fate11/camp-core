@@ -47,12 +47,15 @@ work to v13.
 - The latest trained default-off shadow replay/evaluation promotion evidence
   package preflight ran on AutoDL with CAMP synchronized at
   `9aea47cc48aad4be26d8221e3c6c40dcf612d9d1`.
+- The latest default-off shadow selector static integration contract plan ran
+  on AutoDL with CAMP synchronized at
+  `8fe12a0fbaa2083613cfaf83f5d0f8693423e6c1`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_only`.
 
 ## What Changed
 
@@ -567,23 +570,63 @@ and shadow execution hashes. It does not promote, deploy, train CAMP, run
 replay, generate candidates, modify DP, change online selection, or authorize
 safety/CAMP-over-DP claims.
 
+## Default-Off Shadow Selector Static Integration Contract Plan
+
+Verified on AutoDL at 2026-07-02 23:59 CST:
+
+- Passing artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_static_integration_contract_plan_8fe12a0fba_20260702T235910CST`
+- CAMP head:
+  `8fe12a0fbaa2083613cfaf83f5d0f8693423e6c1`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit code:
+  `0`
+- Plan status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_ready`
+- Failed checks:
+  `[]`
+- Runtime effect:
+  `must_log_shadow_selected_index_without_changing_dp_top1_output`
+- Candidate source:
+  `fixed current-tick DP candidate tensor before CAMP scoring`
+- Selection rule:
+  `argmin_k score_k(w) over finite feasible candidate rows`
+- Implementation plan authorized:
+  `True`
+- Implementation authorized:
+  `False`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_only`
+- Static contract plan JSON SHA256:
+  `2389f0bf1d2a08e2453e1944c940108fa8997a123fa65e2981397f34d5775951`
+- Artifact SHA256SUMS SHA256:
+  `f5e52d9645cf3b8e1505c3ab63fdda0f5da47c86361a4de504e53007d0d13697`
+
+This gate is plan-only. It inspected the evidence-package preflight and source
+surfaces for CAMP selection, replay runner fail-closed behavior, and Benders
+affine atom tests. It did not implement selector wiring, train CAMP, replay,
+generate candidates, modify DP, promote, deploy, or authorize safety/CAMP-over-DP
+claims.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
 The training artifact static contract review, trained default-off shadow
 replay/evaluation preflight, and guarded shadow replay/evaluation execution
 have passed. The read-only result review, promotion-decision planning gate, and
-promotion evidence-package preflight have also passed. The next gate is
-default-off shadow selector static integration contract planning only, and
-still does not authorize promotion, deployment, training, replay, candidate
+promotion evidence-package preflight have also passed. The default-off shadow
+selector static integration contract plan has passed. The next gate is
+default-off shadow selector implementation planning only, and still does not
+authorize implementation, promotion, deployment, training, replay, candidate
 generation, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_promotion_evidence_package_preflight_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_static_integration_contract_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_implementation_plan_only
 
 ## Cleanup Policy
 
