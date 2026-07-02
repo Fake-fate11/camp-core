@@ -9,50 +9,78 @@ work to v13.
 
 ## Current Authority
 
-- The latest source-data availability audit executed after local, GitHub
+- The latest source reclassification audit executed after local, GitHub
   `origin/main`, and AutoDL CAMP were synchronized at
-  `6f5bf60d5cd0bf5a3237972a97588b9830267e58`.
+  `88fd3cac6722aedfd4ca13b41f904b4a3331c219`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `source_data_unavailable_external_nonfixture_dp_native_npz_required`.
+  `public_simulator_fixed_dp_candidate_source_available_preflight_required`.
 - Current next work target is
-  `external_valid_nonfixture_dp_native_npz_source_manifest_required_before_fixed_dp_candidate_generation_execution`.
+  `public_simulator_fixed_dp_candidate_generation_preflight`.
 
-## Why The Current Gate Exists
+## What Changed
 
-The useful gate is not a training-quality milestone. It is a provenance gate:
-CAMP may only rerank or select from fixed DP candidate tensors with affine
-scores `score_k(w)=a_k^T w`; it must not generate, repair, modify, blend, or
-postprocess trajectories.
+The previous EOF treated a nonfixture DP-native source `.npz` manifest as a
+prerequisite for all fixed-DP candidate generation. That was too strict for the
+current CAMP objective.
 
-We can use DP to generate training candidate tensor data, but first the DP run
-needs an approved DP-native `.npz` source manifest. Without that manifest, later
-training and evaluation cannot prove zero overlap across `candidate_tensor_hash`,
-`path_signature`, `record_identity`, and `split_manifest_root`, and cannot prove
-Full36 or formal seeds 11/12/13 were excluded.
+TIER IV's public answer says the published DP weights were trained on internal
+data, and the official training-data converter path is Autoware rosbags plus
+maps through `cpp_tools/.../data_converter.cpp` and
+`ros_scripts/parse_rosbag_for_directory.py`. That TIER IV rosbag/DP-native
+training source is still unavailable in the current AutoDL workspace.
+
+However, CAMP does not need to train or modify DP. The current task is to train
+CAMP as a fixed-DP candidate tensor reranker/selector. For that objective, the
+usable source is TIER IV's public simulator path: official v5.0 DP weights,
+parameter file, public sample/Nishishinjuku maps, and declared routes. DP
+generates fixed candidate tensors; CAMP only scores and selects among those
+tensors.
+
+## Available Public Simulator Inputs
+
+Verified on AutoDL at 2026-07-02 16:48:03 CST:
+
+- `diffusion_planner.pth`
+  SHA256 `4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75`
+- `diffusion_planner.param.json`
+  SHA256 `ee3145b68fd1e1e44e532933dfe66cfee4384fbd637382c87ab5190c66a8e268`
+- `sample-map-planning` no-ROS lanelet map
+  SHA256 `a81f937c00158324c83688adc5459e90478f5b3c69a51225ad7f965b80d58036`
+- `sample_map_tl_route_59_to_86.pkl`
+  SHA256 `dc9b3906bace09ee9e99062ac702df1c5b2d2f4620d0a7fa14022faa9a39e4c4`
+- `sample_map_route_2_to_104.pkl`
+  SHA256 `489980fd79458695db68b30e91d4fcfc3efb80aca9e82ee9858a94cf2822ae35`
+- `nishishinjuku_no_ros.osm`
+  SHA256 `bf1ff35bfb7562b6ab15e62b1ac55770bb84352b00af5204c3601bd47f079b81`
+- `nishishinjuku_release_auto_route.pkl`
+  SHA256 `fef5f2be64fb9d043d4cdf46672d28cf8d3445d67bb6b2c6c1bb7570621e4337`
+- `nishishinjuku_lane_change_route_7_via_8_to_1.pkl`
+  SHA256 `4d03a3f99f3d39d51e53389064c83f2a942921b7ddea437c9ed3730ae0fd033b`
+
+NuScenes is present and must not be marked missing. AutoDL exposes public
+nuScenes archives under `/autodl-pub/data/nuScenes`. They are not currently
+extracted or registered in CAMP data paths, and they are not the TIER IV
+official rosbag-to-DP `.npz` training source. A nuScenes-to-DP adapter would be
+a separate data-adapter project and is not the current gate.
 
 ## Distance To Training
 
-Training is blocked by one real data-provenance problem. The AutoDL validated
-scan checked 415 `.npz` files. Only one file had the required DP core keys, and
-it was `Diffusion-Planner/scenario_generation/tests/test_data/fixture_scene.npz`,
-so it is not a valid source for candidate generation or training. A follow-up
-source-data availability audit found no raw rosbag metadata, `.db3`, `.mcap`,
-or C++ training binary files that could generate valid nonfixture DP-native
-source `.npz` records. The server does have maps and route pickles, but not the
-raw source data required by DP's documented rosbag-to-npz path.
+Training is no longer blocked on an external DP-native source `.npz` manifest.
+The remaining gates are the minimum evidence needed to keep the fixed-DP
+selector boundary auditable:
 
-1. Produce or locate an approved `fresh_nonformal_fixed_dp_npz` manifest whose
-   files are DP-native `.npz` records and satisfy the current boundary.
-2. Materialize the fixed DP execution input contract and `valid_set_list`.
-3. Run fixed DP candidate generation.
-4. Run zero-overlap validation across all four required keys.
-5. Run data-preparation and training preflight.
-6. Start CAMP training only if the preflight authorizes it.
+1. Run `public_simulator_fixed_dp_candidate_generation_preflight`.
+2. Generate fixed DP candidate tensor data from the public simulator assets.
+3. Run zero-overlap validation across `candidate_tensor_hash`,
+   `path_signature`, `record_identity`, and `split_manifest_root`.
+4. Run data-preparation and training preflight.
+5. Start CAMP training only if the preflight authorizes it.
 
-If step 1 cannot be satisfied from existing AutoDL artifacts, the next action is
-source-data remediation, not more planning gates.
+This does not authorize CAMP generation, DP modification, postprocessing,
+guidance, reference blending, closed-loop outcome labels, formal seeds 11/12/13,
+promotion, deployment, or safety-benefit claims.
 
 ## Cleanup Policy
 

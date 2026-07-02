@@ -43,7 +43,7 @@ def test_v14_audit_rollover_points_forward() -> None:
     ]:
         assert needle in text
 
-def test_v14_approved_source_manifest_remediation_rejected_no_nonfixture_source_is_eof() -> None:
+def test_v14_approved_source_manifest_remediation_rejected_no_nonfixture_source_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Current V14 Audit Rollover"
     section_title = (
@@ -93,19 +93,8 @@ def test_v14_approved_source_manifest_remediation_rejected_no_nonfixture_source_
     ]:
         assert needle in text
 
-    latest_status = text.rsplit("current_v14_status=", maxsplit=1)[1].splitlines()[0]
-    latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
-    assert (
-        latest_status
-        == "source_data_unavailable_external_nonfixture_dp_native_npz_required"
-    )
-    assert (
-        latest_target
-        == "external_valid_nonfixture_dp_native_npz_source_manifest_required_before_fixed_dp_candidate_generation_execution"
-    )
 
-
-def test_v14_source_data_availability_audit_rejected_missing_raw_source_is_eof() -> None:
+def test_v14_source_data_availability_audit_rejected_missing_raw_source_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Current V14 Approved Source Manifest Remediation Validated "
@@ -115,10 +104,14 @@ def test_v14_source_data_availability_audit_rejected_missing_raw_source_is_eof()
         "## Current V14 Source Data Availability Audit Rejected Missing "
         "Raw DP Source After 6f5bf60"
     )
+    next_section_title = (
+        "## Current V14 Public Simulator Source Reclassification Unblocked "
+        "Candidate Tensor Preflight After 88fd3ca"
+    )
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_source_data_availability_audit_artifact=/root/autodl-tmp/camp_dp_v14_source_data_availability_audit_6f5bf60_20260702T145358CST",
@@ -158,13 +151,77 @@ def test_v14_source_data_availability_audit_rejected_missing_raw_source_is_eof()
     ]:
         assert needle in text
 
+
+def test_v14_public_simulator_source_reclassification_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Current V14 Source Data Availability Audit Rejected Missing "
+        "Raw DP Source After 6f5bf60"
+    )
+    section_title = (
+        "## Current V14 Public Simulator Source Reclassification Unblocked "
+        "Candidate Tensor Preflight After 88fd3ca"
+    )
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_source_reclassification_remote_timestamp=2026-07-02T16:48:03CST",
+        "v14_public_simulator_source_reclassification_local_head=88fd3cac6722aedfd4ca13b41f904b4a3331c219",
+        "v14_public_simulator_source_reclassification_autodl_camp_head=88fd3cac6722aedfd4ca13b41f904b4a3331c219",
+        "v14_public_simulator_source_reclassification_autodl_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_source_reclassification_official_dp_internal_training_data_available=False",
+        "v14_public_simulator_source_reclassification_official_rosbag_to_npz_source_available=False",
+        "v14_public_simulator_source_reclassification_public_simulator_assets_available=True",
+        "v14_public_simulator_source_reclassification_public_nuscenes_archives_available=True",
+        "v14_public_simulator_source_reclassification_public_nuscenes_archives_root=/autodl-pub/data/nuScenes",
+        "v14_public_simulator_source_reclassification_nuscenes_marked_missing=False",
+        "v14_public_simulator_source_reclassification_nuscenes_available_but_not_dp_native=True",
+        "v14_public_simulator_source_reclassification_public_nuscenes_direct_dp_source=False",
+        "v14_public_simulator_source_reclassification_nuscenes_adapter_authorized_by_current_gate=False",
+        "v14_public_simulator_source_reclassification_diffusion_planner_pth_sha256=4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75",
+        "v14_public_simulator_source_reclassification_diffusion_planner_param_json_sha256=ee3145b68fd1e1e44e532933dfe66cfee4384fbd637382c87ab5190c66a8e268",
+        "v14_public_simulator_source_reclassification_sample_map_no_ros_sha256=a81f937c00158324c83688adc5459e90478f5b3c69a51225ad7f965b80d58036",
+        "v14_public_simulator_source_reclassification_sample_tl_route_sha256=dc9b3906bace09ee9e99062ac702df1c5b2d2f4620d0a7fa14022faa9a39e4c4",
+        "v14_public_simulator_source_reclassification_sample_normal_route_sha256=489980fd79458695db68b30e91d4fcfc3efb80aca9e82ee9858a94cf2822ae35",
+        "v14_public_simulator_source_reclassification_nishishinjuku_no_ros_sha256=bf1ff35bfb7562b6ab15e62b1ac55770bb84352b00af5204c3601bd47f079b81",
+        "v14_public_simulator_source_reclassification_nishishinjuku_release_route_sha256=fef5f2be64fb9d043d4cdf46672d28cf8d3445d67bb6b2c6c1bb7570621e4337",
+        "v14_public_simulator_source_reclassification_nishishinjuku_lane_change_route_sha256=4d03a3f99f3d39d51e53389064c83f2a942921b7ddea437c9ed3730ae0fd033b",
+        "v14_public_simulator_source_reclassification_external_dp_native_source_npz_gate_too_strict_for_camp=True",
+        "v14_public_simulator_source_reclassification_fixed_dp_candidate_tensor_source_is_public_simulator=True",
+        "v14_public_simulator_source_reclassification_fixed_dp_candidate_generation_preflight_authorized_next=True",
+        "v14_public_simulator_source_reclassification_fixed_dp_candidate_generation_executed=False",
+        "v14_public_simulator_source_reclassification_training_authorized_next=False",
+        "v14_public_simulator_source_reclassification_dp_modification=False",
+        "v14_public_simulator_source_reclassification_camp_generation=False",
+        "current_v14_status=public_simulator_fixed_dp_candidate_source_available_preflight_required",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_preflight",
+        "tier4_rosbag_dp_training_source_available=False",
+        "official_tier4_dp_training_data_available=False",
+        "public_nuscenes_archives_available=True",
+        "public_simulator_fixed_dp_candidate_tensor_source_available=True",
+        "public_simulator_fixed_dp_candidate_generation_preflight_authorized_next=True",
+        "fixed_dp_candidate_generation_authorized_next=False",
+        "training_preflight_authorized_next=False",
+        "training_execution_authorized_by_current_boundary=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "closed_loop_outcome_authorized=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_preflight",
+    ]:
+        assert needle in text
+
     latest_status = text.rsplit("current_v14_status=", maxsplit=1)[1].splitlines()[0]
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
-    assert latest_status == "source_data_unavailable_external_nonfixture_dp_native_npz_required"
     assert (
-        latest_target
-        == "external_valid_nonfixture_dp_native_npz_source_manifest_required_before_fixed_dp_candidate_generation_execution"
+        latest_status
+        == "public_simulator_fixed_dp_candidate_source_available_preflight_required"
     )
+    assert latest_target == "public_simulator_fixed_dp_candidate_generation_preflight"
 
 
 def test_current_status_and_readme_point_to_v14() -> None:
@@ -173,13 +230,17 @@ def test_current_status_and_readme_point_to_v14() -> None:
 
     assert "docs/diffusion_planner_v14_iteration_audit.md" in status_text
     assert "do not keep appending current\nwork to v13" in status_text
-    assert "6f5bf60d5cd0bf5a3237972a97588b9830267e58" in status_text
+    assert "88fd3cac6722aedfd4ca13b41f904b4a3331c219" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
-        "external_valid_nonfixture_dp_native_npz_source_manifest_required_before_fixed_dp_candidate_generation_execution"
+        "public_simulator_fixed_dp_candidate_generation_preflight"
         in status_text
     )
-    assert "no raw rosbag metadata, `.db3`, `.mcap`,\nor C++ training binary files" in status_text
+    assert "NuScenes is present and must not be marked missing" in status_text
+    assert "/autodl-pub/data/nuScenes" in status_text
+    assert "they are not the TIER IV" in status_text
+    assert "official rosbag-to-DP `.npz` training source" in status_text
+    assert "Training is no longer blocked on an external DP-native source `.npz` manifest" in status_text
 
     assert "docs/diffusion_planner_current_status.md" in readme_text
     assert "docs/diffusion_planner_v14_iteration_audit.md" in readme_text
