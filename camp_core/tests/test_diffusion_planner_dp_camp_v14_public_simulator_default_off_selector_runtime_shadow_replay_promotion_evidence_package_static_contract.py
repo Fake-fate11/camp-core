@@ -154,20 +154,34 @@ def _fixture(
     module,
     *,
     wrong_eof: bool = False,
+    rerun_boundary: bool = False,
     selector_promotion_authorized: bool = False,
     selection_score_worse_records: int = 0,
 ) -> dict:
     docs = tmp_path / "docs"
-    next_work = "wrong_gate" if wrong_eof else module.SOURCE_AUTHORIZED_NEXT_WORK
+    status = module.SOURCE_PREFLIGHT_STATUS
+    next_work = module.SOURCE_AUTHORIZED_NEXT_WORK
+    extra_audit_lines = [
+        "default_off_shadow_selector_runtime_promotion_evidence_package_preflight_ready=True",
+        "default_off_shadow_selector_runtime_promotion_evidence_package_static_review_authorized=True",
+    ]
+    if rerun_boundary:
+        status = module.REJECT_STATUS
+        next_work = module.SOURCE_RERUN_DECISION_NEXT_WORK
+        extra_audit_lines = [
+            "default_off_shadow_selector_runtime_promotion_evidence_package_static_review_failed=True",
+            "default_off_shadow_selector_runtime_promotion_evidence_package_static_review_rerun_requires_user_decision=True",
+        ]
+    if wrong_eof:
+        next_work = "wrong_gate"
     v14_audit = _write(
         docs / "diffusion_planner_v14_iteration_audit.md",
         "\n".join(
             [
                 "## Runtime Promotion Evidence-Package Preflight",
-                f"current_v14_status={module.SOURCE_PREFLIGHT_STATUS}",
+                f"current_v14_status={status}",
                 f"next_work_target={next_work}",
-                "default_off_shadow_selector_runtime_promotion_evidence_package_preflight_ready=True",
-                "default_off_shadow_selector_runtime_promotion_evidence_package_static_review_authorized=True",
+                *extra_audit_lines,
                 "default_off_shadow_selector_runtime_execution_authorized=False",
                 "dp_modification_authorized_by_current_boundary=False",
                 "selector_promotion_authorized=False",
@@ -182,8 +196,8 @@ def _fixture(
         docs / "diffusion_planner_current_status.md",
         "\n".join(
             [
-                f"current_v14_status={module.SOURCE_PREFLIGHT_STATUS}",
-                f"next_work_target={module.SOURCE_AUTHORIZED_NEXT_WORK}",
+                f"current_v14_status={status}",
+                f"next_work_target={next_work if not wrong_eof else module.SOURCE_AUTHORIZED_NEXT_WORK}",
                 "",
             ]
         ),
@@ -225,6 +239,7 @@ def _fixture(
         "current_camp_origin_main": CAMP_HEAD,
         "current_dp_head": module.FIXED_DP_HEAD,
         "enabled": True,
+        "rerun_after_user_authorization": False,
         "expected_counts": {
             "selection_log_count": 1,
             "validation_summary_count": 1,
@@ -298,6 +313,34 @@ def test_runtime_promotion_evidence_package_static_review_rejects_wrong_eof(tmp_
     assert report["final_decision"]["passed"] is False
     assert "audit_latest_boundary_matches_static_review_gate" in report["final_decision"]["failed_checks"]
     assert report["final_decision"]["failure_class"] == "v14_eof_contract_mismatch"
+
+
+def test_runtime_promotion_evidence_package_static_review_rejects_rerun_boundary_without_flag(tmp_path: Path) -> None:
+    module = _load_module()
+    kwargs = _fixture(tmp_path, module, rerun_boundary=True)
+    kwargs.pop("source_files")
+
+    report = module.build_report(**kwargs)
+
+    assert report["final_decision"]["passed"] is False
+    assert (
+        "audit_rerun_requires_explicit_user_authorization_flag"
+        in report["final_decision"]["failed_checks"]
+    )
+    assert report["final_decision"]["failure_class"] == "v14_eof_contract_mismatch"
+
+
+def test_runtime_promotion_evidence_package_static_review_accepts_authorized_rerun_boundary(tmp_path: Path) -> None:
+    module = _load_module()
+    kwargs = _fixture(tmp_path, module, rerun_boundary=True)
+    kwargs.pop("source_files")
+    kwargs["rerun_after_user_authorization"] = True
+
+    report = module.build_report(**kwargs)
+
+    assert report["final_decision"]["passed"] is True
+    assert report["analysis"]["rerun_after_user_authorization"] is True
+    assert report["final_decision"]["authorized_next_work"] == module.AUTHORIZED_NEXT_WORK
 
 
 def test_runtime_promotion_evidence_package_static_review_rejects_promotion_leak(tmp_path: Path) -> None:

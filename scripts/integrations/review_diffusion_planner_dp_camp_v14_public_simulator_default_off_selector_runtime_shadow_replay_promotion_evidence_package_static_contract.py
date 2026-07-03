@@ -36,6 +36,11 @@ SOURCE_AUTHORIZED_NEXT_WORK = (
     "shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_"
     "promotion_evidence_package_static_review_only"
 )
+SOURCE_RERUN_DECISION_NEXT_WORK = (
+    "public_simulator_fixed_dp_candidate_generation_trained_default_off_"
+    "shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_"
+    "promotion_evidence_package_static_review_rerun_requires_user_decision"
+)
 READY_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_"
     "shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_"
@@ -125,6 +130,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Explicit opt-in for static review only; no promotion action is executed.",
     )
+    parser.add_argument(
+        "--enable_v14_runtime_promotion_evidence_package_static_review_rerun_after_user_authorization",
+        action="store_true",
+        help=(
+            "Explicit opt-in for rerunning this static review after a recorded "
+            "failed attempt and user authorization."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -151,6 +164,9 @@ def main(argv: list[str] | None = None) -> int:
         required_dp_head=args.required_dp_head,
         label=args.label,
         enabled=args.enable_v14_runtime_promotion_evidence_package_static_review,
+        rerun_after_user_authorization=(
+            args.enable_v14_runtime_promotion_evidence_package_static_review_rerun_after_user_authorization
+        ),
         expected_counts={
             name: getattr(args, f"expected_{name}")
             for name in DEFAULT_EXPECTED_COUNTS
@@ -177,6 +193,7 @@ def build_report(
     required_dp_head: str = FIXED_DP_HEAD,
     label: str | None = None,
     enabled: bool = False,
+    rerun_after_user_authorization: bool = False,
     expected_counts: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     expected = dict(DEFAULT_EXPECTED_COUNTS)
@@ -219,7 +236,13 @@ def build_report(
     checks.extend(_source_preflight_checks(preflight, expected))
     checks.extend(_artifact_manifest_checks(preflight))
     checks.extend(_source_surface_checks(texts.get("preflight_script_py", ""), texts.get("preflight_test_py", "")))
-    checks.extend(_audit_contract_checks(texts.get("v14_audit_md", ""), texts.get("current_status_md", "")))
+    checks.extend(
+        _audit_contract_checks(
+            texts.get("v14_audit_md", ""),
+            texts.get("current_status_md", ""),
+            rerun_after_user_authorization=rerun_after_user_authorization,
+        )
+    )
 
     passed = all(check["passed"] for check in checks)
     return {
@@ -227,6 +250,7 @@ def build_report(
         "analysis": {
             "label": label,
             "static_review_only": True,
+            "rerun_after_user_authorization": bool(rerun_after_user_authorization),
             "runtime_promotion_evidence_package_preflight_json": str(
                 runtime_promotion_evidence_package_preflight_json.resolve()
             ),
@@ -482,11 +506,20 @@ def _source_surface_checks(script: str, test: str) -> list[dict[str, Any]]:
     ]
 
 
-def _audit_contract_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
+def _audit_contract_checks(
+    v14_text: str,
+    status_text: str,
+    *,
+    rerun_after_user_authorization: bool = False,
+) -> list[dict[str, Any]]:
     eof = _latest_text_block(v14_text)
     audit_pending = (
         f"current_v14_status={SOURCE_PREFLIGHT_STATUS}" in eof
         and f"next_work_target={SOURCE_AUTHORIZED_NEXT_WORK}" in eof
+    )
+    audit_rerun_decision = (
+        f"current_v14_status={REJECT_STATUS}" in eof
+        and f"next_work_target={SOURCE_RERUN_DECISION_NEXT_WORK}" in eof
     )
     audit_complete = (
         f"current_v14_status={READY_STATUS}" in eof
@@ -496,28 +529,75 @@ def _audit_contract_checks(v14_text: str, status_text: str) -> list[dict[str, An
         f"current_v14_status={SOURCE_PREFLIGHT_STATUS}" in status_text
         and f"next_work_target={SOURCE_AUTHORIZED_NEXT_WORK}" in status_text
     )
+    status_rerun_decision = (
+        f"current_v14_status={REJECT_STATUS}" in status_text
+        and f"next_work_target={SOURCE_RERUN_DECISION_NEXT_WORK}" in status_text
+    )
     status_complete = (
         f"current_v14_status={READY_STATUS}" in status_text
         and f"next_work_target={AUTHORIZED_NEXT_WORK}" in status_text
     )
+    audit_boundary_ok = audit_pending or audit_complete or (
+        rerun_after_user_authorization and audit_rerun_decision
+    )
+    status_boundary_ok = status_pending or status_complete or (
+        rerun_after_user_authorization and status_rerun_decision
+    )
     return [
+        _expect(
+            "audit_rerun_requires_explicit_user_authorization_flag",
+            (not audit_rerun_decision) or rerun_after_user_authorization,
+            True,
+        ),
         _check(
             "audit_latest_boundary_matches_static_review_gate",
-            audit_pending or audit_complete,
+            audit_boundary_ok,
             {
                 "status": _extract_line(eof, "current_v14_status="),
                 "next": _extract_line(eof, "next_work_target="),
+                "rerun_after_user_authorization": rerun_after_user_authorization,
             },
-            "pending static review or completed static review",
+            "pending static review, completed static review, or explicitly authorized rerun decision",
         ),
         _check(
             "current_status_boundary_matches_static_review_gate",
-            status_pending or status_complete,
-            {"pending": status_pending, "complete": status_complete},
-            "pending static review or completed static review",
+            status_boundary_ok,
+            {
+                "pending": status_pending,
+                "complete": status_complete,
+                "rerun_decision": status_rerun_decision,
+                "rerun_after_user_authorization": rerun_after_user_authorization,
+            },
+            "pending static review, completed static review, or explicitly authorized rerun decision",
         ),
-        _contains("audit_records_preflight_ready", eof, "default_off_shadow_selector_runtime_promotion_evidence_package_preflight_ready=True"),
-        _contains("audit_authorizes_static_review", eof, "default_off_shadow_selector_runtime_promotion_evidence_package_static_review_authorized=True"),
+        _check(
+            "audit_records_preflight_ready",
+            (
+                "default_off_shadow_selector_runtime_promotion_evidence_package_preflight_ready=True"
+                in eof
+            )
+            or (
+                rerun_after_user_authorization
+                and "default_off_shadow_selector_runtime_promotion_evidence_package_static_review_failed=True"
+                in eof
+            ),
+            "preflight ready marker or authorized rerun failure marker present",
+            "preflight ready marker, or failed static review marker for explicit rerun",
+        ),
+        _check(
+            "audit_authorizes_static_review",
+            (
+                "default_off_shadow_selector_runtime_promotion_evidence_package_static_review_authorized=True"
+                in eof
+            )
+            or (
+                rerun_after_user_authorization
+                and "default_off_shadow_selector_runtime_promotion_evidence_package_static_review_rerun_requires_user_decision=True"
+                in eof
+            ),
+            "static review authorization marker or authorized rerun decision marker present",
+            "static review authorization marker, or rerun decision marker with explicit user authorization",
+        ),
         _contains("audit_blocks_runtime_execution", eof, "default_off_shadow_selector_runtime_execution_authorized=False"),
         _contains("audit_blocks_dp_modification", eof, "dp_modification_authorized_by_current_boundary=False"),
         _contains("audit_blocks_selector_promotion", eof, "selector_promotion_authorized=False"),
