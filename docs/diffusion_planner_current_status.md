@@ -1992,6 +1992,63 @@ requires a new EOF plus explicit authorization for any future promotion,
 deployment, online selector change, safety-benefit claim, or CAMP-over-DP
 Top-1 claim.
 
+## Post-Closeout Promotion-Readiness Gap Analysis Failed Attempt
+
+Executed on AutoDL at 2026-07-03 22:41 CST after the new EOF authorization to
+open a read-only/plan-only promotion-readiness evidence-gap stage:
+
+- Failed gap-analysis artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_plan_068223a31b_20260703T224120CST`
+- Source artifacts:
+  evidence package
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_construction_69a3ff3a04_20260703T170856CST`;
+  result review
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_result_review_9e86ec1fb2_20260703T095832CST`;
+  shadow-vs-Top1 delta review
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_vs_top1_delta_review_04f4b68421_20260703T103434CST`;
+  promotion-decision-from-evidence-package plan
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_decision_from_evidence_package_plan_592d57e223_20260703T174714CST`;
+  no-promotion closeout review
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_contract_update_rerun_74d34a7949_20260703T221152CST`
+- CAMP head and origin/main:
+  `068223a31be5b1e659a3f507ea31a4f7f017c090`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Gap-analysis exit/status:
+  `1` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_plan_rejected`
+- Check count / failed check count:
+  `400 / 2`
+- Failed checks:
+  `result_review_heads_dp_fixed`, `delta_review_heads_dp_fixed`
+- Failure attribution:
+  `source_review_heads_key_case_contract_mismatch`: both source review HEADS
+  files record the fixed DP as uppercase `DP_HEAD`, while the new
+  gap-analysis script only parsed lowercase `dp_head`.
+- Local verification before AutoDL execution:
+  `py_compile` exit `0`; local pytest exit `0`, `52 passed`;
+  staged `git diff --check` exit `0`
+- AutoDL implementation verification before failed gate:
+  `py_compile` exit `0`; `/root/miniconda3/envs/camp/bin/python -m pytest ... -q`
+  exit `0`, `52 passed`; `git diff --check` exit `0`
+- Gap-analysis report JSON / MD / SHA256SUMS SHA256:
+  `2866457c1bbb63baee3a4217f856075b4063feedaafd0f68f276d1f6f09bcf7a`,
+  `f37fc2b6e165a592b608e33170466a96bf9e0871c3cd0e2a97dfd8c39b7ddd97`,
+  `7376f2137a1b95af018a277e2fa8dd54874883ae6c87ca6881a7772069a565d5`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / SHA256SUMS SHA256:
+  `f927e38bb4171d17ba673440a8ef82f94f8562c83ddee4615d3f467dc0461605`,
+  `6a316ea0edf18f1c2a4abf2c441909c3eab184f3088b23c1cac59b1f6f58bd7f`,
+  `0dd76764c11da5340bd02f10f5f0e296e2bb3edb3f329c992bca42b71cac126f`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`,
+  `595114d8c63d4d0913dda9b095cb13fada4aa1e855ac490dec8588f739e307db`
+
+The failed gate did not train, replay, generate candidates, modify DP, change
+the online selector, promote atoms or selectors, deploy, or authorize
+safety/CAMP-over-DP claims. The next action requires a user decision on whether
+to update the read-only gap-analysis contract to accept existing source
+artifact HEADS keys case-insensitively, then rerun the same plan-only gate.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -2028,7 +2085,12 @@ the review still rejected because its contract did not accept the audited rerun
 EOF state or the existing source closeout artifact SHA layout. After explicit
 user authorization, the read-only review contract was updated for those audited
 conditions and the contract-update rerun passed. The current evidence package is
-closed with no promotion.
+closed with no promotion. The first post-closeout promotion-readiness gap
+analysis plan-only attempt failed because its new HEADS contract parsed only
+lowercase `dp_head`, while two existing source review artifacts record the
+fixed DP head as uppercase `DP_HEAD`. The artifact is preserved and the next
+step requires a user decision on whether to update that read-only contract and
+rerun the same gate.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -2036,8 +2098,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_closed_no_further_action_without_new_eof_authorization
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_plan_rejected
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_contract_fix_rerun_requires_user_decision
 
 ## Cleanup Policy
 
