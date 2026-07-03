@@ -111,12 +111,15 @@ work to v13.
 - The latest post-closeout promotion-readiness evaluation plan ran on AutoDL
   with CAMP synchronized at
   `3da03ab5d320cac5d349f23e67f95bef29462947`.
+- The latest post-closeout promotion-readiness evaluation plan static review
+  ran on AutoDL with CAMP synchronized at
+  `494072d472db17ceef3c8e97e1e76981f6b39f0e`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_static_review_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_static_review_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_plan_only`.
 
 ## What Changed
 
@@ -2389,6 +2392,57 @@ run evaluation, replay, training, candidate generation, promotion, deployment,
 online selector activation, DP modification, or safety/CAMP-over-DP claim
 construction. It authorizes only static review of this evaluation plan.
 
+## Post-Closeout Promotion-Readiness Evaluation Plan Static Review
+
+AutoDL executed the read-only static review of the promotion-readiness
+evaluation plan:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_plan_static_review_494072d472_20260704T012428CST`
+
+- Source evaluation plan artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_plan_3da03ab5d3_20260704T011126CST`
+- CAMP head and origin/main:
+  `494072d472db17ceef3c8e97e1e76981f6b39f0e`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit/status:
+  `0` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_static_review_passed`
+- Check count / failed check count:
+  `141 / 0`
+- Source plan checks / decision surfaces / evidence requirements:
+  `224 / 3 / 7`
+- Recommendation / immediate action:
+  `plan_follow_on_evaluation_runbook_preflight_only` /
+  `plan_read_only_evaluation_runbook_preflight_only`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_plan_only`
+- Local verification:
+  `py_compile` exit `0`; target pytest exit `0`, `109 passed`;
+  `git diff --check` exit `0`
+- AutoDL verification:
+  `py_compile` exit `0`; target pytest exit `0`, `109 passed`;
+  `git diff --check` exit `0`
+- Review JSON / MD / review SHA256SUMS SHA256:
+  `dc9cf9a0f5773033c972d29b5442166ddfa35a27e224ed9de1f79a48e8c1a55c`,
+  `e8c072667b16c1433fbfd6877c462c88fa5c8af73f357a31adb2567d51e4665d`,
+  `245db13d1e0c09445613c168c211a34d83cf98138de313256c8c5f5d9cfdf02f`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `cc6f714823aa72cb860196a18b7e11545103dfe806d2c8ff562e3cdb563cf436`,
+  `befb8cb4edd290ad2c46ea6adcfd2b404d43c2675ba8c4c1e4e7c96b7028b6ca`,
+  `d752569924b84b4a710e9595bb56662b564e436dd7d5b0bc394d36a2d256dfd2`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `0f058dcef5f5de3501e6259c258031821a9902f695271335a58f1175a3b1271e`
+
+This static review consumed only the existing evaluation plan artifact and
+source surface. It verified fixed-DP provenance, artifact hashes, EOF
+authorization, no-promotion/no-deployment/no-claim boundaries, and the
+case-insensitive `HEADS` parsing surface. It did not run evaluation, replay,
+training, candidate generation, promotion, deployment, online selector
+activation, DP modification, or safety/CAMP-over-DP claims. It authorizes only
+a follow-on evaluation runbook/preflight plan-only gate.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -2440,8 +2494,9 @@ That static review has now passed and authorizes only the read-only
 promotion-readiness evaluation preflight. That preflight has now passed and
 authorizes only a static review of the preflight. That static review has now
 passed and authorizes only a plan-only promotion-readiness evaluation gate. The
-read-only promotion-readiness evaluation plan has now passed and authorizes only
-static review of that plan.
+read-only promotion-readiness evaluation plan has now passed and its static
+review has now passed. The next authorized scope is only a follow-on evaluation
+runbook/preflight plan-only gate.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -2449,8 +2504,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_plan_only
 
 ## Cleanup Policy
 
