@@ -1527,14 +1527,58 @@ any future promotion discussion. Promotion, deployment, selector changes, DP
 changes, replay, candidate generation, training, safety claims, and
 CAMP-over-DP-Top1 claims remain unauthorized.
 
+## Default-Off Selector Runtime Promotion Evidence-Package Preflight
+
+Verified on AutoDL at 2026-07-03 11:33 CST:
+
+- Runtime promotion evidence-package preflight artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_preflight_1758ea83ea_20260703T113342CST`
+- CAMP head and origin/main:
+  `1758ea83eaf61ada32f60b7bbd15e97479b2e1e5`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Preflight exit:
+  `0`
+- Failed checks:
+  `[]`
+- Check count / failed check count:
+  `229 / 0`
+- Artifact manifest entries:
+  `runtime_promotion_decision_plan,runtime_result_review,shadow_vs_top1_delta_review,runtime_manifest,training_artifact_static_review,training_summary,offline_weights_npy,atom_scales_json,runtime_shadow_execution_sha256s`
+- Preflight status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_preflight_ready`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_static_review_only`
+- Evidence-package static review authorized:
+  `True`
+- Selector promotion / deployment / safety / CAMP-over-DP-Top1 claim authorized:
+  `False / False / False / False`
+- Training / replay / candidate generation / DP modification authorized:
+  `False / False / False / False`
+- Runtime records / executed DP Top-1 / shadow non-Top-1:
+  `3200 / 3200 / 2832`
+- Static masked objective better/tie/worse/uncomparable:
+  `2832 / 368 / 0 / 0`
+- Training records / dropped all-infeasible:
+  `2914 / 286`
+- Preflight report JSON SHA256:
+  `0cda58e1e95b36c867d9208ed51e4e23f24d1106f4460e5d932515eff976b6be`
+- Artifact SHA256SUMS SHA256:
+  `5e277729fe2c0690c599c006a02f221d94d553acdc164f2000e29dbc16283149`
+
+This preflight is read-only evidence packaging. It does not train, replay,
+generate candidates, modify DP, change the online selector, promote atoms or
+selectors, deploy, or authorize safety/CAMP-over-DP claims. It only authorizes
+the next evidence-package static review gate.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
 The training artifact static contract review, trained default-off shadow
 replay/evaluation preflight, and guarded shadow replay/evaluation execution
 have passed. The read-only result review, promotion-decision planning gate, and
-promotion evidence-package preflight have also passed. The default-off shadow
-selector static integration contract plan, implementation plan, and
+trained promotion evidence-package preflight have also passed. The default-off
+shadow selector static integration contract plan, implementation plan, and
 implementation static contract review have passed. The implementation unit-test
 plan, implementation unit-tests-only gate, and implementation-only gate have
 also passed. The post-implementation static contract review and runtime
@@ -1547,17 +1591,18 @@ fresh execution audit/result review have passed. The read-only shadow-vs-Top1
 delta review has also passed, supporting only a static masked-objective delta
 claim and not a safety or CAMP-over-DP claim. The runtime promotion-decision
 plan is ready and recommends not promoting from current evidence alone. The
-next gate is runtime promotion evidence-package preflight only. That next gate
-still does not authorize actual promotion, deployment, training, candidate
-generation, replay, DP modification, selector changes, or safety-benefit
-claims.
+runtime promotion evidence-package preflight has now passed. The next gate is
+runtime promotion evidence-package static review only. That next gate still
+does not authorize actual promotion, deployment, training, candidate
+generation, replay, DP modification, selector changes, executed trajectory
+changes, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_preflight_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_static_review_only
 
 ## Cleanup Policy
 
