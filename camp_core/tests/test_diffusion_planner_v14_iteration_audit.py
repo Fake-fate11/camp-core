@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_evaluation_runbook_preflight_ready"
+    "post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_passed"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_only"
+    "post_closeout_promotion_readiness_evaluation_runbook_plan_only"
 )
 
 
@@ -4192,12 +4192,14 @@ def test_v14_post_closeout_promotion_readiness_evaluation_runbook_preflight_is_e
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Post-Closeout Promotion-Readiness Evaluation Runbook Preflight Plan Static Review"
     section_title = "## Post-Closeout Promotion-Readiness Evaluation Runbook Preflight"
+    next_section_title = "## Post-Closeout Promotion-Readiness Evaluation Runbook Preflight Static Review"
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_3062b4f4a5_20260704T020713CST",
@@ -4243,6 +4245,68 @@ def test_v14_post_closeout_promotion_readiness_evaluation_runbook_preflight_is_e
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = "## Post-Closeout Promotion-Readiness Evaluation Runbook Preflight"
+    section_title = "## Post-Closeout Promotion-Readiness Evaluation Runbook Preflight Static Review"
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_c2443f45ef_20260704T022733CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_source_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_3062b4f4a5_20260704T020713CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_camp_head=c2443f45ef67e8477da9d932dcbbc07cdb2c34fd",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_camp_origin_main=c2443f45ef67e8477da9d932dcbbc07cdb2c34fd",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_passed",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_passed=True",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_failure_class=None",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_authorized_current_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_only",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_plan_only",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_recommendation=plan_read_only_promotion_readiness_evaluation_runbook_only",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_immediate_action=plan_promotion_readiness_evaluation_runbook_only",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_check_count=141",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_failed_checks=",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_source_preflight_check_count=218",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_source_runbook_preflight_step_count=6",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_source_artifact_manifest_requirement_count=7",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_source_no_go_status_count=8",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_source_future_review_requirement_count=4",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_local_py_compile_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_local_pytest_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_local_pytest_passed=143",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_autodl_pytest_passed=143",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_report_json_sha256=fdd1954bbff79b6dbe4c5793d0af912ab535936b1881d4ea96f4b9ce3f0827e9",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_report_md_sha256=c17af0f8bd0c8f5228ce1b1d72ad143545bb752ce517517f42d9afbdb757bea3",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_report_sha256s_sha256=0fa44b0bf9ffbcbab8714ee2dff2d3e08ce7af73b6e2f24d50f7d4519d638f78",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_heads_sha256=151b924760cfb3f28626b3a463e7fa8070fd6700fd3a98b62eac09e2b073b075",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_command_sha256=247a97e0d2179a8ce64096d2e807f505810cc1414ce504ca811779bdfcc926e4",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_stdout_sha256=85eb76b6c3e433d636d2b2017f22e04d49ad69fde409c0bd014741c99bb64813",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_run_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_artifact_sha256s_sha256=c68151f656e8f28eb9e9d56aa02fd425d509260ea8066f1389b776150edd1dc6",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_plan_only",
+        "post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_passed=True",
+        "post_closeout_promotion_readiness_evaluation_runbook_plan_authorized=True",
+        "post_closeout_promotion_readiness_evaluation_runbook_execution_authorized=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_plan_only",
     ]:
         assert needle in text
 
@@ -4813,6 +4877,23 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "1e41dc49c5d8c184d1716a0643505d701a61b82e589bb1c1faab3fe4d3b8a133" in status_text
     assert "0a41486d5b11806d0fbabd1d23e2e85ef5cd4403a4d24f455f63c5f516cd2c13" in status_text
     assert "14a31db3b3cc8b30a5378004309927bb2d5443e74f1ed2709bc0ada1d65ff6c2" in status_text
+    assert (
+        "Post-Closeout Promotion-Readiness Evaluation Runbook Preflight Static Review"
+        in status_text
+    )
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_c2443f45ef_20260704T022733CST"
+        in status_text
+    )
+    assert "c2443f45ef67e8477da9d932dcbbc07cdb2c34fd" in status_text
+    assert "`141 / 0`" in status_text
+    assert "`218 / 6 / 7 / 8 / 4`" in status_text
+    assert "plan_read_only_promotion_readiness_evaluation_runbook_only" in status_text
+    assert "plan_promotion_readiness_evaluation_runbook_only" in status_text
+    assert "fdd1954bbff79b6dbe4c5793d0af912ab535936b1881d4ea96f4b9ce3f0827e9" in status_text
+    assert "c17af0f8bd0c8f5228ce1b1d72ad143545bb752ce517517f42d9afbdb757bea3" in status_text
+    assert "0fa44b0bf9ffbcbab8714ee2dff2d3e08ce7af73b6e2f24d50f7d4519d638f78" in status_text
+    assert "c68151f656e8f28eb9e9d56aa02fd425d509260ea8066f1389b776150edd1dc6" in status_text
     assert LATEST_V14_STATUS in status_text
     assert LATEST_V14_NEXT_WORK in status_text
     assert (
