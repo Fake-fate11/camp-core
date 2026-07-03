@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_rejected"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_contract_update_rerun_requires_user_decision"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_closed_no_further_action_without_new_eof_authorization"
     )
 
 
@@ -697,11 +697,11 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_rejected"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_contract_update_rerun_requires_user_decision"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_closed_no_further_action_without_new_eof_authorization"
     )
 
 
@@ -3366,7 +3366,7 @@ def test_v14_default_off_selector_runtime_no_promotion_closeout_review_failed_at
         assert needle in text
 
 
-def test_v14_default_off_selector_runtime_no_promotion_closeout_review_rerun_failed_attempt_is_eof() -> None:
+def test_v14_default_off_selector_runtime_no_promotion_closeout_review_rerun_failed_attempt_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Default-Off Selector Runtime No-Promotion Closeout Review Failed "
@@ -3376,12 +3376,17 @@ def test_v14_default_off_selector_runtime_no_promotion_closeout_review_rerun_fai
         "## Default-Off Selector Runtime No-Promotion Closeout Review Rerun "
         "Failed Attempt"
     )
+    next_section_title = (
+        "## Default-Off Selector Runtime No-Promotion Closeout Review "
+        "Contract-Update Rerun"
+    )
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_rerun_failed_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_rerun_0c629925d2_20260703T212231CST",
@@ -3429,6 +3434,75 @@ def test_v14_default_off_selector_runtime_no_promotion_closeout_review_rerun_fai
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_contract_update_rerun_requires_user_decision",
+    ]:
+        assert needle in text
+
+
+def test_v14_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Default-Off Selector Runtime No-Promotion Closeout Review Rerun "
+        "Failed Attempt"
+    )
+    section_title = (
+        "## Default-Off Selector Runtime No-Promotion Closeout Review "
+        "Contract-Update Rerun"
+    )
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_contract_update_rerun_74d34a7949_20260703T221152CST",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_source_record_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_record_4e16075a8b_20260703T180106CST",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_previous_import_failed_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_1f00a091f9_20260703T182026CST",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_previous_contract_failed_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_rerun_0c629925d2_20260703T212231CST",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_camp_head=74d34a7949c115ee61294c97aae9c81a111465cb",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_camp_origin_main=74d34a7949c115ee61294c97aae9c81a111465cb",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_passed",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_passed=True",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_failure_class=None",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_authorized_current_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_contract_update_rerun_requires_user_decision",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_closed_no_further_action_without_new_eof_authorization",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_check_count=104",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_failed_check_count=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_source_record_sha256s_sha256=34a95940bf3c9b97a5e5194e0a48c7cc45778531e4d3bc195565e4ed52950c87",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_source_artifact_sha256s_sha256=b01d0a7eafc89691c7d3a150b6eba84bb967f352defd4e45a799da040a322bd4",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_local_py_compile_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_local_pytest_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_local_pytest_passed=52",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_autodl_py_compile_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_autodl_pytest_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_autodl_pytest_passed=52",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_report_json_sha256=c30f59e5dd44bab5ecb0770df763ae45aed85b035d5c69b066d73a592ba28ced",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_report_md_sha256=88731c96cabf5618a6d53063aaf21c8aebafa6d37b58ec847bf66c42a5f50837",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_report_sha256s_sha256=61cc00a8edfc72f07502c3834ea0d7743a73f904a4b245612d48f834ba292ca0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_heads_sha256=09d8b684d23346c59945792bddb2c7d83553a283d0b07afc41fe8721182520c8",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_command_sha256=df1d4ec10c293527fb89f8f63a108b6c6ae60d266cc25b08b778c75732f65bdd",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_stdout_sha256=ff4a5b801cb5d7dc0412f8d7a9d19a7446aa5b93470cd46a2f878df971adffc4",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_run_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_review_contract_update_rerun_artifact_sha256s_sha256=732489dbc7d0be079506b42a819eba4efdf302e162fefd7fc219d46d2a2c0a9a",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_closed_no_further_action_without_new_eof_authorization",
+        "default_off_shadow_selector_runtime_no_promotion_closeout_review_passed=True",
+        "default_off_shadow_selector_runtime_no_promotion_closeout_complete=True",
+        "future_promotion_requires_new_eof_and_explicit_authorization=True",
+        "default_off_shadow_selector_runtime_promotion_from_evidence_package_recommended=False",
+        "default_off_shadow_selector_runtime_execution_authorized=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_closed_no_further_action_without_new_eof_authorization",
     ]:
         assert needle in text
 
@@ -3760,7 +3834,26 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "f9aeef3fde5f656288b3f4f2e01518ac2c1eb27d6dee567935e9fdee828b7899" in status_text
     assert "bc77f6128e209c33b9a687dd3644e080f0e15f533cfb08fc8ded0c7f951a8bf0" in status_text
     assert (
-        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_contract_update_rerun_requires_user_decision"
+        "Default-Off Selector Runtime No-Promotion Closeout Review Contract-Update Rerun"
+        in status_text
+    )
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_contract_update_rerun_74d34a7949_20260703T221152CST"
+        in status_text
+    )
+    assert "74d34a7949c115ee61294c97aae9c81a111465cb" in status_text
+    assert "`104 / 0`" in status_text
+    assert "c30f59e5dd44bab5ecb0770df763ae45aed85b035d5c69b066d73a592ba28ced" in status_text
+    assert "88731c96cabf5618a6d53063aaf21c8aebafa6d37b58ec847bf66c42a5f50837" in status_text
+    assert "61cc00a8edfc72f07502c3834ea0d7743a73f904a4b245612d48f834ba292ca0" in status_text
+    assert "732489dbc7d0be079506b42a819eba4efdf302e162fefd7fc219d46d2a2c0a9a" in status_text
+    assert "current evidence package is\nclosed with no promotion" in status_text
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_passed"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_closed_no_further_action_without_new_eof_authorization"
         in status_text
     )
     assert (

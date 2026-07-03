@@ -1939,6 +1939,59 @@ safety/CAMP-over-DP claims. The next action requires a user decision on whether
 to update the read-only review contract to accept the audited rerun state and
 the existing source artifact SHA layout, then rerun the same review gate.
 
+## Default-Off Selector Runtime No-Promotion Closeout Review Contract-Update Rerun
+
+Executed on AutoDL at 2026-07-03 22:11 CST after explicit user authorization to
+update the read-only review contract for the audited rerun EOF state and the
+existing source closeout artifact SHA layout:
+
+- Passed review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_contract_update_rerun_74d34a7949_20260703T221152CST`
+- Source no-promotion closeout record artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_record_4e16075a8b_20260703T180106CST`
+- Previous failed review artifacts:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_1f00a091f9_20260703T182026CST`;
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_rerun_0c629925d2_20260703T212231CST`
+- CAMP head and origin/main:
+  `74d34a7949c115ee61294c97aae9c81a111465cb`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Review exit:
+  `0`
+- Review status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_passed`
+- Review check count / failed check count:
+  `104 / 0`
+- AutoDL implementation verification before rerun:
+  `py_compile` exit `0`; `/root/miniconda3/envs/camp/bin/python -m pytest ... -q`
+  exit `0`, `52 passed`; `git diff --check` exit `0`
+- Review report JSON / MD / SHA256SUMS SHA256:
+  `c30f59e5dd44bab5ecb0770df763ae45aed85b035d5c69b066d73a592ba28ced`,
+  `88731c96cabf5618a6d53063aaf21c8aebafa6d37b58ec847bf66c42a5f50837`,
+  `61cc00a8edfc72f07502c3834ea0d7743a73f904a4b245612d48f834ba292ca0`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / SHA256SUMS SHA256:
+  `09d8b684d23346c59945792bddb2c7d83553a283d0b07afc41fe8721182520c8`,
+  `df1d4ec10c293527fb89f8f63a108b6c6ae60d266cc25b08b778c75732f65bdd`,
+  `ff4a5b801cb5d7dc0412f8d7a9d19a7446aa5b93470cd46a2f878df971adffc4`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `732489dbc7d0be079506b42a819eba4efdf302e162fefd7fc219d46d2a2c0a9a`
+
+The review contract update did not relax the safety boundary: it still verifies
+the source closeout record JSON, MD, nested SHA256SUMS, fixed DP head, source
+record pass state, no-promotion recommendation, default-off selector state, and
+all no-training/no-replay/no-candidate-generation/no-DP-modification/no-
+promotion/no-deployment/no-safety-claim flags. It only accepts the already
+audited rerun EOF state and the existing source artifact root SHA layout where
+the root SHA256SUMS lists the record JSON/MD and top-level execution files, but
+does not list `./record/SHA256SUMS`.
+
+The no-promotion closeout review is now complete. It records no promotion from
+the current evidence package, keeps the selector default-off/shadow-only, and
+requires a new EOF plus explicit authorization for any future promotion,
+deployment, online selector change, safety-benefit claim, or CAMP-over-DP
+Top-1 claim.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1972,16 +2025,19 @@ package. The first read-only no-promotion closeout review attempt failed before
 report construction due to a missing script import path on AutoDL. The next
 user-authorized rerun fixed that import path and generated a review report, but
 the review still rejected because its contract did not accept the audited rerun
-EOF state or the existing source closeout artifact SHA layout. The next action
-is a user decision on whether to update that read-only review contract and
-rerun the review gate.
+EOF state or the existing source closeout artifact SHA layout. After explicit
+user authorization, the read-only review contract was updated for those audited
+conditions and the contract-update rerun passed. The current evidence package is
+closed with no promotion.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
-formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
+formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
+future promotion or deployment work requires a new EOF and explicit
+authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_rejected
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_contract_update_rerun_requires_user_decision
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_closed_no_further_action_without_new_eof_authorization
 
 ## Cleanup Policy
 
