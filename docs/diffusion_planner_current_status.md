@@ -91,12 +91,17 @@ work to v13.
   `97754f14ee1f5511ba3e779520a186600a63bfca`.
 - The latest runtime artifact manifest materialization ran on AutoDL with CAMP
   synchronized at `bae51947d2ce4e51937da823703181fbf095a333`.
+- The latest runtime promotion evidence-package static review attempt failed
+  on AutoDL with CAMP synchronized at
+  `e870358da583e851b6ef3dd8033242165681c2a9` because the command pointed at
+  preflight JSON/MD paths directly under the preflight artifact root while the
+  actual files are under the `preflight/` subdirectory.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_artifact_manifest_materialized`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_static_review_rejected`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_preflight_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_static_review_rerun_requires_user_decision`.
 
 ## What Changed
 
@@ -1571,6 +1576,36 @@ generate candidates, modify DP, change the online selector, promote atoms or
 selectors, deploy, or authorize safety/CAMP-over-DP claims. It only authorizes
 the next evidence-package static review gate.
 
+## Default-Off Selector Runtime Promotion Evidence-Package Static Review Failed Attempt
+
+Verified on AutoDL at 2026-07-03 16:02 CST:
+
+- Failed static review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_static_review_e870358da5_20260703T160217CST`
+- Source preflight artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_preflight_1758ea83ea_20260703T113342CST`
+- CAMP head and origin/main:
+  `e870358da583e851b6ef3dd8033242165681c2a9`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Static review exit:
+  `1`
+- Failure class:
+  `source_preflight_sha256s_mismatch`
+- Failure attribution:
+  `preflight_artifact_path_mismatch_json_md_under_preflight_subdir`
+- Actual preflight JSON:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_preflight_1758ea83ea_20260703T113342CST/preflight/runtime_promotion_evidence_package_preflight.json`
+- Failed report JSON SHA256:
+  `4c19c3162cb9488169e9b555a8095617ab6f4f4530f0e160066d1c77ef809458`
+- Artifact SHA256SUMS SHA256:
+  `0f3db6b1cf249e1537d60b49b365397903561d67f92ed3508a038ed9bd93a0b6`
+
+This failed attempt did not train, replay, generate candidates, modify DP,
+change the online selector, promote atoms or selectors, deploy, or authorize
+safety/CAMP-over-DP claims. The next action requires a user decision before
+any path fix or rerun.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1591,18 +1626,18 @@ fresh execution audit/result review have passed. The read-only shadow-vs-Top1
 delta review has also passed, supporting only a static masked-objective delta
 claim and not a safety or CAMP-over-DP claim. The runtime promotion-decision
 plan is ready and recommends not promoting from current evidence alone. The
-runtime promotion evidence-package preflight has now passed. The next gate is
-runtime promotion evidence-package static review only. That next gate still
-does not authorize actual promotion, deployment, training, candidate
-generation, replay, DP modification, selector changes, executed trajectory
-changes, or safety-benefit claims.
+runtime promotion evidence-package preflight has now passed. The first runtime
+promotion evidence-package static review attempt failed because the command
+used the wrong preflight artifact input paths. That failure is not a promotion
+or safety claim failure; it is a rerun decision boundary. The next action
+requires user direction before any path fix or rerun.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_preflight_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_static_review_rejected
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_static_review_rerun_requires_user_decision
 
 ## Cleanup Policy
 
