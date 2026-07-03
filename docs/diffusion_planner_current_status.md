@@ -1781,6 +1781,64 @@ It authorizes only a no-promotion closeout record, not selector promotion,
 deployment, online selector changes, deployable-checkpoint claims, safety
 claims, or CAMP-over-DP-Top1 claims.
 
+## Default-Off Selector Runtime No-Promotion Closeout Record
+
+Verified on AutoDL at 2026-07-03 18:01 CST:
+
+- No-promotion closeout record artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_record_4e16075a8b_20260703T180106CST`
+- Source promotion-decision plan artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_decision_from_evidence_package_plan_592d57e223_20260703T174714CST`
+- CAMP head and origin/main:
+  `4e16075a8b21189660f2abe94648e88040510945`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Record exit:
+  `0`
+- Record schema:
+  `dp_camp_v14_public_simulator_default_off_selector_runtime_shadow_replay_promotion_decision_no_promotion_closeout_record_v1`
+- Passed / failed checks:
+  `True / []`
+- Record check count / failed check count:
+  `65 / 0`
+- Record status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_recorded`
+- Recommendation:
+  `do_not_promote_from_current_evidence_package_alone`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_only`
+- No-promotion closeout recorded / review authorized:
+  `True / True`
+- Selector promotion / deployment / safety / CAMP-over-DP-Top1 claim authorized:
+  `False / False / False / False`
+- Training / replay / candidate generation / DP modification authorized:
+  `False / False / False / False`
+- Local verification before AutoDL execution:
+  `py_compile` exit `0`; local pytest exit `0`, `52 passed`;
+  `git diff --check` exit `0`
+- AutoDL verification after artifact recovery:
+  `py_compile` exit `0`; `/root/miniconda3/envs/camp/bin/python -m pytest ... -q`
+  exit `0`, `52 passed`
+- Record report JSON SHA256:
+  `47d70a2a423a1b4fda6f6726261ca9495de1b448e7cad30056e512d4abb24876`
+- Record report MD SHA256:
+  `e10a7268538aebef31dd7d4d0310a6b51b137dbc80fdd4e28b8f934d2970e881`
+- Record report SHA256SUMS SHA256:
+  `34a95940bf3c9b97a5e5194e0a48c7cc45778531e4d3bc195565e4ed52950c87`
+- Artifact SHA256SUMS SHA256:
+  `b01d0a7eafc89691c7d3a150b6eba84bb967f352defd4e45a799da040a322bd4`
+- Artifact HEADS / COMMAND / stdout / stderr SHA256:
+  `2b4febb0624b5a9bc705eba35abd546581ec711146f28dfaede2aeb6a6d99094`,
+  `f1378a7552cd819face0cc3ead16bc1f23586b039f09c600dd5e08867a9a0010`,
+  `8f22ec8c44e18b2891253de3adacc35bfe1797c9eff1aaa20782ce9c30151e75`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+
+The closeout record consumed the passed promotion-decision plan and recorded
+the conservative no-promotion decision from the evidence package. It did not
+train, replay, generate candidates, modify DP, change the online selector,
+promote atoms or selectors, deploy, or authorize safety/CAMP-over-DP claims.
+It authorizes only a read-only no-promotion closeout review.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1808,14 +1866,16 @@ authorization, the rerun used the corrected preflight subdirectory inputs and
 passed. The evidence package has now been constructed and its constructed-package
 static review has passed. The promotion-decision plan from the evidence package
 has also passed and recommends not promoting from the current evidence package
-alone. The next action is a no-promotion closeout record only.
+alone. The prior plan authorized a no-promotion closeout record only. That
+record has now passed and records no promotion from the current evidence
+package. The next action is a read-only no-promotion closeout review only.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_recorded
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_only
 
 ## Cleanup Policy
 

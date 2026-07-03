@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_recorded"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_only"
     )
 
 
@@ -697,11 +697,11 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_recorded"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_only"
     )
 
 
@@ -3135,7 +3135,7 @@ def test_v14_default_off_selector_runtime_promotion_evidence_package_constructio
         assert needle in text
 
 
-def test_v14_default_off_selector_runtime_promotion_decision_from_evidence_package_plan_is_eof() -> None:
+def test_v14_default_off_selector_runtime_promotion_decision_from_evidence_package_plan_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Default-Off Selector Runtime Promotion Evidence-Package Construction "
@@ -3145,12 +3145,14 @@ def test_v14_default_off_selector_runtime_promotion_decision_from_evidence_packa
         "## Default-Off Selector Runtime Promotion Decision From Evidence "
         "Package Plan"
     )
+    next_section_title = "## Default-Off Selector Runtime No-Promotion Closeout Record"
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_default_off_selector_runtime_promotion_decision_from_evidence_package_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_decision_from_evidence_package_plan_592d57e223_20260703T174714CST",
@@ -3198,6 +3200,98 @@ def test_v14_default_off_selector_runtime_promotion_decision_from_evidence_packa
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_only",
+    ]:
+        assert needle in text
+
+
+def test_v14_default_off_selector_runtime_no_promotion_closeout_record_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Default-Off Selector Runtime Promotion Decision From Evidence "
+        "Package Plan"
+    )
+    section_title = "## Default-Off Selector Runtime No-Promotion Closeout Record"
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_record_4e16075a8b_20260703T180106CST",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_source_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_decision_from_evidence_package_plan_592d57e223_20260703T174714CST",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_camp_head=4e16075a8b21189660f2abe94648e88040510945",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_camp_origin_main=4e16075a8b21189660f2abe94648e88040510945",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_schema_version=dp_camp_v14_public_simulator_default_off_selector_runtime_shadow_replay_promotion_decision_no_promotion_closeout_record_v1",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_recorded",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_passed=True",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_failed_checks=[]",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_check_count=65",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_failed_check_count=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_recommendation=do_not_promote_from_current_evidence_package_alone",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_authorized_current_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_only",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_only",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_ready=True",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_recorded=True",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_review_authorized=True",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_promotion_recommended=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_selector_promotion_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_atom_promotion_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_deployment_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_deployable_checkpoint_claim_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_training_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_training_execution_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_replay_execution_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_candidate_generation_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_dp_modification_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_online_selector_change_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_executed_trajectory_change_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_training_executed_by_this_gate=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_replay_executed_by_this_gate=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_candidate_generation_executed_by_this_gate=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_dp_modified_by_this_gate=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_promotion_executed_by_this_gate=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_deployment_executed_by_this_gate=False",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_score_expression=score_k(w)=a_k^T w",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_source_plan_report_json_sha256=dd3fd82b62243cb7860329337e5e87da003988109d9c8489f24d0a5c66e52f9a",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_source_plan_report_md_sha256=3c8d611c37afb735f19f2580cf9b388769c976da9daa7c340cc7833de40035cf",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_source_plan_sha256s_sha256=51e8dc4da0434f3627d63a2cbf5a9ae78e7edeeafcd44c002dfa5d3f36f236a5",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_source_current_status_md_sha256=7ab36e0d13e8f685ed5a58440e3c720015c1d11bf27e89c92897816a06dfebe2",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_source_v14_audit_md_sha256=a07e3b8e415475bee2bf147f48480d1f04489e5da1f3a3b9230c1cb26ed1e7d5",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_local_py_compile_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_local_pytest_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_local_pytest_passed=52",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_local_git_diff_check_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_autodl_py_compile_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_autodl_pytest_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_autodl_pytest_passed=52",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_report_json_sha256=47d70a2a423a1b4fda6f6726261ca9495de1b448e7cad30056e512d4abb24876",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_report_md_sha256=e10a7268538aebef31dd7d4d0310a6b51b137dbc80fdd4e28b8f934d2970e881",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_report_sha256s_sha256=34a95940bf3c9b97a5e5194e0a48c7cc45778531e4d3bc195565e4ed52950c87",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_artifact_sha256s_sha256=b01d0a7eafc89691c7d3a150b6eba84bb967f352defd4e45a799da040a322bd4",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_heads_sha256=2b4febb0624b5a9bc705eba35abd546581ec711146f28dfaede2aeb6a6d99094",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_command_sha256=f1378a7552cd819face0cc3ead16bc1f23586b039f09c600dd5e08867a9a0010",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_stdout_sha256=8f22ec8c44e18b2891253de3adacc35bfe1797c9eff1aaa20782ce9c30151e75",
+        "v14_public_simulator_default_off_selector_runtime_no_promotion_closeout_record_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_recorded",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_only",
+        "default_off_shadow_selector_runtime_no_promotion_closeout_recorded=True",
+        "default_off_shadow_selector_runtime_no_promotion_closeout_review_authorized=True",
+        "default_off_shadow_selector_runtime_promotion_from_evidence_package_recommended=False",
+        "default_off_shadow_selector_runtime_execution_authorized=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_only",
     ]:
         assert needle in text
 
@@ -3470,6 +3564,28 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "record_no_promotion_closeout_only" in status_text
     assert "dd3fd82b62243cb7860329337e5e87da003988109d9c8489f24d0a5c66e52f9a" in status_text
     assert "eb9cbe1782a771879ae2e6b2c649ce547a3acfe4b27c7583a3a176c35440c584" in status_text
+    assert "Default-Off Selector Runtime No-Promotion Closeout Record" in status_text
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_record_4e16075a8b_20260703T180106CST"
+        in status_text
+    )
+    assert "4e16075a8b21189660f2abe94648e88040510945" in status_text
+    assert (
+        "dp_camp_v14_public_simulator_default_off_selector_runtime_shadow_replay_promotion_decision_no_promotion_closeout_record_v1"
+        in status_text
+    )
+    assert "`65 / 0`" in status_text
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_recorded"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_only"
+        in status_text
+    )
+    assert "47d70a2a423a1b4fda6f6726261ca9495de1b448e7cad30056e512d4abb24876" in status_text
+    assert "b01d0a7eafc89691c7d3a150b6eba84bb967f352defd4e45a799da040a322bd4" in status_text
+    assert "read-only no-promotion closeout review only" in status_text
     assert "16394aebd9cf92025fc36613f196d6f0728c1a60ec12768474e459d48e88eb44" in status_text
     assert "c025186948924debf7e43b26c2d2d3025e649e167cf37c7301e8c5cfe312a811" in status_text
     assert (
