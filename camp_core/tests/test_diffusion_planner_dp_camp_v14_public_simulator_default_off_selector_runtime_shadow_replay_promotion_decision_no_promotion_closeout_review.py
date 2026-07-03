@@ -8,8 +8,10 @@ from typing import Any
 from scripts.integrations.review_diffusion_planner_dp_camp_v14_public_simulator_default_off_selector_runtime_shadow_replay_promotion_decision_no_promotion_closeout import (  # noqa: E501
     AUTHORIZED_NEXT_WORK,
     BLOCKED_ACTIONS,
+    CONTRACT_UPDATE_RERUN_AUTHORIZED_WORK,
     FIXED_DP_HEAD,
     READY_STATUS,
+    REJECT_STATUS,
     SCORE_EXPRESSION,
     SOURCE_RECORD_AUTHORIZED_CURRENT_WORK,
     SOURCE_RECORD_AUTHORIZED_NEXT_WORK,
@@ -45,6 +47,19 @@ def test_no_promotion_closeout_review_passes(tmp_path: Path) -> None:
     assert report["final_decision"]["camp_over_dp_top1_claim_authorized"] is False
     assert not report["final_decision"]["failed_checks"]
     assert report["source_summary"]["status"] == SOURCE_RECORD_READY_STATUS
+
+
+def test_no_promotion_closeout_review_accepts_existing_source_sha_layout(
+    tmp_path: Path,
+) -> None:
+    fixture = _write_fixture(tmp_path, include_record_sha256s_in_root=False)
+
+    report = _build(tmp_path, fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert not report["final_decision"]["failed_checks"]
+    assert "./record/SHA256SUMS" not in report["source_artifact"]["artifact_sha256s_entries"]
+    assert "runtime_no_promotion_closeout_record.json" in report["source_artifact"]["record_sha256s_entries"]
 
 
 def test_no_promotion_closeout_review_requires_explicit_enable(tmp_path: Path) -> None:
@@ -162,7 +177,9 @@ def _write_fixture(
     tmp_path: Path,
     *,
     record: dict[str, Any] | None = None,
-    next_work: str = SOURCE_RECORD_AUTHORIZED_NEXT_WORK,
+    latest_status: str = REJECT_STATUS,
+    next_work: str = CONTRACT_UPDATE_RERUN_AUTHORIZED_WORK,
+    include_record_sha256s_in_root: bool = True,
 ) -> dict[str, Path]:
     artifact_dir = tmp_path / "artifact"
     record_dir = artifact_dir / "record"
@@ -201,20 +218,19 @@ def _write_fixture(
     (artifact_dir / "stdout.txt").write_text("{}\n", encoding="utf-8")
     (artifact_dir / "stderr.txt").write_text("", encoding="utf-8")
     (artifact_dir / "run.exit").write_text("0\n", encoding="utf-8")
+    artifact_sha_lines = [
+        f"{_sha256(artifact_dir / 'COMMAND')}  ./COMMAND",
+        f"{_sha256(artifact_dir / 'HEADS')}  ./HEADS",
+        f"{_sha256(record_json)}  ./record/{record_json.name}",
+        f"{_sha256(record_md)}  ./record/{record_md.name}",
+        f"{_sha256(artifact_dir / 'run.exit')}  ./run.exit",
+        f"{_sha256(artifact_dir / 'stderr.txt')}  ./stderr.txt",
+        f"{_sha256(artifact_dir / 'stdout.txt')}  ./stdout.txt",
+    ]
+    if include_record_sha256s_in_root:
+        artifact_sha_lines.insert(4, f"{_sha256(record_sha256s)}  ./record/SHA256SUMS")
     (artifact_dir / "SHA256SUMS").write_text(
-        "\n".join(
-            [
-                f"{_sha256(artifact_dir / 'COMMAND')}  ./COMMAND",
-                f"{_sha256(artifact_dir / 'HEADS')}  ./HEADS",
-                f"{_sha256(record_json)}  ./record/{record_json.name}",
-                f"{_sha256(record_md)}  ./record/{record_md.name}",
-                f"{_sha256(record_sha256s)}  ./record/SHA256SUMS",
-                f"{_sha256(artifact_dir / 'run.exit')}  ./run.exit",
-                f"{_sha256(artifact_dir / 'stderr.txt')}  ./stderr.txt",
-                f"{_sha256(artifact_dir / 'stdout.txt')}  ./stdout.txt",
-            ]
-        )
-        + "\n",
+        "\n".join(artifact_sha_lines) + "\n",
         encoding="utf-8",
     )
     audit_md = tmp_path / "audit.md"
@@ -222,9 +238,10 @@ def _write_fixture(
     text = "\n".join(
         [
             "no-promotion closeout review",
-            f"current_v14_status={SOURCE_RECORD_READY_STATUS}",
+            f"current_v14_status={latest_status}",
             "default_off_shadow_selector_runtime_no_promotion_closeout_recorded=True",
             "default_off_shadow_selector_runtime_no_promotion_closeout_review_authorized=True",
+            "default_off_shadow_selector_runtime_no_promotion_closeout_review_contract_update_rerun_requires_user_decision=True",
             f"next_work_target={next_work}",
             "",
         ]

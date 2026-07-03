@@ -56,6 +56,12 @@ AUTHORIZED_NEXT_WORK = (
     "promotion_decision_from_evidence_package_closed_no_further_action_"
     "without_new_eof_authorization"
 )
+CONTRACT_UPDATE_RERUN_AUTHORIZED_WORK = (
+    "public_simulator_fixed_dp_candidate_generation_trained_default_off_"
+    "shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_"
+    "promotion_decision_from_evidence_package_no_promotion_closeout_review_"
+    "contract_update_rerun_requires_user_decision"
+)
 
 RECORD_JSON_NAME = "runtime_no_promotion_closeout_record.json"
 RECORD_MD_NAME = "runtime_no_promotion_closeout_record.md"
@@ -318,6 +324,10 @@ def _checks(
             "file",
         )
     )
+    record_sha256s_sha = (
+        _sha256(closeout_record_sha256s) if closeout_record_sha256s.is_file() else None
+    )
+    artifact_record_sha256s = artifact_sha256s.get("./record/SHA256SUMS")
     checks.extend(
         [
             _expect("artifact_run_exit_zero", source_run_exit, "0"),
@@ -331,7 +341,12 @@ def _checks(
             _expect("record_sha256s_md", source_record_sha256s.get(RECORD_MD_NAME), _sha256(closeout_record_md) if closeout_record_md.is_file() else None),
             _expect("artifact_sha256s_json", artifact_sha256s.get(f"./record/{RECORD_JSON_NAME}"), _sha256(closeout_record_json) if closeout_record_json.is_file() else None),
             _expect("artifact_sha256s_md", artifact_sha256s.get(f"./record/{RECORD_MD_NAME}"), _sha256(closeout_record_md) if closeout_record_md.is_file() else None),
-            _expect("artifact_sha256s_record_sha256s", artifact_sha256s.get("./record/SHA256SUMS"), _sha256(closeout_record_sha256s) if closeout_record_sha256s.is_file() else None),
+            _check(
+                "artifact_sha256s_record_sha256s",
+                artifact_record_sha256s in {None, record_sha256s_sha},
+                artifact_record_sha256s,
+                f"{record_sha256s_sha} or omitted",
+            ),
             _expect("artifact_sha256s_heads", artifact_sha256s.get("./HEADS"), _sha256(closeout_artifact_dir / "HEADS") if (closeout_artifact_dir / "HEADS").is_file() else None),
             _expect("artifact_sha256s_command", artifact_sha256s.get("./COMMAND"), _sha256(closeout_artifact_dir / "COMMAND") if (closeout_artifact_dir / "COMMAND").is_file() else None),
             _expect("artifact_sha256s_stdout", artifact_sha256s.get("./stdout.txt"), _sha256(closeout_artifact_dir / "stdout.txt") if (closeout_artifact_dir / "stdout.txt").is_file() else None),
@@ -400,12 +415,13 @@ def _source_record_checks(
 
 def _audit_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
     return [
-        _expect("audit_latest_status", _latest_value(v14_text, "current_v14_status"), SOURCE_RECORD_READY_STATUS),
-        _expect("audit_latest_next_work", _latest_value(v14_text, "next_work_target"), SOURCE_RECORD_AUTHORIZED_NEXT_WORK),
+        _expect("audit_latest_status", _latest_value(v14_text, "current_v14_status"), REJECT_STATUS),
+        _expect("audit_latest_next_work", _latest_value(v14_text, "next_work_target"), CONTRACT_UPDATE_RERUN_AUTHORIZED_WORK),
         _expect("audit_recorded", _latest_value(v14_text, "default_off_shadow_selector_runtime_no_promotion_closeout_recorded"), "True"),
         _expect("audit_review_authorized", _latest_value(v14_text, "default_off_shadow_selector_runtime_no_promotion_closeout_review_authorized"), "True"),
-        _expect("status_doc_latest_status", _latest_value(status_text, "current_v14_status"), SOURCE_RECORD_READY_STATUS),
-        _expect("status_doc_latest_next_work", _latest_value(status_text, "next_work_target"), SOURCE_RECORD_AUTHORIZED_NEXT_WORK),
+        _expect("audit_contract_update_rerun_authorized", _latest_value(v14_text, "default_off_shadow_selector_runtime_no_promotion_closeout_review_contract_update_rerun_requires_user_decision"), "True"),
+        _expect("status_doc_latest_status", _latest_value(status_text, "current_v14_status"), REJECT_STATUS),
+        _expect("status_doc_latest_next_work", _latest_value(status_text, "next_work_target"), CONTRACT_UPDATE_RERUN_AUTHORIZED_WORK),
         _check("audit_mentions_review_only", "no-promotion closeout review" in v14_text, True, True),
         _check("status_mentions_review_only", "no-promotion closeout review" in status_text, True, True),
     ]
@@ -418,7 +434,7 @@ def _decision(passed: bool, checks: list[dict[str, Any]]) -> dict[str, Any]:
         "passed": bool(passed),
         "failed_checks": failed,
         "failure_class": None if passed else _failure_class(failed),
-        "authorized_current_work": SOURCE_RECORD_AUTHORIZED_NEXT_WORK,
+        "authorized_current_work": CONTRACT_UPDATE_RERUN_AUTHORIZED_WORK,
         "authorized_next_work": AUTHORIZED_NEXT_WORK if passed else None,
         "no_promotion_closeout_review_passed": bool(passed),
         "no_promotion_closeout_complete": bool(passed),
