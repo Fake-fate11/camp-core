@@ -1398,6 +1398,46 @@ guarded runbook and the read-only audit passed. CAMP remained a default-off
 shadow reranker over the fixed DP candidate tensor; the executed trajectory
 remained DP Top-1 for every record.
 
+## Default-Off Selector Runtime Shadow Replay Result Review
+
+Verified on AutoDL at 2026-07-03 09:58 CST:
+
+- Result review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_result_review_9e86ec1fb2_20260703T095832CST`
+- Source execution artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_execution_artifact_dbd5b539a0_20260703T090930CST`
+- CAMP head and origin/main:
+  `9e86ec1fb2bb9f22df578712b8003414694131f1`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Result review exit:
+  `0`
+- Failed checks:
+  `[]`
+- Selection/validation/replay summaries:
+  `32 / 32 / 32`
+- Records:
+  `3200`
+- Executed DP Top-1 records:
+  `3200`
+- Default-off selector records:
+  `3200`
+- Shadow selected non-Top-1 records:
+  `2832`
+- Feasible / fail-closed fallback records:
+  `2914 / 286`
+- Max affine score error:
+  `4.440892098500626e-16`
+- Result review report JSON SHA256:
+  `627fe492c69bbc422a798f025e2cb632008b61dd193b3fa59e1c5c84fbb603ab`
+- Artifact SHA256SUMS SHA256:
+  `27bc90bf3f55add804ab6535f44cf02b879cabd7262a27da9df4547552ded6d0`
+
+The result review only inspected the passed execution audit. It did not run
+replay, generate candidates, train CAMP, modify DP, promote, deploy, or make
+safety/CAMP-over-DP claims. It authorizes only a future promotion-decision
+planning gate after explicit user authorization, not promotion itself.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1414,17 +1454,17 @@ and materialization implementation-plan/static-review gates have passed. The
 runtime artifact manifest materializer implementation and post-implementation
 static contract review are complete, the runtime artifact manifest has been
 materialized, and the default-off selector runtime shadow replay preflight and
-fresh execution audit have passed. The next gate is result review only. That
-next gate may inspect the passed execution artifact but still does not authorize
-promotion, deployment, training, candidate generation, DP modification, or
-safety-benefit claims.
+fresh execution audit/result review have passed. The next gate is
+promotion-decision planning only after explicit user authorization. That next
+gate still does not authorize actual promotion, deployment, training, candidate
+generation, DP modification, or safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_only_after_explicit_user_authorization
 
 ## Cleanup Policy
 
