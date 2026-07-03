@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_plan_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_preflight_plan_only"
     )
 
 
@@ -697,11 +697,11 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_plan_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_preflight_plan_only"
     )
 
 
@@ -3577,12 +3577,14 @@ def test_v14_post_closeout_promotion_readiness_gap_analysis_contract_fix_rerun_i
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Post-Closeout Promotion-Readiness Gap Analysis Failed Attempt"
     section_title = "## Post-Closeout Promotion-Readiness Gap Analysis Contract-Fix Rerun"
+    next_section_title = "## Post-Closeout Promotion-Readiness Gap Analysis Static Review"
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_contract_fix_rerun_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_contract_fix_rerun_cd54951760_20260703T233911CST",
@@ -3632,15 +3634,72 @@ def test_v14_post_closeout_promotion_readiness_gap_analysis_contract_fix_rerun_i
     ]:
         assert needle in text
 
+
+def test_v14_post_closeout_promotion_readiness_gap_analysis_static_review_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = "## Post-Closeout Promotion-Readiness Gap Analysis Contract-Fix Rerun"
+    section_title = "## Post-Closeout Promotion-Readiness Gap Analysis Static Review"
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_f0836545b4_20260703T235643CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_source_gap_analysis_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_contract_fix_rerun_cd54951760_20260703T233911CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_camp_head=f0836545b481e627a801aeda8d8ab020df2eb161",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_camp_origin_main=f0836545b481e627a801aeda8d8ab020df2eb161",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_passed",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_passed=True",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_failure_class=None",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_authorized_current_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_only",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_preflight_plan_only",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_recommendation=keep_no_promotion_and_plan_readiness_preflight_only",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_immediate_action=plan_promotion_readiness_evaluation_preflight_only",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_check_count=181",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_gap_categories=active_selector_promotion,deployment_fail_closed,safety_claim,camp_over_dp_top1_claim,evaluation_coverage,governance_authorization",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_readiness_surfaces=promotion_readiness,deployment_readiness,safety_or_superiority_claim",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_local_py_compile_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_local_pytest_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_local_pytest_passed=63",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_autodl_py_compile_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_autodl_pytest_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_autodl_pytest_passed=63",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_report_json_sha256=1ebfcae38f4a963324b4d45313178e66519bfa875750b3b0bd4815888719e3aa",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_report_md_sha256=378190e3e0d5a9ef3572cfca0ff1ec69f5516011f74a39b38ecc7d0020ea3f52",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_report_sha256s_sha256=52005bae8778c90db4621a06a1308bd53eec65810c8ec6a4667216c8bc2a1c98",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_heads_sha256=ca633c1299a71c60ef58e19f9f5421f5c129b9007792a8279b407e272178fdc0",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_command_sha256=27a5001e344e5eedfb6e9df25467a1b9677a33505c63397227d9a605e736afa7",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_stdout_sha256=06008d6d72c64358006c2bf275b644eb60a9ac5cd5b50506b9e0e3152e3a032d",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_run_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_artifact_sha256s_sha256=b394ee54aa70ee388d73c7d22e09530a9b8013e4ee6fe1598a9dc0c382753d62",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_preflight_plan_only",
+        "post_closeout_promotion_readiness_gap_analysis_static_review_passed=True",
+        "post_closeout_promotion_readiness_evaluation_preflight_plan_authorized=True",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_preflight_plan_only",
+    ]:
+        assert needle in text
+
     latest_status = text.rsplit("current_v14_status=", maxsplit=1)[1].splitlines()[0]
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_plan_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_preflight_plan_only"
     )
 
 
@@ -4015,6 +4074,27 @@ def test_current_status_and_readme_point_to_v14() -> None:
     )
     assert (
         "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_only"
+        in status_text
+    )
+    assert "Post-Closeout Promotion-Readiness Gap Analysis Static Review" in status_text
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_gap_analysis_static_review_f0836545b4_20260703T235643CST"
+        in status_text
+    )
+    assert "f0836545b481e627a801aeda8d8ab020df2eb161" in status_text
+    assert "`181 / 0`" in status_text
+    assert "keep_no_promotion_and_plan_readiness_preflight_only" in status_text
+    assert "plan_promotion_readiness_evaluation_preflight_only" in status_text
+    assert "1ebfcae38f4a963324b4d45313178e66519bfa875750b3b0bd4815888719e3aa" in status_text
+    assert "378190e3e0d5a9ef3572cfca0ff1ec69f5516011f74a39b38ecc7d0020ea3f52" in status_text
+    assert "52005bae8778c90db4621a06a1308bd53eec65810c8ec6a4667216c8bc2a1c98" in status_text
+    assert "b394ee54aa70ee388d73c7d22e09530a9b8013e4ee6fe1598a9dc0c382753d62" in status_text
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_gap_analysis_static_review_passed"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_preflight_plan_only"
         in status_text
     )
     assert (
