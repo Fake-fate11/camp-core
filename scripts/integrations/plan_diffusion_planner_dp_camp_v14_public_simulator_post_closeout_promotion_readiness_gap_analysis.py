@@ -888,7 +888,10 @@ def _parse_key_values(text: str) -> dict[str, str]:
         if "=" not in line:
             continue
         key, value = line.split("=", 1)
-        values[key.strip()] = value.strip()
+        key = key.strip()
+        value = value.strip()
+        values[key] = value
+        values[key.lower()] = value
     return values
 
 

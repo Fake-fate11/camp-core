@@ -87,6 +87,25 @@ def test_post_closeout_promotion_readiness_gap_analysis_rejects_eof_mismatch(
     assert "status_doc_latest_next_work" in report["final_decision"]["failed_checks"]
 
 
+def test_post_closeout_promotion_readiness_gap_analysis_accepts_uppercase_heads(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        uppercase_head_artifacts={"result_review", "delta_review"},
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert not {
+        "result_review_heads_dp_fixed",
+        "delta_review_heads_dp_fixed",
+    } & set(report["final_decision"]["failed_checks"])
+
+
 def test_post_closeout_promotion_readiness_gap_analysis_rejects_promotion_leak(
     tmp_path: Path,
 ) -> None:
@@ -195,7 +214,9 @@ def _write_fixture(
     *,
     next_work: str | None = None,
     promotion_plan_decision_updates: dict[str, Any] | None = None,
+    uppercase_head_artifacts: set[str] | None = None,
 ) -> dict[str, Any]:
+    uppercase_head_artifacts = uppercase_head_artifacts or set()
     docs = tmp_path / "docs"
     next_target = next_work or module.SOURCE_CLOSED_NEXT_WORK
     doc_text = "\n".join(
@@ -214,11 +235,36 @@ def _write_fixture(
     v14_audit = _write(docs / "diffusion_planner_v14_iteration_audit.md", doc_text)
     current_status = _write(docs / "diffusion_planner_current_status.md", doc_text)
 
-    evidence_package_dir = _artifact_dir(tmp_path, module, "evidence_package")
-    result_review_dir = _artifact_dir(tmp_path, module, "result_review")
-    delta_review_dir = _artifact_dir(tmp_path, module, "delta_review")
-    promotion_plan_dir = _artifact_dir(tmp_path, module, "promotion_plan")
-    closeout_review_dir = _artifact_dir(tmp_path, module, "closeout_review")
+    evidence_package_dir = _artifact_dir(
+        tmp_path,
+        module,
+        "evidence_package",
+        uppercase_heads="evidence_package" in uppercase_head_artifacts,
+    )
+    result_review_dir = _artifact_dir(
+        tmp_path,
+        module,
+        "result_review",
+        uppercase_heads="result_review" in uppercase_head_artifacts,
+    )
+    delta_review_dir = _artifact_dir(
+        tmp_path,
+        module,
+        "delta_review",
+        uppercase_heads="delta_review" in uppercase_head_artifacts,
+    )
+    promotion_plan_dir = _artifact_dir(
+        tmp_path,
+        module,
+        "promotion_plan",
+        uppercase_heads="promotion_plan" in uppercase_head_artifacts,
+    )
+    closeout_review_dir = _artifact_dir(
+        tmp_path,
+        module,
+        "closeout_review",
+        uppercase_heads="closeout_review" in uppercase_head_artifacts,
+    )
 
     evidence_manifest = _write_json(
         evidence_package_dir / "construction" / "evidence_package" / "evidence_manifest.json",
@@ -327,7 +373,13 @@ def _write_fixture(
     }
 
 
-def _artifact_dir(tmp_path: Path, module, name: str) -> Path:
+def _artifact_dir(
+    tmp_path: Path,
+    module,
+    name: str,
+    *,
+    uppercase_heads: bool = False,
+) -> Path:
     root = tmp_path / "artifacts" / name
     layout = module.ARTIFACT_LAYOUTS[name]
     files: list[Path] = []
@@ -336,15 +388,16 @@ def _artifact_dir(tmp_path: Path, module, name: str) -> Path:
         if role == "exit":
             _write(path, "0\n")
         elif role == "heads":
+            head_rows = [
+                ("camp_head", CAMP_HEAD),
+                ("camp_origin_main", CAMP_HEAD),
+                ("dp_head", module.FIXED_DP_HEAD),
+            ]
+            if uppercase_heads:
+                head_rows = [(key.upper(), value) for key, value in head_rows]
             _write(
                 path,
-                "\n".join(
-                    [
-                        f"camp_head={CAMP_HEAD}",
-                        f"camp_origin_main={CAMP_HEAD}",
-                        f"dp_head={module.FIXED_DP_HEAD}",
-                    ]
-                )
+                "\n".join(f"{key}={value}" for key, value in head_rows)
                 + "\n",
             )
         else:
