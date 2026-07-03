@@ -2551,6 +2551,52 @@ generation, promotion, deployment, online selector activation, DP modification,
 or safety/CAMP-over-DP claims. It authorizes only a read-only
 promotion-readiness evaluation runbook/preflight gate.
 
+## Post-Closeout Promotion-Readiness Evaluation Runbook Preflight
+
+AutoDL executed the read-only promotion-readiness evaluation runbook/preflight:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_3062b4f4a5_20260704T020713CST`
+
+- Source runbook/preflight plan static review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_plan_static_review_41539b4bed_20260704T015353CST`
+- Source runbook/preflight plan artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_preflight_plan_554c3244b1_20260704T014204CST`
+- CAMP head and origin/main:
+  `3062b4f4a5f6d19ebb99f965467aa89f19933ba2`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit/status:
+  `0` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_ready`
+- Check count / failed check count:
+  `218 / 0`
+- Runbook preflight steps / artifact manifest requirements / no-go conditions / future review requirements:
+  `6 / 7 / 8 / 4`
+- Source static review checks / source plan checks / source runbook preflight steps / source no-go conditions:
+  `139 / 223 / 6 / 8`
+- Recommendation / immediate action:
+  `static_review_this_runbook_preflight_only` /
+  `static_review_promotion_readiness_evaluation_runbook_preflight_only`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_only`
+- Preflight JSON / MD / preflight SHA256SUMS SHA256:
+  `666137790e2e4fdd77d31004a732428c3f15e712c6e40815fbfddfff3f909243`,
+  `1e41dc49c5d8c184d1716a0643505d701a61b82e589bb1c1faab3fe4d3b8a133`,
+  `0a41486d5b11806d0fbabd1d23e2e85ef5cd4403a4d24f455f63c5f516cd2c13`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `4f6db5414ef11bfdeedbe9a3b8a6a13d3c14c9d53c3bc98f723f72d736ca5f86`,
+  `5f64761020c19b9d1977b466a3952f81b8e30d66d9d6b6f37e6901ce80205e2f`,
+  `52f443065424eb4dcb835f3218ae31b4d9e2eb6ce62b3e9cb6f12539af713b9b`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `14a31db3b3cc8b30a5378004309927bb2d5443e74f1ed2709bc0ada1d65ff6c2`
+
+This preflight consumed only the existing runbook/preflight plan static review
+and source plan artifacts. It did not run evaluation, replay, training,
+candidate generation, promotion, deployment, online selector activation, DP
+modification, or safety/CAMP-over-DP claims. It authorizes only static review
+of this runbook/preflight artifact.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -2604,8 +2650,10 @@ authorizes only a static review of the preflight. That static review has now
 passed and authorizes only a plan-only promotion-readiness evaluation gate. The
 read-only promotion-readiness evaluation plan has now passed and its static
 review has now passed. The evaluation runbook/preflight plan-only gate and its
-static review have also passed. The next authorized scope is only the read-only
-promotion-readiness evaluation runbook/preflight gate.
+static review have also passed. The read-only promotion-readiness evaluation
+runbook/preflight gate has now passed and authorizes only its static review.
+The next authorized scope is only the static review of the runbook/preflight
+artifact.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -2613,8 +2661,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_plan_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_preflight_static_review_only
 
 ## Cleanup Policy
 
