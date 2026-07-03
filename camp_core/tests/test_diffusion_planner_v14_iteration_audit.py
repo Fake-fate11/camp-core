@@ -524,7 +524,7 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_passed"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_passed"
     )
     assert (
         latest_target
@@ -697,7 +697,7 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_passed"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_passed"
     )
     assert (
         latest_target
@@ -2560,14 +2560,15 @@ def test_v14_default_off_shadow_selector_runtime_artifact_manifest_materialized_
         assert needle in text
 
 
-def test_v14_default_off_selector_runtime_shadow_replay_result_review_is_eof() -> None:
+def test_v14_default_off_selector_runtime_shadow_replay_result_review_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Default-Off Selector Runtime Shadow Replay Execution"
     section_title = "## Default-Off Selector Runtime Shadow Replay Result Review"
+    next_section_title = "## Default-Off Selector Runtime Shadow-vs-Top1 Delta Review"
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.rfind(next_section_title) > text.rfind(section_title)
 
     for needle in [
         "v14_public_simulator_default_off_selector_runtime_shadow_replay_result_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_result_review_9e86ec1fb2_20260703T095832CST",
@@ -2611,6 +2612,83 @@ def test_v14_default_off_selector_runtime_shadow_replay_result_review_is_eof() -
         "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_passed",
         "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_only_after_explicit_user_authorization",
         "default_off_shadow_selector_runtime_shadow_replay_result_review_passed=True",
+        "default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_authorized_next=True",
+        "default_off_shadow_selector_runtime_execution_authorized=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_only_after_explicit_user_authorization",
+    ]:
+        assert needle in text
+
+
+def test_v14_default_off_selector_runtime_shadow_vs_top1_delta_review_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = "## Default-Off Selector Runtime Shadow Replay Result Review"
+    section_title = "## Default-Off Selector Runtime Shadow-vs-Top1 Delta Review"
+
+    assert text.count(section_title) == 1
+    assert text.rfind(section_title) > text.rfind(previous_section_title)
+    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_vs_top1_delta_review_04f4b68421_20260703T103434CST",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_source_execution_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_execution_dbd5b539a0_20260703T090512CST",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_source_result_review_json=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_result_review_9e86ec1fb2_20260703T095832CST/review/result_review_report.json",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_camp_head=04f4b6842178204717051209e0b106c67332d420",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_camp_origin_main=04f4b6842178204717051209e0b106c67332d420",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_passed",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_passed=True",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_failed_checks=[]",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_static_objective_delta_supported=True",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_authorized_inserted_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_only_after_explicit_user_authorization",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_only_after_explicit_user_authorization",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_selection_logs=32",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_records=3200",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_executed_top1_records=3200",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_selected_index_matches_executed_index_records=3200",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_shadow_selected_index_nonzero_records=2832",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_shadow_selected_index_differs_from_executed_index_records=2832",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_selection_score_better_records=2832",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_selection_score_tie_records=368",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_selection_score_worse_records=0",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_selection_score_uncomparable_records=0",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_shadow_diff_selection_score_better_records=2832",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_shadow_diff_selection_score_tie_records=0",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_shadow_diff_selection_score_worse_records=0",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_selection_score_finite_delta_mean=-0.044903412834032194",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_raw_affine_score_better_records=2804",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_raw_affine_score_worse_records=28",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_feasible_pair_counts={'top1_False_shadow_False': 286, 'top1_False_shadow_True': 58, 'top1_True_shadow_True': 2856}",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_formal_seed_path_count=0",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_source_result_review_json_sha256=627fe492c69bbc422a798f025e2cb632008b61dd193b3fa59e1c5c84fbb603ab",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_source_result_review_md_sha256=914896b623c554c7d07b3ce8429ea6f7dc94e9885efa02ff1fc6399fff8ce551",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_heads_sha256=4e2fa49eb62aff28c8e899596365711ff495b4d380ef4d64526a01f38d1f0947",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_command_sha256=99bc14ab5d6b66089af10c06df5f0d20d12b4abd68745b6df11dac2c7fa74599",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_stdout_sha256=9fc97843f5edd143e4a8a33e3b9d1ada42b0620a9b142ea4f584e39544384df2",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_report_json_sha256=2bdfbce1e89db54465d895148f3dc3ecae2a511b3db889a29f693cb4cdfebc62",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_report_md_sha256=177b291d90b6a2e06f5f37358b5b4e9238c1543c7f23d732c22168dd8b1a01b4",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_sha256s_sha256=24b24b26ad644076ec2952b575b840068e44e13ee12abcf78416655f799722bd",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_replay_executed_by_review=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_candidate_generation_executed_by_review=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_training_executed_by_review=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_dp_modification_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_selector_promotion_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_deployment_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_score_expression=score_k(w)=a_k^T w",
+        "v14_public_simulator_default_off_selector_runtime_shadow_vs_top1_delta_review_claim_scope=static_objective_delta_only_not_safety_or_camp_over_dp_top1",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_only_after_explicit_user_authorization",
+        "default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_passed=True",
+        "default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_static_objective_delta_supported=True",
         "default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_authorized_next=True",
         "default_off_shadow_selector_runtime_execution_authorized=False",
         "candidate_generation_by_camp_authorized_by_current_boundary=False",
@@ -2848,6 +2926,10 @@ def test_current_status_and_readme_point_to_v14() -> None:
         in status_text
     )
     assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_passed"
+        in status_text
+    )
+    assert (
         "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_only_after_explicit_user_authorization"
         in status_text
     )
@@ -2859,6 +2941,20 @@ def test_current_status_and_readme_point_to_v14() -> None:
         "/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_execution_artifact_dbd5b539a0_20260703T090930CST"
         in status_text
     )
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_vs_top1_delta_review_04f4b68421_20260703T103434CST"
+        in status_text
+    )
+    assert "04f4b6842178204717051209e0b106c67332d420" in status_text
+    assert "Default-Off Selector Runtime Shadow-vs-Top1 Delta Review" in status_text
+    assert "Static objective delta supported:" in status_text
+    assert "`better=2832`, `tie=368`, `worse=0`, `uncomparable=0`" in status_text
+    assert "Raw affine score before feasibility masking:" in status_text
+    assert "2bdfbce1e89db54465d895148f3dc3ecae2a511b3db889a29f693cb4cdfebc62" in status_text
+    assert "24b24b26ad644076ec2952b575b840068e44e13ee12abcf78416655f799722bd" in status_text
+    assert "shadow-vs-Top1\ndelta review has also passed" in status_text
+    assert "static masked-objective delta" in status_text
+    assert "not a safety or CAMP-over-DP claim" in status_text
     assert "Runbook exit / audit exit:" in status_text
     assert "`0 / 0`" in status_text
     assert "Result review exit:" in status_text

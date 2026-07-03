@@ -1414,6 +1414,8 @@ Verified on AutoDL at 2026-07-03 09:58 CST:
   `0`
 - Failed checks:
   `[]`
+- Result review status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_passed`
 - Selection/validation/replay summaries:
   `32 / 32 / 32`
 - Records:
@@ -1438,6 +1440,49 @@ replay, generate candidates, train CAMP, modify DP, promote, deploy, or make
 safety/CAMP-over-DP claims. It authorizes only a future promotion-decision
 planning gate after explicit user authorization, not promotion itself.
 
+## Default-Off Selector Runtime Shadow-vs-Top1 Delta Review
+
+Verified on AutoDL at 2026-07-03 10:34 CST:
+
+- Delta review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_vs_top1_delta_review_04f4b68421_20260703T103434CST`
+- Source result review JSON:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_result_review_9e86ec1fb2_20260703T095832CST/review/result_review_report.json`
+- CAMP head and origin/main:
+  `04f4b6842178204717051209e0b106c67332d420`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Delta review exit:
+  `0`
+- Failed checks:
+  `[]`
+- Static objective delta supported:
+  `True`
+- Selection logs / records:
+  `32 / 3200`
+- Executed DP Top-1 records:
+  `3200`
+- Shadow selected non-Top-1 records:
+  `2832`
+- Masked selection score, lower is better:
+  `better=2832`, `tie=368`, `worse=0`, `uncomparable=0`
+- Masked selection score on the shadow-different subset:
+  `better=2832`, `tie=0`, `worse=0`, `uncomparable=0`
+- Raw affine score before feasibility masking:
+  `better=2804`, `tie=368`, `worse=28`, `uncomparable=0`
+- Delta review report JSON SHA256:
+  `2bdfbce1e89db54465d895148f3dc3ecae2a511b3db889a29f693cb4cdfebc62`
+- Artifact SHA256SUMS SHA256:
+  `24b24b26ad644076ec2952b575b840068e44e13ee12abcf78416655f799722bd`
+
+The delta review only compared logged scores and atoms from the existing
+selection logs. It did not replay, train, generate candidates, modify DP,
+promote, deploy, or make safety/CAMP-over-DP claims. The supported positive
+claim is limited to static masked objective delta: the shadow-selected
+candidate was no worse than DP Top-1 on the logged masked CAMP selection
+score, and strictly better on all 2832 records where the shadow index differed
+from the executed DP Top-1 index.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1454,7 +1499,9 @@ and materialization implementation-plan/static-review gates have passed. The
 runtime artifact manifest materializer implementation and post-implementation
 static contract review are complete, the runtime artifact manifest has been
 materialized, and the default-off selector runtime shadow replay preflight and
-fresh execution audit/result review have passed. The next gate is
+fresh execution audit/result review have passed. The read-only shadow-vs-Top1
+delta review has also passed, supporting only a static masked-objective delta
+claim and not a safety or CAMP-over-DP claim. The next gate is
 promotion-decision planning only after explicit user authorization. That next
 gate still does not authorize actual promotion, deployment, training, candidate
 generation, DP modification, or safety-benefit claims.
@@ -1463,7 +1510,7 @@ The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_passed
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_only_after_explicit_user_authorization
 
 ## Cleanup Policy
