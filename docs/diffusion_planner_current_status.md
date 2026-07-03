@@ -1879,6 +1879,66 @@ candidates, modify DP, change the online selector, promote atoms or selectors,
 deploy, or authorize safety/CAMP-over-DP claims. The next action requires a
 user decision on whether to fix the import path and rerun this review gate.
 
+## Default-Off Selector Runtime No-Promotion Closeout Review Rerun Failed Attempt
+
+Attempted on AutoDL at 2026-07-03 21:22 CST after explicit user authorization
+to fix the import path and rerun the same read-only review gate:
+
+- Failed rerun review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_rerun_0c629925d2_20260703T212231CST`
+- Source no-promotion closeout record artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_record_4e16075a8b_20260703T180106CST`
+- Previous failed review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_1f00a091f9_20260703T182026CST`
+- CAMP head and origin/main:
+  `0c629925d2957fac3e851bc3a689cfa29c2de467`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Review exit:
+  `1`
+- Review status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_rejected`
+- Failure class:
+  `v14_eof_contract_mismatch`
+- Failed checks:
+  `artifact_sha256s_record_sha256s`, `audit_latest_status`,
+  `audit_latest_next_work`, `status_doc_latest_status`,
+  `status_doc_latest_next_work`
+- Review check count / failed check count:
+  `103 / 5`
+- AutoDL implementation verification before failed rerun:
+  `py_compile` exit `0`; `/root/miniconda3/envs/camp/bin/python -m pytest ... -q`
+  exit `0`, `50 passed`; `git diff --check` exit `0`
+- Review report JSON SHA256:
+  `f9aeef3fde5f656288b3f4f2e01518ac2c1eb27d6dee567935e9fdee828b7899`
+- Review report MD SHA256:
+  `48c5cf631a27bb0ebf2e20b175fd3c827b31d0b74c866bb4742489495182c9a7`
+- Review report SHA256SUMS SHA256:
+  `30825711ef63e6a71cae6fadf8ecab05b163e184e653ebf913da4868674ea1f7`
+- Failed rerun artifact HEADS / COMMAND / stdout / stderr / run.exit /
+  SHA256SUMS SHA256:
+  `75c18e72c72ca283be547ec8ab6fec7e4b879991a2e383e7e3f8620d9896e8e9`,
+  `9a13cea75e4f0c8a38c1a064fe862f1da5f6c0ab9819f9dd1536039172320879`,
+  `26ea1963bc90f80e62e3656eadbcd53de992684dc0cb362ab8f96f8ce870305c`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`,
+  `bc77f6128e209c33b9a687dd3644e080f0e15f533cfb08fc8ded0c7f951a8bf0`
+
+The import-path fix worked: the rerun produced review JSON, MD, and review
+SHA256SUMS. The review still rejected because its contract expected the latest
+EOF to be the pre-failure closeout-record status/next-work pair, while the
+current audit and status documents correctly record the previous failed review
+and `rerun_requires_user_decision`. It also expected the source closeout root
+SHA256SUMS to list `./record/SHA256SUMS`, but that existing successful source
+artifact root SHA256SUMS lists the record JSON/MD and top-level execution files,
+not the nested record SHA256SUMS.
+
+The rerun did not train, replay, generate candidates, modify DP, change the
+online selector, promote atoms or selectors, deploy, or authorize
+safety/CAMP-over-DP claims. The next action requires a user decision on whether
+to update the read-only review contract to accept the audited rerun state and
+the existing source artifact SHA layout, then rerun the same review gate.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1910,15 +1970,18 @@ alone. The prior plan authorized a no-promotion closeout record only. That
 record has now passed and records no promotion from the current evidence
 package. The first read-only no-promotion closeout review attempt failed before
 report construction due to a missing script import path on AutoDL. The next
-action is a user decision on whether to fix the import path and rerun the
-review gate.
+user-authorized rerun fixed that import path and generated a review report, but
+the review still rejected because its contract did not accept the audited rerun
+EOF state or the existing source closeout artifact SHA layout. The next action
+is a user decision on whether to update that read-only review contract and
+rerun the review gate.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_rejected
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_rerun_requires_user_decision
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_contract_update_rerun_requires_user_decision
 
 ## Cleanup Policy
 
