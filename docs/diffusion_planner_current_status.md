@@ -1,6 +1,6 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-03, Asia/Shanghai.
+Last verified: 2026-07-04, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v14_iteration_audit.md`. The v13 audit is
@@ -108,12 +108,15 @@ work to v13.
 - The latest runtime promotion decision plan from the evidence package ran on
   AutoDL with CAMP synchronized at
   `592d57e2232b598597e686b576190ce155845376`.
+- The latest post-closeout promotion-readiness evaluation plan ran on AutoDL
+  with CAMP synchronized at
+  `3da03ab5d320cac5d349f23e67f95bef29462947`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_static_review_only`.
 
 ## What Changed
 
@@ -2306,6 +2309,8 @@ AutoDL executed the read-only static review of the evaluation preflight:
 - Recommendation / immediate action:
   `plan_promotion_readiness_evaluation_only` /
   `plan_read_only_promotion_readiness_evaluation_only`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_only`
 - Local verification:
   `py_compile` exit `0`; target pytest exit `0`, `92 passed`;
   `git diff --check` exit `0`
@@ -2329,6 +2334,60 @@ surface. It did not run evaluation, replay, training, candidate generation,
 promotion, deployment, online selector activation, DP modification, or
 safety/CAMP-over-DP claims. It authorizes only a read-only plan for the next
 promotion-readiness evaluation step.
+
+## Post-Closeout Promotion-Readiness Evaluation Plan
+
+AutoDL executed the read-only plan-only promotion-readiness evaluation gate:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_plan_3da03ab5d3_20260704T011126CST`
+
+- Source preflight static review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_preflight_static_review_9fd860b1d1_20260704T005150CST`
+- Source preflight artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_preflight_c65da3c60f_20260704T003848CST`
+- CAMP head and origin/main:
+  `3da03ab5d320cac5d349f23e67f95bef29462947`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Exit/status:
+  `0` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_ready`
+- Check count / failed check count:
+  `224 / 0`
+- Decision surfaces / evidence requirements / no-go / future review counts:
+  `3 / 7 / 7 / 4`
+- Source static-review checks / source preflight checks / source no-go count:
+  `139 / 179 / 7`
+- Recommendation / immediate action:
+  `static_review_this_evaluation_plan_only` /
+  `static_review_promotion_readiness_evaluation_plan_only`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_static_review_only`
+- Local verification:
+  `py_compile` exit `0`; target pytest exit `0`, `101 passed`;
+  `git diff --check` exit `0`
+- AutoDL verification:
+  `py_compile` exit `0`; target pytest exit `0`, `101 passed`;
+  `git diff --check` exit `0`
+- Report JSON / MD / plan SHA256SUMS SHA256:
+  `1263efc7c163eda2080b2332be267a449a9d34546e2dd583ba29aeca2784aa39`,
+  `d7cf65a34ec56512c213db6efc49fc385886eeccf386118fd3bdf5108309c4f7`,
+  `4c0930f856d20cec2e59456ae6415f746d3a0178090b5cba9670bfb0b0bcfa58`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `1cb0a1bed1fbfef78f2b1fd9273067a73ccdea34368ff2ffc6208264c30a4c8b`,
+  `567c2e6bdb3414c94654a0b7ed22b88c6f4e8a9633153ca1eb43d6f3d0f83e48`,
+  `e84dc18f260c477237d039de9aa971940bc521b8c425962b61da7b3aae4cacb5`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `6f9f715fb6c4fe7702c2d2f349d3fcacaa7f3610c681fff78846969f6155cfec`
+
+This read-only contract accepts fixed-DP source artifact `HEADS` keys
+case-insensitively (`DP_HEAD`/`dp_head`) and preserves the same fixed-DP
+boundary. The plan only defines future evidence requirements for promotion,
+deployment/fail-closed review, and safety/CAMP-over-DP claim review. It did not
+run evaluation, replay, training, candidate generation, promotion, deployment,
+online selector activation, DP modification, or safety/CAMP-over-DP claim
+construction. It authorizes only static review of this evaluation plan.
 
 ## Current Integration Position
 
@@ -2380,7 +2439,9 @@ passed and authorizes only a static review of that plan.
 That static review has now passed and authorizes only the read-only
 promotion-readiness evaluation preflight. That preflight has now passed and
 authorizes only a static review of the preflight. That static review has now
-passed and authorizes only a plan-only promotion-readiness evaluation gate.
+passed and authorizes only a plan-only promotion-readiness evaluation gate. The
+read-only promotion-readiness evaluation plan has now passed and authorizes only
+static review of that plan.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -2388,8 +2449,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_preflight_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_plan_static_review_only
 
 ## Cleanup Policy
 
