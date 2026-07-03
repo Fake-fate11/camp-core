@@ -1456,6 +1456,8 @@ Verified on AutoDL at 2026-07-03 10:34 CST:
   `0`
 - Failed checks:
   `[]`
+- Delta review status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_passed`
 - Static objective delta supported:
   `True`
 - Selection logs / records:
@@ -1483,6 +1485,48 @@ candidate was no worse than DP Top-1 on the logged masked CAMP selection
 score, and strictly better on all 2832 records where the shadow index differed
 from the executed DP Top-1 index.
 
+## Default-Off Selector Runtime Promotion-Decision Plan
+
+Verified on AutoDL at 2026-07-03 11:02 CST:
+
+- Promotion-decision plan artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_decision_plan_192d2928b2_20260703T110247CST`
+- Source runtime result review JSON:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_result_review_9e86ec1fb2_20260703T095832CST/review/result_review_report.json`
+- Source shadow-vs-Top1 delta review JSON:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_vs_top1_delta_review_04f4b68421_20260703T103434CST/review/shadow_vs_top1_delta_review_report.json`
+- CAMP head and origin/main:
+  `192d2928b2c9bbe22275f02c3c1532e713b1542f`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Plan exit:
+  `0`
+- Failed checks:
+  `[]`
+- Check count / failed check count:
+  `80 / 0`
+- Recommendation:
+  `do_not_promote_from_current_evidence_alone`
+- Immediate action:
+  `build_runtime_promotion_evidence_package_preflight_only`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_preflight_only`
+- Evidence package preflight authorized:
+  `True`
+- Selector promotion / deployment / safety / CAMP-over-DP-Top1 claim authorized:
+  `False / False / False / False`
+- Plan JSON SHA256:
+  `16394aebd9cf92025fc36613f196d6f0728c1a60ec12768474e459d48e88eb44`
+- Artifact SHA256SUMS SHA256:
+  `c025186948924debf7e43b26c2d2d3025e649e167cf37c7301e8c5cfe312a811`
+
+This gate is planning-only. It does not promote from the current evidence
+alone. It authorizes only a read-only runtime promotion evidence-package
+preflight, where immutable hashes and boundary evidence must be packaged before
+any future promotion discussion. Promotion, deployment, selector changes, DP
+changes, replay, candidate generation, training, safety claims, and
+CAMP-over-DP-Top1 claims remain unauthorized.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1501,17 +1545,19 @@ static contract review are complete, the runtime artifact manifest has been
 materialized, and the default-off selector runtime shadow replay preflight and
 fresh execution audit/result review have passed. The read-only shadow-vs-Top1
 delta review has also passed, supporting only a static masked-objective delta
-claim and not a safety or CAMP-over-DP claim. The next gate is
-promotion-decision planning only after explicit user authorization. That next
-gate still does not authorize actual promotion, deployment, training, candidate
-generation, DP modification, or safety-benefit claims.
+claim and not a safety or CAMP-over-DP claim. The runtime promotion-decision
+plan is ready and recommends not promoting from current evidence alone. The
+next gate is runtime promotion evidence-package preflight only. That next gate
+still does not authorize actual promotion, deployment, training, candidate
+generation, replay, DP modification, selector changes, or safety-benefit
+claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_vs_top1_delta_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_only_after_explicit_user_authorization
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_preflight_only
 
 ## Cleanup Policy
 
