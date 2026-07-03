@@ -1837,7 +1837,47 @@ The closeout record consumed the passed promotion-decision plan and recorded
 the conservative no-promotion decision from the evidence package. It did not
 train, replay, generate candidates, modify DP, change the online selector,
 promote atoms or selectors, deploy, or authorize safety/CAMP-over-DP claims.
-It authorizes only a read-only no-promotion closeout review.
+It authorizes only a read-only no-promotion closeout review. In other words,
+the prior successful record authorized a read-only no-promotion closeout review only;
+the failed attempt below did not complete that review.
+
+## Default-Off Selector Runtime No-Promotion Closeout Review Failed Attempt
+
+Attempted on AutoDL at 2026-07-03 18:20 CST:
+
+- Failed review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_review_1f00a091f9_20260703T182026CST`
+- Source no-promotion closeout record artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_no_promotion_closeout_record_4e16075a8b_20260703T180106CST`
+- CAMP head and origin/main:
+  `1f00a091f9615de3272b460060a307ba6337c486`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Review exit:
+  `1`
+- Failure class:
+  `script_import_path_missing`
+- Failure attribution:
+  `ModuleNotFoundError: No module named 'scripts'`
+- Review report JSON / MD / SHA256SUMS present:
+  `False / False / False`
+- AutoDL implementation verification before failed gate execution:
+  `py_compile` exit `0`; `/root/miniconda3/envs/camp/bin/python -m pytest ... -q`
+  exit `0`, `54 passed`; `git diff --check` exit `0`
+- Failed artifact HEADS / COMMAND / stdout / stderr / run.exit / SHA256SUMS SHA256:
+  `5554b6458c6842f559b88cf33b4b715dc06bade1ae98aeae227d3118a0807333`,
+  `6cdacb4cc8d4a335ae12a15b4ee14e8fc04705e198ef09cd4e1722d9dcf399ca`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `5648fa205f1b101852f5e22c21d3ef14b7b462e8dbe173fbbfe8daa5b1dcb742`,
+  `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`,
+  `9856d3fc226bc07066593106996f4bdd8266b1e5ffadfd54466e82feec9eb75f`
+
+The review attempt failed before report construction because the new review
+script did not add the repository root to `sys.path` before importing the
+record gate module. The failed attempt did not train, replay, generate
+candidates, modify DP, change the online selector, promote atoms or selectors,
+deploy, or authorize safety/CAMP-over-DP claims. The next action requires a
+user decision on whether to fix the import path and rerun this review gate.
 
 ## Current Integration Position
 
@@ -1868,14 +1908,17 @@ static review has passed. The promotion-decision plan from the evidence package
 has also passed and recommends not promoting from the current evidence package
 alone. The prior plan authorized a no-promotion closeout record only. That
 record has now passed and records no promotion from the current evidence
-package. The next action is a read-only no-promotion closeout review only.
+package. The first read-only no-promotion closeout review attempt failed before
+report construction due to a missing script import path on AutoDL. The next
+action is a user decision on whether to fix the import path and rerun the
+review gate.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_recorded
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_rejected
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_from_evidence_package_no_promotion_closeout_review_rerun_requires_user_decision
 
 ## Cleanup Policy
 
