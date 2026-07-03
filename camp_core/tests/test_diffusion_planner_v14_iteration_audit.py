@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_preflight_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_only"
     )
 
 
@@ -697,11 +697,11 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_preflight_ready"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_only"
     )
 
 
@@ -2560,62 +2560,57 @@ def test_v14_default_off_shadow_selector_runtime_artifact_manifest_materialized_
         assert needle in text
 
 
-def test_v14_default_off_selector_runtime_shadow_replay_preflight_is_eof() -> None:
+def test_v14_default_off_selector_runtime_shadow_replay_execution_is_eof() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
-    previous_section_title = (
-        "## Current V14 Default-Off Shadow Selector Runtime Artifact Manifest "
-        "Materialized After bae519"
-    )
-    section_title = "## Default-Off Selector Runtime Shadow Replay Preflight"
+    previous_section_title = "## Default-Off Selector Runtime Shadow Replay Preflight"
+    section_title = "## Default-Off Selector Runtime Shadow Replay Execution"
 
     assert text.count(section_title) == 1
     assert text.rfind(section_title) > text.rfind(previous_section_title)
     assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
 
     for needle in [
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_preflight_b4f312801c_20260703T042928CST",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_planned_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_preflight_b4f312801c_20260703T042928CST_planned_runtime_shadow_replay_execution",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_camp_head=b4f312801c5256f73ae6b4f97a6638ce47441bb0",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_camp_origin_main=b4f312801c5256f73ae6b4f97a6638ce47441bb0",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_runtime_manifest_sha256=92e82fbf2e7bb26847b6f24b8ccc9d78242addb451bc7301aa77997592569bd2",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_atom_scales_sha256=2239fb09e2231405dbc58b1a79486ff3f3c111a9bab96c24d88e6832f2325b8b",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_static_weights_sha256=5bfe692465c0e0cdbf2fb937737674e53b3f41a31ea932a65f65a6321f4c0dde",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_heads_sha256=dcac838c44cfb01d27b3d04ea319b148abb1c7a0ee3134c89556bb1636105aba",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_report_json_sha256=5b94ae87be69079681492db863adf3b5e9ed28d264c26037b5534510772a608e",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_runbook_sha256=fc66c12704afb21e559e4b681a129db4825fbb50c519d88ac263ba6400abadb2",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_sha256s_sha256=981ddb2a07f543281f117d4a3aae0a8bd7d006d6b5f369e4c6b00152531e84bd",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_preflight_ready",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_passed=True",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_failed_checks=[]",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_check_count=470",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_planned_command_count=32",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_expected_steps_per_command=100",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_expected_records=3200",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_candidate_operation=fixed DP candidate reranking only",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_executed_output_policy=dp_top1",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_score_expression=score_k(w)=a_k^T w",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_replay_execution_performed=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_runtime_shadow_selector_execution_authorized_by_this_gate=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_shadow_replay_execution_authorized_next=True",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_candidate_generation_executed=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_candidate_generation_by_camp_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_trajectory_generation_by_camp_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_trajectory_modification_by_camp_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_dp_modification_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_training_executed=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_formal_seeds_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_online_selector_change_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_selector_promotion_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_atom_promotion_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_deployment_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_safety_benefit_claim_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_camp_over_dp_top1_claim_authorized=False",
-        "v14_public_simulator_default_off_selector_runtime_shadow_replay_preflight_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_only",
-        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_preflight_ready",
-        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_only",
-        "default_off_shadow_selector_runtime_shadow_replay_preflight_ready=True",
-        "default_off_shadow_selector_runtime_shadow_replay_execution_authorized_next=True",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_interrupted_runbook_exit=MISSING",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_interrupted_progress_count=14",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_preflight_refresh_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_preflight_refresh_dbd5b539a0_20260703T090512CST",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_execution_artifact_dbd5b539a0_20260703T090930CST",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_execution_dbd5b539a0_20260703T090512CST",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_camp_head=dbd5b539a0117c47ea0809e923940619ec41214a",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_camp_origin_main=dbd5b539a0117c47ea0809e923940619ec41214a",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_runbook_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_audit_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_selection_logs=32",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_validation_summaries=32",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_replay_summaries=32",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_records=3200",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_default_off_selector_records=3200",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_executed_top1_records=3200",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_shadow_selected_index_nonzero_records=2832",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_used_fallback_records=286",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_formal_seed_path_count=0",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_max_affine_score_error=4.440892098500626e-16",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_audit_json_sha256=1277624d6ff07b4a02f73c18af10f68a84a6e999b1483a5d654adafebc9cba7c",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_sha256s_sha256=55be6fa553f180dd2be565e2206c69285e4cd8850eab1832b8db10224e4c72ac",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_passed",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_passed=True",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_failed_checks=[]",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_only",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_candidate_operation=fixed DP candidate reranking only",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_executed_output_policy=dp_top1",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_score_expression=score_k(w)=a_k^T w",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_candidate_generation_by_camp_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_trajectory_modification_by_camp_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_dp_modification_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_training_performed_by_audit=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_selector_promotion_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_deployment_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_shadow_replay_execution_camp_over_dp_top1_claim_authorized=False",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_only",
+        "default_off_shadow_selector_runtime_shadow_replay_execution_passed=True",
+        "default_off_shadow_selector_runtime_shadow_replay_result_review_authorized_next=True",
         "default_off_shadow_selector_runtime_execution_authorized=False",
         "candidate_generation_by_camp_authorized_by_current_boundary=False",
         "dp_modification_authorized_by_current_boundary=False",
@@ -2623,7 +2618,7 @@ def test_v14_default_off_selector_runtime_shadow_replay_preflight_is_eof() -> No
         "deployment_authorized=False",
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
-        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_only",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_only",
     ]:
         assert needle in text
 
@@ -2665,6 +2660,7 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "97754f14ee1f5511ba3e779520a186600a63bfca" in status_text
     assert "bae51947d2ce4e51937da823703181fbf095a333" in status_text
     assert "b4f312801c5256f73ae6b4f97a6638ce47441bb0" in status_text
+    assert "dbd5b539a0117c47ea0809e923940619ec41214a" in status_text
     assert "7a1d33da277a1992ec474b5383a0c963c72e04e4" in status_text
     assert (
         "public_simulator_fixed_dp_candidate_generation_training_artifact_static_contract_review_passed"
@@ -2831,13 +2827,30 @@ def test_current_status_and_readme_point_to_v14() -> None:
         in status_text
     )
     assert (
-        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_preflight_ready"
+        "default-off selector runtime shadow replay preflight and"
         in status_text
     )
     assert (
-        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_only"
+        "The next gate is result review only"
         in status_text
     )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_passed"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_only"
+        in status_text
+    )
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_execution_artifact_dbd5b539a0_20260703T090930CST"
+        in status_text
+    )
+    assert "Runbook exit / audit exit:" in status_text
+    assert "`0 / 0`" in status_text
+    assert "Executed DP Top-1 records:" in status_text
+    assert "Feasible / fail-closed fallback records:" in status_text
+    assert "1277624d6ff07b4a02f73c18af10f68a84a6e999b1483a5d654adafebc9cba7c" in status_text
     assert "Planned command count / expected records:" in status_text
     assert "`32 / 3200`" in status_text
     assert "Check count:" in status_text
@@ -3053,8 +3066,12 @@ def test_current_status_and_readme_point_to_v14() -> None:
         "materialized"
         in status_text
     )
-    assert "default-off selector runtime shadow replay preflight has\npassed" in status_text
-    assert "The next gate is runtime shadow replay execution only" in status_text
+    assert (
+        "default-off selector runtime shadow replay preflight and\n"
+        "fresh execution audit have passed"
+        in status_text
+    )
+    assert "The next gate is result review only" in status_text
 
     assert "docs/diffusion_planner_current_status.md" in readme_text
     assert "docs/diffusion_planner_v14_iteration_audit.md" in readme_text

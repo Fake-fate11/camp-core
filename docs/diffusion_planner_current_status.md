@@ -1349,6 +1349,55 @@ authorize safety/CAMP-over-DP claims. The planned commands keep CAMP as a
 default-off shadow reranker over fixed DP candidate tensors and keep the
 executed trajectory policy at DP Top-1.
 
+## Default-Off Selector Runtime Shadow Replay Execution
+
+Verified on AutoDL at 2026-07-03 09:36 CST:
+
+- Fresh execution artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_execution_artifact_dbd5b539a0_20260703T090930CST`
+- Fresh execution output root:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_execution_dbd5b539a0_20260703T090512CST`
+- Fresh preflight refresh artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_preflight_refresh_dbd5b539a0_20260703T090512CST`
+- Interrupted prior execution artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_shadow_selector_runtime_shadow_replay_execution_artifact_dbd5b539a0_20260703T044233CST`
+- Interrupted prior progress:
+  `14/32`, no `runbook.exit`, PID not alive
+- CAMP head and origin/main:
+  `dbd5b539a0117c47ea0809e923940619ec41214a`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Runtime manifest SHA256:
+  `92e82fbf2e7bb26847b6f24b8ccc9d78242addb451bc7301aa77997592569bd2`
+- Runbook exit / audit exit:
+  `0 / 0`
+- Selection/validation/replay summaries:
+  `32 / 32 / 32`
+- Records:
+  `3200`
+- Executed DP Top-1 records:
+  `3200`
+- Default-off selector records:
+  `3200`
+- Shadow selected non-Top-1 records:
+  `2832`
+- Feasible / fail-closed fallback records:
+  `2914 / 286`
+- Max affine score error:
+  `4.440892098500626e-16`
+- Audit failed checks:
+  `[]`
+- Execution audit JSON SHA256:
+  `1277624d6ff07b4a02f73c18af10f68a84a6e999b1483a5d654adafebc9cba7c`
+- Artifact SHA256SUMS SHA256:
+  `55be6fa553f180dd2be565e2206c69285e4cd8850eab1832b8db10224e4c72ac`
+
+The prior execution was interrupted by the AutoDL terminal closure and is
+retained only as interruption evidence. The fresh execution completed the
+guarded runbook and the read-only audit passed. CAMP remained a default-off
+shadow reranker over the fixed DP candidate tensor; the executed trajectory
+remained DP Top-1 for every record.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1364,18 +1413,18 @@ artifact manifest plan-only/static-review/materialization-plan-only/static-revie
 and materialization implementation-plan/static-review gates have passed. The
 runtime artifact manifest materializer implementation and post-implementation
 static contract review are complete, the runtime artifact manifest has been
-materialized, and the default-off selector runtime shadow replay preflight has
-passed. The next gate is runtime shadow replay execution only. That next gate
-may execute the guarded runbook but still does not authorize promotion,
-deployment, training, candidate generation, DP modification, or safety-benefit
-claims.
+materialized, and the default-off selector runtime shadow replay preflight and
+fresh execution audit have passed. The next gate is result review only. That
+next gate may inspect the passed execution artifact but still does not authorize
+promotion, deployment, training, candidate generation, DP modification, or
+safety-benefit claims.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_preflight_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_execution_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_result_review_only
 
 ## Cleanup Policy
 
