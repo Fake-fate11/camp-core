@@ -83,8 +83,8 @@ def test_post_closeout_promotion_readiness_gap_analysis_rejects_eof_mismatch(
 
     assert report["final_decision"]["passed"] is False
     assert report["final_decision"]["failure_class"] == "v14_eof_contract_mismatch"
-    assert "audit_latest_next_work" in report["final_decision"]["failed_checks"]
-    assert "status_doc_latest_next_work" in report["final_decision"]["failed_checks"]
+    assert "audit_latest_eof_authorizes_gap_analysis" in report["final_decision"]["failed_checks"]
+    assert "status_doc_latest_eof_authorizes_gap_analysis" in report["final_decision"]["failed_checks"]
 
 
 def test_post_closeout_promotion_readiness_gap_analysis_accepts_uppercase_heads(
@@ -101,6 +101,29 @@ def test_post_closeout_promotion_readiness_gap_analysis_accepts_uppercase_heads(
 
     assert report["final_decision"]["passed"] is True
     assert not {
+        "result_review_heads_dp_fixed",
+        "delta_review_heads_dp_fixed",
+    } & set(report["final_decision"]["failed_checks"])
+
+
+def test_post_closeout_promotion_readiness_gap_analysis_accepts_contract_fix_rerun_eof(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        latest_status=module.REJECT_STATUS,
+        next_work=module.CONTRACT_FIX_RERUN_AUTHORIZED_WORK,
+        uppercase_head_artifacts={"result_review", "delta_review"},
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert not {
+        "audit_latest_eof_authorizes_gap_analysis",
+        "status_doc_latest_eof_authorizes_gap_analysis",
         "result_review_heads_dp_fixed",
         "delta_review_heads_dp_fixed",
     } & set(report["final_decision"]["failed_checks"])
@@ -212,16 +235,18 @@ def _write_fixture(
     tmp_path: Path,
     module,
     *,
+    latest_status: str | None = None,
     next_work: str | None = None,
     promotion_plan_decision_updates: dict[str, Any] | None = None,
     uppercase_head_artifacts: set[str] | None = None,
 ) -> dict[str, Any]:
     uppercase_head_artifacts = uppercase_head_artifacts or set()
     docs = tmp_path / "docs"
+    current_status = latest_status or module.CLOSEOUT_REVIEW_STATUS
     next_target = next_work or module.SOURCE_CLOSED_NEXT_WORK
     doc_text = "\n".join(
         [
-            f"current_v14_status={module.CLOSEOUT_REVIEW_STATUS}",
+            f"current_v14_status={current_status}",
             "default_off_shadow_selector_runtime_no_promotion_closeout_complete=True",
             "future_promotion_requires_new_eof_and_explicit_authorization=True",
             "selector_promotion_authorized=False",

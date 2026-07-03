@@ -72,6 +72,12 @@ SOURCE_CLOSED_NEXT_WORK = (
     "promotion_decision_from_evidence_package_closed_no_further_action_"
     "without_new_eof_authorization"
 )
+CONTRACT_FIX_RERUN_AUTHORIZED_WORK = (
+    "public_simulator_fixed_dp_candidate_generation_trained_default_off_"
+    "shadow_replay_evaluation_default_off_shadow_selector_runtime_"
+    "post_closeout_promotion_readiness_gap_analysis_contract_fix_rerun_"
+    "requires_user_decision"
+)
 
 AUTHORIZED_CURRENT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_"
@@ -537,11 +543,21 @@ def _source_json_checks(source_data: dict[str, dict[str, Any]]) -> list[dict[str
 
 
 def _audit_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
+    expected_pairs = (
+        (CLOSEOUT_REVIEW_STATUS, SOURCE_CLOSED_NEXT_WORK),
+        (REJECT_STATUS, CONTRACT_FIX_RERUN_AUTHORIZED_WORK),
+    )
+    audit_pair = (
+        _latest_value(v14_text, "current_v14_status"),
+        _latest_value(v14_text, "next_work_target"),
+    )
+    status_pair = (
+        _latest_value(status_text, "current_v14_status"),
+        _latest_value(status_text, "next_work_target"),
+    )
     return [
-        _expect("audit_latest_status", _latest_value(v14_text, "current_v14_status"), CLOSEOUT_REVIEW_STATUS),
-        _expect("audit_latest_next_work", _latest_value(v14_text, "next_work_target"), SOURCE_CLOSED_NEXT_WORK),
-        _expect("status_doc_latest_status", _latest_value(status_text, "current_v14_status"), CLOSEOUT_REVIEW_STATUS),
-        _expect("status_doc_latest_next_work", _latest_value(status_text, "next_work_target"), SOURCE_CLOSED_NEXT_WORK),
+        _check("audit_latest_eof_authorizes_gap_analysis", audit_pair in expected_pairs, audit_pair, expected_pairs),
+        _check("status_doc_latest_eof_authorizes_gap_analysis", status_pair in expected_pairs, status_pair, expected_pairs),
         _expect("audit_closeout_complete", _latest_value(v14_text, "default_off_shadow_selector_runtime_no_promotion_closeout_complete"), "True"),
         _expect("audit_future_promotion_requires_new_eof", _latest_value(v14_text, "future_promotion_requires_new_eof_and_explicit_authorization"), "True"),
         _expect("audit_selector_promotion_authorized", _latest_value(v14_text, "selector_promotion_authorized"), "False"),
