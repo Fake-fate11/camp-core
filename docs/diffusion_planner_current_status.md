@@ -102,12 +102,15 @@ work to v13.
 - The latest runtime promotion evidence-package construction ran on AutoDL
   with CAMP synchronized at
   `69a3ff3a04a7bf1f26d47687a4b7ec26209e107c`.
+- The latest runtime promotion evidence-package construction static review ran
+  on AutoDL with CAMP synchronized at
+  `d411ca5dc02ae29d20c9f4a5d1bbf942cf7427e9`.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_constructed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_only`.
 
 ## What Changed
 
@@ -1693,6 +1696,47 @@ the online selector, promote atoms or selectors, deploy, or authorize
 safety/CAMP-over-DP claims. It only authorizes a constructed-package static
 review.
 
+## Default-Off Selector Runtime Promotion Evidence-Package Construction Static Review
+
+Verified on AutoDL at 2026-07-03 17:36 CST:
+
+- Constructed-package static review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_construction_static_review_d411ca5dc0_20260703T173614CST`
+- Source construction artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_construction_69a3ff3a04_20260703T170856CST`
+- CAMP head and origin/main:
+  `d411ca5dc02ae29d20c9f4a5d1bbf942cf7427e9`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Static review exit:
+  `0`
+- Failed checks:
+  `[]`
+- Check count / failed check count:
+  `244 / 0`
+- Static review status:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_passed`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_only`
+- Promotion-decision planning from the evidence package authorized:
+  `True`
+- Selector promotion / deployment / safety / CAMP-over-DP-Top1 claim authorized:
+  `False / False / False / False`
+- Training / replay / candidate generation / DP modification authorized:
+  `False / False / False / False`
+- Static review report JSON SHA256:
+  `57a52859e676041e47a46eec24638befff57fb48c093d1b7e978c7e068488c2b`
+- Static review report MD SHA256:
+  `99204c27b427c230bf64fca8b00b6f800f6a30c75dfb46417b21e6aadb221c21`
+- Artifact SHA256SUMS SHA256:
+  `8888a9b4a040cb664fe5bd7d5d660734f5b5e4c888f4342f9b1e4c7cffeb1e36`
+
+The constructed-package static review audited the already-constructed evidence
+package, manifest, package hashes, and boundary flags. It did not train,
+replay, generate candidates, modify DP, change the online selector, promote
+atoms or selectors, deploy, or authorize safety/CAMP-over-DP claims. It only
+authorizes a future promotion-decision plan from the evidence package.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -1717,15 +1761,16 @@ runtime promotion evidence-package preflight has passed. The first runtime
 promotion evidence-package static review attempt failed because the command
 used the wrong preflight artifact input paths. After explicit user
 authorization, the rerun used the corrected preflight subdirectory inputs and
-passed. The evidence package has now been constructed. The next action is a
-read-only constructed-package static review.
+passed. The evidence package has now been constructed and its constructed-package
+static review has passed. The next action is a promotion-decision plan from the
+evidence package only.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, or safety-benefit claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_constructed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_only
 
 ## Cleanup Policy
 

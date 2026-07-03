@@ -524,11 +524,11 @@ def test_v14_public_simulator_fixed_dp_candidate_data_preparation_preflight_read
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_constructed"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_only"
     )
 
 
@@ -697,11 +697,11 @@ def test_v14_public_simulator_fixed_dp_candidate_training_execution_passed_is_hi
     latest_target = text.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
     assert (
         latest_status
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_constructed"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_passed"
     )
     assert (
         latest_target
-        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_only"
+        == "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_only"
     )
 
 
@@ -3001,17 +3001,23 @@ def test_v14_default_off_selector_runtime_promotion_evidence_package_static_revi
         assert needle in text
 
 
-def test_v14_default_off_selector_runtime_promotion_evidence_package_construction_is_eof() -> None:
+def test_v14_default_off_selector_runtime_promotion_evidence_package_construction_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Default-Off Selector Runtime Promotion Evidence-Package Static Review "
         "Authorized Rerun"
     )
     section_title = "## Default-Off Selector Runtime Promotion Evidence-Package Construction"
+    next_section_title = (
+        "## Default-Off Selector Runtime Promotion Evidence-Package Construction "
+        "Static Review"
+    )
+    section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
-    assert text.count(section_title) == 1
-    assert text.rfind(section_title) > text.rfind(previous_section_title)
-    assert "\n## " not in text[text.rfind(section_title) + len(section_title) :]
+    assert text.count(section_title + "\n") == 1
+    assert section_index > text.rfind(previous_section_title)
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_construction_69a3ff3a04_20260703T170856CST",
@@ -3058,6 +3064,68 @@ def test_v14_default_off_selector_runtime_promotion_evidence_package_constructio
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_only",
+    ]:
+        assert needle in text
+
+
+def test_v14_default_off_selector_runtime_promotion_evidence_package_construction_static_review_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = "## Default-Off Selector Runtime Promotion Evidence-Package Construction"
+    section_title = (
+        "## Default-Off Selector Runtime Promotion Evidence-Package Construction "
+        "Static Review"
+    )
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_construction_static_review_d411ca5dc0_20260703T173614CST",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_source_construction_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_construction_69a3ff3a04_20260703T170856CST",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_camp_head=d411ca5dc02ae29d20c9f4a5d1bbf942cf7427e9",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_camp_origin_main=d411ca5dc02ae29d20c9f4a5d1bbf942cf7427e9",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_passed",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_passed=True",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_failed_checks=[]",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_check_count=244",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_only",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_promotion_decision_planning_authorized=True",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_selector_promotion_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_deployment_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_local_py_compile_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_local_pytest_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_local_pytest_passed=51",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_autodl_py_compile_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_autodl_pytest_exit=0",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_autodl_pytest_passed=51",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_report_json_sha256=57a52859e676041e47a46eec24638befff57fb48c093d1b7e978c7e068488c2b",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_report_md_sha256=99204c27b427c230bf64fca8b00b6f800f6a30c75dfb46417b21e6aadb221c21",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_report_sha256s_sha256=192558cb21b549ce944a9271163cdacba7c753110668dc845f03631faac86678",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_artifact_sha256s_sha256=8888a9b4a040cb664fe5bd7d5d660734f5b5e4c888f4342f9b1e4c7cffeb1e36",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_heads_sha256=da2e0a2864832e2f3ad44d5a967fbeca4f99981499b0babea060cc68305ddc67",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_command_sha256=9ba1a4dea162472da8c37a176a041d0980fff893d6fb15bf122b938640769da1",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_stdout_sha256=9cec345c5d3a67455f028697e909ff344860eafb7135357898e7644e317e4ba6",
+        "v14_public_simulator_default_off_selector_runtime_promotion_evidence_package_construction_static_review_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_only",
+        "default_off_shadow_selector_runtime_promotion_evidence_package_construction_static_review_passed=True",
+        "default_off_shadow_selector_runtime_promotion_decision_plan_from_evidence_package_authorized=True",
+        "default_off_shadow_selector_runtime_execution_authorized=False",
+        "candidate_generation_by_camp_authorized_by_current_boundary=False",
+        "trajectory_modification_by_camp_authorized_by_current_boundary=False",
+        "dp_modification_authorized_by_current_boundary=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_only",
     ]:
         assert needle in text
 
@@ -3323,7 +3391,7 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "192d2928b2c9bbe22275f02c3c1532e713b1542f" in status_text
     assert "do_not_promote_from_current_evidence_alone" in status_text
     assert "build_runtime_promotion_evidence_package_preflight_only" in status_text
-    assert "read-only constructed-package static review" in status_text
+    assert "promotion-decision plan from the\nevidence package only" in status_text
     assert "16394aebd9cf92025fc36613f196d6f0728c1a60ec12768474e459d48e88eb44" in status_text
     assert "c025186948924debf7e43b26c2d2d3025e649e167cf37c7301e8c5cfe312a811" in status_text
     assert (
@@ -3403,6 +3471,26 @@ def test_current_status_and_readme_point_to_v14() -> None:
     )
     assert (
         "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_only"
+        in status_text
+    )
+    assert (
+        "Default-Off Selector Runtime Promotion Evidence-Package Construction Static Review"
+        in status_text
+    )
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_default_off_runtime_promotion_evidence_package_construction_static_review_d411ca5dc0_20260703T173614CST"
+        in status_text
+    )
+    assert "d411ca5dc02ae29d20c9f4a5d1bbf942cf7427e9" in status_text
+    assert "`244 / 0`" in status_text
+    assert "57a52859e676041e47a46eec24638befff57fb48c093d1b7e978c7e068488c2b" in status_text
+    assert "8888a9b4a040cb664fe5bd7d5d660734f5b5e4c888f4342f9b1e4c7cffeb1e36" in status_text
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_evidence_package_construction_static_review_passed"
+        in status_text
+    )
+    assert (
+        "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_shadow_replay_promotion_decision_plan_from_evidence_package_only"
         in status_text
     )
     assert (
