@@ -12,8 +12,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+root_str = str(ROOT)
+if root_str not in sys.path:
+    sys.path.insert(0, root_str)
 
 from scripts.integrations.record_diffusion_planner_dp_camp_v14_public_simulator_default_off_selector_runtime_shadow_replay_promotion_decision_no_promotion_closeout import (  # noqa: E501
     AUTHORIZED_NEXT_WORK as SOURCE_RECORD_AUTHORIZED_NEXT_WORK,
