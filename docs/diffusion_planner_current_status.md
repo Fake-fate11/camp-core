@@ -163,12 +163,20 @@ work to v13.
   `uncertainty_coverage_review_preflight_static_review_authorized=True`.
   No uncertainty/coverage review, promotion, deployment, online selector
   activation, or safety/CAMP-over-DP claim was authorized or performed.
+- The post-closeout promotion-readiness uncertainty/coverage review preflight
+  static review authorized rerun passed on AutoDL with CAMP synchronized at
+  `61565337174dc697f610b709eb2b50a3f86c0415`. The first authorized contract
+  update rerun at `947199c5fc566af41e2898a0ba21a0acd4c599e7` failed closed on
+  a failed-attempt audit key mismatch; the follow-up key-only correction passed
+  the same read-only static review gate and authorizes only the read-only
+  uncertainty/coverage review, not promotion, deployment, online selector
+  activation, or safety/CAMP-over-DP claims.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_rejected`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_passed`.
 - Current next work target is
-  `user_decision_required_before_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_contract_update_or_rerun`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_only`.
 
 ## What Changed
 
@@ -3431,6 +3439,77 @@ failed attempt is preserved as evidence. No uncertainty/coverage review,
 promotion, deployment, online selector activation, DP modification, or
 safety/CAMP-over-DP claim was authorized or performed.
 
+## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Preflight Static Review Authorized Rerun
+
+After explicit user authorization, the static review contract was updated to
+accept the audited short EOF authorization key. AutoDL reran the same read-only
+static review gate. The first authorized contract-update rerun failed closed on
+the contract's failed-attempt audit key lookup, then a key-only correction was
+rerun and passed:
+
+Failed authorized contract-update rerun:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_947199c5fc_20260704T165923CST`
+
+- CAMP head and origin/main:
+  `947199c5fc566af41e2898a0ba21a0acd4c599e7`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Static review exit/status:
+  `1` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_rejected`
+- Failure class / failed checks:
+  `v14_eof_contract_mismatch` / `audit_failed_attempt_failed_checks`
+- Review JSON / MD / review SHA256SUMS SHA256:
+  `f978c7317d4d06d3dc442c11e60ee23837b93d661a15d879347e6d78c572277d`,
+  `1a240208559bd96e0a18fa2cf4cdfefb8c3f093419211bfc36a28f4f77775abd`,
+  `4b6319f0b1f71bf5469aac269a37e041504413ef6a006e6484c4616ac25ff3de`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `2d5447627b392b2b7fe539fe9bb248a7c6f42633998d28a143e9fee25092e052`,
+  `b038b2810cf6858728abda67d95c64bb8728405271a66ee73e17a85a156a004c`,
+  `16294c4ecadeee2a8e44f06c112a6e1b83b5209b0d06e0d71951f9387efd498e`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`,
+  `5b7b9a776e8376adba20c16b81b8460388ba8b131ec5caec4ef4cb0739040b7d`
+
+Passing authorized rerun:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_6156533717_20260704T170306CST`
+
+- Source uncertainty/coverage review preflight artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_e3fa0b0aa1_20260704T140146CST`
+- CAMP head and origin/main:
+  `61565337174dc697f610b709eb2b50a3f86c0415`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Static review exit/status:
+  `0` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_passed`
+- Review check count / failed check count:
+  `141 / 0`
+- Source preflight checks / review preflight items / artifact requirements:
+  `190 / 7 / 7`
+- Source no-go conditions / future review requirements:
+  `7 / 5`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_only`
+- Review JSON / MD / review SHA256SUMS SHA256:
+  `942b9c253e1157c134a37f9302c39ad864bc259d7d93a0f856d75e69e0ab37d0`,
+  `b5d947bb5f0628a86f948d20a72ffe8d209a9a2450dc6e43b092874fa2f9b066`,
+  `eaf716f442446d8d5a67bc0e1d8da3751c2d9bacb608415ab45eca32f7950f6f`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `44f90d0bdfb21d482133e04beb1fa37d588adfea3ea31a0881acd0ac7ab48677`,
+  `3280a39414678179fe648bbd284283ab7368414d4a5edff4cf3992d98f9def1a`,
+  `9be22e853521bb52b25d618f7241ae2bddf2f7d382ed16748dc35668f1053ced`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `0dbe49ba3a8ec2787f683e102b19916c89e21041cb196934e2d26970ee811caa`
+
+This authorized rerun did not execute the uncertainty/coverage review,
+promotion, deployment, online selector activation, DP modification, replay,
+training, candidate generation, or any safety/CAMP-over-DP claim. It authorizes
+only the read-only uncertainty/coverage review.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -3525,8 +3604,13 @@ was only static review of the uncertainty/coverage review preflight. The first
 static review attempt failed because the new review contract expected a longer
 EOF authorization key than the audited preflight EOF recorded. No
 uncertainty/coverage review, promotion, deployment, online selector activation,
-or safety/CAMP-over-DP claim was authorized or performed. The next step requires
-an explicit user decision before any contract update or rerun.
+or safety/CAMP-over-DP claim was authorized or performed. After explicit user
+authorization, the static-review contract was updated for that audited EOF key
+layout. The first authorized rerun failed closed on a failed-attempt audit key
+mismatch, then a key-only correction passed the same read-only static review
+gate. The next authorized scope is only the read-only uncertainty/coverage
+review, not promotion, deployment, online selector activation, or any
+safety/CAMP-over-DP claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -3534,8 +3618,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_rejected
-next_work_target=user_decision_required_before_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_contract_update_or_rerun
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_only
 
 ## Cleanup Policy
 
