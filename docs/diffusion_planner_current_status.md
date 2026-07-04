@@ -4025,7 +4025,11 @@ activation, or any safety/CAMP-over-DP claim. That evidence-manifest
 materialization gate has now passed and wrote five manifests in a new artifact:
 uncertainty input, coverage slice, atom stability, no-go summary, and claim
 boundary summary. The next authorized scope is only static review of those
-materialized manifests.
+materialized manifests. That static review has now passed and confirms all
+five materialized manifests are audit evidence only: materialized, no
+execution, and no claim. The next authorized scope is only an evidence-package
+construction plan, not construction execution, promotion, deployment, online
+selector activation, or any safety/CAMP-over-DP claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -4033,8 +4037,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialized
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_plan_only
 
 ## Cleanup Policy
 
