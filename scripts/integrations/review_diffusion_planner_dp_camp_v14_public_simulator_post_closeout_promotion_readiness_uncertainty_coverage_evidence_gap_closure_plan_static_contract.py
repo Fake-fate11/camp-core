@@ -4,17 +4,30 @@
 from __future__ import annotations
 
 import argparse
-import importlib
+import importlib.util
 import json
 from pathlib import Path
 from typing import Any
 
 
-PLAN_MODULE = importlib.import_module(
-    "scripts.integrations."
-    "plan_diffusion_planner_dp_camp_v14_public_simulator_post_closeout_promotion_readiness_"
-    "uncertainty_coverage_evidence_gap_closure"
-)
+def _load_plan_module():
+    plan_path = (
+        Path(__file__).resolve().with_name(
+            "plan_diffusion_planner_dp_camp_v14_public_simulator_post_closeout_promotion_readiness_"
+            "uncertainty_coverage_evidence_gap_closure.py"
+        )
+    )
+    spec = importlib.util.spec_from_file_location(
+        "v14_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan",
+        plan_path,
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+PLAN_MODULE = _load_plan_module()
 
 FIXED_DP_HEAD = PLAN_MODULE.FIXED_DP_HEAD
 SCORE_EXPRESSION = PLAN_MODULE.SCORE_EXPRESSION

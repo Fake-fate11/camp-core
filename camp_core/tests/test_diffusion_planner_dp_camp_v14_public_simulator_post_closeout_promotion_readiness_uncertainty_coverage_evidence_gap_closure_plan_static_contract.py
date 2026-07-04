@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -84,6 +86,22 @@ def test_uncertainty_coverage_evidence_gap_closure_plan_static_contract_requires
         report["final_decision"]["failure_class"]
         == "explicit_uncertainty_coverage_evidence_gap_closure_plan_static_review_authorization_missing"
     )
+
+
+def test_uncertainty_coverage_evidence_gap_closure_plan_static_contract_direct_script_help(
+    tmp_path: Path,
+) -> None:
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "--help"],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "evidence_gap_closure_plan_artifact_dir" in result.stdout
+    assert "No module named 'scripts'" not in result.stderr
 
 
 def test_uncertainty_coverage_evidence_gap_closure_plan_static_contract_rejects_wrong_eof(
