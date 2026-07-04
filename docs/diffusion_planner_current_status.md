@@ -4036,7 +4036,20 @@ package, run replay or training, generate candidates, modify DP, promote a
 selector, deploy, activate an online selector, or make any safety/CAMP-over-DP
 claim. The static review of that plan has now passed and authorizes only
 evidence-package construction. It still does not authorize promotion,
-deployment, online selector activation, or any safety/CAMP-over-DP claim.
+deployment, online selector activation, or any safety/CAMP-over-DP claim. The
+first evidence-package construction attempt failed closed on AutoDL because the
+artifact `COMMAND` harness used a single-quoted heredoc, so `$HEAD`, `$ORIGIN`,
+`$DP_HEAD`, and `$OUT` were not expanded inside the child shell. The
+construction script therefore received empty CAMP/DP/output arguments and
+correctly rejected the gate on `current_dp_head_fixed` and
+`current_camp_head_is_sha`. No evidence package was constructed. The rejected
+JSON/MD/SHA256SUMS that were misdirected to the AutoDL CAMP repo root were
+copied into the failed artifact under `misdirected_output/` and then removed
+one explicit path at a time from the repo root. This construction-only failure
+requires a user decision before fixing the command harness and rerunning; the
+standing compatibility authorization only covers same-class
+read-only/static-review/plan-only contract or source-artifact-layout
+compatibility fixes.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -4044,8 +4057,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_plan_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_rejected
+next_work_target=user_decision_required_before_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_command_harness_fix_or_rerun
 
 ## Cleanup Policy
 
