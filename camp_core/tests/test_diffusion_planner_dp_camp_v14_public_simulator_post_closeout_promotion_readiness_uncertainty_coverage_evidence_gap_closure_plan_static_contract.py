@@ -117,6 +117,27 @@ def test_uncertainty_coverage_evidence_gap_closure_plan_static_contract_rejects_
     assert report["final_decision"]["failure_class"] == "v14_eof_contract_mismatch"
 
 
+def test_uncertainty_coverage_evidence_gap_closure_plan_static_contract_accepts_import_path_rerun_eof(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        current_status=module.REJECT_STATUS,
+        next_work=module.AUDITED_IMPORT_PATH_RERUN_NEXT_WORK,
+        import_path_rerun=True,
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert "audit_latest_status_is_source_plan_ready" not in report["final_decision"]["failed_checks"]
+    assert "audit_latest_eof_authorizes_static_review" not in report["final_decision"]["failed_checks"]
+    assert "status_doc_latest_status_is_source_plan_ready" not in report["final_decision"]["failed_checks"]
+    assert "status_doc_latest_eof_authorizes_static_review" not in report["final_decision"]["failed_checks"]
+
+
 def test_uncertainty_coverage_evidence_gap_closure_plan_static_contract_rejects_source_leak(
     tmp_path: Path,
 ) -> None:
@@ -199,20 +220,33 @@ def _write_fixture(
     tmp_path: Path,
     module,
     *,
+    current_status: str | None = None,
     next_work: str | None = None,
+    import_path_rerun: bool = False,
     source_decision_updates: dict[str, Any] | None = None,
     drop_gap: bool = False,
 ) -> dict[str, Any]:
     artifact = tmp_path / "closure_plan_artifact"
     plan_dir = artifact / "plan"
     docs = tmp_path / "docs"
+    current_status_value = current_status or module.SOURCE_PLAN_STATUS
     current_next = next_work or module.AUTHORIZED_CURRENT_WORK
-    doc_text = "\n".join(
+    doc_lines = [
+        f"current_v14_status={current_status_value}",
+        f"next_work_target={current_next}",
+        "post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_ready=True",
+        "uncertainty_coverage_evidence_gap_closure_plan_static_review_authorized=True",
+    ]
+    if import_path_rerun:
+        doc_lines.extend(
+            [
+                "uncertainty_coverage_evidence_gap_closure_plan_static_review_import_path_fixed=True",
+                "uncertainty_coverage_evidence_gap_closure_plan_static_review_passed=False",
+                "uncertainty_coverage_evidence_manifest_materialization_plan_authorized=False",
+            ]
+        )
+    doc_lines.extend(
         [
-            f"current_v14_status={module.SOURCE_PLAN_STATUS}",
-            f"next_work_target={current_next}",
-            "post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_ready=True",
-            "uncertainty_coverage_evidence_gap_closure_plan_static_review_authorized=True",
             "direct_promotion_recommendation=False",
             "selector_promotion_authorized=False",
             "deployment_authorized=False",
@@ -221,6 +255,7 @@ def _write_fixture(
             "",
         ]
     )
+    doc_text = "\n".join(doc_lines)
     v14_audit = _write(docs / "diffusion_planner_v14_iteration_audit.md", doc_text)
     current_status = _write(docs / "diffusion_planner_current_status.md", doc_text)
 

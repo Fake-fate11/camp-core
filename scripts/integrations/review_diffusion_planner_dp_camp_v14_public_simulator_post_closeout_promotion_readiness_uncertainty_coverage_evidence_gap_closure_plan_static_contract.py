@@ -53,6 +53,10 @@ AUTHORIZED_NEXT_WORK = (
     "shadow_replay_evaluation_default_off_shadow_selector_runtime_"
     "post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_only"
 )
+AUDITED_IMPORT_PATH_RERUN_NEXT_WORK = (
+    "user_decision_required_before_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_"
+    "evidence_gap_closure_plan_static_review_contract_update_or_rerun"
+)
 SOURCE_PLAN_JSON_NAME = PLAN_MODULE.PLAN_JSON_NAME
 SOURCE_PLAN_MD_NAME = PLAN_MODULE.PLAN_MD_NAME
 REVIEW_JSON_NAME = (
@@ -365,18 +369,51 @@ def _source_surface_checks(script_text: str, test_text: str) -> list[dict[str, A
 
 
 def _audit_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
-    return [
-        PLAN_MODULE._expect("audit_latest_status_is_source_plan_ready", PLAN_MODULE._latest_value(v14_text, "current_v14_status"), SOURCE_PLAN_STATUS),
-        PLAN_MODULE._expect("audit_latest_eof_authorizes_static_review", PLAN_MODULE._latest_value(v14_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
+    accepted_statuses = (SOURCE_PLAN_STATUS, REJECT_STATUS)
+    accepted_next_work = (AUTHORIZED_CURRENT_WORK, AUDITED_IMPORT_PATH_RERUN_NEXT_WORK)
+    audit_status = PLAN_MODULE._latest_value(v14_text, "current_v14_status")
+    audit_next_work = PLAN_MODULE._latest_value(v14_text, "next_work_target")
+    status_doc_status = PLAN_MODULE._latest_value(status_text, "current_v14_status")
+    status_doc_next_work = PLAN_MODULE._latest_value(status_text, "next_work_target")
+    audit_is_import_path_rerun = (
+        audit_status == REJECT_STATUS and audit_next_work == AUDITED_IMPORT_PATH_RERUN_NEXT_WORK
+    )
+    status_doc_is_import_path_rerun = (
+        status_doc_status == REJECT_STATUS and status_doc_next_work == AUDITED_IMPORT_PATH_RERUN_NEXT_WORK
+    )
+    checks = [
+        _expect_one_of("audit_latest_status_is_source_plan_ready", audit_status, accepted_statuses),
+        _expect_one_of("audit_latest_eof_authorizes_static_review", audit_next_work, accepted_next_work),
         PLAN_MODULE._expect("audit_static_review_authorized_flag", PLAN_MODULE._latest_value(v14_text, "uncertainty_coverage_evidence_gap_closure_plan_static_review_authorized"), "True"),
         PLAN_MODULE._expect("audit_direct_promotion_false", PLAN_MODULE._latest_value(v14_text, "direct_promotion_recommendation"), "False"),
         PLAN_MODULE._expect("audit_selector_promotion_false", PLAN_MODULE._latest_value(v14_text, "selector_promotion_authorized"), "False"),
         PLAN_MODULE._expect("audit_deployment_false", PLAN_MODULE._latest_value(v14_text, "deployment_authorized"), "False"),
         PLAN_MODULE._expect("audit_safety_claim_false", PLAN_MODULE._latest_value(v14_text, "safety_benefit_claim_authorized"), "False"),
         PLAN_MODULE._expect("audit_camp_over_dp_claim_false", PLAN_MODULE._latest_value(v14_text, "camp_over_dp_top1_claim_authorized"), "False"),
-        PLAN_MODULE._expect("status_doc_latest_status_is_source_plan_ready", PLAN_MODULE._latest_value(status_text, "current_v14_status"), SOURCE_PLAN_STATUS),
-        PLAN_MODULE._expect("status_doc_latest_eof_authorizes_static_review", PLAN_MODULE._latest_value(status_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
+        _expect_one_of("status_doc_latest_status_is_source_plan_ready", status_doc_status, accepted_statuses),
+        _expect_one_of("status_doc_latest_eof_authorizes_static_review", status_doc_next_work, accepted_next_work),
     ]
+    if audit_is_import_path_rerun:
+        checks.extend(
+            [
+                PLAN_MODULE._expect("audit_import_path_rerun_fixed", PLAN_MODULE._latest_value(v14_text, "uncertainty_coverage_evidence_gap_closure_plan_static_review_import_path_fixed"), "True"),
+                PLAN_MODULE._expect("audit_import_path_rerun_passed_false", PLAN_MODULE._latest_value(v14_text, "uncertainty_coverage_evidence_gap_closure_plan_static_review_passed"), "False"),
+                PLAN_MODULE._expect("audit_import_path_rerun_manifest_plan_false", PLAN_MODULE._latest_value(v14_text, "uncertainty_coverage_evidence_manifest_materialization_plan_authorized"), "False"),
+            ]
+        )
+    if status_doc_is_import_path_rerun:
+        checks.extend(
+            [
+                PLAN_MODULE._expect("status_doc_import_path_rerun_fixed", PLAN_MODULE._latest_value(status_text, "uncertainty_coverage_evidence_gap_closure_plan_static_review_import_path_fixed"), "True"),
+                PLAN_MODULE._expect("status_doc_import_path_rerun_passed_false", PLAN_MODULE._latest_value(status_text, "uncertainty_coverage_evidence_gap_closure_plan_static_review_passed"), "False"),
+                PLAN_MODULE._expect("status_doc_import_path_rerun_manifest_plan_false", PLAN_MODULE._latest_value(status_text, "uncertainty_coverage_evidence_manifest_materialization_plan_authorized"), "False"),
+            ]
+        )
+    return checks
+
+
+def _expect_one_of(name: str, observed: Any, expected_values: tuple[str, ...]) -> dict[str, Any]:
+    return PLAN_MODULE._check(name, observed in expected_values, observed, expected_values)
 
 
 def _source_summary(source_plan: dict[str, Any]) -> dict[str, Any]:
