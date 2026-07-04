@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_static_review_passed"
+    "post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialized"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_only"
+    "post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_static_review_only"
 )
 
 
@@ -5793,12 +5793,14 @@ def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_evidence_man
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence Manifest Materialization Plan"
     section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence Manifest Materialization Plan Static Review"
+    next_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence Manifest Materialization"
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_static_review_4c5560efd3_20260704T235337CST",
@@ -5834,6 +5836,55 @@ def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_evidence_man
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialized_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence Manifest Materialization Plan Static Review"
+    section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence Manifest Materialization"
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_d0a8ebf7ca_20260705T000751CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_source_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_static_review_4c5560efd3_20260704T235337CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_source_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_c90db9ccaf_20260704T233139CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_camp_head=d0a8ebf7caad48cc9370ad3eda9a66efb4a49e2c",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialized",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_check_count=200",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_manifest_count=5",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_uncertainty_input_manifest_sha256=365c9433e06d134a77df985912f897f61b9f4050f94b54891788e42a36c4329c",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_coverage_slice_manifest_sha256=c53eeb246ea1fe14d17b5b5c13c6ccfae18a87e35f03be5284d2725c6fe1a58f",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_atom_stability_manifest_sha256=e0b1fa2505c1968a8629b89f9aef2f0c5d4296f9949dc380efeec59703b9d664",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_no_go_summary_sha256=882b17c64d53ad2ba967b5cf60887b4b37245827038c9103365590c5643c8b18",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_claim_boundary_summary_sha256=4e464040a00c77cd48395f0a418f57ca792ec5c358b254f011e6c0daf16d062b",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_report_json_sha256=1fd3253f00df3c433b308b5fdb3d22bf1149364cac8d28800b9a41f18e9f2b8e",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_artifact_sha256s_sha256=0113bf49d7fab35fbc87ca36c03d8c2c514c176626c3ecc8e59a2fb08fb170ec",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialized",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_static_review_only",
+        "uncertainty_coverage_evidence_manifest_materialized=True",
+        "evidence_manifest_materialized_by_this_gate=True",
+        "evidence_manifest_materialization_static_review_authorized=True",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_static_review_only",
     ]:
         assert needle in text
 
