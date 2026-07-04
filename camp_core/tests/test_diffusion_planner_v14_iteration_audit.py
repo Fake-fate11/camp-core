@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_uncertainty_coverage_review_plan_ready"
+    "post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_passed"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_only"
+    "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_only"
 )
 
 
@@ -4969,16 +4969,18 @@ def test_v14_post_closeout_promotion_readiness_followup_plan_static_review_is_hi
     _assert_latest_v14_status(text)
 
 
-def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_is_eof() -> None:
+def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Post-Closeout Promotion-Readiness Follow-Up Plan Static Review"
     section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Plan"
+    next_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Plan Static Review"
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_b7738a2795_20260704T125644CST",
@@ -5025,6 +5027,65 @@ def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Plan"
+    section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Plan Static Review"
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_ffcdeabd52_20260704T130813CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_source_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_b7738a2795_20260704T125644CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_camp_head=ffcdeabd52df1416fa1e2329860aede37711b608",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_passed",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_passed=True",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_check_count=140",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_source_plan_check_count=124",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_source_plan_item_count=7",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_local_new_pytest_passed=5",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_local_readiness_pytest_passed=157",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_local_v14_audit_pytest_passed=71",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_autodl_new_pytest_passed=5",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_autodl_readiness_pytest_passed=157",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_autodl_v14_audit_pytest_passed=71",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_report_json_sha256=0e71ea1e2843b76e562107f54f0a151b30976fce9ca19e359fd234e7c4df7fb5",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_report_md_sha256=3cddd61d806a524abd99a32cbe2030179f041d750155da3181da729626e4f1ed",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_report_sha256s_sha256=1ee7f5e0e53e9a839ce53fb9d91a944422d877c2aad2147388b1eecf8904f8f3",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_heads_sha256=1c0eb12244ecb45f31fe3422e482a1c32187ac81eefe32352ecda901ce854587",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_command_sha256=710280627a9450eb48b5a405c34d762ffb3bfd8d5ab07c544f798e045d9fe3c3",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_stdout_sha256=99ff699a3ac51eefdb9f9ea74e09e6931280582f45638d053c724fbbd83d0cca",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_run_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_artifact_sha256s_sha256=e3a8d25dc506132bc3bca1e9cf2a27f76e0f76addda9e2b3e1315b6974b5eab2",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_only",
+        "post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_passed=True",
+        "uncertainty_coverage_review_preflight_plan_authorized=True",
+        "direct_promotion_recommendation=False",
+        "promotion_decision_plan_authorized_next=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_only",
     ]:
         assert needle in text
 
@@ -5747,6 +5808,19 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "`134 / 128 / 7`" in status_text
     assert "e54c1dbd7690339a0c62d4529d85e5b11565065e66446f089c61fbb023654276" in status_text
     assert "8698abb5ece03dae91c383f81281dc4a01d1ddbb9d4dbf106e7a2a5f3e9ac3af" in status_text
+    assert (
+        "Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Plan Static Review"
+        in status_text
+    )
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_ffcdeabd52_20260704T130813CST"
+        in status_text
+    )
+    assert "ffcdeabd52df1416fa1e2329860aede37711b608" in status_text
+    assert "`140 / 0`" in status_text
+    assert "`124 / 7`" in status_text
+    assert "0e71ea1e2843b76e562107f54f0a151b30976fce9ca19e359fd234e7c4df7fb5" in status_text
+    assert "e3a8d25dc506132bc3bca1e9cf2a27f76e0f76addda9e2b3e1315b6974b5eab2" in status_text
     assert LATEST_V14_STATUS in status_text
     assert LATEST_V14_NEXT_WORK in status_text
     assert (
