@@ -4013,7 +4013,15 @@ required the existing source static-review artifact root SHA256SUMS to include
 updated to accept the existing source artifact layout while still requiring the
 nested review SHA256SUMS to validate the source JSON/MD. The same plan-only
 gate then passed. It defines five future manifest plans and authorizes only
-static review of that plan, not evidence manifest materialization itself.
+static review of that plan, not evidence manifest materialization itself. The
+first static-review attempt failed closed because the source-surface contract
+required long concatenated constants to appear contiguously in the plan script
+source even though the script stores them as split Python strings. Under the
+same standing compatibility scope, that surface check was narrowed to stable
+short tokens, and the same static-review gate passed. The next authorized scope
+is only materializing the five evidence manifests, not replay, training,
+candidate generation, DP modification, promotion, deployment, online selector
+activation, or any safety/CAMP-over-DP claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -4021,8 +4029,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_only
 
 ## Cleanup Policy
 
