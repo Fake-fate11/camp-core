@@ -4002,11 +4002,18 @@ authorization, that contract was updated only for the audited rerun EOF state,
 and the same read-only static-review gate passed. It authorizes only a
 follow-on plan-only uncertainty/coverage evidence-manifest materialization
 gate, not materialization itself. The authorization scope is now tuned so
-future same-class read-only/static-review contract compatibility fixes and
-same-gate reruns do not require another explicit prompt when they only accept
-already-audited EOF states or existing source artifact layouts. No
+future same-class read-only/static-review/plan-only contract compatibility
+fixes and same-gate reruns do not require another explicit prompt when they
+only accept already-audited EOF states or existing source artifact layouts. No
 materialization, replay, training, promotion, deployment, online selector
-activation, or claim was performed.
+activation, or claim was performed. The first evidence-manifest
+materialization plan-only attempt failed closed because the plan contract still
+required the existing source static-review artifact root SHA256SUMS to include
+`review/SHA256SUMS`. Under that standing compatibility scope, the contract was
+updated to accept the existing source artifact layout while still requiring the
+nested review SHA256SUMS to validate the source JSON/MD. The same plan-only
+gate then passed. It defines five future manifest plans and authorizes only
+static review of that plan, not evidence manifest materialization itself.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -4014,8 +4021,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_static_review_only
 
 ## Cleanup Policy
 
