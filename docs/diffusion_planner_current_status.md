@@ -155,12 +155,20 @@ work to v13.
   `e3fa0b0aa12e0f4e846f0bfb61bb88f61b0c425c`. It authorizes only static
   review of the preflight artifact, not promotion, deployment, online selector
   activation, or safety/CAMP-over-DP claims.
+- The first post-closeout promotion-readiness uncertainty/coverage review
+  preflight static review attempt failed on AutoDL with CAMP synchronized at
+  `f1b6f46eb62bfcd0abd614430a89c0f3791f8d84` because the new review contract
+  expected `post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_authorized=True`
+  while the audited EOF records
+  `uncertainty_coverage_review_preflight_static_review_authorized=True`.
+  No uncertainty/coverage review, promotion, deployment, online selector
+  activation, or safety/CAMP-over-DP claim was authorized or performed.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_rejected`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_only`.
+  `user_decision_required_before_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_contract_update_or_rerun`.
 
 ## What Changed
 
@@ -3377,6 +3385,52 @@ promotion, deployment, online selector activation, DP modification, or any
 safety/CAMP-over-DP claim. It authorizes only static review of the
 uncertainty/coverage review preflight.
 
+## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Preflight Static Review Failed Attempt
+
+AutoDL ran the first static review attempt for the read-only
+uncertainty/coverage review preflight artifact:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_f1b6f46eb6_20260704T142410CST`
+
+- Source uncertainty/coverage review preflight artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_e3fa0b0aa1_20260704T140146CST`
+- CAMP head and origin/main:
+  `f1b6f46eb62bfcd0abd614430a89c0f3791f8d84`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Static review exit/status:
+  `1` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_rejected`
+- Failure class / failed checks:
+  `v14_eof_contract_mismatch` / `audit_preflight_static_review_authorized`
+- Failed check observed / expected:
+  `None` / `True`
+- Review check count / failed check count:
+  `139 / 1`
+- Source preflight checks / review preflight items / artifact requirements:
+  `190 / 7 / 7`
+- Source no-go conditions / future review requirements:
+  `7 / 5`
+- Review JSON / MD / review SHA256SUMS SHA256:
+  `dff6c80361bdebcd3c2fbec341cb5214eab615421c9a9dd43abddab166fa4b4a`,
+  `4338d914879dbc16abaa14f6ba28a3a203d404a025e961c662667fdb9c79ea91`,
+  `29ef504cb53c40bf81effc06285e15fba93b78eae96f3938a13dc1b1d9746ea7`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `7d851342fcbe24a67e9f16e258b96f982a8f08411e918f183ebebc5d9df80c6c`,
+  `20d0c05b89a38fc6858f7f65f22c4058a5b029927d754cfdc39212b1b947af10`,
+  `bc0308a632ecbae8e01e9e94270551160708686540dcaebe87e8e959d33d428e`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`,
+  `4772fb3d5ec88f82ab3586884bf187aed119384d5c65edd074935f3bd382b620`
+
+Failure attribution: the new static review contract required the audit EOF key
+`post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_authorized=True`,
+but the audited preflight EOF records
+`uncertainty_coverage_review_preflight_static_review_authorized=True`. The
+failed attempt is preserved as evidence. No uncertainty/coverage review,
+promotion, deployment, online selector activation, DP modification, or
+safety/CAMP-over-DP claim was authorized or performed.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -3467,7 +3521,12 @@ passed and its static review has now passed. The next authorized scope is only
 a read-only uncertainty/coverage review preflight plan. That preflight plan has
 now passed and its static review has now passed. The read-only
 uncertainty/coverage review preflight has now passed. The next authorized scope
-is only static review of the uncertainty/coverage review preflight.
+was only static review of the uncertainty/coverage review preflight. The first
+static review attempt failed because the new review contract expected a longer
+EOF authorization key than the audited preflight EOF recorded. No
+uncertainty/coverage review, promotion, deployment, online selector activation,
+or safety/CAMP-over-DP claim was authorized or performed. The next step requires
+an explicit user decision before any contract update or rerun.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -3475,8 +3534,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_rejected
+next_work_target=user_decision_required_before_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_contract_update_or_rerun
 
 ## Cleanup Policy
 
