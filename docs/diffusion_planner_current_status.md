@@ -145,12 +145,17 @@ work to v13.
   `5add9915714f54d0a8bcec8e4cde97f80c83f79e`. It authorizes only static
   review of that preflight plan, not promotion, deployment, online selector
   activation, or safety/CAMP-over-DP claims.
+- The latest post-closeout promotion-readiness uncertainty/coverage review
+  preflight plan static review ran on AutoDL with CAMP synchronized at
+  `36e691f3e3f12f9679f9975b10cfabe518e24e06`. It authorizes only the
+  read-only uncertainty/coverage review preflight, not promotion, deployment,
+  online selector activation, or safety/CAMP-over-DP claims.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_only`.
 
 ## What Changed
 
@@ -3284,6 +3289,47 @@ promotion, deployment, online selector activation, DP modification, or any
 safety/CAMP-over-DP claim. It authorizes only static review of the
 uncertainty/coverage review preflight plan.
 
+## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Preflight Plan Static Review
+
+AutoDL executed the static review of the read-only uncertainty/coverage review
+preflight plan:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_36e691f3e3_20260704T134054CST`
+
+- Source uncertainty/coverage preflight plan artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_5add991571_20260704T132654CST`
+- CAMP head and origin/main:
+  `36e691f3e3f12f9679f9975b10cfabe518e24e06`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Static review exit/status:
+  `0` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_passed`
+- Review check count / failed check count:
+  `142 / 0`
+- Source preflight plan checks / items:
+  `123 / 7`
+- Source review checks / source plan checks / source plan items:
+  `140 / 124 / 7`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_only`
+- Review JSON / MD / review SHA256SUMS SHA256:
+  `61ed4b27c7a08a12c2fe95b7b09e621b3e80aa45e48cba698932b87c0d46aa4c`,
+  `3291be876dd32bf3375420fd8da383bc4ce377f10627329df7ea809ef3d8c506`,
+  `2a267460d42c5ce94b9e1138f01b5fabfa01896a9b72c9916cf1e582803df1a4`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `cb614270717c7ed34b4c488ba4bef531cdd7c087e3055f0ff04c0ed3b98adc58`,
+  `6f56e8c49b840a8e43b9124eca02d57389cf069c11251269862f6be898f1d38d`,
+  `629b0b6357e5677987b588bc4f023eb380efad525a6b42440df0c150365eba7e`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `d8d2bad56aaa5811f1000ec1a4de39b4b9eab6a6c074fd87dd1e48c19017b2de`
+
+This static review did not execute the review preflight, replay, training,
+candidate generation, promotion, deployment, online selector activation, DP
+modification, or any safety/CAMP-over-DP claim. It authorizes only the
+read-only uncertainty/coverage review preflight.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -3372,7 +3418,8 @@ only a read-only uncertainty/coverage review plan, not promotion, deployment,
 online selector activation, or any safety/CAMP-over-DP claim. That plan has now
 passed and its static review has now passed. The next authorized scope is only
 a read-only uncertainty/coverage review preflight plan. That preflight plan has
-now passed and authorizes only static review of the preflight plan.
+now passed and its static review has now passed. The next authorized scope is
+only the read-only uncertainty/coverage review preflight.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -3380,8 +3427,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_only
 
 ## Cleanup Policy
 

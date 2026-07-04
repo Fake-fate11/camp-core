@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_ready"
+    "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_passed"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_only"
+    "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_only"
 )
 
 
@@ -5094,16 +5094,18 @@ def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_
     _assert_latest_v14_status(text)
 
 
-def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_is_eof() -> None:
+def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Plan Static Review"
     section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Preflight Plan"
+    next_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Preflight Plan Static Review"
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_5add991571_20260704T132654CST",
@@ -5150,6 +5152,68 @@ def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_prefl
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Preflight Plan"
+    section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Preflight Plan Static Review"
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_36e691f3e3_20260704T134054CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_source_preflight_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_5add991571_20260704T132654CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_camp_head=36e691f3e3f12f9679f9975b10cfabe518e24e06",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_passed",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_passed=True",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_check_count=142",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_source_preflight_plan_check_count=123",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_source_preflight_item_count=7",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_source_review_check_count=140",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_source_plan_check_count=124",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_source_plan_item_count=7",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_local_new_pytest_passed=5",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_local_readiness_pytest_passed=167",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_local_v14_audit_pytest_passed=73",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_autodl_new_pytest_passed=5",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_autodl_readiness_pytest_passed=167",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_autodl_v14_audit_pytest_passed=73",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_report_json_sha256=61ed4b27c7a08a12c2fe95b7b09e621b3e80aa45e48cba698932b87c0d46aa4c",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_report_md_sha256=3291be876dd32bf3375420fd8da383bc4ce377f10627329df7ea809ef3d8c506",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_report_sha256s_sha256=2a267460d42c5ce94b9e1138f01b5fabfa01896a9b72c9916cf1e582803df1a4",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_heads_sha256=cb614270717c7ed34b4c488ba4bef531cdd7c087e3055f0ff04c0ed3b98adc58",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_command_sha256=6f56e8c49b840a8e43b9124eca02d57389cf069c11251269862f6be898f1d38d",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_stdout_sha256=629b0b6357e5677987b588bc4f023eb380efad525a6b42440df0c150365eba7e",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_run_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_artifact_sha256s_sha256=d8d2bad56aaa5811f1000ec1a4de39b4b9eab6a6c074fd87dd1e48c19017b2de",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_only",
+        "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_passed=True",
+        "uncertainty_coverage_review_preflight_authorized=True",
+        "direct_promotion_recommendation=False",
+        "promotion_decision_plan_authorized_next=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_only",
     ]:
         assert needle in text
 
@@ -5898,6 +5962,19 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "`140 / 124 / 7`" in status_text
     assert "b6767ec6d89cc0f06657b524a38e02e7412176a141079e2888f7ed77eb64eb91" in status_text
     assert "b8f30962b9754f4dac6077be5d92de3b7d089a317131d45c3c0b378fe5023f57" in status_text
+    assert (
+        "Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Preflight Plan Static Review"
+        in status_text
+    )
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_plan_static_review_36e691f3e3_20260704T134054CST"
+        in status_text
+    )
+    assert "36e691f3e3f12f9679f9975b10cfabe518e24e06" in status_text
+    assert "`142 / 0`" in status_text
+    assert "`123 / 7`" in status_text
+    assert "61ed4b27c7a08a12c2fe95b7b09e621b3e80aa45e48cba698932b87c0d46aa4c" in status_text
+    assert "d8d2bad56aaa5811f1000ec1a4de39b4b9eab6a6c074fd87dd1e48c19017b2de" in status_text
     assert LATEST_V14_STATUS in status_text
     assert LATEST_V14_NEXT_WORK in status_text
     assert (
