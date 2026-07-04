@@ -129,12 +129,18 @@ work to v13.
   preflight static review attempt failed on AutoDL with CAMP synchronized at
   `92fab539101db586877d2685f1d99b758d24037c` because the new review contract
   did not accept the audited source preflight analysis/EOF field layout.
+- The post-closeout promotion-readiness evaluation runbook execution preflight
+  static review authorized rerun passed on AutoDL with CAMP synchronized at
+  `39e05a250c515708ced4db44db38cc2d90232d44`. The rerun accepted only the
+  audited source preflight analysis/EOF layout and authorizes a follow-on
+  read-only evaluation runbook execution gate, not promotion, deployment,
+  online selector activation, or safety/CAMP-over-DP claims.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_rejected`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_passed`.
 - Current next work target is
-  `user_decision_required_before_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_contract_fix_or_rerun`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_execution_only`.
 
 ## What Changed
 
@@ -2900,6 +2906,50 @@ activation, DP modification, or safety/CAMP-over-DP claims. It authorizes no
 next execution or review work. A user decision is required before any contract
 fix or rerun of this same static-review gate.
 
+## Post-Closeout Promotion-Readiness Evaluation Runbook Execution Preflight Static Review Authorized Rerun
+
+AutoDL reran the same read-only static review after explicit user authorization
+and a narrow contract update for the audited source preflight analysis/EOF
+layout:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_39e05a250c_20260704T112434CST`
+
+- Source runbook execution preflight artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_12cd3dc982_20260704T104156CST`
+- CAMP head and origin/main:
+  `39e05a250c515708ced4db44db38cc2d90232d44`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Review exit/status:
+  `0` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_passed`
+- Review check count / failed check count:
+  `155 / 0`
+- Source preflight checks / runbook steps / artifact manifest requirements /
+  no-go conditions / future review requirements:
+  `226 / 7 / 7 / 8 / 4`
+- Recommendation / immediate action:
+  `execute_read_only_promotion_readiness_evaluation_runbook_only` /
+  `execute_promotion_readiness_evaluation_runbook_only`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_execution_only`
+- Review JSON / MD / review SHA256SUMS SHA256:
+  `72388f7b2c1a5c08d838cf5bc3f95d973e57745e4113ca7c414d2f7c24f5b264`,
+  `bd3de2d399f8cc2fe9a9324b6e71aafe7260fc037e19ec6ca07c92ebb8cc704b`,
+  `7d13f2b4ae3e112c56820fc526dfccf5425de6e2146b5801f8a0da387931613a`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `74a2389a9f2b516c4e9b5655fc927370b50b5efbf4e462e546b4236051de209c`,
+  `6b90bb7dfd41877f70f69e686d6589ae5dd9eb9e89633f483ed9806936fd07b2`,
+  `51af4fc420efa9192145f7ab9f4cf6f86fde8f8acd1a75a0bd1a00e45675cfe6`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `5a9bf7357f76e8fa817a1d6fea257abfc0ccb8ffa998d2f1bade0727dbd48f73`
+
+This static review rerun did not execute the future evaluation runbook,
+replay, training, candidate generation, promotion, deployment, online selector
+activation, DP modification, or safety/CAMP-over-DP claims. It authorizes only
+the follow-on read-only promotion-readiness evaluation runbook execution gate.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -2970,9 +3020,12 @@ authorized scope is only static review of that execution-preflight artifact,
 not evaluation execution itself. The first static review attempt failed because
 the new review contract did not accept the source preflight analysis/EOF layout
 already recorded by the passing preflight audit. No execution, promotion,
-deployment, or claim was authorized or performed. The next step requires a user
-decision on whether to fix the static-review contract and rerun the same
-static-review gate.
+deployment, or claim was authorized or performed. After explicit user
+authorization, the static-review contract was updated only for that audited
+source preflight analysis/EOF layout, and the same static-review gate passed.
+The next authorized scope is only a read-only promotion-readiness evaluation
+runbook execution gate, not promotion, deployment, online selector activation,
+or any safety/CAMP-over-DP claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -2980,8 +3033,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_rejected
-next_work_target=user_decision_required_before_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_contract_fix_or_rerun
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_execution_only
 
 ## Cleanup Policy
 
