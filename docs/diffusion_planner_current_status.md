@@ -176,12 +176,17 @@ work to v13.
   `aa52033244edd6932ec6b1ec19f82530415659ac`. It is read-only, records five
   evidence-manifest gaps, makes no direct promotion recommendation, and
   authorizes only static review of this review artifact.
+- The post-closeout promotion-readiness uncertainty/coverage review static
+  review ran on AutoDL with CAMP synchronized at
+  `cacedef80aa8c123a205c938da5512cadd0a06c0`. It passed and authorizes only a
+  read-only uncertainty/coverage evidence-gap closure plan, not promotion,
+  deployment, online selector activation, or safety/CAMP-over-DP claims.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_passed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_static_review_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_static_review_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_only`.
 
 ## What Changed
 
@@ -3566,6 +3571,44 @@ the uncertainty input, coverage slice, atom stability, no-go, and claim-boundary
 manifests needed before any promotion or claim can be considered. It authorizes
 only static review of this read-only review artifact.
 
+## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Static Review
+
+AutoDL executed the static review of the read-only uncertainty/coverage review:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_static_review_cacedef80a_20260704T174554CST`
+
+- Source uncertainty/coverage review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_aa52033244_20260704T173104CST`
+- CAMP head and origin/main:
+  `cacedef80aa8c123a205c938da5512cadd0a06c0`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Static review exit/status:
+  `0` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_static_review_passed`
+- Static review check count / failed check count:
+  `134 / 0`
+- Source review checks / review items / evidence gaps:
+  `227 / 7 / 5`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_only`
+- Static review JSON / MD / review SHA256SUMS SHA256:
+  `0cdbd53a61526d43d5154f5e396ea883f578098216f49f88760c3a3f93c21641`,
+  `0aa31f5869d7d30c55d4e289846dacaf101b7b3c274952d0773b6315048c0245`,
+  `2059e0e2b2af4e4023c931634dd13290577cd8e3f103739958bc6ad9e60ef546`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `f7c21d9e2409de0ecb58cc84db6eb6837e4b08f2b553f71f09d181e296e345fd`,
+  `a93b7ad2218857562f68b93b1c3241b81b2b0e25c82b36019e0f6f9d7e7cccae`,
+  `4be9a75f842137c4c04ad273be9fc9ccdf4e5a6b5701e01816f2820dcfc99d82`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `272ea05d4931e46d11020ccb68f6978f105aa312dfe1bf2b5cd3b80447fd649e`
+
+This static review did not execute replay, training, candidate generation,
+promotion, deployment, online selector activation, DP modification, or any
+safety/CAMP-over-DP claim. It authorizes only a read-only evidence-gap closure
+plan for the five missing uncertainty/coverage evidence manifests.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -3668,7 +3711,9 @@ gate. The next authorized scope is only the read-only uncertainty/coverage
 review, not promotion, deployment, online selector activation, or any
 safety/CAMP-over-DP claim. That read-only uncertainty/coverage review has now
 passed. It records five evidence-manifest gaps, makes no direct promotion
-recommendation, and authorizes only static review of the review artifact.
+recommendation, and authorizes only static review of the review artifact. That
+static review has now passed and authorizes only a read-only evidence-gap
+closure plan for those missing manifests.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -3676,8 +3721,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_only
 
 ## Cleanup Policy
 
