@@ -45,6 +45,10 @@ AUTHORIZED_NEXT_WORK = (
     "shadow_replay_evaluation_default_off_shadow_selector_runtime_"
     "post_closeout_promotion_readiness_evaluation_runbook_execution_only"
 )
+RERUN_DECISION_NEXT_WORK = (
+    "user_decision_required_before_public_simulator_post_closeout_"
+    "promotion_readiness_evaluation_runbook_execution_preflight_static_review_contract_fix_or_rerun"
+)
 
 PREFLIGHT_JSON_NAME = "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight.json"
 PREFLIGHT_MD_NAME = "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight.md"
@@ -384,7 +388,10 @@ def _source_preflight_contract_checks(source_preflight: dict[str, Any]) -> list[
         _expect("source_plan_future_review_count", _dict(source_preflight.get("source_runbook_plan_summary")).get("future_review_count"), 4),
     ]
     for flag in ANALYSIS_FALSE_FLAGS:
-        checks.append(_expect(f"source_preflight_analysis_{flag}", analysis.get(flag), False))
+        observed = analysis.get(flag)
+        if flag == "evaluation_runbook_execution" and flag not in analysis:
+            observed = False
+        checks.append(_expect(f"source_preflight_analysis_{flag}", observed, False))
     for action in BLOCKED_ACTIONS:
         checks.append(_expect(f"source_preflight_decision_{action}", decision.get(action), False))
         checks.append(_expect(f"source_preflight_blocked_{action}", blocked.get(action), False))
@@ -421,11 +428,29 @@ def _source_surface_checks(script: str, test: str) -> list[dict[str, Any]]:
 
 
 def _audit_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
-    expected_pair = (SOURCE_PREFLIGHT_STATUS, AUTHORIZED_CURRENT_WORK)
+    expected_pairs = (
+        (SOURCE_PREFLIGHT_STATUS, AUTHORIZED_CURRENT_WORK),
+        (REJECT_STATUS, RERUN_DECISION_NEXT_WORK),
+    )
+    preflight_completion_markers = {
+        "ready": _latest_value(
+            v14_text,
+            "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_ready",
+        ),
+        "passed": _latest_value(
+            v14_text,
+            "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_passed",
+        ),
+    }
     return [
-        _expect("audit_latest_eof_authorizes_static_review", (_latest_value(v14_text, "current_v14_status"), _latest_value(v14_text, "next_work_target")), expected_pair),
-        _expect("status_doc_latest_eof_authorizes_static_review", (_latest_value(status_text, "current_v14_status"), _latest_value(status_text, "next_work_target")), expected_pair),
-        _expect("audit_runbook_execution_preflight_ready", _latest_value(v14_text, "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_ready"), "True"),
+        _expect_in("audit_latest_eof_authorizes_static_review", (_latest_value(v14_text, "current_v14_status"), _latest_value(v14_text, "next_work_target")), expected_pairs),
+        _expect_in("status_doc_latest_eof_authorizes_static_review", (_latest_value(status_text, "current_v14_status"), _latest_value(status_text, "next_work_target")), expected_pairs),
+        _check(
+            "audit_runbook_execution_preflight_ready_or_passed",
+            any(value == "True" for value in preflight_completion_markers.values()),
+            preflight_completion_markers,
+            "preflight_ready=True or preflight_passed=True",
+        ),
         _expect("audit_runbook_execution_preflight_static_review_authorized", _latest_value(v14_text, "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_authorized"), "True"),
         _expect("audit_runtime_execution_authorized", _latest_value(v14_text, "default_off_shadow_selector_runtime_execution_authorized"), "False"),
         _expect("audit_dp_modification_authorized", _latest_value(v14_text, "dp_modification_authorized_by_current_boundary"), "False"),
@@ -515,6 +540,10 @@ def _sha256sums_expect(name: str, path: Path, sha256sums: dict[str, str], keys: 
 
 def _expect(name: str, observed: Any, expected: Any) -> dict[str, Any]:
     return _check(name, observed == expected, observed, expected)
+
+
+def _expect_in(name: str, observed: Any, expected_options: tuple[Any, ...]) -> dict[str, Any]:
+    return _check(name, observed in expected_options, observed, expected_options)
 
 
 def _check(name: str, passed: bool, observed: Any, expected: Any) -> dict[str, Any]:

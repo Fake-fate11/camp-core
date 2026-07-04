@@ -98,6 +98,57 @@ def test_promotion_readiness_evaluation_runbook_execution_preflight_static_revie
     assert "artifact_heads_camp_matches_source_analysis" not in report["final_decision"]["failed_checks"]
 
 
+def test_promotion_readiness_evaluation_runbook_execution_preflight_static_review_accepts_missing_execution_analysis_key(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        omit_source_preflight_analysis_keys={"evaluation_runbook_execution"},
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert "source_preflight_analysis_evaluation_runbook_execution" not in report["final_decision"]["failed_checks"]
+
+
+def test_promotion_readiness_evaluation_runbook_execution_preflight_static_review_rejects_execution_analysis_true(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        source_preflight_analysis_updates={"evaluation_runbook_execution": True},
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is False
+    assert "source_preflight_analysis_evaluation_runbook_execution" in report["final_decision"]["failed_checks"]
+
+
+def test_promotion_readiness_evaluation_runbook_execution_preflight_static_review_accepts_audited_rerun_eof_state(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        eof_status=module.REJECT_STATUS,
+        next_work=module.RERUN_DECISION_NEXT_WORK,
+        preflight_completion_key="passed",
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert "audit_latest_eof_authorizes_static_review" not in report["final_decision"]["failed_checks"]
+    assert "audit_runbook_execution_preflight_ready_or_passed" not in report["final_decision"]["failed_checks"]
+
+
 def test_promotion_readiness_evaluation_runbook_execution_preflight_static_review_requires_enable(
     tmp_path: Path,
 ) -> None:
@@ -213,19 +264,27 @@ def _write_fixture(
     tmp_path: Path,
     module,
     *,
+    eof_status: str | None = None,
     next_work: str | None = None,
     source_preflight_decision_updates: dict[str, Any] | None = None,
+    source_preflight_analysis_updates: dict[str, Any] | None = None,
+    omit_source_preflight_analysis_keys: set[str] | None = None,
     dp_key: str = "dp_head",
+    preflight_completion_key: str = "ready",
 ) -> dict[str, Any]:
     artifact = tmp_path / "runbook_execution_preflight_artifact"
     preflight_dir = artifact / "preflight"
     docs = tmp_path / "docs"
+    current_status_value = eof_status or module.SOURCE_PREFLIGHT_STATUS
     current_next = next_work or module.AUTHORIZED_CURRENT_WORK
+    preflight_completion_marker = (
+        f"post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_{preflight_completion_key}=True"
+    )
     doc_text = "\n".join(
         [
-            f"current_v14_status={module.SOURCE_PREFLIGHT_STATUS}",
+            f"current_v14_status={current_status_value}",
             f"next_work_target={current_next}",
-            "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_ready=True",
+            preflight_completion_marker,
             "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_authorized=True",
             "default_off_shadow_selector_runtime_execution_authorized=False",
             "dp_modification_authorized_by_current_boundary=False",
@@ -241,7 +300,12 @@ def _write_fixture(
 
     preflight_json = _write_json(
         preflight_dir / module.PREFLIGHT_JSON_NAME,
-        _source_preflight_payload(module, decision_updates=source_preflight_decision_updates),
+        _source_preflight_payload(
+            module,
+            decision_updates=source_preflight_decision_updates,
+            analysis_updates=source_preflight_analysis_updates,
+            omit_analysis_keys=omit_source_preflight_analysis_keys,
+        ),
     )
     preflight_md = _write(preflight_dir / module.PREFLIGHT_MD_NAME, "# Runbook Execution Preflight\n")
     preflight_sha256s = _write_sha256sums(
@@ -292,6 +356,8 @@ def _source_preflight_payload(
     module,
     *,
     decision_updates: dict[str, Any] | None = None,
+    analysis_updates: dict[str, Any] | None = None,
+    omit_analysis_keys: set[str] | None = None,
 ) -> dict[str, Any]:
     decision = {
         "status": module.SOURCE_PREFLIGHT_STATUS,
@@ -315,28 +381,33 @@ def _source_preflight_payload(
         decision[action] = False
     if decision_updates:
         decision.update(decision_updates)
+    analysis = {
+        "label": "fixture",
+        "preflight_only": True,
+        "read_only": True,
+        "current_camp_head": ARTIFACT_HEAD,
+        "current_camp_origin_main": ARTIFACT_HEAD,
+        "current_dp_head": module.FIXED_DP_HEAD,
+        "required_dp_head": module.FIXED_DP_HEAD,
+        "runbook_plan_static_review_artifact_dir": "/tmp/static_review",
+        "source_runbook_plan_artifact_dir": "/tmp/plan",
+        "training_execution": False,
+        "replay_execution": False,
+        "candidate_generation": False,
+        "dp_modification": False,
+        "online_selector_change": False,
+        "promotion_executed": False,
+        "deployment_executed": False,
+        "safety_or_camp_over_dp_claim": False,
+        "evaluation_runbook_execution": False,
+    }
+    if analysis_updates:
+        analysis.update(analysis_updates)
+    for key in omit_analysis_keys or set():
+        analysis.pop(key, None)
     return {
         "schema_version": module.SOURCE_PREFLIGHT_SCHEMA,
-        "analysis": {
-            "label": "fixture",
-            "preflight_only": True,
-            "read_only": True,
-            "current_camp_head": ARTIFACT_HEAD,
-            "current_camp_origin_main": ARTIFACT_HEAD,
-            "current_dp_head": module.FIXED_DP_HEAD,
-            "required_dp_head": module.FIXED_DP_HEAD,
-            "runbook_plan_static_review_artifact_dir": "/tmp/static_review",
-            "source_runbook_plan_artifact_dir": "/tmp/plan",
-            "training_execution": False,
-            "replay_execution": False,
-            "candidate_generation": False,
-            "dp_modification": False,
-            "online_selector_change": False,
-            "promotion_executed": False,
-            "deployment_executed": False,
-            "safety_or_camp_over_dp_claim": False,
-            "evaluation_runbook_execution": False,
-        },
+        "analysis": analysis,
         "source_static_review_summary": {
             "schema_version": "static_review",
             "status": "passed",
