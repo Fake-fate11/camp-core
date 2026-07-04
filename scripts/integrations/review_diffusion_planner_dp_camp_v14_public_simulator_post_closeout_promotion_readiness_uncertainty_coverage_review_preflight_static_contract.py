@@ -52,6 +52,15 @@ AUTHORIZED_NEXT_WORK = (
     "shadow_replay_evaluation_default_off_shadow_selector_runtime_"
     "post_closeout_promotion_readiness_uncertainty_coverage_review_only"
 )
+FAILED_ATTEMPT_STATUS = REJECT_STATUS
+AUTHORIZED_RERUN_DECISION_WORK = (
+    "user_decision_required_before_public_simulator_post_closeout_promotion_readiness_"
+    "uncertainty_coverage_review_preflight_static_review_contract_update_or_rerun"
+)
+FAILED_ATTEMPT_PREFIX = (
+    "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_"
+    "preflight_static_review_failed"
+)
 
 PREFLIGHT_JSON_NAME = "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight.json"
 PREFLIGHT_MD_NAME = "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight.md"
@@ -401,12 +410,30 @@ def _source_surface_checks(script: str, test: str) -> list[dict[str, Any]]:
 
 
 def _audit_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
-    expected_pair = (SOURCE_PREFLIGHT_STATUS, AUTHORIZED_CURRENT_WORK)
-    return [
-        _expect("audit_latest_eof_authorizes_static_review", (_latest_value(v14_text, "current_v14_status"), _latest_value(v14_text, "next_work_target")), expected_pair),
-        _expect("status_doc_latest_eof_authorizes_static_review", (_latest_value(status_text, "current_v14_status"), _latest_value(status_text, "next_work_target")), expected_pair),
+    latest_audit_pair = (_latest_value(v14_text, "current_v14_status"), _latest_value(v14_text, "next_work_target"))
+    latest_status_pair = (
+        _latest_value(status_text, "current_v14_status"),
+        _latest_value(status_text, "next_work_target"),
+    )
+    allowed_pairs = (
+        (SOURCE_PREFLIGHT_STATUS, AUTHORIZED_CURRENT_WORK),
+        (FAILED_ATTEMPT_STATUS, AUTHORIZED_RERUN_DECISION_WORK),
+    )
+    checks = [
+        _check("audit_latest_eof_authorizes_static_review", latest_audit_pair in allowed_pairs, latest_audit_pair, allowed_pairs),
+        _check("status_doc_latest_eof_authorizes_static_review", latest_status_pair in allowed_pairs, latest_status_pair, allowed_pairs),
         _expect("audit_preflight_ready", _latest_value(v14_text, "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_ready"), "True"),
-        _expect("audit_preflight_static_review_authorized", _latest_value(v14_text, "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_authorized"), "True"),
+        _expect(
+            "audit_preflight_static_review_authorized",
+            _latest_value_any(
+                v14_text,
+                (
+                    "uncertainty_coverage_review_preflight_static_review_authorized",
+                    "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_authorized",
+                ),
+            ),
+            "True",
+        ),
         _expect("audit_runtime_execution_authorized", _latest_value(v14_text, "default_off_shadow_selector_runtime_execution_authorized"), "False"),
         _expect("audit_dp_modification_authorized", _latest_value(v14_text, "dp_modification_authorized_by_current_boundary"), "False"),
         _expect("audit_selector_promotion_authorized", _latest_value(v14_text, "selector_promotion_authorized"), "False"),
@@ -414,6 +441,22 @@ def _audit_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
         _expect("audit_safety_benefit_claim_authorized", _latest_value(v14_text, "safety_benefit_claim_authorized"), "False"),
         _expect("audit_camp_over_dp_top1_claim_authorized", _latest_value(v14_text, "camp_over_dp_top1_claim_authorized"), "False"),
     ]
+    if latest_audit_pair == (FAILED_ATTEMPT_STATUS, AUTHORIZED_RERUN_DECISION_WORK):
+        checks.extend(
+            [
+                _expect(
+                    "audit_failed_attempt_failure_class",
+                    _latest_value(v14_text, f"{FAILED_ATTEMPT_PREFIX}_failure_class"),
+                    "v14_eof_contract_mismatch",
+                ),
+                _expect(
+                    "audit_failed_attempt_failed_checks",
+                    _latest_value(v14_text, f"{FAILED_ATTEMPT_PREFIX}_failed_checks"),
+                    "audit_preflight_static_review_authorized",
+                ),
+            ]
+        )
+    return checks
 
 
 def _source_preflight_summary(source_preflight: dict[str, Any]) -> dict[str, Any]:
@@ -572,6 +615,17 @@ def _latest_value(text: str, key: str) -> str | None:
     prefix = f"{key}="
     matches = [line[len(prefix) :].strip() for line in text.splitlines() if line.startswith(prefix)]
     return matches[-1] if matches else None
+
+
+def _latest_value_any(text: str, keys: tuple[str, ...]) -> str | None:
+    matches: list[tuple[int, str]] = []
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        for key in keys:
+            prefix = f"{key}="
+            if line.startswith(prefix):
+                matches.append((index, line[len(prefix) :].strip()))
+    return matches[-1][1] if matches else None
 
 
 def _failed_source_checks(source_preflight: dict[str, Any]) -> list[str]:

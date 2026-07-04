@@ -105,6 +105,19 @@ def test_promotion_readiness_uncertainty_coverage_review_preflight_static_review
     assert report["final_decision"]["failure_class"] == "v14_eof_contract_mismatch"
 
 
+def test_promotion_readiness_uncertainty_coverage_review_preflight_static_review_accepts_audited_rerun_eof(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, failed_rerun_eof=True)
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert "audit_latest_eof_authorizes_static_review" not in report["final_decision"]["failed_checks"]
+    assert "audit_preflight_static_review_authorized" not in report["final_decision"]["failed_checks"]
+
+
 def test_promotion_readiness_uncertainty_coverage_review_preflight_static_review_rejects_source_leak(
     tmp_path: Path,
 ) -> None:
@@ -193,6 +206,7 @@ def _write_fixture(
     module,
     *,
     next_work: str | None = None,
+    failed_rerun_eof: bool = False,
     preflight_decision_updates: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     artifact = tmp_path / "preflight_artifact"
@@ -204,7 +218,7 @@ def _write_fixture(
             f"current_v14_status={module.SOURCE_PREFLIGHT_STATUS}",
             f"next_work_target={current_next}",
             "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_ready=True",
-            "post_closeout_promotion_readiness_uncertainty_coverage_review_preflight_static_review_authorized=True",
+            "uncertainty_coverage_review_preflight_static_review_authorized=True",
             "default_off_shadow_selector_runtime_execution_authorized=False",
             "dp_modification_authorized_by_current_boundary=False",
             "selector_promotion_authorized=False",
@@ -214,6 +228,16 @@ def _write_fixture(
             "",
         ]
     )
+    if failed_rerun_eof:
+        doc_text += "\n".join(
+            [
+                f"current_v14_status={module.FAILED_ATTEMPT_STATUS}",
+                f"next_work_target={module.AUTHORIZED_RERUN_DECISION_WORK}",
+                f"{module.FAILED_ATTEMPT_PREFIX}_failure_class=v14_eof_contract_mismatch",
+                f"{module.FAILED_ATTEMPT_PREFIX}_failed_checks=audit_preflight_static_review_authorized",
+                "",
+            ]
+        )
     v14_audit = _write(docs / "diffusion_planner_v14_iteration_audit.md", doc_text)
     current_status = _write(docs / "diffusion_planner_current_status.md", doc_text)
 
