@@ -3159,6 +3159,46 @@ promotion, deployment, online selector activation, DP modification, or any
 safety/CAMP-over-DP claim. It authorizes only a read-only
 uncertainty/coverage review planning gate.
 
+## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Plan
+
+AutoDL executed the read-only uncertainty/coverage review planning gate:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_b7738a2795_20260704T125644CST`
+
+- Source follow-up plan static review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_followup_plan_static_review_f6e7122d1d_20260704T123957CST`
+- CAMP head and origin/main:
+  `b7738a2795c4d123ec87a5ebda832cd8a26842a0`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Plan exit/status:
+  `0` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_ready`
+- Plan check count / failed check count:
+  `124 / 0`
+- Source static review checks / source plan checks / source follow-up items:
+  `134 / 128 / 7`
+- Planned review item count:
+  `7`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_only`
+- Plan JSON / MD / plan SHA256SUMS SHA256:
+  `e54c1dbd7690339a0c62d4529d85e5b11565065e66446f089c61fbb023654276`,
+  `ea876fd5c53141443843f67817421d8bc8fa51660a5d0b9887d1a8277e7424a1`,
+  `0b98964d3342ebbb60ddf308e5057796fef15567466c9082db0507ffff573827`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `84b485994db38452ab59b52caf6cd53fe08408fccea2724b4f5a9413a6aeb9b7`,
+  `f2642df67a10754ff2386eb78f2078c7facc4d481db182b5ec6ea5e00e0b216d`,
+  `f390a036c70d064176ac87b3e0f7eea11908c97dbb84778cbe71693e31cba385`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `8698abb5ece03dae91c383f81281dc4a01d1ddbb9d4dbf106e7a2a5f3e9ac3af`
+
+This planning gate did not execute replay, training, candidate generation,
+promotion, deployment, online selector activation, DP modification, or any
+safety/CAMP-over-DP claim. It authorizes only static review of the
+uncertainty/coverage review plan.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -3244,7 +3284,9 @@ before any follow-up or promotion authorization. After explicit user
 authorization for read-only follow-up planning only, the follow-up plan gate has
 now passed and its static review has now passed. The next authorized scope is
 only a read-only uncertainty/coverage review plan, not promotion, deployment,
-online selector activation, or any safety/CAMP-over-DP claim.
+online selector activation, or any safety/CAMP-over-DP claim. That plan has now
+passed and authorizes only static review of the uncertainty/coverage review
+plan.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -3252,8 +3294,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_followup_plan_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_review_plan_static_review_only
 
 ## Cleanup Policy
 
