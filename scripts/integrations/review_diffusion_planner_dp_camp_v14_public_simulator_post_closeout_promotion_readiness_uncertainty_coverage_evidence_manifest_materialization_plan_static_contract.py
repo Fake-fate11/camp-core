@@ -361,8 +361,8 @@ def _source_plan_contract_checks(source_plan: dict[str, Any]) -> list[dict[str, 
 
 def _source_surface_checks(script_text: str, test_text: str) -> list[dict[str, Any]]:
     return [
-        PLAN_MODULE._check("plan_script_schema_constant", SOURCE_PLAN_SCHEMA in script_text, SOURCE_PLAN_SCHEMA, "present"),
-        PLAN_MODULE._check("plan_script_static_review_next", AUTHORIZED_CURRENT_WORK in script_text, AUTHORIZED_CURRENT_WORK, "present"),
+        PLAN_MODULE._check("plan_script_schema_constant", "evidence_manifest_materialization_plan_v1" in script_text, "evidence_manifest_materialization_plan_v1", "present"),
+        PLAN_MODULE._check("plan_script_static_review_next", "evidence_manifest_materialization_plan_static_review_only" in script_text, "evidence_manifest_materialization_plan_static_review_only", "present"),
         PLAN_MODULE._check("plan_script_enable_flag", "enable_v14_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan" in script_text, "enable flag", "present"),
         PLAN_MODULE._check("plan_test_static_review_authorized_assertion", "uncertainty_coverage_evidence_manifest_materialization_plan_static_review_authorized" in test_text, "static review assertion", "present"),
         PLAN_MODULE._check("plan_test_rejects_existing_manifest_root", "rejects_existing_manifest_root" in test_text, "existing root rejection", "present"),
