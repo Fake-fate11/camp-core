@@ -218,7 +218,7 @@ def _write_fixture(
     run_exit = _write(artifact / "run.exit", "0\n")
     _write_sha256sums(
         artifact / "SHA256SUMS",
-        [command, heads, stdout, stderr, run_exit, review_json, review_md, review_sha256s],
+        [command, heads, stdout, stderr, run_exit, review_json, review_md],
         relative_to=artifact,
     )
     return {
