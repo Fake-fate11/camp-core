@@ -187,12 +187,18 @@ work to v13.
   five missing evidence-manifest closure items, and authorizes only static
   review of that plan, not materialization, replay, training, promotion,
   deployment, online selector activation, or safety/CAMP-over-DP claims.
+- The first static review attempt for that evidence-gap closure plan failed on
+  AutoDL before report construction because the static-review script imported
+  `scripts.integrations...` as a package, but direct script execution on AutoDL
+  does not put the repo root on `sys.path`. The failed artifact is preserved and
+  the next work target requires an explicit user decision before any import-path
+  fix or rerun.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_import_path_fix_decision_required`.
 
 ## What Changed
 
@@ -3656,6 +3662,39 @@ This plan did not materialize manifests, execute replay, train CAMP, generate
 candidates, modify DP, promote, deploy, activate an online selector, or make any
 safety/CAMP-over-DP claim. It authorizes only static review of this plan.
 
+## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence-Gap Closure Plan Static Review Failed Attempt
+
+AutoDL attempted the read-only static review of the evidence-gap closure plan:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_da3f193bfd_20260704T182013CST`
+
+- Source evidence-gap closure plan artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_63d41f1ce9_20260704T180522CST`
+- CAMP head and origin/main:
+  `da3f193bfdff11531370f4c0be247ac34a98d219`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Static review exit/status:
+  `1` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed`
+- Failure class:
+  `python_import_path_failure`
+- Log tail:
+  `ModuleNotFoundError: No module named 'scripts'`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `75898fb2ab6ed6bfbb797ba3575c06ffcfee3255c3c8091ef663572288833f9b`,
+  `99ea16393f57e9a208491a344404b9d31670b9aba4995fbf87d4b44a0e274146`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `445e8f4a0dfbf258433dbea9d0d3dc61521893338a419da606b596dd7934f5d9`,
+  `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`,
+  `1b2c38b0cda2b167218e4a7ad4ec087c9519d745d775130581d41d10e881fc89`
+
+No static-review report JSON/MD was constructed. No materialization, replay,
+training, candidate generation, DP modification, promotion, deployment, online
+selector activation, or safety/CAMP-over-DP claim was performed. The next step
+requires explicit user authorization to fix the import path and rerun this same
+read-only static-review gate.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -3762,7 +3801,10 @@ recommendation, and authorizes only static review of the review artifact. That
 static review has now passed and authorizes only a read-only evidence-gap
 closure plan for those missing manifests. That evidence-gap closure plan has
 now passed, defines the five closure items, and authorizes only static review
-of the plan.
+of the plan. The first static review attempt failed before report construction
+because the script's package import path is not valid under direct AutoDL
+script execution. No materialization, replay, training, promotion, deployment,
+online selector activation, or claim was performed.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -3770,8 +3812,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_import_path_fix_decision_required
 
 ## Cleanup Policy
 

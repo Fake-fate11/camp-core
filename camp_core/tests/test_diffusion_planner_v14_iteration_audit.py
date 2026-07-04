@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_ready"
+    "post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_only"
+    "post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_import_path_fix_decision_required"
 )
 
 
@@ -5531,16 +5531,18 @@ def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_review_stati
     _assert_latest_v14_status(text)
 
 
-def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_is_eof() -> None:
+def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Review Static Review"
     section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence-Gap Closure Plan"
+    next_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence-Gap Closure Plan Static Review Failed Attempt"
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_63d41f1ce9_20260704T180522CST",
@@ -5580,6 +5582,51 @@ def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_attempt_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence-Gap Closure Plan"
+    section_title = "## Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence-Gap Closure Plan Static Review Failed Attempt"
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_da3f193bfd_20260704T182013CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_source_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_63d41f1ce9_20260704T180522CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_camp_head=da3f193bfdff11531370f4c0be247ac34a98d219",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_exit=1",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_failure_class=python_import_path_failure",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_error=ModuleNotFoundError: No module named 'scripts'",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_artifact_sha256s_sha256=1b2c38b0cda2b167218e4a7ad4ec087c9519d745d775130581d41d10e881fc89",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_command_sha256=99ea16393f57e9a208491a344404b9d31670b9aba4995fbf87d4b44a0e274146",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_heads_sha256=75898fb2ab6ed6bfbb797ba3575c06ffcfee3255c3c8091ef663572288833f9b",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_stderr_sha256=445e8f4a0dfbf258433dbea9d0d3dc61521893338a419da606b596dd7934f5d9",
+        "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed_run_exit_sha256=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_failed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_import_path_fix_decision_required",
+        "uncertainty_coverage_evidence_gap_closure_plan_static_review_passed=False",
+        "uncertainty_coverage_evidence_manifest_materialization_plan_authorized=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_import_path_fix_decision_required",
     ]:
         assert needle in text
 
@@ -6418,6 +6465,14 @@ def test_current_status_and_readme_point_to_v14() -> None:
     assert "`5`" in status_text
     assert "101665e562f3a65ca112de8e9ede61d1b86753930530084df5ebc765d51812eb" in status_text
     assert "8cb495ffb5b181b7889fbc454b92cc20d48076278bc15392b2b1d79113e42866" in status_text
+    assert "Post-Closeout Promotion-Readiness Uncertainty/Coverage Evidence-Gap Closure Plan Static Review Failed Attempt" in status_text
+    assert (
+        "/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_da3f193bfd_20260704T182013CST"
+        in status_text
+    )
+    assert "ModuleNotFoundError: No module named 'scripts'" in status_text
+    assert "445e8f4a0dfbf258433dbea9d0d3dc61521893338a419da606b596dd7934f5d9" in status_text
+    assert "1b2c38b0cda2b167218e4a7ad4ec087c9519d745d775130581d41d10e881fc89" in status_text
     assert LATEST_V14_STATUS in status_text
     assert LATEST_V14_NEXT_WORK in status_text
     assert (
