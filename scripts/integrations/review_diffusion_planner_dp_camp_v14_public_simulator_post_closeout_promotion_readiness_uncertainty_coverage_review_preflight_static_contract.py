@@ -451,7 +451,7 @@ def _audit_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
                 ),
                 _expect(
                     "audit_failed_attempt_failed_checks",
-                    _latest_value(v14_text, f"{FAILED_ATTEMPT_PREFIX}_failed_checks"),
+                    _latest_value(v14_text, f"{FAILED_ATTEMPT_PREFIX}_checks"),
                     "audit_preflight_static_review_authorized",
                 ),
             ]

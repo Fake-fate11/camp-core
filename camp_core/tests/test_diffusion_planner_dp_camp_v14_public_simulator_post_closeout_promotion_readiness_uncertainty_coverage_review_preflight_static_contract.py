@@ -234,7 +234,7 @@ def _write_fixture(
                 f"current_v14_status={module.FAILED_ATTEMPT_STATUS}",
                 f"next_work_target={module.AUTHORIZED_RERUN_DECISION_WORK}",
                 f"{module.FAILED_ATTEMPT_PREFIX}_failure_class=v14_eof_contract_mismatch",
-                f"{module.FAILED_ATTEMPT_PREFIX}_failed_checks=audit_preflight_static_review_authorized",
+                f"{module.FAILED_ATTEMPT_PREFIX}_checks=audit_preflight_static_review_authorized",
                 "",
             ]
         )
