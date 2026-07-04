@@ -67,6 +67,10 @@ AUTHORIZED_NEXT_WORK = (
     "shadow_replay_evaluation_default_off_shadow_selector_runtime_"
     "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_static_review_only"
 )
+RERUN_DECISION_NEXT_WORK = (
+    "user_decision_required_before_public_simulator_post_closeout_"
+    "promotion_readiness_evaluation_runbook_execution_preflight_contract_fix_or_rerun"
+)
 
 STATIC_REVIEW_JSON_NAME = (
     "post_closeout_promotion_readiness_evaluation_runbook_plan_static_review.json"
@@ -550,10 +554,13 @@ def _source_plan_contract_checks(source_plan: dict[str, Any]) -> list[dict[str, 
 
 
 def _audit_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
-    expected_pair = (SOURCE_STATIC_REVIEW_STATUS, AUTHORIZED_CURRENT_WORK)
+    expected_pairs = (
+        (SOURCE_STATIC_REVIEW_STATUS, AUTHORIZED_CURRENT_WORK),
+        (REJECT_STATUS, RERUN_DECISION_NEXT_WORK),
+    )
     return [
-        _expect("audit_latest_eof_authorizes_runbook_execution_preflight", (_latest_value(v14_text, "current_v14_status"), _latest_value(v14_text, "next_work_target")), expected_pair),
-        _expect("status_doc_latest_eof_authorizes_runbook_execution_preflight", (_latest_value(status_text, "current_v14_status"), _latest_value(status_text, "next_work_target")), expected_pair),
+        _expect_in("audit_latest_eof_authorizes_runbook_execution_preflight", (_latest_value(v14_text, "current_v14_status"), _latest_value(v14_text, "next_work_target")), expected_pairs),
+        _expect_in("status_doc_latest_eof_authorizes_runbook_execution_preflight", (_latest_value(status_text, "current_v14_status"), _latest_value(status_text, "next_work_target")), expected_pairs),
         _expect("audit_runbook_plan_static_review_passed", _latest_value(v14_text, "post_closeout_promotion_readiness_evaluation_runbook_plan_static_review_passed"), "True"),
         _expect("audit_runbook_execution_preflight_authorized", _latest_value(v14_text, "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_authorized"), "True"),
         _expect("audit_runtime_execution_authorized", _latest_value(v14_text, "default_off_shadow_selector_runtime_execution_authorized"), "False"),
@@ -722,6 +729,10 @@ def _sha256sums_expect_optional(name: str, path: Path, sha256sums: dict[str, str
 
 def _expect(name: str, observed: Any, expected: Any) -> dict[str, Any]:
     return _check(name, observed == expected, observed, expected)
+
+
+def _expect_in(name: str, observed: Any, expected_options: tuple[Any, ...]) -> dict[str, Any]:
+    return _check(name, observed in expected_options, observed, expected_options)
 
 
 def _check(name: str, passed: bool, observed: Any, expected: Any) -> dict[str, Any]:

@@ -113,6 +113,30 @@ def test_promotion_readiness_evaluation_runbook_execution_preflight_accepts_miss
     )
 
 
+def test_promotion_readiness_evaluation_runbook_execution_preflight_accepts_audited_rerun_eof_state(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        current_status=module.REJECT_STATUS,
+        next_work=module.RERUN_DECISION_NEXT_WORK,
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert (
+        "audit_latest_eof_authorizes_runbook_execution_preflight"
+        not in report["final_decision"]["failed_checks"]
+    )
+    assert (
+        "status_doc_latest_eof_authorizes_runbook_execution_preflight"
+        not in report["final_decision"]["failed_checks"]
+    )
+
+
 def test_promotion_readiness_evaluation_runbook_execution_preflight_rejects_static_review_execution_analysis_true(
     tmp_path: Path,
 ) -> None:
@@ -252,6 +276,7 @@ def _write_fixture(
     module,
     *,
     next_work: str | None = None,
+    current_status: str | None = None,
     static_review_decision_updates: dict[str, Any] | None = None,
     static_review_analysis_updates: dict[str, Any] | None = None,
     static_review_analysis_omissions: set[str] | None = None,
@@ -266,9 +291,10 @@ def _write_fixture(
     plan_dir = plan_artifact / "plan"
     docs = tmp_path / "docs"
     current_next = next_work or module.AUTHORIZED_CURRENT_WORK
+    current_state = current_status or module.SOURCE_STATIC_REVIEW_STATUS
     doc_text = "\n".join(
         [
-            f"current_v14_status={module.SOURCE_STATIC_REVIEW_STATUS}",
+            f"current_v14_status={current_state}",
             f"next_work_target={current_next}",
             "post_closeout_promotion_readiness_evaluation_runbook_plan_static_review_passed=True",
             "post_closeout_promotion_readiness_evaluation_runbook_execution_preflight_authorized=True",
