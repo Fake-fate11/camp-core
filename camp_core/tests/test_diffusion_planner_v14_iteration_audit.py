@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_readiness_evaluation_runbook_execution_result_review_passed"
+    "post_closeout_promotion_readiness_followup_plan_ready"
 )
 LATEST_V14_NEXT_WORK = (
-    "user_decision_required_before_public_simulator_post_closeout_"
-    "promotion_readiness_evaluation_followup_or_promotion_authorization"
+    "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
+    "post_closeout_promotion_readiness_followup_plan_static_review_only"
 )
 
 
@@ -4787,7 +4787,7 @@ def test_v14_post_closeout_promotion_readiness_evaluation_runbook_execution_stat
     ]:
         assert needle in text
 
-def test_v14_post_closeout_promotion_readiness_evaluation_runbook_execution_result_review_is_eof() -> None:
+def test_v14_post_closeout_promotion_readiness_evaluation_runbook_execution_result_review_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Post-Closeout Promotion-Readiness Evaluation Runbook Execution Static Review"
@@ -4795,12 +4795,13 @@ def test_v14_post_closeout_promotion_readiness_evaluation_runbook_execution_resu
     section_title = (
         "## Post-Closeout Promotion-Readiness Evaluation Runbook Execution Result Review"
     )
+    next_section_title = "## Post-Closeout Promotion-Readiness Follow-Up Plan"
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert text.rfind(next_section_title + "\n") > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_execution_result_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_execution_result_review_b7853716a3_20260704T120906CST",
@@ -4849,6 +4850,60 @@ def test_v14_post_closeout_promotion_readiness_evaluation_runbook_execution_resu
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=user_decision_required_before_public_simulator_post_closeout_promotion_readiness_evaluation_followup_or_promotion_authorization",
+    ]:
+        assert needle in text
+
+def test_v14_post_closeout_promotion_readiness_followup_plan_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Post-Closeout Promotion-Readiness Evaluation Runbook Execution Result Review"
+    )
+    section_title = "## Post-Closeout Promotion-Readiness Follow-Up Plan"
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_followup_plan_dfeb575c78_20260704T123010CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_source_result_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_execution_result_review_b7853716a3_20260704T120906CST",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_camp_head=dfeb575c78d35249a6ef1ee58549a4fadbc38393",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_exit=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_followup_plan_ready",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_passed=True",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_check_count=128",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_item_count=7",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_items=authorization_boundary,fixed_dp_candidate_tensor_provenance,shadow_score_to_decision_gap,uncertainty_and_coverage_gap,fail_closed_runtime_acceptance_gap,safety_claim_gap,camp_over_dp_top1_claim_gap",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_local_pytest_passed=210",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_autodl_pytest_passed=210",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_report_json_sha256=da5db972e613f09dd6ebfa618bfdc127a70d708855c24a38468706f545468516",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_report_md_sha256=528ffb5ed8a6d466ef6e4645cdaf88c69a659c03467c02fb08cd6ff2c41343f7",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_report_sha256s_sha256=3029dca804444ba09a1c1ec40522a2e405d99d2ec023811008a03752dcdfa5cd",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_heads_sha256=b852a745b53a4157c9eb1e26163649690c87142925fe69510140a9dffb935141",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_command_sha256=71a50fa93ae9f0843af25cf74b43a6f39899d1df93394691f53838c63cb0fb04",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_stdout_sha256=150d71a5a41e4815793dbfdc28a65aa53977888c6e454f6d768282ce2b7e340d",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_run_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_readiness_followup_plan_artifact_sha256s_sha256=f3a739fae08143402c9fbffd45b284cb43a32f6c50a79b0c6eb8f3df07850b18",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_followup_plan_ready",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_followup_plan_static_review_only",
+        "post_closeout_promotion_readiness_followup_plan_ready=True",
+        "post_closeout_promotion_readiness_followup_plan_static_review_authorized=True",
+        "direct_promotion_recommendation=False",
+        "promotion_decision_plan_authorized_next=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_followup_plan_static_review_only",
     ]:
         assert needle in text
 

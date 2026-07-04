@@ -3080,6 +3080,47 @@ planning, selector promotion, deployment, online selector activation, DP
 modification, replay/candidate generation/training, or any safety/CAMP-over-DP
 claim. The next state is an explicit user-decision boundary.
 
+## Post-Closeout Promotion-Readiness Follow-Up Plan
+
+AutoDL executed the read-only post-closeout promotion-readiness follow-up
+planning gate:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_followup_plan_dfeb575c78_20260704T123010CST`
+
+- Source result review artifact:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_readiness_evaluation_runbook_execution_result_review_b7853716a3_20260704T120906CST`
+- CAMP head and origin/main:
+  `dfeb575c78d35249a6ef1ee58549a4fadbc38393`
+- DP head:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`
+- Follow-up plan exit/status:
+  `0` /
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_followup_plan_ready`
+- Plan check count / failed check count:
+  `128 / 0`
+- Follow-up item count:
+  `7`
+- Follow-up items:
+  `authorization_boundary,fixed_dp_candidate_tensor_provenance,shadow_score_to_decision_gap,uncertainty_and_coverage_gap,fail_closed_runtime_acceptance_gap,safety_claim_gap,camp_over_dp_top1_claim_gap`
+- Authorized next work:
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_followup_plan_static_review_only`
+- Plan JSON / MD / plan SHA256SUMS SHA256:
+  `da5db972e613f09dd6ebfa618bfdc127a70d708855c24a38468706f545468516`,
+  `528ffb5ed8a6d466ef6e4645cdaf88c69a659c03467c02fb08cd6ff2c41343f7`,
+  `3029dca804444ba09a1c1ec40522a2e405d99d2ec023811008a03752dcdfa5cd`
+- Artifact HEADS / COMMAND / stdout / stderr / run.exit / root SHA256SUMS SHA256:
+  `b852a745b53a4157c9eb1e26163649690c87142925fe69510140a9dffb935141`,
+  `71a50fa93ae9f0843af25cf74b43a6f39899d1df93394691f53838c63cb0fb04`,
+  `150d71a5a41e4815793dbfdc28a65aa53977888c6e454f6d768282ce2b7e340d`,
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`,
+  `f3a739fae08143402c9fbffd45b284cb43a32f6c50a79b0c6eb8f3df07850b18`
+
+This planning gate did not execute replay, training, candidate generation,
+promotion, deployment, online selector activation, DP modification, or any
+safety/CAMP-over-DP claim. It authorizes only static review of the follow-up
+plan.
+
 ## Current Integration Position
 
 CAMP training has started and completed for this v14 fixed-DP candidate source.
@@ -3161,7 +3202,9 @@ read-only result review of the execution artifact, not promotion, deployment,
 online selector activation, or any safety/CAMP-over-DP claim. That result review
 has now passed, records no direct promotion recommendation from the current
 runbook execution result alone, and stops at an explicit user-decision boundary
-before any follow-up or promotion authorization.
+before any follow-up or promotion authorization. After explicit user
+authorization for read-only follow-up planning only, the follow-up plan gate has
+now passed and authorizes only static review of that plan.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -3169,8 +3212,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_evaluation_runbook_execution_result_review_passed
-next_work_target=user_decision_required_before_public_simulator_post_closeout_promotion_readiness_evaluation_followup_or_promotion_authorization
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_followup_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_followup_plan_static_review_only
 
 ## Cleanup Policy
 
