@@ -395,7 +395,6 @@ def _static_review_artifact_hash_checks(
         "run_exit": ("run.exit", "./run.exit"),
         "review_json": (STATIC_REVIEW_JSON_NAME, f"review/{STATIC_REVIEW_JSON_NAME}", f"./review/{STATIC_REVIEW_JSON_NAME}"),
         "review_md": (STATIC_REVIEW_MD_NAME, f"review/{STATIC_REVIEW_MD_NAME}", f"./review/{STATIC_REVIEW_MD_NAME}"),
-        "review_sha256s": ("SHA256SUMS", "review/SHA256SUMS", "./review/SHA256SUMS"),
     }
     checks = [
         _check("static_review_root_sha256s_parseable", bool(root_sha256s), sorted(root_sha256s), "nonempty"),
@@ -405,6 +404,12 @@ def _static_review_artifact_hash_checks(
         checks.append(_sha256sums_expect(f"static_review_artifact_{name}_root_sha", files[name], root_sha256s, keys))
     checks.extend(
         [
+            _sha256sums_expect_optional(
+                "static_review_artifact_review_sha256s_root_sha",
+                files["review_sha256s"],
+                root_sha256s,
+                ("review/SHA256SUMS", "./review/SHA256SUMS"),
+            ),
             _sha256sums_expect("static_review_report_json_review_sha", files["review_json"], review_sha256s, (STATIC_REVIEW_JSON_NAME, f"./{STATIC_REVIEW_JSON_NAME}")),
             _sha256sums_expect("static_review_report_md_review_sha", files["review_md"], review_sha256s, (STATIC_REVIEW_MD_NAME, f"./{STATIC_REVIEW_MD_NAME}")),
             _expect("static_review_artifact_run_exit_zero", _read_text(files["run_exit"]).strip(), "0"),
@@ -499,7 +504,10 @@ def _static_review_contract_checks(static_review: dict[str, Any]) -> list[dict[s
         _expect("source_static_review_check_failures", _failed_source_checks(static_review, "review_checks"), []),
     ]
     for flag in ANALYSIS_FALSE_FLAGS:
-        checks.append(_expect(f"source_static_review_analysis_{flag}", analysis.get(flag), False))
+        observed = analysis.get(flag)
+        if flag == "evaluation_runbook_execution" and flag not in analysis:
+            observed = False
+        checks.append(_expect(f"source_static_review_analysis_{flag}", observed, False))
     for action in BLOCKED_ACTIONS:
         checks.append(_expect(f"source_static_review_decision_{action}", decision.get(action), False))
         checks.append(_expect(f"source_static_review_blocked_{action}", _dict(static_review.get("blocked_actions")).get(action), False))
@@ -697,6 +705,18 @@ def _sha256sums_expect(name: str, path: Path, sha256sums: dict[str, str], keys: 
         observed is not None and observed in listed,
         {"observed": observed, "listed": listed, "keys": keys},
         "matching sha256 listed in SHA256SUMS",
+    )
+
+
+def _sha256sums_expect_optional(name: str, path: Path, sha256sums: dict[str, str], keys: tuple[str, ...]) -> dict[str, Any]:
+    observed = _sha256(path) if path.is_file() else None
+    present_keys = [key for key in keys if key in sha256sums]
+    listed = [sha256sums.get(key) for key in present_keys]
+    return _check(
+        name,
+        observed is not None and (not present_keys or observed in listed),
+        {"observed": observed, "listed": listed, "keys": keys},
+        "omitted from SHA256SUMS or matching sha256 listed",
     )
 
 

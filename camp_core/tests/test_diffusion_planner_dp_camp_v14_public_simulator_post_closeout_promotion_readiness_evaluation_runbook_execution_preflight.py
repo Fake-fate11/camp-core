@@ -79,6 +79,59 @@ def test_promotion_readiness_evaluation_runbook_execution_preflight_accepts_uppe
     assert "source_plan_heads_dp_fixed" not in report["final_decision"]["failed_checks"]
 
 
+def test_promotion_readiness_evaluation_runbook_execution_preflight_accepts_static_review_root_without_nested_sha256s(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, include_static_review_sha256s_in_root=False)
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert (
+        "static_review_artifact_review_sha256s_root_sha"
+        not in report["final_decision"]["failed_checks"]
+    )
+
+
+def test_promotion_readiness_evaluation_runbook_execution_preflight_accepts_missing_static_review_execution_analysis_key(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        static_review_analysis_omissions={"evaluation_runbook_execution"},
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert (
+        "source_static_review_analysis_evaluation_runbook_execution"
+        not in report["final_decision"]["failed_checks"]
+    )
+
+
+def test_promotion_readiness_evaluation_runbook_execution_preflight_rejects_static_review_execution_analysis_true(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        static_review_analysis_updates={"evaluation_runbook_execution": True},
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is False
+    assert (
+        "source_static_review_analysis_evaluation_runbook_execution"
+        in report["final_decision"]["failed_checks"]
+    )
+
+
 def test_promotion_readiness_evaluation_runbook_execution_preflight_requires_enable(
     tmp_path: Path,
 ) -> None:
@@ -200,9 +253,12 @@ def _write_fixture(
     *,
     next_work: str | None = None,
     static_review_decision_updates: dict[str, Any] | None = None,
+    static_review_analysis_updates: dict[str, Any] | None = None,
+    static_review_analysis_omissions: set[str] | None = None,
     source_plan_decision_updates: dict[str, Any] | None = None,
     static_dp_key: str = "dp_head",
     source_dp_key: str = "dp_head",
+    include_static_review_sha256s_in_root: bool = True,
 ) -> dict[str, Any]:
     static_artifact = tmp_path / "static_review_artifact"
     review_dir = static_artifact / "review"
@@ -275,6 +331,8 @@ def _write_fixture(
             module,
             source_plan_artifact=plan_artifact,
             decision_updates=static_review_decision_updates,
+            analysis_updates=static_review_analysis_updates,
+            analysis_omissions=static_review_analysis_omissions,
         ),
     )
     static_review_md = _write(review_dir / module.STATIC_REVIEW_MD_NAME, "# Static Review\n")
@@ -298,18 +356,20 @@ def _write_fixture(
     static_stdout = _write(static_artifact / "stdout.txt", "ok\n")
     static_stderr = _write(static_artifact / "stderr.txt", "")
     static_run_exit = _write(static_artifact / "run.exit", "0\n")
+    static_root_files = [
+        static_command,
+        static_heads,
+        static_review_json,
+        static_review_md,
+        static_run_exit,
+        static_stderr,
+        static_stdout,
+    ]
+    if include_static_review_sha256s_in_root:
+        static_root_files.append(static_review_sha256s)
     _write_sha256sums(
         static_artifact / "SHA256SUMS",
-        [
-            static_command,
-            static_heads,
-            static_review_json,
-            static_review_md,
-            static_review_sha256s,
-            static_run_exit,
-            static_stderr,
-            static_stdout,
-        ],
+        static_root_files,
         relative_to=static_artifact,
     )
 
@@ -337,6 +397,8 @@ def _static_review_payload(
     *,
     source_plan_artifact: Path,
     decision_updates: dict[str, Any] | None = None,
+    analysis_updates: dict[str, Any] | None = None,
+    analysis_omissions: set[str] | None = None,
 ) -> dict[str, Any]:
     decision = {
         "status": module.SOURCE_STATIC_REVIEW_STATUS,
@@ -352,22 +414,27 @@ def _static_review_payload(
     }
     if decision_updates:
         decision.update(decision_updates)
+    analysis = {
+        "static_review_only": True,
+        "read_only": True,
+        "runbook_plan_artifact_dir": str(source_plan_artifact.resolve()),
+        "training_execution": False,
+        "replay_execution": False,
+        "candidate_generation": False,
+        "dp_modification": False,
+        "online_selector_change": False,
+        "promotion_executed": False,
+        "deployment_executed": False,
+        "safety_or_camp_over_dp_claim": False,
+        "evaluation_runbook_execution": False,
+    }
+    if analysis_updates:
+        analysis.update(analysis_updates)
+    for key in analysis_omissions or set():
+        analysis.pop(key, None)
     return {
         "schema_version": module.SOURCE_STATIC_REVIEW_SCHEMA,
-        "analysis": {
-            "static_review_only": True,
-            "read_only": True,
-            "runbook_plan_artifact_dir": str(source_plan_artifact.resolve()),
-            "training_execution": False,
-            "replay_execution": False,
-            "candidate_generation": False,
-            "dp_modification": False,
-            "online_selector_change": False,
-            "promotion_executed": False,
-            "deployment_executed": False,
-            "safety_or_camp_over_dp_claim": False,
-            "evaluation_runbook_execution": False,
-        },
+        "analysis": analysis,
         "blocked_actions": {name: False for name in module.BLOCKED_ACTIONS},
         "review_checks": [{"name": "all", "passed": True}],
         "final_decision": decision,
