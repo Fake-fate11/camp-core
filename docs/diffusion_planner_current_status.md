@@ -217,12 +217,20 @@ work to v13.
   selector activation, deployable checkpoint claims, safety-benefit claims,
   CAMP-over-DP claims, trajectory changes, postprocess/postselection, guidance,
   and reference blending.
+- After the uncertainty/coverage evidence-package stage was closed, the user
+  gave a fresh authorization boundary to continue, including permission to
+  proceed through future promotion/deployment/online-selector/claim gates if
+  the EOF and evidence chain support them. The post-closeout continuation
+  plan-only gate passed on AutoDL with CAMP synchronized at
+  `010337e3f48ab45700100b9a339206bde2e5390d`. It authorizes only static review
+  of the continuation plan, not promotion, deployment, online selector
+  activation, or any safety/CAMP-over-DP claim.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_gap_closure_plan_static_review_passed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_continuation_plan_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_manifest_materialization_plan_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_continuation_plan_static_review_only`.
 
 ## What Changed
 
@@ -4072,17 +4080,23 @@ uncertainty/coverage evidence-package stage as audit evidence only, closed with
 no promotion, no deployment, and no safety/CAMP-over-DP claim. The next
 authorized scope is only static review of that closeout record.
 That closeout-record static review has now passed. The uncertainty/coverage
-evidence-package stage is closed as audit evidence only. There is no further
-action under the current EOF without a new authorization boundary.
+evidence-package stage was closed as audit evidence only. After a fresh user
+authorization to continue, including permission to proceed through future
+promotion/deployment/online-selector/claim gates if the EOF and evidence chain
+support them, the post-closeout continuation plan-only gate passed. It
+authorizes only static review of that continuation plan. It does not promote a
+selector, deploy, activate an online selector, modify DP, generate or modify
+trajectories, run replay/training/candidate generation, or make any
+safety/CAMP-over-DP claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
-formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
-future promotion or deployment work requires a new EOF and explicit
-authorization.
+formal seeds 11/12/13, promotion, deployment, online selector activation, or
+safety-benefit/CAMP-over-DP claims. The next authorized scope is only static
+review of the continuation plan.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_closeout_record_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_closed_no_further_action_without_new_eof_authorization
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_continuation_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_continuation_plan_static_review_only
 
 ## Cleanup Policy
 
