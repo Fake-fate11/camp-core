@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_static_review_passed"
+    "post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_rejected"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_only"
+    "post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_failed_user_decision_required"
 )
 
 
@@ -7953,12 +7953,17 @@ def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_actu
         "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
         "Actual-SafetyCost Outcome-Materialization Preflight Static Review"
     )
+    next_section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
+        "Actual-SafetyCost Outcome-Materialization Execution"
+    )
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_static_review_4a73993410_20260706T010229CST",
@@ -8014,6 +8019,70 @@ def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_actu
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_failure_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
+        "Actual-SafetyCost Outcome-Materialization Preflight Static Review"
+    )
+    section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
+        "Actual-SafetyCost Outcome-Materialization Execution"
+    )
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_e5c5724983_20260706T012708CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_source_preflight_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_static_review_4a73993410_20260706T010229CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_source_paired_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_3ea25272be_20260705T231945CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_camp_head=e5c57249832afd85446789181356496002cd00cf",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_exit=1",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_schema_version=dp_camp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_outcome_materialization_execution_v1",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_rejected",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_passed=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_failure_class=actual_safetycost_outcome_source_missing",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_check_count=56",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_failed_check_count=6",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_runtime_selection_log_count=32",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_runtime_record_count=3200",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_candidate_closed_loop_outcome_records=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_missing_candidate_closed_loop_outcome_records=3200",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_top1_summary_count=32",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_shadow_summary_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_delta_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_no_go_failures=shadow_selected_run_level_summaries_missing,unpaired_run_keys",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_actual_safetycost_v1_available=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_actual_safetycost_v1_claim_rule_evaluable=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_recommended_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_failed_user_decision_required",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_report_json_sha256=d8d60e86fb4f2487155d69028aba042e1086343d399fb6018ec143746dce0084",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_artifact_sha256s_sha256=533685e725959b49a93e70695e1c5850a8e62ca6a2e8b29e49e223e1c60ac4ed",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_run_exit_sha256=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_rejected",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_failed_user_decision_required",
+        "actual_safetycost_outcome_materialization_execution_failed=True",
+        "actual_safetycost_outcome_materialization_execution_failure_requires_user_decision=True",
+        "closed_loop_outcome_training_or_online_input_authorized=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_failed_user_decision_required",
     ]:
         assert needle in text
 

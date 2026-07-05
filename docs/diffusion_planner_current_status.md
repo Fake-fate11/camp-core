@@ -4522,13 +4522,50 @@ execution only. Promotion, deployment, online selector activation, and
 safety/CAMP-over-DP claims remain unauthorized, and closed-loop outcomes remain
 forbidden as training or online selector inputs.
 
+## Post-Closeout Promotion Evidence Acquisition Paired Evaluation Actual-SafetyCost Outcome-Materialization Execution
+
+The actual-SafetyCost outcome-materialization execution-only gate failed closed
+on AutoDL:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_e5c5724983_20260706T012708CST`
+
+The gate consumed the passed outcome-materialization preflight static-review
+artifact and the locked paired-evaluation execution artifact. It did not run
+replay or training, generate candidates, modify DP, promote a selector, deploy,
+activate an online selector, or make any safety/CAMP-over-DP claim. It failed
+because the available runtime artifact has DP Top-1/default-off run summaries
+but no shadow-selected run-level closed-loop outcome summaries.
+
+Failure summary:
+
+- Execution checks / failed checks:
+  `56 / 6`
+- Runtime selection logs / records:
+  `32 / 3200`
+- Candidate closed-loop outcome records / missing records:
+  `0 / 3200`
+- Top-1 run-level summaries / shadow-selected run-level summaries:
+  `32 / 0`
+- Paired SafetyCost v1 deltas:
+  `0`
+- Failure class:
+  `actual_safetycost_outcome_source_missing`
+- Failed checks:
+  `shadow_selected_summary_root_provided, materialization_shadow_summary_count, materialization_unpaired_run_keys, materialization_delta_count, materialization_actual_safetycost_v1_available, materialization_no_go_failed_count`
+
+The next state requires a user/evidence decision before rerunning this same
+execution gate with real shadow-selected run-level closed-loop outcome
+summaries. Promotion, deployment, online selector activation, and
+safety/CAMP-over-DP claims remain unauthorized, and closed-loop outcomes remain
+forbidden as training or online selector inputs.
+
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcomes as training
 or online inputs, Full36, formal seeds 11/12/13, promotion, deployment, online
 selector activation, or safety-benefit/CAMP-over-DP claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_rejected
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_failed_user_decision_required
 
 ## Cleanup Policy
 
