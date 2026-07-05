@@ -4182,15 +4182,20 @@ static review has now passed and authorizes only a paired-evaluation execution
 plan gate. It still does not authorize paired evaluation execution, promotion,
 deployment, online selector activation, or any safety/CAMP-over-DP claim. The
 execution plan-only gate has now passed and authorizes only static review of
-that plan, not paired evaluation execution.
+that plan, not paired evaluation execution. That execution-plan static review
+has now passed on AutoDL. It confirms the plan artifact is read-only,
+no-execution, no-promotion, no-deployment, and no-claim, and it authorizes
+only a follow-on paired-evaluation execution preflight. It still does not
+authorize paired evaluation execution, promotion, deployment, online selector
+activation, or any safety/CAMP-over-DP claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcomes as training
 or online inputs, Full36, formal seeds 11/12/13, promotion, deployment, online
 selector activation, or safety-benefit/CAMP-over-DP claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_preflight_only
 
 ## Cleanup Policy
 
