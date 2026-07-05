@@ -251,12 +251,16 @@ work to v13.
   `e8214636ab4d3371cf1008782908b8dfdd344f5e`. It authorizes only a follow-on
   evidence-chain decision gate. It still does not promote, deploy, activate an
   online selector, or make any safety/CAMP-over-DP claim.
+- The promotion-readiness evidence-chain decision gate passed on AutoDL with
+  CAMP synchronized at `1d077d48b417aa75fb1d60910f53cd78b6065369`. It records
+  a no-promotion/no-deployment/no-claim decision for the current evidence chain
+  and authorizes only static review of that decision record.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_decision_plan_static_review_passed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_decision_recorded`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_decision_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_decision_static_review_only`.
 
 ## What Changed
 
@@ -4116,18 +4120,20 @@ promotion-authorization-boundary plan. That boundary plan has now passed and
 its static review has also passed. The promotion-readiness evidence-chain
 decision plan-only gate has now passed and authorizes only static review of
 that plan. Its static review has also passed and authorizes only a follow-on
-evidence-chain decision gate. These gates did not promote a selector, deploy,
-activate an online selector, modify DP, generate or modify trajectories, run
-replay/training/candidate generation, or make any safety/CAMP-over-DP claim.
+evidence-chain decision gate. That decision gate has now passed and records a
+no-promotion/no-deployment/no-claim decision for the current evidence chain.
+These gates did not promote a selector, deploy, activate an online selector,
+modify DP, generate or modify trajectories, run replay/training/candidate
+generation, or make any safety/CAMP-over-DP claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, online selector activation, or
 safety-benefit/CAMP-over-DP claims. The next authorized scope is only a
-promotion-readiness evidence-chain decision gate.
+promotion-readiness evidence-chain decision static review.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_decision_plan_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_decision_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_decision_recorded
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_decision_static_review_only
 
 ## Cleanup Policy
 
