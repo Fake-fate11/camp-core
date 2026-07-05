@@ -4414,13 +4414,48 @@ The next authorized scope is only static review of this preflight plan. Actual
 outcome materialization, promotion, deployment, online selector activation, and
 safety/CAMP-over-DP claims remain unauthorized.
 
+## Post-Closeout Promotion Evidence Acquisition Paired Evaluation Actual-SafetyCost Outcome-Materialization Preflight Plan Static Review
+
+The actual-SafetyCost outcome-materialization preflight plan static-review gate
+passed on AutoDL:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_plan_static_review_676dcc4851_20260706T002733CST`
+
+This static review consumed the outcome-materialization preflight plan artifact
+and verified its HEADS, COMMAND, stdout/stderr, run.exit, nested/root
+SHA256SUMS, source preflight-plan summary, required inputs, planned outputs,
+no-go register, and source code/test surface. It did not materialize outcomes,
+run replay or training, generate candidates, modify DP, promote a selector,
+deploy, activate an online selector, or make any safety/CAMP-over-DP claim.
+Closed-loop outcomes remain evaluation-only evidence and are still forbidden as
+training or online selector inputs.
+
+Static-review summary:
+
+- Static-review checks / failed checks:
+  `82 / 0`
+- Source preflight-plan checks / failed checks:
+  `74 / 0`
+- Source required inputs / preflight items / planned outputs / no-go entries:
+  `8 / 8 / 6 / 10`
+- Source paired records / shadow-selected non-Top-1 records:
+  `3200 / 2832`
+- Actual SafetyCost v1 available / claim-rule evaluable:
+  `False / False`
+- Planned materialization scope:
+  `shadow-selected run-level closed-loop outcome summaries only`
+
+The next authorized scope is only actual-SafetyCost outcome-materialization
+preflight. Actual outcome materialization, promotion, deployment, online
+selector activation, and safety/CAMP-over-DP claims remain unauthorized.
+
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcomes as training
 or online inputs, Full36, formal seeds 11/12/13, promotion, deployment, online
 selector activation, or safety-benefit/CAMP-over-DP claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_plan_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_only
 
 ## Cleanup Policy
 
