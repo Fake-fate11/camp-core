@@ -4049,7 +4049,14 @@ one explicit path at a time from the repo root. This construction-only failure
 requires a user decision before fixing the command harness and rerunning; the
 standing compatibility authorization only covers same-class
 read-only/static-review/plan-only contract or source-artifact-layout
-compatibility fixes.
+compatibility fixes. After explicit user authorization, the construction
+contract was updated to accept the already-audited command-harness failure EOF
+state and the same construction-only gate was rerun with a corrected artifact
+`COMMAND` harness that writes expanded CAMP/DP/output values into the command
+file. The rerun passed and constructed the read-only uncertainty/coverage
+evidence package. The package is audit evidence only and authorizes only static
+review of that constructed package. It still does not authorize promotion,
+deployment, online selector activation, or any safety/CAMP-over-DP claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -4057,8 +4064,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_rejected
-next_work_target=user_decision_required_before_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_command_harness_fix_or_rerun
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_constructed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_static_review_only
 
 ## Cleanup Policy
 
