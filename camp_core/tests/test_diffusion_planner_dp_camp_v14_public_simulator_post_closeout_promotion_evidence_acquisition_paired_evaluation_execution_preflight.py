@@ -375,7 +375,7 @@ def _runtime_result_review_payload(
             "default_off_selector_records": module.EXPECTED_RECORD_COUNT,
             "artifact_contract_ready_records": module.EXPECTED_RECORD_COUNT,
             "shadow_selected_index_differs_from_executed_index_records": module.EXPECTED_SHADOW_DIFF_RECORDS,
-            "violation_counts": {"selection_effect_true_count": 0},
+            "violation_counts": {"selected_executed_mismatch": 0},
         },
         "execution": {
             "selection_log_count": module.EXPECTED_SELECTION_LOG_COUNT,

@@ -472,7 +472,7 @@ def _runtime_result_review_checks(report: dict[str, Any]) -> list[dict[str, Any]
         BASE_MODULE._expect("runtime_result_review_default_off_records", records.get("default_off_selector_records"), EXPECTED_RECORD_COUNT),
         BASE_MODULE._expect("runtime_result_review_artifact_contract_records", records.get("artifact_contract_ready_records"), EXPECTED_RECORD_COUNT),
         BASE_MODULE._expect("runtime_result_review_shadow_diff_records", records.get("shadow_selected_index_differs_from_executed_index_records"), EXPECTED_SHADOW_DIFF_RECORDS),
-        BASE_MODULE._expect("runtime_result_review_selection_effect_count", BASE_MODULE._dict(records.get("violation_counts")).get("selection_effect_true_count"), 0),
+        BASE_MODULE._expect("runtime_result_review_selected_executed_mismatch_count", BASE_MODULE._dict(records.get("violation_counts")).get("selected_executed_mismatch"), 0),
         BASE_MODULE._expect("runtime_result_review_formal_seed_path_count", execution.get("formal_seed_path_count"), 0),
         BASE_MODULE._expect("runtime_result_review_analysis_read_only", analysis.get("result_review_only"), True),
         BASE_MODULE._expect("runtime_result_review_analysis_no_training", analysis.get("training_executed_by_review"), False),
