@@ -540,7 +540,12 @@ def _summarize_paired_logs(
             ):
                 top1_score = _number_or_none(scores[executed])
                 shadow_score = _number_or_none(scores[shadow])
-                if top1_score is not None and shadow_score is not None:
+                if (
+                    top1_score is not None
+                    and shadow_score is not None
+                    and math.isfinite(top1_score)
+                    and math.isfinite(shadow_score)
+                ):
                     margin_values.append(top1_score - shadow_score)
 
     ordered_keys = sorted(paired_keys)
@@ -670,14 +675,14 @@ def _record_tensor_identity(
 
 
 def _record_affine_boundary(row: dict[str, Any], counters: Counter[str], expected_num_candidates: int) -> None:
-    weights = row.get("selection_weights", row.get("weights"))
-    atoms = row.get("selection_normalized_atoms", row.get("normalized_atoms"))
-    scores = row.get("selection_scores", row.get("scores"))
+    weights = row.get("weights", row.get("selection_weights"))
+    atoms = row.get("normalized_atoms", row.get("selection_normalized_atoms"))
+    scores = row.get("scores")
     if not isinstance(weights, list) or not weights:
         counters["non_simplex_weight_records"] += 1
         counters["non_affine_score_records"] += 1
         return
-    numeric_weights = [_number_or_none(value) for value in weights]
+    numeric_weights = [_finite_number_or_none(value) for value in weights]
     if any(value is None for value in numeric_weights):
         counters["non_simplex_weight_records"] += 1
         counters["non_affine_score_records"] += 1
@@ -692,11 +697,11 @@ def _record_affine_boundary(row: dict[str, Any], counters: Counter[str], expecte
         return
     for candidate_index in range(expected_num_candidates):
         atom_row = atoms[candidate_index] if candidate_index < len(atoms) else None
-        score = _number_or_none(scores[candidate_index] if candidate_index < len(scores) else None)
+        score = _finite_number_or_none(scores[candidate_index] if candidate_index < len(scores) else None)
         if not isinstance(atom_row, list) or score is None or len(atom_row) < len(weights_float):
             counters["non_affine_score_records"] += 1
             return
-        atom_values = [_number_or_none(value) for value in atom_row[: len(weights_float)]]
+        atom_values = [_finite_number_or_none(value) for value in atom_row[: len(weights_float)]]
         if any(value is None for value in atom_values):
             counters["non_affine_score_records"] += 1
             return
@@ -741,8 +746,8 @@ def _record_atom_deltas(
     ):
         return
     for index, name in enumerate(atom_names):
-        baseline = _number_or_none(atoms[executed][index] if index < len(atoms[executed]) else None)
-        challenger = _number_or_none(atoms[shadow][index] if index < len(atoms[shadow]) else None)
+        baseline = _finite_number_or_none(atoms[executed][index] if index < len(atoms[executed]) else None)
+        challenger = _finite_number_or_none(atoms[shadow][index] if index < len(atoms[shadow]) else None)
         if baseline is not None and challenger is not None:
             normalized_atom_deltas[str(name)].append(challenger - baseline)
 
@@ -1076,6 +1081,9 @@ def _new_comparison_summary() -> dict[str, Any]:
         "worse_records": 0,
         "tie_records": 0,
         "uncomparable_records": 0,
+        "nonfinite_better_records": 0,
+        "nonfinite_worse_records": 0,
+        "comparison_direction": "lower_is_better",
         "finite_deltas": [],
     }
 
@@ -1091,13 +1099,17 @@ def _add_comparison(
     outcome, delta = _compare_lower(values, challenger_index, baseline_index)
     if outcome == "better":
         summary["better_records"] += 1
+        if delta is None:
+            summary["nonfinite_better_records"] += 1
     elif outcome == "worse":
         summary["worse_records"] += 1
+        if delta is None:
+            summary["nonfinite_worse_records"] += 1
     elif outcome == "tie":
         summary["tie_records"] += 1
     else:
         summary["uncomparable_records"] += 1
-    if delta is not None:
+    if delta is not None and math.isfinite(delta):
         summary["finite_deltas"].append(delta)
 
 
@@ -1109,6 +1121,16 @@ def _compare_lower(values: Any, challenger_index: int | None, baseline_index: in
     challenger = _number_or_none(values[challenger_index])
     baseline = _number_or_none(values[baseline_index])
     if challenger is None or baseline is None:
+        return "uncomparable", None
+    if math.isnan(challenger) or math.isnan(baseline):
+        return "uncomparable", None
+    if math.isinf(challenger) or math.isinf(baseline):
+        if challenger == baseline:
+            return "tie", None
+        if math.isfinite(challenger) and math.isinf(baseline) and baseline > 0:
+            return "better", None
+        if math.isinf(challenger) and challenger > 0 and math.isfinite(baseline):
+            return "worse", None
         return "uncomparable", None
     delta = challenger - baseline
     if delta < -COMPARISON_TOLERANCE:
@@ -1145,8 +1167,8 @@ def _add_metric_delta(summary: dict[str, Any], values: Any, shadow: int | None, 
     if len(values) <= max(shadow, executed):
         summary["uncomparable_records"] += 1
         return
-    baseline = _number_or_none(values[executed])
-    challenger = _number_or_none(values[shadow])
+    baseline = _finite_number_or_none(values[executed])
+    challenger = _finite_number_or_none(values[shadow])
     if baseline is None or challenger is None:
         summary["uncomparable_records"] += 1
         return
@@ -1266,7 +1288,7 @@ def _candidate_number(row: dict[str, Any], name: str, index: int | None) -> floa
     values = row.get(name)
     if not isinstance(values, list) or index < 0 or index >= len(values):
         return None
-    return _number_or_none(values[index])
+    return _finite_number_or_none(values[index])
 
 
 def _clip(value: float, low: float, high: float) -> float:
@@ -1311,10 +1333,17 @@ def _int_or_none(value: Any) -> int | None:
 
 def _number_or_none(value: Any) -> float | None:
     try:
+        if isinstance(value, bool):
+            return None
         number = float(value)
     except (TypeError, ValueError):
         return None
-    return number if math.isfinite(number) else None
+    return number
+
+
+def _finite_number_or_none(value: Any) -> float | None:
+    number = _number_or_none(value)
+    return number if number is not None and math.isfinite(number) else None
 
 
 def _sha256(path: Path) -> str:
