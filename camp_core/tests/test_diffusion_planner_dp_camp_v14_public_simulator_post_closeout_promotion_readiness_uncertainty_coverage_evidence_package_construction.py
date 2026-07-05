@@ -87,9 +87,21 @@ def test_uncertainty_coverage_evidence_package_construction_rejects_wrong_eof(tm
 
     report = module.build_report(**fixture)
 
-    assert "audit_latest_eof_authorizes_construction" in report["final_decision"]["failed_checks"]
-    assert "status_doc_latest_eof_authorizes_construction" in report["final_decision"]["failed_checks"]
+    assert "audit_boundary_authorizes_construction_or_command_harness_rerun" in report["final_decision"]["failed_checks"]
     assert report["final_decision"]["failure_class"] == "v14_eof_contract_mismatch"
+
+
+def test_uncertainty_coverage_evidence_package_construction_accepts_command_harness_rerun_eof(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, command_harness_rerun_boundary=True)
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert report["final_decision"]["authorized_next_work"] == module.AUTHORIZED_NEXT_WORK
+    assert "audit_boundary_authorizes_construction_or_command_harness_rerun" not in report["final_decision"]["failed_checks"]
 
 
 def test_uncertainty_coverage_evidence_package_construction_rejects_source_leak(tmp_path: Path) -> None:
@@ -194,13 +206,34 @@ def _write_fixture(
     module,
     *,
     next_work: str | None = None,
+    command_harness_rerun_boundary: bool = False,
     source_static_review_decision_updates: dict[str, Any] | None = None,
     manifest_updates: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     docs = tmp_path / "docs"
     current_next = next_work or module.AUTHORIZED_CURRENT_WORK
-    doc_text = "\n".join(
-        [
+    if command_harness_rerun_boundary:
+        doc_lines = [
+            f"current_v14_status={module.REJECT_STATUS}",
+            f"next_work_target={module.AUTHORIZED_RERUN_DECISION_WORK}",
+            (
+                "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_"
+                f"evidence_package_construction_failure_root_cause={module.COMMAND_HARNESS_FAILURE_ROOT_CAUSE}"
+            ),
+            (
+                "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_"
+                f"evidence_package_construction_failed_checks={module.COMMAND_HARNESS_FAILED_CHECKS}"
+            ),
+            "single-quoted heredoc",
+            "evidence_package_constructed_by_this_gate=False",
+            "selector_promotion_authorized=False",
+            "deployment_authorized=False",
+            "safety_benefit_claim_authorized=False",
+            "camp_over_dp_top1_claim_authorized=False",
+            "",
+        ]
+    else:
+        doc_lines = [
             f"current_v14_status={module.SOURCE_STATIC_REVIEW_STATUS}",
             f"next_work_target={current_next}",
             "uncertainty_coverage_evidence_package_construction_plan_static_review_passed=True",
@@ -213,7 +246,7 @@ def _write_fixture(
             "camp_over_dp_top1_claim_authorized=False",
             "",
         ]
-    )
+    doc_text = "\n".join(doc_lines)
     v14_audit = _write(docs / "diffusion_planner_v14_iteration_audit.md", doc_text)
     current_status = _write(docs / "diffusion_planner_current_status.md", doc_text)
 

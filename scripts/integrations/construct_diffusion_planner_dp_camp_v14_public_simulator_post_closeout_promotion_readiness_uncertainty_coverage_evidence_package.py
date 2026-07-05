@@ -65,6 +65,14 @@ REJECT_STATUS = (
     "shadow_replay_evaluation_default_off_shadow_selector_runtime_"
     "post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_rejected"
 )
+AUTHORIZED_RERUN_DECISION_WORK = (
+    "user_decision_required_before_public_simulator_post_closeout_promotion_readiness_"
+    "uncertainty_coverage_evidence_package_construction_command_harness_fix_or_rerun"
+)
+COMMAND_HARNESS_FAILURE_ROOT_CAUSE = (
+    "command_harness_single_quoted_heredoc_did_not_expand_head_origin_dp_head_out"
+)
+COMMAND_HARNESS_FAILED_CHECKS = "current_dp_head_fixed,current_camp_head_is_sha"
 AUTHORIZED_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_"
     "shadow_replay_evaluation_default_off_shadow_selector_runtime_"
@@ -652,18 +660,48 @@ def _source_manifest_contract_checks(manifests: dict[str, dict[str, Any]]) -> li
 
 
 def _audit_checks(v14_text: str, status_text: str) -> list[dict[str, Any]]:
+    initial_boundary = (
+        PLAN_MODULE._latest_value(v14_text, "current_v14_status") == SOURCE_STATIC_REVIEW_STATUS
+        and PLAN_MODULE._latest_value(v14_text, "next_work_target") == AUTHORIZED_CURRENT_WORK
+        and PLAN_MODULE._latest_value(v14_text, "evidence_package_construction_authorized") == "True"
+        and PLAN_MODULE._latest_value(v14_text, "evidence_package_constructed_by_this_gate") == "False"
+        and PLAN_MODULE._latest_value(status_text, "current_v14_status") == SOURCE_STATIC_REVIEW_STATUS
+        and PLAN_MODULE._latest_value(status_text, "next_work_target") == AUTHORIZED_CURRENT_WORK
+    )
+    command_harness_rerun_boundary = (
+        PLAN_MODULE._latest_value(v14_text, "current_v14_status") == REJECT_STATUS
+        and PLAN_MODULE._latest_value(v14_text, "next_work_target") == AUTHORIZED_RERUN_DECISION_WORK
+        and PLAN_MODULE._latest_value(v14_text, "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_failure_root_cause")
+        == COMMAND_HARNESS_FAILURE_ROOT_CAUSE
+        and PLAN_MODULE._latest_value(v14_text, "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_failed_checks")
+        == COMMAND_HARNESS_FAILED_CHECKS
+        and PLAN_MODULE._latest_value(v14_text, "evidence_package_constructed_by_this_gate") == "False"
+        and PLAN_MODULE._latest_value(status_text, "current_v14_status") == REJECT_STATUS
+        and PLAN_MODULE._latest_value(status_text, "next_work_target") == AUTHORIZED_RERUN_DECISION_WORK
+        and "single-quoted heredoc" in status_text
+    )
     return [
-        PLAN_MODULE._expect("audit_latest_status_is_static_review_passed", PLAN_MODULE._latest_value(v14_text, "current_v14_status"), SOURCE_STATIC_REVIEW_STATUS),
-        PLAN_MODULE._expect("audit_latest_eof_authorizes_construction", PLAN_MODULE._latest_value(v14_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
-        PLAN_MODULE._expect("audit_construction_authorized", PLAN_MODULE._latest_value(v14_text, "evidence_package_construction_authorized"), "True"),
-        PLAN_MODULE._expect("audit_package_not_constructed_yet", PLAN_MODULE._latest_value(v14_text, "evidence_package_constructed_by_this_gate"), "False"),
+        PLAN_MODULE._check(
+            "audit_boundary_authorizes_construction_or_command_harness_rerun",
+            initial_boundary or command_harness_rerun_boundary,
+            {
+                "current_v14_status": PLAN_MODULE._latest_value(v14_text, "current_v14_status"),
+                "next_work_target": PLAN_MODULE._latest_value(v14_text, "next_work_target"),
+                "failure_root_cause": PLAN_MODULE._latest_value(
+                    v14_text,
+                    "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_failure_root_cause",
+                ),
+                "failed_checks": PLAN_MODULE._latest_value(
+                    v14_text,
+                    "v14_public_simulator_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_failed_checks",
+                ),
+            },
+            "static-review construction boundary or audited command-harness rerun boundary",
+        ),
         PLAN_MODULE._expect("audit_selector_promotion_false", PLAN_MODULE._latest_value(v14_text, "selector_promotion_authorized"), "False"),
         PLAN_MODULE._expect("audit_deployment_false", PLAN_MODULE._latest_value(v14_text, "deployment_authorized"), "False"),
         PLAN_MODULE._expect("audit_safety_claim_false", PLAN_MODULE._latest_value(v14_text, "safety_benefit_claim_authorized"), "False"),
         PLAN_MODULE._expect("audit_camp_over_dp_claim_false", PLAN_MODULE._latest_value(v14_text, "camp_over_dp_top1_claim_authorized"), "False"),
-        PLAN_MODULE._expect("status_doc_latest_status_is_static_review_passed", PLAN_MODULE._latest_value(status_text, "current_v14_status"), SOURCE_STATIC_REVIEW_STATUS),
-        PLAN_MODULE._expect("status_doc_latest_eof_authorizes_construction", PLAN_MODULE._latest_value(status_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
-        PLAN_MODULE._check("status_doc_mentions_construction_next", AUTHORIZED_CURRENT_WORK in status_text, AUTHORIZED_CURRENT_WORK, "present"),
     ]
 
 
