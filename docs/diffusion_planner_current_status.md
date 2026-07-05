@@ -4342,13 +4342,48 @@ The next authorized scope is only static review of this evidence-gap closure
 plan. Promotion, deployment, online selector activation, outcome materialization,
 and safety/CAMP-over-DP claims remain unauthorized.
 
+## Post-Closeout Promotion Evidence Acquisition Paired Evaluation Actual-SafetyCost Evidence-Gap Closure Plan Static Review
+
+The actual-SafetyCost evidence-gap closure plan static-review gate passed on
+AutoDL:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_evidence_gap_closure_plan_static_review_eba4b93554_20260706T000030CST`
+
+This static review consumed the plan artifact and verified its HEADS, COMMAND,
+stdout/stderr, run.exit, nested/root SHA256SUMS, source-result-review summary,
+required inputs, closure-plan items, planned outputs, no-go register, and
+source code/test surface. It did not materialize closed-loop outcomes, run
+replay or training, generate candidates, modify DP, promote a selector, deploy,
+activate an online selector, or make any safety/CAMP-over-DP claim.
+
+Static-review summary:
+
+- Static-review checks / failed checks:
+  `82 / 0`
+- Source plan checks / failed checks:
+  `71 / 0`
+- Source required inputs / plan items / planned outputs / no-go entries:
+  `8 / 8 / 6 / 10`
+- Source paired records / unique paired keys:
+  `3200 / 3200`
+- Source shadow-selected non-Top-1 records:
+  `2832`
+- Actual SafetyCost v1 available / claim-rule evaluable:
+  `False / False`
+- Next evidence need:
+  `paired shadow-selected run-level closed-loop outcome summaries`
+
+The next authorized scope is only an outcome-materialization preflight plan.
+Actual outcome materialization, promotion, deployment, online selector
+activation, and safety/CAMP-over-DP claims remain unauthorized.
+
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcomes as training
 or online inputs, Full36, formal seeds 11/12/13, promotion, deployment, online
 selector activation, or safety-benefit/CAMP-over-DP claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_evidence_gap_closure_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_evidence_gap_closure_plan_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_evidence_gap_closure_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_preflight_plan_only
 
 ## Cleanup Policy
 
