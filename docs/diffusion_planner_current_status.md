@@ -265,12 +265,17 @@ work to v13.
   `e19619321bebfffd55e4f4ad44b6bbd5467ca2c6`. It records the current
   evidence chain as closed with no promotion, no deployment, and no claim, and
   authorizes only static review of that closeout record.
+- The promotion-readiness evidence-chain no-promotion closeout record static
+  review passed on AutoDL with CAMP synchronized at
+  `94c5ca3f0b8f485841fde154801c034542eb91c9`. It confirms the evidence chain
+  is closed with no promotion, no deployment, and no claim, and authorizes no
+  further action without a new EOF authorization.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_no_promotion_closeout_recorded`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_no_promotion_closeout_record_static_review_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_no_promotion_closeout_record_static_review_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_closed_no_further_action_without_new_eof_authorization`.
 
 ## What Changed
 
@@ -4135,19 +4140,20 @@ no-promotion/no-deployment/no-claim decision for the current evidence chain.
 The static review of that decision has also passed and authorizes only a
 no-promotion closeout record for the current evidence chain. That closeout
 record has now passed and records the evidence chain as closed with no
-promotion, no deployment, and no claim. These gates did not promote a selector,
-deploy, activate an online selector, modify DP, generate or modify
-trajectories, run replay/training/candidate generation, or make any
-safety/CAMP-over-DP claim.
+promotion, no deployment, and no claim. The static review of that closeout
+record has also passed and authorizes no further action without a new EOF
+authorization. These gates did not promote a selector, deploy, activate an
+online selector, modify DP, generate or modify trajectories, run
+replay/training/candidate generation, or make any safety/CAMP-over-DP claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, online selector activation, or
 safety-benefit/CAMP-over-DP claims. The next authorized scope is only a
-promotion-readiness evidence-chain no-promotion closeout record static review.
+closed/no-further-action boundary without a new EOF authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_no_promotion_closeout_recorded
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_no_promotion_closeout_record_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_no_promotion_closeout_record_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_closed_no_further_action_without_new_eof_authorization
 
 ## Cleanup Policy
 
