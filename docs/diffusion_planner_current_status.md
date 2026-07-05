@@ -229,12 +229,18 @@ work to v13.
   synchronized at `6a2e97cfcb7e1bfb78f7e4a8272e5d0917f20edb`. It authorizes
   only a follow-on promotion-authorization-boundary plan, not promotion,
   deployment, online selector activation, or any safety/CAMP-over-DP claim.
+- The promotion-authorization-boundary plan-only gate passed on AutoDL with
+  CAMP synchronized at `599e01fb5b1946ea5fc97843e50a1ceb88953e5f`. It records
+  the fresh user authorization for future promotion/deployment/online-selector
+  and claim gates as a boundary condition, and authorizes only static review of
+  that boundary plan. It does not promote, deploy, activate an online selector,
+  or make any safety/CAMP-over-DP claim.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_continuation_plan_static_review_passed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_authorization_boundary_plan_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_authorization_boundary_plan_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_authorization_boundary_plan_static_review_only`.
 
 ## What Changed
 
@@ -4089,20 +4095,21 @@ authorization to continue, including permission to proceed through future
 promotion/deployment/online-selector/claim gates if the EOF and evidence chain
 support them, the post-closeout continuation plan-only gate passed. It
 authorizes only static review of that continuation plan. The static review of
-that plan has also passed and authorizes only a follow-on
-promotion-authorization-boundary plan. Neither gate promoted a selector,
-deployed, activated an online selector, modified DP, generated or modified
-trajectories, ran replay/training/candidate generation, or made any
-safety/CAMP-over-DP claim.
+that plan has also passed and authorized only a follow-on
+promotion-authorization-boundary plan. That boundary plan has now passed and
+authorizes only its static review. These gates did not promote a selector,
+deploy, activate an online selector, modify DP, generate or modify trajectories,
+run replay/training/candidate generation, or make any safety/CAMP-over-DP
+claim.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
 formal seeds 11/12/13, promotion, deployment, online selector activation, or
-safety-benefit/CAMP-over-DP claims. The next authorized scope is only a
-promotion-authorization-boundary plan.
+safety-benefit/CAMP-over-DP claims. The next authorized scope is only static
+review of the promotion-authorization-boundary plan.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_continuation_plan_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_authorization_boundary_plan_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_authorization_boundary_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_authorization_boundary_plan_static_review_only
 
 ## Cleanup Policy
 
