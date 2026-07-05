@@ -4209,13 +4209,73 @@ strict paired-evaluation execution gate over the locked source evidence. It
 still does not authorize promotion, deployment, online selector activation, or
 any safety/CAMP-over-DP claim.
 
+## Post-Closeout Promotion Evidence Acquisition Paired Evaluation Execution
+
+The first paired-evaluation execution attempt failed closed on AutoDL because
+the new execution contract treated already-audited nonfinite masked selection
+scores as uncomparable and checked affine scoring against masked
+`selection_scores` instead of raw affine `scores`. That failed artifact is
+preserved as audit evidence:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_b509541910_20260705T231406CST`
+
+The execution contract was then fixed to align with the prior audited
+shadow-vs-Top-1 delta review: nonfinite masked-score improvements are counted
+as nonfinite-better records, and affine scoring is checked on raw
+`score_k(w)=a_k^T w` scores. The rerun passed on AutoDL:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_3ea25272be_20260705T231945CST`
+
+This gate materialized strict paired evidence only. It read the locked runtime
+selection logs and source review artifacts, produced the paired run-key index,
+candidate tensor identity table, shadow-vs-Top-1 metric delta table,
+SafetyCost v1 confidence/availability table, coverage/uncertainty table, and
+paired no-go report. It did not run replay or training, generate candidates,
+modify DP, promote a selector, deploy, activate an online selector, or make
+any safety/CAMP-over-DP claim.
+
+Key execution results:
+
+- Paired records / unique paired keys:
+  `3200 / 3200`
+- Executed DP Top-1 records:
+  `3200`
+- Shadow-selected non-Top-1 records:
+  `2832`
+- Candidate tensor identity records / mutation records:
+  `3200 / 0`
+- Formal seed records / Full36 records:
+  `0 / 0`
+- Non-affine score records / non-simplex weight records:
+  `0 / 0`
+- Selection-score better / worse / tie / nonfinite-better / uncomparable:
+  `2832 / 0 / 368 / 58 / 0`
+- Raw affine score better / worse / tie:
+  `2804 / 28 / 368`
+- Fallback records:
+  `286`
+- No-go failures:
+  `0`
+- Actual SafetyCost v1 availability:
+  `False`
+- SafetyCost v1 / CAMP-over-DP claim authorized:
+  `False / False`
+- Selection latency p95:
+  `8.641218766570091 ms`
+
+Because the locked runtime selection logs do not contain shadow-selected
+run-level closed-loop outcomes, the formal SafetyCost v1 claim rule is not
+evaluable from this artifact. The next authorized scope is only read-only
+result review of this paired-evaluation execution artifact, not promotion,
+deployment, online selector activation, or any safety/CAMP-over-DP claim.
+
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcomes as training
 or online inputs, Full36, formal seeds 11/12/13, promotion, deployment, online
 selector activation, or safety-benefit/CAMP-over-DP claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_preflight_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_result_review_only
 
 ## Cleanup Policy
 
