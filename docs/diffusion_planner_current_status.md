@@ -283,12 +283,17 @@ work to v13.
   artifact is read-only, fixed-DP-candidate-only, no-claim, and no-execution,
   and authorizes only a paired-evaluation execution plan gate, not paired
   evaluation execution.
+- The post-closeout promotion evidence acquisition paired-evaluation execution
+  plan-only gate passed on AutoDL with CAMP synchronized at
+  `03f13c7c74fad1d32f7ef28630d0af173f959060`. It plans the future strict
+  paired execution contract but does not execute paired evaluation, promote,
+  deploy, activate an online selector, or make any safety/CAMP-over-DP claim.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_static_review_passed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_static_review_only`.
 
 ## What Changed
 
@@ -4175,15 +4180,17 @@ manifests for a future strict paired evaluation. The next authorized scope is
 only static review of this preflight, not paired evaluation execution. That
 static review has now passed and authorizes only a paired-evaluation execution
 plan gate. It still does not authorize paired evaluation execution, promotion,
-deployment, online selector activation, or any safety/CAMP-over-DP claim.
+deployment, online selector activation, or any safety/CAMP-over-DP claim. The
+execution plan-only gate has now passed and authorizes only static review of
+that plan, not paired evaluation execution.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcomes as training
 or online inputs, Full36, formal seeds 11/12/13, promotion, deployment, online
 selector activation, or safety-benefit/CAMP-over-DP claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_static_review_only
 
 ## Cleanup Policy
 
