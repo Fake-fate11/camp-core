@@ -4056,7 +4056,10 @@ state and the same construction-only gate was rerun with a corrected artifact
 file. The rerun passed and constructed the read-only uncertainty/coverage
 evidence package. The package is audit evidence only and authorizes only static
 review of that constructed package. It still does not authorize promotion,
-deployment, online selector activation, or any safety/CAMP-over-DP claim.
+deployment, online selector activation, or any safety/CAMP-over-DP claim. The
+static review of the constructed package has now passed. It confirms the
+package payloads are no execution, no claim, and no promotion, and authorizes
+only a follow-on closeout plan for the uncertainty/coverage evidence package.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcome labels,
@@ -4064,8 +4067,8 @@ formal seeds 11/12/13, promotion, deployment, or safety-benefit claims. Any
 future promotion or deployment work requires a new EOF and explicit
 authorization.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_constructed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_construction_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_closeout_plan_only
 
 ## Cleanup Policy
 
