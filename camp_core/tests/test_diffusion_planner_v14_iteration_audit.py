@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_static_review_passed"
+    "post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_ready"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_only"
+    "post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_static_review_only"
 )
 
 
@@ -6976,12 +6976,14 @@ def test_v14_post_closeout_promotion_evidence_acquisition_continuation_preflight
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = "## Post-Closeout Promotion Evidence Acquisition Continuation Preflight Plan"
     section_title = "## Post-Closeout Promotion Evidence Acquisition Continuation Preflight Plan Static Review"
+    next_section_title = "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation Preflight"
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_static_review_6e2143c7d6_20260705T155847CST",
@@ -7011,6 +7013,56 @@ def test_v14_post_closeout_promotion_evidence_acquisition_continuation_preflight
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = "## Post-Closeout Promotion Evidence Acquisition Continuation Preflight Plan Static Review"
+    section_title = "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation Preflight"
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_4c55bf6c54_20260705T161400CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_source_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_static_review_6e2143c7d6_20260705T155847CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_camp_head=4c55bf6c54a5794f1015a16639f24fe42f7e7a4b",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_exit=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_ready",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_check_count=127",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_source_static_review_check_count=144",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_input_requirement_count=8",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_preflight_plan_count=8",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_metrics_count=8",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_no_go_count=8",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_static_review_only",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_report_json_sha256=d2655e6b3a1afe1d86174e8024122aa6bcb539c6c285e6d65e8cbb9a55dbe2ba",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_artifact_sha256s_sha256=0fc1c9a68c979d9c2e83e05d28906bfd447b3a5210ff8bea2cae7420917480f7",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_ready",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_static_review_only",
+        "post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_ready=True",
+        "post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_static_review_authorized=True",
+        "paired_evaluation_executed_by_current_gate=False",
+        "previous_no_promotion_closeout_preserved=True",
+        "closed_loop_outcome_training_or_online_input_authorized=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_static_review_only",
     ]:
         assert needle in text
 

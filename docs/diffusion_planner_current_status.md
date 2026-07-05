@@ -1,6 +1,6 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-04, Asia/Shanghai.
+Last verified: 2026-07-05, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v14_iteration_audit.md`. The v13 audit is
@@ -270,12 +270,19 @@ work to v13.
   `94c5ca3f0b8f485841fde154801c034542eb91c9`. It confirms the evidence chain
   is closed with no promotion, no deployment, and no claim, and authorizes no
   further action without a new EOF authorization.
+- The post-closeout promotion evidence acquisition paired-evaluation preflight
+  ran on AutoDL with CAMP synchronized at
+  `4c55bf6c54a5794f1015a16639f24fe42f7e7a4b`. It consumes the passed
+  continuation preflight-plan static-review artifact, pre-registers the strict
+  paired protocol, and authorizes only static review of this preflight. It does
+  not execute paired evaluation, promote, deploy, activate an online selector,
+  or make any safety/CAMP-over-DP claim.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_no_promotion_closeout_record_static_review_passed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_closed_no_further_action_without_new_eof_authorization`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_static_review_only`.
 
 ## What Changed
 
@@ -4155,16 +4162,19 @@ tensors. The reviewed plan uses the frozen SafetyCost v1 claim rule,
 coverage/fallback and uncertainty reporting, and explicit no-go checks, but it
 does not run replay or training, generate candidates, modify DP, promote a
 selector, deploy, activate an online selector, or make any safety/CAMP-over-DP
-claim. The next authorized scope is only a paired-evaluation preflight, not
-paired evaluation execution.
+claim. The paired-evaluation preflight has now passed on AutoDL. It consumes
+the passed static-review artifact as immutable source evidence, checks the
+fixed-DP and artifact-hash contracts, and predeclares the required input
+manifests for a future strict paired evaluation. The next authorized scope is
+only static review of this preflight, not paired evaluation execution.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcomes as training
 or online inputs, Full36, formal seeds 11/12/13, promotion, deployment, online
 selector activation, or safety-benefit/CAMP-over-DP claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_static_review_only
 
 ## Cleanup Policy
 
