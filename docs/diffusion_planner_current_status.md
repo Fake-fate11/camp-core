@@ -4147,24 +4147,24 @@ online selector, modify DP, generate or modify trajectories, run
 replay/training/candidate generation, or make any safety/CAMP-over-DP claim.
 
 After explicit post-closeout authorization, the promotion evidence acquisition
-continuation preflight plan has passed on AutoDL. It preserves the prior
-no-promotion/no-deployment/no-claim closeout, opens only a new read-only
-planning chain, and pre-registers strict paired comparison of CAMP
+continuation preflight plan and its static review have passed on AutoDL. They
+preserve the prior no-promotion/no-deployment/no-claim closeout, open only a
+new read-only planning chain, and pre-register strict paired comparison of CAMP
 shadow-selected candidates against DP Top-1 on identical fixed DP candidate
-tensors. The plan uses the frozen SafetyCost v1 claim rule, coverage/fallback
-and uncertainty reporting, and explicit no-go checks, but it does not run
-replay or training, generate candidates, modify DP, promote a selector, deploy,
-activate an online selector, or make any safety/CAMP-over-DP claim.
+tensors. The reviewed plan uses the frozen SafetyCost v1 claim rule,
+coverage/fallback and uncertainty reporting, and explicit no-go checks, but it
+does not run replay or training, generate candidates, modify DP, promote a
+selector, deploy, activate an online selector, or make any safety/CAMP-over-DP
+claim. The next authorized scope is only a paired-evaluation preflight, not
+paired evaluation execution.
 
 The current boundary does not authorize CAMP generation, DP modification,
 postprocessing, guidance, reference blending, closed-loop outcomes as training
 or online inputs, Full36, formal seeds 11/12/13, promotion, deployment, online
-selector activation, or safety-benefit/CAMP-over-DP claims. The next authorized
-scope is only static review of the promotion evidence acquisition continuation
-preflight plan.
+selector activation, or safety-benefit/CAMP-over-DP claims.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_ready
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_static_review_only
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_preflight_only
 
 ## Cleanup Policy
 
