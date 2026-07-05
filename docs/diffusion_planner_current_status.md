@@ -4146,14 +4146,25 @@ authorization. These gates did not promote a selector, deploy, activate an
 online selector, modify DP, generate or modify trajectories, run
 replay/training/candidate generation, or make any safety/CAMP-over-DP claim.
 
-The current boundary does not authorize CAMP generation, DP modification,
-postprocessing, guidance, reference blending, closed-loop outcome labels,
-formal seeds 11/12/13, promotion, deployment, online selector activation, or
-safety-benefit/CAMP-over-DP claims. The next authorized scope is only a
-closed/no-further-action boundary without a new EOF authorization.
+After explicit post-closeout authorization, the promotion evidence acquisition
+continuation preflight plan has passed on AutoDL. It preserves the prior
+no-promotion/no-deployment/no-claim closeout, opens only a new read-only
+planning chain, and pre-registers strict paired comparison of CAMP
+shadow-selected candidates against DP Top-1 on identical fixed DP candidate
+tensors. The plan uses the frozen SafetyCost v1 claim rule, coverage/fallback
+and uncertainty reporting, and explicit no-go checks, but it does not run
+replay or training, generate candidates, modify DP, promote a selector, deploy,
+activate an online selector, or make any safety/CAMP-over-DP claim.
 
-current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_no_promotion_closeout_record_static_review_passed
-next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_readiness_uncertainty_coverage_evidence_package_promotion_readiness_evidence_chain_closed_no_further_action_without_new_eof_authorization
+The current boundary does not authorize CAMP generation, DP modification,
+postprocessing, guidance, reference blending, closed-loop outcomes as training
+or online inputs, Full36, formal seeds 11/12/13, promotion, deployment, online
+selector activation, or safety-benefit/CAMP-over-DP claims. The next authorized
+scope is only static review of the promotion evidence acquisition continuation
+preflight plan.
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_continuation_preflight_plan_static_review_only
 
 ## Cleanup Policy
 
