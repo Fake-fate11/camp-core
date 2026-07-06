@@ -6316,3 +6316,40 @@ Plan summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_ready
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_static_review_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Online Selector Activation Decision Plan Static Review
+
+The objective-3200 candidate-index actual-SafetyCost online selector activation
+decision plan static review passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_static_review_94767e4f20_20260706T232319CST`
+
+The first static-review attempt failed at:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_static_review_f933d5a59f_20260706T232007CST`
+
+Failure attribution: the static-review contract required a contiguous schema
+token, while the source plan script used split Python string literals. The rerun
+accepted the audited split-literal source layout. No DP, candidate tensor,
+deployment, online selector, training, or replay behavior changed.
+
+Static-review summary:
+
+- Static-review checks / failed checks:
+  `84 / 0`
+- Source plan checks / failed checks:
+  `72 / 0`
+- Selector promotion / deployment / online selector change authorized:
+  `True / True / False`
+- Safety claim authorized / CAMP-over-DP Top-1 claim authorized:
+  `True / True`
+- JSON / MD / nested SHA256SUMS / root SHA256SUMS SHA256:
+  `88e6404172330d44fa9b5404c43a3a7f1eff073d7a19f9ae2a4e7c4295157327`,
+  `f998aa59bd7874919833e603f3b1d0bfc40e6b0217caac9c2ae4fdcfef2c6d07`,
+  `0c8611a411f9a1b915ecaf871d81b48bb2558ac387cd96a93d39c0dff0bb6c4b`,
+  `fcfdbc0b1d275bd3063d599e4c4c8278a47b5144a67b7fe90977ac8a20cc53e5`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_only
