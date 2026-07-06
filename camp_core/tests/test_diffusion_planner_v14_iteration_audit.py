@@ -8093,7 +8093,7 @@ def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_actu
     _assert_latest_v14_status(text)
 
 
-def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_is_eof() -> None:
+def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_is_preserved() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
@@ -8102,12 +8102,16 @@ def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed
     section_title = (
         "## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Preflight"
     )
+    next_section_title = (
+        "## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Preflight Refresh"
+    )
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_0c342850d5_20260706T090726CST",
@@ -8149,6 +8153,77 @@ def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed
         "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_ready",
         "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_only",
         "shadow_selected_closed_loop_outcome_evaluation_preflight_passed=True",
+        "shadow_selected_closed_loop_outcome_evaluation_execution_authorized=True",
+        "shadow_selected_closed_loop_outcome_evaluation_executed_by_current_gate=False",
+        "actual_safetycost_v1_available=False",
+        "actual_safetycost_v1_claim_rule_evaluable=False",
+        "closed_loop_outcome_training_or_online_input_authorized=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "online_selector_change_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Preflight"
+    )
+    section_title = (
+        "## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Preflight Refresh"
+    )
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_failed_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_8f183fcbad_20260706T091958CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_failed_exit=1",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_failed_failure_class=command_harness_source_json_path_error",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_failed_artifact_sha256s_sha256=fc3b46bece195caa6c69c20a6dcef1e26787c9c3d70fdf053005355915760f77",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_8f183fcbad_20260706T092119CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_planned_shadow_selected_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_8f183fcbad_20260706T092119CST_planned_output",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_camp_head=8f183fcbad5143f23da6522133dea056afcaf4d9",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_exit=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_ready",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_passed=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_planned_command_count=32",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_generated_default_off_command_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_generated_forbidden_flag_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_generated_formal_seed_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_generated_full36_path_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_shadow_selected_closed_loop_outcome_evaluation_executed_by_current_gate=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_shadow_selected_closed_loop_outcome_evaluation_execution_authorized=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_actual_safetycost_v1_available=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_actual_safetycost_v1_claim_rule_evaluable=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_closed_loop_outcome_training_or_online_input_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_selector_promotion_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_deployment_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_online_selector_change_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_report_json_sha256=fc5108b81dcb2899bd765cc35b90f399a28cdb23505a0b787fec5482626220d4",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_report_md_sha256=cfc91ce8eb9a52e000eb3cc5921e9bc7d7863feb8c3e688c7cdc0df7c2760564",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_runbook_sha256=466116d20d53780ac316d96a9e17363682b2c2d46a7ee475e2bc425a5eeb0601",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_artifact_sha256s_sha256=8dc1ecb38cc4fb02100a060b81388f33f05b1183569b0412885fbe988a853129",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_run_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_ready",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_only",
+        "shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_passed=True",
         "shadow_selected_closed_loop_outcome_evaluation_execution_authorized=True",
         "shadow_selected_closed_loop_outcome_evaluation_executed_by_current_gate=False",
         "actual_safetycost_v1_available=False",

@@ -4600,6 +4600,38 @@ training or online selector inputs.
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_ready
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_only
 
+## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Preflight Refresh
+
+The first refresh attempt failed because the command harness pointed the
+materialization failure JSON at the wrong `evaluation/` subdirectory. The
+failed artifact is preserved:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_8f183fcbad_20260706T091958CST`
+
+The corrected refresh preflight then passed on AutoDL:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_8f183fcbad_20260706T092119CST`
+
+This refresh only regenerated the future offline evaluation runbook at the
+current CAMP head. It did not execute replay, train CAMP, generate CAMP
+trajectories, modify DP, promote, deploy, activate an online selector, or make
+any safety/CAMP-over-DP claim. The refreshed runbook allows later audit/test
+commits only if no runtime source path changed after the preflight head.
+
+Preflight refresh summary:
+
+- Planned shadow-selected offline evaluation commands:
+  `32`
+- Generated default-off / forbidden / formal-seed / Full36 command counts:
+  `0 / 0 / 0 / 0`
+- Planned shadow-selected output root:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_8f183fcbad_20260706T092119CST_planned_output`
+- Actual SafetyCost v1 available / claim-rule evaluable:
+  `False / False`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
