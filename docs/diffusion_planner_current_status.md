@@ -288,12 +288,19 @@ work to v13.
   `03f13c7c74fad1d32f7ef28630d0af173f959060`. It plans the future strict
   paired execution contract but does not execute paired evaluation, promote,
   deploy, activate an online selector, or make any safety/CAMP-over-DP claim.
+- The objective-3200 outcome acquisition plan static review passed on AutoDL
+  with CAMP synchronized at
+  `68e7a98a25928c7797bbdf7b5b9f758a79340280`. It authorizes only a
+  read-only objective-3200 outcome acquisition preflight, not outcome
+  acquisition execution, replay, training, candidate generation, DP
+  modification, trajectory editing, promotion, deployment, online selector
+  activation, or any safety/CAMP-over-DP claim.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_ready`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_static_review_passed`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_execution_plan_static_review_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_only`.
 
 ## What Changed
 
@@ -4929,6 +4936,38 @@ Acquisition-plan summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_ready
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_static_review_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Outcome Acquisition Plan Static Review
+
+The objective-3200 outcome acquisition plan static review passed on AutoDL with
+exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_static_review_68e7a98a25_20260706T131130CST`
+
+This read-only static review consumed the acquisition-plan artifact and
+validated its source contract, hash layout, EOF boundary, fixed-DP boundary,
+objective-3200 gap, and no-promotion/no-claim controls. It did not execute
+outcome acquisition, replay, training, materialization, candidate generation,
+DP modification, trajectory editing, promotion, deployment, online selector
+activation, or claims.
+
+Static-review summary:
+
+- Static-review checks / failed checks:
+  `95 / 0`
+- Objective required records / runtime records:
+  `3200 / 3200`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- JSON / MD / root SHA256SUMS SHA256:
+  `9c75deb7b108c8ccae19e5560049344c1ed1111d0055a11ca9fafc271a1b5460`,
+  `f14f24d897e0e77d72f9e8c77967cedf91f90611263e9a2b760761b6d22fce07`,
+  `b25300c356e5884c922a706c9f826253b0e23676a674e12f98eb7ee7eb049b05`
+- Next authorized work:
+  `objective_3200_outcome_acquisition_preflight_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_only
 
 ## Cleanup Policy
 
