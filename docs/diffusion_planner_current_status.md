@@ -5801,3 +5801,53 @@ references still depend on them.
 Generated session exports, handoff notes, local slide prompts, archives, caches,
 and pytest scratch directories are local workspace noise. They are ignored by
 `.gitignore` and are not part of the current DP-CAMP integration state.
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Delta Materialization Execution
+
+The objective-3200 candidate-index actual-SafetyCost delta materialization
+execution passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_d4f15ff773_20260706T203808CST`
+
+This evidence-only execution consumed the passed delta-materialization preflight
+static-review artifact and the audited candidate-index replay outcome-acquisition
+execution artifact. It materialized paired SafetyCost_v1 rows comparing CAMP
+`shadow_selected_index` against DP Top-1 candidate index `0` from the same fixed
+DP candidate tensor records. It did not rerun replay, acquire new outcomes,
+train, generate candidates, modify Diffusion Planner, mutate candidate tensors,
+promote, deploy, enable an online selector, or make claims.
+
+The prior attempt at
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_9548819598_20260706T203408CST`
+failed with `candidate_index_execution_root_stdout_sha` because the new
+materialization script matched `launcher.stdout` before `stdout` in the source
+artifact root `SHA256SUMS`. That contract bug was fixed and rerun; the failed
+attempt is preserved as evidence with partial-file manifest SHA256
+`e0f05e4013b2943fcbe8d563643198e336440ba08530ff7e31c4c1e2b35ba201`.
+
+Execution summary:
+
+- Execution checks / failed checks:
+  `131 / 0`
+- Paired SafetyCost_v1 rows:
+  `3200`
+- Shadow-selected Top-1 / non-Top-1 records:
+  `339 / 2861`
+- Delta better / tie / worse:
+  `2130 / 339 / 731`
+- Delta mean / CI95 low / CI95 high:
+  `-0.030725905189548854 / -0.05236935687432129 / -0.004850293544511806`
+- Claim rule evaluable / passed:
+  `True / True`
+- Safety benefit claim / CAMP-over-DP Top-1 claim authorized:
+  `False / False`
+- JSON / MD / JSONL / root SHA256SUMS SHA256:
+  `c8d89e216b9585735ec924c84d929161cb6c6824b322ac65f03a49060c0eb001`,
+  `02f11e6d57d9899bef419265c11af711a819b60cae2376bb9f3772f5e535455d`,
+  `7503dee69f3b311746cf1c19279a266ae44c068aef506ecf82fac2f9778b47cb`,
+  `b4fb2c39182975c35a28481d00141b2801edb0ffd8ab0c1b3ae73fefde043f08`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_result_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_result_review_only
