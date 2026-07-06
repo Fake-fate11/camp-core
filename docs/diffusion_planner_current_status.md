@@ -5309,6 +5309,51 @@ Static-review summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_harness_post_implementation_static_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_plan_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Replay Outcome-Acquisition Preflight Plan
+
+The objective-3200 candidate-index replay outcome-acquisition preflight plan
+passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_plan_7699f704f2_20260706T162507CST`
+
+The first attempt failed closed before replay/outcome execution because the new
+plan contract over-required contiguous runner guard text and source-decision
+false flags that the audited source artifact does not emit:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_plan_9e60290fd4_20260706T162228CST`
+
+The rerun fixed that contract compatibility issue and consumed the audited
+candidate-index replay harness post-implementation static review. It
+preregistered the future strict paired outcome-acquisition preflight protocol
+for CAMP shadow-selected fixed-DP candidates versus DP Top-1. It did not run
+candidate-index replay, acquire outcomes, train, generate candidates, modify
+Diffusion Planner, mutate candidate tensors, promote, deploy, enable an online
+selector, or make claims.
+
+Plan summary:
+
+- Plan checks / failed checks:
+  `91 / 0`
+- Objective required records:
+  `3200`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- Candidate-index replay harness implemented / execution authorized:
+  `True / False`
+- Direct replay / outcome acquisition authorized:
+  `False / False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `6e4587ccbf048180a359b90bd608c89e10c6cedda20a54d013550be2c73ed7a1`,
+  `62063740ce1ece1a2b432ecc3e4b3f384507024f430df64f35fd58f6eab7813f`,
+  `46a170ae05af051ccf189429c251d4eba159b51d768915c2fa46c833e3fff8ea`
+- Rejected artifact root SHA256SUMS SHA256:
+  `4384c5ecd52c6c9266a98431de2ef6439cb95718d7b9c73844319b7a379f7402`
+- Next authorized work:
+  `objective_3200_candidate_index_replay_outcome_acquisition_preflight_plan_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_plan_static_review_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
