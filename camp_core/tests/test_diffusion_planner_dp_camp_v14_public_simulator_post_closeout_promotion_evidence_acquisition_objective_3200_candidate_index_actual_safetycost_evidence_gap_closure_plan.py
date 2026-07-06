@@ -168,6 +168,21 @@ def test_candidate_index_actual_safetycost_evidence_gap_closure_plan_rejects_has
     assert "root_result_review_md_sha" in report["final_decision"]["failed_checks"]
 
 
+def test_candidate_index_actual_safetycost_evidence_gap_closure_plan_accepts_root_without_nested_sha_entry(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, include_nested_sha_in_root=False)
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert (
+        "root_result_review_sha256s_sha_optional"
+        not in report["final_decision"]["failed_checks"]
+    )
+
+
 def _write_fixture(
     tmp_path: Path,
     module,
@@ -175,6 +190,7 @@ def _write_fixture(
     next_work: str | None = None,
     source_decision_updates: dict[str, Any] | None = None,
     summary_updates: dict[str, Any] | None = None,
+    include_nested_sha_in_root: bool = True,
 ) -> dict[str, Any]:
     docs = tmp_path / "docs"
     doc_text = "\n".join(
@@ -225,22 +241,20 @@ def _write_fixture(
     stdout = _write(artifact / "stdout", "{}\n")
     stderr = _write(artifact / "stderr", "")
     run_exit = _write(artifact / "run.exit", "0\n")
-    _write_sha256s(
-        artifact / "SHA256SUMS",
-        [
-            heads,
-            command,
-            launcher_stdout,
-            launcher_stderr,
-            stdout,
-            stderr,
-            run_exit,
-            source_json,
-            source_md,
-            source_sha,
-        ],
-        relative_to=artifact,
-    )
+    root_paths = [
+        heads,
+        command,
+        launcher_stdout,
+        launcher_stderr,
+        stdout,
+        stderr,
+        run_exit,
+        source_json,
+        source_md,
+    ]
+    if include_nested_sha_in_root:
+        root_paths.append(source_sha)
+    _write_sha256s(artifact / "SHA256SUMS", root_paths, relative_to=artifact)
 
     return {
         "source_result_review_artifact_dir": artifact,

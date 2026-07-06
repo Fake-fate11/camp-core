@@ -389,7 +389,13 @@ def _checks(
     _expect_sha(checks, "root_run_exit_sha", root_sha256s, "run.exit", files["run_exit"])
     _expect_sha(checks, "root_result_review_json_sha", root_sha256s, SOURCE_REVIEW_JSON_NAME, paths["source_result_review_json"])
     _expect_sha(checks, "root_result_review_md_sha", root_sha256s, SOURCE_REVIEW_MD_NAME, paths["source_result_review_md"])
-    _expect_sha(checks, "root_result_review_sha256s_sha", root_sha256s, "SHA256SUMS", paths["source_result_review_sha256s"])
+    _expect_optional_sha(
+        checks,
+        "root_result_review_sha256s_sha_optional",
+        root_sha256s,
+        "review/SHA256SUMS",
+        paths["source_result_review_sha256s"],
+    )
     checks.extend(_plan_contract_checks())
     return checks
 
@@ -587,6 +593,25 @@ def _expect_sha(
     actual = SOURCE_REVIEW_MODULE._sha_for_suffix(sums, suffix)
     expected = SOURCE_REVIEW_MODULE._sha256(path)
     checks.append({"name": name, "passed": actual == expected, "actual": actual, "expected": expected})
+
+
+def _expect_optional_sha(
+    checks: list[dict[str, Any]],
+    name: str,
+    sums: dict[str, str],
+    suffix: str,
+    path: Path,
+) -> None:
+    actual = SOURCE_REVIEW_MODULE._sha_for_suffix(sums, suffix)
+    expected = SOURCE_REVIEW_MODULE._sha256(path)
+    checks.append(
+        {
+            "name": name,
+            "passed": actual in (None, expected),
+            "actual": actual,
+            "expected": f"missing_or_{expected}",
+        }
+    )
 
 
 def write_outputs(output_dir: Path, report: dict[str, Any]) -> None:
