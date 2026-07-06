@@ -5198,6 +5198,43 @@ Harness preflight plan summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_harness_preflight_plan_ready
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_harness_preflight_plan_static_review_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Replay Harness Preflight Plan Static Review
+
+The objective-3200 candidate-index replay harness preflight plan static review
+passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_harness_preflight_plan_static_review_f26affb21c_20260706T154004CST`
+
+This read-only static review consumed the harness preflight plan artifact and
+validated its fixed-DP boundary, source artifact hash layout, EOF contract,
+candidate-index binding plan, no-go register, and no-promotion/no-claim
+controls. It authorizes only a future CAMP-side harness implementation gate. It
+did not implement or run candidate-index replay, acquire outcomes, train,
+generate candidates, modify Diffusion Planner, promote, deploy, enable an
+online selector, or make claims.
+
+Static-review summary:
+
+- Static-review checks / failed checks:
+  `113 / 0`
+- Objective required records:
+  `3200`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- Runtime has audited candidate-index replay flag:
+  `False`
+- Harness implementation authorized / replay execution authorized:
+  `True / False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `e43d988c6043a96db1b41bcbf995e142fa94c397a6daa265b8703179257e70b1`,
+  `dc9e41b72282322643323a70c6367e983dcd32e101426c6119b1ba3d36dc1f16`,
+  `a8971ebdb3f993e8e8a4d5edb26d9c1ed20332a55e6f4db2298d16f6112ddba8`
+- Next authorized work:
+  `objective_3200_candidate_index_replay_harness_implementation_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_harness_preflight_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_harness_implementation_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
