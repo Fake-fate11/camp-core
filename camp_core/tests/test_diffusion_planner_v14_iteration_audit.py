@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_ready"
+    "post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_passed"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_only"
+    "post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_only"
 )
 
 
@@ -8170,7 +8170,7 @@ def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed
     _assert_latest_v14_status(text)
 
 
-def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_is_eof() -> None:
+def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_is_preserved() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Preflight"
@@ -8178,12 +8178,16 @@ def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed
     section_title = (
         "## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Preflight Refresh"
     )
+    next_section_title = (
+        "## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Execution Review"
+    )
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_failed_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_refresh_8f183fcbad_20260706T091958CST",
@@ -8235,6 +8239,68 @@ def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_review_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Preflight Refresh"
+    )
+    section_title = (
+        "## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Execution Review"
+    )
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_861f0d8cf0_20260706T092701CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_review_861f0d8cf0_20260706T095056CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_shadow_selected_output_root=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_8f183fcbad_20260706T092119CST_planned_output",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_camp_head=861f0d8cf0b2050fa559513624ad872ed8ab10c1",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_exit=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_passed",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_passed=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_shadow_selected_summary_count=32",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_actual_safetycost_v1_available=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_actual_safetycost_v1_claim_rule_evaluable=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_actual_safetycost_outcome_materialization_execution_authorized=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_closed_loop_outcome_training_or_online_input_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_selector_promotion_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_deployment_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_online_selector_change_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_safety_benefit_claim_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_camp_over_dp_top1_claim_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_raw_artifact_sha256s_sha256=095a8e54cffb250cc393a146fa9e9704ae0536df7ed914e7809f19005a4d141c",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_review_report_json_sha256=29263f111f402f90e07f15b376556b639cce59d5ac4a8c2937c11194525d1a4d",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_review_report_md_sha256=016f0b8422ec842032dcdd46e8880b8267a7bdf7e2d5ffd70d4dcdda82016def",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_review_artifact_sha256s_sha256=49861740be7b689733b7b5ab46eec774855e1dc463694c51bf4a371e99c8382b",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_review_run_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_only",
+        "shadow_selected_closed_loop_outcome_evaluation_execution_passed=True",
+        "actual_safetycost_outcome_materialization_execution_authorized=True",
+        "actual_safetycost_v1_available=False",
+        "actual_safetycost_v1_claim_rule_evaluable=False",
+        "closed_loop_outcome_training_or_online_input_authorized=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "online_selector_change_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_only",
     ]:
         assert needle in text
 

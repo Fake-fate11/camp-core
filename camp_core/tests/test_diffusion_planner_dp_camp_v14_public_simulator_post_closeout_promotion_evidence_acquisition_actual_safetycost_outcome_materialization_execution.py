@@ -103,6 +103,23 @@ def test_actual_safetycost_outcome_materialization_execution_rejects_wrong_eof(
     assert report["final_decision"]["failure_class"] == "v14_eof_contract_mismatch"
 
 
+def test_actual_safetycost_outcome_materialization_execution_accepts_shadow_execution_eof(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        with_shadow_summaries=True,
+        status=module.SHADOW_SELECTED_EXECUTION_STATUS,
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert report["final_decision"]["authorized_next_work"] == module.AUTHORIZED_NEXT_WORK
+
+
 def test_actual_safetycost_outcome_materialization_execution_rejects_tensor_mutation(
     tmp_path: Path,
 ) -> None:
@@ -121,13 +138,14 @@ def _write_fixture(
     module,
     *,
     with_shadow_summaries: bool,
+    status: str | None = None,
     next_work: str | None = None,
     mutate_tensor: bool = False,
 ) -> dict[str, Any]:
     docs = tmp_path / "docs"
     doc_text = "\n".join(
         [
-            f"current_v14_status={module.SOURCE_STATIC_REVIEW_STATUS}",
+            f"current_v14_status={status or module.SOURCE_STATIC_REVIEW_STATUS}",
             f"next_work_target={next_work or module.AUTHORIZED_CURRENT_WORK}",
             "actual_safetycost_outcome_materialization_execution_authorized=True",
             "actual_safetycost_outcome_materialization_executed_by_current_gate=False",

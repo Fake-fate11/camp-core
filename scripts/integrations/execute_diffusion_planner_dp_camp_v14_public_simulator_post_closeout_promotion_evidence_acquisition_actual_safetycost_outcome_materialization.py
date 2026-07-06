@@ -69,6 +69,13 @@ READY_STATUS = (
     "post_closeout_promotion_evidence_acquisition_paired_evaluation_"
     "actual_safetycost_outcome_materialization_execution_passed"
 )
+SHADOW_SELECTED_EXECUTION_STATUS = (
+    "public_simulator_fixed_dp_candidate_generation_trained_default_off_"
+    "shadow_replay_evaluation_default_off_shadow_selector_runtime_"
+    "post_closeout_promotion_evidence_acquisition_shadow_selected_"
+    "closed_loop_outcome_evaluation_execution_passed"
+)
+AUTHORIZED_EOF_STATUSES = {SOURCE_STATIC_REVIEW_STATUS, SHADOW_SELECTED_EXECUTION_STATUS}
 REJECT_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_"
     "shadow_replay_evaluation_default_off_shadow_selector_runtime_"
@@ -321,9 +328,21 @@ def _checks(
     expect("paired_execution_artifact_dp_head_fixed", paired_heads.get("DP_HEAD"), required_dp_head)
     expect("source_static_review_run_exit", source_run_exit, "0")
     expect("paired_execution_run_exit", paired_run_exit, "0")
-    expect("audit_latest_status", HELPER_MODULE._latest_value(v14_text, "current_v14_status"), SOURCE_STATIC_REVIEW_STATUS)
+    audit_latest_status = HELPER_MODULE._latest_value(v14_text, "current_v14_status")
+    status_doc_latest_status = HELPER_MODULE._latest_value(status_text, "current_v14_status")
+    require(
+        "audit_latest_status_authorizes_materialization",
+        audit_latest_status in AUTHORIZED_EOF_STATUSES,
+        audit_latest_status,
+        "source static review passed or shadow-selected execution passed",
+    )
     expect("audit_latest_next_work", HELPER_MODULE._latest_value(v14_text, "next_work_target"), AUTHORIZED_CURRENT_WORK)
-    expect("status_doc_latest_status", HELPER_MODULE._latest_value(status_text, "current_v14_status"), SOURCE_STATIC_REVIEW_STATUS)
+    require(
+        "status_doc_latest_status_authorizes_materialization",
+        status_doc_latest_status in AUTHORIZED_EOF_STATUSES,
+        status_doc_latest_status,
+        "source static review passed or shadow-selected execution passed",
+    )
     expect("status_doc_latest_next_work", HELPER_MODULE._latest_value(status_text, "next_work_target"), AUTHORIZED_CURRENT_WORK)
 
     expect("source_static_review_schema", source_review.get("schema_version"), SOURCE_STATIC_REVIEW_SCHEMA)
