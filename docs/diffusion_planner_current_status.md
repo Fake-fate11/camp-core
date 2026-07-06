@@ -5390,6 +5390,42 @@ Static-review summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_plan_static_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Replay Outcome-Acquisition Preflight
+
+The objective-3200 candidate-index replay outcome-acquisition preflight passed
+on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_990f1a5e85_20260706T164932CST`
+
+This read-only preflight consumed the preflight-plan static review artifact and
+the source plan artifact. It validated source hashes, fixed-DP/EOF boundaries,
+runner harness surface, future execution contract, and no-promotion/no-claim
+controls. It did not run candidate-index replay, acquire outcomes, train,
+generate candidates, modify Diffusion Planner, mutate candidate tensors,
+promote, deploy, enable an online selector, or make claims.
+
+Preflight summary:
+
+- Preflight checks / failed checks:
+  `133 / 0`
+- Objective required records:
+  `3200`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- Candidate-index replay harness implemented / execution authorized:
+  `True / False`
+- Direct replay / outcome acquisition authorized:
+  `False / False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `d6f0a1f7bbd2f09050cd62013fd58f2a7faf8d7456218307bf9257e0a4334d10`,
+  `2761a36e3f1bb967c3abdafe1a073895dc9914eb7f58b251717fe04b6390d79c`,
+  `64beaeb5f6d6c4c0f001e4f66865c120debf3a04e95ee8febc986618bd2d4d32`
+- Next authorized work:
+  `objective_3200_candidate_index_replay_outcome_acquisition_preflight_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_static_review_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
