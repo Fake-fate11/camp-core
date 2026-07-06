@@ -6423,3 +6423,48 @@ Execution-plan summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_execution_plan_ready
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_execution_plan_static_review_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Online Selector Activation Execution Plan Static Review
+
+The first objective-3200 candidate-index actual-SafetyCost online selector
+activation execution plan static review attempt failed on AutoDL with exit `1`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_execution_plan_static_review_9c2b708b0b_20260706T235956CST`
+
+Failure attribution: the read-only static-review contract looked for an
+unprefixed `online_selector_activation_execution=False` EOF key, while the
+audited execution-plan EOF state recorded the value under the source artifact
+prefix. The rerun accepted that audited prefixed key and passed with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_execution_plan_static_review_rerun_5bd1f3db2c_20260707T000204CST`
+
+This read-only static review did not execute online selector activation,
+deployment, training, candidate generation, replay, outcome acquisition,
+Diffusion Planner modification, or candidate tensor mutation.
+
+Static-review summary:
+
+- Failed attempt checks / failed checks:
+  `90 / 1`
+- Rerun checks / failed checks:
+  `90 / 0`
+- Source execution-plan checks / failed checks:
+  `71 / 0`
+- Failed attempt first failed check:
+  `audit_online_selector_activation_execution_false`
+- Selector promotion / deployment / online selector change authorized:
+  `True / True / True`
+- Online selector activation executed:
+  `False`
+- Safety claim authorized / CAMP-over-DP Top-1 claim authorized:
+  `True / True`
+- JSON / MD / nested SHA256SUMS / root SHA256SUMS SHA256:
+  `4b1f5550f5f18cd7f0d9662dcb3048d993c80b542f137e3e75b05513bdbffa79`,
+  `f5c04d4f4de489d85d37442b3f8485d9f95dd3d72c173d1005e1f1624da9a624`,
+  `15884c8bd29c0da0d322bc959cd851258f9d5172289212e02c031a02ab257792`,
+  `4b35af4d469b30a5cdbd126f6e20f89dc369e1cd169da2217bf153365c563655`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_online_selector_activation_execution_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_execution_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_execution_only
