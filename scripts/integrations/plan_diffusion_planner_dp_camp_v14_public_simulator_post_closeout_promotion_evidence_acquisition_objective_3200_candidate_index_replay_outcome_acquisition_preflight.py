@@ -358,7 +358,7 @@ def _checks(
     for action in BLOCKED_ACTIONS:
         checks.append(_expect(f"source_static_review_{action}", decision.get(action), False))
     for flag in FALSE_EXECUTION_FLAGS:
-        checks.append(_expect(f"decision_{flag}", decision.get(flag), False))
+        checks.append(_expect(f"decision_{flag}", bool(decision.get(flag, False)), False))
     return checks
 
 
@@ -403,11 +403,11 @@ def _runner_surface(text: str) -> dict[str, Any]:
         "has_harness_alias_flag": "--camp_candidate_index_replay_harness" in text,
         "requires_collect_closed_loop_outcomes": (
             "--camp_collect_closed_loop_outcomes" in text
-            and "requires --camp_collect_closed_loop_outcomes" in text
+            and "not args.camp_collect_closed_loop_outcomes" in text
         ),
         "requires_candidate_tensor_provenance_logging": (
             "--camp_candidate_tensor_provenance_logging" in text
-            and "requires --camp_candidate_tensor_provenance_logging" in text
+            and "not args.camp_candidate_tensor_provenance_logging" in text
         ),
         "routes_shadow_selected_index": (
             "shadow_selected_index" in text
