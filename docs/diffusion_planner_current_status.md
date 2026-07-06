@@ -5969,3 +5969,37 @@ Static-review summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_static_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_decision_plan_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Claim Decision Plan
+
+The objective-3200 candidate-index actual-SafetyCost claim decision plan passed
+on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_decision_plan_80867ef8da_20260706T213446CST`
+
+This plan-only gate consumed the passed claim-boundary static-review artifact
+and preregistered the later claim-decision scope. It did not execute a
+safety-benefit claim, CAMP-over-DP Top-1 claim, selector promotion, deployment,
+online selector activation, training, candidate generation, replay, outcome
+acquisition, Diffusion Planner modification, or candidate tensor mutation.
+
+Plan summary:
+
+- Plan checks / failed checks:
+  `71 / 0`
+- Claim decision item count:
+  `5`
+- Source static review passed:
+  `True`
+- Claim executed / safety claim authorized / CAMP-over-DP Top-1 claim authorized:
+  `False / False / False`
+- JSON / MD / nested SHA256SUMS / root SHA256SUMS SHA256:
+  `5b7ff79a32ed809545b42621d8cd1ec1821a47039a1faee9816a283e1a7d88dc`,
+  `bde4019658f6c2cd73018b1f0701d5b587bffb0cd07254f4fefd50a35bce751a`,
+  `1b6f0a7ec08de7a7b7871ed6c166e3ff17ce80b41872820253448d932072885a`,
+  `dc314babb1c4a66185a8bd3c2fa0443da7373a515c3079c4fd0fa7d1a3260058`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_claim_decision_plan_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_decision_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_decision_plan_static_review_only
