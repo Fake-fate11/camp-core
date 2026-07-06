@@ -51,6 +51,8 @@ def test_shadow_selected_closed_loop_outcome_evaluation_preflight_builds_runbook
     assert "--camp_default_off_shadow_selector" not in runbook
     assert "--camp_shadow_artifact_manifest" not in runbook
     assert "--camp_collect_closed_loop_outcomes" not in runbook
+    assert "merge-base --is-ancestor" in runbook
+    assert "CAMP_RUNTIME_CHANGED_PATHS" in runbook
     assert "runtime_shadow_selected_closed_loop_evaluation" in runbook
     assert (fixture["output_dir"] / module.PREFLIGHT_JSON_NAME).is_file()
     assert (fixture["output_dir"] / module.PREFLIGHT_MD_NAME).is_file()
@@ -80,9 +82,26 @@ def test_shadow_selected_closed_loop_outcome_evaluation_preflight_rejects_wrong_
     report = module.build_report(**fixture)
 
     assert report["final_decision"]["passed"] is False
-    assert "audit_latest_next_work_user_decision" in report["final_decision"]["failed_checks"]
-    assert "status_latest_next_work_user_decision" in report["final_decision"]["failed_checks"]
+    assert "audit_latest_eof_authorizes_preflight_or_refresh" in report["final_decision"]["failed_checks"]
+    assert "status_latest_eof_authorizes_preflight_or_refresh" in report["final_decision"]["failed_checks"]
     assert report["final_decision"]["failure_class"] == "v14_eof_contract_mismatch"
+
+
+def test_shadow_selected_closed_loop_outcome_evaluation_preflight_accepts_refresh_eof(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        status=module.READY_STATUS,
+        next_work=module.AUTHORIZED_NEXT_WORK,
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert report["final_decision"]["authorized_next_work"] == module.AUTHORIZED_NEXT_WORK
 
 
 def _write_fixture(
@@ -90,13 +109,14 @@ def _write_fixture(
     module,
     *,
     seeds: tuple[int, int] = (1, 2),
+    status: str | None = None,
     next_work: str | None = None,
 ) -> dict[str, Any]:
     docs = tmp_path / "docs"
     docs.mkdir()
     doc_text = "\n".join(
         [
-            f"current_v14_status={module.SOURCE_FAILURE_STATUS}",
+            f"current_v14_status={status or module.SOURCE_FAILURE_STATUS}",
             f"next_work_target={next_work or module.AUTHORIZED_CURRENT_WORK}",
             "actual_safetycost_outcome_materialization_execution_failed=True",
             "actual_safetycost_v1_available=False",

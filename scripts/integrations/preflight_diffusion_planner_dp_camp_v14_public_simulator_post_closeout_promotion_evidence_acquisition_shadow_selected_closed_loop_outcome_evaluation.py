@@ -50,6 +50,10 @@ AUTHORIZED_NEXT_WORK = (
     "post_closeout_promotion_evidence_acquisition_shadow_selected_"
     "closed_loop_outcome_evaluation_execution_only"
 )
+AUTHORIZED_PREFLIGHT_EOF_PAIRS = {
+    (SOURCE_FAILURE_STATUS, AUTHORIZED_CURRENT_WORK),
+    (READY_STATUS, AUTHORIZED_NEXT_WORK),
+}
 SCHEMA_VERSION = (
     "dp_camp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_"
     "shadow_selected_closed_loop_outcome_evaluation_preflight_v1"
@@ -340,10 +344,20 @@ def _checks(
         _check("materialization_failure_artifact_dir_exists", materialization_failure_artifact_dir.is_dir(), str(materialization_failure_artifact_dir), "directory"),
         _check("materialization_failure_json_exists", materialization_failure_json.is_file(), str(materialization_failure_json), "file"),
         _expect("source_runtime_dp_head_fixed", source_heads.get("DP_HEAD"), required_dp_head),
-        _expect("audit_latest_status_rejected", _latest_value(v14_text, "current_v14_status"), SOURCE_FAILURE_STATUS),
-        _expect("audit_latest_next_work_user_decision", _latest_value(v14_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
-        _expect("status_latest_status_rejected", _latest_value(status_text, "current_v14_status"), SOURCE_FAILURE_STATUS),
-        _expect("status_latest_next_work_user_decision", _latest_value(status_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
+        _check(
+            "audit_latest_eof_authorizes_preflight_or_refresh",
+            (_latest_value(v14_text, "current_v14_status"), _latest_value(v14_text, "next_work_target"))
+            in AUTHORIZED_PREFLIGHT_EOF_PAIRS,
+            f"{_latest_value(v14_text, 'current_v14_status')} / {_latest_value(v14_text, 'next_work_target')}",
+            "authorized preflight or refresh EOF pair",
+        ),
+        _check(
+            "status_latest_eof_authorizes_preflight_or_refresh",
+            (_latest_value(status_text, "current_v14_status"), _latest_value(status_text, "next_work_target"))
+            in AUTHORIZED_PREFLIGHT_EOF_PAIRS,
+            f"{_latest_value(status_text, 'current_v14_status')} / {_latest_value(status_text, 'next_work_target')}",
+            "authorized preflight or refresh EOF pair",
+        ),
         _expect("paired_execution_passed", paired_decision.get("passed"), True),
         _expect("paired_execution_actual_safetycost_unavailable", paired_decision.get("actual_safetycost_v1_available"), False),
         _expect("materialization_failure_rejected", materialization_decision.get("passed"), False),
@@ -428,9 +442,19 @@ def _render_runbook(
         "  exit 40",
         "fi",
         "source /etc/network_turbo >/dev/null 2>&1 || true",
-        f"if [ \"$(git -C '/root/autodl-tmp/camp_core' rev-parse HEAD)\" != '{current_camp_head}' ]; then",
-        "  echo 'CAMP HEAD mismatch' >&2",
-        "  exit 41",
+        f"CAMP_PREFLIGHT_HEAD='{current_camp_head}'",
+        "CAMP_CURRENT_HEAD=\"$(git -C '/root/autodl-tmp/camp_core' rev-parse HEAD)\"",
+        'if [ "$CAMP_CURRENT_HEAD" != "$CAMP_PREFLIGHT_HEAD" ]; then',
+        "  if ! git -C '/root/autodl-tmp/camp_core' merge-base --is-ancestor \"$CAMP_PREFLIGHT_HEAD\" \"$CAMP_CURRENT_HEAD\"; then",
+        "    echo 'CAMP HEAD mismatch' >&2",
+        "    exit 41",
+        "  fi",
+        "  CAMP_RUNTIME_CHANGED_PATHS=\"$(git -C '/root/autodl-tmp/camp_core' diff --name-only \"$CAMP_PREFLIGHT_HEAD\" \"$CAMP_CURRENT_HEAD\" -- | grep -Ev '^(docs/|camp_core/tests/|README\\.md$)' || true)\"",
+        '  if [ -n "$CAMP_RUNTIME_CHANGED_PATHS" ]; then',
+        "    echo 'CAMP runtime paths changed since preflight head' >&2",
+        "    printf '%s\\n' \"$CAMP_RUNTIME_CHANGED_PATHS\" >&2",
+        "    exit 41",
+        "  fi",
         "fi",
         f"if [ \"$(git -C '/root/autodl-tmp/Diffusion-Planner' rev-parse HEAD)\" != '{required_dp_head}' ]; then",
         "  echo 'DP HEAD mismatch' >&2",
