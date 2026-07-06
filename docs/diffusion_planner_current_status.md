@@ -5553,6 +5553,50 @@ Result-review summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Evidence-Gap Closure Plan
+
+The objective-3200 candidate-index actual-SafetyCost evidence-gap closure
+plan-only gate passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_a4ba14f7b9_20260706T191105CST`
+
+Two earlier attempts were rejected and preserved. The first used `report/`
+source paths while the audited result-review artifact stores JSON/MD under
+`review/`. The second used the corrected source paths but the new contract
+expected `no_go_failed_count` in `source_execution_summary`; the audited source
+records it in `final_decision`. Both failures were contract/layout
+compatibility issues only. They did not materialize SafetyCost deltas, rerun
+replay, train, modify Diffusion Planner, promote, deploy, enable an online
+selector, or make safety/CAMP-over-DP claims.
+
+Plan summary:
+
+- Plan checks / failed checks:
+  `75 / 0`
+- Objective required records / paired record keys:
+  `3200 / 3200`
+- Candidate closed-loop outcome records / missing:
+  `3200 / 0`
+- Source runtime / candidate-index / payload records:
+  `3200 / 3200 / 3200`
+- Selection logs / no-go failures:
+  `32 / 0`
+- Actual SafetyCost_v1 available / claim-rule evaluable:
+  `False / False`
+- SafetyCost delta materialization / replay / outcome acquisition by this gate:
+  `False / False / False`
+- Claim / promotion supported by this plan:
+  `False / False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `63d79af34f80fd0be5958321d62a761b8035ec2d448d4bdace1365de70667d41`,
+  `f6bfcecd045b72ac0082d97416dc7ccb46de4637830bccd9c1bca3fd15ec419b`,
+  `4bb5ed0f909b8ff9d2eaae90ad92c9686b556b087fbabfb85e3132b8bc3369ef`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_static_review_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
