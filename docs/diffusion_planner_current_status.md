@@ -5092,6 +5092,42 @@ Execution failure summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_execution_failed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_execution_failed_user_decision_required
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Outcome Acquisition Failure Remediation Plan
+
+The objective-3200 outcome acquisition failure remediation plan gate passed on
+AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_failure_remediation_plan_880da63ea7_20260706T150219CST`
+
+This read-only plan/preflight gate consumed the failed objective-3200 outcome
+acquisition execution artifact and preserved the strict 3200 per-record goal.
+It confirmed that the source failure still has strict runtime/candidate pairing
+for all 3200 records, but still has `0 / 3200` per-record
+shadow-selected fixed-DP candidate outcomes. It also recorded that the current
+runtime script has a closed-loop outcome flag but does not yet expose an
+audited candidate-index replay flag, so the next work is static review only for
+the remediation plan before any candidate-index replay harness work.
+
+Failure remediation plan summary:
+
+- Plan checks / failed checks:
+  `70 / 0`
+- Objective required records / paired record keys:
+  `3200 / 3200`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- Runtime has audited candidate-index replay flag:
+  `False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `cc91e918b8db31295e6ab1f9b3374a14566dd92fce74e69ffec81262f8c08c1b`,
+  `16d6beb5174b36c1197d209caacf7dd1bcea845aafe2927ed5c96d7e47a5892e`,
+  `366afd6c7d148912888163eb5e12250842e4ee19a08f777d8fd2e067754359ee`
+- Next authorized work:
+  `objective_3200_outcome_acquisition_failure_remediation_plan_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_failure_remediation_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_failure_remediation_plan_static_review_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
