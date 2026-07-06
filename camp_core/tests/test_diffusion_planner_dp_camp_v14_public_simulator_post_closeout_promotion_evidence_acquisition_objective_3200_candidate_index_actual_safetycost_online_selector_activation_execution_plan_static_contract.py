@@ -151,7 +151,7 @@ def _write_fixture(
             "selector_promotion_authorized=True",
             "deployment_authorized=True",
             "online_selector_change_authorized=True",
-            "online_selector_activation_execution=False",
+            f"{module.AUDIT_ONLINE_SELECTOR_ACTIVATION_EXECUTION_KEY}=False",
             "",
         ]
     )

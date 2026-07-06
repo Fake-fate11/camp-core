@@ -38,6 +38,11 @@ PLAN_MD_NAME = PLAN_MODULE.PLAN_MD_NAME
 AUTHORIZED_CURRENT_WORK = PLAN_MODULE.AUTHORIZED_NEXT_WORK
 EXPECTED_PLAN_CHECK_COUNT = 71
 ONLINE_SELECTOR_ACTIVATION_EXECUTION_PLAN_ITEMS = PLAN_MODULE.ONLINE_SELECTOR_ACTIVATION_EXECUTION_PLAN_ITEMS
+AUDIT_ONLINE_SELECTOR_ACTIVATION_EXECUTION_KEY = (
+    "v14_public_simulator_post_closeout_promotion_evidence_acquisition_"
+    "objective_3200_candidate_index_actual_safetycost_online_selector_"
+    "activation_execution_plan_online_selector_activation_execution"
+)
 
 SCHEMA_VERSION = (
     "dp_camp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_"
@@ -286,7 +291,17 @@ def _checks(
         BASE_MODULE._expect("audit_selector_promotion_true", BASE_MODULE._latest_value(v14_text, "selector_promotion_authorized"), "True"),
         BASE_MODULE._expect("audit_deployment_true", BASE_MODULE._latest_value(v14_text, "deployment_authorized"), "True"),
         BASE_MODULE._expect("audit_online_selector_true", BASE_MODULE._latest_value(v14_text, "online_selector_change_authorized"), "True"),
-        BASE_MODULE._expect("audit_online_selector_activation_execution_false", BASE_MODULE._latest_value(v14_text, "online_selector_activation_execution"), "False"),
+        BASE_MODULE._expect(
+            "audit_online_selector_activation_execution_false",
+            _latest_any(
+                v14_text,
+                (
+                    "online_selector_activation_execution",
+                    AUDIT_ONLINE_SELECTOR_ACTIVATION_EXECUTION_KEY,
+                ),
+            ),
+            "False",
+        ),
         BASE_MODULE._expect("current_dp_head_fixed", current_dp_head, required_dp_head),
         BASE_MODULE._expect("required_dp_head_fixed", required_dp_head, FIXED_DP_HEAD),
         BASE_MODULE._expect("camp_head_matches_origin_main", current_camp_head, current_camp_origin_main),
@@ -372,6 +387,14 @@ def _has_schema_token(script_text: str) -> bool:
 
 def _list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
+
+
+def _latest_any(text: str, keys: tuple[str, ...]) -> str | None:
+    for key in keys:
+        value = BASE_MODULE._latest_value(text, key)
+        if value is not None:
+            return value
+    return None
 
 
 def _decision(*, passed: bool, checks: list[dict[str, Any]], source_plan: dict[str, Any]) -> dict[str, Any]:
