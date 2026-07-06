@@ -7,11 +7,10 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_result_review_passed"
+    "post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_recorded"
 )
 LATEST_V14_NEXT_WORK = (
-    "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_record_only"
+    "no_further_action_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_evidence_does_not_support_promotion_or_claim"
 )
 
 
@@ -8395,7 +8394,7 @@ def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_actu
     _assert_latest_v14_status(text)
 
 
-def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_result_review_is_eof() -> None:
+def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_result_review_is_preserved() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
@@ -8405,12 +8404,17 @@ def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_actu
         "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
         "Actual-SafetyCost Outcome-Materialization Execution Result Review"
     )
+    next_section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
+        "Actual-SafetyCost No-Promotion/No-Claim Closeout Record"
+    )
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_result_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_result_review_b7f615ab65_20260706T102209CST",
@@ -8465,6 +8469,75 @@ def test_v14_post_closeout_promotion_evidence_acquisition_paired_evaluation_actu
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_record_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_record_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
+        "Actual-SafetyCost Outcome-Materialization Execution Result Review"
+    )
+    section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Paired Evaluation "
+        "Actual-SafetyCost No-Promotion/No-Claim Closeout Record"
+    )
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_failed_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_689ea561b7_20260706T103243CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_failed_exit=1",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_failed_failure_class=artifact_hash_or_closeout_contract_failure",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_failed_checks=root_review_json_sha,root_review_md_sha,root_review_sha256s_sha",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_01fae8030b_20260706T103642CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_source_result_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_result_review_b7f615ab65_20260706T102209CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_camp_head=01fae8030b1e6a2bd67ce8a87b3f84bf8b3c8af5",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_exit=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_schema_version=dp_camp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_record_v1",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_recorded",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_passed=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_failure_class=None",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_check_count=56",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_delta_mean=0.9501537269208384",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_delta_ci95_low=0.7157895850136042",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_delta_ci95_high=1.171673912524327",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_better_records=1",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_worse_records=31",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_no_further_action_recommended=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_report_json_sha256=515d31d7943c373861cfdbe70941613eba77572c4adc3a3680d802806190b3d1",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_report_md_sha256=534f1a7ece93fd350c589a3ccb58e70307992a389eeb104a4fc3e46cd4c9f06d",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_report_sha256s_sha256=776e72d370025db45f8accaba96f02dd0f4fe362d82213b02bb9230ec705b023",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_artifact_sha256s_sha256=9ccdffd59bb4f73bc869f51041ab4e287ded068ba3b89a7a825e9d9cf493f3bb",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_heads_sha256=99ba1596507ad3978abce150dd844e16db469700ba95e0309592d5da997f2667",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_command_sha256=583be39c913e0b1f18c084300bd678e8c76e1f96261ad26bbaf82c489cf2f76e",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_stdout_sha256=079f8fee014dec8ee3737db51745125455c7ae1643b2442ecfc8b9e68bab657b",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_no_promotion_no_claim_closeout_run_exit_sha256=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_recorded",
+        "current_v14_next_scope=no_further_action_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_evidence_does_not_support_promotion_or_claim",
+        "actual_safetycost_no_promotion_no_claim_closeout_recorded=True",
+        "safety_benefit_claim_supported=False",
+        "camp_over_dp_top1_claim_supported=False",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "online_selector_change_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=no_further_action_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_evidence_does_not_support_promotion_or_claim",
     ]:
         assert needle in text
 

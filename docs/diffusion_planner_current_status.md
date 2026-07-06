@@ -4741,6 +4741,39 @@ remain unauthorized.
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_result_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_record_only
 
+## Post-Closeout Promotion Evidence Acquisition Paired Evaluation Actual-SafetyCost No-Promotion/No-Claim Closeout Record
+
+The first closeout attempt failed because the source result-review root
+`SHA256SUMS` used absolute `review/...` paths while the initial closeout
+contract accepted only relative source artifact paths. That failed artifact is
+preserved:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_689ea561b7_20260706T103243CST`
+
+The corrected closeout record passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_01fae8030b_20260706T103642CST`
+
+Closeout summary:
+
+- Closeout checks / failed checks:
+  `56 / 0`
+- SafetyCost delta mean and CI95:
+  `0.9501537269208384` with `[0.7157895850136042, 1.171673912524327]`
+- Better / worse records under `shadow_minus_top1` SafetyCost:
+  `1 / 31`
+- Safety benefit claim supported / CAMP-over-DP Top-1 claim supported:
+  `False / False`
+- Promotion, deployment, online selector activation, and claims:
+  `not authorized`
+
+The current evidence chain is closed as no-promotion/no-claim. The next target
+is no further action for this actual-SafetyCost evidence because it does not
+support promotion or a CAMP-over-DP/safety-benefit claim.
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_recorded
+next_work_target=no_further_action_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_evidence_does_not_support_promotion_or_claim
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
