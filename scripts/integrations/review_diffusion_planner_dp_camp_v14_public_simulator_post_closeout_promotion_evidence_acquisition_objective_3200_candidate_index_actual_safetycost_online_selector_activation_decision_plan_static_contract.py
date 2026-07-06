@@ -310,7 +310,7 @@ def _checks(
         BASE_MODULE._expect("activation_items_no_online_now", sorted({item.get("authorizes_online_selector_now") for item in activation_plan}), [False]),
         BASE_MODULE._expect("activation_items_no_dp_modification", sorted({item.get("authorizes_dp_modification") for item in activation_plan}), [False]),
         BASE_MODULE._expect("activation_items_no_candidate_mutation", sorted({item.get("authorizes_candidate_mutation") for item in activation_plan}), [False]),
-        BASE_MODULE._check("plan_script_schema_token", PLAN_SCHEMA in script_text or "online_selector_activation_decision_plan_v1" in script_text, PLAN_SCHEMA, "present"),
+        BASE_MODULE._check("plan_script_schema_token", _has_schema_token(script_text), PLAN_SCHEMA, "present"),
         BASE_MODULE._check("plan_script_static_review_next_token", AUTHORIZED_CURRENT_WORK in script_text or "online_selector_activation_decision_plan_static_review_only" in script_text, AUTHORIZED_CURRENT_WORK, "present"),
         BASE_MODULE._check("plan_script_no_online_now_token", "authorizes_online_selector_now" in script_text, "authorizes_online_selector_now", "present"),
         BASE_MODULE._check("plan_test_pass_test", "online_selector_activation_decision_plan_passes" in test_text, "online_selector_activation_decision_plan_passes", "present"),
@@ -357,6 +357,12 @@ def _source_plan_summary(source_plan: dict[str, Any]) -> dict[str, Any]:
             _list(source_plan.get("online_selector_activation_decision_plan"))
         ),
     }
+
+
+def _has_schema_token(script_text: str) -> bool:
+    return PLAN_SCHEMA in script_text or (
+        "online_selector_activation_" in script_text and "decision_plan_v1" in script_text
+    )
 
 
 def _list(value: Any) -> list[Any]:

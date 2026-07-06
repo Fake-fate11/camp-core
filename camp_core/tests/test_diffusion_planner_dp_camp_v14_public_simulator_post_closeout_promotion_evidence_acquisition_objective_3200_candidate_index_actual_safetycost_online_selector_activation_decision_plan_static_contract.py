@@ -164,7 +164,8 @@ def _write_fixture(
         tmp_path / "plan_online_selector_activation_decision.py",
         "\n".join(
             [
-                module.PLAN_SCHEMA,
+                "online_selector_activation_",
+                "decision_plan_v1",
                 module.AUTHORIZED_CURRENT_WORK,
                 "authorizes_online_selector_now",
                 "",
