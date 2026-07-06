@@ -5462,6 +5462,53 @@ Static-review summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_preflight_static_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Replay Outcome-Acquisition Execution
+
+The objective-3200 candidate-index replay outcome-acquisition execution passed
+on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_85fdfce6b3_20260706T174739CST`
+
+This execution-only gate consumed the audited preflight static review artifact
+and the source runtime shadow replay runbook. It executed candidate-index replay
+for the pre-registered 32 commands and acquired 3200 closed-loop outcome records
+for CAMP shadow-selected fixed-DP candidates. It did not train, generate
+candidates, modify Diffusion Planner, mutate candidate tensors, promote,
+deploy, enable an online selector, or make safety/CAMP-over-DP claims. The
+closed-loop outcomes remain offline evaluation evidence only.
+
+Execution summary:
+
+- Execution checks / failed checks:
+  `106 / 0`
+- Commands executed / runbook exit:
+  `32 / 0`
+- Objective required records / paired record keys:
+  `3200 / 3200`
+- Candidate closed-loop outcome records / missing:
+  `3200 / 0`
+- Source runtime / candidate-index / payload records:
+  `3200 / 3200 / 3200`
+- Unpaired source / candidate record keys:
+  `0 / 0`
+- Candidate tensor mutation / reference blend / Full36 / formal seeds:
+  `0 / 0 / 0 / 0`
+- Closed-loop training-or-online input / non-affine score / non-simplex weight:
+  `0 / 0 / 0`
+- No-go failures:
+  `0`
+- Actual SafetyCost_v1 available / claim-rule evaluable:
+  `False / False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `5fd8d738bd69e0cb154c82c87a9e8705b6a15680484c849c04fd7f6633b7a166`,
+  `4762c891bf339ba0647a2aeafe6bcca20ba30d87da2964b04a127f9dc868e048`,
+  `80983779ab60d07999b9c23d72e072d06bc5fdb64b9fd76c265a495c87053864`
+- Next authorized work:
+  `objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
