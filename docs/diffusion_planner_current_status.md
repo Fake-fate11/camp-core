@@ -5128,6 +5128,40 @@ Failure remediation plan summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_failure_remediation_plan_ready
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_failure_remediation_plan_static_review_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Outcome Acquisition Failure Remediation Plan Static Review
+
+The objective-3200 outcome acquisition failure remediation plan static review
+passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_failure_remediation_plan_static_review_cee8d2a146_20260706T150803CST`
+
+This read-only static review consumed the remediation plan artifact and
+validated its EOF boundary, source failed execution contract, hash layout,
+fixed-DP boundary, strict 3200 objective preservation, no run-level downgrade,
+and no-promotion/no-claim controls. It did not execute candidate-index replay,
+outcome acquisition, training, candidate generation, DP modification,
+promotion, deployment, online selector activation, or claims.
+
+Static-review summary:
+
+- Static-review checks / failed checks:
+  `124 / 0`
+- Objective required records:
+  `3200`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- Runtime has audited candidate-index replay flag:
+  `False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `9fbd41cb9e8661c8c00bdd7340fa1afba7c626d10bbeb4f631623df3337e222c`,
+  `f0587d4f81a16aba86b1274d0984e288c34897c4e6ef78504741fca40fc389e6`,
+  `0cf126d227c7157cc4b48665528f57977a3dd3203a67ecf8bf9003ead52d2a21`
+- Next authorized work:
+  `objective_3200_outcome_acquisition_candidate_index_replay_harness_preflight_plan_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_failure_remediation_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_candidate_index_replay_harness_preflight_plan_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
