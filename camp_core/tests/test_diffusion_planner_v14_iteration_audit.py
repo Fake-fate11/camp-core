@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_passed"
+    "post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_plan_static_review_passed"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_only"
+    "post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_only"
 )
 
 
@@ -9928,7 +9928,7 @@ def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candida
     _assert_latest_v14_status(text)
 
 
-def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_is_eof() -> None:
+def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
@@ -9938,12 +9938,18 @@ def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candida
         "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
         "Candidate-Index Replay Outcome-Acquisition Execution Result Review"
     )
+    next_section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
+        "Candidate-Index Actual-SafetyCost Evidence-Gap Closure Plan"
+    )
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
+    assert "\n## " not in text[section_index + len(section_title) : next_section_index]
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_rejected_attempt_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_94adc27ffd_20260706T184336CST",
