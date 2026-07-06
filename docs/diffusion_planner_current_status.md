@@ -5895,3 +5895,40 @@ Result-review summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_result_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Claim Authorization Boundary Plan
+
+The objective-3200 candidate-index actual-SafetyCost claim authorization
+boundary plan passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_d0bd6e72f5_20260706T211236CST`
+
+This plan-only gate consumed the passed result-review artifact and recorded the
+claim boundary for later static review. It preserves the result-review finding
+that the 3200 paired SafetyCost_v1 evidence supports planning a later
+safety-benefit / CAMP-over-DP Top-1 claim decision, but it did not execute a
+claim, selector promotion, deployment, online selector activation, training,
+candidate generation, replay, outcome acquisition, or Diffusion Planner change.
+
+Plan summary:
+
+- Plan checks / failed checks:
+  `107 / 0`
+- Source rows / better / tie / worse:
+  `3200 / 2130 / 339 / 731`
+- Source mean delta / CI95 high:
+  `-0.030725905189548854 / -0.004850293544511806`
+- Boundary item count:
+  `5`
+- Claim executed / safety claim authorized / CAMP-over-DP Top-1 claim authorized:
+  `False / False / False`
+- JSON / MD / nested SHA256SUMS / root SHA256SUMS SHA256:
+  `7ce5442d590d72174d371ffa67b8570654d905071967600bbca9ae09563423d4`,
+  `7a3b7524d2c3072a4d6ff6c3b5d5255982de34ab74d341c26fb9b87f369831d3`,
+  `b2eb3107d44f9d5a60b3f1ad51c1c7efc4d918352be5294afa6dea6f98d4de30`,
+  `095afe327d270ce987211af24b159a8051870ec6a829de8a15b5f7abd103b4ff`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_static_review_only
