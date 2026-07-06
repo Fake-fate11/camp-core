@@ -5851,3 +5851,47 @@ Execution summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_result_review_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Delta Materialization Execution Result Review
+
+The objective-3200 candidate-index actual-SafetyCost delta materialization
+execution result review passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_result_review_c5046f186e_20260706T205605CST`
+
+This read-only review consumed the passed 3200-row SafetyCost delta
+materialization execution artifact, revalidated its hashes, fixed-DP/EOF
+boundaries, 3200 paired rows, no-go controls, and claim-rule fields. It did not
+materialize deltas, rerun replay, acquire outcomes, train, generate candidates,
+modify Diffusion Planner, mutate candidate tensors, promote, deploy, enable an
+online selector, or make claims.
+
+The prior review attempt at
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_result_review_60868aac33_20260706T205323CST`
+failed with `root_report_sha256s_sha` because the source execution artifact root
+`SHA256SUMS` intentionally omitted the nested `report/SHA256SUMS` entry while
+the review contract required it. The contract was corrected to accept the nested
+SHA file as separately validated when the root entry is absent, then the same
+read-only result-review gate was rerun successfully.
+
+Result-review summary:
+
+- Review checks / failed checks:
+  `102 / 0`
+- Claim rule passed:
+  `True`
+- Safety benefit / CAMP-over-DP Top-1 claim supported:
+  `True / True`
+- Claim authorization boundary plan authorized:
+  `True`
+- Safety benefit claim / CAMP-over-DP Top-1 claim authorized:
+  `False / False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `10ee40dea1375624bed1a53dab56e1877aded6710fbee21c98eb73bdc2c3528a`,
+  `204c08a46e4a43bc890c1d29bbe38d67d1eed6ef9c9a3857f32c71cd90de5d70`,
+  `2153e74a226653e8858cd37c8f397aedf332000ef7b1f7603d78bd263dbb8fba`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_execution_result_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_only
