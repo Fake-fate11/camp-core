@@ -349,7 +349,7 @@ def _checks(
     plan_decision = _dict(source_plan.get("final_decision"))
     review_analysis = _dict(source_review.get("analysis"))
     plan_analysis = _dict(source_plan.get("analysis"))
-    review_objective = _source_review_objective(source_review)
+    review_objective = _source_review_objective(source_review, source_plan)
     plan_gap = _dict(source_plan.get("objective_gap_summary"))
     plan_steps = [item.get("step") for item in _list_of_dicts(source_plan.get("acquisition_plan"))]
 
@@ -473,19 +473,43 @@ def _sha_checks(
     ]
 
 
-def _source_review_objective(source_review: dict[str, Any]) -> dict[str, int]:
+def _source_review_objective(
+    source_review: dict[str, Any],
+    source_plan: dict[str, Any] | None = None,
+) -> dict[str, int]:
     decision = _dict(source_review.get("final_decision"))
     source_plan_summary = _dict(source_review.get("source_plan_summary"))
+    plan_gap = _dict(source_plan.get("objective_gap_summary")) if source_plan else {}
     return {
-        "objective_required_records": int(decision.get("objective_required_records") or source_plan_summary.get("objective_required_records") or 0),
-        "runtime_record_count": int(decision.get("runtime_record_count") or source_plan_summary.get("runtime_record_count") or 0),
-        "candidate_closed_loop_outcome_records": int(decision.get("candidate_closed_loop_outcome_records") or source_plan_summary.get("candidate_closed_loop_outcome_records") or 0),
-        "missing_candidate_closed_loop_outcome_records": int(decision.get("missing_candidate_closed_loop_outcome_records") or source_plan_summary.get("missing_candidate_closed_loop_outcome_records") or 0),
+        "objective_required_records": int(
+            decision.get("objective_required_records")
+            or source_plan_summary.get("objective_required_records")
+            or plan_gap.get("objective_required_records")
+            or 0
+        ),
+        "runtime_record_count": int(
+            decision.get("runtime_record_count")
+            or source_plan_summary.get("runtime_record_count")
+            or plan_gap.get("runtime_record_count")
+            or 0
+        ),
+        "candidate_closed_loop_outcome_records": int(
+            decision.get("candidate_closed_loop_outcome_records")
+            or source_plan_summary.get("candidate_closed_loop_outcome_records")
+            or plan_gap.get("candidate_closed_loop_outcome_records")
+            or 0
+        ),
+        "missing_candidate_closed_loop_outcome_records": int(
+            decision.get("missing_candidate_closed_loop_outcome_records")
+            or source_plan_summary.get("missing_candidate_closed_loop_outcome_records")
+            or plan_gap.get("missing_candidate_closed_loop_outcome_records")
+            or 0
+        ),
     }
 
 
 def _objective_summary(*, source_review: dict[str, Any], source_plan: dict[str, Any]) -> dict[str, Any]:
-    review_objective = _source_review_objective(source_review)
+    review_objective = _source_review_objective(source_review, source_plan)
     plan_gap = _dict(source_plan.get("objective_gap_summary"))
     return {
         "objective_required_records": review_objective["objective_required_records"],
