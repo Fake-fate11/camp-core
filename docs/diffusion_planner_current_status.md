@@ -4665,6 +4665,46 @@ online selector inputs.
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_only
 
+## Post-Closeout Promotion Evidence Acquisition Paired Evaluation Actual-SafetyCost Outcome-Materialization Execution Passed
+
+The actual-SafetyCost outcome-materialization execution-only gate passed on
+AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_4d90d380be_20260706T100330CST`
+
+The gate consumed the passed outcome-materialization preflight static-review
+artifact, the locked paired-evaluation execution artifact, the audited
+default-off runtime source, and the completed shadow-selected closed-loop
+outcome summaries. It did not run replay or training, generate candidates,
+modify DP, promote a selector, deploy, activate an online selector, or make
+any safety/CAMP-over-DP claim. Closed-loop outcomes remain evaluation-only
+evidence and are forbidden as training or online selector inputs.
+
+Materialization summary:
+
+- Runtime selection logs / records:
+  `32 / 3200`
+- Top-1 / shadow-selected run-level summaries:
+  `32 / 32`
+- Paired run keys / SafetyCost v1 deltas:
+  `32 / 32`
+- Duplicate / unpaired / invalid summaries / no-go failures:
+  `0 / 0 / 0 / 0`
+- Actual SafetyCost v1 available / claim-rule evaluable:
+  `True / True`
+- Delta mean and bootstrap CI95:
+  `0.9501537269208384` with `[0.7157895850136042, 1.171673912524327]`
+- Better / worse / tie records under this delta convention:
+  `1 / 31 / 0`
+
+This creates the quantitative outcome materialization needed for a later
+read-only result review. It does not itself authorize promotion, deployment,
+online selector activation, safety-benefit claims, or CAMP-over-DP Top-1
+claims.
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_result_review_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
