@@ -6282,3 +6282,37 @@ Decision summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_deployment_decision_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Online Selector Activation Decision Plan
+
+The objective-3200 candidate-index actual-SafetyCost online selector activation
+decision plan passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_6ef93aeb98_20260706T231103CST`
+
+This plan-only gate consumed the passed deployment decision artifact and
+pre-registers the later online selector activation decision checks. It did not
+execute online selector activation, deployment, training, candidate generation,
+replay, outcome acquisition, Diffusion Planner modification, or candidate tensor
+mutation.
+
+Plan summary:
+
+- Plan checks / failed checks:
+  `72 / 0`
+- Source deployment decision checks / failed checks:
+  `68 / 0`
+- Selector promotion / deployment / online selector change authorized:
+  `True / True / False`
+- Safety claim authorized / CAMP-over-DP Top-1 claim authorized:
+  `True / True`
+- JSON / MD / nested SHA256SUMS / root SHA256SUMS SHA256:
+  `c02b105fb984b0b1c5c7a0184d423da5c79fdce57fcec4a816e6bb64970f5f28`,
+  `1a8efe4652b44f295f9dd63ce1865473b89dc0a411f665855fc9b6ab67d8cb40`,
+  `2aa1634f47e47fc1cd5be93e95ba0ce5fd83d26019c841a954513fd91a02dd90`,
+  `c857551136558110ac3d7acb861f11725d000e30e21e47429eb8d87b224855aa`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_online_selector_activation_decision_plan_static_review_only
