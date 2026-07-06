@@ -173,12 +173,13 @@ def _write_source_static_review_artifact(artifact: Path, module) -> dict[str, Pa
     review_sha = _write_sha256s(review_dir / "SHA256SUMS", [review_json, review_md])
     heads = _write_heads(artifact / "HEADS", module)
     command = _write(artifact / "COMMAND", "python review.py\n")
+    launcher_stdout = _write(artifact / "launcher.stdout", "")
     stdout = _write(artifact / "stdout", "{}\n")
     stderr = _write(artifact / "stderr", "")
     run_exit = _write(artifact / "run.exit", "0\n")
     _write_sha256s(
         artifact / "SHA256SUMS",
-        [heads, command, stdout, stderr, run_exit, review_json, review_md, review_sha],
+        [heads, command, launcher_stdout, stdout, stderr, run_exit, review_json, review_md, review_sha],
         relative_to=artifact,
     )
     return {"artifact": artifact, "json": review_json, "md": review_md, "sha256s": review_sha}
@@ -199,12 +200,13 @@ def _write_candidate_execution_artifact(
     execution_sha = _write_sha256s(report_dir / "SHA256SUMS", [execution_json, execution_md])
     heads = _write_heads(artifact / "HEADS", module)
     command = _write(artifact / "COMMAND", "python execute_candidate_index.py\n")
+    launcher_stdout = _write(artifact / "launcher.stdout", "")
     stdout = _write(artifact / "stdout", "{}\n")
     stderr = _write(artifact / "stderr", "")
     run_exit = _write(artifact / "run.exit", "0\n")
     _write_sha256s(
         artifact / "SHA256SUMS",
-        [heads, command, stdout, stderr, run_exit, execution_json, execution_md, execution_sha],
+        [heads, command, launcher_stdout, stdout, stderr, run_exit, execution_json, execution_md, execution_sha],
         relative_to=artifact,
     )
     return {"artifact": artifact, "json": execution_json, "md": execution_md, "sha256s": execution_sha}

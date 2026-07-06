@@ -1143,7 +1143,8 @@ def _latest_value(text: str, key: str) -> str | None:
 def _sha_for_suffix(sums: dict[str, str], suffix: str) -> str | None:
     suffix = suffix.replace("\\", "/")
     for path, value in sums.items():
-        if path.replace("\\", "/").endswith(suffix):
+        normalized = path.replace("\\", "/")
+        if normalized == suffix or normalized.endswith(f"/{suffix}"):
             return value
     return None
 
