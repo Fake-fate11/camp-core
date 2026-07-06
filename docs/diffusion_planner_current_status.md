@@ -5714,6 +5714,45 @@ Static-review summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_plan_static_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Delta Materialization Preflight
+
+The objective-3200 candidate-index actual-SafetyCost delta materialization
+preflight passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_c83f3825e7_20260706T195946CST`
+
+This read-only preflight consumed the passed delta-materialization preflight
+plan static-review artifact and its source plan artifact, locked their hashes,
+revalidated fixed-DP/EOF boundaries, 3200 paired outcome counts, no-go controls,
+and artifact layout, then emitted a static-review-ready preflight artifact. It
+did not materialize SafetyCost deltas, rerun replay, acquire outcomes, train,
+generate candidates, modify Diffusion Planner, mutate candidate tensors,
+promote, deploy, enable an online selector, or make claims.
+
+Preflight summary:
+
+- Preflight checks / failed checks:
+  `104 / 0`
+- Objective required records / paired record keys:
+  `3200 / 3200`
+- Candidate closed-loop outcome records / missing:
+  `3200 / 0`
+- Selection logs / no-go failures:
+  `32 / 0`
+- Actual SafetyCost_v1 available / claim-rule evaluable:
+  `False / False`
+- Preflight / SafetyCost delta materialization / replay / outcome acquisition:
+  `True / False / False / False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `e18dae7ea7ef2f5db00ae8f24138b28e177825587d403ac973783b33de6da8a1`,
+  `7ac6f9630959ba92d55bdf59ccec1b84396c82f689a421ec0ccf7f1bde55a2d6`,
+  `3a4b5c1aaaf61f5bbc8b2acbe9557e89aca64fd00c2e0348ffaf525e1cda1789`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_static_review_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
