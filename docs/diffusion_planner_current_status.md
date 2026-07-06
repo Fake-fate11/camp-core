@@ -5509,6 +5509,50 @@ Execution summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Replay Outcome-Acquisition Execution Result Review
+
+The objective-3200 candidate-index replay outcome-acquisition execution result
+review passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_95dc3e8bb5_20260706T184623CST`
+
+An earlier result-review attempt was rejected with exit `1` at:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_94adc27ffd_20260706T184336CST`
+
+The rejected attempt exposed review-contract compatibility issues only: the
+source execution artifact omitted explicit false execution flags in
+`final_decision`, and root SHA lookup matched `launcher.stdout` before `stdout`.
+It did not rerun replay, train, modify Diffusion Planner, promote, deploy,
+enable an online selector, or make claims. The compatibility fix was committed
+and the rerun passed.
+
+Result-review summary:
+
+- Review checks / failed checks:
+  `99 / 0`
+- Objective required records / paired record keys:
+  `3200 / 3200`
+- Candidate closed-loop outcome records / missing:
+  `3200 / 0`
+- Source runtime / candidate-index / payload records:
+  `3200 / 3200 / 3200`
+- Selection logs / no-go failures:
+  `32 / 0`
+- Actual SafetyCost_v1 available / claim-rule evaluable:
+  `False / False`
+- Evidence-gap closure plan authorized:
+  `True`
+- JSON / MD / root SHA256SUMS SHA256:
+  `eadbe831a8ff288b5b663af5dda1f4b999e02ddc4dc4050cece9b72a1327f064`,
+  `559b4e03ac55fbd54e2635edb518658a919d6fd329f7aca8058df491d1e88030`,
+  `7fe27d86f294302278368b70209441ed86fc70e81f3beada9c8a7c88297765f2`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_replay_outcome_acquisition_execution_result_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
