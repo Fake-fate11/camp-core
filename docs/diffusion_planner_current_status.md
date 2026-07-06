@@ -5932,3 +5932,40 @@ Plan summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_ready
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_static_review_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Claim Authorization Boundary Plan Static Review
+
+The objective-3200 candidate-index actual-SafetyCost claim authorization
+boundary plan static review passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_static_review_29ccf05bc1_20260706T212554CST`
+
+The prior static-review attempt at
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_static_review_47cd7b249e_20260706T212338CST`
+failed only because the static contract searched for full long tokens that were
+split across adjacent Python string literals in the plan script. The contract
+was corrected to accept the audited source-token suffixes, then the same
+read-only static-review gate was rerun successfully.
+
+Static-review summary:
+
+- Static-review checks / failed checks:
+  `92 / 0`
+- Prior failed checks:
+  `plan_script_schema_token, plan_script_static_review_next_token`
+- Source plan checks / failed checks:
+  `107 / 0`
+- Claim decision plan authorized:
+  `True`
+- Claim executed / safety claim authorized / CAMP-over-DP Top-1 claim authorized:
+  `False / False / False`
+- JSON / MD / nested SHA256SUMS / root SHA256SUMS SHA256:
+  `4f85bb924a2766784d7545937c9968c4349016b1c46f0583d0cf3562396f40e5`,
+  `2aab1adabc2a22cbe4038ce644e7bcc17abc6c43fc530ed90736378e80b5bc43`,
+  `9345a651d7344d34a2d07124a43fa9b508bc92f68d672235c43d3eb88a1f52cb`,
+  `3c42e7f59b993a47f5d708edbf6f4cb7351c5136e3466e3573db5b1aaa486f49`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_claim_decision_plan_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_claim_decision_plan_only
