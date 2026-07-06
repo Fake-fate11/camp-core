@@ -4891,6 +4891,45 @@ Source-inventory summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Outcome Acquisition Plan
+
+The objective-3200 outcome acquisition plan passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_da664e9bbf_20260706T115721CST`
+
+This gate consumed the source-inventory preflight artifact and remained
+plan-only. It did not execute outcome acquisition, replay, training,
+materialization, candidate generation, DP modification, trajectory editing,
+promotion, deployment, online selector activation, or claims.
+
+Acquisition-plan summary:
+
+- Plan checks / failed checks:
+  `46 / 0`
+- Plan steps / no-go checks:
+  `6 / 8`
+- Objective required records / runtime records:
+  `3200 / 3200`
+- Existing Top-1 / shadow-selected summaries / paired run keys / deltas:
+  `32 / 32 / 32 / 32`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- Per-record outcome source available:
+  `False`
+- Existing artifacts satisfy objective:
+  `False`
+- Requires acquisition plan:
+  `True`
+- JSON / MD / root SHA256SUMS SHA256:
+  `d159a673133566a29a216281c39942a8a8a94df4d1cd0d2e21d9541b23d93ce5`,
+  `07514b71bbb2acd8aa59c9b366651276c8e27ec7ace8d632530e57b1f39911d1`,
+  `6d0576478536a6113fd56a3b61bb76d2e5ac1246b449a29b40125d4b30fda4b9`
+- Next authorized work:
+  `objective_3200_outcome_acquisition_plan_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_static_review_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
