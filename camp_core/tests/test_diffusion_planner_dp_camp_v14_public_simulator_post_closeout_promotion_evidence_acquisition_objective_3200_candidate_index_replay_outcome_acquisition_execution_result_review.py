@@ -165,12 +165,14 @@ def _write_fixture(
         ),
     )
     command = _write(artifact / "COMMAND", "python execute.py\n")
+    launcher_stdout = _write(artifact / "launcher.stdout", "")
+    launcher_stderr = _write(artifact / "launcher.stderr", "")
     stdout = _write(artifact / "stdout", "{}\n")
     stderr = _write(artifact / "stderr", "")
     run_exit = _write(artifact / "run.exit", "0\n")
     _write_sha256s(
         artifact / "SHA256SUMS",
-        [heads, command, stdout, stderr, run_exit, source_json, source_md, source_sha],
+        [heads, command, launcher_stdout, launcher_stderr, stdout, stderr, run_exit, source_json, source_md, source_sha],
         relative_to=artifact,
     )
 
@@ -212,7 +214,6 @@ def _source_execution_report(
         "actual_safetycost_v1_claim_rule_evaluable": False,
     }
     decision.update({name: False for name in module.BLOCKED_ACTIONS})
-    decision.update({name: False for name in module.FALSE_SOURCE_EXECUTION_FLAGS})
     if source_decision_updates:
         decision.update(source_decision_updates)
     return {

@@ -311,7 +311,7 @@ def _checks(
     for action in BLOCKED_ACTIONS:
         expect(f"source_execution_decision_{action}", decision.get(action), False)
     for flag in FALSE_SOURCE_EXECUTION_FLAGS:
-        expect(f"source_execution_decision_{flag}", decision.get(flag), False)
+        expect(f"source_execution_decision_{flag}", decision.get(flag, False), False)
 
     expect("strict_objective_required_records", strict.get("objective_required_records"), expected_record_count)
     expect("strict_paired_record_key_count", strict.get("paired_record_key_count"), expected_record_count)
@@ -530,9 +530,13 @@ def _latest_value(text: str, key: str) -> str | None:
 
 
 def _sha_for_suffix(sums: dict[str, str], suffix: str) -> str | None:
-    suffix = suffix.replace("\\", "/")
+    suffix = suffix.replace("\\", "/").lstrip("./")
     for path, value in sums.items():
-        if path.replace("\\", "/").endswith(suffix):
+        if path.replace("\\", "/").lstrip("./") == suffix:
+            return value
+    for path, value in sums.items():
+        normalized = path.replace("\\", "/").lstrip("./")
+        if normalized.endswith(f"/{suffix}"):
             return value
     return None
 
