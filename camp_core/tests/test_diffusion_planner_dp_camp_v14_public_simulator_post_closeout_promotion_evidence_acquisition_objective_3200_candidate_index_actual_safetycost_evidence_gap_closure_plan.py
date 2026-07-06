@@ -292,6 +292,7 @@ def _source_result_review_report(
         "actual_safetycost_v1_available": False,
         "actual_safetycost_v1_claim_rule_evaluable": False,
         "actual_safetycost_evidence_gap_closure_plan_authorized": True,
+        "no_go_failed_count": 0,
     }
     decision.update({name: False for name in module.BLOCKED_ACTIONS})
     if source_decision_updates:
@@ -306,7 +307,6 @@ def _source_result_review_report(
         "candidate_index_record_count": 4,
         "candidate_index_replay_payload_records": 4,
         "selection_log_count": 2,
-        "no_go_failed_count": 0,
         "candidate_tensor_mutation_records": 0,
         "reference_blend_records": 0,
         "full36_path_records": 0,

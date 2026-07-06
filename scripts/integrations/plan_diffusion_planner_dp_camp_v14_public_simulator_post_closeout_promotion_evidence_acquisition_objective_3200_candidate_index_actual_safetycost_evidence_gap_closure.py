@@ -362,7 +362,7 @@ def _checks(
     expect("source_candidate_index_record_count", source_summary.get("candidate_index_record_count"), expected_record_count)
     expect("source_candidate_index_replay_payload_records", source_summary.get("candidate_index_replay_payload_records"), expected_record_count)
     expect("source_selection_log_count", source_summary.get("selection_log_count"), expected_selection_log_count)
-    expect("source_no_go_failed_count", source_summary.get("no_go_failed_count"), 0)
+    expect("source_no_go_failed_count", source_summary.get("no_go_failed_count", decision.get("no_go_failed_count")), 0)
     expect("source_candidate_tensor_mutation_records", source_summary.get("candidate_tensor_mutation_records"), 0)
     expect("source_reference_blend_records", source_summary.get("reference_blend_records"), 0)
     expect("source_full36_path_records", source_summary.get("full36_path_records"), 0)
@@ -490,7 +490,7 @@ def _source_result_review_summary(source_review: dict[str, Any]) -> dict[str, An
         "candidate_index_record_count": source_summary.get("candidate_index_record_count"),
         "candidate_index_replay_payload_records": source_summary.get("candidate_index_replay_payload_records"),
         "selection_log_count": source_summary.get("selection_log_count"),
-        "no_go_failed_count": source_summary.get("no_go_failed_count"),
+        "no_go_failed_count": source_summary.get("no_go_failed_count", decision.get("no_go_failed_count")),
         "candidate_tensor_mutation_records": source_summary.get("candidate_tensor_mutation_records"),
         "reference_blend_records": source_summary.get("reference_blend_records"),
         "full36_path_records": source_summary.get("full36_path_records"),
@@ -558,7 +558,7 @@ def _decision(*, passed: bool, checks: list[dict[str, Any]], source_review: dict
         "candidate_index_record_count": source_summary.get("candidate_index_record_count"),
         "candidate_index_replay_payload_records": source_summary.get("candidate_index_replay_payload_records"),
         "selection_log_count": source_summary.get("selection_log_count"),
-        "no_go_failed_count": source_summary.get("no_go_failed_count"),
+        "no_go_failed_count": source_summary.get("no_go_failed_count", source_decision.get("no_go_failed_count")),
         "direct_promotion_recommendation": False,
         "claim_supported_by_this_plan": False,
         "promotion_supported_by_this_plan": False,
