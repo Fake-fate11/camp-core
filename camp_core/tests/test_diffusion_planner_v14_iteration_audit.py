@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_passed"
+    "post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_passed"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_only"
+    "post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_deployment_decision_plan_only"
 )
 
 
@@ -10504,7 +10504,7 @@ def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candida
     _assert_latest_v14_status(text)
 
 
-def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_is_eof() -> None:
+def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
@@ -10514,12 +10514,17 @@ def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candida
         "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
         "Candidate-Index Actual-SafetyCost Selector Promotion Decision Plan Static Review"
     )
+    next_section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
+        "Candidate-Index Actual-SafetyCost Selector Promotion Decision"
+    )
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_faf4608814_20260706T221951CST",
@@ -10541,6 +10546,49 @@ def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candida
         "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_passed",
         "objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_authorized=True",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
+        "Candidate-Index Actual-SafetyCost Selector Promotion Decision Plan Static Review"
+    )
+    section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
+        "Candidate-Index Actual-SafetyCost Selector Promotion Decision"
+    )
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_fcc75c0bd1_20260706T222854CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_source_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_faf4608814_20260706T221951CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_camp_head=fcc75c0bd1815baf75b58a9533e53ef057cd68ff",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_exit=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_passed",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_check_count=72",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_claim_executed_by_this_gate=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_safety_benefit_claim_authorized=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_camp_over_dp_top1_claim_authorized=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_selector_promotion_authorized=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_deployment_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_online_selector_change_authorized=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_report_json_sha256=9f2805932dc509f29ac4d1a716a21ae5e76328c7ab82fc80627f8b948de01fa5",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_artifact_sha256s_sha256=0e5ea087165308945e94957e1d59ed236cd9a92ec25e8dffeeacf4ce26c7f8c8",
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_passed",
+        "objective_3200_candidate_index_actual_safetycost_deployment_decision_plan_authorized=True",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_deployment_decision_plan_only",
     ]:
         assert needle in text
 
