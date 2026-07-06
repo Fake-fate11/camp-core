@@ -6110,3 +6110,39 @@ Plan summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_ready
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Selector Promotion Decision Plan Static Review
+
+The objective-3200 candidate-index actual-SafetyCost selector-promotion
+decision plan static review passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_faf4608814_20260706T221951CST`
+
+This read-only static review consumed the passed selector-promotion decision
+plan artifact and authorizes only a later selector-promotion decision gate. It
+did not execute selector promotion, deployment, online selector activation,
+training, candidate generation, replay, outcome acquisition, Diffusion Planner
+modification, or candidate tensor mutation.
+
+Static-review summary:
+
+- Static-review checks / failed checks:
+  `86 / 0`
+- Source plan checks / failed checks:
+  `78 / 0`
+- Claim executed by this gate:
+  `False`
+- Safety claim authorized / CAMP-over-DP Top-1 claim authorized:
+  `True / True`
+- Selector promotion / deployment / online selector change authorized:
+  `False / False / False`
+- JSON / MD / nested SHA256SUMS / root SHA256SUMS SHA256:
+  `868f9be205be4e3c177291ec732687c023be700b4e28cac62ac92fff00cf6b23`,
+  `33ff6d11500057642ba45d8f79ba76a5c63c48efe5f3badcfdfa1ec85b3ca020`,
+  `dcefb029e4b10c55c4e793f662ed90ddf2e77d8731dc305f476d2dbc66e8eb61`,
+  `0301510ed86eeb819a7e6f762425006273471aa553ef7c4763126f5cc84e4a9d`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_selector_promotion_decision_only
