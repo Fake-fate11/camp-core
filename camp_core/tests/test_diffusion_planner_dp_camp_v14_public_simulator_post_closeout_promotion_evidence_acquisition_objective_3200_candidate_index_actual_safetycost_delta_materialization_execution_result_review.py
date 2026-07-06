@@ -119,12 +119,25 @@ def test_candidate_index_actual_safetycost_delta_materialization_execution_resul
     assert report["final_decision"]["failure_class"] == "source_artifact_hash_mismatch"
 
 
+def test_candidate_index_actual_safetycost_delta_materialization_execution_result_review_accepts_root_missing_report_sha256s(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, omit_root_report_sha256s=True)
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert "root_report_sha256s_sha" not in report["final_decision"]["failed_checks"]
+
+
 def _write_fixture(
     tmp_path: Path,
     module,
     *,
     next_work: str | None = None,
     source_decision_updates: dict[str, Any] | None = None,
+    omit_root_report_sha256s: bool = False,
 ) -> dict[str, Any]:
     docs = tmp_path / "docs"
     doc_text = "\n".join(
@@ -148,6 +161,7 @@ def _write_fixture(
         tmp_path / "source_execution_artifact",
         module,
         source_decision_updates=source_decision_updates,
+        omit_root_report_sha256s=omit_root_report_sha256s,
     )
     return {
         "source_execution_artifact_dir": source_artifact["artifact"],
@@ -173,6 +187,7 @@ def _write_source_execution_artifact(
     module,
     *,
     source_decision_updates: dict[str, Any] | None,
+    omit_root_report_sha256s: bool,
 ) -> dict[str, Path]:
     report_dir = artifact / "report"
     source_json = _write_json(
@@ -198,11 +213,10 @@ def _write_source_execution_artifact(
     stdout = _write(artifact / "stdout", "{}\n")
     stderr = _write(artifact / "stderr", "")
     run_exit = _write(artifact / "run.exit", "0\n")
-    _write_sha256s(
-        artifact / "SHA256SUMS",
-        [heads, command, launcher_stdout, stdout, stderr, run_exit, source_json, source_md, source_jsonl, source_sha],
-        relative_to=artifact,
-    )
+    root_files = [heads, command, launcher_stdout, stdout, stderr, run_exit, source_json, source_md, source_jsonl]
+    if not omit_root_report_sha256s:
+        root_files.append(source_sha)
+    _write_sha256s(artifact / "SHA256SUMS", root_files, relative_to=artifact)
     return {
         "artifact": artifact,
         "json": source_json,

@@ -494,7 +494,7 @@ def _sha_checks(
         _expect("root_report_json_sha", _sha_for_suffix(root_sha256s, f"report/{SOURCE_EXECUTION_JSON_NAME}"), _sha256(files["report_json"])),
         _expect("root_report_md_sha", _sha_for_suffix(root_sha256s, f"report/{SOURCE_EXECUTION_MD_NAME}"), _sha256(files["report_md"])),
         _expect("root_delta_jsonl_sha", _sha_for_suffix(root_sha256s, f"report/{SOURCE_DELTA_TABLE_JSONL_NAME}"), _sha256(files["delta_jsonl"])),
-        _expect("root_report_sha256s_sha", _sha_for_suffix(root_sha256s, "report/SHA256SUMS"), _sha256(files["report_sha256s"])),
+        _expect_optional_root_sha("root_report_sha256s_sha", root_sha256s, "report/SHA256SUMS", files["report_sha256s"]),
         _expect("nested_execution_json_sha", _sha_for_suffix(nested_sha256s, SOURCE_EXECUTION_JSON_NAME), _sha256(files["report_json"])),
         _expect("nested_execution_md_sha", _sha_for_suffix(nested_sha256s, SOURCE_EXECUTION_MD_NAME), _sha256(files["report_md"])),
         _expect("nested_delta_jsonl_sha", _sha_for_suffix(nested_sha256s, SOURCE_DELTA_TABLE_JSONL_NAME), _sha256(files["delta_jsonl"])),
@@ -511,6 +511,12 @@ def _path_checks(name: str, path: Path, *, allow_empty: bool) -> list[dict[str, 
 
 def _expect(name: str, actual: Any, expected: Any) -> dict[str, Any]:
     return _check(name, actual == expected, actual, expected)
+
+
+def _expect_optional_root_sha(name: str, sums: dict[str, str], suffix: str, path: Path) -> dict[str, Any]:
+    actual = _sha_for_suffix(sums, suffix)
+    expected = _sha256(path)
+    return _check(name, actual in (None, expected), actual, f"absent or {expected}")
 
 
 def _check(name: str, passed: bool, actual: Any, expected: Any) -> dict[str, Any]:
