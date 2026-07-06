@@ -5597,6 +5597,46 @@ Plan summary:
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_ready
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_static_review_only
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Candidate-Index Actual-SafetyCost Evidence-Gap Closure Plan Static Review
+
+The objective-3200 candidate-index actual-SafetyCost evidence-gap closure plan
+static review passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_static_review_6fdffa3111_20260706T192124CST`
+
+This read-only static review consumed the passed plan artifact, validated its
+hashes, fixed-DP/EOF boundaries, plan/test static surface, 3200 paired outcome
+counts, no-go register, and no-promotion/no-claim controls. It did not
+materialize SafetyCost deltas, rerun replay, acquire outcomes, train, generate
+candidates, modify Diffusion Planner, mutate candidate tensors, promote,
+deploy, enable an online selector, or make claims.
+
+Static-review summary:
+
+- Static-review checks / failed checks:
+  `80 / 0`
+- Objective required records / paired record keys:
+  `3200 / 3200`
+- Candidate closed-loop outcome records / missing:
+  `3200 / 0`
+- Source runtime / candidate-index / payload records:
+  `3200 / 3200 / 3200`
+- Selection logs / no-go failures:
+  `32 / 0`
+- Actual SafetyCost_v1 available / claim-rule evaluable:
+  `False / False`
+- SafetyCost delta materialization / replay / outcome acquisition by this gate:
+  `False / False / False`
+- JSON / MD / root SHA256SUMS SHA256:
+  `f56f944e1e4fb85b5f1af1b4894c587270748d5e2ac95627d1272da88579c394`,
+  `16741a02459ba232c8461dc2ab86ca6bc39e079ff5de1b1516ba3df76f6d4b83`,
+  `cdd1e8918fc34da2e95ede455aa56a7cde63792b3c01e3e075a8a39e8cba8e3d`
+- Next authorized work:
+  `objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_plan_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_evidence_gap_closure_plan_static_review_passed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_candidate_index_actual_safetycost_delta_materialization_preflight_plan_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
