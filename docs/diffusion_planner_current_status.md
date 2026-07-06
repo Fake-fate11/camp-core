@@ -4774,6 +4774,47 @@ support promotion or a CAMP-over-DP/safety-benefit claim.
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_no_promotion_no_claim_closeout_recorded
 next_work_target=no_further_action_public_simulator_post_closeout_promotion_evidence_acquisition_actual_safetycost_evidence_does_not_support_promotion_or_claim
 
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Outcome Continuation Plan
+
+The objective-3200 outcome continuation plan passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_continuation_plan_277a7902a9_20260706T110547CST`
+
+This gate consumed the existing actual-SafetyCost materialization, result
+review, and no-promotion/no-claim closeout artifacts. It does not overturn the
+no-promotion/no-claim closeout for the 32 run-level paired deltas. It reopens
+only a planning/static-review path for the active objective-level gap: the
+objective asks for 3200 strictly paired per-record shadow-selected fixed-DP
+candidate outcome rows, while the closeout evidence contains 32 run-level
+paired deltas.
+
+Continuation-plan summary:
+
+- Plan checks / failed checks:
+  `42 / 0`
+- Objective required records / runtime records:
+  `3200 / 3200`
+- Runtime selection logs:
+  `32`
+- Existing Top-1 / shadow-selected summaries / paired run keys / deltas:
+  `32 / 32 / 32 / 32`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- Objective-3200 gap present / closeout does not satisfy the objective:
+  `True / True`
+- JSON / MD / root SHA256SUMS SHA256:
+  `8816d127d7905c788fdc3974c53836620e2c261e239b71801091b2eef1219b80`,
+  `736d7c4ff9f7d3abb8dac21042373590e174506ae734851438054ed794909b41`,
+  `6a859e7bc754188367615c9b9fed429e70020f05aa7d8dc6cc890bd8de9ed4d7`
+- Next authorized work:
+  `objective_3200_outcome_source_inventory_preflight_static_review_only`
+- Promotion, deployment, online selector activation, training, replay,
+  candidate generation, DP modification, trajectory editing, and claims:
+  `not authorized by this gate`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_continuation_plan_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_static_review_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
