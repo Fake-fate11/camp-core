@@ -1,6 +1,6 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-05, Asia/Shanghai.
+Last verified: 2026-07-06, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v14_iteration_audit.md`. The v13 audit is
@@ -5051,6 +5051,46 @@ Static-review summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_static_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_execution_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Outcome Acquisition Execution
+
+The objective-3200 outcome acquisition execution gate ran on AutoDL and failed
+closed with exit `1`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_execution_86b8cdbf89_20260706T142135CST`
+
+The gate consumed the audited preflight static-review artifact, the original
+3200-record runtime source, and the existing shadow-selected output root. It
+found strict record-key pairing for all 3200 runtime/candidate records, but the
+candidate outcome source still carries `0 / 3200` per-record
+`candidate_closed_loop_outcomes`. Therefore objective-3200 acquisition is not
+satisfied, Actual SafetyCost v1 remains unavailable for this objective, and
+promotion/deployment/online selector activation/safety or CAMP-over-DP claims
+remain disabled.
+
+Execution failure summary:
+
+- Checks / failed checks:
+  `101 / 3`
+- Failure class:
+  `objective_3200_outcome_acquisition_execution_source_missing`
+- Failed checks:
+  `candidate_outcome_record_count`,
+  `candidate_missing_outcome_record_count`,
+  `objective_3200_outcome_acquisition_satisfied`
+- Runtime records / candidate source records / paired keys:
+  `3200 / 3200 / 3200`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- JSON / MD / root SHA256SUMS SHA256:
+  `21a1276142d8b23047b3bea0dd49cc1327a945689052623793a8318550ced991`,
+  `6c4f4a6de6c22a56bfe7780c43f56593689b7d027afdaa0e38fcf97145084e7e`,
+  `fd08f8a3f21fed2f2830d507a79b7a79fc9822b04a4ecea0244cc69970e67cdd`
+- Recommended next work:
+  `objective_3200_outcome_acquisition_execution_failed_user_decision_required`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_execution_failed
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_execution_failed_user_decision_required
 
 ## Cleanup Policy
 
