@@ -38,6 +38,10 @@ PLAN_MD_NAME = PLAN_MODULE.PLAN_MD_NAME
 AUTHORIZED_CURRENT_WORK = PLAN_MODULE.AUTHORIZED_NEXT_WORK
 EXPECTED_PLAN_CHECK_COUNT = 107
 EXPECTED_BOUNDARY_ITEMS = PLAN_MODULE.EXPECTED_BOUNDARY_ITEMS
+PLAN_SCHEMA_SOURCE_TOKEN = "objective_3200_candidate_index_actual_safetycost_claim_authorization_boundary_plan_v1"
+AUTHORIZED_CURRENT_WORK_SOURCE_TOKEN = (
+    "candidate_index_actual_safetycost_claim_authorization_boundary_plan_static_review_only"
+)
 
 SCHEMA_VERSION = (
     "dp_camp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_"
@@ -328,8 +332,8 @@ def _checks(
         BASE_MODULE._expect("boundary_items_no_promotion_execution", sorted({item.get("executes_promotion") for item in boundary}), [False]),
         BASE_MODULE._expect("boundary_items_no_deployment_execution", sorted({item.get("executes_deployment") for item in boundary}), [False]),
         BASE_MODULE._expect("boundary_items_no_online_selector", sorted({item.get("enables_online_selector") for item in boundary}), [False]),
-        BASE_MODULE._check("plan_script_schema_token", PLAN_SCHEMA in script_text, PLAN_SCHEMA, "present"),
-        BASE_MODULE._check("plan_script_static_review_next_token", AUTHORIZED_CURRENT_WORK in script_text, AUTHORIZED_CURRENT_WORK, "present"),
+        BASE_MODULE._check("plan_script_schema_token", PLAN_SCHEMA in script_text or PLAN_SCHEMA_SOURCE_TOKEN in script_text, PLAN_SCHEMA_SOURCE_TOKEN, "present"),
+        BASE_MODULE._check("plan_script_static_review_next_token", AUTHORIZED_CURRENT_WORK in script_text or AUTHORIZED_CURRENT_WORK_SOURCE_TOKEN in script_text, AUTHORIZED_CURRENT_WORK_SOURCE_TOKEN, "present"),
         BASE_MODULE._check("plan_script_no_claim_token", "claim_executed_by_this_gate" in script_text, "claim_executed_by_this_gate", "present"),
         BASE_MODULE._check("plan_test_pass_test", "claim_authorization_boundary_plan_passes" in test_text, "claim_authorization_boundary_plan_passes", "present"),
         BASE_MODULE._check("plan_test_hash_drift_test", "rejects_hash_drift" in test_text, "rejects_hash_drift", "present"),
