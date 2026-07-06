@@ -444,7 +444,7 @@ def _expect_sha(
     keys: list[str],
     path: Path,
 ) -> None:
-    actual = next((sums[key] for key in keys if key in sums), None)
+    actual = _sha_from_sums(sums, keys)
     expected = _sha256_if_file(path)
     checks.append({"name": name, "passed": actual == expected, "actual": actual, "expected": expected})
 
@@ -528,6 +528,18 @@ def _kv(values: dict[str, str], *keys: str) -> str | None:
     for key in keys:
         if key in values:
             return values[key]
+    return None
+
+
+def _sha_from_sums(sums: dict[str, str], keys: list[str]) -> str | None:
+    for key in keys:
+        if key in sums:
+            return sums[key]
+    suffixes = tuple("/" + key.removeprefix("./") for key in keys)
+    for name, digest in sums.items():
+        normalized = name.replace("\\", "/")
+        if any(normalized.endswith(suffix) for suffix in suffixes):
+            return digest
     return None
 
 

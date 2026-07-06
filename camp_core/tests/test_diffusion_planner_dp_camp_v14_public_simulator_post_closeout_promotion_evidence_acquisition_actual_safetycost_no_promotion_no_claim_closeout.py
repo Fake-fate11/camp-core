@@ -99,6 +99,17 @@ def test_actual_safetycost_no_promotion_no_claim_closeout_accepts_lowercase_dp_h
     assert report["heads"]["source_artifact_dp_head"] == module.FIXED_DP_HEAD
 
 
+def test_actual_safetycost_no_promotion_no_claim_closeout_accepts_absolute_root_sha256s(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, absolute_root_sha256s=True)
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+
+
 def _write_fixture(
     tmp_path: Path,
     module,
@@ -106,6 +117,7 @@ def _write_fixture(
     next_work: str | None = None,
     claim_supported: bool = False,
     lowercase_heads: bool = False,
+    absolute_root_sha256s: bool = False,
 ) -> dict[str, Any]:
     docs = tmp_path / "docs"
     doc_text = "\n".join(
@@ -146,20 +158,20 @@ def _write_fixture(
     _write(source_artifact / "stdout", "{}\n")
     _write(source_artifact / "stderr", "")
     _write(source_artifact / "run.exit", "0\n")
-    _write_sha256s(
-        source_artifact / "SHA256SUMS",
-        [
-            source_json,
-            source_md,
-            source_sha,
-            source_artifact / "HEADS",
-            source_artifact / "COMMAND",
-            source_artifact / "stdout",
-            source_artifact / "stderr",
-            source_artifact / "run.exit",
-        ],
-        root=source_artifact,
-    )
+    root_files = [
+        source_json,
+        source_md,
+        source_sha,
+        source_artifact / "HEADS",
+        source_artifact / "COMMAND",
+        source_artifact / "stdout",
+        source_artifact / "stderr",
+        source_artifact / "run.exit",
+    ]
+    if absolute_root_sha256s:
+        _write_sha256s_absolute(source_artifact / "SHA256SUMS", root_files)
+    else:
+        _write_sha256s(source_artifact / "SHA256SUMS", root_files, root=source_artifact)
 
     return {
         "source_result_review_artifact_dir": source_artifact,
@@ -233,6 +245,11 @@ def _write_sha256s(path: Path, files: list[Path], root: Path | None = None) -> P
     for file in files:
         name = file.name if root is None else file.relative_to(root).as_posix()
         lines.append(f"{_sha256(file)}  {name}")
+    return _write(path, "\n".join(lines) + "\n")
+
+
+def _write_sha256s_absolute(path: Path, files: list[Path]) -> Path:
+    lines = [f"{_sha256(file)}  {file.resolve().as_posix()}" for file in files]
     return _write(path, "\n".join(lines) + "\n")
 
 
