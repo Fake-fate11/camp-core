@@ -23,10 +23,14 @@ from camp_core.integrations.diffusion_planner import (
     CAMP_ATOM_NAMES,
 )
 from scripts.integrations.run_diffusion_planner_camp_replay import (
+    CANDIDATE_INDEX_REPLAY_HARNESS_OUTPUT_POLICY,
+    CANDIDATE_INDEX_REPLAY_HARNESS_SCHEMA_VERSION,
     DEFAULT_OFF_SHADOW_SELECTOR_EXPECTED_K,
     DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
     DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE,
+    _build_candidate_index_replay_harness_payload,
     _default_off_shadow_selector_contract,
+    _summarize_candidate_index_replay_harness_records,
     _summarize_default_off_shadow_selector_records,
     _validate_args,
 )
@@ -101,6 +105,7 @@ def _runner_args(
 ) -> SimpleNamespace:
     return SimpleNamespace(
         camp_default_off_shadow_selector=enabled,
+        camp_candidate_index_replay_harness=False,
         camp_selector_mode=selector_mode,
         num_candidates=num_candidates,
         camp_shadow_artifact_manifest=manifest,
@@ -121,6 +126,7 @@ def _runner_args(
         camp_microbenchmark_snapshot_dir=None,
         camp_microbenchmark_snapshot_steps=[0],
         camp_log_raw_candidate_prefix_steps=0,
+        camp_candidate_tensor_provenance_logging=False,
         camp_observable_state_logging=False,
         camp_red_route_vector_logging=False,
         camp_progress_support_logging=False,
@@ -371,6 +377,97 @@ def test_runner_shadow_selector_rejects_execution_changing_flags() -> None:
 
     with pytest.raises(ValueError, match="shadow execution must remain DP Top-1"):
         _validate_args(args)
+
+
+def test_candidate_index_replay_requires_shadow_outcomes_and_tensor_provenance() -> None:
+    args = _runner_args()
+    args.camp_candidate_index_replay_harness = True
+
+    with pytest.raises(ValueError, match="closed_loop_outcomes"):
+        _validate_args(args)
+
+    args.camp_collect_closed_loop_outcomes = True
+    with pytest.raises(ValueError, match="candidate_tensor_provenance"):
+        _validate_args(args)
+
+    args.camp_candidate_tensor_provenance_logging = True
+    _validate_args(args)
+
+
+def test_candidate_index_replay_rejects_without_shadow_selector() -> None:
+    args = _runner_args(enabled=False)
+    args.camp_candidate_index_replay_harness = True
+    args.camp_collect_closed_loop_outcomes = True
+    args.camp_candidate_tensor_provenance_logging = True
+
+    with pytest.raises(ValueError, match="camp_default_off_shadow_selector"):
+        _validate_args(args)
+
+
+def test_candidate_index_replay_payload_executes_shadow_selected_fixed_candidate() -> None:
+    candidates = _candidate_tensor()
+    payload = _build_candidate_index_replay_harness_payload(
+        candidates,
+        selected_index=3,
+        shadow_selected_index=3,
+    )
+
+    assert payload["schema_version"] == CANDIDATE_INDEX_REPLAY_HARNESS_SCHEMA_VERSION
+    assert payload["executed_output_policy"] == CANDIDATE_INDEX_REPLAY_HARNESS_OUTPUT_POLICY
+    assert payload["evaluation_only"] is True
+    assert payload["selected_index_in_range"] is True
+    assert payload["shadow_selected_index_in_range"] is True
+    assert payload["executed_shadow_selected_index"] is True
+    assert payload["candidate_tensor_hash"]["sha256"] == _sha256_array(candidates)
+    assert payload["candidate_tensor_mutation_authorized"] is False
+    assert payload["trajectory_generation_authorized"] is False
+    assert payload["trajectory_rewrite_authorized"] is False
+    assert payload["dp_modification_authorized"] is False
+    assert payload["closed_loop_outcomes_used_for_training"] is False
+    assert payload["closed_loop_outcomes_used_for_online_selector"] is False
+    assert payload["payload_valid"] is True
+
+
+def test_candidate_index_replay_summary_detects_shadow_execution() -> None:
+    records = [
+        {
+            "selected_index": 3,
+            "default_off_shadow_selector": {
+                "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
+                "source_scope": DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE,
+                "shadow_selected_index": 3,
+                "shadow_scores_routed_to_execution": True,
+            },
+            "candidate_index_replay_harness": {
+                "schema_version": CANDIDATE_INDEX_REPLAY_HARNESS_SCHEMA_VERSION,
+                "selected_index_in_range": True,
+                "shadow_selected_index_in_range": True,
+                "executed_shadow_selected_index": True,
+                "payload_valid": True,
+            },
+        }
+    ]
+
+    shadow_summary = _summarize_default_off_shadow_selector_records(
+        records,
+        enabled=True,
+        artifact_contract={"ready": True, "failed_closed_reason": None},
+    )
+    replay_summary = _summarize_candidate_index_replay_harness_records(
+        records,
+        enabled=True,
+    )
+
+    assert shadow_summary["default_off"] is False
+    assert shadow_summary["selection_effect"] is True
+    assert shadow_summary["executed_output_policy"] == CANDIDATE_INDEX_REPLAY_HARNESS_OUTPUT_POLICY
+    assert shadow_summary["executed_top1_all"] is False
+    assert shadow_summary["shadow_scores_routed_to_execution"] is True
+    assert replay_summary["payload_records"] == 1
+    assert replay_summary["all_payloads_present"] is True
+    assert replay_summary["all_payloads_valid"] is True
+    assert replay_summary["all_executed_shadow_selected_index"] is True
+    assert replay_summary["closed_loop_outcomes_used_for_training"] is False
 
 
 def test_runner_shadow_contract_accepts_clean_hash_manifest(tmp_path: Path) -> None:

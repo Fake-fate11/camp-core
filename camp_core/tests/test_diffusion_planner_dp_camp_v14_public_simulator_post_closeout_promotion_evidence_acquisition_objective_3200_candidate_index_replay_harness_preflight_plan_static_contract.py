@@ -184,6 +184,7 @@ def _write_plan_artifact(tmp_path: Path, plan_module) -> Path:
     source_v14 = _write(source_docs / "diffusion_planner_v14_iteration_audit.md", source_doc_text)
     source_status = _write(source_docs / "diffusion_planner_current_status.md", source_doc_text)
     source_artifact = _write_source_static_review_artifact(tmp_path, plan_module)
+    runtime_replay_script = _write_preimplementation_runtime_fixture(tmp_path)
     plan_artifact = tmp_path / "candidate_index_harness_plan_artifact"
     plan_output = plan_artifact / "plan"
     report = plan_module.build_report(
@@ -191,7 +192,7 @@ def _write_plan_artifact(tmp_path: Path, plan_module) -> Path:
         source_static_review_json=source_artifact / "review" / plan_module.SOURCE_REVIEW_JSON_NAME,
         source_static_review_md=source_artifact / "review" / plan_module.SOURCE_REVIEW_MD_NAME,
         source_static_review_sha256s=source_artifact / "review" / "SHA256SUMS",
-        runtime_replay_script_py=RUNTIME_REPLAY_SCRIPT,
+        runtime_replay_script_py=runtime_replay_script,
         v14_audit_md=source_v14,
         current_status_md=source_status,
         output_dir=plan_output,
@@ -232,6 +233,27 @@ def _write_plan_artifact(tmp_path: Path, plan_module) -> Path:
         relative_to=plan_artifact,
     )
     return plan_artifact
+
+
+def _write_preimplementation_runtime_fixture(tmp_path: Path) -> Path:
+    return _write(
+        tmp_path / "run_diffusion_planner_camp_replay_preimplementation.py",
+        "\n".join(
+            [
+                "PAPER_FAITHFUL_BOUNDARY_ERROR = 'fixed candidate tensor only'",
+                "def run():",
+                "    '--camp_collect_closed_loop_outcomes'",
+                "    compute_candidate_closed_loop_outcomes = object",
+                "    record = {",
+                "        \"selected_index\": 0,",
+                "        \"shadow_selected_index\": 3,",
+                "        \"executed_output_policy\": \"dp_top1\",",
+                "    }",
+                "    return record",
+                "",
+            ]
+        ),
+    )
 
 
 def _write_source_static_review_artifact(tmp_path: Path, module) -> Path:

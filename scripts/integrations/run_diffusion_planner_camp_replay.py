@@ -143,6 +143,12 @@ DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE = (
     "public_simulator_fixed_dp_candidate_tensor"
 )
 DEFAULT_OFF_SHADOW_SELECTOR_EXPECTED_K = 8
+CANDIDATE_INDEX_REPLAY_HARNESS_SCHEMA_VERSION = (
+    "dp_camp_v14_public_simulator_objective_3200_candidate_index_replay_harness_v1"
+)
+CANDIDATE_INDEX_REPLAY_HARNESS_OUTPUT_POLICY = (
+    "camp_shadow_selected_fixed_dp_candidate"
+)
 TRAFFIC_LIGHT_HYBRID_POSTSELECTION_BUDGETS = {
     "step_h10_guard_005": {
         "first_step_loss_m": 0.10,
@@ -506,6 +512,20 @@ def parse_args() -> argparse.Namespace:
             "shadow selector. The executed trajectory stays Diffusion Planner "
             "candidate 0; missing artifacts, hash mismatch, K drift, or invalid "
             "selector setup fail closed before selector execution."
+        ),
+    )
+    parser.add_argument(
+        "--candidate_index_replay",
+        "--camp_candidate_index_replay_harness",
+        dest="camp_candidate_index_replay_harness",
+        action="store_true",
+        help=(
+            "Evaluation-only harness: execute the logged shadow_selected_index "
+            "from the immutable fixed DP candidate tensor. Requires "
+            "--camp_default_off_shadow_selector, "
+            "--camp_collect_closed_loop_outcomes, and "
+            "--camp_candidate_tensor_provenance_logging. This does not modify "
+            "DP code, candidate tensors, weights, or checkpoints."
         ),
     )
     parser.add_argument(
@@ -968,7 +988,11 @@ def _validate_paper_faithful_boundary(args: argparse.Namespace) -> None:
             args.camp_traffic_light_hybrid_postselection != "off",
         ),
         ("--camp_underprogress_relaxation", args.camp_underprogress_relaxation),
-        ("--camp_collect_closed_loop_outcomes", args.camp_collect_closed_loop_outcomes),
+        (
+            "--camp_collect_closed_loop_outcomes",
+            args.camp_collect_closed_loop_outcomes
+            and not args.camp_candidate_index_replay_harness,
+        ),
         ("--camp_splice_shadow_rule", args.camp_splice_shadow_rule),
     ]
     for flag, enabled in non_atom_flags:
@@ -978,6 +1002,32 @@ def _validate_paper_faithful_boundary(args: argparse.Namespace) -> None:
 
 def _validate_args(args: argparse.Namespace) -> None:
     shadow_selector = bool(args.camp_default_off_shadow_selector)
+    candidate_index_replay_harness = bool(args.camp_candidate_index_replay_harness)
+    if candidate_index_replay_harness:
+        if not shadow_selector:
+            raise ValueError(
+                "--candidate_index_replay requires "
+                "--camp_default_off_shadow_selector."
+            )
+        if args.camp_selector_mode != "static":
+            raise ValueError(
+                "--candidate_index_replay requires --camp_selector_mode static."
+            )
+        if args.num_candidates != DEFAULT_OFF_SHADOW_SELECTOR_EXPECTED_K:
+            raise ValueError(
+                "--candidate_index_replay requires the fixed DP candidate count "
+                f"{DEFAULT_OFF_SHADOW_SELECTOR_EXPECTED_K}."
+            )
+        if not args.camp_collect_closed_loop_outcomes:
+            raise ValueError(
+                "--candidate_index_replay requires "
+                "--camp_collect_closed_loop_outcomes for offline evaluation."
+            )
+        if not args.camp_candidate_tensor_provenance_logging:
+            raise ValueError(
+                "--candidate_index_replay requires "
+                "--camp_candidate_tensor_provenance_logging."
+            )
     if shadow_selector:
         incompatible_shadow_flags = [
             (
@@ -4422,6 +4472,124 @@ def _summarize_candidate_tensor_provenance_records(
     }
 
 
+def _build_candidate_index_replay_harness_payload(
+    candidates: np.ndarray,
+    *,
+    selected_index: int,
+    shadow_selected_index: int,
+) -> dict[str, Any]:
+    candidate_count = int(candidates.shape[0])
+    selected = int(selected_index)
+    shadow = int(shadow_selected_index)
+    selected_index_in_range = 0 <= selected < candidate_count
+    shadow_selected_index_in_range = 0 <= shadow < candidate_count
+    executed_shadow_selected = selected == shadow
+    return {
+        "schema_version": CANDIDATE_INDEX_REPLAY_HARNESS_SCHEMA_VERSION,
+        "enabled": True,
+        "evaluation_only": True,
+        "selection_effect": True,
+        "online_selector_change": False,
+        "executed_output_policy": CANDIDATE_INDEX_REPLAY_HARNESS_OUTPUT_POLICY,
+        "reference_top1_index": 0,
+        "selected_index": selected,
+        "shadow_selected_index": shadow,
+        "candidate_count": candidate_count,
+        "selected_index_in_range": selected_index_in_range,
+        "shadow_selected_index_in_range": shadow_selected_index_in_range,
+        "executed_shadow_selected_index": executed_shadow_selected,
+        "candidate_tensor_hash": _candidate_tensor_hash_payload(
+            candidates,
+            stage="candidate_index_replay_harness_fixed_candidate_tensor",
+        ),
+        "candidate_tensor_mutation_authorized": False,
+        "trajectory_generation_authorized": False,
+        "trajectory_rewrite_authorized": False,
+        "dp_modification_authorized": False,
+        "closed_loop_outcome_usage": "offline_evaluation_only",
+        "closed_loop_outcomes_used_for_training": False,
+        "closed_loop_outcomes_used_for_online_selector": False,
+        "payload_valid": (
+            selected_index_in_range
+            and shadow_selected_index_in_range
+            and executed_shadow_selected
+        ),
+    }
+
+
+def _summarize_candidate_index_replay_harness_records(
+    records: list[dict[str, Any]] | None,
+    *,
+    enabled: bool,
+) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "schema_version": CANDIDATE_INDEX_REPLAY_HARNESS_SCHEMA_VERSION,
+        "enabled": bool(enabled),
+        "evaluation_only": True,
+        "selection_effect": bool(enabled),
+        "online_selector_change": False,
+        "executed_output_policy": (
+            CANDIDATE_INDEX_REPLAY_HARNESS_OUTPUT_POLICY if enabled else "dp_top1"
+        ),
+        "candidate_tensor_mutation_authorized": False,
+        "trajectory_generation_authorized": False,
+        "trajectory_rewrite_authorized": False,
+        "dp_modification_authorized": False,
+        "closed_loop_outcomes_used_for_training": False,
+        "closed_loop_outcomes_used_for_online_selector": False,
+    }
+    if not enabled:
+        summary.update(
+            {
+                "records": 0,
+                "payload_records": 0,
+                "all_payloads_present": True,
+                "all_payloads_valid": True,
+                "all_executed_shadow_selected_index": True,
+            }
+        )
+        return summary
+    if records is None:
+        summary.update(
+            {
+                "records": 0,
+                "payload_records": 0,
+                "all_payloads_present": False,
+                "all_payloads_valid": False,
+                "all_executed_shadow_selected_index": False,
+            }
+        )
+        return summary
+
+    payloads = [
+        record.get("candidate_index_replay_harness")
+        for record in records
+        if record.get("candidate_index_replay_harness") is not None
+    ]
+    summary.update(
+        {
+            "records": int(len(records)),
+            "payload_records": int(len(payloads)),
+            "all_payloads_present": len(payloads) == len(records),
+            "all_payloads_valid": all(
+                bool(payload.get("payload_valid")) for payload in payloads
+            ),
+            "all_selected_index_in_range": all(
+                bool(payload.get("selected_index_in_range")) for payload in payloads
+            ),
+            "all_shadow_selected_index_in_range": all(
+                bool(payload.get("shadow_selected_index_in_range"))
+                for payload in payloads
+            ),
+            "all_executed_shadow_selected_index": all(
+                bool(payload.get("executed_shadow_selected_index"))
+                for payload in payloads
+            ),
+        }
+    )
+    return summary
+
+
 def _summarize_default_off_shadow_selector_records(
     records: list[dict[str, Any]] | None,
     *,
@@ -4474,6 +4642,10 @@ def _summarize_default_off_shadow_selector_records(
         if record.get("default_off_shadow_selector") is not None
     ]
     executed_indices = [int(record.get("selected_index", -1)) for record in records]
+    shadow_scores_routed_to_execution = any(
+        bool(payload.get("shadow_scores_routed_to_execution"))
+        for payload in payloads
+    )
     shadow_indices = [
         int(payload["shadow_selected_index"])
         for payload in payloads
@@ -4481,6 +4653,13 @@ def _summarize_default_off_shadow_selector_records(
     ]
     summary.update(
         {
+            "default_off": not shadow_scores_routed_to_execution,
+            "selection_effect": shadow_scores_routed_to_execution,
+            "executed_output_policy": (
+                CANDIDATE_INDEX_REPLAY_HARNESS_OUTPUT_POLICY
+                if shadow_scores_routed_to_execution
+                else "dp_top1"
+            ),
             "ready": bool(artifact_contract.get("ready")),
             "fail_closed": False,
             "failed_closed_reason": None,
@@ -4488,6 +4667,9 @@ def _summarize_default_off_shadow_selector_records(
             "shadow_selection_logged_records": int(len(payloads)),
             "all_shadow_payloads_present": len(payloads) == len(records),
             "executed_top1_all": all(index == 0 for index in executed_indices),
+            "shadow_scores_routed_to_execution": (
+                shadow_scores_routed_to_execution
+            ),
             "shadow_selected_index_counts": {
                 str(index): shadow_indices.count(index)
                 for index in sorted(set(shadow_indices))
@@ -4495,7 +4677,6 @@ def _summarize_default_off_shadow_selector_records(
             "nonzero_shadow_selection_count": int(
                 sum(index != 0 for index in shadow_indices)
             ),
-            "shadow_scores_routed_to_execution": False,
         }
     )
     return summary
@@ -4576,6 +4757,7 @@ def _install_camp_predictor(
     candidate_tensor_provenance_logging: bool,
     default_off_shadow_selector: bool,
     default_off_shadow_selector_contract: dict[str, Any],
+    candidate_index_replay_harness: bool,
     microbenchmark_snapshot_dir: Path | None,
     microbenchmark_snapshot_steps: tuple[int, ...],
     raw_candidate_prefix_steps: int,
@@ -5249,21 +5431,47 @@ def _install_camp_predictor(
         shadow_selected_index = (
             baseline_selected_index if default_off_shadow_selector else None
         )
-        selected_index = 0 if default_off_shadow_selector else baseline_selected_index
+        if candidate_index_replay_harness:
+            if shadow_selected_index is None:
+                raise RuntimeError(
+                    "candidate-index replay requires a shadow-selected index."
+                )
+            if not 0 <= int(shadow_selected_index) < int(candidates.shape[0]):
+                raise RuntimeError("shadow_selected_index is out of range.")
+            selected_index = int(shadow_selected_index)
+        else:
+            selected_index = 0 if default_off_shadow_selector else baseline_selected_index
+        candidate_index_replay_harness_record = None
+        if candidate_index_replay_harness:
+            candidate_index_replay_harness_record = (
+                _build_candidate_index_replay_harness_payload(
+                    candidates,
+                    selected_index=selected_index,
+                    shadow_selected_index=int(shadow_selected_index),
+                )
+            )
         default_off_shadow_selector_record = None
         if default_off_shadow_selector:
+            executed_output_policy = (
+                CANDIDATE_INDEX_REPLAY_HARNESS_OUTPUT_POLICY
+                if candidate_index_replay_harness
+                else "dp_top1"
+            )
             default_off_shadow_selector_record = {
                 "schema_version": DEFAULT_OFF_SHADOW_SELECTOR_SCHEMA_VERSION,
                 "enabled": True,
-                "default_off": True,
+                "default_off": not bool(candidate_index_replay_harness),
                 "source_scope": DEFAULT_OFF_SHADOW_SELECTOR_SOURCE_SCOPE,
-                "selection_effect": False,
+                "selection_effect": bool(candidate_index_replay_harness),
                 "online_selector_change": False,
                 "candidate_operation": "fixed DP candidate reranking only",
                 "score_expression": "score_k(w)=a_k^T w",
                 "executed_index": int(selected_index),
-                "executed_output_policy": "dp_top1",
+                "executed_output_policy": executed_output_policy,
                 "shadow_selected_index": int(shadow_selected_index),
+                "shadow_scores_routed_to_execution": bool(
+                    candidate_index_replay_harness
+                ),
                 "failed_closed_reason": None,
                 "artifact_contract_ready": bool(
                     default_off_shadow_selector_contract.get("ready")
@@ -5273,9 +5481,18 @@ def _install_camp_predictor(
                     stage="default_off_shadow_selector_fixed_candidate_tensor",
                 ),
                 "math_boundary": (
-                    "Shadow CAMP scores are logged only; the executed trajectory "
-                    "remains DP candidate 0. Scores remain affine in weights: "
-                    "score_k(w)=a_k^T w."
+                    (
+                        "Evaluation-only candidate-index replay routes the "
+                        "logged shadow_selected_index to a fixed DP candidate "
+                        "row without modifying the candidate tensor. Scores "
+                        "remain affine in weights: score_k(w)=a_k^T w."
+                    )
+                    if candidate_index_replay_harness
+                    else (
+                        "Shadow CAMP scores are logged only; the executed "
+                        "trajectory remains DP candidate 0. Scores remain "
+                        "affine in weights: score_k(w)=a_k^T w."
+                    )
                 ),
             }
         splice_shadow_rule_stats = None
@@ -5557,8 +5774,20 @@ def _install_camp_predictor(
                 "selection_step": len(records),
                 "selected_index": selected_index,
                 "executed_index": selected_index,
+                "executed_output_policy": (
+                    CANDIDATE_INDEX_REPLAY_HARNESS_OUTPUT_POLICY
+                    if candidate_index_replay_harness
+                    else (
+                        "dp_top1"
+                        if default_off_shadow_selector
+                        else "camp_selected_index"
+                    )
+                ),
                 "shadow_selected_index": shadow_selected_index,
                 "default_off_shadow_selector": default_off_shadow_selector_record,
+                "candidate_index_replay_harness": (
+                    candidate_index_replay_harness_record
+                ),
                 "camp_selected_index_before_tracker_postselection": (
                     baseline_selected_index
                     if perfect_tracker_command_postselection
@@ -6072,6 +6301,9 @@ def main() -> None:
             default_off_shadow_selector_contract=(
                 default_off_shadow_selector_contract
             ),
+            candidate_index_replay_harness=bool(
+                args.camp_candidate_index_replay_harness
+            ),
             microbenchmark_snapshot_dir=(
                 args.camp_microbenchmark_snapshot_dir
             ),
@@ -6303,6 +6535,12 @@ def main() -> None:
             records,
             enabled=bool(args.camp_default_off_shadow_selector),
             artifact_contract=default_off_shadow_selector_contract,
+        )
+    )
+    camp_candidate_index_replay_harness = (
+        _summarize_candidate_index_replay_harness_records(
+            records,
+            enabled=bool(args.camp_candidate_index_replay_harness),
         )
     )
     camp_observable_state_logging = (
@@ -7199,6 +7437,9 @@ def main() -> None:
         "camp_raw_candidate_prefix_logging": camp_raw_candidate_prefix_logging,
         "camp_candidate_tensor_provenance": camp_candidate_tensor_provenance,
         "camp_default_off_shadow_selector": camp_default_off_shadow_selector,
+        "camp_candidate_index_replay_harness": (
+            camp_candidate_index_replay_harness
+        ),
         "camp_observable_state_logging": camp_observable_state_logging,
         "camp_red_route_vector_logging": camp_red_route_vector_logging,
         "camp_progress_support_logging": camp_progress_support_logging,
@@ -7515,6 +7756,9 @@ def main() -> None:
         camp_candidate_tensor_provenance
     )
     validation["camp_default_off_shadow_selector"] = camp_default_off_shadow_selector
+    validation["camp_candidate_index_replay_harness"] = (
+        camp_candidate_index_replay_harness
+    )
     validation["camp_observable_state_logging"] = camp_observable_state_logging
     validation["camp_red_route_vector_logging"] = camp_red_route_vector_logging
     validation["camp_progress_support_logging"] = camp_progress_support_logging
