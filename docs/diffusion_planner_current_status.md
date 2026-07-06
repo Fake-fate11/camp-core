@@ -295,12 +295,19 @@ work to v13.
   acquisition execution, replay, training, candidate generation, DP
   modification, trajectory editing, promotion, deployment, online selector
   activation, or any safety/CAMP-over-DP claim.
+- The objective-3200 outcome acquisition preflight passed on AutoDL with CAMP
+  synchronized at `6bf689d2bad0a529d39b40648b0435b01be9d564`. The first
+  attempt failed closed on a source static-review/source plan runtime-count
+  layout mismatch and is preserved. The passed rerun authorizes only static
+  review of the preflight artifact, not outcome acquisition execution, replay,
+  training, candidate generation, DP modification, promotion, deployment,
+  online selector activation, or any safety/CAMP-over-DP claim.
 - AutoDL Diffusion Planner remains fixed at
   `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 - Current status is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_static_review_passed`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_ready`.
 - Current next work target is
-  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_only`.
+  `public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_static_review_only`.
 
 ## What Changed
 
@@ -4968,6 +4975,45 @@ Static-review summary:
 
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_static_review_passed
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_only
+
+## Post-Closeout Promotion Evidence Acquisition Objective-3200 Outcome Acquisition Preflight
+
+The first objective-3200 outcome acquisition preflight attempt failed closed on
+AutoDL because the preflight contract expected `runtime_record_count` directly
+from the source static-review report. The audited source layout carries that
+count through the source acquisition-plan gap instead. The failed artifact is
+preserved:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_4a5e0ab557_20260706T133526CST`
+
+The source-layout-compatible rerun passed on AutoDL with exit `0`:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_6bf689d2ba_20260706T133900CST`
+
+This preflight locked the source static-review and acquisition-plan artifacts
+for future review. It did not execute outcome acquisition, replay, training,
+materialization, candidate generation, DP modification, trajectory editing,
+promotion, deployment, online selector activation, or claims.
+
+Preflight summary:
+
+- Preflight checks / failed checks:
+  `148 / 0`
+- Objective required records / runtime records:
+  `3200 / 3200`
+- Per-record shadow-selected outcome records / missing:
+  `0 / 3200`
+- Failed first-attempt root SHA256SUMS SHA256:
+  `6ac299925007227cfd9b1e5a1d45e29aeef30dfedcd97153cf5af1c21ba73524`
+- JSON / MD / root SHA256SUMS SHA256:
+  `1713ee339c039cc171a0814bd08ad49f23624fad4b9d7af0b8d4d448624c4347`,
+  `e29698bdb32ac8f8f917cbc5069a740eb26bf39f83dfdbbf2a80264d22515101`,
+  `3b74119543477dd4f63d39e63b87d80d2bc6367313a15fef5ad27c45b5b97eff`
+- Next authorized work:
+  `objective_3200_outcome_acquisition_preflight_static_review_only`
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_preflight_static_review_only
 
 ## Cleanup Policy
 
