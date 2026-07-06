@@ -7,11 +7,11 @@ CURRENT_STATUS_DOC = ROOT / "docs" / "diffusion_planner_current_status.md"
 README = ROOT / "README.md"
 LATEST_V14_STATUS = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_static_review_passed"
+    "post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_passed"
 )
 LATEST_V14_NEXT_WORK = (
     "public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_"
-    "post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_only"
+    "post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_only"
 )
 
 
@@ -8638,7 +8638,7 @@ def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_outcome
     _assert_latest_v14_status(text)
 
 
-def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_static_review_is_eof() -> None:
+def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_static_review_is_historical() -> None:
     text = AUDIT_DOC.read_text(encoding="utf-8")
     previous_section_title = (
         "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
@@ -8648,12 +8648,17 @@ def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_outcome
         "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
         "Outcome Source-Inventory Preflight Static Review"
     )
+    next_section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
+        "Outcome Source-Inventory Preflight"
+    )
     previous_section_index = text.rfind(previous_section_title + "\n")
     section_index = text.rfind(section_title + "\n")
+    next_section_index = text.rfind(next_section_title + "\n")
 
     assert text.count(section_title + "\n") == 1
     assert section_index > previous_section_index
-    assert "\n## " not in text[section_index + len(section_title) :]
+    assert next_section_index > section_index
 
     for needle in [
         "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_static_review_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_static_review_0f9f45cd34_20260706T113016CST",
@@ -8705,6 +8710,67 @@ def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_outcome
         "safety_benefit_claim_authorized=False",
         "camp_over_dp_top1_claim_authorized=False",
         "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_only",
+    ]:
+        assert needle in text
+
+    _assert_latest_v14_status(text)
+
+
+def test_v14_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_is_eof() -> None:
+    text = AUDIT_DOC.read_text(encoding="utf-8")
+    previous_section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
+        "Outcome Source-Inventory Preflight Static Review"
+    )
+    section_title = (
+        "## Post-Closeout Promotion Evidence Acquisition Objective-3200 "
+        "Outcome Source-Inventory Preflight"
+    )
+    previous_section_index = text.rfind(previous_section_title + "\n")
+    section_index = text.rfind(section_title + "\n")
+
+    assert text.count(section_title + "\n") == 1
+    assert section_index > previous_section_index
+    assert "\n## " not in text[section_index + len(section_title) :]
+
+    for needle in [
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_artifact=/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_5473b625e5_20260706T114341CST",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_camp_head=5473b625e5d5060c430a543ea3e03790331a8210",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_exit=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_schema_version=dp_camp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_v1",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_passed",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_passed=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_check_count=50",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_failed_check_count=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_authorized_next_work=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_only",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_objective_required_records=3200",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_runtime_record_count=3200",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_existing_delta_count=32",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_candidate_closed_loop_outcome_records=0",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_missing_candidate_closed_loop_outcome_records=3200",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_per_record_outcome_source_available=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_existing_artifacts_satisfy_objective=False",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_requires_acquisition_plan=True",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_report_json_sha256=1ee35410c4947a16f17701ac6ba3114c95308a3c667cf61a4c2be673d030ee67",
+        "v14_public_simulator_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_artifact_sha256s_sha256=2d4918bf1446541ff23811fc7bb4e6d7cadde897dfc0a557035d0bb96ab0a929",
+    ]:
+        assert needle in text
+
+    for needle in [
+        "current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_source_inventory_preflight_passed",
+        "current_v14_next_scope=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_only",
+        "objective_3200_outcome_source_inventory_preflight_passed=True",
+        "objective_3200_outcome_acquisition_plan_authorized=True",
+        "per_record_outcome_source_available=False",
+        "existing_artifacts_satisfy_objective=False",
+        "requires_acquisition_plan=True",
+        "selector_promotion_authorized=False",
+        "deployment_authorized=False",
+        "online_selector_change_authorized=False",
+        "safety_benefit_claim_authorized=False",
+        "camp_over_dp_top1_claim_authorized=False",
+        "next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_objective_3200_outcome_acquisition_plan_only",
     ]:
         assert needle in text
 
