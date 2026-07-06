@@ -4567,6 +4567,39 @@ selector activation, or safety-benefit/CAMP-over-DP claims.
 current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_rejected
 next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_paired_evaluation_actual_safetycost_outcome_materialization_execution_failed_user_decision_required
 
+## Post-Closeout Shadow-Selected Closed-Loop Outcome Evaluation Preflight
+
+The shadow-selected closed-loop outcome evaluation preflight passed on AutoDL:
+
+`/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_0c342850d5_20260706T090726CST`
+
+This gate consumed the preserved actual-SafetyCost materialization failure, the
+successful paired-evaluation execution artifact, and the audited default-off
+runtime shadow replay runbook. It materialized a future offline evaluation
+runbook only. It did not execute replay, train CAMP, generate CAMP
+trajectories, modify DP, promote, deploy, activate an online selector, or make
+any safety/CAMP-over-DP claim.
+
+Preflight summary:
+
+- Planned shadow-selected offline evaluation commands:
+  `32`
+- Generated default-off / forbidden / formal-seed / Full36 command counts:
+  `0 / 0 / 0 / 0`
+- Planned shadow-selected output root:
+  `/root/autodl-tmp/camp_dp_v14_public_simulator_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_0c342850d5_20260706T090726CST_planned_output`
+- Actual SafetyCost v1 available / claim-rule evaluable:
+  `False / False`
+
+The next authorized scope is only execution of this generated offline
+shadow-selected closed-loop outcome evaluation runbook. Promotion, deployment,
+online selector activation, and safety/CAMP-over-DP claims remain unauthorized.
+Closed-loop outcomes remain evaluation-only evidence and are forbidden as
+training or online selector inputs.
+
+current_v14_status=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_preflight_ready
+next_work_target=public_simulator_fixed_dp_candidate_generation_trained_default_off_shadow_replay_evaluation_default_off_shadow_selector_runtime_post_closeout_promotion_evidence_acquisition_shadow_selected_closed_loop_outcome_evaluation_execution_only
+
 ## Cleanup Policy
 
 Older audit files and append-only audit history are evidence, not current
