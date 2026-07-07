@@ -3,12 +3,58 @@
 Last verified: 2026-07-07, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
-new writes is `docs/diffusion_planner_v15_iteration_audit.md`. The v14 audit,
+new writes is `docs/diffusion_planner_v16_iteration_audit.md`. The v15 audit,
+`docs/diffusion_planner_v15_iteration_audit.md`, is completed no-promotion/no-claim
+evidence for the prior broader non-formal round. The v14 audit,
 `docs/diffusion_planner_v14_iteration_audit.md`, is sealed evidence for the
-completed fixed-DP integration scope; v14 is sealed evidence, and do not append
-new v15 targets to v14 unless the entry only cites v14 final evidence. The v13
-audit is historical evidence and the v14 rollover source; do not keep appending current
+completed fixed-DP integration scope. Do not append new v16 targets to v15 or
+v14 unless the entry only cites their final evidence. The v13 audit is
+historical evidence and the v14 rollover source; do not keep appending current
 work to v13.
+
+## Current V16 Status
+
+V16 starts the public nuScenes source path for fixed TiERIV Diffusion Planner
+candidate tensors used as CAMP training/evaluation source. The boundary is
+fixed DP candidate generation only; CAMP may only rerank/select fixed DP
+candidates. This is not DP training, DP modification, candidate mutation,
+trajectory generation/repair/rewrite/blend, promotion, deployment, Full36,
+formal-seed, or performance/safety claim work.
+
+The first v16 nuScenes fixed-DP candidate tensor source-inventory preflight
+artifact passed on AutoDL with CAMP synchronized at
+`e8fb15e4cbf46ef7ae93f331052f4a0f170be607` and DP fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`:
+
+`/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_preflight_e8fb15e4cb_20260707T151143CST`
+
+Preflight checks / failed checks:
+`14 / 0`
+
+nuScenes inventory:
+`/autodl-pub/data/nuScenes` exists and includes `Fulldatasetv1.0/Mini`,
+`Fulldatasetv1.0/Test`, `Fulldatasetv1.0/Trainval`, `nuImages`, lidarseg,
+map expansion zips, and CAN bus zip.
+
+Adapter status:
+the in-repo `NuscenesTrajdataBridge` and trajdata batch path are present.
+Direct fields include ego history, ego state, neighbor agents, map/lane context,
+and timestamps/sample ids. Route-like information, traffic-light/signal context,
+and Autoware lane tensor conversion require explicit adapter boundaries before
+any claim.
+
+JSON / MD / record SHA256SUMS / root SHA256SUMS SHA256:
+`12140179235f6aad308b04b5e12651342fb350251349b1a2b554681deb6b8e08`,
+`79b1b8ce8cdc18fc7047267a1a40f7b78e38bb4036f6e24c43f4532ad6d8fd5d`,
+`b5797c8b22dc3ed95e9b954d167d1f8cc4b8040056709b2ce7037c358452f0bb`,
+`3a0d3c2dcff7a42acc3a500ab35473b9bdc63295f9f7411ab740d5055befcf91`
+
+```text
+current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_preflight_ready
+current_v16_artifact_scope=v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_preflight
+current_v16_artifact=/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_preflight_e8fb15e4cb_20260707T151143CST
+next_work_target=v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_static_review_only
+```
 
 ## Current V15 Status
 
