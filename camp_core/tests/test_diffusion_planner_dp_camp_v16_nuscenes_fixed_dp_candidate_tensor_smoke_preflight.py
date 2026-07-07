@@ -13,6 +13,20 @@ SCRIPT_PATH = (
     / "preflight_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_candidate_tensor_smoke.py"
 )
 HEAD = "5c6f9a74444f692e9e261c85f7c60f8f6662a5b7"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_"
+    "01b4306d15_20260707T162331CST"
+)
+CANDIDATE_OUTPUT_ROOT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_smoke_candidates_"
+    "01b4306d15_20260707T162331CST"
+)
+JSON_SHA = "105682d8f8ca9af751182eedc1c616db5eec8762dc7fa0c1f46fdbc2103544e1"
+MD_SHA = "c17221574354fe06e0779e0bcfa4827bebd741333987016c26a7d49772056b2b"
+SHA256SUMS_SHA = "541ccd07ae7252db6d96b3e84bf34ec90c2c2cdf4bc6ee1b7ce34e78268ad7ff"
+ROOT_SHA256SUMS_SHA = "948b983fda112c78275795acfdc91591e469ec92544f65890d858f7be9f1e0a4"
 
 
 def _load_module():
@@ -86,6 +100,26 @@ def test_v16_nuscenes_smoke_preflight_requires_bridge(tmp_path: Path) -> None:
 
     assert report["final_decision"]["passed"] is False
     assert "camp_nuscenes_bridge_available" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_nuscenes_smoke_preflight_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert CANDIDATE_OUTPUT_ROOT in text
+        assert f"current_v16_status={module.READY_STATUS}" in text
+        assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_check_count=43" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_failed_checks=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_target_records=256" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_k=8" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
 
 
 def _write_fixture(
