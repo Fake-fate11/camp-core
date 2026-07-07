@@ -25,6 +25,14 @@ JSON_SHA = "e3d07f271179f6bf1cfad0f529f981a6f23ba3c32bb63f5d2bd9193b9fad49c4"
 MD_SHA = "6ec405839bfe341a2810745e9235e6491a9fd50d2f27e88f69a0d74711d13eb6"
 SHA256SUMS_SHA = "6b26371e4b99988c071ec8e197f90d5af8e401329039b69c299255b2236b8805"
 ROOT_SHA256SUMS_SHA = "085025766d509ae2f3c413c8776658a5869298c94fab8b7e03b69a790e904cab"
+BLOCKER_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_blocker_"
+    "scene_granularity_15ca0298_20260708T034152CST"
+)
+BLOCKER_JSON_SHA = "382d244817e7da1db6ce89df8d3955013531aeea3a9cbdadb94be0b7e40bf438"
+BLOCKER_SHA256SUMS_SHA = "2b9f7e5182b76d49bb506aab1f614d22be7caa684f371021307e96eeb37e9594"
+BLOCKER_ROOT_SHA256SUMS_SHA = "e110a5e2a38675fb23f22f1c3618fd0ca65a60b275d514e7bb268c68e2a9e248"
 
 
 def _load_module():
@@ -112,6 +120,29 @@ def test_v16_pilot_corpus_split_preflight_is_recorded() -> None:
         assert SHA256SUMS_SHA in text
         assert ROOT_SHA256SUMS_SHA in text
         assert STATIC_REVIEW_ROOT_SHA in text
+
+
+def test_v16_pilot_corpus_split_execution_blocker_is_recorded() -> None:
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (audit, status):
+        assert BLOCKER_ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_blocker_status="
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_train_calibration_holdout_split_execution_blocked_scene_granularity_target_count_conflict"
+        ) in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_blocker_unique_scene_count=4" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_blocker_scene_record_counts=[495,368,147,14]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_blocker_target_counts_reachable=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_blocker_split_execution_executed=False" in text
+        assert BLOCKER_JSON_SHA in text
+        assert BLOCKER_SHA256SUMS_SHA in text
+        assert BLOCKER_ROOT_SHA256SUMS_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module, next_work: str | None = None) -> dict:
