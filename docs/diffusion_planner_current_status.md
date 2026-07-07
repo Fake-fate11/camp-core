@@ -385,11 +385,29 @@ fallback latency / timing JSON / timing MD / root SHA256SUMS SHA256:
 `1741c64d595630d800176e9ce9c2a50e4e85c5a1247509fa6364f947e135a903`,
 `5757cdd20d62cc2160cc97470dff9120a38f95bc8d42fe64dd3958f9f2fc237d`
 
+The latest v15 paired-evaluation execution result-review artifact passed on
+AutoDL with CAMP synchronized at
+`587668a8d548a3f7448078f46fee93d3e22339da` and DP fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`:
+
+`/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_result_review_587668a8d5_20260707T142005CST`
+
+Review checks / failed checks:
+`53 / 0`
+
+Promotion supported / performance claimed / closeout authorized:
+`False / False / True`
+
+JSON / MD / root SHA256SUMS SHA256:
+`6312c13039c2cf0702f028dcf5685f4cc032f9d525ef9d02f8e102621d57793d`,
+`d3e1944863d759c389f22eb6380975ce279d05b6ee81c70532f6bb480a7a8bbd`,
+`59e19e67bf1b65c914caf3abe9bd4751a258ffd5ecbd7611ad5669bfc15353d2`
+
 ```text
-current_v15_status=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_passed
-current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution
-current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_08feecf836_20260707T141121CST
-next_work_target=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_result_review_only
+current_v15_status=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_result_review_passed
+current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_result_review
+current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_result_review_587668a8d5_20260707T142005CST
+next_work_target=v15_broader_nonformal_evidence_expansion_no_promotion_no_claim_closeout_record_only
 ```
 
 ## Sealed V14 Authority
