@@ -95,24 +95,27 @@ Adapter-plan static-review JSON / MD / record SHA256SUMS / root SHA256SUMS SHA25
 `cb98fa4e8813faba9faf3be698787623c2409e9d734263362733eb6e021a3f2c`
 
 The latest v16 smoke preflight-plan artifact passed on AutoDL with CAMP
-synchronized at `4a90f6a9336e9399f12ff704220395e4c4f1b6d5` and DP fixed at
+synchronized at `ede7466785e626be3bb92eb1731dbb835a40227c` and DP fixed at
 `7a1d33da277a1992ec474b5383a0c963c72e04e4`:
 
-`/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_4a90f6a933_20260707T154805CST`
+`/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_ede7466785_20260707T160220CST`
 
 Smoke preflight-plan checks / failed checks:
-`45 / 0`
+`47 / 0`
+
+Smoke preflight-plan K / candidate count:
+`K=8 / candidate_count=8`
 
 Smoke preflight-plan JSON / MD / record SHA256SUMS / root SHA256SUMS SHA256:
-`0a7f4a8972923b706a1ed9a74dcb690b51cf2839ea7b3c2485e2033e07f06215`,
+`9c370f210d6bbf2e5f139cefbd4e1ca458e554b3d427c0d29ea8694f1cf79429`,
 `c53661e2a7f73ba1f74fa48ac4fd970020d86396c2470907b5b20cf68c4988e1`,
-`3a3aadd660e7869c86d6d0ef992cf4924ff464adafc3f0bda1c8718f47d2874e`,
-`f0fd886302e3bc1a21674913885a4e72d76663ca07be721b00c9414be8a3e47b`
+`4cc6de08f8d0e076391d1b6fa8c4d7b42e82d209ab9bd9ae6f1e9999649f8f28`,
+`0d64bf01ebe77e64aa6b41c8abbe9a8c0905eb96e63535772d601f0a18eeef7e`
 
 ```text
 current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_ready
 current_v16_artifact_scope=v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan
-current_v16_artifact=/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_4a90f6a933_20260707T154805CST
+current_v16_artifact=/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_ede7466785_20260707T160220CST
 next_work_target=v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_static_review_only
 ```
 

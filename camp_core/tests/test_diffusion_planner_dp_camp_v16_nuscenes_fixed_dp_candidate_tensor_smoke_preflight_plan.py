@@ -115,8 +115,11 @@ def test_v16_nuscenes_smoke_preflight_plan_is_recorded() -> None:
 
     assert f"current_v16_status={module.READY_STATUS}" in audit_text
     assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in audit_text
+    assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_k=8" in audit_text
+    assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_candidate_count=8" in audit_text
     assert f"current_v16_status={module.READY_STATUS}" in status_text
     assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status_text
+    assert "K=8" in status_text
 
 
 def _write_fixture(
