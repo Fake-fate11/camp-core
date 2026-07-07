@@ -13,6 +13,15 @@ SCRIPT_PATH = (
     / "review_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_static_contract.py"
 )
 HEAD = "de5d52222032be1005cf1f74f7770a9ea3fc0353"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_static_review_"
+    "9cdd2c8e76_20260707T161339CST"
+)
+JSON_SHA = "dc46f9af836a8e447f76315f08b528fd36669e03622953c8e8da5808730432b9"
+MD_SHA = "d1cacaaff8e893c3299b3da84a8a14cc1a2b54d47b933d782841aec36d921df2"
+SHA256SUMS_SHA = "eb263f8ea7846a1a31762f76900ac04f05a78137881f4ff7c209421cb5c76960"
+ROOT_SHA256SUMS_SHA = "83afbd8cd6028d00a32fe7b31d1269dc66ad17ccfb2c53c00cafc217c0c37f45"
 
 
 def _load_module():
@@ -80,6 +89,25 @@ def test_v16_nuscenes_smoke_preflight_plan_static_review_rejects_non_k8(
 
     assert report["final_decision"]["passed"] is False
     assert "source_plan_k8" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_nuscenes_smoke_preflight_plan_static_review_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert f"current_v16_status={module.READY_STATUS}" in text
+        assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_static_review_check_count=42" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_static_review_failed_checks=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_static_review_k=8" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_static_review_candidate_count=8" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
 
 
 def _write_fixture(
