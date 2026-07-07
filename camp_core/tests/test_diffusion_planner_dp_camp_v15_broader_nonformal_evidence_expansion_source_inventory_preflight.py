@@ -75,19 +75,22 @@ def test_v15_source_inventory_preflight_rejects_source_dp_mutation(tmp_path: Pat
     assert "source_dp_not_modified" in report["final_decision"]["failed_checks"]
 
 
-def test_v15_source_inventory_preflight_is_latest_status() -> None:
+def test_v15_source_inventory_preflight_is_recorded() -> None:
     module = _load_module()
     audit_text = (ROOT / "docs" / "diffusion_planner_v15_iteration_audit.md").read_text(
         encoding="utf-8"
     )
-    status_text = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
-        encoding="utf-8"
-    )
 
-    assert f"current_v15_status={module.READY_STATUS}" in audit_text
-    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in audit_text
-    assert f"current_v15_status={module.READY_STATUS}" in status_text
-    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status_text
+    assert (
+        "v15_broader_nonformal_evidence_expansion_source_inventory_preflight_status="
+        f"{module.READY_STATUS}"
+        in audit_text
+    )
+    assert (
+        "v15_broader_nonformal_evidence_expansion_source_inventory_preflight_authorized_next_work="
+        f"{module.AUTHORIZED_NEXT_WORK}"
+        in audit_text
+    )
 
 
 def _write_fixture(
