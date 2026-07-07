@@ -100,7 +100,7 @@ def build_report(
     v16_text = v16_audit_md.read_text(encoding="utf-8")
     status_text = current_status_md.read_text(encoding="utf-8")
     plan = _smoke_preflight_plan()
-    source_records = source.get("smoke_contract", {}).get("must_record", [])
+    source_records = _source_smoke_records(source.get("smoke_contract", {}))
     checks = [
         _expect("smoke_preflight_plan_enabled", enabled, True),
         _expect("camp_head_matches_origin", current_camp_head, current_camp_origin_main),
@@ -209,6 +209,15 @@ def _smoke_preflight_plan() -> dict[str, Any]:
         "latency_fields": ("adapter_conversion_ms", "dp_candidate_generation_ms", "camp_atom_extraction_ms"),
         "split": "smoke_only_not_train_not_holdout_claim",
     }
+
+
+def _source_smoke_records(smoke_contract: dict[str, Any]) -> tuple[str, ...]:
+    explicit = smoke_contract.get("must_record")
+    if explicit is not None:
+        return tuple(explicit)
+    if smoke_contract.get("must_record_candidate_tensor_shape_hash") is True:
+        return MUST_RECORD
+    return ()
 
 
 def write_outputs(output_dir: Path, report: dict[str, Any]) -> None:

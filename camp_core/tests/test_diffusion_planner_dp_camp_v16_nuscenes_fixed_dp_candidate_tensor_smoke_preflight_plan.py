@@ -46,6 +46,17 @@ def test_v16_nuscenes_smoke_preflight_plan_passes(tmp_path: Path) -> None:
     assert (fixture["output_dir"] / module.PLAN_MD_NAME).is_file()
 
 
+def test_v16_nuscenes_smoke_preflight_plan_accepts_summary_only_source(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, summary_only=True)
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+
+
 def test_v16_nuscenes_smoke_preflight_plan_requires_enable(tmp_path: Path) -> None:
     module = _load_module()
     fixture = _write_fixture(tmp_path, module)
@@ -86,6 +97,7 @@ def _write_fixture(
     *,
     next_work: str | None = None,
     drop_record: str | None = None,
+    summary_only: bool = False,
 ) -> dict:
     source = module.SOURCE_REVIEW_MODULE
     artifact = tmp_path / "adapter_plan_static_review"
@@ -105,6 +117,8 @@ def _write_fixture(
     source_json = artifact / source.REVIEW_JSON_NAME
     source_md = artifact / source.REVIEW_MD_NAME
     payload = _source_payload(module)
+    if summary_only:
+        payload["smoke_contract"].pop("must_record")
     if drop_record is not None:
         payload["smoke_contract"]["must_record"].remove(drop_record)
     _write_json(source_json, payload)
