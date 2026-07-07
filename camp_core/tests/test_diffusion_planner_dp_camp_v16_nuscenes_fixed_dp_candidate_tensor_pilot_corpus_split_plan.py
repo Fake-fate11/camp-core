@@ -15,6 +15,16 @@ SCRIPT_PATH = (
 HEAD = "b4a79adcd5deb1d295c27e404a88e05aad5799d2"
 SOURCE_ROOT_SHA = "bcb25cbc189c274845d94bc7963c683fd88c523be8243356f37481bae933d99e"
 PILOT_EXECUTION_ROOT_SHA = "57779ea5d6aa2d9f1e7a5962cbbd551238ec1500136bd82e972714d479da7432"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_"
+    "00653896_20260708T032727CST"
+)
+PLAN_CAMP_HEAD = "00653896db1b02d2e9203203954452896184b2bb"
+JSON_SHA = "bbbac4162e442e4f1f6d6e44288293ae06001bc4030d14aea91a9e75ac5d2a2e"
+MD_SHA = "aa5302ed5a5e39c29389e865b598baa47bec0561caf8a8b5671ac011fcce5237"
+SHA256SUMS_SHA = "0d76e240e8a77579afb7c95af26fcd542c6beb6f7c533a7b7e04169fbfe4735d"
+ROOT_SHA256SUMS_SHA = "292fdd3692dc2d2985941508546b96ed4be1ab14c583c8603732e6e97b85b9fa"
 
 
 def _load_module():
@@ -76,6 +86,34 @@ def test_v16_pilot_corpus_split_plan_cli_writes_outputs(tmp_path: Path) -> None:
     assert (fixture["output_dir"] / module.PLAN_JSON_NAME).is_file()
     assert (fixture["output_dir"] / module.PLAN_MD_NAME).is_file()
     assert (fixture["output_dir"] / "SHA256SUMS").is_file()
+
+
+def test_v16_pilot_corpus_split_plan_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert f"current_v16_status={module.READY_STATUS}" in text
+        assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_records=1024" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_train_records=614" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_calibration_records=205" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_holdout_records=205" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_check_count=34" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_failed_checks=[]" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_camp_head={PLAN_CAMP_HEAD}" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
+        assert SOURCE_ROOT_SHA in text
+        assert PILOT_EXECUTION_ROOT_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module, next_work: str | None = None) -> dict:

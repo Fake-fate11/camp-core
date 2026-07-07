@@ -69,8 +69,14 @@ def test_v16_pilot_generation_result_review_is_recorded() -> None:
 
     for text in (audit, status):
         assert REVIEW_ARTIFACT in text
-        assert f"current_v16_status={module.READY_STATUS}" in text
-        assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
         assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_check_count=59" in text
         assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_records=1024" in text
         assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_k=[8]" in text
