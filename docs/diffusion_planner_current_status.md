@@ -279,11 +279,29 @@ JSON / MD / root SHA256SUMS SHA256:
 `61ad0e1a9e86b3897d31276baea2587c466366bf5380c659b16097fac5bd68fe`,
 `74bcfc00a11d56b1e0605682d7ddeb19d80a15a2390117296a9f6e3198632619`
 
+The latest v15 paired-evaluation execution plan artifact passed on AutoDL
+with CAMP synchronized at
+`6915c077133436de01cac27f4b76b1854cc08bb8` and DP fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`:
+
+`/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_plan_6915c07713_20260707T132545CST`
+
+Plan checks / failed checks:
+`42 / 0`
+
+Plan executed / paired evaluation executed:
+`False / False`
+
+JSON / MD / root SHA256SUMS SHA256:
+`e5cef276df8b57231fcacc18bdba678d4362f2afeba0cdef81a22b9e015b4611`,
+`f83e76cbba2bd7b7bf7b407eedc2926d79589a88bccf21d959a77dbce4ad743c`,
+`891dd7c58ff43284ae81a8acf06ee6baa7d187a92be403652e4888750fd8020b`
+
 ```text
-current_v15_status=v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_static_review_passed
-current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_static_review
-current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_static_review_0ae9958adb_20260707T130044CST
-next_work_target=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_plan_only
+current_v15_status=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_plan_ready
+current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_plan
+current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_plan_6915c07713_20260707T132545CST
+next_work_target=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_plan_static_review_only
 ```
 
 ## Sealed V14 Authority
