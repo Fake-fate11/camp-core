@@ -190,11 +190,29 @@ Training artifact / model / config / log SHA256:
 Root `SHA256SUMS` SHA256:
 `1379dc20f638ee28f4208d3f25debcde638fc1a17948033bac30d1dfa5e4eeb0`
 
+The latest v15 offline-training execution result-review artifact passed on
+AutoDL with CAMP synchronized at
+`6389b4e23678d1541bdea7122559fd08eeb7c60e` and DP fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`:
+
+`/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_offline_training_execution_result_review_6389b4e236_20260707T114225CST`
+
+Review checks / failed checks:
+`69 / 0`
+
+Source training executed / review training executed:
+`True / False`
+
+JSON / MD / root SHA256SUMS SHA256:
+`aea22ab59efd26cf06b74411799ee7da707ef7f87b567dc68b76f2eb5378f932`,
+`f4fd8f929ee6121c296620251f32ae20d6dc8c3b022306826afa570f74a99277`,
+`50038b862a992c5fa068dc1bd837070fe84537c8a4b305d379a7d9217d113366`
+
 ```text
-current_v15_status=v15_broader_nonformal_evidence_expansion_offline_training_execution_passed
-current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_offline_training_execution
-current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_offline_training_execution_43b5320aea_20260707T113411CST
-next_work_target=v15_broader_nonformal_evidence_expansion_offline_training_execution_result_review_only
+current_v15_status=v15_broader_nonformal_evidence_expansion_offline_training_execution_result_review_passed
+current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_offline_training_execution_result_review
+current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_offline_training_execution_result_review_6389b4e236_20260707T114225CST
+next_work_target=v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_plan_only
 ```
 
 ## Sealed V14 Authority
