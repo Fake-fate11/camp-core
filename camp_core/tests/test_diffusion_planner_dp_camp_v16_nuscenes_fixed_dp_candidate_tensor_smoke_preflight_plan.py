@@ -59,6 +59,17 @@ def test_v16_nuscenes_smoke_preflight_plan_accepts_summary_only_source(
     assert report["final_decision"]["passed"] is True
 
 
+def test_v16_nuscenes_smoke_preflight_plan_accepts_same_gate_rerun(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, same_gate_rerun=True)
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+
+
 def test_v16_nuscenes_smoke_preflight_plan_requires_enable(tmp_path: Path) -> None:
     module = _load_module()
     fixture = _write_fixture(tmp_path, module)
@@ -115,6 +126,7 @@ def _write_fixture(
     next_work: str | None = None,
     drop_record: str | None = None,
     summary_only: bool = False,
+    same_gate_rerun: bool = False,
 ) -> dict:
     source = module.SOURCE_REVIEW_MODULE
     artifact = tmp_path / "adapter_plan_static_review"
@@ -130,7 +142,17 @@ def _write_fixture(
         ]
     )
     v16_audit = _write(docs / "diffusion_planner_v16_iteration_audit.md", doc_text)
-    current_status = _write(docs / "diffusion_planner_current_status.md", doc_text)
+    status_text = doc_text
+    if same_gate_rerun:
+        status_text = "\n".join(
+            [
+                "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_static_review",
+                f"current_v16_status={module.READY_STATUS}",
+                f"next_work_target={module.AUTHORIZED_NEXT_WORK}",
+                "",
+            ]
+        )
+    current_status = _write(docs / "diffusion_planner_current_status.md", status_text)
     source_json = artifact / source.REVIEW_JSON_NAME
     source_md = artifact / source.REVIEW_MD_NAME
     payload = _source_payload(module)

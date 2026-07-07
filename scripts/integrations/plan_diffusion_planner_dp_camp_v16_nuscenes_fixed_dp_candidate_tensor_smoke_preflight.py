@@ -122,9 +122,19 @@ def build_report(
         _expect("source_candidate_tensor_not_modified", source["final_decision"].get("candidate_tensor_modified"), False),
         _expect("source_trajectory_not_modified", source["final_decision"].get("trajectory_modified"), False),
         _contains("audit_authorizes_smoke_preflight_plan", v16_text, f"next_work_target={AUTHORIZED_CURRENT_WORK}"),
-        _contains("status_authorizes_smoke_preflight_plan", status_text, f"next_work_target={AUTHORIZED_CURRENT_WORK}"),
+        _check(
+            "status_authorizes_smoke_preflight_plan",
+            _status_authorizes_this_or_same_gate_rerun(status_text),
+            _latest_v16_status_block(status_text),
+            f"next_work_target={AUTHORIZED_CURRENT_WORK} or same-gate rerun",
+        ),
         _contains("audit_records_adapter_plan_static_review", v16_text, f"current_v16_status={SOURCE_REVIEW_MODULE.READY_STATUS}"),
-        _contains("status_records_adapter_plan_static_review", status_text, f"current_v16_status={SOURCE_REVIEW_MODULE.READY_STATUS}"),
+        _check(
+            "status_records_adapter_plan_static_review",
+            _records_source_static_review(status_text),
+            _latest_v16_status_block(status_text),
+            "source static-review status or artifact reference",
+        ),
         _expect("smoke_min_records", plan["records"]["min_records"], 100),
         _expect("smoke_max_records", plan["records"]["max_records"], 1000),
         _expect("smoke_k", plan["candidate_generation"]["k"], 8),
@@ -225,6 +235,29 @@ def _source_smoke_records(smoke_contract: dict[str, Any]) -> tuple[str, ...]:
     if smoke_contract.get("must_record_candidate_tensor_shape_hash") is True:
         return MUST_RECORD
     return ()
+
+
+def _status_authorizes_this_or_same_gate_rerun(text: str) -> bool:
+    return f"next_work_target={AUTHORIZED_CURRENT_WORK}" in text or (
+        f"current_v16_status={READY_STATUS}" in text
+        and f"next_work_target={AUTHORIZED_NEXT_WORK}" in text
+    )
+
+
+def _records_source_static_review(text: str) -> bool:
+    return (
+        f"current_v16_status={SOURCE_REVIEW_MODULE.READY_STATUS}" in text
+        or "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_static_review" in text
+    )
+
+
+def _latest_v16_status_block(text: str) -> str:
+    lines = [
+        line
+        for line in text.splitlines()
+        if line.startswith(("current_v16_status=", "next_work_target="))
+    ]
+    return ";".join(lines[-2:])
 
 
 def write_outputs(output_dir: Path, report: dict[str, Any]) -> None:
