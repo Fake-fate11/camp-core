@@ -12,6 +12,17 @@ SCRIPT_PATH = (
     / "execute_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation.py"
 )
 HEAD = "0cef62e13be3b62602277118d9eb51ab5b4ef78d"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_candidates_"
+    "mini_train_d799ada8_20260708T013202CST"
+)
+JSON_SHA = "65a416dc0a7ce0fdcf4e568380687ff65c289782551a0256a570d5a0268dddbe"
+MD_SHA = "239ffe278c5abf2598604314b3fd09d262378133432597ed8f08dbe54f1c93a4"
+RECORDS_JSONL_SHA = "890bf586e68fd0e21e278c07cb77dfd4cddb7be24b0b85154b81adab358969a1"
+SHA256SUMS_SHA = "03425fdd1b79026166f381e255445a2db6e6ebd5fc33a909f5ac4daf0e70897b"
+ROOT_SHA = "57779ea5d6aa2d9f1e7a5962cbbd551238ec1500136bd82e972714d479da7432"
+ROOT_SHA256SUMS_SHA = "ff05c972f9ab9f492e698a5776b6cf1c49c64ef44cd65a8a56045e0bb151fac3"
 
 
 def _load_module():
@@ -53,6 +64,28 @@ def test_v16_candidate_tensor_pilot_generation_execution_maps_mini_train_split()
 
     assert module._trajdata_split("mini_train") == "nusc_mini-mini_train"
     assert module._trajdata_split("mini_val") == "nusc_mini-mini_val"
+
+
+def test_v16_candidate_tensor_pilot_generation_execution_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    assert f"current_v16_status={module.READY_STATUS}" in audit
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in audit
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_execution_records=1024" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_execution_k=8" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_execution_candidate_count=8" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_execution_split=mini_train" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_execution_failed_checks=[]" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert RECORDS_JSONL_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module) -> dict:
