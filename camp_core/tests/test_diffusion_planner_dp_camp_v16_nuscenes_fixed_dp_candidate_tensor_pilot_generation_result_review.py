@@ -14,6 +14,18 @@ SCRIPT_PATH = (
 )
 HEAD = "d20cf7d1596759df3f681b4da451fea46646ed32"
 SOURCE_ROOT_SHA = "57779ea5d6aa2d9f1e7a5962cbbd551238ec1500136bd82e972714d479da7432"
+REVIEW_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_"
+    "9152f8d4_20260708T031326CST"
+)
+REVIEW_CAMP_HEAD = "9152f8d4b1b86857355f960999147fa4b5d5649b"
+SOURCE_CAMP_HEAD = "d799ada87f9ac384f08c978c40282771e024a9d2"
+REVIEW_JSON_SHA = "65909eba2e5d8a6ccd30eba6fa31a34b0aebfca3bb0f917e84f42c1b45c7da11"
+REVIEW_MD_SHA = "9e306770f6cd6aa0ca82efba5a053e1e95c84494931a12f98b612f65a50c3797"
+REVIEW_SHA256SUMS_SHA = "2b52f7238c0b2ae0d48ef44c6721cb37c800c73989a6ec853c8752c18af9ba80"
+REVIEW_ROOT_SHA = "bcb25cbc189c274845d94bc7963c683fd88c523be8243356f37481bae933d99e"
+REVIEW_ROOT_SHA256SUMS_SHA = "18fe845a513a2cf3674879aee58e11433093f08b23f6848acafcc0a097f0b897"
 
 
 def _load_module():
@@ -44,6 +56,34 @@ def test_v16_pilot_generation_result_review_passes_1024_records(tmp_path: Path) 
     assert (fixture["output_dir"] / module.REVIEW_JSON_NAME).is_file()
     assert (fixture["output_dir"] / module.REVIEW_MD_NAME).is_file()
     assert (fixture["output_dir"] / "SHA256SUMS").is_file()
+
+
+def test_v16_pilot_generation_result_review_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (audit, status):
+        assert REVIEW_ARTIFACT in text
+        assert f"current_v16_status={module.READY_STATUS}" in text
+        assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_check_count=59" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_records=1024" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_k=[8]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_candidate_count=[8]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_failed_checks=[]" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_camp_head={REVIEW_CAMP_HEAD}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_result_review_source_camp_head={SOURCE_CAMP_HEAD}" in text
+        assert REVIEW_JSON_SHA in text
+        assert REVIEW_MD_SHA in text
+        assert REVIEW_SHA256SUMS_SHA in text
+        assert REVIEW_ROOT_SHA in text
+        assert REVIEW_ROOT_SHA256SUMS_SHA in text
+        assert SOURCE_ROOT_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module) -> dict:
