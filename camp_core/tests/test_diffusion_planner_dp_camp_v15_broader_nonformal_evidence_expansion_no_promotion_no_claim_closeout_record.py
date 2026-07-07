@@ -38,6 +38,7 @@ def test_v15_no_promotion_no_claim_closeout_record_passes(tmp_path: Path) -> Non
     decision = report["final_decision"]
     assert decision["passed"] is True
     assert decision["status"] == module.READY_STATUS
+    assert decision["check_count"] == len(report["closeout_checks"])
     assert decision["authorized_next_work"] == module.AUTHORIZED_NEXT_WORK
     assert decision["closeout_recorded"] is True
     assert decision["no_further_action_recommended"] is True
@@ -126,7 +127,10 @@ def _write_fixture(
         ]
     )
     v15_audit = _write(docs / "diffusion_planner_v15_iteration_audit.md", doc_text)
-    current_status = _write(docs / "diffusion_planner_current_status.md", doc_text)
+    current_status = _write(
+        docs / "diffusion_planner_current_status.md",
+        doc_text + "\n# historical v14 tail\nnext_work_target=old_v14_tail\n",
+    )
 
     source_artifact = tmp_path / "source_result_review"
     source_artifact.mkdir()

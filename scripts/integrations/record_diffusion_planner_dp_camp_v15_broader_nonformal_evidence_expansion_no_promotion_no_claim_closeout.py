@@ -153,7 +153,11 @@ def build_report(
             "source_result_review_summary": _source_result_review_summary(source_review),
             "closeout_summary": _closeout_summary(source_review),
             "closeout_checks": checks,
-            "final_decision": _decision(failed=failed, source_review=source_review),
+            "final_decision": _decision(
+                failed=failed,
+                check_count=len(checks),
+                source_review=source_review,
+            ),
         }
     )
 
@@ -194,9 +198,17 @@ def _checks(
         _expect("source_result_review_run_exit", run_exit, "0"),
         _expect("source_artifact_dp_head_fixed", _kv(heads, "DP_HEAD", "dp_head"), required_dp_head),
         _expect("audit_latest_status", _latest_value(v15_text, "current_v15_status"), SOURCE_REVIEW_STATUS),
-        _expect("audit_latest_next_work", _latest_value(v15_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
+        _expect(
+            "audit_latest_next_work",
+            _next_work_after_latest_status(v15_text, "current_v15_status"),
+            AUTHORIZED_CURRENT_WORK,
+        ),
         _expect("status_doc_latest_status", _latest_value(status_text, "current_v15_status"), SOURCE_REVIEW_STATUS),
-        _expect("status_doc_latest_next_work", _latest_value(status_text, "next_work_target"), AUTHORIZED_CURRENT_WORK),
+        _expect(
+            "status_doc_latest_next_work",
+            _next_work_after_latest_status(status_text, "current_v15_status"),
+            AUTHORIZED_CURRENT_WORK,
+        ),
         _expect("source_result_review_schema", source_review.get("schema_version"), SOURCE_REVIEW_SCHEMA),
         _expect("source_result_review_passed", decision.get("passed"), True),
         _expect("source_result_review_status", decision.get("status"), SOURCE_REVIEW_STATUS),
@@ -222,7 +234,7 @@ def _checks(
     return checks
 
 
-def _decision(*, failed: list[str], source_review: dict[str, Any]) -> dict[str, Any]:
+def _decision(*, failed: list[str], check_count: int, source_review: dict[str, Any]) -> dict[str, Any]:
     source_decision = _dict(source_review.get("final_decision"))
     passed = not failed
     if passed:
@@ -242,7 +254,7 @@ def _decision(*, failed: list[str], source_review: dict[str, Any]) -> dict[str, 
         "status": READY_STATUS if passed else REJECT_STATUS,
         "failure_class": failure_class,
         "failed_checks": failed,
-        "check_count": len(failed) if failed else 0,
+        "check_count": check_count,
         "authorized_current_work": AUTHORIZED_CURRENT_WORK,
         "authorized_next_work": AUTHORIZED_NEXT_WORK if passed else None,
         "closeout_recorded": passed,
@@ -386,6 +398,21 @@ def _latest_value(text: str, key: str) -> str | None:
     if token not in text:
         return None
     return text.rsplit(token, maxsplit=1)[1].splitlines()[0]
+
+
+def _next_work_after_latest_status(text: str, status_key: str) -> str | None:
+    token = f"{status_key}="
+    start = text.rfind(token)
+    if start < 0:
+        return None
+    return _first_value(text[start:], "next_work_target")
+
+
+def _first_value(text: str, key: str) -> str | None:
+    token = f"{key}="
+    if token not in text:
+        return None
+    return text.split(token, maxsplit=1)[1].splitlines()[0]
 
 
 def _kv(values: dict[str, str], *keys: str) -> str | None:
