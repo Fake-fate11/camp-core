@@ -89,8 +89,7 @@ def test_v16_nuscenes_adapter_plan_static_review_is_recorded() -> None:
 
     assert f"current_v16_status={module.READY_STATUS}" in audit_text
     assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in audit_text
-    assert f"current_v16_status={module.READY_STATUS}" in status_text
-    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status_text
+    assert "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_static_review" in status_text
 
 
 def _write_fixture(
