@@ -127,6 +127,8 @@ def build_report(
         _contains("status_records_adapter_plan_static_review", status_text, f"current_v16_status={SOURCE_REVIEW_MODULE.READY_STATUS}"),
         _expect("smoke_min_records", plan["records"]["min_records"], 100),
         _expect("smoke_max_records", plan["records"]["max_records"], 1000),
+        _expect("smoke_k", plan["candidate_generation"]["k"], 8),
+        _expect("smoke_candidate_count", plan["candidate_generation"]["candidate_count"], 8),
         _expect("smoke_blocks_training", plan["blocked_until_smoke_passes"]["train_camp"], True),
     ]
     for name in (
@@ -189,6 +191,11 @@ def build_report(
 def _smoke_preflight_plan() -> dict[str, Any]:
     return {
         "records": {"min_records": 100, "max_records": 1000},
+        "candidate_generation": {
+            "k": 8,
+            "candidate_count": 8,
+            "k16_ablation_only_after_k8_passes": True,
+        },
         "must_record": MUST_RECORD,
         "must_verify": (
             "fixed_dp_head",

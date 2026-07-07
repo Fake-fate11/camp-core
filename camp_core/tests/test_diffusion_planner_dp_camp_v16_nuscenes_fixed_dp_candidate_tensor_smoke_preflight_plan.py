@@ -39,6 +39,8 @@ def test_v16_nuscenes_smoke_preflight_plan_passes(tmp_path: Path) -> None:
     assert decision["paired_evaluation_executed"] is False
     assert report["smoke_preflight_plan"]["records"]["min_records"] == 100
     assert report["smoke_preflight_plan"]["records"]["max_records"] == 1000
+    assert report["smoke_preflight_plan"]["candidate_generation"]["k"] == 8
+    assert report["smoke_preflight_plan"]["candidate_generation"]["candidate_count"] == 8
     assert "candidate_tensor_sha256" in report["smoke_preflight_plan"]["must_record"]
     assert "camp_atom_table_sha256" in report["smoke_preflight_plan"]["must_record"]
     assert report["smoke_preflight_plan"]["blocked_until_smoke_passes"]["train_camp"] is True
