@@ -209,34 +209,28 @@ def export_candidate_tensor(
     noise_scale: float = 1.0,
     seed: int = 3407,
     device: str = "cuda",
+    context: dict[str, Any] | None = None,
 ) -> np.ndarray:
     if k != EXPECTED_K:
         raise ValueError("K must be 8 for v16 fixed-DP candidate tensor export")
     for path in (dp_repo, input_npz, checkpoint, args_json):
         if not path.exists():
             raise FileNotFoundError(path)
-    sys.path[:0] = [
-        str(dp_repo),
-        str(dp_repo / "diffusion_planner"),
-    ]
-    import torch
-    from diffusion_planner.model.diffusion_planner import Diffusion_Planner
-    from diffusion_planner.train_epoch import heading_to_cos_sin
-    from diffusion_planner.utils.config import Config
-    from guidance_gui.generate_samples import generate_samples
-
+    context = context or load_fixed_dp_export_context(
+        dp_repo=dp_repo,
+        checkpoint=checkpoint,
+        args_json=args_json,
+        device=device,
+    )
+    torch = context["torch"]
+    torch_device = context["device"]
+    config = context["config"]
+    model = context["model"]
+    heading_to_cos_sin = context["heading_to_cos_sin"]
+    generate_samples = context["generate_samples"]
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch_device = torch.device(device)
-    config = Config(str(args_json))
-    model = Diffusion_Planner(config).to(torch_device)
-    checkpoint_payload = torch.load(checkpoint, map_location=torch_device)
-    state = checkpoint_payload.get("model", checkpoint_payload)
-    state = {key.removeprefix("module."): value for key, value in state.items()}
-    model.load_state_dict(state, strict=False)
-    model.eval()
-
     data = _load_dp_input_tensors(input_npz, torch_device)
     data["ego_agent_past"] = heading_to_cos_sin(data["ego_agent_past"])
     data["goal_pose"] = heading_to_cos_sin(data["goal_pose"])
@@ -274,6 +268,44 @@ def export_candidate_tensor(
         input_npz=np.array(str(input_npz)),
     )
     return candidate_tensor
+
+
+def load_fixed_dp_export_context(
+    *,
+    dp_repo: Path,
+    checkpoint: Path,
+    args_json: Path,
+    device: str = "cuda",
+) -> dict[str, Any]:
+    for path in (dp_repo, checkpoint, args_json):
+        if not path.exists():
+            raise FileNotFoundError(path)
+    sys.path[:0] = [
+        str(dp_repo),
+        str(dp_repo / "diffusion_planner"),
+    ]
+    import torch
+    from diffusion_planner.model.diffusion_planner import Diffusion_Planner
+    from diffusion_planner.train_epoch import heading_to_cos_sin
+    from diffusion_planner.utils.config import Config
+    from guidance_gui.generate_samples import generate_samples
+
+    torch_device = torch.device(device)
+    config = Config(str(args_json))
+    model = Diffusion_Planner(config).to(torch_device)
+    checkpoint_payload = torch.load(checkpoint, map_location=torch_device)
+    state = checkpoint_payload.get("model", checkpoint_payload)
+    state = {key.removeprefix("module."): value for key, value in state.items()}
+    model.load_state_dict(state, strict=False)
+    model.eval()
+    return {
+        "torch": torch,
+        "device": torch_device,
+        "config": config,
+        "model": model,
+        "heading_to_cos_sin": heading_to_cos_sin,
+        "generate_samples": generate_samples,
+    }
 
 
 def build_candidate_record(
