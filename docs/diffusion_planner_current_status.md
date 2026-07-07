@@ -241,11 +241,31 @@ JSON / MD / root SHA256SUMS SHA256:
 `3e311ae6b16ddb9d22fe720d17893165b4c5155633a08ec91bbb610e35779321`,
 `7f2f84bbda6ae6ad5fb5a102aa0ccb15ec68094f7e474bcb85e12f11b1a1d183`
 
+The latest v15 paired-evaluation preflight artifact passed on AutoDL with
+CAMP synchronized at
+`7bdb9f30ea3cd0973caab4d51f1e171cbe04fbdd` and DP fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`:
+
+`/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_7bdb9f30ea_20260707T115932CST`
+
+Preflight checks / failed checks:
+`40 / 0`
+
+Preflight executed / paired evaluation executed:
+`True / False`
+
+JSON / MD / timing JSON / timing MD / root SHA256SUMS SHA256:
+`7a01a0be03fbd2fa1b001aef888ba4be8071ea1bc8e61d583b2ea411cc0e8cde`,
+`c9d73cd70179a5732a500667e93ed5492af3e2e01f8d476cdd7c548339579864`,
+`4116c4fcf891810849534842a5a06b05e472f06adb8605872ad0996553da0a11`,
+`a479e1104a79497dc78af14b1cd3e3e989467896e44262003d7e8e9143f8fa2c`,
+`a25eaf4102e60a2383c1e9934e7c01dc39d0148ab34407952633a63385fe041f`
+
 ```text
-current_v15_status=v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_plan_static_review_passed
-current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_plan_static_review
-current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_plan_static_review_3db5e03487_20260707T115346CST
-next_work_target=v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_only
+current_v15_status=v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_ready
+current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight
+current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_7bdb9f30ea_20260707T115932CST
+next_work_target=v15_broader_nonformal_evidence_expansion_paired_evaluation_preflight_static_review_only
 ```
 
 ## Sealed V14 Authority
