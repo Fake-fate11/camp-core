@@ -49,11 +49,26 @@ JSON / MD / record SHA256SUMS / root SHA256SUMS SHA256:
 `b5797c8b22dc3ed95e9b954d167d1f8cc4b8040056709b2ce7037c358452f0bb`,
 `3a0d3c2dcff7a42acc3a500ab35473b9bdc63295f9f7411ab740d5055befcf91`
 
+The latest v16 source-inventory static-review artifact passed on AutoDL with
+CAMP synchronized at `78ed41ed01a2823c42fc39c076050a03ee2eb1e0` and DP fixed
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`:
+
+`/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_static_review_78ed41ed01_20260707T152152CST`
+
+Static-review checks / failed checks:
+`53 / 0`
+
+Static-review JSON / MD / record SHA256SUMS / root SHA256SUMS SHA256:
+`7d7d6de12abc496cb53523e4102df2181022e63138090b163b25b9fcfd6b03c1`,
+`44f657acd87d348683b83ab024e5fb3156353f15c4cf62ea2f167491eaed1bb9`,
+`58fd433d2a6addd9b6798d39b8f008cdfa9dbca1915c63ada75866a69017b094`,
+`ce2e3f70ccc2a8b84af22d46bddd30045f38672d7a4014c15ea2bf3dc17be4ab`
+
 ```text
-current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_preflight_ready
-current_v16_artifact_scope=v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_preflight
-current_v16_artifact=/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_preflight_e8fb15e4cb_20260707T151143CST
-next_work_target=v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_static_review_only
+current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_static_review_passed
+current_v16_artifact_scope=v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_static_review
+current_v16_artifact=/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_source_inventory_static_review_78ed41ed01_20260707T152152CST
+next_work_target=v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_only
 ```
 
 ## Current V15 Status

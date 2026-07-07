@@ -83,6 +83,21 @@ def test_v16_nuscenes_source_inventory_static_review_rejects_wrong_eof(tmp_path:
     assert "status_authorizes_static_review" in report["final_decision"]["failed_checks"]
 
 
+def test_v16_nuscenes_source_inventory_static_review_is_recorded() -> None:
+    module = _load_module()
+    audit_text = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status_text = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert f"current_v16_status={module.READY_STATUS}" in audit_text
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in audit_text
+    assert f"current_v16_status={module.READY_STATUS}" in status_text
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status_text
+
+
 def _write_fixture(
     tmp_path: Path,
     module,
