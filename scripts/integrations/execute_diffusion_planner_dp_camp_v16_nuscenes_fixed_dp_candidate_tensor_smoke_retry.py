@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -31,9 +32,6 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_ca
     AUTHORIZED_NEXT_WORK as REMEDIATION_NEXT_WORK,
     EXPECTED_K,
     FIXED_DP_HEAD,
-    build_candidate_record,
-    export_candidate_tensor,
-    load_fixed_dp_export_context,
     validate_exported_npz,
 )
 
@@ -66,6 +64,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--noise_scale", type=float, default=1.0)
     parser.add_argument("--seed", type=int, default=3407)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--export_python", default=sys.executable)
     parser.add_argument("--split", default="mini_val")
     return parser.parse_args(argv)
 
@@ -78,12 +77,6 @@ def main(argv: list[str] | None = None) -> int:
     try:
         args.output_dir.mkdir(parents=True, exist_ok=True)
         _preflight_or_raise(args, report)
-        context = load_fixed_dp_export_context(
-            dp_repo=args.dp_repo,
-            checkpoint=args.checkpoint,
-            args_json=args.args_json,
-            device=args.device,
-        )
         bridge = NuscenesTrajdataBridge(
             NuscenesDatasetConfig(
                 data_root=str(args.metadata_root),
@@ -105,7 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         for index, batch in enumerate(bridge.make_dataloader()):
             if index >= args.target_records:
                 break
-            record = _run_one(args, context, batch, index)
+            record = _run_one(args, batch, index)
             _append_jsonl(records_path, record)
             report["records"].append(record)
             if (index + 1) % 16 == 0:
@@ -132,50 +125,72 @@ def main(argv: list[str] | None = None) -> int:
     return 0 if report["final_decision"]["passed"] else 1
 
 
-def _run_one(args: argparse.Namespace, context: dict[str, Any], batch: Any, index: int) -> dict[str, Any]:
+def _run_one(args: argparse.Namespace, batch: Any, index: int) -> dict[str, Any]:
     inputs_dir = args.output_dir / "inputs"
     candidates_dir = args.output_dir / "candidates"
+    reports_dir = args.output_dir / "record_reports"
     input_npz = inputs_dir / f"dp_input_{index:06d}.npz"
     output_npz = candidates_dir / f"candidate_tensor_{index:06d}.npz"
+    report_json = reports_dir / f"record_{index:06d}.json"
+    report_md = reports_dir / f"record_{index:06d}.md"
     data = dp_input_from_agent_batch(batch, metadata_root=args.metadata_root)
     errors = validate_dp_input(data)
     if errors:
         raise ValueError(f"input_schema:{index}:{';'.join(errors)}")
     input_npz.parent.mkdir(parents=True, exist_ok=True)
     np.savez(input_npz, **data)
+    meta = _batch_meta(batch, index)
     command = [
-        "export_candidate_tensor",
-        f"--input_npz={input_npz}",
-        f"--output_npz={output_npz}",
-        f"--k={args.k}",
-        f"--seed={args.seed + index}",
+        args.export_python,
+        str(ROOT / "scripts" / "integrations" / "run_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_candidate_tensor_exporter.py"),
+        "--dp_repo",
+        str(args.dp_repo),
+        "--input_npz",
+        str(input_npz),
+        "--checkpoint",
+        str(args.checkpoint),
+        "--args_json",
+        str(args.args_json),
+        "--output_npz",
+        str(output_npz),
+        "--v16_audit_md",
+        str(args.v16_audit_md),
+        "--current_status_md",
+        str(args.current_status_md),
+        "--current_camp_head",
+        args.current_camp_head,
+        "--current_camp_origin_main",
+        args.current_camp_origin_main,
+        "--current_dp_head",
+        args.current_dp_head,
+        "--required_dp_head",
+        FIXED_DP_HEAD,
+        "--k",
+        str(args.k),
+        "--noise_scale",
+        str(args.noise_scale),
+        "--seed",
+        str(args.seed + index),
+        "--device",
+        args.device,
+        "--split",
+        args.split,
+        "--scene_id",
+        meta["scene_id"],
+        "--sample_id",
+        meta["sample_id"],
+        "--report_json",
+        str(report_json),
+        "--report_md",
+        str(report_md),
+        "--execute",
     ]
     started = time.time()
-    tensor = export_candidate_tensor(
-        dp_repo=args.dp_repo,
-        input_npz=input_npz,
-        checkpoint=args.checkpoint,
-        args_json=args.args_json,
-        output_npz=output_npz,
-        k=args.k,
-        noise_scale=args.noise_scale,
-        seed=args.seed + index,
-        device=args.device,
-        context=context,
-    )
+    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
     elapsed = round(time.time() - started, 6)
-    meta = _batch_meta(batch, index)
-    record = build_candidate_record(
-        input_npz=input_npz,
-        candidate_tensor=tensor,
-        camp_head=args.current_camp_head,
-        dp_head=args.current_dp_head,
-        split=args.split,
-        scene_id=meta["scene_id"],
-        sample_id=meta["sample_id"],
-        command=command,
-        wall_clock_seconds=elapsed,
-    )
+    if result.returncode != 0:
+        raise RuntimeError(f"exporter:{index}:exit={result.returncode}:{result.stderr[-500:]}")
+    record = json.loads(report_json.read_text(encoding="utf-8"))["exported_candidate"]
     validation = validate_exported_npz(output_npz, expected_k=args.k)
     if not validation["passed"]:
         raise RuntimeError(f"export_validation:{index}:{validation['failed_checks']}")
@@ -188,9 +203,10 @@ def _run_one(args: argparse.Namespace, context: dict[str, Any], batch: Any, inde
             "candidate_npz": str(output_npz),
             "candidate_npz_sha256": _sha256(output_npz),
             "exporter_command": command,
-            "exporter_exit": 0,
-            "exporter_stdout": "",
-            "exporter_stderr": "",
+            "exporter_exit": result.returncode,
+            "exporter_stdout": result.stdout,
+            "exporter_stderr": result.stderr,
+            "wall_clock_seconds": elapsed,
         }
     )
     return _stable(record)
