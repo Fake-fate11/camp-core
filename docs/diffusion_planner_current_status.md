@@ -1,13 +1,36 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-06, Asia/Shanghai.
+Last verified: 2026-07-07, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
-new writes is `docs/diffusion_planner_v14_iteration_audit.md`. The v13 audit is
-historical evidence and the v14 rollover source; do not keep appending current
+new writes is `docs/diffusion_planner_v15_iteration_audit.md`. The v14 audit,
+`docs/diffusion_planner_v14_iteration_audit.md`, is sealed evidence for the
+completed fixed-DP integration scope; v14 is sealed evidence, and do not append
+new v15 targets to v14 unless the entry only cites v14 final evidence. The v13
+audit is historical evidence and the v14 rollover source; do not keep appending current
 work to v13.
 
-## Current Authority
+## Current V15 Status
+
+V15 starts a broader non-formal evidence expansion round over the fixed TiERIV
+Diffusion Planner candidate tensor boundary. V14 is sealed evidence: the final
+closeout recorded `auditable_integration_complete=True`,
+`no_further_action_recommended=True`, fixed-DP integration scope, fail-closed
+fallback to DP Top-1, no DP modification, and no candidate/trajectory mutation.
+
+The first v15 gate is registered as
+`v15_broader_nonformal_evidence_expansion_plan_preflight`. It is plan-only and
+does not run Full36, formal seeds `11/12/13`, training, paired evaluation,
+candidate generation, DP modification, candidate tensor mutation, trajectory
+mutation, reference blending, guidance, postprocess, or postselection.
+
+```text
+current_v15_status=v15_broader_nonformal_evidence_expansion_plan_preflight_ready
+current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_plan_preflight
+next_work_target=v15_broader_nonformal_evidence_expansion_plan_preflight_static_review_only
+```
+
+## Sealed V14 Authority
 
 - The latest source reclassification audit executed at
   `88fd3cac6722aedfd4ca13b41f904b4a3331c219`.
