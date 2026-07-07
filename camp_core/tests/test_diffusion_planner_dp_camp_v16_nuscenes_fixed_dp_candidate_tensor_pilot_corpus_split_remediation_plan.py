@@ -20,6 +20,16 @@ BLOCKER_ARTIFACT = (
     "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_blocker_"
     "scene_granularity_15ca0298_20260708T034152CST"
 )
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_"
+    "f6b41dae_20260708T074614CST"
+)
+REMEDIATION_CAMP_HEAD = "f6b41dae59861b1058fd10e7471b31b68b31eb14"
+JSON_SHA = "fafe28ade61b740d11ac1cc02d21649db333fdb666927e4115277b114cbfb6c3"
+MD_SHA = "5913b13ef8e3b8ea74439e790b8ce71a28fe2769e87b94c8b7758a2814063532"
+SHA256SUMS_SHA = "0a56b12cc11549868337decf07ae3c1af497a8c04c2c9880f25e5683af897111"
+ROOT_SHA256SUMS_SHA = "a5dd6b1e48ddaeed4762b45bff98c3f721a92441d2983a3f5034e63c4a8f41c1"
 
 
 def _load_module():
@@ -89,6 +99,44 @@ def test_v16_pilot_corpus_split_remediation_rejects_wrong_eof(tmp_path: Path) ->
 
     assert report["final_decision"]["passed"] is False
     assert "audit_authorizes_split_remediation" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_corpus_split_remediation_plan_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_camp_head={REMEDIATION_CAMP_HEAD}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_check_count=38" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_failed_checks=[]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_split_policy=scene_level_greedy_imbalance_tolerant_smoke_split" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_train_scenes=[\"scene-0553\",\"scene-0655\"]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_calibration_scenes=[\"scene-0061\"]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_holdout_scenes=[\"scene-0757\"]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_train_records=863" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_calibration_records=14" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_holdout_records=147" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_record_level_split_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_scene_zero_overlap=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_minimum_scene_count_before_ratio_tracking=30" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module, next_work: str | None = None) -> dict:
