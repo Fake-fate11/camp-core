@@ -405,7 +405,7 @@ def _as_numpy(value: Any) -> np.ndarray:
 
 
 def _state_to_xyh(states: np.ndarray, target_len: int) -> np.ndarray:
-    states = np.asarray(states, dtype=np.float32)
+    states = np.nan_to_num(np.asarray(states, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)
     xy = states[:, :2]
     if states.shape[1] >= 8:
         heading = np.arctan2(states[:, 6], states[:, 7])
@@ -417,6 +417,7 @@ def _state_to_xyh(states: np.ndarray, target_len: int) -> np.ndarray:
 
 
 def _resample(values: np.ndarray, target_len: int) -> np.ndarray:
+    values = np.nan_to_num(np.asarray(values, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)
     if values.shape[0] == target_len:
         return values.astype(np.float32)
     if values.shape[0] == 0:

@@ -79,6 +79,23 @@ def test_v16_nuscenes_smoke_blocker_resolution_rejects_wrong_eof(tmp_path: Path)
     assert "status_authorizes_blocker_resolution" in report["final_decision"]["failed_checks"]
 
 
+def test_v16_nuscenes_smoke_blocker_resolution_sanitizes_nan_state_padding() -> None:
+    module = _load_module()
+    states = np.array(
+        [
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+            [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            [2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+
+    materialized = module._state_to_xyh(states, 5)
+
+    assert materialized.shape == (5, 3)
+    assert np.isfinite(materialized).all()
+
+
 def _write_fixture(tmp_path: Path, module, *, next_work: str | None = None) -> dict:
     docs = tmp_path / "docs"
     docs.mkdir()
