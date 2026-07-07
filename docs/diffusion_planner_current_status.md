@@ -151,6 +151,9 @@ Smoke preflight JSON / MD / record SHA256SUMS / root SHA256SUMS SHA256:
 `541ccd07ae7252db6d96b3e84bf34ec90c2c2cdf4bc6ee1b7ce34e78268ad7ff`,
 `948b983fda112c78275795acfdc91591e469ec92544f65890d858f7be9f1e0a4`
 
+The smoke preflight record remains
+`current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_ready`.
+
 The v16 smoke execution gate stopped before fixed-DP candidate generation on
 AutoDL because the public nuScenes root currently exposes the required
 nuScenes tables as archives, not extracted `v1.0-mini` / `v1.0-trainval`
