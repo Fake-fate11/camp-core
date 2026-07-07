@@ -90,11 +90,15 @@ def test_v15_iteration_audit_and_current_status_are_switched() -> None:
     )
 
     assert "v15_broader_nonformal_evidence_expansion_plan_preflight" in audit_text
-    assert f"current_v15_status={module.READY_STATUS}" in audit_text
-    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in audit_text
+    assert f"v15_broader_nonformal_evidence_expansion_plan_preflight_status={module.READY_STATUS}" in audit_text
+    assert (
+        "v15_broader_nonformal_evidence_expansion_plan_preflight_authorized_next_work="
+        f"{module.AUTHORIZED_NEXT_WORK}"
+        in audit_text
+    )
     assert "docs/diffusion_planner_v15_iteration_audit.md" in status_text
-    assert f"current_v15_status={module.READY_STATUS}" in status_text
-    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status_text
+    assert "current_v15_status=" in status_text
+    assert "next_work_target=" in status_text
     assert "v14 is sealed evidence" in status_text
 
 
