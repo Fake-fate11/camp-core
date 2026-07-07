@@ -31,6 +31,7 @@ AUTHORIZED_CURRENT_WORK = (
     "v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_runner_remediation_only"
 )
 AUTHORIZED_NEXT_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_only"
+AUTHORIZED_RETRY_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_only"
 READY_STATUS = "v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_runner_remediation_ready"
 REJECT_STATUS = "v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_runner_remediation_rejected"
 SCHEMA_VERSION = (
@@ -155,8 +156,8 @@ def build_report(
         _expect("input_npz_schema_valid", input_status["schema_errors"], []),
         _expect("native_sampling_entrypoint_available", (dp_repo / NATIVE_SAMPLING_ENTRYPOINT).is_file(), True),
         _expect("top1_entrypoint_available_for_contract_comparison", (dp_repo / TOP1_ENTRYPOINT).is_file(), True),
-        _contains("audit_authorizes_remediation", audit_text, f"next_work_target={AUTHORIZED_CURRENT_WORK}"),
-        _contains("status_authorizes_remediation", status_text, f"next_work_target={AUTHORIZED_CURRENT_WORK}"),
+        _contains_any("audit_authorizes_exporter", audit_text, _authorized_needles()),
+        _contains_any("status_authorizes_exporter", status_text, _authorized_needles()),
     ]
     failed = [check["name"] for check in checks if not check["passed"]]
     passed = not failed
@@ -480,6 +481,18 @@ def _read_text(path: Path) -> str:
 
 def _contains(name: str, text: str, needle: str) -> dict[str, Any]:
     return _check(name, needle in text, "present" if needle in text else "missing", needle)
+
+
+def _contains_any(name: str, text: str, needles: Sequence[str]) -> dict[str, Any]:
+    matched = [needle for needle in needles if needle in text]
+    return _check(name, bool(matched), matched[0] if matched else "missing", list(needles))
+
+
+def _authorized_needles() -> tuple[str, str]:
+    return (
+        f"next_work_target={AUTHORIZED_CURRENT_WORK}",
+        f"next_work_target={AUTHORIZED_RETRY_WORK}",
+    )
 
 
 def _expect(name: str, actual: Any, expected: Any) -> dict[str, Any]:

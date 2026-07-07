@@ -49,6 +49,15 @@ def test_v16_candidate_tensor_exporter_rejects_dp_head_mismatch(tmp_path: Path) 
     assert "dp_head_fixed" in report["final_decision"]["failed_checks"]
 
 
+def test_v16_candidate_tensor_exporter_contract_accepts_retry_gate(tmp_path: Path) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, next_work=module.AUTHORIZED_RETRY_WORK)
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+
+
 def test_v16_candidate_tensor_exporter_rejects_k_not_8(tmp_path: Path) -> None:
     module = _load_module()
     fixture = _write_fixture(tmp_path, module)
@@ -123,7 +132,8 @@ def test_v16_candidate_tensor_exporter_provenance_fields_and_mutation_guard(tmp_
     assert mutation["candidate_tensor_unchanged_by_camp"] is False
 
 
-def _write_fixture(tmp_path: Path, module) -> dict:
+def _write_fixture(tmp_path: Path, module, next_work: str | None = None) -> dict:
+    next_work = next_work or module.AUTHORIZED_CURRENT_WORK
     dp_repo = tmp_path / "Diffusion-Planner"
     _write(dp_repo / "guidance_gui" / "generate_samples.py", "def generate_samples(): pass\n")
     _write(dp_repo / "diffusion_planner" / "valid_predictor.py", "# top1 exporter\n")
@@ -137,7 +147,7 @@ def _write_fixture(tmp_path: Path, module) -> dict:
         "\n".join(
             [
                 "current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_failed",
-                "next_work_target=v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_runner_remediation_only",
+                f"next_work_target={next_work}",
                 "",
             ]
         ),
