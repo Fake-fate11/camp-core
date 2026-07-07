@@ -88,20 +88,20 @@ def test_v15_paired_evaluation_execution_preflight_static_review_rejects_executi
     assert "source_paired_eval_not_executed" in report["final_decision"]["failed_checks"]
 
 
-def test_v15_paired_evaluation_execution_preflight_static_review_rejects_timing_leak(
+def test_v15_paired_evaluation_execution_preflight_static_review_rejects_timing_behavior_change(
     tmp_path: Path,
 ) -> None:
     module = _load_module()
     fixture = _write_fixture(
         tmp_path,
         module,
-        timing_updates={"selector_evaluation_executed_by_this_gate": True},
+        timing_updates={"instrumentation_changes_selector_behavior": True},
     )
 
     report = module.build_report(**fixture)
 
     assert report["final_decision"]["passed"] is False
-    assert "timing_selector_eval_not_executed" in report["final_decision"]["failed_checks"]
+    assert "timing_changes_selector_behavior" in report["final_decision"]["failed_checks"]
 
 
 def _write_fixture(
@@ -235,24 +235,9 @@ def _source_preflight_contract(module, timing: dict) -> dict:
 
 def _timing_payload() -> dict:
     return {
-        "timing_required": True,
-        "training_executed_by_this_gate": False,
-        "selector_evaluation_executed_by_this_gate": False,
         "instrumentation_changes_selector_behavior": False,
-        "offline_training_required_fields": [
-            "training_start_timestamp",
-            "training_end_timestamp",
-            "training_wall_clock_seconds",
-            "training_command",
-            "training_sample_count",
-            "training_artifact_sha256",
-            "training_model_sha256",
-            "training_config_sha256",
-            "training_log_sha256",
-        ],
         "online_selector_latency_required_fields": ["count", "mean", "median", "p95", "p99", "max"],
         "fallback_latency_required_fields": ["count", "mean", "median", "p95", "p99", "max"],
-        "gpu_model_required": False,
     }
 
 
