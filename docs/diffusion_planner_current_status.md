@@ -153,6 +153,8 @@ Smoke preflight JSON / MD / record SHA256SUMS / root SHA256SUMS SHA256:
 
 The smoke preflight record remains
 `current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_ready`.
+The smoke preflight authorized
+`next_work_target=v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_only`.
 
 The v16 smoke execution gate stopped before fixed-DP candidate generation on
 AutoDL because the public nuScenes root currently exposes the required
