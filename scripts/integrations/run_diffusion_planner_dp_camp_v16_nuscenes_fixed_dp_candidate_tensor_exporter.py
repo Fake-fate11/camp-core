@@ -241,6 +241,11 @@ def export_candidate_tensor(
     data["ego_agent_past"] = heading_to_cos_sin(data["ego_agent_past"])
     data["goal_pose"] = heading_to_cos_sin(data["goal_pose"])
     norm_data = config.observation_normalizer(data)
+    norm_data["delay"] = torch.zeros(
+        norm_data["ego_current_state"].shape[0],
+        dtype=torch.float32,
+        device=torch_device,
+    )
     top1 = generate_samples(
         model=model,
         model_args=config,
