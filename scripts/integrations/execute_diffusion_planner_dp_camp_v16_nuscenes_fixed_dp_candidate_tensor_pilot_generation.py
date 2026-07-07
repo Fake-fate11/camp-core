@@ -149,7 +149,7 @@ def build_report(
     export_python: str = sys.executable,
     split: str = "mini_val",
 ) -> dict[str, Any]:
-    del noise_scale, seed, device, export_python, split
+    del noise_scale, seed, device, export_python
     artifact_report = _source_artifacts(source_artifacts)
     checks = [
         _expect("camp_head_matches_origin", current_camp_head, current_camp_origin_main),
@@ -196,6 +196,8 @@ def build_report(
             "runner": {
                 "exporter": "scripts/integrations/run_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_candidate_tensor_exporter.py",
                 "target_records": target_records,
+                "split": split,
+                "trajdata_split": _trajdata_split(split),
                 "k": k,
                 "candidate_count": k if k == EXPECTED_K else 0,
                 "training_executed": False,
@@ -231,7 +233,7 @@ def _run_records(args: argparse.Namespace, report: dict[str, Any], records_path:
         NuscenesDatasetConfig(
             data_root=str(args.metadata_root),
             cache_dir=str(args.trajdata_cache_dir),
-            split="nusc_mini-mini_val",
+            split=_trajdata_split(args.split),
             batch_size=1,
             num_workers=0,
             shuffle=False,
@@ -255,6 +257,14 @@ def _run_records(args: argparse.Namespace, report: dict[str, Any], records_path:
             print(f"records_done={index + 1}", flush=True)
     if len(report["records"]) != args.target_records:
         raise RuntimeError(f"records:{len(report['records'])}!={args.target_records}")
+
+
+def _trajdata_split(split: str) -> str:
+    if split in {"mini_train", "mini_val"}:
+        return f"nusc_mini-{split}"
+    if split.startswith("nusc_"):
+        return split
+    return split
 
 
 def _failed_record_checks(records: list[dict[str, Any]], args: argparse.Namespace) -> list[str]:

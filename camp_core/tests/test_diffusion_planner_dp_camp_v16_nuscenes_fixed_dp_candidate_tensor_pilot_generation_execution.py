@@ -48,6 +48,13 @@ def test_v16_candidate_tensor_pilot_generation_execution_accepts_1024_gate(
     assert (fixture["output_dir"] / "SHA256SUMS").is_file()
 
 
+def test_v16_candidate_tensor_pilot_generation_execution_maps_mini_train_split() -> None:
+    module = _load_module()
+
+    assert module._trajdata_split("mini_train") == "nusc_mini-mini_train"
+    assert module._trajdata_split("mini_val") == "nusc_mini-mini_val"
+
+
 def _write_fixture(tmp_path: Path, module) -> dict:
     docs = tmp_path / "docs"
     doc_text = "\n".join(
