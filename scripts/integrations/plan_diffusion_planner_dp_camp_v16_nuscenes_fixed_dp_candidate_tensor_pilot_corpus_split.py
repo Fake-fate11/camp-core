@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -81,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
         expected_source_root_sha256=args.expected_source_root_sha256,
         enabled=args.enable_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan,
     )
-    report["command"] = vars(args)
+    report["command"] = sys.argv
     write_outputs(args.output_dir, report)
     print(json.dumps(report["final_decision"], indent=2, sort_keys=True))
     return 0 if report["final_decision"]["passed"] else 1

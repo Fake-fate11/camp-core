@@ -68,6 +68,16 @@ def test_v16_pilot_corpus_split_plan_rejects_wrong_eof(tmp_path: Path) -> None:
     assert "audit_authorizes_split_plan" in report["final_decision"]["failed_checks"]
 
 
+def test_v16_pilot_corpus_split_plan_cli_writes_outputs(tmp_path: Path) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module)
+
+    assert module.main(_argv(fixture, module)) == 0
+    assert (fixture["output_dir"] / module.PLAN_JSON_NAME).is_file()
+    assert (fixture["output_dir"] / module.PLAN_MD_NAME).is_file()
+    assert (fixture["output_dir"] / "SHA256SUMS").is_file()
+
+
 def _write_fixture(tmp_path: Path, module, next_work: str | None = None) -> dict:
     artifact = tmp_path / "pilot_result_review"
     artifact.mkdir()
@@ -121,6 +131,34 @@ def _write_fixture(tmp_path: Path, module, next_work: str | None = None) -> dict
         "expected_source_root_sha256": SOURCE_ROOT_SHA,
         "enabled": True,
     }
+
+
+def _argv(fixture: dict, module) -> list[str]:
+    return [
+        "--source_result_review_artifact_dir",
+        str(fixture["source_result_review_artifact_dir"]),
+        "--source_result_review_json",
+        str(fixture["source_result_review_json"]),
+        "--source_result_review_sha256s",
+        str(fixture["source_result_review_sha256s"]),
+        "--source_result_review_root_sha256s",
+        str(fixture["source_result_review_root_sha256s"]),
+        "--v16_audit_md",
+        str(fixture["v16_audit_md"]),
+        "--current_status_md",
+        str(fixture["current_status_md"]),
+        "--output_dir",
+        str(fixture["output_dir"]),
+        "--current_camp_head",
+        fixture["current_camp_head"],
+        "--current_camp_origin_main",
+        fixture["current_camp_origin_main"],
+        "--current_dp_head",
+        module.FIXED_DP_HEAD,
+        "--expected_source_root_sha256",
+        fixture["expected_source_root_sha256"],
+        "--enable_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan",
+    ]
 
 
 def _source_payload(module, artifact: Path) -> dict:
