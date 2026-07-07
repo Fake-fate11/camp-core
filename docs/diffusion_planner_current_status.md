@@ -24,9 +24,19 @@ does not run Full36, formal seeds `11/12/13`, training, paired evaluation,
 candidate generation, DP modification, candidate tensor mutation, trajectory
 mutation, reference blending, guidance, postprocess, or postselection.
 
+The latest v15 preflight artifact passed on AutoDL with CAMP synchronized at
+`8316fba142b91067e5e3f83ab98f825ca161c7e2` and DP fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`:
+
+`/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_plan_preflight_8316fba142_20260707T094636CST`
+
+Root `SHA256SUMS` SHA256:
+`f2ac8bb32e6acbd6f81401c0ff5c2f267e9f5c08f0403e32f4a5aa8d604a03bc`
+
 ```text
 current_v15_status=v15_broader_nonformal_evidence_expansion_plan_preflight_ready
 current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_plan_preflight
+current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_plan_preflight_8316fba142_20260707T094636CST
 next_work_target=v15_broader_nonformal_evidence_expansion_plan_preflight_static_review_only
 ```
 
