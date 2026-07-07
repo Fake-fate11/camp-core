@@ -13,6 +13,22 @@ SCRIPT_PATH = (
     / "preflight_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation.py"
 )
 HEAD = "4b8b02d0baae4996c3b5604c076fe0f2237de1a8"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_preflight_"
+    "6803a93ce4_20260707T234051CST"
+)
+CANDIDATE_OUTPUT_ROOT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_candidates_"
+    "6803a93ce4_20260707T234051CST"
+)
+PLAN_ROOT_SHA = "0ca5ff5106f79a2faff9651f3c6c59f9fedc74f2c87db984f3d0fe78e806fff5"
+REVIEW_ROOT_SHA = "5ff9a9301567bdd1c6d3e222ff6ca3be46d1c7ac199095833851ddf76f96de33"
+JSON_SHA = "8c438c2a7379f70a52f7d56c32922d224a20990a55af2ad0ef2ac8c56ae815b2"
+MD_SHA = "fec4f2bebc4e5c83de021bd4d63568cdbbf46b898a148363122f0f076f93e9fc"
+SHA256SUMS_SHA = "c7231046a1084a1e20b61a3339cb5142eda5044390223d8725250981505a1af1"
+ROOT_SHA256SUMS_SHA = "abd611f0b99c45fd0aeed956ccafd5e4f95d5b95f20a2262c79cbde9beec1574"
 
 
 def _load_module():
@@ -94,6 +110,29 @@ def test_v16_candidate_tensor_pilot_generation_preflight_rejects_wrong_eof(
     assert report["final_decision"]["passed"] is False
     assert "audit_authorizes_pilot_preflight" in report["final_decision"]["failed_checks"]
     assert "status_authorizes_pilot_preflight" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_candidate_tensor_pilot_generation_preflight_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    assert f"current_v16_status={module.READY_STATUS}" in audit
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in audit
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert CANDIDATE_OUTPUT_ROOT in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_preflight_source_plan_root_sha256={PLAN_ROOT_SHA}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_preflight_source_review_root_sha256={REVIEW_ROOT_SHA}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_preflight_check_count=51" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_preflight_failed_checks=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_preflight_target_records=1024" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_preflight_k=8" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_preflight_candidate_count=8" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module, *, next_work: str | None = None) -> dict:
