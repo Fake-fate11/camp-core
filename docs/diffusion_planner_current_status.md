@@ -79,11 +79,26 @@ Adapter-plan JSON / MD / record SHA256SUMS / root SHA256SUMS SHA256:
 `a34c47f9d2eae36a4ff0755a8155d27a896226df0d93aa8874f3d0dabddaed6d`,
 `3dfbcbd8007c9915b5fb4cf76ff119bf460560559a1eef767c0724f7e9f0d748`
 
+The latest v16 adapter-plan static-review artifact passed on AutoDL with CAMP
+synchronized at `ee638a6050d7ecb20fbbdc52cc61bb4117a666ff` and DP fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`:
+
+`/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_static_review_ee638a6050_20260707T153918CST`
+
+Adapter-plan static-review checks / failed checks:
+`52 / 0`
+
+Adapter-plan static-review JSON / MD / record SHA256SUMS / root SHA256SUMS SHA256:
+`d64b3b1c4a6410ac5ec91dad6e1a4565d7b71d4615caf38d021583678e7b5768`,
+`3f94947a7252957aab14c91daddfd55bf97064d870def1a2d16bc768642bb0a7`,
+`575b01b1b6125027f8e5ebbaa6deeb51b3dab0a39af15ccb36c5ab4002ae8f51`,
+`cb98fa4e8813faba9faf3be698787623c2409e9d734263362733eb6e021a3f2c`
+
 ```text
-current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_ready
-current_v16_artifact_scope=v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan
-current_v16_artifact=/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_65945e793f_20260707T153048CST
-next_work_target=v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_static_review_only
+current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_static_review_passed
+current_v16_artifact_scope=v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_static_review
+current_v16_artifact=/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_adapter_plan_static_review_ee638a6050_20260707T153918CST
+next_work_target=v16_nuscenes_fixed_dp_candidate_tensor_smoke_preflight_plan_only
 ```
 
 ## Current V15 Status
