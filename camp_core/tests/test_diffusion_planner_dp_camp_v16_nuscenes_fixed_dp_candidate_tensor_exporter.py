@@ -34,6 +34,7 @@ def test_v16_candidate_tensor_exporter_contract_accepts_fixed_dp_k8(tmp_path: Pa
     assert report["final_decision"]["passed"] is True
     assert report["final_decision"]["authorized_next_work"] == module.AUTHORIZED_NEXT_WORK
     assert report["runner"]["k"] == 8
+    assert report["runner"]["fixed_dp_neighbor_count"] == 320
     assert report["runner"]["native_sampling_entrypoint"].endswith("guidance_gui/generate_samples.py")
 
 
@@ -66,6 +67,14 @@ def test_v16_candidate_tensor_exporter_rejects_missing_real_dp_output(tmp_path: 
 
     assert result["passed"] is False
     assert "candidate_output_exists" in result["failed_checks"]
+
+
+def test_v16_candidate_tensor_exporter_pads_probe_neighbors_for_fixed_dp() -> None:
+    module = _load_module()
+    arrays = module._fixed_dp_input_arrays(module.example_dp_input())
+
+    assert arrays["neighbor_agents_past"].shape[0] == module.FIXED_DP_NEIGHBOR_COUNT
+    assert arrays["neighbor_agents_future"].shape[0] == module.FIXED_DP_NEIGHBOR_COUNT
 
 
 def test_v16_candidate_tensor_exporter_provenance_fields_and_mutation_guard(tmp_path: Path) -> None:

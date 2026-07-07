@@ -40,6 +40,7 @@ NATIVE_SAMPLING_ENTRYPOINT = "guidance_gui/generate_samples.py"
 TOP1_ENTRYPOINT = "diffusion_planner/valid_predictor.py"
 EXPECTED_K = 8
 DP_TOP1_INDEX = 0
+FIXED_DP_NEIGHBOR_COUNT = 320
 CAMP_ATOM_TABLE = {
     "scope": "v16_fixed_dp_candidate_tensor_export_only_no_camp_scoring",
     "approved_atoms": [],
@@ -184,6 +185,7 @@ def build_report(
                 "top1_entrypoint": (dp_repo / TOP1_ENTRYPOINT).as_posix(),
                 "candidate0_policy": "fixed_dp_zero_noise_top1",
                 "candidate1_to_7_policy": "fixed_dp_unguided_native_sampling",
+                "fixed_dp_neighbor_count": FIXED_DP_NEIGHBOR_COUNT,
                 "dp_modified": False,
                 "camp_training_executed": False,
                 "paired_evaluation_executed": False,
@@ -351,10 +353,33 @@ def _load_dp_input_tensors(path: Path, device: Any) -> dict[str, Any]:
     import torch
 
     with np.load(path, allow_pickle=False) as loaded:
-        return {
-            key: torch.as_tensor(loaded[key]).unsqueeze(0).to(device)
-            for key in loaded.files
-        }
+        arrays = _fixed_dp_input_arrays({key: loaded[key] for key in loaded.files})
+    return {key: torch.as_tensor(value).unsqueeze(0).to(device) for key, value in arrays.items()}
+
+
+def _fixed_dp_input_arrays(arrays: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    fixed = dict(arrays)
+    fixed["neighbor_agents_past"] = _pad_first_axis(
+        fixed["neighbor_agents_past"],
+        FIXED_DP_NEIGHBOR_COUNT,
+        "neighbor_agents_past",
+    )
+    fixed["neighbor_agents_future"] = _pad_first_axis(
+        fixed["neighbor_agents_future"],
+        FIXED_DP_NEIGHBOR_COUNT,
+        "neighbor_agents_future",
+    )
+    return fixed
+
+
+def _pad_first_axis(array: np.ndarray, target: int, name: str) -> np.ndarray:
+    if array.shape[0] > target:
+        raise ValueError(f"{name} has {array.shape[0]} rows, exceeds fixed DP target {target}")
+    if array.shape[0] == target:
+        return array
+    padded = np.zeros((target, *array.shape[1:]), dtype=array.dtype)
+    padded[: array.shape[0]] = array
+    return padded
 
 
 def _input_status(path: Path) -> dict[str, Any]:
