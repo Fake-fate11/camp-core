@@ -403,11 +403,30 @@ JSON / MD / root SHA256SUMS SHA256:
 `d3e1944863d759c389f22eb6380975ce279d05b6ee81c70532f6bb480a7a8bbd`,
 `59e19e67bf1b65c914caf3abe9bd4751a258ffd5ecbd7611ad5669bfc15353d2`
 
+The latest v15 no-promotion/no-claim closeout record artifact passed on AutoDL
+with CAMP synchronized at
+`1b66a97df95ddebe7cea2a1eca12287cafd090c0` and DP fixed at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`:
+
+`/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_no_promotion_no_claim_closeout_record_1b66a97df9_20260707T143646CST`
+
+Closeout checks / failed checks:
+`40 / 0`
+
+Closeout recorded / no further action / performance claimed / promotion supported:
+`True / True / False / False`
+
+JSON / MD / record SHA256SUMS / root SHA256SUMS SHA256:
+`a57cce7ffd1d4dfd7a97582700c666517c59b2a74e8c9fbee7874b31c8d396e5`,
+`eb96464c064a88bed1fa5500c32ab858d8b052a348adcce786c13d42efc66361`,
+`b40c87a030c9d613b1636aac3600bb56b681cf9b57b86acab6aa98ad366885c0`,
+`6a77afaa8236c914c5766a8649c4d0484091c2a290f208c204241558c5d0c091`
+
 ```text
-current_v15_status=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_result_review_passed
-current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_result_review
-current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_paired_evaluation_execution_result_review_587668a8d5_20260707T142005CST
-next_work_target=v15_broader_nonformal_evidence_expansion_no_promotion_no_claim_closeout_record_only
+current_v15_status=v15_broader_nonformal_evidence_expansion_no_promotion_no_claim_closeout_recorded
+current_v15_artifact_scope=v15_broader_nonformal_evidence_expansion_no_promotion_no_claim_closeout_record
+current_v15_artifact=/root/autodl-tmp/camp_dp_v15_broader_nonformal_evidence_expansion_no_promotion_no_claim_closeout_record_1b66a97df9_20260707T143646CST
+next_work_target=no_further_action_v15_broader_nonformal_evidence_expansion_no_promotion_no_claim_closeout_complete
 ```
 
 ## Sealed V14 Authority

@@ -110,6 +110,21 @@ def test_v15_no_promotion_no_claim_closeout_record_rejects_missing_closeout_auth
     assert "source_result_review_authorized_current_work" in report["final_decision"]["failed_checks"]
 
 
+def test_v15_no_promotion_no_claim_closeout_record_is_latest_status() -> None:
+    module = _load_module()
+    audit_text = (ROOT / "docs" / "diffusion_planner_v15_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status_text = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert module._latest_value(audit_text, "current_v15_status") == module.READY_STATUS
+    assert module._next_work_after_latest_status(audit_text, "current_v15_status") == module.AUTHORIZED_NEXT_WORK
+    assert module._latest_value(status_text, "current_v15_status") == module.READY_STATUS
+    assert module._next_work_after_latest_status(status_text, "current_v15_status") == module.AUTHORIZED_NEXT_WORK
+
+
 def _write_fixture(
     tmp_path: Path,
     module,
