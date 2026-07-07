@@ -15,6 +15,16 @@ SCRIPT_PATH = (
 HEAD = "2754def965f99a2bfce568504a5b30d3f6e839e2"
 STATIC_REVIEW_ROOT_SHA = "78170cd33e6aad01836368507340285af5398ba040453773e4edf13e0959367a"
 SOURCE_PLAN_ROOT_SHA = "0d76e240e8a77579afb7c95af26fcd542c6beb6f7c533a7b7e04169fbfe4735d"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_"
+    "f0fac4f5_20260708T033813CST"
+)
+PREFLIGHT_CAMP_HEAD = "f0fac4f5db097f583701f801cce0905c1f0d2e69"
+JSON_SHA = "e3d07f271179f6bf1cfad0f529f981a6f23ba3c32bb63f5d2bd9193b9fad49c4"
+MD_SHA = "6ec405839bfe341a2810745e9235e6491a9fd50d2f27e88f69a0d74711d13eb6"
+SHA256SUMS_SHA = "6b26371e4b99988c071ec8e197f90d5af8e401329039b69c299255b2236b8805"
+ROOT_SHA256SUMS_SHA = "085025766d509ae2f3c413c8776658a5869298c94fab8b7e03b69a790e904cab"
 
 
 def _load_module():
@@ -69,6 +79,39 @@ def test_v16_pilot_corpus_split_preflight_rejects_wrong_eof(tmp_path: Path) -> N
 
     assert report["final_decision"]["passed"] is False
     assert "audit_authorizes_split_preflight" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_corpus_split_preflight_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_records=1024" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_train_records=614" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_calibration_records=205" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_holdout_records=205" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_check_count=31" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_failed_checks=[]" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_preflight_camp_head={PREFLIGHT_CAMP_HEAD}" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
+        assert STATIC_REVIEW_ROOT_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module, next_work: str | None = None) -> dict:
