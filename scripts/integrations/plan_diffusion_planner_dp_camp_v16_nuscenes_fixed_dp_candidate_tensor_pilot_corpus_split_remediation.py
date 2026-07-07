@@ -128,7 +128,12 @@ def build_report(
         _expect("source_unique_sample_count_1024", source.get("unique_sample_count"), EXPECTED_RECORDS),
         _expect("source_duplicate_sample_count_zero", source.get("duplicate_sample_count"), 0),
         _expect("source_scene_counts_desc", source.get("scene_record_counts_desc"), EXPECTED_SCENE_COUNTS_DESC),
-        _expect("source_target_counts_unreachable", source.get("target_counts_reachable_with_scene_zero_overlap"), False),
+        _check(
+            "source_target_counts_unreachable",
+            _all_values_false(source.get("target_counts_reachable_with_scene_zero_overlap")),
+            source.get("target_counts_reachable_with_scene_zero_overlap"),
+            {"train": False, "calibration": False, "holdout": False},
+        ),
         _expect("source_exact_scene_split_blocked", source.get("scene_zero_overlap_exact_614_205_205_executable"), False),
         _expect(
             "source_record_level_split_would_leak_scene",
@@ -342,6 +347,12 @@ def _sets_disjoint(sets: Any) -> bool:
             return False
         seen.update(values)
     return True
+
+
+def _all_values_false(value: Any) -> bool:
+    if isinstance(value, dict):
+        return bool(value) and all(item is False for item in value.values())
+    return value is False
 
 
 def _verify_sha256s(root: Path, entries: dict[str, str]) -> list[str]:

@@ -189,7 +189,11 @@ def _source_payload(module) -> dict:
         "split_execution_executed": False,
         "status": module.SOURCE_READY_STATUS,
         "stop_condition": "train_calibration_holdout_scene_zero_overlap_conflicts_with_target_record_counts",
-        "target_counts_reachable_with_scene_zero_overlap": False,
+        "target_counts_reachable_with_scene_zero_overlap": {
+            "calibration": False,
+            "holdout": False,
+            "train": False,
+        },
         "target_record_counts": {"calibration": 205, "holdout": 205, "train": 614},
         "training_executed": False,
         "unique_sample_count": 1024,
