@@ -58,6 +58,21 @@ def test_v16_candidate_tensor_exporter_contract_accepts_retry_gate(tmp_path: Pat
     assert report["final_decision"]["passed"] is True
 
 
+def test_v16_candidate_tensor_exporter_contract_accepts_pilot_execution_gate(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        next_work="v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_execution_only",
+    )
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+
+
 def test_v16_candidate_tensor_exporter_rejects_k_not_8(tmp_path: Path) -> None:
     module = _load_module()
     fixture = _write_fixture(tmp_path, module)
