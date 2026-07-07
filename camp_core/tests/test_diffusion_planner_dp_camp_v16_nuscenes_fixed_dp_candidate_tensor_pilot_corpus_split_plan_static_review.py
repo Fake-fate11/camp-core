@@ -14,6 +14,16 @@ SCRIPT_PATH = (
 )
 HEAD = "c19026cec7f610a38fde0c4e615a71840222781e"
 PLAN_ROOT_SHA = "0d76e240e8a77579afb7c95af26fcd542c6beb6f7c533a7b7e04169fbfe4735d"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_"
+    "6c1fcb35_20260708T033308CST"
+)
+REVIEW_CAMP_HEAD = "6c1fcb35e4ffaff7945eb66e5887edc7d9df7e5e"
+JSON_SHA = "3458e762feb66b3e27dd9b6d34e4f6122843d299b094b56737cf31974451c0a3"
+MD_SHA = "3fdbc2a9b08b1d3954a822eec8417da67836d95c89b1df7963f51def87af9bc0"
+SHA256SUMS_SHA = "78170cd33e6aad01836368507340285af5398ba040453773e4edf13e0959367a"
+ROOT_SHA256SUMS_SHA = "1b4663b2a96127b34508833a3d03c7b152f865b2426d5bd696c389c2abb77458"
 
 
 def _load_module():
@@ -62,6 +72,39 @@ def test_v16_pilot_corpus_split_plan_static_review_rejects_bad_holdout(
 
     assert report["final_decision"]["passed"] is False
     assert "split_holdout_records_205" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_corpus_split_plan_static_review_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_records=1024" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_train_records=614" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_calibration_records=205" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_holdout_records=205" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_check_count=47" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_failed_checks=[]" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_static_review_camp_head={REVIEW_CAMP_HEAD}" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
+        assert PLAN_ROOT_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module, *, holdout_records: int = 205) -> dict:
