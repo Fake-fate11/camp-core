@@ -16,6 +16,15 @@ HEAD = "a33ba395914179fd849faeb61ee0b6e4f886fdba"
 PLAN_ROOT_SHA = "0ca5ff5106f79a2faff9651f3c6c59f9fedc74f2c87db984f3d0fe78e806fff5"
 SMOKE_ROOT_SHA = "55a55c99b65ddc24b816f60ad886c7044b3fedf60f5e0be4aa84a9df972b487f"
 REVIEW_ROOT_SHA = "a0247461cf7870ab1cd124b2da680e7a63f9bf72646b1c8ce1de2a08e521625c"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_plan_static_review_"
+    "1ba62ce34c_20260707T231402CST"
+)
+JSON_SHA = "07813dc45bd9099afead8a8d7cce9bdc6a97bfda9ad68170ab6c367991947c8e"
+MD_SHA = "386387f72b6835c60dad80c3d7bceeecd35c4192744ec614ee82b7efc96b44e4"
+SHA256SUMS_SHA = "5ff9a9301567bdd1c6d3e222ff6ca3be46d1c7ac199095833851ddf76f96de33"
+ROOT_SHA256SUMS_SHA = "ffee73b0280a42ac05718e3f6fee8678529d315d2a4209ee96dba82ff8837eb0"
 
 
 def _load_module():
@@ -87,6 +96,27 @@ def test_v16_candidate_tensor_pilot_generation_plan_static_review_rejects_wrong_
 
     assert report["final_decision"]["passed"] is False
     assert "plan_selected_target_records_1024" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_candidate_tensor_pilot_generation_plan_static_review_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    assert f"current_v16_status={module.READY_STATUS}" in audit
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in audit
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_plan_static_review_source_plan_root_sha256={PLAN_ROOT_SHA}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_plan_static_review_check_count=58" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_plan_static_review_failed_checks=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_plan_static_review_selected_target_records=1024" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_plan_static_review_k=8" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_plan_static_review_candidate_count=8" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
 
 
 def _write_fixture(
