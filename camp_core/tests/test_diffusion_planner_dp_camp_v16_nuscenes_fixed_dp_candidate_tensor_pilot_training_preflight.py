@@ -183,8 +183,6 @@ def test_v16_pilot_training_preflight_is_recorded() -> None:
             in text
         )
         assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_performance_claimed=False" in text
-        assert f"current_v16_status={module.READY_STATUS}" in text
-        assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in text
         assert PREFLIGHT_HEAD in text
         assert PLAN_ARTIFACT in text
         assert PLAN_ROOT_SHA in text
@@ -199,6 +197,8 @@ def test_v16_pilot_training_preflight_is_recorded() -> None:
         assert PREFLIGHT_STDOUT_SHA in text
         assert PREFLIGHT_STDERR_SHA in text
         assert PREFLIGHT_RUN_EXIT_SHA in text
+    assert f"current_v16_status={module.READY_STATUS}" in audit
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in audit
 
 
 def _write_fixture(
