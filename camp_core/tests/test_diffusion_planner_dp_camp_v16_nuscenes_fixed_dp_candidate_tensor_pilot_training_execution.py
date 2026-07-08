@@ -45,6 +45,25 @@ TRAINING_COMMAND_SHA = "a4099e6bd9905195229c6912ee38e3d67566a904441e9f6dc50e1b64
 TRAINING_STDOUT_SHA = "1381c04ac2dc78de818b90fe92c185df15787f5950967ac138b0c09484d57ed9"
 TRAINING_STDERR_SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 TRAINING_RUN_EXIT_SHA = "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+TRAINING_SUCCESS_HEAD = "2f0448ad80abb5b858595c904d4bd6c2de3930a0"
+TRAINING_SUCCESS_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_"
+    "2f0448ad80_20260708T114018CST"
+)
+TRAINING_SUCCESS_JSON_SHA = "548a5c43feecf4a01084fb7a65535ac820ff34c25cd98047c755cdf561eccf6a"
+TRAINING_SUCCESS_MD_SHA = "2a28dea6e920d0254d7051eb950e9a006a90ac0d34c2de29851cc8812f6aea30"
+TRAINING_SUCCESS_MODEL_SHA = "b12fb355f4f2754931fbf1b412460e6fcc52ea5c5a4f16ac94aa484584d2b8cd"
+TRAINING_SUCCESS_CONFIG_SHA = "687e83c172e9d208aba512ea82484c425171f8023d8d023c7fc2266e25102553"
+TRAINING_SUCCESS_TIMING_JSON_SHA = "5f878e09fcd5fcba6726ffc01635fbf6f39ba6f0c3339dbe51b1bc8d72453fe1"
+TRAINING_SUCCESS_TIMING_MD_SHA = "44bb42a79ba2732f353005e9d4a69cc4c68bf72d00dd532d53427f228cb57ace"
+TRAINING_SUCCESS_SHA256SUMS_SHA = "92ebe656b28a61b27a5317cf48e41f38a0c1f5d7f333323e2fdaeeb8c8dcd493"
+TRAINING_SUCCESS_ROOT_SHA256SUMS_SHA = "ddc4fd268c3acf6eca420bc5cf767e0fd4d33f2bcde73caec0dfc90eb7a51170"
+TRAINING_SUCCESS_HEADS_SHA = "2a25bcddf864f113f2c2cdc37b4b27ac5ced9256b2fbfe78d3d14e457ad92622"
+TRAINING_SUCCESS_COMMAND_SHA = "c194fd99bfea5d49cb21749098de783f930d39be187ef14c32f2a9f9d288d522"
+TRAINING_SUCCESS_STDOUT_SHA = "81396ec8322f0f164b5bcf173a6fadee29b83aa0cad0f0a0d208f55016997fc8"
+TRAINING_SUCCESS_STDERR_SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+TRAINING_SUCCESS_RUN_EXIT_SHA = "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
 
 
 def _load_module():
@@ -178,9 +197,8 @@ def test_v16_pilot_training_execution_rejects_wrong_eof(tmp_path: Path) -> None:
 def test_v16_pilot_training_execution_failure_is_recorded() -> None:
     module = _load_module()
     audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
-    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
 
-    for text in (audit, status):
+    for text in (audit,):
         assert TRAINING_ARTIFACT in text
         assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_status={module.FAILED_STATUS}" in text
         assert (
@@ -220,6 +238,56 @@ def test_v16_pilot_training_execution_failure_is_recorded() -> None:
         assert PLAN_ROOT_SHA in text
         assert REVIEW_ROOT_SHA in text
         assert PREFLIGHT_ROOT_SHA in text
+
+
+def test_v16_pilot_training_execution_success_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert TRAINING_SUCCESS_ARTIFACT in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_status={module.READY_STATUS}" in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_exit=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_passed=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_failed_checks=[]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_train_records=863" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_calibration_records_used_for_training=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_holdout_records_used_for_training=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_atom_derivation_records_enriched=863" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_atom_derivation_failed_records=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_atom_derivation_all_false_feasible_fallback_records=389" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_atom_count=9" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_atom_schema_version=camp_legacy_v1_9d" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_training_executed=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_offline_training_wall_clock_seconds=0.535838" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_weights_sum=1.0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_weights_nonnegative=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_weights_sum_to_one=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_approved_atoms_only=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_paired_evaluation_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_performance_claimed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_execution_dp_modified=False" in text
+        assert TRAINING_SUCCESS_HEAD in text
+        assert TRAINING_SUCCESS_JSON_SHA in text
+        assert TRAINING_SUCCESS_MD_SHA in text
+        assert TRAINING_SUCCESS_MODEL_SHA in text
+        assert TRAINING_SUCCESS_CONFIG_SHA in text
+        assert TRAINING_SUCCESS_TIMING_JSON_SHA in text
+        assert TRAINING_SUCCESS_TIMING_MD_SHA in text
+        assert TRAINING_SUCCESS_SHA256SUMS_SHA in text
+        assert TRAINING_SUCCESS_ROOT_SHA256SUMS_SHA in text
+        assert TRAINING_SUCCESS_HEADS_SHA in text
+        assert TRAINING_SUCCESS_COMMAND_SHA in text
+        assert TRAINING_SUCCESS_STDOUT_SHA in text
+        assert TRAINING_SUCCESS_STDERR_SHA in text
+        assert TRAINING_SUCCESS_RUN_EXIT_SHA in text
+    assert f"current_v16_status={module.READY_STATUS}" in status
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status
 
 
 def _write_fixture(
