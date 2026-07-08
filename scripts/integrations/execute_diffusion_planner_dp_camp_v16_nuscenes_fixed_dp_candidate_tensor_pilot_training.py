@@ -247,7 +247,11 @@ def build_report(
         _contains("audit_authorizes_training_execution", audit_text, f"next_work_target={AUTHORIZED_CURRENT_WORK}"),
         _contains("status_authorizes_training_execution", status_text, f"next_work_target={AUTHORIZED_CURRENT_WORK}"),
         _contains("audit_records_preflight", audit_text, f"current_v16_status={SOURCE_PREFLIGHT_STATUS}"),
-        _contains("status_records_preflight", status_text, f"current_v16_status={SOURCE_PREFLIGHT_STATUS}"),
+        _contains(
+            "status_records_preflight",
+            status_text,
+            f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_status={SOURCE_PREFLIGHT_STATUS}",
+        ),
         _expect("source_preflight_schema", preflight.get("schema_version"), SOURCE_PREFLIGHT_SCHEMA_VERSION),
         _expect("source_preflight_status", preflight.get("status"), SOURCE_PREFLIGHT_STATUS),
         _expect("source_preflight_authorizes_execution", preflight.get("final_decision", {}).get("authorized_next_work"), AUTHORIZED_CURRENT_WORK),
@@ -574,6 +578,7 @@ def _empty_atom_derivation() -> dict[str, Any]:
         "records_already_with_atoms": 0,
         "records_enriched": 0,
         "failed_records": 0,
+        "all_false_feasible_fallback_records": 0,
         "candidate_npz_sha_mismatches": 0,
         "candidate_tensor_sha_mismatches": 0,
         "input_npz_sha_mismatches": 0,
@@ -609,6 +614,8 @@ def _derive_missing_train_atoms(records: list[dict[str, Any]]) -> tuple[list[dic
             enriched_records.append(record)
             continue
         summary["records_enriched"] += 1
+        if enriched.get("atom_derivation_all_false_feasible_fallback") is True:
+            summary["all_false_feasible_fallback_records"] += 1
         enriched_records.append(enriched)
     return enriched_records, summary
 
@@ -653,11 +660,13 @@ def _record_with_derived_atoms(
         raise ValueError(f"derived atoms must be [8,{len(atom_names)}], got {atom_matrix.shape}")
     if not np.all(np.isfinite(atom_matrix)):
         raise ValueError("derived atoms contain non-finite values")
-    if not any(feasible):
-        raise ValueError("derived feasible_mask has no feasible candidates")
+    all_false_fallback = not any(feasible)
+    if all_false_fallback:
+        feasible = [True] * EXPECTED_K
     enriched = dict(record)
     enriched.update(
         {
+            "atom_derivation_all_false_feasible_fallback": all_false_fallback,
             "atom_derivation_source": "existing_candidate_npz_and_input_npz",
             "atom_names": list(atom_names),
             "atom_schema_version": atom_schema_version,

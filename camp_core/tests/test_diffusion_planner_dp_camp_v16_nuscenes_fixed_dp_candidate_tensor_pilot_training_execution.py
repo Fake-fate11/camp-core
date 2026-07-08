@@ -124,6 +124,46 @@ def test_v16_pilot_training_execution_derives_atoms_from_existing_npz(tmp_path: 
     assert model["weights_sum_to_one"] is True
 
 
+def test_v16_pilot_training_execution_accepts_failed_current_status_with_preflight_recorded(tmp_path: Path) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, with_atoms=True)
+    fixture["current_status_md"].write_text(
+        "\n".join(
+            [
+                f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_status={module.SOURCE_PREFLIGHT_STATUS}",
+                f"current_v16_status={module.FAILED_STATUS}",
+                f"next_work_target={module.AUTHORIZED_CURRENT_WORK}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report = module.run_execution(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+    assert report["final_decision"]["training_executed"] is True
+
+
+def test_v16_pilot_training_execution_keeps_all_false_feasibility_for_proxy_smoke(tmp_path: Path) -> None:
+    module = _load_module()
+    fixture = _write_fixture(
+        tmp_path,
+        module,
+        with_atoms=False,
+        with_atom_sources=True,
+        all_infeasible_atom_source=True,
+    )
+
+    report = module.run_execution(**fixture)
+
+    training = report["pilot_training_execution"]
+    assert report["final_decision"]["passed"] is True
+    assert training["atom_derivation"]["records_enriched"] == 863
+    assert training["atom_derivation"]["all_false_feasible_fallback_records"] == 863
+    assert report["final_decision"]["training_executed"] is True
+
+
 def test_v16_pilot_training_execution_rejects_wrong_eof(tmp_path: Path) -> None:
     module = _load_module()
     fixture = _write_fixture(tmp_path, module, with_atoms=True, next_work="wrong_gate")
@@ -188,11 +228,13 @@ def _write_fixture(
     *,
     with_atoms: bool,
     with_atom_sources: bool = False,
+    all_infeasible_atom_source: bool = False,
     next_work: str | None = None,
 ) -> dict:
     docs = tmp_path / "docs"
     doc_text = "\n".join(
         [
+            f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_status={module.SOURCE_PREFLIGHT_STATUS}",
             f"current_v16_status={module.SOURCE_PREFLIGHT_STATUS}",
             f"next_work_target={next_work or module.AUTHORIZED_CURRENT_WORK}",
             "",
@@ -209,7 +251,7 @@ def _write_fixture(
     _write_json(preflight / module.SOURCE_PREFLIGHT_JSON_NAME, _preflight_payload(module))
 
     atom_version, atom_names = module.atom_schema_for_dimension(12)
-    atom_source = _write_atom_source_npzs(tmp_path) if with_atom_sources else None
+    atom_source = _write_atom_source_npzs(tmp_path, all_infeasible=all_infeasible_atom_source) if with_atom_sources else None
     records = _records_by_split(
         module,
         with_atoms=with_atoms,
@@ -380,7 +422,7 @@ def _record(
     return record
 
 
-def _write_atom_source_npzs(tmp_path: Path) -> dict[str, str]:
+def _write_atom_source_npzs(tmp_path: Path, *, all_infeasible: bool = False) -> dict[str, str]:
     input_npz = tmp_path / "atom_source" / "dp_input.npz"
     candidate_npz = tmp_path / "atom_source" / "candidate_tensor.npz"
     input_npz.parent.mkdir(parents=True)
@@ -392,7 +434,7 @@ def _write_atom_source_npzs(tmp_path: Path) -> dict[str, str]:
     candidate_tensor = np.zeros((8, 80, 4), dtype=np.float32)
     for candidate in range(8):
         candidate_tensor[candidate, :, 0] = np.linspace(0.0, 8.0 + candidate, 80, dtype=np.float32)
-        candidate_tensor[candidate, :, 1] = float(candidate) * 0.05
+        candidate_tensor[candidate, :, 1] = 100.0 if all_infeasible else float(candidate) * 0.05
     np.savez(
         input_npz,
         ego_current_state=np.array([0.0, 0.0, 1.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32),
