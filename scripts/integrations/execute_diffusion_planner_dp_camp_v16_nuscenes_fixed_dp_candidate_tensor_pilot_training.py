@@ -13,13 +13,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 
 ROOT = Path(__file__).resolve().parents[2]
 for path in (ROOT, ROOT / "camp_core"):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+from camp_core.atoms.driver_atoms import (  # noqa: E402
+    DriverAtomContext,
+    compute_atom_bank_vector,
+    compute_feasibility_mask,
+)
 from camp_core.integrations.diffusion_planner import atom_schema_for_dimension  # noqa: E402
+from camp_core.integrations.diffusion_planner import _route_centerline  # noqa: E402
 from scripts.integrations.preflight_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_training import (  # noqa: E402
     FIXED_DP_HEAD,
     PREFLIGHT_JSON_NAME as SOURCE_PREFLIGHT_JSON_NAME,
@@ -161,7 +169,16 @@ def run_execution(
     )
     report["command"] = command or []
     if report["final_decision"]["passed"]:
-        _run_trainer(report, source_train_records_jsonl, training_script, output_dir, python_executable, epochs)
+        prepared_train_records = report.pop("_prepared_train_records", None)
+        _run_trainer(
+            report,
+            source_train_records_jsonl,
+            training_script,
+            output_dir,
+            python_executable,
+            epochs,
+            prepared_train_records=prepared_train_records,
+        )
     write_outputs(output_dir, report)
     return report
 
@@ -210,6 +227,12 @@ def build_report(
     }
     record_summary = _record_summary(train_records, calibration_records, holdout_records)
     atom_summary = _atom_summary(train_records)
+    atom_derivation = _empty_atom_derivation()
+    prepared_train_records = None
+    if atom_summary["missing_atoms"]:
+        prepared_train_records, atom_derivation = _derive_missing_train_atoms(train_records)
+        if atom_derivation["failed_records"] == 0:
+            atom_summary = _atom_summary(prepared_train_records)
     training_command = _training_command(
         python_executable=python_executable,
         training_script=training_script,
@@ -283,6 +306,7 @@ def build_report(
                 "training_command": [str(item) for item in training_command],
                 "score_expression": SCORE_EXPRESSION,
                 "atom_summary": atom_summary,
+                "atom_derivation": atom_derivation,
                 "record_summary": record_summary,
                 "training_executed": False,
                 "training_start": None,
@@ -292,7 +316,7 @@ def build_report(
             },
             "training_config": {
                 "epochs": epochs,
-                "label_source": "proxy_static_atoms",
+                "label_source": "proxy",
                 "score_expression": SCORE_EXPRESSION,
                 "training_splits": ["train"],
                 "forbidden_training_splits": ["calibration", "holdout"],
@@ -300,6 +324,7 @@ def build_report(
             "training_log": [],
             "checks": checks,
             "final_decision": _decision(passed, failed, training_executed=False),
+            **({"_prepared_train_records": prepared_train_records} if prepared_train_records is not None else {}),
         }
     )
 
@@ -311,8 +336,10 @@ def _run_trainer(
     output_dir: Path,
     python_executable: str,
     epochs: int,
+    *,
+    prepared_train_records: list[dict[str, Any]] | None = None,
 ) -> None:
-    train_records = _read_jsonl(source_train_records_jsonl)
+    train_records = prepared_train_records or _read_jsonl(source_train_records_jsonl)
     output_dir.mkdir(parents=True, exist_ok=True)
     selection_log = output_dir / "train_selection_log.json"
     trainer_output = output_dir / "trainer_output"
@@ -408,8 +435,9 @@ def _model_checks(model: dict[str, Any]) -> list[dict[str, Any]]:
 
 def write_outputs(output_dir: Path, report: dict[str, Any]) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / REPORT_JSON_NAME).write_text(json.dumps(_stable(report), indent=2) + "\n", encoding="utf-8")
-    (output_dir / REPORT_MD_NAME).write_text(_render_markdown(report), encoding="utf-8")
+    public_report = _public_report(report)
+    (output_dir / REPORT_JSON_NAME).write_text(json.dumps(_stable(public_report), indent=2) + "\n", encoding="utf-8")
+    (output_dir / REPORT_MD_NAME).write_text(_render_markdown(public_report), encoding="utf-8")
     (output_dir / "pilot_training_config.json").write_text(
         json.dumps(report["training_config"], indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -540,6 +568,162 @@ def _atom_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _empty_atom_derivation() -> dict[str, Any]:
+    return {
+        "attempted": False,
+        "records_already_with_atoms": 0,
+        "records_enriched": 0,
+        "failed_records": 0,
+        "candidate_npz_sha_mismatches": 0,
+        "candidate_tensor_sha_mismatches": 0,
+        "input_npz_sha_mismatches": 0,
+        "errors": [],
+        "source": None,
+    }
+
+
+def _derive_missing_train_atoms(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    schema_version, atom_names = atom_schema_for_dimension(9)
+    enriched_records = []
+    summary = _empty_atom_derivation()
+    summary["attempted"] = True
+    summary["source"] = "existing_candidate_npz_and_input_npz"
+    for index, record in enumerate(records):
+        if record.get("atoms") is not None:
+            summary["records_already_with_atoms"] += 1
+            enriched_records.append(record)
+            continue
+        try:
+            enriched = _record_with_derived_atoms(record, schema_version, atom_names)
+        except ValueError as exc:
+            message = str(exc)
+            summary["failed_records"] += 1
+            if "candidate_npz_sha256 mismatch" in message:
+                summary["candidate_npz_sha_mismatches"] += 1
+            if "candidate_tensor_sha256 mismatch" in message:
+                summary["candidate_tensor_sha_mismatches"] += 1
+            if "adapter_input_sha256 mismatch" in message:
+                summary["input_npz_sha_mismatches"] += 1
+            if len(summary["errors"]) < 10:
+                summary["errors"].append({"record_index": index, "error": message})
+            enriched_records.append(record)
+            continue
+        summary["records_enriched"] += 1
+        enriched_records.append(enriched)
+    return enriched_records, summary
+
+
+def _record_with_derived_atoms(
+    record: dict[str, Any],
+    atom_schema_version: str,
+    atom_names: tuple[str, ...],
+) -> dict[str, Any]:
+    candidate_npz = _record_path(record, "candidate_npz")
+    input_npz = _record_path(record, "input_npz")
+    if not candidate_npz.is_file():
+        raise ValueError(f"candidate_npz missing: {candidate_npz}")
+    if not input_npz.is_file():
+        raise ValueError(f"input_npz missing: {input_npz}")
+    _check_optional_file_sha(candidate_npz, record.get("candidate_npz_sha256"), "candidate_npz_sha256")
+    _check_optional_file_sha(input_npz, record.get("adapter_input_sha256"), "adapter_input_sha256")
+    with np.load(candidate_npz, allow_pickle=False) as loaded:
+        if "candidate_tensor" not in loaded.files:
+            raise ValueError(f"candidate_tensor missing from {candidate_npz}")
+        raw_candidate_tensor = loaded["candidate_tensor"]
+        candidate_tensor = np.asarray(raw_candidate_tensor, dtype=np.float64)
+        candidate_count = int(loaded["candidate_count"]) if "candidate_count" in loaded.files else candidate_tensor.shape[0]
+    if candidate_tensor.ndim != 3 or candidate_tensor.shape[0] != EXPECTED_K or candidate_count != EXPECTED_K:
+        raise ValueError(f"candidate_tensor must be [8,T,D], got {candidate_tensor.shape} count={candidate_count}")
+    if not np.all(np.isfinite(candidate_tensor)):
+        raise ValueError("candidate_tensor contains non-finite values")
+    expected_tensor_sha = record.get("candidate_tensor_sha256")
+    if expected_tensor_sha and _array_sha256(raw_candidate_tensor) != str(expected_tensor_sha):
+        raise ValueError("candidate_tensor_sha256 mismatch")
+    with np.load(input_npz, allow_pickle=False) as loaded:
+        arrays = {key: loaded[key] for key in loaded.files}
+    context = _context_from_dp_input(arrays)
+    atoms = []
+    feasible = []
+    for candidate in candidate_tensor:
+        trajectory_xy = candidate[:, :2]
+        atoms.append(compute_atom_bank_vector(context, trajectory_xy))
+        feasible.append(bool(compute_feasibility_mask(context, trajectory_xy, check_speed=True, check_lane=True)))
+    atom_matrix = np.asarray(atoms, dtype=np.float64)
+    if atom_matrix.shape != (EXPECTED_K, len(atom_names)):
+        raise ValueError(f"derived atoms must be [8,{len(atom_names)}], got {atom_matrix.shape}")
+    if not np.all(np.isfinite(atom_matrix)):
+        raise ValueError("derived atoms contain non-finite values")
+    if not any(feasible):
+        raise ValueError("derived feasible_mask has no feasible candidates")
+    enriched = dict(record)
+    enriched.update(
+        {
+            "atom_derivation_source": "existing_candidate_npz_and_input_npz",
+            "atom_names": list(atom_names),
+            "atom_schema_version": atom_schema_version,
+            "atoms": atom_matrix.tolist(),
+            "feasible_mask": feasible,
+        }
+    )
+    return enriched
+
+
+def _context_from_dp_input(arrays: dict[str, np.ndarray]) -> DriverAtomContext:
+    route_lanes = np.asarray(arrays["route_lanes"], dtype=np.float64)
+    lane_centerline = _route_centerline(route_lanes)
+    neighbors = np.asarray(arrays.get("neighbor_agents_future", np.empty((0, 0, 2))), dtype=np.float64)
+    dynamic = {
+        int(index): obstacle[:, :2]
+        for index, obstacle in enumerate(neighbors)
+        if obstacle.ndim == 2 and obstacle.shape[1] >= 2 and np.any(np.abs(obstacle[:, :2]) > 1e-8)
+    }
+    static = np.asarray(arrays.get("static_objects", np.empty((0, 2))), dtype=np.float64)
+    static_obstacles = None
+    if static.ndim == 2 and static.shape[1] >= 2:
+        valid = np.sum(np.abs(static[:, :2]), axis=1) > 1e-8
+        if valid.any():
+            static_obstacles = static[valid, :2]
+    return DriverAtomContext(
+        dt=0.1,
+        lane_centerline=lane_centerline,
+        static_obstacles=static_obstacles,
+        dynamic_obstacles=dynamic or None,
+        speed_limit=_speed_limit_from_dp_input(arrays),
+        desired_speed=_desired_speed_from_dp_input(arrays),
+        lane_half_width=_lane_half_width_from_route_lanes(route_lanes),
+        map_source="v16_fixed_dp_candidate_tensor_input_npz",
+    )
+
+
+def _speed_limit_from_dp_input(arrays: dict[str, np.ndarray]) -> float | None:
+    speeds = np.asarray(arrays.get("route_lanes_speed_limit", []), dtype=np.float64).reshape(-1)
+    if not speeds.size:
+        return None
+    has_limit = np.asarray(arrays.get("route_lanes_has_speed_limit", np.ones_like(speeds, dtype=bool)), dtype=bool).reshape(-1)
+    valid = speeds[has_limit[: speeds.shape[0]]]
+    valid = valid[np.isfinite(valid) & (valid > 0.0)]
+    return float(valid[0]) if valid.size else None
+
+
+def _desired_speed_from_dp_input(arrays: dict[str, np.ndarray]) -> float | None:
+    current = np.asarray(arrays.get("ego_current_state", []), dtype=np.float64).reshape(-1)
+    return float(current[4]) if current.size > 4 and np.isfinite(current[4]) else None
+
+
+def _lane_half_width_from_route_lanes(route_lanes: np.ndarray) -> float:
+    lanes = np.asarray(route_lanes, dtype=np.float64)
+    if lanes.ndim == 4 and lanes.shape[0] == 1:
+        lanes = lanes[0]
+    if lanes.ndim != 3 or lanes.shape[-1] < 8:
+        return 1.8
+    widths = []
+    for boundary_slice in (slice(4, 6), slice(6, 8)):
+        norms = np.linalg.norm(lanes[..., boundary_slice], axis=-1)
+        valid = norms[np.isfinite(norms) & (norms > 0.2)]
+        widths.extend(valid.tolist())
+    return float(np.median(widths)) if widths else 1.8
+
+
 def _training_command(
     *,
     python_executable: str,
@@ -557,8 +741,22 @@ def _training_command(
         str(output_dir),
         "--epochs",
         str(epochs),
+        "--label_source",
+        "proxy",
         "--require_atom_schema",
     ]
+
+
+def _record_path(record: dict[str, Any], key: str) -> Path:
+    value = record.get(key)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{key} missing")
+    return Path(value)
+
+
+def _check_optional_file_sha(path: Path, expected: Any, field: str) -> None:
+    if expected and _sha256(path) != str(expected):
+        raise ValueError(f"{field} mismatch")
 
 
 def _source_artifact(path: Path, expected_root_sha256: str) -> dict[str, Any]:
@@ -712,6 +910,14 @@ def _check(name: str, passed: bool, actual: Any, expected: Any) -> dict[str, Any
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _array_sha256(array: np.ndarray) -> str:
+    return hashlib.sha256(np.ascontiguousarray(array).tobytes()).hexdigest()
+
+
+def _public_report(report: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in report.items() if not key.startswith("_")}
 
 
 def _stable(value: Any) -> Any:

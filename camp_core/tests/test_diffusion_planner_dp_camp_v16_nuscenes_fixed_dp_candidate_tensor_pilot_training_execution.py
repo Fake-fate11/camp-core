@@ -6,6 +6,8 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = (
@@ -102,6 +104,26 @@ def test_v16_pilot_training_execution_rejects_missing_atoms(tmp_path: Path) -> N
     assert "train_atoms_present" in report["final_decision"]["failed_checks"]
 
 
+def test_v16_pilot_training_execution_derives_atoms_from_existing_npz(tmp_path: Path) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module, with_atoms=False, with_atom_sources=True)
+
+    report = module.run_execution(**fixture)
+
+    training = report["pilot_training_execution"]
+    model = report["static_camp_model"]
+    assert report["final_decision"]["passed"] is True
+    assert report["final_decision"]["training_executed"] is True
+    assert training["atom_summary"]["atom_count"] == 9
+    assert training["atom_derivation"]["records_enriched"] == 863
+    assert training["atom_derivation"]["candidate_tensor_sha_mismatches"] == 0
+    assert "--label_source" in training["training_command"]
+    assert "proxy" in training["training_command"]
+    assert model["atom_count"] == 9
+    assert model["weights_nonnegative"] is True
+    assert model["weights_sum_to_one"] is True
+
+
 def test_v16_pilot_training_execution_rejects_wrong_eof(tmp_path: Path) -> None:
     module = _load_module()
     fixture = _write_fixture(tmp_path, module, with_atoms=True, next_work="wrong_gate")
@@ -165,6 +187,7 @@ def _write_fixture(
     module,
     *,
     with_atoms: bool,
+    with_atom_sources: bool = False,
     next_work: str | None = None,
 ) -> dict:
     docs = tmp_path / "docs"
@@ -186,7 +209,15 @@ def _write_fixture(
     _write_json(preflight / module.SOURCE_PREFLIGHT_JSON_NAME, _preflight_payload(module))
 
     atom_version, atom_names = module.atom_schema_for_dimension(12)
-    records = _records_by_split(module, with_atoms=with_atoms, atom_version=atom_version, atom_names=atom_names)
+    atom_source = _write_atom_source_npzs(tmp_path) if with_atom_sources else None
+    records = _records_by_split(
+        module,
+        with_atoms=with_atoms,
+        with_atom_sources=with_atom_sources,
+        atom_source=atom_source,
+        atom_version=atom_version,
+        atom_names=atom_names,
+    )
     for name, split in {
         "train_records.jsonl": "train",
         "calibration_records.jsonl": "calibration",
@@ -259,18 +290,56 @@ def _preflight_payload(module) -> dict:
     }
 
 
-def _records_by_split(module, *, with_atoms: bool, atom_version: str, atom_names: tuple[str, ...]) -> dict[str, list[dict]]:
+def _records_by_split(
+    module,
+    *,
+    with_atoms: bool,
+    with_atom_sources: bool,
+    atom_source: dict[str, str] | None,
+    atom_version: str,
+    atom_names: tuple[str, ...],
+) -> dict[str, list[dict]]:
     return {
         "train": [
-            _record(module, "train", "scene-0553" if index < 495 else "scene-0655", index, with_atoms, atom_version, atom_names)
+            _record(
+                module,
+                "train",
+                "scene-0553" if index < 495 else "scene-0655",
+                index,
+                with_atoms,
+                with_atom_sources,
+                atom_source,
+                atom_version,
+                atom_names,
+            )
             for index in range(863)
         ],
         "calibration": [
-            _record(module, "calibration", "scene-0061", 863 + index, with_atoms, atom_version, atom_names)
+            _record(
+                module,
+                "calibration",
+                "scene-0061",
+                863 + index,
+                with_atoms,
+                with_atom_sources,
+                atom_source,
+                atom_version,
+                atom_names,
+            )
             for index in range(14)
         ],
         "holdout": [
-            _record(module, "holdout", "scene-0757", 877 + index, with_atoms, atom_version, atom_names)
+            _record(
+                module,
+                "holdout",
+                "scene-0757",
+                877 + index,
+                with_atoms,
+                with_atom_sources,
+                atom_source,
+                atom_version,
+                atom_names,
+            )
             for index in range(147)
         ],
     }
@@ -282,6 +351,8 @@ def _record(
     scene: str,
     index: int,
     with_atoms: bool,
+    with_atom_sources: bool,
+    atom_source: dict[str, str] | None,
     atom_version: str,
     atom_names: tuple[str, ...],
 ) -> dict:
@@ -304,7 +375,47 @@ def _record(
                 "feasible_mask": [True] * 8,
             }
         )
+    if with_atom_sources and atom_source is not None:
+        record.update(atom_source)
     return record
+
+
+def _write_atom_source_npzs(tmp_path: Path) -> dict[str, str]:
+    input_npz = tmp_path / "atom_source" / "dp_input.npz"
+    candidate_npz = tmp_path / "atom_source" / "candidate_tensor.npz"
+    input_npz.parent.mkdir(parents=True)
+    route_lanes = np.zeros((25, 20, 33), dtype=np.float32)
+    xs = np.linspace(0.0, 40.0, 20, dtype=np.float32)
+    route_lanes[0, :, 0] = xs
+    route_lanes[0, :, 3] = 1.0
+    neighbor_future = np.zeros((32, 80, 3), dtype=np.float32)
+    candidate_tensor = np.zeros((8, 80, 4), dtype=np.float32)
+    for candidate in range(8):
+        candidate_tensor[candidate, :, 0] = np.linspace(0.0, 8.0 + candidate, 80, dtype=np.float32)
+        candidate_tensor[candidate, :, 1] = float(candidate) * 0.05
+    np.savez(
+        input_npz,
+        ego_current_state=np.array([0.0, 0.0, 1.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32),
+        neighbor_agents_future=neighbor_future,
+        route_lanes=route_lanes,
+        route_lanes_has_speed_limit=np.zeros((25, 1), dtype=bool),
+        route_lanes_speed_limit=np.zeros((25, 1), dtype=np.float32),
+        static_objects=np.zeros((5, 10), dtype=np.float32),
+    )
+    np.savez(
+        candidate_npz,
+        candidate_tensor=candidate_tensor,
+        dp_top1_index=np.array(0, dtype=np.int64),
+        candidate_count=np.array(8, dtype=np.int64),
+        input_npz=np.array(str(input_npz)),
+    )
+    return {
+        "adapter_input_sha256": _sha256(input_npz),
+        "candidate_npz": str(candidate_npz),
+        "candidate_npz_sha256": _sha256(candidate_npz),
+        "candidate_tensor_sha256": hashlib.sha256(np.ascontiguousarray(candidate_tensor).tobytes()).hexdigest(),
+        "input_npz": str(input_npz),
+    }
 
 
 def _artifact(path: Path, root_sha: str) -> Path:
@@ -340,6 +451,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--selection_log", action="append", type=Path, required=True)
 parser.add_argument("--output_dir", type=Path, required=True)
 parser.add_argument("--epochs", default="1")
+parser.add_argument("--label_source", default="proxy")
 parser.add_argument("--require_atom_schema", action="store_true")
 args = parser.parse_args()
 records = []
