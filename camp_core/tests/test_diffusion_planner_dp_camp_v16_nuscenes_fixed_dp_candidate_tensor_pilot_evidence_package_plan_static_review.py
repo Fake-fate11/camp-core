@@ -15,6 +15,22 @@ SCRIPT_PATH = (
 )
 HEAD = "5415097e1c9a0ad422189a4b092bb9c55a26b46f"
 PLAN_ROOT_SHA = "93dbc0808e95c93d5ac3e73a97e6beaec1917219a98c7faaa21dbe4b7b6dbe0c"
+REVIEW_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_"
+    "0f86bb9a99_20260708T154726CST"
+)
+REVIEW_CAMP_HEAD = "0f86bb9a9929f2e310f761ff1151d18590dfdea4"
+REVIEW_ROOT_SHA = "d235ad058fc9471575cf9f98cd3e7edc2c95a55b716212cfc591cebbb4e15f23"
+REVIEW_ROOT_SHA256SUMS_SHA = "e94b60df9f52c7e7fbd819a2aa03889767e6ee262759f2f822dd78eb68bd843a"
+REVIEW_JSON_SHA = "07b56d30abbc161d64140c0ab503f8590d2be463156398e659e76c2b14f89d33"
+REVIEW_MD_SHA = "f5df61b672c25915c0f82a08eb1e12551bcc53171836c62fb6e168b3f5e9d1f1"
+REVIEW_HEADS_SHA = "92fd5e16ec059b49bdb0e794c7cb3ba1ac5f920f47d9a2c9d73ca4fd64e0033e"
+REVIEW_COMMAND_SHA = "acd4e14a655dee3c495a3632f63d308828d76469a6eaae09abbbefacd020f593"
+REVIEW_COMMAND_SHELL_SHA = "4e2eef2a7a9c1971be37fb13a4fef100a3218ea3233010959dedb71a9aed93a5"
+REVIEW_STDOUT_SHA = "f0cbddfbea1f5161fe9c1c944163b1295a905b6bed9d61d90842465675b99d6e"
+REVIEW_STDERR_SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+REVIEW_RUN_EXIT_SHA = "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
 SOURCE_IDS = [
     "smoke_corpus_generation",
     "smoke_corpus_generation_review",
@@ -104,6 +120,54 @@ def test_v16_pilot_evidence_package_plan_static_review_rejects_missing_required_
 
     assert report["final_decision"]["passed"] is False
     assert "required_file_rows JSONL" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_evidence_package_plan_static_review_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert REVIEW_ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_check_count=100" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_failed_checks=[]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_source_artifact_ids=[smoke_corpus_generation,smoke_corpus_generation_review,pilot_corpus_generation,pilot_corpus_generation_review,split_execution,split_result_review,training_execution,training_result_review,paired_evaluation_execution,paired_evaluation_result_review]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_required_files=[JSON summaries,rows JSONL,split metrics,latency JSON,model/weights/config/timing/log,HEADS/COMMAND/stdout/stderr,SHA256SUMS/ROOT_SHA256SUMS]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_smoke_only=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_scene_count=4" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_calibration_rows=14" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_holdout_rows=147" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_all_source_artifact_sha_verified=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_k_candidate_count=[8,8]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_no_train_leakage_into_primary_eval=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_affine_simplex_checks_preserved=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_recommended_next_path=scale-up plan,increase_scene_diversity=True,target_records=10000,pilot_result_usable_for_claim=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_evidence_package_constructed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_scale_up_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_performance_claimed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_safety_claimed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_camp_over_dp_claimed=False" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_camp_head={REVIEW_CAMP_HEAD}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_root_sha256={REVIEW_ROOT_SHA}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_evidence_package_plan_static_review_root_sha256s_sha256={REVIEW_ROOT_SHA256SUMS_SHA}" in text
+        assert REVIEW_JSON_SHA in text
+        assert REVIEW_MD_SHA in text
+        assert REVIEW_HEADS_SHA in text
+        assert REVIEW_COMMAND_SHA in text
+        assert REVIEW_COMMAND_SHELL_SHA in text
+        assert REVIEW_STDOUT_SHA in text
+        assert REVIEW_STDERR_SHA in text
+        assert REVIEW_RUN_EXIT_SHA in text
+    assert f"current_v16_status={module.READY_STATUS}" in status
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status
 
 
 def _write_fixture(tmp_path: Path, module, *, required_files: list[str] | None = None) -> dict:
