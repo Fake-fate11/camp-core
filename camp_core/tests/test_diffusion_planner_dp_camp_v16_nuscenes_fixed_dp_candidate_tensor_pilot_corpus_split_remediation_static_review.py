@@ -15,6 +15,16 @@ SCRIPT_PATH = (
 )
 HEAD = "aac3ff7ae1544c393adbaadf9752ec923b5e0d55"
 REMEDIATION_ROOT_SHA = "0a56b12cc11549868337decf07ae3c1af497a8c04c2c9880f25e5683af897111"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_"
+    "e288983f_20260708T084312CST"
+)
+REVIEW_CAMP_HEAD = "e288983faa9ec0355a555129c0490db414a4b004"
+JSON_SHA = "2dd3087c37fb064e1f29de663c6f20a6cc42d2416e8879fa455574ae2c9be52a"
+MD_SHA = "08231d278302cc1c25b8c2eb59a93836fea80aaf4395ab2a49aa459d0a89aaee"
+SHA256SUMS_SHA = "6c00f75285d8fd73a72246fb2e57d614b500e0b423b38a8c8db865ca27f7e8d3"
+ROOT_SHA256SUMS_SHA = "2cdc96fc78fd97daca3fedfb43d3694a9406cca25d756f6740ca15c9d96613ea"
 
 
 def _load_module():
@@ -76,6 +86,44 @@ def test_v16_pilot_corpus_split_remediation_static_review_rejects_bad_policy(
 
     assert report["final_decision"]["passed"] is False
     assert "policy_is_scene_level_smoke_split" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_corpus_split_remediation_static_review_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_camp_head={REVIEW_CAMP_HEAD}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_check_count=49" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_failed_checks=[]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_split_policy=scene_level_greedy_imbalance_tolerant_smoke_split" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_train_scenes=[\"scene-0553\",\"scene-0655\"]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_calibration_scenes=[\"scene-0061\"]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_holdout_scenes=[\"scene-0757\"]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_train_records=863" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_calibration_records=14" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_holdout_records=147" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_record_level_split_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_plan_remediation_static_review_formal_performance_proof_authorized=False" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
+        assert REMEDIATION_ROOT_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module, policy: str | None = None) -> dict:
