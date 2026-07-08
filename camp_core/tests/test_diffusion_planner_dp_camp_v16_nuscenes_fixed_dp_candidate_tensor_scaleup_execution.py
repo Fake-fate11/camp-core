@@ -26,6 +26,17 @@ FAILED_RECORD0_JSON_SHA = "ec8aefba7b1adc4fb31b4c0ca5e00a4a7d04f982acdf612f136a7
 FAILED_NEXT_WORK = (
     "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_only"
 )
+REMEDIATION_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_"
+    "ec939ef7e4_20260708T184443CST"
+)
+REMEDIATION_CAMP_HEAD = "ec939ef7e45884e81a7ac9807d536f736e20ead7"
+REMEDIATION_ROOT_SHA = "30948ca05b4f99218cfa79bf9c5b1ef63d2c4bd81877d9cd7708c1b4bc27f193"
+REMEDIATION_ROOT_SHA256SUMS_SHA = "656cb46dcc0a28da451c91caee800bb5a5ffaacbda49ca37a92bc93566bc5602"
+REMEDIATION_JSON_SHA = "b470859de00ea958e4c80915def2d126c0a6c8625ed48532205c7fd855fcd7ea"
+REMEDIATION_MD_SHA = "8ee20e0632dc2d761a77f2373b133325f04d70d2f173f068f1a9a912ca748911"
+REMEDIATION_NEXT_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_only"
 
 
 def _load_module():
@@ -178,6 +189,25 @@ def test_v16_scaleup_execution_failure_is_recorded() -> None:
         assert FAILED_RECORD0_JSON_SHA in text
         assert f"next_work_target={FAILED_NEXT_WORK}" in text
     assert f"current_v16_status={module.FAILED_STATUS}" in status
+
+
+def test_v16_scaleup_execution_authorization_remediation_is_recorded() -> None:
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+    ready = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_ready"
+
+    for text in (audit, status):
+        assert REMEDIATION_ARTIFACT in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_status={ready}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_camp_head={REMEDIATION_CAMP_HEAD}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_root_sha256={REMEDIATION_ROOT_SHA}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_root_sha256s_sha256={REMEDIATION_ROOT_SHA256SUMS_SHA}" in text
+        assert REMEDIATION_JSON_SHA in text
+        assert REMEDIATION_MD_SHA in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_targeted_tests=15 passed" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_explicit_v16_tests=156 passed" in text
+        assert f"next_work_target={REMEDIATION_NEXT_WORK}" in text
+    assert f"current_v16_status={ready}" in status
 
 
 def _write_fixture(tmp_path: Path, module) -> dict:
