@@ -82,6 +82,45 @@ def test_v16_scaleup_execution_enforces_scene_cap() -> None:
     assert module._can_accept_scene("scene-b", counts, 334) is True
 
 
+def test_v16_scaleup_execution_prepares_runner_arg_aliases(tmp_path: Path) -> None:
+    module = _load_module()
+    args = module.parse_args(
+        [
+            "--output_root",
+            str(tmp_path / "out"),
+            "--nuscenes_root",
+            str(tmp_path / "nuScenes"),
+            "--trajdata_cache_dir",
+            str(tmp_path / "cache"),
+            "--dp_repo",
+            str(tmp_path / "dp"),
+            "--checkpoint",
+            str(tmp_path / "dp" / "checkpoint.pth"),
+            "--args_json",
+            str(tmp_path / "dp" / "args.json"),
+            "--preflight_artifact",
+            str(tmp_path / "preflight"),
+            "--v16_audit_md",
+            str(tmp_path / "audit.md"),
+            "--current_status_md",
+            str(tmp_path / "status.md"),
+            "--current_camp_head",
+            HEAD,
+            "--current_camp_origin_main",
+            HEAD,
+            "--current_dp_head",
+            module.FIXED_DP_HEAD,
+            "--expected_preflight_root_sha256",
+            PREFLIGHT_ROOT_SHA,
+        ]
+    )
+
+    module._prepare_runner_args(args)
+
+    assert args.output_dir == args.output_root
+    assert args.metadata_root == args.nuscenes_root
+
+
 def _write_fixture(tmp_path: Path, module) -> dict:
     docs = tmp_path / "docs"
     doc_text = "\n".join(

@@ -72,7 +72,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    args.output_dir = args.output_root
+    _prepare_runner_args(args)
     report = build_report(
         output_root=args.output_root,
         nuscenes_root=args.nuscenes_root,
@@ -127,6 +127,11 @@ def main(argv: list[str] | None = None) -> int:
     write_outputs(args.output_root, report)
     print(json.dumps(report["final_decision"], indent=2, sort_keys=True))
     return 0 if report["final_decision"]["passed"] else 1
+
+
+def _prepare_runner_args(args: argparse.Namespace) -> None:
+    args.output_dir = args.output_root
+    args.metadata_root = args.nuscenes_root
 
 
 def build_report(
