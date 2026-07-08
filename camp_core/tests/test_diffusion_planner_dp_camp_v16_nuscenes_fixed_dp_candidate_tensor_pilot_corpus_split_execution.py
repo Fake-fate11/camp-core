@@ -18,6 +18,20 @@ PILOT_ROOT_SHA = "57779ea5d6aa2d9f1e7a5962cbbd551238ec1500136bd82e972714d479da74
 BLOCKER_ROOT_SHA = "2b9f7e5182b76d49bb506aab1f614d22be7caa684f371021307e96eeb37e9594"
 REMEDIATION_ROOT_SHA = "0a56b12cc11549868337decf07ae3c1af497a8c04c2c9880f25e5683af897111"
 REVIEW_ROOT_SHA = "6c00f75285d8fd73a72246fb2e57d614b500e0b423b38a8c8db865ca27f7e8d3"
+ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_"
+    "f24e3e1e_20260708T085439CST"
+)
+SPLIT_CAMP_HEAD = "f24e3e1ea229b675f0b4e6ffcbbb6f04be412c39"
+JSON_SHA = "531ecfe7c81ee57bcf33b7bcc5d72e529434724c1f13293037cc9fa8f78133c6"
+MD_SHA = "cda40525111c26cdb9da15c01f964f2a256a80b3add6c010d782823e02ee729e"
+MANIFEST_SHA = "53d75c7baf762baf6a68ce4f62fb47e6d7a8f676dcf258a4b966b6c78146798e"
+TRAIN_JSONL_SHA = "007bd97b8e3c959d31b4023b9c9f1feb655a5c6b42b0fbb8323cccc5d9cb516a"
+CALIBRATION_JSONL_SHA = "77a3500af1111d8daec9592be882c412f265a1021c5648d10dd3282f1d227e4e"
+HOLDOUT_JSONL_SHA = "7677a53cfed9798f9107053f61e282b7076af6c88316524f4f80d9fd000c275e"
+SHA256SUMS_SHA = "18f1231c1c50841bde09527066f7845fe6b101c9978bf490457d8ce6c1867878"
+ROOT_SHA256SUMS_SHA = "c3cb4c3e863c87ae1904eeeb707d0772ae47d870ca1584e005c733ec91771926"
 
 
 def _load_module():
@@ -76,6 +90,51 @@ def test_v16_pilot_corpus_split_execution_rejects_bad_k(tmp_path: Path) -> None:
 
     assert report["final_decision"]["passed"] is False
     assert "records_all_k_8" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_corpus_split_execution_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (audit, status):
+        assert ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_camp_head={SPLIT_CAMP_HEAD}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_check_count=46" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_failed_checks=[]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_train_records=863" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_calibration_records=14" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_holdout_records=147" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_scene_zero_overlap=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_sample_zero_overlap=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_k_values=[8]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_candidate_count_values=[8]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_candidate_tensor_mutated_count=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_corpus_split_execution_performance_claim_supported=False" in text
+        assert JSON_SHA in text
+        assert MD_SHA in text
+        assert MANIFEST_SHA in text
+        assert TRAIN_JSONL_SHA in text
+        assert CALIBRATION_JSONL_SHA in text
+        assert HOLDOUT_JSONL_SHA in text
+        assert SHA256SUMS_SHA in text
+        assert ROOT_SHA256SUMS_SHA in text
+        assert PILOT_ROOT_SHA in text
+        assert BLOCKER_ROOT_SHA in text
+        assert REMEDIATION_ROOT_SHA in text
+        assert REVIEW_ROOT_SHA in text
 
 
 def _write_fixture(tmp_path: Path, module, bad_k: bool = False) -> dict:
