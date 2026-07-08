@@ -393,7 +393,7 @@ def _write_sha_manifest(output_dir: Path) -> None:
             continue
         rows.append(f"{_sha256(path)}  {path.relative_to(output_dir).as_posix()}\n")
     sha_path.write_text("".join(rows), encoding="utf-8")
-    root_path.write_text(f"{_sha256(sha_path)}  {output_dir.name}\n", encoding="utf-8")
+    root_path.write_text(f"{_sha256(sha_path)}  SHA256SUMS\n", encoding="utf-8")
 
 
 def _read_json(path: Path) -> dict[str, Any]:

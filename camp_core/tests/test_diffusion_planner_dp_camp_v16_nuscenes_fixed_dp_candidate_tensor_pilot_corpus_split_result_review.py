@@ -61,6 +61,7 @@ def test_v16_pilot_corpus_split_result_review_passes_scene_pure_split(tmp_path: 
     assert (fixture["output_dir"] / module.REVIEW_MD_NAME).is_file()
     assert (fixture["output_dir"] / "SHA256SUMS").is_file()
     assert (fixture["output_dir"] / "ROOT_SHA256SUMS").is_file()
+    assert (fixture["output_dir"] / "ROOT_SHA256SUMS").read_text(encoding="utf-8").split()[1] == "SHA256SUMS"
 
 
 def test_v16_pilot_corpus_split_result_review_rejects_sample_overlap(tmp_path: Path) -> None:
