@@ -286,9 +286,6 @@ def test_v16_pilot_training_execution_success_is_recorded() -> None:
         assert TRAINING_SUCCESS_STDOUT_SHA in text
         assert TRAINING_SUCCESS_STDERR_SHA in text
         assert TRAINING_SUCCESS_RUN_EXIT_SHA in text
-    assert f"current_v16_status={module.READY_STATUS}" in status
-    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status
-
 
 def _write_fixture(
     tmp_path: Path,

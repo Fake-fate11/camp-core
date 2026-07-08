@@ -15,6 +15,23 @@ SCRIPT_PATH = (
 )
 HEAD = "251cb54cb42ec41fc2c5d4aba3d59d8bc87c70f2"
 SOURCE_ROOT_SHA = "92ebe656b28a61b27a5317cf48e41f38a0c1f5d7f333323e2fdaeeb8c8dcd493"
+REVIEW_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_"
+    "0ffbf63faa_20260708T123012CST"
+)
+REVIEW_CAMP_HEAD = "0ffbf63faa26f2b04d3ffe6ed3c976595cf73c09"
+SOURCE_CAMP_HEAD = "2f0448ad80abb5b858595c904d4bd6c2de3930a0"
+REVIEW_JSON_SHA = "db09ad1d3cf01eddb5e40297e050b872e7090d0c106a9a79b98cff27353507d9"
+REVIEW_MD_SHA = "db9cc64c2c71ee2e902d4b1d90a8e50484a69533c50af32764f83348772a4d87"
+REVIEW_SHA256SUMS_SHA = "40f42c459041fd34d5b817d17fbc7d35d6c855fac3cfced192943ba05d153e42"
+REVIEW_ROOT_SHA256SUMS_SHA = "cc473adda4e6f875187eb141f7df61937f423a1b18107a5163c159ac09d642fc"
+REVIEW_HEADS_SHA = "b027f7e18aa94feeba881dbfeca00cad3d199ae7a518dc139f8c4ed22ee39082"
+REVIEW_COMMAND_SHA = "115e40c1b9e057b194218d6d8911cde4e7bc50d6b7dcb9664133e89a24990344"
+REVIEW_COMMAND_SHELL_SHA = "365263e83072725d8fcd12132b8e58001b59309cfe0c67ccc5b34736c97e2600"
+REVIEW_STDOUT_SHA = "a273e4bbf5115d61983a64158394098ab48b02205438b20fdcbe58f8ae98393e"
+REVIEW_STDERR_SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+REVIEW_RUN_EXIT_SHA = "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
 
 
 def _load_module():
@@ -73,6 +90,52 @@ def test_v16_pilot_training_result_review_rejects_weight_sum_drift(tmp_path: Pat
 
     assert report["final_decision"]["passed"] is False
     assert "weights_sum_to_one" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_training_result_review_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert REVIEW_ARTIFACT in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_status={module.READY_STATUS}" in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_check_count=64" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_failed_checks=[]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_train_records=863" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_calibration_records_used_for_training=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_holdout_records_used_for_training=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_scene_zero_overlap=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_sample_zero_overlap=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_k_values=[8]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_candidate_count_values=[8]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_candidate_tensor_mutated_count=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_closed_loop_outcomes_used_for_training=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_atom_schema_version=camp_legacy_v1_9d" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_weights_nonnegative=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_weights_sum_to_one=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_approved_atoms_only=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_score_expression=score_k(w)=a_k^T w" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_offline_training_wall_clock_seconds=0.535838" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_camp_head={REVIEW_CAMP_HEAD}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_result_review_source_camp_head={SOURCE_CAMP_HEAD}" in text
+        assert REVIEW_JSON_SHA in text
+        assert REVIEW_MD_SHA in text
+        assert REVIEW_SHA256SUMS_SHA in text
+        assert REVIEW_ROOT_SHA256SUMS_SHA in text
+        assert REVIEW_HEADS_SHA in text
+        assert REVIEW_COMMAND_SHA in text
+        assert REVIEW_COMMAND_SHELL_SHA in text
+        assert REVIEW_STDOUT_SHA in text
+        assert REVIEW_STDERR_SHA in text
+        assert REVIEW_RUN_EXIT_SHA in text
+        assert SOURCE_ROOT_SHA in text
+    assert f"current_v16_status={module.READY_STATUS}" in status
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status
 
 
 def _write_fixture(tmp_path: Path, module, *, weight_sum: float = 1.0) -> dict:
