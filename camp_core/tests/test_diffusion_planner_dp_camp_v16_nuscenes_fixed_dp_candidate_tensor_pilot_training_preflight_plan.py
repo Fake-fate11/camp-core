@@ -17,6 +17,21 @@ HEAD = "d8409258df161e41ed0d38362613217e19c882cf"
 SPLIT_REVIEW_ROOT_SHA = "028e40a2bf2c9c4fc9300660371079656a931e1dce8d3e9fc8c0a51a84f3d1e2"
 SPLIT_EXECUTION_ROOT_SHA = "18f1231c1c50841bde09527066f7845fe6b101c9978bf490457d8ce6c1867878"
 PILOT_CORPUS_ROOT_SHA = "57779ea5d6aa2d9f1e7a5962cbbd551238ec1500136bd82e972714d479da7432"
+PLAN_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_"
+    "fe753b8e_20260708T100801CST"
+)
+PLAN_CAMP_HEAD = "fe753b8e418bf0f72ee3cbcc5371f92c2ce24656"
+PLAN_JSON_SHA = "03d5a4e80e44814395b6d876c7170321e1480db2ff62b8b98536d0e3851e5445"
+PLAN_MD_SHA = "3a304d3be6b77a36489a4a22fb28e094b1720e34b93e73eb4d4033be89655930"
+PLAN_SHA256SUMS_SHA = "bc0c5b63a26dd035fcfd74a74df6465df173597278aacc95f77dd5ad8d86f2aa"
+PLAN_ROOT_SHA256SUMS_SHA = "888d25f3b1584dec22c6d8c9a63da1e6cd0cc49feea41d9ae98847a0da203d21"
+PLAN_HEADS_SHA = "021d4da25ee4c175808008ee46b5ea95b29d65970db2daa004d4a03269248ff2"
+PLAN_COMMAND_SHA = "bf36817d904206d4d5250ad65664deaa215ef765344db8a1a08b8d9b43156330"
+PLAN_STDOUT_SHA = "d8b44aca6cd15df894649d1e39721bfce5db0c0c9229b0a812803ca0a62c558d"
+PLAN_STDERR_SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+PLAN_RUN_EXIT_SHA = "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
 PILOT_CORPUS_ARTIFACT = (
     "/root/autodl-tmp/"
     "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_candidates_"
@@ -117,6 +132,52 @@ def test_v16_pilot_training_preflight_plan_rejects_missing_candidate_hash(tmp_pa
 
     assert report["final_decision"]["passed"] is False
     assert "candidate_tensor_hashes_present" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_training_preflight_plan_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (audit, status):
+        assert PLAN_ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_camp_head={PLAN_CAMP_HEAD}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_check_count=69" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_failed_checks=[]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_train_records=863" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_calibration_records_used_for_training=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_holdout_records_used_for_training=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_score_expression=score_k(w)=a_k^T w" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_weights_nonnegative=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_weights_sum_to_one=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_approved_atoms_only=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_training_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_paired_evaluation_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_performance_claimed=False" in text
+        assert PLAN_JSON_SHA in text
+        assert PLAN_MD_SHA in text
+        assert PLAN_SHA256SUMS_SHA in text
+        assert PLAN_ROOT_SHA256SUMS_SHA in text
+        assert PLAN_HEADS_SHA in text
+        assert PLAN_COMMAND_SHA in text
+        assert PLAN_STDOUT_SHA in text
+        assert PLAN_STDERR_SHA in text
+        assert PLAN_RUN_EXIT_SHA in text
+        assert SPLIT_REVIEW_ROOT_SHA in text
+        assert SPLIT_EXECUTION_ROOT_SHA in text
+        assert PILOT_CORPUS_ROOT_SHA in text
 
 
 def _write_fixture(
