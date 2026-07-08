@@ -24,6 +24,20 @@ PLAN_ARTIFACT = (
     "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_"
     "fe753b8e_20260708T100801CST"
 )
+REVIEW_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_"
+    "ae7963b7_20260708T103348CST"
+)
+REVIEW_JSON_SHA = "18241632a44e19ce67caf57fb3e48c2aed81a2ffcfc8204c7582d30fd1214922"
+REVIEW_MD_SHA = "416113122a90902c084a40340616e5a942904e915c15e2dbd80d88960223792f"
+REVIEW_SHA256SUMS_SHA = "0a73622f95790703a8a1512c46ae8be93dbd99c1932fda912069ee870e5dd188"
+REVIEW_ROOT_SHA256SUMS_SHA = "53e762d0923dbcb9b6fc1741161c0e12afbe005ddd10a61cb08c14aa559d12dc"
+REVIEW_HEADS_SHA = "229c32be687909a6030979685c00413d3301eadf6c96f69bd72f6569061d71d7"
+REVIEW_COMMAND_SHA = "4e9d49423819b9cf5c0b026153daf57300d30d54a2f7a593553efb765b3925b6"
+REVIEW_STDOUT_SHA = "350de8c56f1c34932527d74d6894d1f4af76200b09ac56e03b627e9145a4fc45"
+REVIEW_STDERR_SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+REVIEW_RUN_EXIT_SHA = "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
 
 
 def _load_module():
@@ -103,6 +117,51 @@ def test_v16_pilot_training_preflight_plan_static_review_rejects_leakage(tmp_pat
 
     assert report["final_decision"]["passed"] is False
     assert "calibration_records_not_used_for_training" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_training_preflight_plan_static_review_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert REVIEW_ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_check_count=78" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_failed_checks=[]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_train_records=863" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_calibration_records=14" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_holdout_records=147" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_calibration_records_used_for_training=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_holdout_records_used_for_training=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_score_expression=score_k(w)=a_k^T w" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_weights_nonnegative=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_weights_sum_to_one=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_approved_atoms_only=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_k=8" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_candidate_count=8" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_training_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_paired_evaluation_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_training_preflight_plan_static_review_performance_claimed=False" in text
+        assert f"current_v16_status={module.READY_STATUS}" in text
+        assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in text
+        assert PLAN_ROOT_SHA in text
+        assert REVIEW_JSON_SHA in text
+        assert REVIEW_MD_SHA in text
+        assert REVIEW_SHA256SUMS_SHA in text
+        assert REVIEW_ROOT_SHA256SUMS_SHA in text
+        assert REVIEW_HEADS_SHA in text
+        assert REVIEW_COMMAND_SHA in text
+        assert REVIEW_STDOUT_SHA in text
+        assert REVIEW_STDERR_SHA in text
+        assert REVIEW_RUN_EXIT_SHA in text
 
 
 def _write_fixture(
