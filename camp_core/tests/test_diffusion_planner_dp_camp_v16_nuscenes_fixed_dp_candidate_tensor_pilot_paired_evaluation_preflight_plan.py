@@ -16,6 +16,22 @@ SCRIPT_PATH = (
 HEAD = "b7391b4db11eb056e9f298ad3db7fedd2637b218"
 SOURCE_ROOT_SHA = "40f42c459041fd34d5b817d17fbc7d35d6c855fac3cfced192943ba05d153e42"
 SOURCE_CAMP_HEAD = "0ffbf63faa26f2b04d3ffe6ed3c976595cf73c09"
+PLAN_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_"
+    "09e49fbffd_20260708T134405CST"
+)
+PLAN_CAMP_HEAD = "09e49fbffd4f6cb1144b6ad1bc26ce01af261f55"
+PLAN_JSON_SHA = "65c1423d960197d131f57d1b9f1ce39e6cf393763340a6849253298c5ec2026f"
+PLAN_MD_SHA = "c15dc04b491a49a3b298158eedb00d9deeffd53e78b2166ce444ca14c52a3017"
+PLAN_SHA256SUMS_SHA = "c95c3c99cf0362fac33d6dea85541b55c5903a0c7317cde808b300cfc8dd4d97"
+PLAN_ROOT_SHA256SUMS_SHA = "0d834ffbb53fe4d94106dcedc5e8f69a70546a3a1c50d0019e2035a16869c05b"
+PLAN_HEADS_SHA = "d57fb9b66dfb94d579ebba234ef42cc905ef072130f9b02a646e8298d24521a8"
+PLAN_COMMAND_SHA = "47268e18ee7fae8eb2d6c9909fa1d91e351f73540946af1edb20ad50c54b8837"
+PLAN_COMMAND_SHELL_SHA = "c6f9dfad12d69c007957f009d8211c31088137ae2a3b17e89b35f3770779ba66"
+PLAN_STDOUT_SHA = "90166aa58914d5c279c3c64aa7aa6ce1308a637954d474407bca17623b69b105"
+PLAN_STDERR_SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+PLAN_RUN_EXIT_SHA = "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
 
 
 def _load_module():
@@ -102,6 +118,52 @@ def test_v16_pilot_paired_eval_preflight_plan_rejects_source_claim(tmp_path: Pat
 
     assert report["final_decision"]["passed"] is False
     assert "source_performance_claimed_false" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_pilot_paired_eval_preflight_plan_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert PLAN_ARTIFACT in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_status="
+            f"{module.READY_STATUS}"
+        ) in text
+        assert (
+            "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_authorized_next_work="
+            f"{module.AUTHORIZED_NEXT_WORK}"
+        ) in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_check_count=59" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_failed_checks=[]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_train_reporting_only_rows=863" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_calibration_rows=14" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_holdout_rows=147" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_primary_eval_rows=161" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_primary_eval_splits=[calibration,holdout]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_reporting_only_splits=[train]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_comparison=camp_selected_fixed_dp_candidate_vs_dp_top1" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_pilot_eval_smoke_only=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_performance_claimed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_safety_claimed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_camp_over_dp_claimed=False" in text
+        assert "selector_latency_mean_median_p95_p99_max" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_camp_head={PLAN_CAMP_HEAD}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation_preflight_plan_source_camp_head={SOURCE_CAMP_HEAD}" in text
+        assert SOURCE_ROOT_SHA in text
+        assert PLAN_JSON_SHA in text
+        assert PLAN_MD_SHA in text
+        assert PLAN_SHA256SUMS_SHA in text
+        assert PLAN_ROOT_SHA256SUMS_SHA in text
+        assert PLAN_HEADS_SHA in text
+        assert PLAN_COMMAND_SHA in text
+        assert PLAN_COMMAND_SHELL_SHA in text
+        assert PLAN_STDOUT_SHA in text
+        assert PLAN_STDERR_SHA in text
+        assert PLAN_RUN_EXIT_SHA in text
+    assert f"current_v16_status={module.READY_STATUS}" in status
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status
 
 
 def _write_fixture(tmp_path: Path, module, *, performance_claimed: bool = False) -> dict:
