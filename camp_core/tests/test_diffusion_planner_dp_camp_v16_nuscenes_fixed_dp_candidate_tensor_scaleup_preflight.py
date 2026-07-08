@@ -17,6 +17,27 @@ HEAD = "22a0fa3c52647392db0abacd8a88bd21a0b3f6a1"
 DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 PLAN_ROOT_SHA = "5fc1583598944ad3953ba065b75542df194b99bbda7bf42e73cacae161d45bef"
 REVIEW_ROOT_SHA = "682e1f3a40a5524072a76343ac29b59ac0dc41dbf3e40550d57b80156e68cd3b"
+PREFLIGHT_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_"
+    "1503f04e11_20260708T174857CST"
+)
+CANDIDATE_OUTPUT_ROOT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_scaleup_candidates_"
+    "1503f04e11_20260708T174857CST"
+)
+PREFLIGHT_CAMP_HEAD = "1503f04e11e26fbb1776a95add0a9508f6acb8c4"
+PREFLIGHT_ROOT_SHA = "b6ab0db5f25674c9d69ff9566a4c413e00529e64ff1baf5de00627cee9db878b"
+PREFLIGHT_ROOT_SHA256SUMS_SHA = "003d9144b12e49c240bf640c71e7a68a5948f7fdc227d5fedbbd4f3583c7974d"
+PREFLIGHT_JSON_SHA = "13175d1f7e3f513cf74f26990107d0625982267715c58d7547a4d8e84cec148a"
+PREFLIGHT_MD_SHA = "d22c9261bc50535e6fb1a4f971386665260cb0ba31f7e14e96959893c37c2064"
+PREFLIGHT_HEADS_SHA = "25d57b58cc2ec2aec47960967cb1f4c98fb1ffd65d999bf34ca6635fcd6a4632"
+PREFLIGHT_COMMAND_SHA = "49a17ded90619f37bd74717f3b4be04112267ddc10babecd34a038b19035fe7a"
+PREFLIGHT_COMMAND_SHELL_SHA = "d90dcf3664a8de6958efb3eed251ea4584ed14240bc160f144e2d8e0d3bf7006"
+PREFLIGHT_STDOUT_SHA = "0374631e5743eb4991b1ac8b17d8c393dbb794240833243c63f993fa8681287f"
+PREFLIGHT_STDERR_SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+PREFLIGHT_RUN_EXIT_SHA = "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
 
 
 def _load_module():
@@ -97,6 +118,53 @@ def test_v16_scaleup_preflight_rejects_wrong_eof(tmp_path: Path) -> None:
     assert report["final_decision"]["passed"] is False
     assert "audit_authorizes_scaleup_preflight" in report["final_decision"]["failed_checks"]
     assert "status_authorizes_scaleup_preflight" in report["final_decision"]["failed_checks"]
+
+
+def test_v16_scaleup_preflight_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert PREFLIGHT_ARTIFACT in text
+        assert CANDIDATE_OUTPUT_ROOT in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_status={module.READY_STATUS}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_authorized_next_work={module.AUTHORIZED_NEXT_WORK}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_check_count=70" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_failed_checks=[]" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_source_plan_root_sha256={PLAN_ROOT_SHA}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_source_review_root_sha256={REVIEW_ROOT_SHA}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_target_records=10000" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_minimum_distinct_scenes=30" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_k_candidate_count=[8,8]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_estimated_wall_clock_hours=14.8" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_source_selection_command_constructed=True" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_source_selection_command_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_candidate_output_root_exists=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_scale_up_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_candidate_generation_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_training_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_paired_evaluation_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_performance_claimed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_promotion_executed=False" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_deployment_executed=False" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_camp_head={PREFLIGHT_CAMP_HEAD}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_dp_head={DP_HEAD}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_root_sha256={PREFLIGHT_ROOT_SHA}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_root_sha256s_sha256={PREFLIGHT_ROOT_SHA256SUMS_SHA}" in text
+        for digest in (
+            PREFLIGHT_JSON_SHA,
+            PREFLIGHT_MD_SHA,
+            PREFLIGHT_HEADS_SHA,
+            PREFLIGHT_COMMAND_SHA,
+            PREFLIGHT_COMMAND_SHELL_SHA,
+            PREFLIGHT_STDOUT_SHA,
+            PREFLIGHT_STDERR_SHA,
+            PREFLIGHT_RUN_EXIT_SHA,
+        ):
+            assert digest in text
+    assert f"current_v16_status={module.READY_STATUS}" in status
+    assert f"next_work_target={module.AUTHORIZED_NEXT_WORK}" in status
 
 
 def _write_fixture(
