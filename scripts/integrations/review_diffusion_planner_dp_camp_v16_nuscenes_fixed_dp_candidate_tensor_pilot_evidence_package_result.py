@@ -368,7 +368,9 @@ def _source_summaries(source_index: list[dict[str, Any]]) -> dict[str, dict[str,
             rel = str(file_item.get("path", ""))
             if rel.endswith(".json"):
                 try:
-                    payload.update(_read_json(root / rel))
+                    data = _read_json(root / rel)
+                    if isinstance(data, dict):
+                        payload.update(data)
                 except (OSError, json.JSONDecodeError):
                     pass
         summaries[str(item.get("id"))] = payload

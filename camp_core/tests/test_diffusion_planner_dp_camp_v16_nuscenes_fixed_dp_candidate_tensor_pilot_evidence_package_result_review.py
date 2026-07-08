@@ -155,6 +155,7 @@ def _write_source_artifact(path: Path, source_id: str) -> dict:
     path.mkdir()
     summary_name = f"{source_id}.json"
     _write_json(path / summary_name, _summary_payload(source_id))
+    _write(path / "array_summary.json", "[1, 2, 3]\n")
     _write(path / "rows.jsonl", "{\"ok\": true}\n")
     _write_json(path / "split_metrics.json", {"source_id": source_id})
     _write_json(path / "latency.json", {"count": 1})
