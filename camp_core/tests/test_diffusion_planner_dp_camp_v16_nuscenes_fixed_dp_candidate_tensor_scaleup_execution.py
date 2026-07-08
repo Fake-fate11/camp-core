@@ -37,6 +37,16 @@ REMEDIATION_ROOT_SHA256SUMS_SHA = "656cb46dcc0a28da451c91caee800bb5a5ffaacbda49c
 REMEDIATION_JSON_SHA = "b470859de00ea958e4c80915def2d126c0a6c8625ed48532205c7fd855fcd7ea"
 REMEDIATION_MD_SHA = "8ee20e0632dc2d761a77f2373b133325f04d70d2f173f068f1a9a912ca748911"
 REMEDIATION_NEXT_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_only"
+RUNNING_RETRY_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_scaleup_candidates_retry_"
+    "b882659c70_20260708T185012CST"
+)
+RUNNING_RETRY_LAUNCH_ARTIFACT = (
+    "/root/autodl-tmp/scaleup_execution_retry_b882659c70_20260708T185012CST"
+)
+RUNNING_RETRY_CAMP_HEAD = "b882659c70d4e38c37d246a60f5f09c6c0657eb0"
+RUNNING_RETRY_STATUS = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_running"
 
 
 def _load_module():
@@ -208,6 +218,25 @@ def test_v16_scaleup_execution_authorization_remediation_is_recorded() -> None:
         assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_explicit_v16_tests=156 passed" in text
         assert f"next_work_target={REMEDIATION_NEXT_WORK}" in text
     assert f"current_v16_status={ready}" in status
+
+
+def test_v16_scaleup_execution_retry_running_is_recorded() -> None:
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert RUNNING_RETRY_ARTIFACT in text
+        assert RUNNING_RETRY_LAUNCH_ARTIFACT in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_status={RUNNING_RETRY_STATUS}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_camp_head={RUNNING_RETRY_CAMP_HEAD}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_pid=355866" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_run_exit=running" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_records_jsonl_lines_at_poll=84" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_stdout_records_done_tail=80" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_final_root_sha256=not_final_running" in text
+        assert f"next_work_target={REMEDIATION_NEXT_WORK}" in text
+    assert f"current_v16_status={RUNNING_RETRY_STATUS}" in status
+    assert f"current_v16_artifact={RUNNING_RETRY_ARTIFACT}" in status
 
 
 def _write_fixture(tmp_path: Path, module) -> dict:
