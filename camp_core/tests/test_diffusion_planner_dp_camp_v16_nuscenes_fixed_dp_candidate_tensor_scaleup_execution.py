@@ -13,6 +13,19 @@ SCRIPT_PATH = (
 )
 HEAD = "f93e57845f7ba79910d7daf3bd071efa1fd3159e"
 PREFLIGHT_ROOT_SHA = "b6ab0db5f25674c9d69ff9566a4c413e00529e64ff1baf5de00627cee9db878b"
+FAILED_ARTIFACT = (
+    "/root/autodl-tmp/"
+    "camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_scaleup_candidates_"
+    "1503f04e11_20260708T174857CST"
+)
+FAILED_CAMP_HEAD = "f7ae27d0443a7a4600e8280880c30f1764b86fc1"
+FAILED_ROOT_SHA = "2aef585abf06f8b6af2aaaef0f3f16adac3541a52ad264c5da793feb36819666"
+FAILED_ROOT_SHA256SUMS_SHA = "c09df735726a38fca14ef33203fdb0952aadc40517cfba5e598415b9be8956ce"
+FAILED_JSON_SHA = "0ba94647e2cb355ee8496288cb5c14e66c5dc8f851d97582c737bd44eacbafe6"
+FAILED_RECORD0_JSON_SHA = "ec8aefba7b1adc4fb31b4c0ca5e00a4a7d04f982acdf612f136a7fd7356e8a25"
+FAILED_NEXT_WORK = (
+    "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_runner_authorization_remediation_only"
+)
 
 
 def _load_module():
@@ -120,6 +133,29 @@ def test_v16_scaleup_execution_prepares_runner_arg_aliases(tmp_path: Path) -> No
 
     assert args.output_dir == args.output_root
     assert args.metadata_root == args.nuscenes_root
+
+
+def test_v16_scaleup_execution_failure_is_recorded() -> None:
+    module = _load_module()
+    audit = (ROOT / "docs" / "diffusion_planner_v16_iteration_audit.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "diffusion_planner_current_status.md").read_text(encoding="utf-8")
+
+    for text in (audit, status):
+        assert FAILED_ARTIFACT in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_status={module.FAILED_STATUS}" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_failure_class=exporter_authorization_allowlist_missing_scaleup_execution" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_failed_checks=[exporter:0:exit=1:,status_authorizes_exporter]" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_records=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_distinct_scenes=0" in text
+        assert "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_k_candidate_count=[8,8]" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_camp_head={FAILED_CAMP_HEAD}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_dp_head={module.FIXED_DP_HEAD}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_root_sha256={FAILED_ROOT_SHA}" in text
+        assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_root_sha256s_sha256={FAILED_ROOT_SHA256SUMS_SHA}" in text
+        assert FAILED_JSON_SHA in text
+        assert FAILED_RECORD0_JSON_SHA in text
+        assert f"next_work_target={FAILED_NEXT_WORK}" in text
+    assert f"current_v16_status={module.FAILED_STATUS}" in status
 
 
 def _write_fixture(tmp_path: Path, module) -> dict:
