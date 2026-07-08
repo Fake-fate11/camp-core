@@ -345,7 +345,7 @@ def write_outputs(output_root: Path, report: dict[str, Any]) -> None:
     (output_root / "COMMAND").write_text(json.dumps(report.get("command", [])) + "\n", encoding="utf-8")
     (output_root / "stdout.txt").touch(exist_ok=True)
     (output_root / "stderr.txt").write_text(str(report.get("failure", "")), encoding="utf-8")
-    (output_root / "run.exit").write_text("0\n" if report["final_decision"]["passed"] else "1\n", encoding="utf-8")
+    (output_root / "run.exit").write_text(_run_exit_text(report), encoding="utf-8")
     _write_sha_manifest(output_root)
 
 
@@ -438,6 +438,15 @@ def _decision(passed: bool, status: str, failed: list[str], next_work: str) -> d
         "candidate_tensor_modified": False,
         "fake_candidate_tensor_generated": False,
     }
+
+
+def _run_exit_text(report: dict[str, Any]) -> str:
+    status = report["final_decision"]["status"]
+    if status == READY_STATUS:
+        return "0\n"
+    if status == FAILED_STATUS:
+        return "1\n"
+    return "running\n"
 
 
 def _trajdata_split(split: str) -> str:

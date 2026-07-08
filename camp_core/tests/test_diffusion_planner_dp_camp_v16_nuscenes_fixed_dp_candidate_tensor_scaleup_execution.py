@@ -61,6 +61,7 @@ def test_v16_scaleup_execution_accepts_10k_gate(tmp_path: Path) -> None:
         "ROOT_SHA256SUMS",
     ):
         assert (fixture["output_root"] / name).exists()
+    assert (fixture["output_root"] / "run.exit").read_text(encoding="utf-8") == "running\n"
 
 
 def test_v16_scaleup_execution_rejects_existing_output_root(tmp_path: Path) -> None:
