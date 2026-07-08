@@ -27,6 +27,7 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_ca
 SCHEMA_VERSION = "dp_camp_v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_v1"
 SOURCE_PREFLIGHT_STATUS = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_preflight_ready"
 AUTHORIZED_CURRENT_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_only"
+AUTHORIZED_RETRY_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_only"
 AUTHORIZED_NEXT_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_result_review_only"
 RUNNING_STATUS = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_running"
 READY_STATUS = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_passed"
@@ -162,8 +163,8 @@ def build_report(
     checks = [
         _expect("camp_head_matches_origin", current_camp_head, current_camp_origin_main),
         _expect("dp_head_fixed", current_dp_head, FIXED_DP_HEAD),
-        _contains("audit_authorizes_scaleup_execution", audit_text, f"next_work_target={AUTHORIZED_CURRENT_WORK}"),
-        _contains("status_authorizes_scaleup_execution", status_text, f"next_work_target={AUTHORIZED_CURRENT_WORK}"),
+        _contains_any("audit_authorizes_scaleup_execution", audit_text, _authorized_execution_needles()),
+        _contains_any("status_authorizes_scaleup_execution", status_text, _authorized_execution_needles()),
         _contains("audit_records_scaleup_preflight", audit_text, f"current_v16_status={SOURCE_PREFLIGHT_STATUS}"),
         _contains("status_records_scaleup_preflight", status_text, f"current_v16_status={SOURCE_PREFLIGHT_STATUS}"),
         _check("output_root_absent", not output_root.exists(), str(output_root), "absent"),
@@ -523,6 +524,18 @@ def _read_text(path: Path) -> str:
 
 def _contains(name: str, text: str, needle: str) -> dict[str, Any]:
     return _check(name, needle in text, "present" if needle in text else "missing", needle)
+
+
+def _contains_any(name: str, text: str, needles: tuple[str, ...]) -> dict[str, Any]:
+    matched = [needle for needle in needles if needle in text]
+    return _check(name, bool(matched), matched[0] if matched else "missing", list(needles))
+
+
+def _authorized_execution_needles() -> tuple[str, ...]:
+    return (
+        f"next_work_target={AUTHORIZED_CURRENT_WORK}",
+        f"next_work_target={AUTHORIZED_RETRY_WORK}",
+    )
 
 
 def _expect(name: str, actual: Any, expected: Any) -> dict[str, Any]:

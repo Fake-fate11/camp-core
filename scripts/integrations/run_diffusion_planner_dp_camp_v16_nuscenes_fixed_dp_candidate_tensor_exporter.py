@@ -33,6 +33,8 @@ AUTHORIZED_CURRENT_WORK = (
 AUTHORIZED_NEXT_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_only"
 AUTHORIZED_RETRY_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_only"
 AUTHORIZED_PILOT_EXECUTION_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_pilot_generation_execution_only"
+AUTHORIZED_SCALEUP_EXECUTION_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_only"
+AUTHORIZED_SCALEUP_RETRY_WORK = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_only"
 READY_STATUS = "v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_runner_remediation_ready"
 REJECT_STATUS = "v16_nuscenes_fixed_dp_candidate_tensor_smoke_execution_retry_runner_remediation_rejected"
 SCHEMA_VERSION = (
@@ -489,11 +491,13 @@ def _contains_any(name: str, text: str, needles: Sequence[str]) -> dict[str, Any
     return _check(name, bool(matched), matched[0] if matched else "missing", list(needles))
 
 
-def _authorized_needles() -> tuple[str, str, str]:
+def _authorized_needles() -> tuple[str, ...]:
     return (
         f"next_work_target={AUTHORIZED_CURRENT_WORK}",
         f"next_work_target={AUTHORIZED_RETRY_WORK}",
         f"next_work_target={AUTHORIZED_PILOT_EXECUTION_WORK}",
+        f"next_work_target={AUTHORIZED_SCALEUP_EXECUTION_WORK}",
+        f"next_work_target={AUTHORIZED_SCALEUP_RETRY_WORK}",
     )
 
 

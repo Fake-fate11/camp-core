@@ -88,6 +88,28 @@ def test_v16_scaleup_execution_rejects_existing_output_root(tmp_path: Path) -> N
     assert "output_root_absent" in report["final_decision"]["failed_checks"]
 
 
+def test_v16_scaleup_execution_accepts_retry_gate(tmp_path: Path) -> None:
+    module = _load_module()
+    fixture = _write_fixture(tmp_path, module)
+    retry = "v16_nuscenes_fixed_dp_candidate_tensor_scaleup_execution_retry_only"
+    fixture["v16_audit_md"].write_text(
+        "\n".join(
+            [
+                f"current_v16_status={module.SOURCE_PREFLIGHT_STATUS}",
+                f"current_v16_status={module.FAILED_STATUS}",
+                f"next_work_target={retry}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    fixture["current_status_md"].write_text(fixture["v16_audit_md"].read_text(encoding="utf-8"), encoding="utf-8")
+
+    report = module.build_report(**fixture)
+
+    assert report["final_decision"]["passed"] is True
+
+
 def test_v16_scaleup_execution_enforces_scene_cap() -> None:
     module = _load_module()
     counts = {"scene-a": 334}
