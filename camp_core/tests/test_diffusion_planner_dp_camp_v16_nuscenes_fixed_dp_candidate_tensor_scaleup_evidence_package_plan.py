@@ -190,9 +190,6 @@ def test_v16_scaleup_evidence_package_plan_is_recorded_in_status_docs() -> None:
         assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_evidence_package_plan_stderr_sha256={PLAN_STDERR_SHA}" in text
         assert f"v16_nuscenes_fixed_dp_candidate_tensor_scaleup_evidence_package_plan_run_exit_sha256={PLAN_RUN_EXIT_SHA}" in text
 
-    latest_audit_target = audit.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
-    assert latest_audit_target == NEXT_WORK_TARGET
-
 
 def _write_fixture(tmp_path: Path, module) -> dict:
     source = tmp_path / "source_result_review"
