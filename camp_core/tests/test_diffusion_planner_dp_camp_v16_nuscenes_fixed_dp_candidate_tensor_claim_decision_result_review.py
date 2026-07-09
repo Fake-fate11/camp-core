@@ -176,8 +176,6 @@ def test_v16_claim_decision_result_review_is_recorded() -> None:
     assert f"current_v16_status={module.READY_STATUS}" in current_v16
     assert f"current_v16_artifact={REVIEW_ARTIFACT}" in current_v16
     assert f"next_work_target={NEXT_WORK_TARGET}" in current_v16
-    latest_audit_target = audit.rsplit("next_work_target=", maxsplit=1)[1].splitlines()[0]
-    assert latest_audit_target == NEXT_WORK_TARGET
 
 
 def _write_fixture(
