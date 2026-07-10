@@ -492,6 +492,59 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_mate
 current_v18_artifact_root_sha256=8e0bf08a5259e1ec9bf41c5d580f5a69250b4f65b99167bea85e733a18c90ffb
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_only
 
+The first materialization execution failed closed before writing record 0
+because the implementation rejected a finite, nonzero but non-unit fixed-DP
+neighbor heading under an unapproved norm threshold of `0.5`. The failure
+artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_ad6caa80_20260711T015018CST`
+/ `cc78aa8beefc1130dcfd10759d2cdc953d2f4113c24075c5e433aa57570427a1`.
+Corpus review found no zero neighbor-heading vectors across all 367 records;
+the minimum norm is `0.00295239663682878`. TDD now accepts finite norms
+`>=1e-6` through `atan2` and still rejects zero vectors, at CAMP/GitHub/AutoDL
+`3b5a2453eaa1c7bb6f40c0a73ec870eea026feef`. The failed staging root remains
+preserved; no destructive cleanup occurred.
+
+The remediation preflight passed `53` tests with `2` skips and a real
+first-record in-memory atom smoke (`[8,14]`, 8 feasible candidates) without a
+model or label read. Its artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_nonunit_heading_remediation_preflight_20260711T015350CST`
+/ `a09d310a5e316ed432afa7b950ce1a86b56966c5f2d4a0656176fc176fd41d73`.
+Execution retry then atomically promoted
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_92b2c989_retry1`
+with output-root SHA256
+`7c89f73e2b26308a42fbd453fff7e0ece4c7d0b49e219a9c56f99bdb2a65d1cc`.
+It completed in `233.649882s`, writing all 367 audit rows and 350 canonical
+NPZ files: 279 labelled train/calibration records, 71 atom-only holdout
+records, 13 signal-source-incomplete exclusions, and four all-K-infeasible
+exclusions. The execution artifact/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_retry1_3b5a2453_20260711T015444CST`
+/ `3ae8cfd536154a2aa71227c17ff2f16d1710d5e601cab9e507b09d16e85ea5f8`.
+Its only stderr was a malformed evidence-runner `PYTHONWARNINGS` option; the
+materializer itself exited zero with no traceback.
+
+Independent result review then replayed all 367 causal inputs, recomputed all
+atoms and masks, verified all 352 output hashes, and independently requeried
+214 train plus 65 calibration expert labels. It confirmed all 71 materialized
+holdout NPZs are label-free and did not query any holdout label. Early reviewer
+failures were retained for a missing preserved Shapely path, an over-strict
+`2.22e-16` bit-exact continuous-geometry comparison, and a generated-script
+indentation error; none modified output. The final review used exact boolean
+masks, geometry `atol=1e-12`, and atom `atol=1e-10` / `rtol=1e-12`, then
+passed with empty stderr and root SHA256
+`522cb692dca065990bc3c1307dbcc052db3b76535fa364c6eaba8476a5f9bc0f` at
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_result_review_retry3_20260711T020531CST`.
+
+Candidate 0 remains the fixed-DP deterministic/MAP baseline with
+`equivalence_verified=false`; native K=8 ranking is not claimed. OBB exactness
+remains limited to the frozen 32+5 observable source and is not a safety claim.
+Independent same-input baseline equivalence preflight is the only next gate.
+
+current_v18_status=v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_result_review_passed
+current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_result_review_retry3_20260711T020531CST
+current_v18_artifact_root_sha256=522cb692dca065990bc3c1307dbcc052db3b76535fa364c6eaba8476a5f9bc0f
+next_work_target=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
