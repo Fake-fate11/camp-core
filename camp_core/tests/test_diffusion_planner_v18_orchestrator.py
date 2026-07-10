@@ -203,6 +203,230 @@ def test_all_candidates_can_fail_obb_without_forcing_candidate_zero() -> None:
     )
 
 
+def test_observable_obb_prunes_only_pairs_beyond_clearance_hinge(monkeypatch) -> None:
+    candidates, neighbors, valid, history, static, projection = (
+        _observable_obb_fixture()
+    )
+    neighbors[0, 0, :, :2] = [100.0, 100.0]
+    static[:] = 0.0
+    obbs = causal_atoms.build_observable_obbs(
+        neighbors,
+        valid,
+        history,
+        static,
+    )
+    calls = 0
+    exact_distance = causal_atoms._obb_distance
+
+    def counted_distance(*args):
+        nonlocal calls
+        calls += 1
+        return exact_distance(*args)
+
+    monkeypatch.setattr(causal_atoms, "_obb_distance", counted_distance)
+    result = causal_atoms.observable_feasibility(
+        candidates,
+        np.ones(8, dtype=bool),
+        projection,
+        obbs,
+        np.array([2.925, 4.5, 1.9]),
+    )
+
+    assert calls == 0
+    np.testing.assert_allclose(result["minimum_obb_clearance"], 3.0)
+    assert result["minimum_obb_clearance_clip_m"] == 3.0
+    assert result["physical_feasible_mask"].all()
+
+
+def _canonical_14d_fixture():
+    candidates, route, speed, has_speed = _route_projection_fixture()
+    time = np.linspace(0.0, 1.0, 80)
+    for candidate_index in range(8):
+        end = 32.0 + candidate_index
+        candidates[candidate_index, :, 0] = 0.25 + (end - 0.25) * time
+    candidates[2, :, 1] = 2.5
+    candidates[3, :, 0] = 0.25 + (35.0 - 0.25) * time**3
+    route[1, 10:, 10] = 1.0
+
+    causal_input = _causal_input()
+    causal_input["route_lanes"] = route.astype(np.float32)
+    causal_input["route_lanes_speed_limit"] = speed.astype(np.float32)
+    causal_input["route_lanes_has_speed_limit"] = has_speed
+    causal_input["ego_shape"] = np.array(
+        [2.925, 4.5, 1.9], dtype=np.float32
+    )
+    causal_input["neighbor_agents_past"][0, -1, 6:8] = [2.0, 4.0]
+
+    neighbors = np.zeros((8, 32, 80, 4), dtype=np.float64)
+    neighbors[:, 0, :, 0] = candidates[:, :, 0]
+    neighbors[:, 0, :, 1] = 4.0
+    neighbors[:, 0, :, 2] = 1.0
+    valid = np.zeros(32, dtype=bool)
+    valid[0] = True
+    return candidates, causal_input, neighbors, valid
+
+
+def test_materialize_canonical_14d_uses_real_sources_and_feasible_progress() -> None:
+    candidates, causal_input, neighbors, valid = _canonical_14d_fixture()
+
+    result = causal_atoms.materialize_canonical_14d(
+        candidates=candidates,
+        causal_input=causal_input,
+        neighbor_predictions=neighbors,
+        neighbor_valid_mask=valid,
+        signal_mask=np.ones(8, dtype=bool),
+        planned_red_light_cost=np.arange(8, dtype=np.float64),
+        dt=np.float32(0.1),
+    )
+
+    atoms = result["atom_matrix"]
+    assert result["canonical_eligible"] is True
+    assert result["baseline_semantics"] == "fixed_dp_deterministic_map_baseline"
+    assert result["baseline_equivalence_verified"] is False
+    assert result["native_ranked_top1"] is False
+    assert result["atom_names"] == tuple(causal_atoms.DP_CAMP_ATOM_NAMES_V10)
+    assert atoms.shape == (8, 14)
+    assert np.all(np.isfinite(atoms))
+    assert np.all(atoms >= 0.0)
+    used_dt = float(np.float32(0.1))
+    xy = candidates[:, :, :2]
+    velocity = np.diff(xy, axis=1) / used_dt
+    acceleration = np.diff(velocity, axis=1) / used_dt
+    jerk_squared = np.sum(
+        (np.diff(acceleration, axis=1) / used_dt) ** 2,
+        axis=2,
+    )
+    split = max(1, jerk_squared.shape[1] // 3)
+    np.testing.assert_allclose(
+        atoms[:, :4],
+        np.column_stack(
+            [
+                used_dt * jerk_squared[:, :split].sum(axis=1),
+                used_dt * jerk_squared[:, split:].sum(axis=1),
+                used_dt * jerk_squared.sum(axis=1),
+                np.sqrt(np.mean(np.sum(acceleration**2, axis=2), axis=1)),
+            ]
+        ),
+    )
+    projection = causal_atoms.project_candidates_to_route(
+        candidates,
+        causal_input["route_lanes"],
+        causal_input["route_lanes_speed_limit"],
+        causal_input["route_lanes_has_speed_limit"],
+    )
+    speeds = np.linalg.norm(velocity, axis=2)
+    limits = projection["speed_limit"][:, 1:]
+    for atom_index, margin in zip((4, 5, 6), (0.0, 0.5, 1.0)):
+        np.testing.assert_allclose(
+            atoms[:, atom_index],
+            used_dt
+            * (np.maximum(speeds - (limits - margin), 0.0) ** 2).sum(axis=1),
+        )
+    assert atoms[2, 7] > 0.0
+    assert atoms[3, 4] > 0.0
+    assert np.all(atoms[:, 4] <= atoms[:, 5])
+    assert np.all(atoms[:, 5] <= atoms[:, 6])
+    expected_clearance = used_dt * np.sum(
+        np.maximum(3.0 - result["minimum_obb_clearance"], 0.0) ** 2,
+        axis=1,
+    )
+    np.testing.assert_allclose(atoms[:, 8], expected_clearance)
+    feasible = result["physical_feasible_mask"]
+    assert feasible.any()
+    assert not bool(feasible[2])
+    expected_progress = np.maximum(
+        result["route_progress"][feasible].max()
+        - result["route_progress"],
+        0.0,
+    )
+    np.testing.assert_allclose(atoms[:, 9], expected_progress)
+    np.testing.assert_allclose(atoms[:, 10], np.arange(8, dtype=np.float64))
+    np.testing.assert_allclose(
+        atoms[:, 11],
+        causal_atoms.compute_lateral_comfort_shadow_costs(candidates, used_dt)[0],
+    )
+    np.testing.assert_allclose(
+        atoms[:, 12],
+        causal_atoms.compute_red_stopping_margin_costs(
+            candidates,
+            causal_atoms._red_route_points_from_lanes(
+                causal_input["route_lanes"]
+            ),
+            used_dt,
+        ),
+    )
+    np.testing.assert_allclose(
+        atoms[:, 13],
+        causal_atoms.compute_dp_prior_comfort_excess_costs(
+            candidates, used_dt
+        )[0],
+    )
+    assert atoms[0, 13] == 0.0
+    assert atoms[3, 13] > 0.0
+    assert result["progress_reference"] == pytest.approx(
+        result["route_progress"][feasible].max()
+    )
+
+
+def test_materialize_canonical_14d_rejects_expert_future_at_causal_boundary() -> None:
+    candidates, causal_input, neighbors, valid = _canonical_14d_fixture()
+    causal_input["expert_ego_future"] = np.full((80, 3), 999.0)
+
+    with pytest.raises(ValueError, match="extra:expert_ego_future"):
+        causal_atoms.materialize_canonical_14d(
+            candidates=candidates,
+            causal_input=causal_input,
+            neighbor_predictions=neighbors,
+            neighbor_valid_mask=valid,
+            signal_mask=np.ones(8, dtype=bool),
+            planned_red_light_cost=np.arange(8, dtype=np.float64),
+            dt=0.1,
+        )
+
+
+def test_materialize_canonical_14d_rejects_source_incomplete_record() -> None:
+    candidates, causal_input, neighbors, valid = _canonical_14d_fixture()
+    signal = np.ones(8, dtype=bool)
+    signal[7] = False
+
+    result = causal_atoms.materialize_canonical_14d(
+        candidates=candidates,
+        causal_input=causal_input,
+        neighbor_predictions=neighbors,
+        neighbor_valid_mask=valid,
+        signal_mask=signal,
+        planned_red_light_cost=np.arange(8, dtype=np.float64),
+        dt=0.1,
+    )
+
+    assert result["canonical_eligible"] is False
+    assert result["atom_matrix"] is None
+    assert result["exclusion_reason"] == "signal_source_incomplete"
+    assert result["progress_reference"] is None
+
+
+def test_materialize_canonical_14d_excludes_all_k_infeasible_without_fallback() -> None:
+    candidates, causal_input, neighbors, valid = _canonical_14d_fixture()
+    neighbors[:, 0, :, :2] = candidates[:, None, :, :2][:, 0]
+
+    result = causal_atoms.materialize_canonical_14d(
+        candidates=candidates,
+        causal_input=causal_input,
+        neighbor_predictions=neighbors,
+        neighbor_valid_mask=valid,
+        signal_mask=np.ones(8, dtype=bool),
+        planned_red_light_cost=np.arange(8, dtype=np.float64),
+        dt=0.1,
+    )
+
+    assert result["canonical_eligible"] is False
+    assert result["atom_matrix"] is None
+    assert result["exclusion_reason"] == "all_candidates_physically_infeasible"
+    assert not result["physical_feasible_mask"].any()
+    assert not bool(result["physical_feasible_mask"][0])
+    assert result["progress_reference"] is None
+
+
 def test_v18_pointer_reader_ignores_historical_file_tail(tmp_path) -> None:
     module = _orchestrator()
     pointer = {

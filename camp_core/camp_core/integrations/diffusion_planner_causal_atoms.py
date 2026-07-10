@@ -11,8 +11,16 @@ from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES_V8,
     DP_CAMP_ATOM_NAMES_V9,
     DP_CAMP_ATOM_NAMES_V10,
+    _obb_center_and_radius,
     _obb_corners,
     _obb_distance,
+    _red_route_points_from_lanes,
+    compute_dp_prior_comfort_excess_costs,
+    compute_lateral_comfort_shadow_costs,
+    compute_red_stopping_margin_costs,
+)
+from camp_core.integrations.diffusion_planner_causal_materializer import (
+    validate_causal_dp_input,
 )
 
 
@@ -445,9 +453,20 @@ def observable_feasibility(
     headings = np.arctan2(heading_vectors[:, :, 1], heading_vectors[:, :, 0])
     wheelbase, ego_length, ego_width = shape
     collision_free = np.ones(8, dtype=bool)
-    minimum_clearance = np.full((8, 80), np.inf, dtype=np.float64)
+    clearance_clip_m = 3.0
+    minimum_clearance = np.full(
+        (8, 80), clearance_clip_m, dtype=np.float64
+    )
     for candidate_index in range(8):
         for step in range(80):
+            ego_center, ego_radius = _obb_center_and_radius(
+                trajectories[candidate_index, step, 0],
+                trajectories[candidate_index, step, 1],
+                headings[candidate_index, step],
+                ego_length,
+                ego_width,
+                wheelbase,
+            )
             ego_box = _obb_corners(
                 trajectories[candidate_index, step, 0],
                 trajectories[candidate_index, step, 1],
@@ -458,6 +477,20 @@ def observable_feasibility(
             )
             for obstacle in obstacles[candidate_index, :, step]:
                 if obstacle[3] <= 0.0 or obstacle[4] <= 0.0:
+                    continue
+                obstacle_center, obstacle_radius = _obb_center_and_radius(
+                    obstacle[0],
+                    obstacle[1],
+                    obstacle[2],
+                    obstacle[3],
+                    obstacle[4],
+                )
+                lower_bound = (
+                    float(np.linalg.norm(ego_center - obstacle_center))
+                    - ego_radius
+                    - obstacle_radius
+                )
+                if lower_bound >= clearance_clip_m:
                     continue
                 obstacle_box = _obb_corners(
                     obstacle[0],
@@ -491,9 +524,173 @@ def observable_feasibility(
         "physical_feasible_mask": physical,
         "candidate_reasons": tuple(reasons),
         "minimum_obb_clearance": minimum_clearance,
+        "minimum_obb_clearance_clip_m": clearance_clip_m,
         "feasibility_scope": OBSERVABLE_FEASIBILITY_SCOPE,
         "closed_loop_safety_claim": False,
     }
+
+
+def materialize_canonical_14d(
+    *,
+    candidates: np.ndarray,
+    causal_input: Mapping[str, np.ndarray],
+    neighbor_predictions: np.ndarray,
+    neighbor_valid_mask: np.ndarray,
+    signal_mask: np.ndarray,
+    planned_red_light_cost: np.ndarray,
+    dt: float,
+) -> dict[str, object]:
+    errors = validate_causal_dp_input(causal_input)
+    if errors:
+        raise ValueError("invalid causal input: " + "; ".join(errors))
+    if not np.isfinite(dt) or not np.isclose(dt, 0.1, rtol=0.0, atol=1e-8):
+        raise ValueError("dt must equal the frozen 0.1-second contract")
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.shape != (8, 80, 4) or not np.isfinite(trajectories).all():
+        raise ValueError("candidates must be finite [8,80,4]")
+    planned_red = np.asarray(planned_red_light_cost, dtype=np.float64).reshape(-1)
+    if (
+        planned_red.shape != (8,)
+        or not np.isfinite(planned_red).all()
+        or np.any(planned_red < 0.0)
+    ):
+        raise ValueError("planned_red_light_cost must be finite nonnegative [8]")
+
+    projection = project_candidates_to_route(
+        trajectories,
+        causal_input["route_lanes"],
+        causal_input["route_lanes_speed_limit"],
+        causal_input["route_lanes_has_speed_limit"],
+    )
+    obstacle_obbs = build_observable_obbs(
+        neighbor_predictions,
+        neighbor_valid_mask,
+        causal_input["neighbor_agents_past"],
+        causal_input["static_objects"],
+    )
+    feasibility = observable_feasibility(
+        trajectories,
+        signal_mask,
+        projection,
+        obstacle_obbs,
+        causal_input["ego_shape"],
+    )
+    result: dict[str, object] = {
+        **feasibility,
+        "baseline_semantics": "fixed_dp_deterministic_map_baseline",
+        "baseline_equivalence_verified": False,
+        "native_ranked_top1": False,
+        "atom_names": tuple(DP_CAMP_ATOM_NAMES_V10),
+        "atom_matrix": None,
+        "canonical_eligible": False,
+        "exclusion_reason": None,
+        "route_progress": projection["route_progress"],
+        "minimum_obb_clearance": feasibility["minimum_obb_clearance"],
+        "progress_reference": None,
+    }
+    signal = np.asarray(feasibility["signal_mask"], dtype=bool)
+    if not signal.all():
+        result["exclusion_reason"] = "signal_source_incomplete"
+        return result
+    physical = np.asarray(feasibility["physical_feasible_mask"], dtype=bool)
+    if not physical.any():
+        result["exclusion_reason"] = "all_candidates_physically_infeasible"
+        return result
+
+    xy = trajectories[:, :, :2]
+    velocity = np.diff(xy, axis=1) / float(dt)
+    acceleration = np.diff(velocity, axis=1) / float(dt)
+    jerk = np.diff(acceleration, axis=1) / float(dt)
+    jerk_squared = np.sum(jerk**2, axis=2)
+    split = max(1, jerk_squared.shape[1] // 3)
+    jerk_atoms = np.column_stack(
+        [
+            float(dt) * np.sum(jerk_squared[:, :split], axis=1),
+            float(dt) * np.sum(jerk_squared[:, split:], axis=1),
+            float(dt) * np.sum(jerk_squared, axis=1),
+        ]
+    )
+    rms_acceleration = np.sqrt(np.mean(np.sum(acceleration**2, axis=2), axis=1))
+    speeds = np.linalg.norm(velocity, axis=2)
+    speed_limits = np.asarray(projection["speed_limit"], dtype=np.float64)[:, 1:]
+    speed_atoms = np.column_stack(
+        [
+            float(dt)
+            * np.sum(np.maximum(speeds - (speed_limits - margin), 0.0) ** 2, axis=1)
+            for margin in (0.0, 0.5, 1.0)
+        ]
+    )
+    lateral = np.asarray(projection["lateral_offset"], dtype=np.float64)
+    left = np.asarray(projection["left_width"], dtype=np.float64)
+    right = np.asarray(projection["right_width"], dtype=np.float64)
+    boundary_overrun = np.where(
+        lateral >= 0.0,
+        np.maximum(lateral - left, 0.0),
+        np.maximum(-lateral - right, 0.0),
+    )
+    lane_deviation = float(dt) * np.sum(boundary_overrun**2, axis=1)
+    minimum_clearance = np.asarray(
+        feasibility["minimum_obb_clearance"], dtype=np.float64
+    )
+    clearance = float(dt) * np.sum(
+        np.maximum(3.0 - minimum_clearance, 0.0) ** 2,
+        axis=1,
+    )
+    progress = np.asarray(projection["route_progress"], dtype=np.float64)
+    progress_reference = float(np.max(progress[physical]))
+    progress_shortfall = np.maximum(progress_reference - progress, 0.0)
+    lateral_acceleration = compute_lateral_comfort_shadow_costs(
+        trajectories, float(dt)
+    )[0]
+    red_stopping = compute_red_stopping_margin_costs(
+        trajectories,
+        _red_route_points_from_lanes(causal_input["route_lanes"]),
+        float(dt),
+    )
+    dp_prior_jerk = compute_dp_prior_comfort_excess_costs(
+        trajectories, float(dt)
+    )[0]
+    matrix = np.column_stack(
+        [
+            jerk_atoms,
+            rms_acceleration,
+            speed_atoms,
+            lane_deviation,
+            clearance,
+            progress_shortfall,
+            planned_red,
+            lateral_acceleration,
+            red_stopping,
+            dp_prior_jerk,
+        ]
+    )
+    availability = canonical_atom_availability(
+        candidate_count=8,
+        fixed_dp_candidates_available=True,
+        route_topology_available=True,
+        lane_boundaries_available=True,
+        route_speed_limit_full_horizon_available=True,
+        candidate_neighbor_predictions_available=True,
+        static_obstacle_context_available=True,
+        feasibility_mask_available=True,
+        traffic_light_state_available=True,
+        red_stop_geometry_available=True,
+        # Legacy availability flag name: this certifies the fixed candidate-0
+        # reference position only, not native K=8 ranking or independent
+        # deterministic/MAP equivalence evidence.
+        dp_top1_semantic_verified=True,
+    )
+    result.update(
+        {
+            "atom_matrix": validate_canonical_atom_matrix(
+                "dp_camp_v10_14d", availability, matrix
+            ),
+            "availability": availability,
+            "canonical_eligible": True,
+            "progress_reference": progress_reference,
+        }
+    )
+    return result
 
 
 def canonical_atom_availability(
