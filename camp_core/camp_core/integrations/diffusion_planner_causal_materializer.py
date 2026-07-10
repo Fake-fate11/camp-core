@@ -51,6 +51,13 @@ _CONTEXT_FIELDS = frozenset(
         "ego_wheelbase_m",
     }
 )
+_OPTIONAL_CONTEXT_FIELDS = frozenset({"mission_goal_pose"})
+_ROUTE_SOURCES = frozenset(
+    {
+        "current_map_topology_successors",
+        "nuplan_mission_route_current_roadblock_successors",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -78,9 +85,16 @@ def materialize_causal_dp_input(
     if not isinstance(decision_id, str) or not decision_id.strip():
         raise ValueError("decision_context.decision_id must be a nonempty string")
     route_source = decision_context["route_source"]
-    if route_source != "current_map_topology_successors":
+    if route_source not in _ROUTE_SOURCES:
         raise ValueError(
-            "decision_context.route_source must be current_map_topology_successors"
+            f"decision_context.route_source must be one of {sorted(_ROUTE_SOURCES)}"
+        )
+    if (
+        route_source == "nuplan_mission_route_current_roadblock_successors"
+        and "mission_goal_pose" not in decision_context
+    ):
+        raise ValueError(
+            "nuPlan mission route requires decision_context.mission_goal_pose"
         )
 
     source_dt = _positive_scalar(_batch_item(batch, "dt", index), "batch.dt")
@@ -158,7 +172,7 @@ def materialize_causal_dp_input(
         "ego_agent_past": ego_history,
         "ego_current_state": ego_current_state,
         "ego_shape": ego_shape,
-        "goal_pose": _goal_from_route(route),
+        "goal_pose": _goal_pose(decision_context, route, transform),
         "lanes": lanes,
         "lanes_has_speed_limit": lane_has_limits,
         "lanes_speed_limit": lane_limits,
@@ -231,7 +245,7 @@ def validate_causal_dp_input(data: Mapping[str, Any]) -> list[str]:
 
 def _validate_context_keys(context: Mapping[str, Any]) -> None:
     missing = _CONTEXT_FIELDS - set(context)
-    extra = set(context) - _CONTEXT_FIELDS
+    extra = set(context) - _CONTEXT_FIELDS - _OPTIONAL_CONTEXT_FIELDS
     if missing:
         raise ValueError(f"missing decision_context fields: {sorted(missing)}")
     if extra:
@@ -665,3 +679,20 @@ def _goal_from_route(route: np.ndarray) -> np.ndarray:
     point = route[lane_index, point_index]
     heading = math.atan2(float(point[3]), float(point[2]))
     return np.array([point[0], point[1], heading], dtype=np.float32)
+
+
+def _goal_pose(
+    context: Mapping[str, Any], route: np.ndarray, transform: np.ndarray
+) -> np.ndarray:
+    if "mission_goal_pose" not in context:
+        return _goal_from_route(route)
+    pose = np.asarray(context["mission_goal_pose"], dtype=np.float64)
+    if pose.shape != (3,) or not np.isfinite(pose).all():
+        raise ValueError("mission_goal_pose must be finite with shape (3,)")
+    position = _transform_positions(pose[None, :2], transform)[0]
+    heading_vector = _transform_directions(
+        np.array([[math.cos(float(pose[2])), math.sin(float(pose[2]))]]),
+        transform,
+    )[0]
+    heading = math.atan2(float(heading_vector[1]), float(heading_vector[0]))
+    return np.array([position[0], position[1], heading], dtype=np.float32)

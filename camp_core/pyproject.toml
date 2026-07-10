@@ -24,6 +24,9 @@ dependencies = [
 dev = [
   "pytest>=7.0",
 ]
+nuplan = [
+  "Shapely>=2.0",
+]
 
 [tool.setuptools]
 packages = ["camp_core"]
