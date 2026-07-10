@@ -1,6 +1,6 @@
 # v18 nuPlan Causal Source Remediation Design
 
-Date: 2026-07-10  
+Date: 2026-07-10
 Status: approved approach; implementation pending
 
 ## Goal
