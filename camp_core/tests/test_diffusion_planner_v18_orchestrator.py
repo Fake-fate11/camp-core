@@ -112,6 +112,97 @@ def test_route_projection_is_global_se2_invariant() -> None:
         np.testing.assert_allclose(actual[name], expected[name], atol=1e-10)
 
 
+def _observable_obb_fixture():
+    candidates = np.zeros((8, 80, 4), dtype=np.float64)
+    candidates[:, :, 0] = np.linspace(0.0, 10.0, 80)
+    candidates[:, :, 1] = np.arange(8, dtype=np.float64)[:, None] * 5.0
+    candidates[:, :, 2] = 1.0
+    neighbors = np.zeros((8, 32, 80, 4), dtype=np.float64)
+    neighbors[..., 0] = 100.0
+    neighbors[..., 1] = 100.0
+    neighbors[..., 2] = 1.0
+    neighbors[0, 0, :, :2] = candidates[0, :, :2]
+    valid = np.zeros(32, dtype=bool)
+    valid[0] = True
+    history = np.zeros((32, 31, 11), dtype=np.float64)
+    history[0, -1, 6:8] = [2.0, 4.0]
+    static = np.zeros((5, 10), dtype=np.float64)
+    static[0, :6] = [5.0, 5.0, 1.0, 0.0, 2.0, 4.0]
+    projection = {
+        "lateral_offset": np.zeros((8, 80), dtype=np.float64),
+        "left_width": np.full((8, 80), 50.0, dtype=np.float64),
+        "right_width": np.full((8, 80), 50.0, dtype=np.float64),
+    }
+    return candidates, neighbors, valid, history, static, projection
+
+
+def test_observable_obb_masks_dynamic_static_and_padding() -> None:
+    module = _orchestrator()
+    candidates, neighbors, valid, history, static, projection = (
+        _observable_obb_fixture()
+    )
+
+    obbs = causal_atoms.build_observable_obbs(
+        neighbors,
+        valid,
+        history,
+        static,
+    )
+    result = causal_atoms.observable_feasibility(
+        candidates,
+        np.ones(8, dtype=bool),
+        projection,
+        obbs,
+        np.array([2.925, 4.5, 1.9]),
+    )
+
+    assert obbs.shape == (8, 37, 80, 5)
+    assert not obbs[:, 1:32].any()
+    np.testing.assert_array_equal(
+        result["physical_feasible_mask"],
+        result["signal_mask"]
+        & result["lane_feasible_mask"]
+        & result["obb_collision_free_mask"],
+    )
+    np.testing.assert_array_equal(
+        result["obb_collision_free_mask"],
+        [False, False, True, True, True, True, True, True],
+    )
+    assert result["candidate_reasons"][0] == ("obb_collision",)
+    assert result["candidate_reasons"][1] == ("obb_collision",)
+    assert result["feasibility_scope"] == module.FEASIBILITY_SCOPE
+    assert result["closed_loop_safety_claim"] is False
+
+
+def test_all_candidates_can_fail_obb_without_forcing_candidate_zero() -> None:
+    candidates, neighbors, valid, history, static, projection = (
+        _observable_obb_fixture()
+    )
+    for candidate_index in range(8):
+        neighbors[candidate_index, 0, :, :2] = candidates[candidate_index, :, :2]
+    obbs = causal_atoms.build_observable_obbs(
+        neighbors,
+        valid,
+        history,
+        static,
+    )
+
+    result = causal_atoms.observable_feasibility(
+        candidates,
+        np.ones(8, dtype=bool),
+        projection,
+        obbs,
+        np.array([2.925, 4.5, 1.9]),
+    )
+
+    assert not result["physical_feasible_mask"].any()
+    assert not bool(result["physical_feasible_mask"][0])
+    assert all(
+        "obb_collision" in reasons
+        for reasons in result["candidate_reasons"]
+    )
+
+
 def test_v18_pointer_reader_ignores_historical_file_tail(tmp_path) -> None:
     module = _orchestrator()
     pointer = {

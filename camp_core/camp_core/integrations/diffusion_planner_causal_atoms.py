@@ -11,6 +11,13 @@ from camp_core.integrations.diffusion_planner import (
     DP_CAMP_ATOM_NAMES_V8,
     DP_CAMP_ATOM_NAMES_V9,
     DP_CAMP_ATOM_NAMES_V10,
+    _obb_corners,
+    _obb_distance,
+)
+
+
+OBSERVABLE_FEASIBILITY_SCOPE = (
+    "frozen_observable_32_dynamic_plus_5_static_only"
 )
 
 
@@ -350,6 +357,142 @@ def project_candidates_to_route(
         "speed_limit": speed_limit,
         "projected_arc": projected_arc,
         "route_progress": route_progress,
+    }
+
+
+def build_observable_obbs(
+    neighbor_predictions: np.ndarray,
+    neighbor_valid_mask: np.ndarray,
+    neighbor_history: np.ndarray,
+    static_objects: np.ndarray,
+) -> np.ndarray:
+    predictions = np.asarray(neighbor_predictions, dtype=np.float64)
+    valid = np.asarray(neighbor_valid_mask, dtype=bool).reshape(-1)
+    history = np.asarray(neighbor_history, dtype=np.float64)
+    static = np.asarray(static_objects, dtype=np.float64)
+    if predictions.shape != (8, 32, 80, 4) or not np.isfinite(predictions).all():
+        raise ValueError("neighbor predictions must be finite [8,32,80,4]")
+    if valid.shape != (32,):
+        raise ValueError("neighbor_valid_mask must have shape [32]")
+    if history.shape != (32, 31, 11) or not np.isfinite(history).all():
+        raise ValueError("neighbor history must be finite [32,31,11]")
+    if static.shape != (5, 10) or not np.isfinite(static).all():
+        raise ValueError("static objects must be finite [5,10]")
+
+    obstacles = np.zeros((8, 37, 80, 5), dtype=np.float64)
+    for slot in np.flatnonzero(valid):
+        width, length = history[slot, -1, 6:8]
+        if width <= 0.0 or length <= 0.0:
+            raise ValueError(f"neighbor slot {slot} requires positive width/length")
+        headings = predictions[:, slot, :, 2:4]
+        if np.any(np.linalg.norm(headings, axis=2) < 0.5):
+            raise ValueError(f"neighbor slot {slot} has invalid heading")
+        obstacles[:, slot, :, :2] = predictions[:, slot, :, :2]
+        obstacles[:, slot, :, 2] = np.arctan2(
+            headings[:, :, 1], headings[:, :, 0]
+        )
+        obstacles[:, slot, :, 3] = length
+        obstacles[:, slot, :, 4] = width
+
+    for static_slot, row in enumerate(static):
+        if not np.any(np.abs(row[:6]) > 1e-8):
+            continue
+        heading_norm = float(np.linalg.norm(row[2:4]))
+        width, length = row[4:6]
+        if heading_norm < 0.5 or width <= 0.0 or length <= 0.0:
+            raise ValueError(
+                f"static slot {static_slot} requires valid heading and dimensions"
+            )
+        obstacle = np.array(
+            [row[0], row[1], np.arctan2(row[3], row[2]), length, width],
+            dtype=np.float64,
+        )
+        obstacles[:, 32 + static_slot, :, :] = obstacle
+    return obstacles
+
+
+def observable_feasibility(
+    candidates: np.ndarray,
+    signal_mask: np.ndarray,
+    route_projection: Mapping[str, np.ndarray],
+    obstacle_obbs: np.ndarray,
+    ego_shape: np.ndarray,
+) -> dict[str, object]:
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    signal = np.asarray(signal_mask, dtype=bool).reshape(-1)
+    obstacles = np.asarray(obstacle_obbs, dtype=np.float64)
+    shape = np.asarray(ego_shape, dtype=np.float64).reshape(-1)
+    if trajectories.shape != (8, 80, 4) or not np.isfinite(trajectories).all():
+        raise ValueError("candidates must be finite [8,80,4]")
+    if signal.shape != (8,):
+        raise ValueError("signal_mask must have shape [8]")
+    if obstacles.shape != (8, 37, 80, 5) or not np.isfinite(obstacles).all():
+        raise ValueError("obstacle_obbs must be finite [8,37,80,5]")
+    if shape.shape != (3,) or not np.isfinite(shape).all() or np.any(shape <= 0.0):
+        raise ValueError("ego_shape must be positive [wheelbase,length,width]")
+
+    lateral = np.asarray(route_projection["lateral_offset"], dtype=np.float64)
+    left = np.asarray(route_projection["left_width"], dtype=np.float64)
+    right = np.asarray(route_projection["right_width"], dtype=np.float64)
+    if any(values.shape != (8, 80) for values in (lateral, left, right)):
+        raise ValueError("route projection arrays must have shape [8,80]")
+    lane_violation = (lateral > left + 1.0) | (lateral < -(right + 1.0))
+    lane_feasible = ~lane_violation.any(axis=1)
+
+    heading_vectors = trajectories[:, :, 2:4]
+    if np.any(np.linalg.norm(heading_vectors, axis=2) < 0.5):
+        raise ValueError("candidate headings must be valid cos/sin vectors")
+    headings = np.arctan2(heading_vectors[:, :, 1], heading_vectors[:, :, 0])
+    wheelbase, ego_length, ego_width = shape
+    collision_free = np.ones(8, dtype=bool)
+    minimum_clearance = np.full((8, 80), np.inf, dtype=np.float64)
+    for candidate_index in range(8):
+        for step in range(80):
+            ego_box = _obb_corners(
+                trajectories[candidate_index, step, 0],
+                trajectories[candidate_index, step, 1],
+                headings[candidate_index, step],
+                ego_length,
+                ego_width,
+                wheelbase,
+            )
+            for obstacle in obstacles[candidate_index, :, step]:
+                if obstacle[3] <= 0.0 or obstacle[4] <= 0.0:
+                    continue
+                obstacle_box = _obb_corners(
+                    obstacle[0],
+                    obstacle[1],
+                    obstacle[2],
+                    obstacle[3],
+                    obstacle[4],
+                )
+                distance = _obb_distance(ego_box, obstacle_box)
+                minimum_clearance[candidate_index, step] = min(
+                    minimum_clearance[candidate_index, step], distance
+                )
+                if distance <= 1e-12:
+                    collision_free[candidate_index] = False
+
+    physical = signal & lane_feasible & collision_free
+    reasons = []
+    for candidate_index in range(8):
+        candidate_reasons = []
+        if not signal[candidate_index]:
+            candidate_reasons.append("signal_source_unavailable")
+        if not lane_feasible[candidate_index]:
+            candidate_reasons.append("lane_corridor")
+        if not collision_free[candidate_index]:
+            candidate_reasons.append("obb_collision")
+        reasons.append(tuple(candidate_reasons))
+    return {
+        "signal_mask": signal,
+        "lane_feasible_mask": lane_feasible,
+        "obb_collision_free_mask": collision_free,
+        "physical_feasible_mask": physical,
+        "candidate_reasons": tuple(reasons),
+        "minimum_obb_clearance": minimum_clearance,
+        "feasibility_scope": OBSERVABLE_FEASIBILITY_SCOPE,
+        "closed_loop_safety_claim": False,
     }
 
 
