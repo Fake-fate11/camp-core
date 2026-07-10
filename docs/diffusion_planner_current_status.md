@@ -366,6 +366,32 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_m
 current_v18_artifact_root_sha256=16ce79895571e422652e1e1f61baaf38a002312b8dcb32a0d47e518bbd7f9c2b
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_result_review_only
 
+Independent full semantic result review then passed at CAMP local/GitHub/
+AutoDL `b77c53439b237afe4debc8478daa70d08d35ddda`; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. All 16 target tests passed.
+The no-model reviewer opened all 367 NPZ files, replayed all 367 causal inputs,
+and independently recomputed every WHITE signal predicate in `69.974425s`.
+Semantic failures are zero and holdout label values remained sealed.
+
+Every record has exact v2 fields, finite float32 `[8,80,4]` candidates and
+`[8,32,80,4]` paired neighbors, K=8, DP Top-1 index 0, matching hashes, and
+8/8 unique candidate plus neighbor bundles. Candidate, neighbor, and NPZ
+hashes are each unique across all 367 records; the first record deterministically
+reproduces the independent smoke. The output root remained unchanged.
+
+Independent signal totals exactly match execution: 2847 available and 89
+unavailable candidates, with 354 all-available and 13 fail-closed records.
+Physical feasibility remains absent, so `materialization_ready=false`; no
+atom/label/training, holdout-label, evaluation, or claim work occurred.
+Physical-feasibility plus canonical-atom/expert-label materialization preflight
+is the only next gate.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_result_review_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_full_candidate_regeneration_result_review_20260711T003105CST
+current_v18_artifact_root_sha256=c8c7aa07a59ca6a3b460e51fbba775f4c59dfc721e1b73e3303cf623692929c5
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

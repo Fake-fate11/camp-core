@@ -1175,3 +1175,50 @@ current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_full_candidate_
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_0c925a6f_20260711T002344CST
 current_v18_artifact_root_sha256=16ce79895571e422652e1e1f61baaf38a002312b8dcb32a0d47e518bbd7f9c2b
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_result_review_only
+
+## Gate 20: Full Refreshed Candidate Regeneration Semantic Result Review
+
+Status: passed; physical-feasibility plus canonical-atom/expert-label
+materialization preflight is the only next gate.
+
+- Review artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_full_candidate_regeneration_result_review_20260711T003105CST`
+  / `c8c7aa07a59ca6a3b460e51fbba775f4c59dfc721e1b73e3303cf623692929c5`.
+  All `16` target tests passed; review stderr is empty, `run.exit=0`, and the
+  complete SHA chain reverified.
+- CAMP local/GitHub/AutoDL was
+  `b77c53439b237afe4debc8478daa70d08d35ddda`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- The reviewer invoked the model zero times and generated no candidates. It
+  reverified execution root
+  `16ce79895571e422652e1e1f61baaf38a002312b8dcb32a0d47e518bbd7f9c2b`
+  and candidate-output root
+  `92b2c989187d58387e3310579cc9d3ea9695b2b369684d807020c98f6885b028`
+  before and after review.
+- It opened all `367` NPZ files with pickle disabled, independently replayed
+  all `367` causal inputs, and recomputed every WHITE distance/heading/moving
+  signal predicate. Semantic failures: `0`; review wall-clock was
+  `69.974425s`; holdout label values remained sealed.
+- Exact fields, `[8,80,4]` candidate and `[8,32,80,4]` paired-neighbor shapes,
+  bool masks, dtypes, finiteness, K=8, DP Top-1 index 0, identities, causal
+  hashes, tensor/file hashes, and split counts all passed. No future NPZ field
+  exists and review did not mutate the output root.
+- Every record has `8 / 8` unique candidates and `8 / 8` unique paired-neighbor
+  bundles. Candidate-tensor, neighbor-tensor, and NPZ hashes are each unique
+  for all `367 / 367` records. The first full-run tensors exactly reproduce
+  the independently generated single-record smoke. Neighbor-valid counts span
+  `3..32`.
+- The independently recomputed signal aggregate is exactly `2847` available
+  and `89` unavailable candidates; `354` records have all eight available and
+  `13` remain fail-closed. These values match execution metadata.
+- `materialization_ready=false` remains authoritative solely because the
+  physical feasibility mask has not been materialized. No feasibility/atom/
+  label materialization, training, holdout-label access, evaluation, claim,
+  promotion, deployment, activation, DP modification, or raw-data
+  redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_result_review_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_full_candidate_regeneration_result_review_20260711T003105CST
+current_v18_artifact_root_sha256=c8c7aa07a59ca6a3b460e51fbba775f4c59dfc721e1b73e3303cf623692929c5
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_preflight_only
