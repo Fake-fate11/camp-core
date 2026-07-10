@@ -1089,3 +1089,45 @@ current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_single_record_s
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_result_review_retry_20260711T001715CST
 current_v18_artifact_root_sha256=787ae9f02095a5cea17887052256feb0ca52c4cbdfc4085412bbb9dd33d01582
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_only
+
+## Gate 18: Full Refreshed Candidate-Regeneration Preflight
+
+Status: passed; full refreshed candidate regeneration execution is the only
+next gate.
+
+- Preflight artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_20260711T002024CST`
+  / `f1d25397bc93906c57d4503c4ec4fe0941d1af3d4cf3d113d20f59fda09d150e`.
+  All `16` target tests passed; artifact stderr is empty, `run.exit=0`, and the
+  complete SHA chain reverified.
+- CAMP local/GitHub/AutoDL was
+  `ba13792f18b0caefbebcd9cd194cdcdff26f95a1`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- The dry-run validated all `367` v2 manifest rows at SHA256
+  `bcf19b29b9c3654f41502d494a441858142d2d9c3b77bd686b5a764c1107d7a2`,
+  K=8, seed `3407`, fixed checkpoint SHA256
+  `4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75`,
+  and fixed args SHA256
+  `42c1174de7db49d20343d9ff155093ee206ea9fb31bf0fa7185b108e36c66caa`.
+  Scene/log counts remain `226/68/73` and `25/9/12`, with zero log overlap
+  and `367` unique scene tokens.
+- The planned immutable output root is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_candidates_bcf19b29b9c`;
+  it was absent before and after preflight. The model context was never loaded
+  and candidate generation was false.
+- The measured single-record NPZ is `340883` bytes and fixed-DP execution took
+  `1.146308s`. Linear full-run projection is `420.695036s`
+  (`7.011584` minutes), `125104061` candidate bytes, `417279` record bytes,
+  and `125525436` total projected bytes. Available space was
+  `20080553984` bytes, more than twice the projection.
+- Source execution/review SHA chains and the old candidate-root SHA
+  `7a53d2ac348d0b8ddd49e11434131dce26619873a038d5709fa3c8d931441f73`
+  reverified. No candidate generation, feasibility/atom/label materialization,
+  training, holdout-label access, evaluation, claim, promotion, deployment,
+  activation, DP modification, or raw-data redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_20260711T002024CST
+current_v18_artifact_root_sha256=f1d25397bc93906c57d4503c4ec4fe0941d1af3d4cf3d113d20f59fda09d150e
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_only

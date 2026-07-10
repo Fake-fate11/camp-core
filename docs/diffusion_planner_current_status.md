@@ -316,6 +316,28 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_m
 current_v18_artifact_root_sha256=787ae9f02095a5cea17887052256feb0ca52c4cbdfc4085412bbb9dd33d01582
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_only
 
+Full refreshed candidate-regeneration preflight then passed at CAMP
+local/GitHub/AutoDL `ba13792f18b0caefbebcd9cd194cdcdff26f95a1`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. All 16 target tests
+passed. The no-model dry-run verified all 367 v2 manifest records, K=8, seed
+3407, fixed checkpoint/args, the unchanged `226/68/73` scene and `25/9/12`
+log split, and zero log overlap.
+
+The planned output root
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_candidates_bcf19b29b9c`
+remains absent. From the measured `1.146308s` and `340883`-byte single record,
+the full projection is `420.695036s` (`7.011584` minutes) and `125525436`
+bytes versus `20080553984` available bytes. No model load, candidate,
+feasibility, atom, label, training, holdout-label, evaluation, or claim work
+occurred. Full refreshed candidate regeneration execution is the only next
+gate.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_20260711T002024CST
+current_v18_artifact_root_sha256=f1d25397bc93906c57d4503c4ec4fe0941d1af3d4cf3d113d20f59fda09d150e
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
