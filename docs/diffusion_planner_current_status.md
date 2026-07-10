@@ -46,24 +46,29 @@ finalized without deleting or duplicating data.
 The existing mini partial was `370872320` bytes at stop. Its ETag matched
 `"08abc074db9227e758cc41c6b1ee223c-1020"`, and its trailing 64 KiB SHA256
 matched the same ETag-pinned remote Range, so it qualified for in-place resume.
-A corrected single job is now running with bounded outer retries: every retry
-starts a fresh curl process, pins `If-Range`, rejects invalid/regressed partials,
-and contains no curl `--retry*` option. It resumed at byte `370872320`; a
+A corrected single job used bounded outer retries: every retry started a fresh
+curl process, pinned `If-Range`, rejected invalid/regressed partials, and
+contained no curl `--retry*` option. It resumed at byte `370872320`; a
 same-inode 20-second sample grew from `374747136` to `378183680` bytes. The
-download directory contains exactly the complete maps archive and one mini
-`.part`; no backup or additional partial file exists. The remediation
+remediation
 checkpoint `1528681fc612920babfe39b8a1bbddaae63a9f24` was then verified across
 local, GitHub, and AutoDL; local and AutoDL focused tests each passed with
 `19 passed, 1 skipped`, both artifact SHA chains passed, and a later AutoDL
-sample grew monotonically from `586768384` to `588849152` bytes.
+sample grew monotonically from `586768384` to `588849152` bytes. The first
+fresh curl later failed at byte `5964344032`; the second fresh curl resumed at
+that exact offset and completed the mini archive. Independent result review
+verified exact sizes `971557640 / 8550100030`, archive SHA256, and both ZIPs.
+The download directory now contains exactly the two final archives and zero
+partial files.
 
 No extraction, adapter, candidate corpus, split, training, holdout access,
 evaluation, claim, promotion, deployment, or activation has occurred.
 
-current_v18_status=v18_nuplan_mini_official_aws_acquisition_running
-current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_outer_retry_resume_remediation_verified
+current_v18_status=v18_nuplan_mini_official_aws_acquisition_complete_verified
+current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_result_review
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_outer_retry_2d92202d_20260710T165604CST
-next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only
+current_v18_artifact_root_sha256=4d0a77dfab9f649df65e138fa41139afea01e2fc51144a4da897722a0a7c76c9
+next_work_target=v18_nuplan_mini_official_archives_extraction_execution_only
 
 ## Historical V17 Closeout
 

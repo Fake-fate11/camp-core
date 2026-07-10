@@ -291,3 +291,41 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acqui
 current_v18_old_failed_artifact_root_sha256=9e4705e5e6ac00eb378d10e28ed8b5cf65033e6e0e284f88f14276a638bedb02
 current_v18_launch_root_sha256=339af1f78a2bf91ec1d25817b6dea165fe3c923bfaa3bef43fb31aa0c46a8d3f
 next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only
+
+### Gate 3 Acquisition Result Review
+
+Status: passed; official archive extraction is the only next gate.
+
+- Corrected acquisition completed at `2026-07-10T20:01:34+08:00` with
+  `run.exit=0`.
+- The first fresh curl attempt began at byte `370872320`, exited `18` after
+  preserving `5964344032` bytes, and the outer loop's second fresh curl began
+  at that exact offset. This is direct runtime evidence that the remediation
+  accumulated progress across connection failure.
+- Final maps / mini sizes:
+  `971557640 / 8550100030` bytes.
+- Final maps / mini SHA256:
+  `d0310009fa9e8dd88014038336538aca678842c009fbf03fae76ed28f702ffc6` /
+  `a3fe40afd81cc634884f8d0b7ea3604f2e617e365d5c258c61cfdd833c8d987b`.
+- Independent `sha256sum -c` and `unzip -tq` review: passed for both archives.
+- Download directory final files / partial files: `2 / 0`; no duplicate,
+  backup, or orphan partial exists.
+- Result JSON / MD SHA256:
+  `68824c4cbbbee54420b279cb54a2ad6f0e81f9b5d5ffe7126b2e8c4441030448` /
+  `4104065f4b70b9780ea3c6943d1e5e2044f7d7cc3a7cb1449c8b27d98329f473`.
+- Final artifact root SHA256:
+  `4d0a77dfab9f649df65e138fa41139afea01e2fc51144a4da897722a0a7c76c9`.
+- CAMP HEAD / origin / tracked changes at result review:
+  `88460d701eeda4788d2352c17c63d7292b5d6877` /
+  `88460d701eeda4788d2352c17c63d7292b5d6877` / `0`.
+- Fixed DP HEAD / tracked changes:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4 / 0`.
+- No extraction, adapter implementation, candidate generation, atom
+  materialization, split, training, evaluation, claim, promotion, deployment,
+  activation, or raw-data redistribution occurred in this result review.
+
+current_v18_status=v18_nuplan_mini_official_aws_acquisition_complete_verified
+current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_outer_retry_2d92202d_20260710T165604CST
+current_v18_artifact_root_sha256=4d0a77dfab9f649df65e138fa41139afea01e2fc51144a4da897722a0a7c76c9
+next_work_target=v18_nuplan_mini_official_archives_extraction_execution_only
