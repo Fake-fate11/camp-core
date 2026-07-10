@@ -338,6 +338,34 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_m
 current_v18_artifact_root_sha256=f1d25397bc93906c57d4503c4ec4fe0941d1af3d4cf3d113d20f59fda09d150e
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_only
 
+Full refreshed candidate regeneration then completed at CAMP local/GitHub/
+AutoDL `0c925a6f874b057b3f0cbd6b954b3cd368891d19`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. One background process
+was launched and monitored through `20/106/201/296/367` records before exiting
+0 with empty stderr. All 16 target tests passed.
+
+The new immutable output root
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_candidates_bcf19b29b9c`
+contains exactly 367 records and 367 NPZ files; root SHA256 is
+`92b2c989187d58387e3310579cc9d3ea9695b2b369684d807020c98f6885b028`.
+K=8, seed 3407, refreshed causal hashes, identities, DP Top-1 index 0, file
+hashes, and split counts passed mechanical finalization. Runtime was
+`251.953510s`, or `0.686522s` per record, and output size is `125561203`
+bytes.
+
+Execution metadata marks 2847/2936 candidate signal sources available and 89
+unavailable; 354/367 records have all eight available and 13 remain
+fail-closed. Independent full NPZ review has not yet accepted those semantics.
+Physical feasibility remains absent, and no atom/label/training,
+holdout-label, evaluation, or claim work occurred. Independent full semantic
+result review is the only next gate.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_0c925a6f_20260711T002344CST
+current_v18_artifact_root_sha256=16ce79895571e422652e1e1f61baaf38a002312b8dcb32a0d47e518bbd7f9c2b
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_result_review_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

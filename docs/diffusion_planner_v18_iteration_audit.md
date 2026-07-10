@@ -1131,3 +1131,47 @@ current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_full_candidate_
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_20260711T002024CST
 current_v18_artifact_root_sha256=f1d25397bc93906c57d4503c4ec4fe0941d1af3d4cf3d113d20f59fda09d150e
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_only
+
+## Gate 19: Full Refreshed Candidate Regeneration Execution
+
+Status: passed; independent full semantic result review is the only next
+gate.
+
+- Execution artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_0c925a6f_20260711T002344CST`
+  / `16ce79895571e422652e1e1f61baaf38a002312b8dcb32a0d47e518bbd7f9c2b`.
+- New immutable candidate output / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_candidates_bcf19b29b9c`
+  / `92b2c989187d58387e3310579cc9d3ea9695b2b369684d807020c98f6885b028`.
+  `records.jsonl` / `summary.json` SHA256 values are
+  `7ea1e0e58a10eb4e3d652e99e4baa34642c4329ddff42587df0b519350244476`
+  / `6c44a6888da3c5d3d68eb3f5e4954468fae6ba73a38fff1025c7aa2b3a1f4e13`.
+- CAMP local/GitHub/AutoDL was
+  `0c925a6f874b057b3f0cbd6b954b3cd368891d19`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- One background process only was launched and monitored at `20`, `106`,
+  `201`, `296`, then `367` records. It exited with `run.exit=0`, zero active
+  jobs, empty stderr, and exactly `367` JSONL records plus `367` NPZ files.
+  The exact fixed-DP timm FutureWarning classified at Gate 16 was suppressed
+  by a recorded message/category warning filter; no other stderr was hidden.
+- All `16` target tests passed. Refreshed manifest SHA256
+  `bcf19b29b9c3654f41502d494a441858142d2d9c3b77bd686b5a764c1107d7a2`,
+  K=8, seed `3407`, 2936 contract forward calls, identity/order, causal hashes,
+  DP Top-1 index 0, per-NPZ file hashes, source schema, and split counts all
+  passed mechanical finalization.
+- Wall-clock / per-record time was `251.953510s / 0.686522s`. The output uses
+  `125561203` bytes. Neighbor-valid counts span `3..32`.
+- Execution metadata reports `2847 / 2936` candidate signal sources available
+  and `89` unavailable. `354 / 367` records have all eight sources available;
+  `13` are fail-closed. These aggregate values are not accepted as semantic
+  truth until the independent reviewer opens every NPZ and recomputes them.
+- Physical feasibility remains unmaterialized for every record. No semantic
+  NPZ review, atom/label materialization, training, holdout-label access,
+  evaluation, claim, promotion, deployment, activation, DP modification, or
+  raw-data redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_execution_0c925a6f_20260711T002344CST
+current_v18_artifact_root_sha256=16ce79895571e422652e1e1f61baaf38a002312b8dcb32a0d47e518bbd7f9c2b
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_result_review_only
