@@ -1564,3 +1564,45 @@ current_v18_artifact_scope=nuplan_mini_fixed_dp_deterministic_map_baseline_equiv
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_preflight_retry1_20260711T021515CST
 current_v18_artifact_root_sha256=04ed3d80afe6bd48b39ced903e97604c010d32e743c8499fca61635fe5631a48
 next_work_target=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_execution_only
+
+## Gate 28: Fixed-DP Deterministic/MAP Equivalence Execution and Result Review
+
+Status: passed; the preauthorized static-14D training/calibration/paired-
+evaluation spec and implementation plan are next.
+
+- CAMP local/GitHub/AutoDL was
+  `43eed86ae23072ff5491b904bac7612f3dcdf3aa`; fixed DP remained tracked-clean
+  at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The single execution job used
+  the byte-identical Gate-27-preflighted script and completed in `99.297708s`.
+- Execution artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_execution_43eed86a_20260711T021821CST`
+  / `6f110774bcae701489466957aaed27c859896cb3e254185eeda943b5ab67245a`.
+  Its 12-file SHA chain, empty stderr, `run.exit=0`, frozen CAMP/DP/checkpoint/
+  args identities, and candidate source before/after identity all passed.
+- Immutable equality output/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_7a1d33da_92b2c989`
+  / `8c73b250d253989cb378b4d7fd7e36be878303e76bb7ce205b2810ccc6fea9b0`.
+  The 367 direct native fixed-DP `noise_scale=0` calls yielded 367/367 exact
+  elementwise matches, 367/367 SHA matches, and maximum absolute difference
+  `0.0` against frozen candidate 0. Candidate generation/mutation and expert-
+  label reads were zero; all holdout labels remained sealed.
+- Independent result-review artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_result_review_20260711T022156CST`
+  / `25f8e3f3763b5af53d70cdba7dddcf85872b42ce459b6b223b1b65cb5b59ea50`.
+  The reviewer verified the complete execution/output SHA chains, exact
+  script identity and direct-native-call semantics, all 367 unique identities,
+  actual frozen candidate-0 hashes, split counts `226/68/73`, and unchanged
+  source. Review model calls and label reads were zero; stderr was empty.
+- `equivalence_verified=true`: candidate 0 is proven equal to an independent,
+  same-input fixed-DP deterministic/MAP output. This is baseline identity
+  evidence only. `native_ranked_top1=false`; `dp_top1_index=0` still does not
+  establish native K=8 ranking and no such claim is authorized.
+- OBB feasibility/exactness remains bounded to the frozen 32 dynamic + 5
+  static observable source. No complete-scene physical-feasibility, closed-
+  loop safety, or safety claim follows from this gate.
+
+current_v18_status=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_result_review_passed
+current_v18_artifact_scope=nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_result_review_20260711T022156CST
+current_v18_artifact_root_sha256=25f8e3f3763b5af53d70cdba7dddcf85872b42ce459b6b223b1b65cb5b59ea50
+next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_spec_and_plan_only

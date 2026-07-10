@@ -578,6 +578,42 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equ
 current_v18_artifact_root_sha256=04ed3d80afe6bd48b39ced903e97604c010d32e743c8499fca61635fe5631a48
 next_work_target=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_execution_only
 
+The fixed-DP deterministic/MAP equivalence execution completed in
+`99.297708s` with 367 native same-input `noise_scale=0` model calls. All
+367 candidate-0 arrays were elementwise equal to the independent output, all
+367 SHA256 pairs matched, and the maximum absolute difference was `0.0`.
+Stderr was empty; candidate generation and mutation were false, the candidate
+source was unchanged, and expert/holdout label reads remained zero. The
+execution artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_execution_43eed86a_20260711T021821CST`
+/ `6f110774bcae701489466957aaed27c859896cb3e254185eeda943b5ab67245a`.
+The two-file equality output/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_7a1d33da_92b2c989`
+/ `8c73b250d253989cb378b4d7fd7e36be878303e76bb7ce205b2810ccc6fea9b0`.
+
+An independent read-only result review then reverified all 12 execution hashes
+and both output hashes, the byte-identical preflighted native-inference script,
+all 367 unique source identities, the actual frozen candidate-0 hash behind
+every reported pair, split coverage `226/68/73`, and candidate-source
+immutability. It made zero model calls and zero label reads. Its artifact/root
+SHA256 is
+`/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_result_review_20260711T022156CST`
+/ `25f8e3f3763b5af53d70cdba7dddcf85872b42ce459b6b223b1b65cb5b59ea50`.
+
+`equivalence_verified=true`: saved candidate 0 is now proven equal to the
+independent same-input fixed-DP deterministic/MAP output. This proves the
+fixed-DP baseline identity only. It does not prove that DP natively ranks K=8,
+so `native_ranked_top1=false` remains frozen and later evaluation must not call
+candidate 0 native ranked Top-1. Holdout labels remain sealed. OBB exactness
+remains limited to the frozen 32+5 observable source with no complete-scene,
+closed-loop, or safety claim.
+
+current_v18_status=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_result_review_passed
+current_v18_artifact_scope=nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_result_review_20260711T022156CST
+current_v18_artifact_root_sha256=25f8e3f3763b5af53d70cdba7dddcf85872b42ce459b6b223b1b65cb5b59ea50
+next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_spec_and_plan_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
