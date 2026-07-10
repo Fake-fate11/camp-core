@@ -1,6 +1,6 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-10, Asia/Shanghai.
+Last verified: 2026-07-11, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v18_iteration_audit.md`. V14-v17 audits
@@ -544,6 +544,39 @@ current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_exper
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_result_review_retry3_20260711T020531CST
 current_v18_artifact_root_sha256=522cb692dca065990bc3c1307dbcc052db3b76535fa364c6eaba8476a5f9bc0f
 next_work_target=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_preflight_only
+
+The first deterministic/MAP baseline-equivalence preflight preserved a
+failed status because its evidence wrapper expected `24` orchestrator tests
+while the complete target file passed `23`. The actual source, controller,
+syntax, SHA, and absent-output checks all exited zero; the failure
+artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_preflight_20260711T021301CST`
+/ `4817422e778f4ae496b888f88731e4df295401b059eb992f4c5d86d6dae30c3c`.
+
+Retry 1 corrected only that harness count and passed with `23 passed`, empty
+stderr, and `run.exit=0`. Its equivalence script is byte-identical to the
+preserved failed preflight. Independent review reverified its complete SHA
+chain, all 367 immutable source identities, frozen candidate/canonical roots,
+CAMP/DP/checkpoint/args identities, live controller pointer, and the absence
+of both the planned output and staging root. The passed artifact/root SHA256
+is
+`/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_preflight_retry1_20260711T021515CST`
+/ `04ed3d80afe6bd48b39ced903e97604c010d32e743c8499fca61635fe5631a48`.
+
+This preflight made zero model calls and read zero expert labels. The approved
+execution will make one independent fixed-DP `noise_scale=0` native inference
+for each of the 367 same causal inputs and compare candidate 0 by exact array
+equality and SHA without modifying the frozen candidate source. Until that
+execution and result review pass, candidate 0 remains only the fixed-DP
+deterministic/MAP baseline with `equivalence_verified=false`; native K=8
+ranking is not claimed. Holdout labels remain sealed, and OBB exactness
+remains limited to the frozen 32+5 observable source with no safety claim.
+
+current_v18_status=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_preflight_passed
+current_v18_artifact_scope=nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_preflight_retry1_20260711T021515CST
+current_v18_artifact_root_sha256=04ed3d80afe6bd48b39ced903e97604c010d32e743c8499fca61635fe5631a48
+next_work_target=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_execution_only
 
 ## Historical V17 Closeout
 

@@ -1522,3 +1522,45 @@ current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_exper
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_result_review_retry3_20260711T020531CST
 current_v18_artifact_root_sha256=522cb692dca065990bc3c1307dbcc052db3b76535fa364c6eaba8476a5f9bc0f
 next_work_target=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_preflight_only
+
+## Gate 27: Fixed-DP Deterministic/MAP Baseline Equivalence Preflight
+
+Status: passed after evidence-harness count remediation; equivalence execution
+only is next.
+
+- The first preflight's functional command passed its source, live-EOF,
+  syntax, SHA, and absent-output checks plus the complete target test file,
+  which reported `23 passed`. Its artifact summary nevertheless failed closed
+  because the evidence wrapper expected `24 passed`. The preserved
+  artifact/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_preflight_20260711T021301CST`
+  / `4817422e778f4ae496b888f88731e4df295401b059eb992f4c5d86d6dae30c3c`.
+- Retry 1 changed only that harness expectation. The equivalence execution
+  script remained byte-identical. It passed `23` tests, `run.exit=0`, empty
+  stderr, script compilation, source validation, controller validation, and
+  `git diff --check`. Independent review reverified every artifact hash and
+  confirmed both the planned output and its `.tmp` staging root remain absent.
+- Passed preflight artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_preflight_retry1_20260711T021515CST`
+  / `04ed3d80afe6bd48b39ced903e97604c010d32e743c8499fca61635fe5631a48`.
+  CAMP local/GitHub/AutoDL is
+  `f64390b3fe877d9492c5cb49e55aca78d51b9718`; fixed DP is tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The preflight pinned candidate,
+  canonical-output, checkpoint, and args SHA256 identities and all 367
+  records.
+- The planned execution makes 367 independent native fixed-DP
+  `noise_scale=0` model calls on the same causal inputs and records exact
+  elementwise/SHA comparisons against saved candidate 0. It cannot generate
+  or mutate candidate tensors and reads no expert labels. This gate made zero
+  model calls; all 71 holdout labels remain sealed.
+- Candidate 0 remains only the fixed-DP deterministic/MAP baseline with
+  `equivalence_verified=false`; `dp_top1_index=0` is not native ranking
+  evidence and no native K=8 Top-1 claim is made. OBB exactness remains limited
+  to the frozen 32 dynamic + 5 static observable source and is not a complete-
+  scene, closed-loop, or safety claim.
+
+current_v18_status=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_preflight_passed
+current_v18_artifact_scope=nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_preflight_retry1_20260711T021515CST
+current_v18_artifact_root_sha256=04ed3d80afe6bd48b39ced903e97604c010d32e743c8499fca61635fe5631a48
+next_work_target=v18_nuplan_mini_fixed_dp_deterministic_map_baseline_equivalence_execution_only
