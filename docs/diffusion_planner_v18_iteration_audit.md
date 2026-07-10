@@ -747,3 +747,46 @@ current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_singl
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_fixed_dp_candidate_single_record_result_review_refresh_34c6300a_20260710T223304CST
 current_v18_artifact_root_sha256=c3f7572fa8cbc4ae4a3f57806d19d78b221e5feb42b07e2eef64aac7c5e906f5
 next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_only
+
+## Gate 11: Full Fixed-DP Candidate Generation Execution
+
+Status: passed; independent semantic result review is the only next gate.
+
+- Execution artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_0e2a2ddb_20260710T223739CST`
+  / `9f08ef177c657504d3db3138e788441dcf6439da37df1e797c63bca472578101`.
+- Candidate output root / manifest-root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_candidates_44b4082ce707`
+  / `7a53d2ac348d0b8ddd49e11434131dce26619873a038d5709fa3c8d931441f73`.
+- CAMP local/GitHub/AutoDL was
+  `0e2a2ddb1e75acd2b07f5fd8c4aec19c0ff09911`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- The initial SSH launch-control channel timed out after starting the
+  background wrapper. A read-only check found exactly one live exporter PID
+  (`460586`) and an already growing output, so no duplicate was started.
+  Monitoring observed `67`, `136`, `206`, `285`, then `367` records; the sole
+  process exited and wrote `run.exit=0`.
+- The frozen manifest SHA256 was
+  `44b4082ce707428bf24bc9cd00bf19ddbb58f4867dac4e031969b02b967d74d0`.
+  Output counts are exactly `367` JSONL records and `367` NPZ files.
+- Wall-clock / per-record time: `229.258946s / 0.624684s`. Execution result
+  JSON / MD SHA256:
+  `432530b1b536b308cdf500358cce299da77904c6ce243f0918ace794f30b89de` /
+  `bfa6c3de7afc182da20453e05d2f535bb16fabdae9034fcb028d2f9e05ecab81`.
+  Candidate summary / records JSONL SHA256:
+  `43213ac70871a7aba5265805c2a98ba194b999062f675b472060013df8bd26ea` /
+  `301e2035fa5b88e1528724feb6a1e5b7653d980f35352858fa9259121225ae7b`.
+- Finalization reverified CAMP/DP HEADs and tracked-clean state, zero active
+  candidate jobs, empty stderr, the execution artifact SHA chain, and the
+  candidate-output root manifest. It intentionally did not open every NPZ for
+  semantic validation; that is the next independent gate.
+- Candidate generation is complete for the mini manifest. No atom
+  materialization, training, calibration, holdout-label access, evaluation,
+  claim, promotion, deployment, activation, DP modification, or raw-data
+  redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_passed
+current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_0e2a2ddb_20260710T223739CST
+current_v18_artifact_root_sha256=9f08ef177c657504d3db3138e788441dcf6439da37df1e797c63bca472578101
+next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_only

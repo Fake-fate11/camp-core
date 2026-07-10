@@ -156,11 +156,24 @@ only next gate. Atom materialization, training, calibration, holdout-label
 access, evaluation, claim, promotion, deployment, activation, DP modification,
 and raw-data redistribution remain unexecuted.
 
-current_v18_status=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_result_review_passed
-current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_result_review_refresh
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_fixed_dp_candidate_single_record_result_review_refresh_34c6300a_20260710T223304CST
-current_v18_artifact_root_sha256=c3f7572fa8cbc4ae4a3f57806d19d78b221e5feb42b07e2eef64aac7c5e906f5
-next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_only
+Full fixed-DP candidate generation then completed for all `367` frozen
+manifest records at CAMP `0e2a2ddb1e75acd2b07f5fd8c4aec19c0ff09911`.
+The single monitored process exited 0 after `229.258946s`, producing exactly
+367 NPZ files and 367 JSONL records. The frozen candidate-output manifest root
+SHA256 is `7a53d2ac348d0b8ddd49e11434131dce26619873a038d5709fa3c8d931441f73`;
+mean wall-clock throughput was `0.624684s` per record. Execution finalization
+verified counts, HEADs, tracked-clean state, empty stderr, and zero remaining
+jobs, but deliberately did not perform semantic per-NPZ review. That
+independent full result review is the only next gate. Atom materialization,
+training, calibration, holdout-label access, evaluation, claim, promotion,
+deployment, activation, DP modification, and raw-data redistribution remain
+unexecuted.
+
+current_v18_status=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_passed
+current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_0e2a2ddb_20260710T223739CST
+current_v18_artifact_root_sha256=9f08ef177c657504d3db3138e788441dcf6439da37df1e797c63bca472578101
+next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_only
 
 ## Historical V17 Closeout
 
