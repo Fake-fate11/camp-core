@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 import struct
 from typing import Mapping, Sequence
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -200,6 +201,222 @@ def load_nuplan_route_snapshot(
     finally:
         db.close()
         map_db.close()
+
+
+def materialize_nuplan_decision(
+    db_path: str | Path,
+    map_path: str | Path,
+    lidar_pc_token: str | bytes,
+):
+    from camp_core.integrations.diffusion_planner_causal_materializer import (
+        materialize_causal_dp_input,
+    )
+
+    snapshot = load_nuplan_route_snapshot(db_path, map_path, lidar_pc_token)
+    batch = _load_nuplan_batch(
+        db_path,
+        lidar_pc_token,
+        source_dt_s=snapshot.source_dt_s,
+    )
+    lanes = np.zeros((140, 20, 33), dtype=np.float32)
+    lanes[: len(snapshot.route_roadblock_ids)] = snapshot.route_lanes[
+        : len(snapshot.route_roadblock_ids)
+    ]
+    lanes_has_speed = np.zeros((140, 1), dtype=bool)
+    lanes_has_speed[:25] = snapshot.route_has_speed_limit
+    lanes_speed = np.zeros((140, 1), dtype=np.float32)
+    lanes_speed[:25] = snapshot.route_speed_limit
+    context = {
+        "map_frame": "world",
+        "decision_id": snapshot.decision_id,
+        "route_source": "nuplan_mission_route_current_roadblock_successors",
+        "mission_goal_pose": snapshot.mission_goal_pose,
+        "lanes": lanes,
+        "lanes_speed_limit": lanes_speed,
+        "lanes_has_speed_limit": lanes_has_speed,
+        "route_lanes": snapshot.route_lanes,
+        "route_lanes_speed_limit": snapshot.route_speed_limit,
+        "route_lanes_has_speed_limit": snapshot.route_has_speed_limit,
+        "line_strings": np.zeros((60, 20, 4), dtype=np.float32),
+        "polygons": np.zeros((10, 40, 3), dtype=np.float32),
+        "static_objects": np.zeros((5, 10), dtype=np.float32),
+        "turn_indicators": np.zeros(31, dtype=np.int32),
+        "turn_indicators_available": False,
+        "traffic_light_state_available": snapshot.traffic_light_state_available,
+        "ego_wheelbase_m": 3.089,
+    }
+    return materialize_causal_dp_input(batch, context)
+
+
+def _load_nuplan_batch(
+    db_path: str | Path,
+    lidar_pc_token: str | bytes,
+    *,
+    source_dt_s: float,
+) -> SimpleNamespace:
+    token = _token_bytes(lidar_pc_token)
+    db = sqlite3.connect(f"file:{Path(db_path).as_posix()}?mode=ro", uri=True)
+    try:
+        decision = db.execute(
+            "SELECT scene_token, timestamp FROM lidar_pc WHERE token = ?",
+            (token,),
+        ).fetchone()
+        if decision is None:
+            raise NuPlanCausalSourceError("lidar_pc_token is absent from the nuPlan DB")
+        lidar_rows = db.execute(
+            """
+            SELECT l.token, l.timestamp,
+                   e.x, e.y, e.vx, e.vy,
+                   e.acceleration_x, e.acceleration_y,
+                   e.qw, e.qx, e.qy, e.qz
+            FROM lidar_pc AS l
+            JOIN ego_pose AS e ON e.token = l.ego_pose_token
+            WHERE l.scene_token = ? AND l.timestamp <= ?
+            ORDER BY l.timestamp DESC
+            LIMIT 80
+            """,
+            decision,
+        ).fetchall()[::-1]
+        if len(lidar_rows) < 2:
+            raise NuPlanCausalSourceError("ego history is too short")
+        timestamps = np.asarray([row[1] for row in lidar_rows], dtype=np.int64)
+        if int(timestamps[-1]) != int(decision[1]):
+            raise NuPlanCausalSourceError("ego history does not end at the decision tick")
+        if (timestamps[-1] - timestamps[0]) / 1_000_000.0 < 3.0:
+            raise NuPlanCausalSourceError("ego history does not cover three seconds")
+
+        ego_history = np.zeros((len(lidar_rows), 8), dtype=np.float32)
+        headings = []
+        for index, row in enumerate(lidar_rows):
+            yaw = _quaternion_yaw(*row[8:12])
+            headings.append(yaw)
+            ego_history[index] = [
+                row[2],
+                row[3],
+                row[4],
+                row[5],
+                row[6],
+                row[7],
+                math.sin(yaw),
+                math.cos(yaw),
+            ]
+        current = lidar_rows[-1]
+        current_yaw = headings[-1]
+        rotation = np.array(
+            [
+                [math.cos(current_yaw), math.sin(current_yaw)],
+                [-math.sin(current_yaw), math.cos(current_yaw)],
+            ],
+            dtype=np.float64,
+        )
+        transform = np.eye(3, dtype=np.float32)
+        transform[:2, :2] = rotation
+        transform[:2, 2] = -rotation @ np.asarray(current[2:4], dtype=np.float64)
+
+        neighbors, neighbor_lengths, neighbor_extents, neighbor_types = (
+            _load_neighbor_histories(db, lidar_rows, rotation, current_yaw)
+        )
+        batch = SimpleNamespace()
+        batch.dt = np.array([source_dt_s], dtype=np.float32)
+        batch.history_pad_dir = np.array(1, dtype=np.int64)
+        batch.agent_hist = ego_history[None]
+        batch.agent_hist_len = np.array([len(ego_history)], dtype=np.int64)
+        batch.agent_hist_extent = np.tile(
+            np.array([5.176, 2.297, 1.777], dtype=np.float32),
+            (1, len(ego_history), 1),
+        )
+        batch.curr_agent_state = np.array(
+            [
+                [
+                    current[2],
+                    current[3],
+                    current[4],
+                    current[5],
+                    current[6],
+                    current[7],
+                    current_yaw,
+                ]
+            ],
+            dtype=np.float32,
+        )
+        batch.neigh_hist = neighbors[None]
+        batch.neigh_hist_len = neighbor_lengths[None]
+        batch.neigh_hist_extents = neighbor_extents[None]
+        batch.neigh_types = neighbor_types[None]
+        batch.agents_from_world_tf = transform[None]
+        return batch
+    finally:
+        db.close()
+
+
+def _load_neighbor_histories(
+    db: sqlite3.Connection,
+    lidar_rows: Sequence[Sequence[object]],
+    rotation: np.ndarray,
+    current_yaw: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    lidar_tokens = [row[0] for row in lidar_rows]
+    timestamps = [int(row[1]) for row in lidar_rows]
+    placeholders = ",".join("?" for _ in lidar_tokens)
+    rows = db.execute(
+        f"""
+        SELECT l.timestamp, b.track_token,
+               b.x, b.y, b.vx, b.vy, b.yaw,
+               b.length, b.width, b.height, c.name
+        FROM lidar_pc AS l
+        JOIN lidar_box AS b ON b.lidar_pc_token = l.token
+        JOIN track AS t ON t.token = b.track_token
+        JOIN category AS c ON c.token = t.category_token
+        WHERE l.token IN ({placeholders})
+        ORDER BY l.timestamp
+        """,
+        lidar_tokens,
+    ).fetchall()
+    by_track: dict[bytes, dict[int, Sequence[object]]] = {}
+    for row in rows:
+        category = str(row[10]).lower()
+        if category not in {"vehicle", "pedestrian", "bicycle"}:
+            continue
+        by_track.setdefault(row[1], {})[int(row[0])] = row
+    current_timestamp = timestamps[-1]
+    active = [values for values in by_track.values() if current_timestamp in values]
+    max_history = len(timestamps)
+    histories = np.zeros((len(active), max_history, 8), dtype=np.float32)
+    lengths = np.zeros(len(active), dtype=np.int64)
+    extents = np.zeros((len(active), max_history, 3), dtype=np.float32)
+    types = np.zeros(len(active), dtype=np.float32)
+    current_ego_xy = np.asarray(lidar_rows[-1][2:4], dtype=np.float64)
+    type_ids = {"vehicle": 1.0, "pedestrian": 2.0, "bicycle": 3.0}
+    for track_index, values in enumerate(active):
+        continuous = []
+        for timestamp in reversed(timestamps):
+            row = values.get(timestamp)
+            if row is None:
+                break
+            continuous.append(row)
+        continuous.reverse()
+        lengths[track_index] = len(continuous)
+        category = str(continuous[-1][10]).lower()
+        types[track_index] = type_ids[category]
+        for state_index, row in enumerate(continuous):
+            local_xy = (np.asarray(row[2:4]) - current_ego_xy) @ rotation.T
+            local_velocity = np.asarray(row[4:6]) @ rotation.T
+            local_yaw = math.atan2(
+                math.sin(float(row[6]) - current_yaw),
+                math.cos(float(row[6]) - current_yaw),
+            )
+            histories[track_index, state_index] = [
+                local_xy[0],
+                local_xy[1],
+                local_velocity[0],
+                local_velocity[1],
+                0.0,
+                0.0,
+                math.sin(local_yaw),
+                math.cos(local_yaw),
+            ]
+            extents[track_index, state_index] = [row[7], row[8], row[9]]
+    return histories, lengths, extents, types
 
 
 def _token_bytes(value: str | bytes) -> bytes:

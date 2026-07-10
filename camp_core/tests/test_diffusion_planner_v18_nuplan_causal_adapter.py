@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from camp_core.integrations.diffusion_planner_causal_materializer import (
+    CAUSAL_DP_INPUT_SCHEMA,
     materialize_causal_dp_input,
 )
 from camp_core.integrations.nuplan_causal_adapter import (
@@ -18,6 +19,7 @@ from camp_core.integrations.nuplan_causal_adapter import (
     derive_source_dt_s,
     encode_route_lane,
     load_nuplan_route_snapshot,
+    materialize_nuplan_decision,
     select_mission_route_window,
 )
 
@@ -66,6 +68,18 @@ def test_real_nuplan_mini_route_snapshot_is_causal_and_connected() -> None:
         axis=1,
     )
     assert np.max(gaps[:17]) <= 8.0
+
+    materialized = materialize_nuplan_decision(
+        root
+        / "data/cache/mini/2021.05.12.22.00.38_veh-35_01008_01518.db",
+        root / "maps/us-nv-las-vegas-strip/9.15.1915/map.gpkg",
+        "8b9c1329bd1855c9",
+    )
+    assert set(materialized.dp_input) == set(CAUSAL_DP_INPUT_SCHEMA)
+    assert not any("future" in key for key in materialized.dp_input)
+    assert np.any(materialized.dp_input["ego_agent_past"] != 0.0)
+    assert np.any(materialized.dp_input["neighbor_agents_past"] != 0.0)
+    assert materialized.metadata["source_dt_s"] == pytest.approx(0.05, abs=2e-4)
 
 
 def test_source_dt_comes_from_real_monotonic_timestamps() -> None:
