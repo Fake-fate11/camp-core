@@ -142,11 +142,25 @@ failure review verified that neither `ego_agent_future` nor
 `neighbor_agents_future` exists and changed no code. The next gate is exactly
 one real candidate-generation record, not the 367-record corpus.
 
-current_v18_status=v18_nuplan_mini_smoke_causal_fixed_dp_export_path_implementation_failure_review_passed
-current_v18_artifact_scope=nuplan_mini_smoke_causal_fixed_dp_export_path_implementation_failure_review
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_fixed_dp_export_path_implementation_failure_review_4aa3ef98_20260710T222705CST
-current_v18_artifact_root_sha256=86b6d3b30887e9e0b15e9b2f31d9875f59d74aa99ba8645bd54c9a6810ab0037
-next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_execution_only
+That one-record execution then passed at CAMP
+`34c6300a533f21cf01a9b52e203eca8f3ec02fc6`. The fixed DP produced an exact
+`[8, 80, 4]` tensor in `5.854982s`; all eight trajectories were unique,
+DP Top-1 remained index 0, and the rematerialized causal input SHA matched the
+frozen manifest. Independent review reloaded the saved NPZ and verified its
+hash and tensor hash without running the model again. Its first active-job
+check self-matched the inline reviewer command; a file-backed refresh after
+that process exited verified zero jobs. The full 367-record output root is
+absent, estimated candidate NPZ storage is `4252796` bytes, and the measured
+runtime projection is `35.812973` minutes. Full candidate generation is the
+only next gate. Atom materialization, training, calibration, holdout-label
+access, evaluation, claim, promotion, deployment, activation, DP modification,
+and raw-data redistribution remain unexecuted.
+
+current_v18_status=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_result_review_passed
+current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_result_review_refresh
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_fixed_dp_candidate_single_record_result_review_refresh_34c6300a_20260710T223304CST
+current_v18_artifact_root_sha256=c3f7572fa8cbc4ae4a3f57806d19d78b221e5feb42b07e2eef64aac7c5e906f5
+next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_only
 
 ## Historical V17 Closeout
 

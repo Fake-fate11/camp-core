@@ -694,3 +694,56 @@ current_v18_artifact_scope=nuplan_mini_smoke_causal_fixed_dp_export_path_impleme
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_fixed_dp_export_path_implementation_failure_review_4aa3ef98_20260710T222705CST
 current_v18_artifact_root_sha256=86b6d3b30887e9e0b15e9b2f31d9875f59d74aa99ba8645bd54c9a6810ab0037
 next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_execution_only
+
+## Gate 10: Fixed-DP Candidate Single-Record Execution and Result Review
+
+Status: passed; full frozen-manifest candidate generation is the only next
+gate.
+
+- Execution artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_fixed_dp_candidate_single_record_execution_34c6300a_20260710T223059CST`
+  / `b0479d0d54604d428c14c883433b3ff7afc4daf02c0dd4584d79df56589b2d32`.
+- CAMP local/GitHub/AutoDL HEAD was
+  `34c6300a533f21cf01a9b52e203eca8f3ec02fc6`; fixed DP stayed tracked-clean
+  at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- The execution used the frozen manifest SHA256
+  `44b4082ce707428bf24bc9cd00bf19ddbb58f4867dac4e031969b02b967d74d0`
+  with `--max_records 1 --execute`. The rematerialized causal input SHA256
+  `f6e92d3752b1548af53a316adc723cef94ef36760544a7ce2dd48d1d7e75b2b4`
+  exactly matched the manifest record.
+- Fixed DP emitted shape `[8, 80, 4]`, K=8, eight unique trajectories, and
+  DP Top-1 index 0. Candidate tensor SHA256:
+  `38b2a5c54978f33bf8e778f7c472bace94ad7c6bbf3f7ddd4375b3e9bbc81b37`;
+  saved NPZ SHA256:
+  `3bae7a4bdcb01e37ace1a4f56b22a03f0d87a87ce7290325f7962112f4407f8c`.
+  Reloaded tensor hash matched the in-memory record, so CAMP did not mutate
+  the candidate tensor.
+- Wall-clock / per-record time: `5.854982s / 5.854982s`. Execution result
+  JSON / MD SHA256:
+  `97301eea8b28057bcf2114642c60ba1d9be7d086ebfe9011623fd0bf12cc05fe` /
+  `d4434b8dfc493156b9f43e1539034035cd1a0cdd178f1b3f1aad48076e97d0e7`.
+- The first result review's active-job filter self-matched the inline reviewer
+  command text and failed only `no_active_candidate_job`; it did not rerun or
+  alter the candidate. A file-backed refresh after that process exited passed
+  with zero active jobs.
+- Passing result-review refresh artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_fixed_dp_candidate_single_record_result_review_refresh_34c6300a_20260710T223304CST`
+  / `c3f7572fa8cbc4ae4a3f57806d19d78b221e5feb42b07e2eef64aac7c5e906f5`.
+  Result JSON / MD SHA256:
+  `404892e166cf30e91c1b801c3a60ccc089884136b12a44d27733524e166c6258` /
+  `7266210972d632b77b820ab40eb8cefd0904ad2186c21cc76ba50077495cf5a0`.
+- Full-run plan: 367 frozen records, measured projection `2148.778394s`
+  (`35.812973` minutes), estimated candidate NPZ bytes `4252796`, and
+  available bytes `20090437632`. The full output root
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_candidates_44b4082ce707`
+  was absent.
+- This gate generated exactly one candidate tensor. No atom materialization,
+  training, calibration, holdout-label access, evaluation, claim, promotion,
+  deployment, activation, DP modification, or raw-data redistribution
+  occurred.
+
+current_v18_status=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_result_review_passed
+current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_result_review_refresh
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_fixed_dp_candidate_single_record_result_review_refresh_34c6300a_20260710T223304CST
+current_v18_artifact_root_sha256=c3f7572fa8cbc4ae4a3f57806d19d78b221e5feb42b07e2eef64aac7c5e906f5
+next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_only
