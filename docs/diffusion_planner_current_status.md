@@ -169,11 +169,22 @@ training, calibration, holdout-label access, evaluation, claim, promotion,
 deployment, activation, DP modification, and raw-data redistribution remain
 unexecuted.
 
-current_v18_status=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_passed
-current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_0e2a2ddb_20260710T223739CST
-current_v18_artifact_root_sha256=9f08ef177c657504d3db3138e788441dcf6439da37df1e797c63bca472578101
-next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_only
+Independent full result review then opened all 367 NPZ files without invoking
+the model. Every record is finite float32 `[8, 80, 4]`, K=8, DP Top-1 index 0,
+and has eight unique candidates. All frozen causal-input hashes, tensor hashes,
+NPZ hashes, manifest identities, and split assignments matched; semantic
+failure count is zero. All 367 candidate tensors and NPZ file hashes are
+unique across records, and the first full-run tensor exactly reproduces the
+single-record smoke under seed 3407. Train/calibration/holdout remain
+`226 / 68 / 73` scenes and `25 / 9 / 12` logs with zero overlap. The next
+gate is causal 14D atom plus independent expert-label materialization
+preflight only; training and holdout-label access remain blocked.
+
+current_v18_status=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_passed
+current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_full_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_b7a69c6f_20260710T224507CST
+current_v18_artifact_root_sha256=e78707569b7559662d64621140926ee7119519726471acc661a19a57adf7cf81
+next_work_target=v18_nuplan_mini_causal_atom_and_expert_label_materialization_preflight_only
 
 ## Historical V17 Closeout
 

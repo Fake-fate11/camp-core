@@ -790,3 +790,45 @@ current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_full_
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_execution_0e2a2ddb_20260710T223739CST
 current_v18_artifact_root_sha256=9f08ef177c657504d3db3138e788441dcf6439da37df1e797c63bca472578101
 next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_only
+
+## Gate 12: Full Fixed-DP Candidate Generation Result Review
+
+Status: passed; causal atom and expert-label materialization preflight is the
+only next gate.
+
+- Review artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_b7a69c6f_20260710T224507CST`
+  / `e78707569b7559662d64621140926ee7119519726471acc661a19a57adf7cf81`.
+- Review CAMP HEAD was
+  `b7a69c6f0b805a9d0d7a46ecc040634e11f07000`; generation CAMP HEAD was
+  `0e2a2ddb1e75acd2b07f5fd8c4aec19c0ff09911`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- The independent reviewer invoked the model zero times. It verified the
+  execution artifact and candidate-output SHA chains, then opened every one
+  of the `367` NPZ files with pickle disabled and matched them one-to-one
+  against the frozen manifest and `records.jsonl`.
+- Semantic failures: `0`. Shape / dtype / K / DP Top-1 values were exactly
+  `[8, 80, 4] / float32 / 8 / 0` for every record. Every value was finite,
+  every causal input SHA matched the frozen manifest, and every tensor/file
+  SHA matched its generation record.
+- Unique candidates per record min/max: `8 / 8`. Unique candidate-tensor
+  hashes / unique NPZ hashes across the corpus: `367 / 367`. The first
+  full-run tensor hash matched the independently generated single-record
+  smoke, proving deterministic replay from seed `3407` and manifest order.
+- Train/calibration/holdout scene counts remained `226 / 68 / 73`; log counts
+  remained `25 / 9 / 12`; log overlap and scene overlap remained exactly zero.
+- Result-review JSON / MD SHA256:
+  `bb68e46849c22f82d6c7e29fd38c0c62c5537ca4f86a696e13bb77f33517beff` /
+  `a0a85231010e0558d37c030be4d9f884ef637199babfc608868877581ecd7814`.
+  `SHA256SUMS` and `ROOT_SHA256SUMS` reverified, stderr is empty, and
+  `run.exit=0`.
+- Candidate generation is now semantically verified for the mini corpus. No
+  atom materialization, training, calibration, holdout-label access,
+  evaluation, claim, promotion, deployment, activation, DP modification, or
+  raw-data redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_passed
+current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_full_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_b7a69c6f_20260710T224507CST
+current_v18_artifact_root_sha256=e78707569b7559662d64621140926ee7119519726471acc661a19a57adf7cf81
+next_work_target=v18_nuplan_mini_causal_atom_and_expert_label_materialization_preflight_only
