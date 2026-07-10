@@ -426,6 +426,8 @@ def _evaluation_args(tmp_path) -> argparse.Namespace:
     args = _training_args(tmp_path)
     args.freeze_root = tmp_path / "freeze"
     args.expected_freeze_root_sha256 = "d" * 64
+    args.freeze_review = tmp_path / "freeze_review"
+    args.expected_freeze_review_root_sha256 = "e" * 64
     args.output_dir = tmp_path / "paired_eval"
     return args
 
@@ -622,3 +624,35 @@ def test_frozen_selector_root_rejects_post_freeze_mutation(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="SHA256"):
         module.load_frozen_selector(freeze, root_sha)
+
+
+def _write_freeze_review(root, freeze_root_sha):
+    root.mkdir(parents=True)
+    (root / "summary.json").write_text(
+        json.dumps(
+            {
+                "status": "passed",
+                "run_exit": 0,
+                "stderr_empty": True,
+                "review": {
+                    "status": "passed",
+                    "freeze_root_sha256": freeze_root_sha,
+                    "holdout_label_reads": 0,
+                    "native_ranked_top1": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    return module._write_root_manifest(root)
+
+
+def test_freeze_review_gate_requires_passed_matching_review_root(tmp_path) -> None:
+    review = tmp_path / "review"
+    review_root = _write_freeze_review(review, "f" * 64)
+
+    verified = module.verify_freeze_review(review, review_root, "f" * 64)
+    assert verified["status"] == "passed"
+
+    with pytest.raises(ValueError, match="freeze result review"):
+        module.verify_freeze_review(review, review_root, "0" * 64)

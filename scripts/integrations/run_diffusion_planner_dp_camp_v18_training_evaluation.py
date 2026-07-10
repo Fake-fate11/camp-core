@@ -841,6 +841,24 @@ def load_frozen_selector(root: Path, expected_root: str) -> dict[str, Any]:
     }
 
 
+def verify_freeze_review(
+    root: Path, expected_root: str, expected_freeze_root: str
+) -> dict[str, Any]:
+    summary = _verify_artifact_root(root, expected_root)
+    review = summary.get("review") or {}
+    if not (
+        summary.get("status") == "passed"
+        and summary.get("run_exit") == 0
+        and summary.get("stderr_empty") is True
+        and review.get("status") == "passed"
+        and review.get("freeze_root_sha256") == expected_freeze_root
+        and review.get("holdout_label_reads") == 0
+        and review.get("native_ranked_top1") is False
+    ):
+        raise ValueError("freeze result review is missing, failed, or mismatched")
+    return review
+
+
 def _identity(row: Mapping[str, Any]) -> tuple[str, str, str]:
     return (
         str(row["log_token"]),
@@ -854,6 +872,11 @@ def _verify_evaluation_inputs(args: Any) -> dict[str, Any]:
     selector = load_frozen_selector(
         args.freeze_root, args.expected_freeze_root_sha256
     )
+    freeze_review = verify_freeze_review(
+        args.freeze_review,
+        args.expected_freeze_review_root_sha256,
+        args.expected_freeze_root_sha256,
+    )
     _, source_rows, _, _ = _verified_candidate_source(
         args.candidate_root, args.expected_candidate_root_sha256
     )
@@ -863,6 +886,7 @@ def _verify_evaluation_inputs(args: Any) -> dict[str, Any]:
     return {
         "training_inputs": training_inputs,
         "freeze": selector["training"],
+        "freeze_review": freeze_review,
         "selector": selector,
         "source_by_identity": source_by_identity,
     }
@@ -1199,14 +1223,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--freeze_root", type=Path)
     parser.add_argument("--expected_freeze_root_sha256")
+    parser.add_argument("--freeze_review", type=Path)
+    parser.add_argument("--expected_freeze_review_root_sha256")
     parser.add_argument("--output_dir", type=Path, required=True)
     parser.add_argument("--current_status", type=Path, required=True)
     parser.add_argument("--v18_audit", type=Path, required=True)
     args = parser.parse_args(argv)
     if args.mode != "train-calibrate" and (
-        args.freeze_root is None or args.expected_freeze_root_sha256 is None
+        args.freeze_root is None
+        or args.expected_freeze_root_sha256 is None
+        or args.freeze_review is None
+        or args.expected_freeze_review_root_sha256 is None
     ):
-        parser.error("paired evaluation modes require --freeze_root and its SHA256")
+        parser.error(
+            "paired evaluation modes require frozen selector and independent "
+            "freeze-review roots with SHA256 values"
+        )
     return args
 
 
