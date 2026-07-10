@@ -61,14 +61,23 @@ verified exact sizes `971557640 / 8550100030`, archive SHA256, and both ZIPs.
 The download directory now contains exactly the two final archives and zero
 partial files.
 
+One official-hierarchy extraction job is now running under an exclusive lock.
+It extracts the identical-license archives into
+`/root/autodl-tmp/nuplan/dataset`, where the ZIP roots naturally provide
+`maps/` and `data/cache/mini/`. The preflight proved safe relative paths,
+`15777787771` unique uncompressed bytes versus `35522355200` available bytes,
+and expected counts of 7 map files plus 64 mini SQLite databases. The first
+observation found PID `450283` alive with approximately `1182928415` dataset
+bytes written and no `run.exit`.
+
 No extraction, adapter, candidate corpus, split, training, holdout access,
 evaluation, claim, promotion, deployment, or activation has occurred.
 
-current_v18_status=v18_nuplan_mini_official_aws_acquisition_complete_verified
-current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_result_review
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_outer_retry_2d92202d_20260710T165604CST
-current_v18_artifact_root_sha256=4d0a77dfab9f649df65e138fa41139afea01e2fc51144a4da897722a0a7c76c9
-next_work_target=v18_nuplan_mini_official_archives_extraction_execution_only
+current_v18_status=v18_nuplan_mini_official_archives_extraction_running
+current_v18_artifact_scope=nuplan_mini_official_archives_official_hierarchy_extraction
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_archives_extraction_29eee9c9_20260710T204004CST
+current_v18_launch_root_sha256=ab340899aab8f5714559328499e7e11926160291d2815501f4ace2bf05d0e42f
+next_work_target=stop_while_v18_nuplan_mini_official_archives_extraction_job_running_monitor_only
 
 ## Historical V17 Closeout
 

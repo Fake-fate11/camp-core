@@ -329,3 +329,44 @@ current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_result_review
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_outer_retry_2d92202d_20260710T165604CST
 current_v18_artifact_root_sha256=4d0a77dfab9f649df65e138fa41139afea01e2fc51144a4da897722a0a7c76c9
 next_work_target=v18_nuplan_mini_official_archives_extraction_execution_only
+
+## Gate 4: Official Archive Extraction Execution
+
+Status: running; stop and monitor only. Do not launch a second extraction.
+
+- Extraction artifact:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_archives_extraction_29eee9c9_20260710T204004CST`
+- AutoDL PID / start:
+  `450283 / 2026-07-10T20:40:05+08:00`.
+- Target dataset root: `/root/autodl-tmp/nuplan/dataset`; it did not exist at
+  preflight, and the command holds an exclusive extraction lock.
+- ZIP path-safety review: passed; no absolute path, `..`, or symlink entry.
+- Both archive `LICENSE` entries are identical: size `25319`, SHA256
+  `1a218286e733f6d6135fc5698d614cda2be94ea096f6eee280278458e570636a`.
+  The second identical license is skipped instead of overwritten.
+- Expected unique extracted bytes / available bytes before launch:
+  `15777787771 / 35522355200`.
+- Expected final files / map files / mini SQLite databases:
+  `72 / 7 / 64`.
+- The command re-verifies source archive SHA256 before extraction, validates
+  all 64 SQLite headers and readable schemas after extraction, and creates a
+  full extracted-file SHA256 manifest.
+- First observation: PID alive, `run.exit` pending, and approximately
+  `1182928415` bytes existed under the dataset root.
+- Launch JSON / MD / immutable launch-root SHA256:
+  `86f33e27ebaad5b8bfb15165dfbb304bb73486768a5a55298f23fd25c55c42eb` /
+  `4511e4d400cfcfa49c8c9ca838fb7c64cb757f4f79696cb1b2d9c3ccd2b8f2f8` /
+  `ab340899aab8f5714559328499e7e11926160291d2815501f4ace2bf05d0e42f`.
+- Launch CAMP HEAD / origin / fixed DP HEAD:
+  `29eee9c99f55bfb773b7166b03e456035ca621af` /
+  `29eee9c99f55bfb773b7166b03e456035ca621af` /
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- No adapter implementation, candidate generation, atom materialization,
+  split, training, evaluation, claim, promotion, deployment, activation, raw
+  data redistribution, duplicate extraction, or extra partial occurred.
+
+current_v18_status=v18_nuplan_mini_official_archives_extraction_running
+current_v18_artifact_scope=nuplan_mini_official_archives_official_hierarchy_extraction
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_archives_extraction_29eee9c9_20260710T204004CST
+current_v18_launch_root_sha256=ab340899aab8f5714559328499e7e11926160291d2815501f4ace2bf05d0e42f
+next_work_target=stop_while_v18_nuplan_mini_official_archives_extraction_job_running_monitor_only
