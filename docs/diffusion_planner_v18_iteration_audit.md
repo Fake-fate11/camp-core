@@ -194,3 +194,68 @@ current_v18_status=v18_nuplan_mini_official_aws_acquisition_running
 current_v18_artifact_scope=nuplan_mini_official_aws_maps_and_mini_archive_acquisition
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_1fd91258_20260710T143617CST
 next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only
+
+### Gate 3 Retry Remediation: Fresh Curl Per Attempt
+
+Status: corrected acquisition running; stop and monitor only.
+
+- Root cause: AutoDL curl `7.81.0` combined `--continue-at -` with
+  `--retry 20 --retry-all-errors`. The mini invocation started without a
+  partial, so its initial resume offset was zero. After two curl exit-18
+  transfers, in-process retry restored the output toward that initial offset
+  instead of preserving the latest partial length.
+- Source capability was not the blocker. An ETag-pinned byte-range probe
+  returned HTTP `206`, `Content-Range: bytes
+  123456789-123456799/8550100030`, and mini ETag
+  `"08abc074db9227e758cc41c6b1ee223c-1020"`.
+- RED command-contract check against the old `COMMAND`: exit `1`, as expected,
+  because `--continue-at -` and internal `--retry` coexisted.
+- Old artifact:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_1fd91258_20260710T143617CST`
+- Old wrapper / terminated curl / recorded exit:
+  `439876 / 440416 / 143`.
+- Old failure class / finalized root SHA256:
+  `curl_internal_retry_resets_resume_offset` /
+  `9e4705e5e6ac00eb378d10e28ed8b5cf65033e6e0e284f88f14276a638bedb02`.
+- The partial was `370872320` bytes before and after stopping. Its trailing
+  64 KiB local SHA256 and corresponding remote Range SHA256 both equaled
+  `bdbe865516fc5458294670b9f719317c9f4009b9b54abf8b8a7d51ab0c150f73`.
+  The ETag and Range probe passed, so the partial was preserved. The approved
+  fallback deletes only the literal mini `.part` if size, ETag, Range, curl
+  exit 33/36, or monotonicity proves it cannot resume; no backup is created.
+- Corrected artifact:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_outer_retry_2d92202d_20260710T165604CST`
+- Corrected wrapper PID / start:
+  `443827 / 2026-07-10T16:56:07+08:00`.
+- The corrected command passed `bash -n` and the GREEN contract check. It has
+  no curl `--retry*` flag, uses at most 20 outer attempts, starts a fresh curl
+  per attempt, pins `If-Range`, and retains the exact-size, SHA256, and ZIP
+  integrity checks.
+- Resume log: `bytes=370872320`; first active curl PID: `443843`.
+- Same-inode 20-second sample:
+  `374747136 -> 378183680` bytes (`+3436544`).
+- Download inventory while running:
+  `nuplan-maps-v1.0.zip=971557640` and exactly one
+  `nuplan-v1.1_mini.zip.part`; total files / partial files: `2 / 1`.
+- Maps / mini ETags:
+  `"4581f21a3562c097041ab68f2d1177d9-116"` /
+  `"08abc074db9227e758cc41c6b1ee223c-1020"`.
+- Corrected launch JSON / MD / immutable launch-root SHA256:
+  `665f17a60b3796ffb15c7c628b808ab9662bb8c28cdf6eec756b55fb8c6fdd39` /
+  `b673b5c106cdb87d5d4d356b5771eea092e062eb6cb258ce57e8284d2adc5dbb` /
+  `339af1f78a2bf91ec1d25817b6dea165fe3c923bfaa3bef43fb31aa0c46a8d3f`.
+- Pre-launch CAMP HEAD / origin / tracked changes:
+  `2d92202d1f0161762e6c6d3adb08c2d9a1207947` /
+  `2d92202d1f0161762e6c6d3adb08c2d9a1207947` / `0`.
+- Fixed DP HEAD / tracked changes:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4 / 0`.
+- No extraction, adapter work, candidate generation, atom materialization,
+  split, training, evaluation, claim, promotion, deployment, activation, raw
+  data redistribution, duplicate acquisition, or additional partial occurred.
+
+current_v18_status=v18_nuplan_mini_official_aws_acquisition_running
+current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_outer_retry_resume_remediation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_outer_retry_2d92202d_20260710T165604CST
+current_v18_old_failed_artifact_root_sha256=9e4705e5e6ac00eb378d10e28ed8b5cf65033e6e0e284f88f14276a638bedb02
+current_v18_launch_root_sha256=339af1f78a2bf91ec1d25817b6dea165fe3c923bfaa3bef43fb31aa0c46a8d3f
+next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only

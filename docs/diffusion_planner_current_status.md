@@ -34,21 +34,31 @@ forbade redistribution of the raw data. This clears the manual license
 boundary for acquisition only; it does not authorize adapter work before the
 source is acquired and verified.
 
-One resumable official AWS acquisition job is now running on AutoDL. It is
-downloading the maps archive before the mini archive, records stdout/stderr and
-the final exit code, checks the audited Content-Length values, and will create
-archive SHA256 and ZIP-integrity evidence. At the first observation, the maps
-partial was `1867776` bytes, stderr was empty, and `run.exit` was pending.
-Live process inspection then confirmed that the active `curl` inherited the
-`http_proxy` and `https_proxy` keys from `/etc/network_turbo` without recording
-their values; the maps partial had grown to `11862016` bytes.
+The first acquisition command used curl 7.81.0 with `--continue-at -` and
+in-process `--retry-all-errors`. Two curl exit-18 transfers showed that an
+internal retry restored the output to the invocation's original offset instead
+of preserving bytes written by that attempt. CloudFront Range support was
+independently verified with HTTP 206 and the expected Content-Range, so this
+was a client retry defect rather than a source limitation. The old curl child
+was terminated, its wrapper recorded exit 143, and the failure artifact was
+finalized without deleting or duplicating data.
+
+The existing mini partial was `370872320` bytes at stop. Its ETag matched
+`"08abc074db9227e758cc41c6b1ee223c-1020"`, and its trailing 64 KiB SHA256
+matched the same ETag-pinned remote Range, so it qualified for in-place resume.
+A corrected single job is now running with bounded outer retries: every retry
+starts a fresh curl process, pins `If-Range`, rejects invalid/regressed partials,
+and contains no curl `--retry*` option. It resumed at byte `370872320`; a
+same-inode 20-second sample grew from `374747136` to `378183680` bytes. The
+download directory contains exactly the complete maps archive and one mini
+`.part`; no backup or additional partial file exists.
 
 No extraction, adapter, candidate corpus, split, training, holdout access,
 evaluation, claim, promotion, deployment, or activation has occurred.
 
 current_v18_status=v18_nuplan_mini_official_aws_acquisition_running
-current_v18_artifact_scope=nuplan_mini_official_aws_maps_and_mini_archive_acquisition
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_1fd91258_20260710T143617CST
+current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_outer_retry_resume_remediation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_outer_retry_2d92202d_20260710T165604CST
 next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only
 
 ## Historical V17 Closeout
