@@ -929,3 +929,58 @@ current_v18_artifact_scope=nuplan_mini_causal_atom_source_remediation_test_drive
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_source_remediation_implementation_20260710T235400CST
 current_v18_artifact_root_sha256=7016757c79febfde27918a6246703108060ab229755ceef1b164d7c4392c787f
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_preflight_only
+
+## Gate 15: Refreshed Causal Manifest and Single-Record Source-Smoke Preflight
+
+Status: passed after an environment-only failed attempt; single-record source
+smoke execution is the only next gate.
+
+- The first artifact / root SHA256 was
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_preflight_20260711T000418CST`
+  / `e7a9ce79bb143f6a805f9d7a5b0a699aa62d01853cf8a1eadc719b9367a34a28`.
+  Its target tests passed `16 / 16`, but the main artifact process lacked the
+  preserved Shapely target in `PYTHONPATH` and failed before manifest creation
+  with `ModuleNotFoundError: shapely`. No refresh or model call occurred in
+  that attempt; its logs and SHA chain remain immutable.
+- The passing retry artifact / root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_preflight_retry_20260711T000659CST`
+  / `7a98d8a82bb4e65e774a7145a192098e13ce4180eb9320d20c770613f4c2c3e4`.
+  It reused `/root/autodl-tmp/camp_v18_shapely`, passed all `16` target tests,
+  has empty stderr and `run.exit=0`, and reverified its complete SHA chain.
+- The new immutable v2 manifest is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_preflight_retry_20260711T000659CST/refreshed_scenario_manifest_v2.jsonl`
+  with SHA256
+  `bcf19b29b9c3654f41502d494a441858142d2d9c3b77bd686b5a764c1107d7a2`.
+  All `367` identities and their order match parent manifest SHA256
+  `44b4082ce707428bf24bc9cd00bf19ddbb58f4867dac4e031969b02b967d74d0`.
+- Split scene counts remain train/calibration/holdout `226 / 68 / 73`; split
+  log counts remain `25 / 9 / 12`, with zero log overlap and `367` unique
+  scene tokens. The v2 extension is exact and records the parent SHA, source
+  schema, static-object count, neighbor-valid count, and refreshed causal
+  input SHA.
+- `362 / 367` causal-input hashes changed, exactly matching the `362` records
+  with nonzero real static objects. Static counts span `0..5`; real neighbor
+  counts span `3..32`. Refresh wall-clock was `72.115406s`; complete gate
+  wall-clock was `75.152347s`.
+- The predeclared first manifest record is calibration scene
+  `07ef2e232c8450f9`, decision `53710c1319405da6`. Re-materialization matched
+  causal SHA256
+  `73b924db02289be79e931e895d5107996ce2684b1a2059aee3fe0dec8ab651a8`,
+  with `5` static objects, `32` valid neighbors, and `60` WHITE route points.
+  Its dry-run plan verified v2 schema, K=8, and fixed DP without loading the
+  model or creating a candidate output.
+- CAMP local/GitHub/AutoDL was
+  `c8d825a41c991fea625ca0022d15de2551d83d2a`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+  The old manifest and old candidate root remained immutable; all `369` old
+  candidate SHA checks passed before and after refresh.
+- No candidate generation, physical-feasibility/atom/label materialization,
+  training, holdout-label access, evaluation, claim, promotion, deployment,
+  activation, DP modification, or raw-data redistribution occurred. No
+  weights or performance metrics exist at this source-only gate.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_preflight_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_preflight_retry_20260711T000659CST
+current_v18_artifact_root_sha256=7a98d8a82bb4e65e774a7145a192098e13ce4180eb9320d20c770613f4c2c3e4
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_execution_only

@@ -230,6 +230,37 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_source
 current_v18_artifact_root_sha256=7016757c79febfde27918a6246703108060ab229755ceef1b164d7c4392c787f
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_preflight_only
 
+The refreshed causal-manifest and single-record source-smoke preflight then
+passed at CAMP local/GitHub/AutoDL
+`c8d825a41c991fea625ca0022d15de2551d83d2a`; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. An initial environment-only
+attempt passed all 16 tests but failed before refresh because its artifact
+process lacked the preserved Shapely target in `PYTHONPATH`; that failed
+artifact and SHA chain were retained. The retry added only the existing
+Shapely path and passed with empty stderr and exit 0.
+
+The new immutable v2 manifest contains all 367 original identities in the same
+order and freezes SHA256
+`bcf19b29b9c3654f41502d494a441858142d2d9c3b77bd686b5a764c1107d7a2`.
+Scene/log split counts remain `226/68/73` and `25/9/12` with zero log overlap.
+Exactly 362 causal-input hashes changed, matching the 362 records with real
+nonzero static objects; static counts span 0..5 and neighbor counts 3..32.
+Refresh took `72.115406s`.
+
+The predeclared first record re-materialized with matching causal SHA, five
+static objects, 32 valid neighbors, and 60 WHITE route points. Its dry-run
+verified v2/K=8/fixed-DP inputs without model loading or candidate output.
+The old manifest and all 369 old candidate SHA checks remained unchanged. No
+candidate, feasibility, atom, label, training, holdout-label, evaluation, or
+claim work occurred. Single-record source-smoke execution is the only next
+gate.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_preflight_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_preflight_retry_20260711T000659CST
+current_v18_artifact_root_sha256=7a98d8a82bb4e65e774a7145a192098e13ce4180eb9320d20c770613f4c2c3e4
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
