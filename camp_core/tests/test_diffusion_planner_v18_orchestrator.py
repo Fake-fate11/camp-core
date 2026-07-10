@@ -175,6 +175,30 @@ def test_observable_obb_masks_dynamic_static_and_padding() -> None:
     assert result["closed_loop_safety_claim"] is False
 
 
+def test_observable_obb_accepts_nonunit_heading_but_rejects_zero() -> None:
+    _candidates, neighbors, valid, history, static, _projection = (
+        _observable_obb_fixture()
+    )
+    neighbors[:, 0, :, 2:4] = [0.01, 0.0]
+
+    obbs = causal_atoms.build_observable_obbs(
+        neighbors,
+        valid,
+        history,
+        static,
+    )
+
+    np.testing.assert_allclose(obbs[:, 0, :, 2], 0.0)
+    neighbors[0, 0, 10, 2:4] = 0.0
+    with pytest.raises(ValueError, match="invalid heading"):
+        causal_atoms.build_observable_obbs(
+            neighbors,
+            valid,
+            history,
+            static,
+        )
+
+
 def test_all_candidates_can_fail_obb_without_forcing_candidate_zero() -> None:
     candidates, neighbors, valid, history, static, projection = (
         _observable_obb_fixture()

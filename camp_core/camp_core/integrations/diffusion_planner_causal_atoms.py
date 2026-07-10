@@ -393,7 +393,7 @@ def build_observable_obbs(
         if width <= 0.0 or length <= 0.0:
             raise ValueError(f"neighbor slot {slot} requires positive width/length")
         headings = predictions[:, slot, :, 2:4]
-        if np.any(np.linalg.norm(headings, axis=2) < 0.5):
+        if np.any(np.linalg.norm(headings, axis=2) < 1e-6):
             raise ValueError(f"neighbor slot {slot} has invalid heading")
         obstacles[:, slot, :, :2] = predictions[:, slot, :, :2]
         obstacles[:, slot, :, 2] = np.arctan2(
