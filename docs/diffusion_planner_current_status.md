@@ -102,11 +102,36 @@ dependency target `/root/autodl-tmp/camp_v18_site`; exact-path cleanup removed
 again passed `22` focused tests, and the nuPlan tree contains zero `.part` or
 `.partial` files.
 
-current_v18_status=v18_nuplan_mini_causal_adapter_implementation_complete_verified
-current_v18_artifact_scope=nuplan_mini_causal_adapter_unused_dependency_target_cleanup_result_review
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_cleanup_20260710T214851CST
-current_v18_artifact_root_sha256=06e900fc79ce3872673670eeb289b57bf237725022c839d102e90a32d87042b9
-next_work_target=v18_nuplan_mini_smoke_split_and_fixed_dp_candidate_generation_preflight_only
+The mini split and fixed-DP candidate-generation preflight then exhaustively
+reviewed all `64` mini database logs and `1364` scenes. Its predeclared
+fail-closed rule selected the official scenario-tag tick nearest each scene
+midpoint only when it had at least three seconds of history, eight seconds of
+future label coverage, a real mission goal/route, and a fully valid causal
+adapter materialization. This produced `367` eligible scenes across `46`
+logs. Seed `3407` assigned whole logs to train/calibration/holdout with
+`226 / 68 / 73` scenes and `25 / 9 / 12` logs; both log and scene overlap are
+zero. The manifest SHA256 is
+`44b4082ce707428bf24bc9cd00bf19ddbb58f4867dac4e031969b02b967d74d0`.
+
+The first preflight artifact intentionally exited `1` because it added an
+unrequested requirement that every downloaded map contain an eligible scene.
+Systematic failure review proved that the objective requires all
+predeclared-eligible logs/scenes and zero overlap, not all-map coverage. The
+review did not change the manifest or recover extra anchors after observing
+results. Fixed-DP training defaults plus the tracked normalization file
+reconstructed an exact inference config: checkpoint load reported zero
+missing and zero unexpected keys. The old v16 exporter is not directly usable
+because its input boundary requires expert-future fields even though fixed-DP
+inference does not read them; the only next gate is a thin causal v18 export
+path on the CAMP side. No candidate generation, atom materialization,
+training, calibration, holdout access, evaluation, claim, promotion,
+deployment, activation, DP modification, or raw-data redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_smoke_split_and_candidate_generation_preflight_failure_review_passed
+current_v18_artifact_scope=nuplan_mini_smoke_split_candidate_generation_preflight_failure_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_split_candidate_preflight_failure_review_20260710T221642CST
+current_v18_artifact_root_sha256=2b116b902c59232238301298470d9954a0d7a28c44b4ea8fd57f1726ba57d55e
+next_work_target=v18_nuplan_mini_smoke_causal_fixed_dp_export_path_test_driven_implementation_only
 
 ## Historical V17 Closeout
 

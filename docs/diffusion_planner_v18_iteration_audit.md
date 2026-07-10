@@ -587,3 +587,62 @@ current_v18_artifact_scope=nuplan_mini_causal_adapter_unused_dependency_target_c
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_cleanup_20260710T214851CST
 current_v18_artifact_root_sha256=06e900fc79ce3872673670eeb289b57bf237725022c839d102e90a32d87042b9
 next_work_target=v18_nuplan_mini_smoke_split_and_fixed_dp_candidate_generation_preflight_only
+
+## Gate 8: Mini Split and Fixed-DP Candidate-Generation Preflight
+
+Status: passed after failure review; causal fixed-DP export-path
+test-driven implementation is the only next gate.
+
+- Source preflight artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_split_candidate_preflight_20260710T220921CST`
+  / `43ca8805bfe47b833b37ca8e50186efb039f3a488bbb8a2d11253625cd8533f0`.
+- Failure-review artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_split_candidate_preflight_failure_review_20260710T221642CST`
+  / `2b116b902c59232238301298470d9954a0d7a28c44b4ea8fd57f1726ba57d55e`.
+- The source inventory covered every one of the `64` official mini SQLite
+  logs and all `1364` nuPlan scene tokens. Eligibility was predeclared as one
+  deterministic official scenario-tag anchor nearest the scene midpoint with
+  at least `3s` history, `8s` future-label coverage, a real mission goal and
+  mapped route, and a passing causal adapter materialization. Missing or
+  invalid real sources remained fail closed.
+- Eligible corpus: `46` logs and `367` scenes. Whole-log assignment with
+  split seed `3407` produced train/calibration/holdout scene counts
+  `226 / 68 / 73` and log counts `25 / 9 / 12`; log overlap and scene overlap
+  are both exactly zero. Manifest SHA256:
+  `44b4082ce707428bf24bc9cd00bf19ddbb58f4867dac4e031969b02b967d74d0`.
+- The source artifact's sole failed check was
+  `every_source_map_has_eligible_scene`. Failure review classified this as
+  `preflight_policy_overconstraint`: the objective requires all eligible
+  mini logs/scenarios and log/scene zero overlap, but does not require each
+  downloaded map to contribute an eligible scene. Singapore and Boston
+  therefore remain excluded rather than receiving invented mission goals,
+  routes, speed limits, boundaries, or other fallback inputs.
+- A diagnostic sampled ten midpoint traffic-state failures and found four
+  alternate passing tag ticks within the first 50 candidates. It did not
+  change the predeclared selection rule or manifest after results were known.
+- The fixed checkpoint SHA256 is
+  `4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75`.
+  Reconstructing `args.json` from fixed-DP training defaults plus the tracked
+  normalization file loaded all `14545305` parameters with zero missing and
+  zero unexpected keys.
+- The existing v16 exporter can provide its fixed-model loader and native
+  sampling helper, but its NPZ validation/loader requires expert-future
+  fields. Fixed-DP inference only reads the causal schema, so reusing that
+  v16 input boundary would violate the v18 future-leakage rule. The next gate
+  is one thin CAMP-side causal export path; DP remains untouched at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4` and K remains `8`.
+- Failure-review result JSON / MD SHA256:
+  `b6753f6326c6d54953a1adbc58300f8565990a7dbdf20cac09a73be5a0714a01` /
+  `6ac0d70109b18451df21852ffb4445d529654703fcd83c011ca4b02746a1fca8`.
+  Both source and review `SHA256SUMS` chains reverified; review stderr is
+  empty and `run.exit=0`.
+- No fixed-DP inference, candidate generation, candidate corpus, atom
+  materialization, training, calibration, holdout access, evaluation, claim,
+  promotion, deployment, activation, DP modification, or raw-data
+  redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_smoke_split_and_candidate_generation_preflight_failure_review_passed
+current_v18_artifact_scope=nuplan_mini_smoke_split_candidate_generation_preflight_failure_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_split_candidate_preflight_failure_review_20260710T221642CST
+current_v18_artifact_root_sha256=2b116b902c59232238301298470d9954a0d7a28c44b4ea8fd57f1726ba57d55e
+next_work_target=v18_nuplan_mini_smoke_causal_fixed_dp_export_path_test_driven_implementation_only
