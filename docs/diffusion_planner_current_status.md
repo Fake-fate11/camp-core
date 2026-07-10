@@ -3,16 +3,36 @@
 Last verified: 2026-07-10, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
-new writes is `docs/diffusion_planner_v16_iteration_audit.md`. The v15 audit,
-`docs/diffusion_planner_v15_iteration_audit.md`, is completed no-promotion/no-claim
-evidence for the prior broader non-formal round. The v14 audit,
-`docs/diffusion_planner_v14_iteration_audit.md`, is sealed evidence for the
-completed fixed-DP integration scope. Do not append new v16 targets to v15 or
-v14 unless the entry only cites their final evidence. The v13 audit is
-historical evidence and the v14 rollover source; do not keep appending current
-work to v13.
+new writes is `docs/diffusion_planner_v17_iteration_audit.md`. V14-v16 audits
+are historical evidence and remain frozen except for explicit corrections or
+qualifications.
 
-## Current V16 Status
+## Current V17 Status
+
+The user selected the v17 causal-materializer, canonical-14D, and independent
+paired-evaluation remediation path instead of a v16 32k expansion. Initial
+local/GitHub/AutoDL synchronization passed: CAMP is tracked-clean on `main` at
+`4da4a15d20e448835f46f67a33b280532083a33e`; the AutoDL Diffusion Planner is
+tracked-clean at the fixed commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`; `/root/autodl-tmp` has `7.6 GiB`
+available; no candidate-generation, training, or evaluation job is active;
+and both retained archive SHA256 values match their recorded values.
+
+The v16 3737-row result is corrected to selector self-score sanity evidence
+only. The same CAMP score supplied both `argmin` selection and the reported
+comparison metric, while proxy training labels were derived from the same atom
+family. It is not independent CAMP-over-DP Top-1 performance evidence and
+authorizes no claim, promotion, deployment, or online activation.
+
+Phase 0 local documentation is ready for its first checkpoint. No v17 corpus,
+training, evaluation, runtime integration, or DP change has been executed.
+
+current_v17_status=v17_phase0_bootstrap_erratum_ponytail_audit_local_ready
+current_v17_artifact_scope=docs_only_v17_bootstrap_and_v16_qualification
+current_v17_artifact=docs/diffusion_planner_v17_iteration_audit.md
+next_work_target=v17_phase0_commit_push_autodl_ff_only_sync_and_sha_verification_only
+
+## Historical V16 Closeout
 
 V16 starts the public nuScenes source path for fixed TiERIV Diffusion Planner
 candidate tensors used as CAMP training/evaluation source. The boundary is

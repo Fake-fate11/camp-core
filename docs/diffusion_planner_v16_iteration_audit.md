@@ -6040,3 +6040,36 @@ current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_scaleup_closeout_plan_
 current_v16_artifact_scope=v16_nuscenes_fixed_dp_candidate_tensor_scaleup_closeout_plan
 current_v16_artifact=/root/autodl-tmp/camp_dp_v16_nuscenes_fixed_dp_candidate_tensor_scaleup_closeout_plan_ed54b607_20260710T014244CST
 next_work_target=user_decision_required_before_v16_nuscenes_fixed_dp_candidate_tensor_next_stage
+
+## V16 Erratum and Qualification (V17 Bootstrap)
+
+The user selected v17 causal-materializer, canonical-14D, and independent
+paired-evaluation remediation instead of the v16 32k expansion option.
+
+The v16 calibration+holdout `3737`-row result is reclassified as descriptive
+selector self-score sanity evidence only. In
+`execute_diffusion_planner_dp_camp_v16_nuscenes_fixed_dp_candidate_tensor_pilot_paired_evaluation.py`,
+the CAMP atom score supplies both the selected index (`argmin`) and the
+`dp_top1_metric` / `camp_selected_metric` comparison. The v16 trainer also uses
+`label_source=proxy`, whose labels are the `argmin` of the same normalized atom
+family under proxy weights. Therefore the result does not independently
+measure ADE, FDE, miss rate, collision/off-road proxies, progress, comfort, or
+any other outcome external to the CAMP score.
+
+The earlier limited Chinese CAMP-over-DP wording is withdrawn. The only
+accurate v16 statement is: on the recorded fixed-DP `K=8` rows, the selector
+usually chose a candidate with no larger value under its own affine CAMP score
+than candidate 0. This is expected selector behavior, not evidence that CAMP
+improves fixed DP Top-1 under an independent performance metric.
+
+This correction changes no historical artifact or SHA. It authorizes only the
+new v17 remediation chain and does not authorize 32k expansion, a performance
+or safety claim, promotion, deployment, or online activation.
+
+v16_nuscenes_fixed_dp_candidate_tensor_self_score_erratum_status=recorded
+v16_nuscenes_fixed_dp_candidate_tensor_3737_rows_independent_performance_proof=False
+v16_nuscenes_fixed_dp_candidate_tensor_3737_rows_selector_self_score_sanity_only=True
+v16_nuscenes_fixed_dp_candidate_tensor_prior_camp_over_dp_claim_withdrawn=True
+v16_nuscenes_fixed_dp_candidate_tensor_32k_expansion_selected=False
+current_v16_status=v16_nuscenes_fixed_dp_candidate_tensor_scaleup_closeout_plan_qualified_by_self_score_erratum
+next_work_target=v17_causal_14d_independent_evaluation_remediation_bootstrap
