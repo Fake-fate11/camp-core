@@ -207,6 +207,29 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_expert
 current_v18_artifact_root_sha256=6a6d49474d264da43169ad0bb0328891ff7797a9a0c49a3682502f3ad2f90c85
 next_work_target=v18_nuplan_mini_causal_atom_source_remediation_test_driven_implementation_only
 
+The causal-source remediation implementation then passed at CAMP
+local/GitHub/AutoDL `af46fd7060fc8b1b2b0d65c36d797cecb14c264f`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The adapter now emits
+real nearest-five decision-tick static objects. Each of the eight fixed-DP
+calls preserves its paired ego and first-32 neighbor predictions plus a real
+neighbor-slot mask, while reachable `WHITE/unknown` signal sources fail
+closed. The exporter adds atomic v2 causal-manifest refresh and freezes the new
+source hashes and masks, but physical feasibility remains unmaterialized.
+
+Local tests passed `34` with `2` real-data skips; AutoDL nuPlan mini tests
+passed `35` with `1` skip. The verified implementation artifact has empty
+stderr and exit 0. No real model call, manifest refresh, candidate generation,
+atom/label materialization, training, holdout-label access, evaluation, or
+claim occurred. The old 367-record candidate root remains immutable. The only
+next gate is refreshed causal-manifest plus single-record source smoke
+preflight.
+
+current_v18_status=v18_nuplan_mini_causal_atom_source_remediation_implementation_passed
+current_v18_artifact_scope=nuplan_mini_causal_atom_source_remediation_test_driven_implementation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_source_remediation_implementation_20260710T235400CST
+current_v18_artifact_root_sha256=7016757c79febfde27918a6246703108060ab229755ceef1b164d7c4392c787f
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

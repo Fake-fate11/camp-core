@@ -892,3 +892,40 @@ current_v18_artifact_scope=nuplan_mini_causal_atom_and_expert_label_materializat
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_expert_label_preflight_20260710T230529CST
 current_v18_artifact_root_sha256=6a6d49474d264da43169ad0bb0328891ff7797a9a0c49a3682502f3ad2f90c85
 next_work_target=v18_nuplan_mini_causal_atom_source_remediation_test_driven_implementation_only
+
+## Gate 14: Causal-Source Remediation Test-Driven Implementation
+
+Status: passed; refreshed causal manifest plus single-record source smoke
+preflight is the only next gate.
+
+- Implementation artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_source_remediation_implementation_20260710T235400CST`
+  / `7016757c79febfde27918a6246703108060ab229755ceef1b164d7c4392c787f`.
+- CAMP local/GitHub/AutoDL was
+  `af46fd7060fc8b1b2b0d65c36d797cecb14c264f`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+  `/root/autodl-tmp/camp_v18_shapely` remained present.
+- Test-driven changes materialize the nearest five real decision-tick
+  non-dynamic objects in the fixed ten-field schema; preserve paired ego and
+  first-32 neighbor predictions from each of eight fixed-DP calls; freeze the
+  32-slot real-neighbor mask; and fail closed only for candidates that reach a
+  `WHITE/unknown` controlled route segment.
+- The exporter now supports an atomic, no-overwrite v2 causal-manifest
+  refresh. Candidate execution accepts only that v2 schema and records the
+  same-call neighbor tensor, source-availability masks, hashes, and canonical
+  eligibility. Physical feasibility remains explicitly unmaterialized.
+- Local verification passed `34` tests with `2` real-data skips. AutoDL
+  verification passed `35` tests with `1` skip against the installed nuPlan
+  mini source. The artifact has empty stderr, `run.exit=0`, and a verified
+  `SHA256SUMS` chain.
+- This gate invoked the real model zero times and did not refresh the manifest,
+  generate candidates, materialize feasibility/atoms/labels, train, calibrate,
+  access holdout label values, evaluate, or make a claim. The old candidate
+  root `/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_candidates_44b4082ce707`
+  remains immutable.
+
+current_v18_status=v18_nuplan_mini_causal_atom_source_remediation_implementation_passed
+current_v18_artifact_scope=nuplan_mini_causal_atom_source_remediation_test_driven_implementation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_source_remediation_implementation_20260710T235400CST
+current_v18_artifact_root_sha256=7016757c79febfde27918a6246703108060ab229755ceef1b164d7c4392c787f
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_preflight_only
