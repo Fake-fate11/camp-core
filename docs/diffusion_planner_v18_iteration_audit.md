@@ -646,3 +646,51 @@ current_v18_artifact_scope=nuplan_mini_smoke_split_candidate_generation_prefligh
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_split_candidate_preflight_failure_review_20260710T221642CST
 current_v18_artifact_root_sha256=2b116b902c59232238301298470d9954a0d7a28c44b4ea8fd57f1726ba57d55e
 next_work_target=v18_nuplan_mini_smoke_causal_fixed_dp_export_path_test_driven_implementation_only
+
+## Gate 9: Causal Fixed-DP Export Path Implementation
+
+Status: passed after evidence-check failure review; one-record fixed-DP
+candidate generation is the only next gate.
+
+- CAMP implementation commit:
+  `4aa3ef98de2e00e278de5aaaf4d831abfd5ddb6d`; local, GitHub, and AutoDL were
+  synchronized before AutoDL verification. Fixed DP remained tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Implementation / test:
+  `scripts/integrations/run_diffusion_planner_dp_camp_v18.py` /
+  `camp_core/tests/test_diffusion_planner_v18_orchestrator.py`.
+- TDD RED produced three expected failures because the v18 orchestrator was
+  absent. GREEN passed all three new tests. Local combined verification passed
+  `23` with two environment-only skips; AutoDL set the real fixed-DP and
+  nuPlan roots and passed all `25` tests plus py_compile.
+- The orchestrator validates the exact causal schema before padding only
+  `neighbor_agents_past` from 32 to the fixed model's native width of 320.
+  It contains no expert ego/neighbor future field. It reuses the existing
+  fixed-model load context and native sampling helper rather than modifying DP
+  or duplicating model code.
+- The frozen-manifest dry-run used SHA256
+  `44b4082ce707428bf24bc9cd00bf19ddbb58f4867dac4e031969b02b967d74d0`,
+  selected one record, verified K=8 and the fixed DP HEAD, reported
+  `candidate_generation_executed=false`, and created no output root.
+- Implementation artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_fixed_dp_export_path_implementation_4aa3ef98_20260710T222621CST`
+  / `fb98a9bcc9636ea22085fe1bf3fbbf0023c0ac9939a2e401c4b652d00bc1c83a`.
+  Its sole failed check, `future_schema_not_used`, matched Python's standard
+  `from __future__ import annotations` line rather than a data field.
+- Failure-review artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_fixed_dp_export_path_implementation_failure_review_4aa3ef98_20260710T222705CST`
+  / `86b6d3b30887e9e0b15e9b2f31d9875f59d74aa99ba8645bd54c9a6810ab0037`.
+  It verified exact forbidden field names, passed every check, left the code
+  unchanged, and recorded result JSON / MD SHA256
+  `5e4c9a12537c71297cabf294fc0f037860ea937dff6084a70dfe81acc5e3c200` /
+  `ec7e8217042b9e37ab49b5dbab0718ed4a2cc66047a657d48c95f3579c4007e8`.
+- No fixed-DP inference, candidate generation, candidate corpus, atom
+  materialization, training, calibration, holdout access, evaluation, claim,
+  promotion, deployment, activation, DP modification, or raw-data
+  redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_smoke_causal_fixed_dp_export_path_implementation_failure_review_passed
+current_v18_artifact_scope=nuplan_mini_smoke_causal_fixed_dp_export_path_implementation_failure_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_fixed_dp_export_path_implementation_failure_review_4aa3ef98_20260710T222705CST
+current_v18_artifact_root_sha256=86b6d3b30887e9e0b15e9b2f31d9875f59d74aa99ba8645bd54c9a6810ab0037
+next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_execution_only

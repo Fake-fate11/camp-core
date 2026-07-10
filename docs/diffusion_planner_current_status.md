@@ -127,11 +127,26 @@ path on the CAMP side. No candidate generation, atom materialization,
 training, calibration, holdout access, evaluation, claim, promotion,
 deployment, activation, DP modification, or raw-data redistribution occurred.
 
-current_v18_status=v18_nuplan_mini_smoke_split_and_candidate_generation_preflight_failure_review_passed
-current_v18_artifact_scope=nuplan_mini_smoke_split_candidate_generation_preflight_failure_review
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_split_candidate_preflight_failure_review_20260710T221642CST
-current_v18_artifact_root_sha256=2b116b902c59232238301298470d9954a0d7a28c44b4ea8fd57f1726ba57d55e
-next_work_target=v18_nuplan_mini_smoke_causal_fixed_dp_export_path_test_driven_implementation_only
+A single thin v18 orchestrator was then implemented on the CAMP side at
+`4aa3ef98de2e00e278de5aaaf4d831abfd5ddb6d`. It accepts only the validated
+causal schema, pads the 32 observed neighbors to the fixed model's 320-agent
+input width, converts causal heading fields, reuses the existing fixed-model
+loader and native sampler, requires the frozen manifest SHA and fixed DP HEAD,
+and emits candidate 0 as zero-noise DP Top-1 plus seven native samples. TDD
+first failed three tests because the orchestrator did not exist, then passed;
+AutoDL py_compile plus the combined causal suite passed `25` tests. A real
+frozen-manifest dry-run selected one record with K=8 and created no candidate
+output. The first implementation artifact's generic `future` string check
+mistook Python's `from __future__ import annotations` for a data field;
+failure review verified that neither `ego_agent_future` nor
+`neighbor_agents_future` exists and changed no code. The next gate is exactly
+one real candidate-generation record, not the 367-record corpus.
+
+current_v18_status=v18_nuplan_mini_smoke_causal_fixed_dp_export_path_implementation_failure_review_passed
+current_v18_artifact_scope=nuplan_mini_smoke_causal_fixed_dp_export_path_implementation_failure_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_fixed_dp_export_path_implementation_failure_review_4aa3ef98_20260710T222705CST
+current_v18_artifact_root_sha256=86b6d3b30887e9e0b15e9b2f31d9875f59d74aa99ba8645bd54c9a6810ab0037
+next_work_target=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_single_record_execution_only
 
 ## Historical V17 Closeout
 
