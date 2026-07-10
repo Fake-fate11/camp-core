@@ -34,6 +34,7 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_K = 8
 FIXED_DP_NEIGHBOR_COUNT = 320
 DEFAULT_SEED = 3407
+CAUSAL_SOURCE_SCHEMA_VERSION = "dp_camp_v18_nuplan_causal_source_v2"
 _WHITE_CHANNEL = 11
 _SIGNAL_PROXIMITY_M = 3.0
 _SIGNAL_HEADING_THRESHOLD = 0.5
@@ -199,6 +200,12 @@ def _array_sha256(array: np.ndarray) -> str:
     return hashlib.sha256(np.ascontiguousarray(array).tobytes()).hexdigest()
 
 
+def _nonzero_row_count(array: np.ndarray) -> int:
+    values = np.asarray(array)
+    axes = tuple(range(1, values.ndim))
+    return int(np.count_nonzero(np.any(np.abs(values) > 1e-8, axis=axes)))
+
+
 def _read_manifest(path: Path, expected_sha256: str) -> list[dict[str, Any]]:
     if _sha256(path) != expected_sha256:
         raise ValueError("manifest SHA256 mismatch")
@@ -208,7 +215,58 @@ def _read_manifest(path: Path, expected_sha256: str) -> list[dict[str, Any]]:
     return rows
 
 
+def refresh_manifest(args: argparse.Namespace) -> dict[str, Any]:
+    rows = _read_manifest(args.manifest, args.expected_manifest_sha256)
+    output = args.refresh_manifest_output
+    if output.exists():
+        raise FileExistsError(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output.with_suffix(output.suffix + ".tmp")
+    try:
+        with temporary.open("w", encoding="utf-8") as stream:
+            for row in rows:
+                materialized = materialize_nuplan_decision(
+                    row["db_path"], row["map_path"], row["decision_token"]
+                )
+                refreshed = dict(row)
+                refreshed.update(
+                    {
+                        "causal_input_sha256": causal_input_sha256(
+                            materialized.dp_input
+                        ),
+                        "causal_source_schema_version": CAUSAL_SOURCE_SCHEMA_VERSION,
+                        "parent_manifest_sha256": args.expected_manifest_sha256,
+                        "static_object_count": _nonzero_row_count(
+                            materialized.dp_input["static_objects"]
+                        ),
+                        "neighbor_valid_count": _nonzero_row_count(
+                            materialized.dp_input["neighbor_agents_past"]
+                        ),
+                    }
+                )
+                stream.write(json.dumps(refreshed, sort_keys=True) + "\n")
+        os.replace(temporary, output)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return {
+        "schema_version": CAUSAL_SOURCE_SCHEMA_VERSION,
+        "parent_manifest": str(args.manifest),
+        "parent_manifest_sha256": args.expected_manifest_sha256,
+        "refreshed_manifest": str(output),
+        "refreshed_manifest_sha256": _sha256(output),
+        "record_count": len(rows),
+        "candidate_generation_executed": False,
+    }
+
+
 def run_manifest(args: argparse.Namespace) -> dict[str, Any]:
+    if args.refresh_manifest_output is not None:
+        if args.execute:
+            raise ValueError(
+                "manifest refresh and candidate execution are mutually exclusive"
+            )
+        return refresh_manifest(args)
     rows = _read_manifest(args.manifest, args.expected_manifest_sha256)
     dp_head = subprocess.run(
         ["git", "-C", str(args.dp_repo), "rev-parse", "HEAD"],
@@ -220,7 +278,7 @@ def run_manifest(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError(f"fixed DP HEAD mismatch: {dp_head}")
     selected = rows[: args.max_records or None]
     plan = {
-        "schema_version": "dp_camp_v18_causal_fixed_dp_export_v1",
+        "schema_version": "dp_camp_v18_causal_fixed_dp_export_v2",
         "manifest": str(args.manifest),
         "manifest_sha256": args.expected_manifest_sha256,
         "record_count": len(selected),
@@ -233,6 +291,11 @@ def run_manifest(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("K must be 8")
     if not args.execute:
         return plan
+    if any(
+        row.get("causal_source_schema_version") != CAUSAL_SOURCE_SCHEMA_VERSION
+        for row in selected
+    ):
+        raise ValueError("candidate execution requires the refreshed v2 causal manifest")
     if args.output_dir.exists():
         raise FileExistsError(args.output_dir)
     args.output_dir.mkdir(parents=True)
@@ -250,8 +313,13 @@ def run_manifest(args: argparse.Namespace) -> dict[str, Any]:
             input_hash = causal_input_sha256(materialized.dp_input)
             if input_hash != row["causal_input_sha256"]:
                 raise ValueError(f"causal input SHA256 mismatch at record {index}")
-            candidates = sample_fixed_dp_candidates(
-                materialized.dp_input, context, noise_scale=args.noise_scale
+            candidates, neighbor_predictions, neighbor_valid_mask = (
+                sample_fixed_dp_sources(
+                    materialized.dp_input, context, noise_scale=args.noise_scale
+                )
+            )
+            signal_available = candidate_signal_source_available_mask(
+                candidates, materialized.dp_input["route_lanes"]
             )
             relative = Path(row["split"]) / row["log_token"] / f"{row['scene_token']}.npz"
             output = args.output_dir / relative
@@ -261,9 +329,16 @@ def run_manifest(args: argparse.Namespace) -> dict[str, Any]:
                 np.savez(
                     stream,
                     candidate_tensor=candidates,
+                    neighbor_prediction_tensor=neighbor_predictions,
+                    neighbor_valid_mask=neighbor_valid_mask,
+                    candidate_signal_source_available_mask=signal_available,
+                    eligible_for_canonical_14d=np.array(bool(signal_available.all())),
                     dp_top1_index=np.array(0, dtype=np.int64),
                     candidate_count=np.array(EXPECTED_K, dtype=np.int64),
                     causal_input_sha256=np.array(input_hash),
+                    causal_source_schema_version=np.array(
+                        CAUSAL_SOURCE_SCHEMA_VERSION
+                    ),
                 )
             os.replace(temporary, output)
             record = {
@@ -277,7 +352,19 @@ def run_manifest(args: argparse.Namespace) -> dict[str, Any]:
                 "candidate_count": EXPECTED_K,
                 "dp_top1_index": 0,
                 "causal_input_sha256": input_hash,
+                "causal_source_schema_version": CAUSAL_SOURCE_SCHEMA_VERSION,
                 "candidate_tensor_sha256": _array_sha256(candidates),
+                "neighbor_prediction_tensor_sha256": _array_sha256(
+                    neighbor_predictions
+                ),
+                "neighbor_valid_mask_sha256": _array_sha256(neighbor_valid_mask),
+                "candidate_signal_source_available_mask_sha256": _array_sha256(
+                    signal_available
+                ),
+                "neighbor_valid_count": int(neighbor_valid_mask.sum()),
+                "signal_source_available_count": int(signal_available.sum()),
+                "eligible_for_canonical_14d": bool(signal_available.all()),
+                "physical_feasibility_mask_materialized": False,
                 "output_npz": relative.as_posix(),
                 "output_npz_sha256": _sha256(output),
             }
@@ -296,6 +383,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--expected_manifest_sha256", required=True)
+    parser.add_argument("--refresh_manifest_output", type=Path)
     parser.add_argument("--output_dir", type=Path, required=True)
     parser.add_argument("--dp_repo", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
