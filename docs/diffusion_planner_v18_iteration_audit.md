@@ -1727,3 +1727,60 @@ current_v18_artifact_scope=nuplan_mini_static_14d_convex_training_calibration_ex
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_execution_preflight_20260711T024457CST
 current_v18_artifact_root_sha256=96d8a94ce306878a086359ce267a688771f1d6c8d1bb2370bf842bd1293fe673
 next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_execution_only
+
+## Gate 32: Static-14D Training/Calibration Execution, Review, and Freeze Gate
+
+Status: passed; one-shot holdout paired-evaluation preflight only is next.
+
+- Atomic execution completed at CAMP
+  `91c707c72b0b6caa15751f2df5719a7f73585d7b` in `1.616792s`. Its
+  artifact/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_execution_91c707c7_20260711T025646CST`
+  / `54efa11e844f1daeb5a5b2b05fe18cd02ff2903ffd640db8ab2892c3482dead0`.
+  Stderr was empty, `run.exit=0`, candidate generation/mutation and holdout
+  label reads were zero.
+- Immutable selector freeze/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_static_14d_train_calibrate_018013e3_7c89f73e`
+  / `b09a81f94776a59ad6ac8fe93ec27f610d4b74859efa1b10f7f4d0160596a058`.
+  It freezes weights, train-only atom scales, training/calibration evidence,
+  and every paired-evaluation seed, threshold, metric, bootstrap, latency,
+  baseline, feasibility, and claim boundary.
+- CLARABEL reported exact `optimal`. Three cutting-plane iterations ended at
+  `final_master_gap=3.7112410922190975e-09`, `final_new_cuts=0`, simplex sum
+  `0.9999999999999998`, and minimum weight `0.0`. No legacy epoch, Theta,
+  non-affine, non-simplex, or candidate-tensor path ran.
+- Train paired directionals: ADE delta `-0.06059399938511513m`, FDE delta
+  `-0.21927360864829598m`, miss delta `+0.018691588785046728`, and
+  better/tie/worse `119/12/83`. Calibration directionals: ADE delta
+  `+0.011207092485777554m`, FDE delta `-0.016912244014756304m`, miss delta
+  `0.0`, and better/tie/worse `33/3/29`. Calibration was tuning-free and made
+  zero model/scale/protocol updates.
+- The first independent reviewer failed only because saved simplex-projected
+  weights changed CVaR from raw-solver history by `1.6691e-11` under an
+  over-strict `1e-12` check. Its artifact/root is
+  `/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_result_review_20260711T025822CST`
+  / `64a063d2ae5d6a843821c2c954027529846dc2a0e89e9d48fb52691d1173cacf`.
+- Retry 1 used only `atol=1e-10`, still one ten-thousandth of the frozen
+  training tolerance, and independently passed all execution/freeze hashes,
+  exact train-only scales, all-candidate violations, final convergence,
+  simplex weights, train/cal metrics, frozen protocol, and 71 label-free
+  holdout records. Artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_result_review_retry1_20260711T025915CST`
+  / `de5a90b7ac5e4295b58f11f48ddbb519646130129644c7cbc8d7b559051b29ea`.
+- A post-review contract audit found paired evaluation verified the freeze's
+  own SHA but did not require an external passed result-review artifact. TDD at
+  CAMP/GitHub/AutoDL `f64ef70d253b61eb413e13b62690bc3ef1a3c794` added exactly
+  that gate; weights/scales/protocol were unchanged. AutoDL passed `77 tests`
+  with `2` skips, all six robust-margin tests, and the real review/freeze root
+  pair. Remediation artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_selector_freeze_review_gate_remediation_f64ef70d_20260711T030239CST`
+  / `e2705016a6c490ed051f4a7f7f4f8e96df33ec01556ba997d0def7e669d33312`.
+- Reviewer optimizer/model/DB-label/holdout-label calls were zero. All 71
+  holdout labels remain sealed. Candidate 0 naming, native-ranking false, mini
+  directional-only, 32+5 observable, and no-safety boundaries remain frozen.
+
+current_v18_status=v18_nuplan_mini_static_14d_training_calibration_result_review_and_freeze_gate_passed
+current_v18_artifact_scope=nuplan_mini_static_14d_training_calibration_freeze_independent_result_review_and_required_review_root_gate
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_selector_freeze_review_gate_remediation_f64ef70d_20260711T030239CST
+current_v18_artifact_root_sha256=e2705016a6c490ed051f4a7f7f4f8e96df33ec01556ba997d0def7e669d33312
+next_work_target=v18_nuplan_mini_one_shot_holdout_paired_evaluation_preflight_only

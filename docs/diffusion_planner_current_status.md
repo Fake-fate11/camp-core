@@ -700,6 +700,54 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_static_14d_training_calibratio
 current_v18_artifact_root_sha256=96d8a94ce306878a086359ce267a688771f1d6c8d1bb2370bf842bd1293fe673
 next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_execution_only
 
+The atomic static-14D train/calibration execution completed in `1.616792s`
+at CAMP `91c707c72b0b6caa15751f2df5719a7f73585d7b`. CLARABEL returned exact
+`optimal`; the cutting-plane master converged in three iterations with final
+gap `3.7112410922190975e-09`, zero final new cuts, and simplex sum
+`0.9999999999999998`. The execution artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_execution_91c707c7_20260711T025646CST`
+/ `54efa11e844f1daeb5a5b2b05fe18cd02ff2903ffd640db8ab2892c3482dead0`.
+
+The immutable frozen selector root/SHA256 is
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_static_14d_train_calibrate_018013e3_7c89f73e`
+/ `b09a81f94776a59ad6ac8fe93ec27f610d4b74859efa1b10f7f4d0160596a058`.
+It contains the train-only 14D scales, static simplex weights, training and
+tuning-free calibration summaries, and the fully frozen paired-evaluation
+protocol. Train directional deltas were ADE `-0.060594m`, FDE `-0.219274m`,
+and miss `+0.018692`; calibration deltas were ADE `+0.011207m`, FDE
+`-0.016912m`, and miss `0.0`. Calibration made zero model/scale updates.
+
+The first read-only reviewer used an over-strict `1e-12` comparison between
+raw-solver history CVaR and saved simplex-projected weights. Their measured
+difference was only `1.6691e-11`, far below the frozen `1e-6` tolerance. The
+failed reviewer artifact/root is
+`/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_result_review_20260711T025822CST`
+/ `64a063d2ae5d6a843821c2c954027529846dc2a0e89e9d48fb52691d1173cacf`.
+Retry 1 changed only that comparison to `atol=1e-10` and passed every
+execution/freeze hash, train-only scale, complete-candidate violation,
+convergence, simplex, train/cal metric, and protocol check. Its artifact/root
+SHA256 is
+`/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_result_review_retry1_20260711T025915CST`
+/ `de5a90b7ac5e4295b58f11f48ddbb519646130129644c7cbc8d7b559051b29ea`.
+
+Before holdout preflight, TDD added the missing mandatory external freeze-
+review root gate without changing the frozen selector. CAMP/GitHub/AutoDL is
+now `f64ef70d253b61eb413e13b62690bc3ef1a3c794`; AutoDL passed `77 passed,
+2 skipped`, all six robust-margin tests, and a real verification of review root
+`de5a90b7...` against freeze root `b09a81f9...`. Remediation artifact/root:
+`/root/autodl-tmp/camp_dp_v18_selector_freeze_review_gate_remediation_f64ef70d_20260711T030239CST`
+/ `e2705016a6c490ed051f4a7f7f4f8e96df33ec01556ba997d0def7e669d33312`.
+
+All 71 holdout labels remain sealed. Candidate 0 remains the proven fixed-DP
+deterministic/MAP baseline with `native_ranked_top1=false`; mini and 32+5
+scope/no-safety boundaries remain unchanged.
+
+current_v18_status=v18_nuplan_mini_static_14d_training_calibration_result_review_and_freeze_gate_passed
+current_v18_artifact_scope=nuplan_mini_static_14d_training_calibration_freeze_independent_result_review_and_required_review_root_gate
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_selector_freeze_review_gate_remediation_f64ef70d_20260711T030239CST
+current_v18_artifact_root_sha256=e2705016a6c490ed051f4a7f7f4f8e96df33ec01556ba997d0def7e669d33312
+next_work_target=v18_nuplan_mini_one_shot_holdout_paired_evaluation_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
