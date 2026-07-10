@@ -1309,3 +1309,46 @@ current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_exper
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_preflight_20260711T003754CST
 current_v18_artifact_root_sha256=0032427b9950572cba0ce1c4cdfe0b9a59e93a135810120a62e8305eaf1b9b36
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_test_driven_implementation_only
+
+## Gate 22: Canonical Materializer Test-Driven Implementation
+
+Status: passed; materialization execution preflight is the only next gate.
+
+- Immutable AutoDL implementation artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materializer_implementation_20260711T013440CST`
+  / `20dd71a8c7c03a87e9b2a633c708901f345287677e61c6ac7017d936a30a2361`.
+  Independent review reverified every SHA256 entry and the root hash;
+  `run.exit=0`, stderr is empty, and stdout reports `51 passed, 2 skipped`.
+- CAMP local/GitHub/AutoDL was
+  `c47d47f559a96d91a07021bb46bcbf6386190e6f`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`, no v18 job was active,
+  and the frozen candidate-root SHA256 remained
+  `92b2c989187d58387e3310579cc9d3ea9695b2b369684d807020c98f6885b028`.
+- TDD implemented section-bounded current-status reading, independent audit
+  EOF equality, sealed-split expert interpolation, ordered route projection,
+  exact-within-source OBB collision/clearance, canonical 14D assembly, and an
+  immutable materialization mode in the existing v18 orchestrator. The runner
+  verifies all 367 candidate identities, NPZ/array hashes, replayed causal
+  hashes, source immutability, and fixed-DP state without loading the model.
+- The saved physical mask is exactly saved signal-source availability AND
+  variable-boundary lane feasibility AND OBB collision-free within the frozen
+  at-most-32-dynamic + 5-static observable source. Source-incomplete and all-K
+  infeasible rows retain masks/reasons in `records.jsonl` but have no canonical
+  NPZ or label, and no candidate-0/all-K progress fallback exists.
+- Candidate 0 is recorded only as the fixed-DP deterministic/MAP baseline.
+  `dp_top1_index=0` remains position-only, `equivalence_verified=false`, and
+  `native_ranked_top1=false`. Independent same-input baseline equivalence is
+  still required before the first paired evaluation.
+- Eligible holdout canonical NPZs contain atoms and masks but no expert label;
+  holdout label values remain sealed. OBB statements remain limited to the
+  frozen 32+5 observable source, and `closed_loop_safety_claim=false`.
+- This implementation-only gate made zero model calls and did not generate or
+  mutate candidates, execute corpus materialization, read any expert label,
+  train, evaluate, claim, promote, deploy, activate, modify DP, or redistribute
+  raw data. `materialization_ready=false` until execution and result review.
+
+current_v18_status=v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_implementation_passed
+current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_test_driven_implementation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materializer_implementation_20260711T013440CST
+current_v18_artifact_root_sha256=20dd71a8c7c03a87e9b2a633c708901f345287677e61c6ac7017d936a30a2361
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_preflight_only
