@@ -9,6 +9,13 @@ qualifications.
 
 ## Current V18 Status
 
+Reader contract: this named section is the only v18 pointer source in this
+file. The actual file EOF intentionally remains historical v14 content, so a
+controller must never read the last generic `next_work_target` from the whole
+file. The EOF of `docs/diffusion_planner_v18_iteration_audit.md` is the sole
+current-gate authority. A regression test must require the latest v18 pointer
+tuple in this section to equal the v18 audit EOF tuple exactly.
+
 The user formally superseded the v17 nuScenes path after its fail-closed
 no-claim stop and deletion of the old v12-v17 artifacts and nuScenes source.
 V18 starts a new public-data path from nuPlan mini to a fresh causal nuPlan

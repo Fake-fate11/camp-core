@@ -6,7 +6,7 @@ Status: design approved; written spec awaiting user review
 ## Goal
 
 Implement the live v18 implementation-only gate that turns the frozen nuPlan
-mini K=8 candidate corpus into auditable physical-feasibility evidence,
+mini K=8 candidate corpus into auditable bounded-feasibility evidence,
 canonical `dp_camp_v10_14d` atom matrices, and train/calibration expert labels.
 The implementation must remain causal, leave fixed DP and the candidate root
 unchanged, and keep all 71 source-complete holdout labels sealed.
@@ -40,6 +40,36 @@ The old `build_context_from_scene`, `compute_atom_bank_vector`, and
 this gate: they collapse real route values to scalars, use point or
 bounding-circle clearance, and allow a zero-feasible progress fallback.
 
+## Status-reading contract
+
+The actual EOF of `docs/diffusion_planner_current_status.md` intentionally
+contains historical v14 status. A v18 controller must never take the file's
+last generic `next_work_target`. It may read only the `## Current V18 Status`
+section, while `docs/diffusion_planner_v18_iteration_audit.md` EOF is the sole
+authority for the current gate.
+
+A regression test extracts the latest v18 pointer tuple from that named status
+section and the pointer tuple at the v18 audit EOF, and requires exact equality
+for `current_v18_status`, `current_v18_artifact_scope`,
+`current_v18_artifact`, `current_v18_artifact_root_sha256`, and
+`next_work_target`. Historical sections after `Current V18 Status` are ignored.
+
+## Fixed-DP baseline semantics
+
+Candidate 0 is the `draw(noise_scale=0)` deterministic fixed-DP output. The
+historical `dp_top1_index=0` field records its array position only; it does not
+prove that fixed DP produced or ranked a native K=8 list. Materializer metadata
+and all subsequent v18 documents call index 0 the **fixed-DP deterministic/MAP
+baseline**, never a native ranked Top-1.
+
+Before the first paired evaluation, a separate EOF-authorized evidence gate
+must run an independent fixed-DP deterministic/MAP inference on the same causal
+input and prove elementwise equality or an identical tensor SHA256 against
+candidate 0. Until that evidence passes, no evaluation or claim gate may infer
+baseline equivalence merely from `dp_top1_index=0`. Even after equivalence is
+proved, native K=8 ranking must not be claimed without separate native-ranking
+evidence.
+
 ## Eligibility and fail-closed policy
 
 Every source record remains represented in the audit `records.jsonl`, including
@@ -48,9 +78,9 @@ all masks and exclusion reasons. A record receives a canonical NPZ only when:
 1. all eight saved signal-source availability values are true; and
 2. at least one of the eight candidates is physically feasible.
 
-For every candidate, physical feasibility is exactly:
+For every candidate, the bounded observable-source feasibility mask is exactly:
 
-`saved signal-source availability AND variable-boundary lane-corridor feasibility AND exact OBB collision-free`.
+`saved signal-source availability AND variable-boundary lane-corridor feasibility AND exact OBB collision-free within the frozen 32-dynamic + 5-static observable source`.
 
 The audit output freezes the saved signal mask, lane-corridor mask,
 OBB-collision-free mask, final physical mask, and per-candidate reason set.
@@ -99,10 +129,19 @@ candidate-specific `[M,80,5]` OBB tensor. Ego length, width, and wheelbase come
 from the causal `ego_shape`, not hardcoded substitutes.
 
 Collision feasibility reuses CAMP's exact OBB separating-axis branch with the
-point-static path disabled. The clearance atom uses the existing exact OBB
-corner-distance primitive at every valid ego/obstacle pair; the existing
-bounding-circle value may prune obviously distant pairs but may not supply the
-atom value or change collision truth.
+point-static path disabled. Exactness is limited to the frozen observable source
+of at most 32 valid same-call dynamic slots and five current static boxes. The
+clearance atom uses the existing exact OBB corner-distance primitive at every
+valid ego/obstacle pair in that 32+5 source; the existing bounding-circle value
+may prune obviously distant pairs but may not supply the atom value or change
+collision truth.
+
+This mask is not complete-scene physical feasibility. It cannot be interpreted
+as coverage of unobserved actors/objects, realized closed-loop safety, or a
+safety claim. Materialized metadata freezes
+`feasibility_scope=frozen_observable_32_dynamic_plus_5_static_only` and
+`closed_loop_safety_claim=false`; later evaluation and claim gates must retain
+those qualifiers.
 
 ## Canonical 14D materialization
 
@@ -117,7 +156,7 @@ result with `canonical_atom_availability` and
 3. `lane_deviation` uses projected signed offset and the matching real
    left/right boundary without the physical-corridor allowance.
 4. `clearance` integrates the registered hinge over exact OBB surface distance
-   for same-call dynamic predictions and real static boxes.
+   within the frozen 32+5 observable source only.
 5. Candidate route progress is the maximum monotone arclength reached on the
    ordered route. `progress_shortfall` uses only
    `max(progress[physical_feasible_mask])` as its reference. An empty feasible
@@ -159,7 +198,8 @@ and after the run and are never modified.
   label-read status, and either the canonical NPZ path/SHA256 or an explicit
   null output plus exclusion reason.
 - Eligible canonical NPZ files contain the `[8,14]` atom matrix, all masks,
-  schema version, source hashes, and a train/calibration expert label only when
+  schema version, source hashes, deterministic/MAP baseline metadata, bounded
+  32+5 feasibility scope, and a train/calibration expert label only when
   permitted. Excluded records have no canonical NPZ.
 - `summary.json` records source-complete, component-failure, all-K-infeasible,
   materialized, labelled, and holdout-sealed counts by split/log.
@@ -178,25 +218,32 @@ root remains unpromotable and cannot be mistaken for a complete artifact.
 - All K physically infeasible: preserve full masks/reasons, write no canonical
   NPZ or label, and continue auditing other records.
 - Holdout label-loader invocation: hard failure.
+- Any native-ranked-Top-1 or complete-scene/closed-loop/safety interpretation
+  without its required evidence: hard contract failure.
 - Existing output path: hard failure; never overwrite evidence.
 
 ## Tests and verification
 
 Tests are written before production changes and cover:
 
-1. component-mask truth tables, stable per-candidate reasons, and the all-false
+1. section-bounded `current_status` parsing and exact latest-v18-pointer
+   equality with the v18 audit EOF despite the historical v14 file tail;
+2. deterministic/MAP baseline metadata, legacy `dp_top1_index` position-only
+   semantics, and rejection of native-ranked-Top-1 wording/evidence inference;
+3. component-mask truth tables, stable per-candidate reasons, and the all-false
    case with candidate 0 still false and no progress fallback;
-2. variable speed/boundary projection, side-specific lane truth, route progress,
+4. variable speed/boundary projection, side-specific lane truth, route progress,
    and global SE(2) invariance;
-3. valid-slot neighbor OBBs, repeated static OBBs, exact collision and exact
-   clearance, plus rejection of malformed headings/dimensions;
-4. exact `[8,14]` ordering, formula fixtures, nonnegativity, feasible-only
+5. valid-slot neighbor OBBs, repeated static OBBs, exact-within-32+5 collision
+   and clearance, required scope/non-safety metadata, plus rejection of
+   malformed headings/dimensions;
+6. exact `[8,14]` ordering, formula fixtures, nonnegativity, feasible-only
    progress reference, candidate-0 DP-prior semantics, and future perturbation
    invariance;
-5. expert interpolation on the 0.1-to-8.0-second grid, heading unwrap, no
+7. expert interpolation on the 0.1-to-8.0-second grid, heading unwrap, no
    extrapolation, no cross-scene query, and a trap proving the loader is never
    called for holdout or excluded records;
-6. all-367 audit accounting, absent NPZs for excluded records, no holdout label
+8. all-367 audit accounting, absent NPZs for excluded records, no holdout label
    fields, atomic/no-overwrite behavior, and candidate-root hash immutability.
 
 The implementation-only gate runs `py_compile`, focused v18 pytest modules,
@@ -210,6 +257,8 @@ will preflight and execute the immutable mini materialization.
 
 - No fixed-DP source/config/weight/checkpoint change or candidate regeneration.
 - No new runner, dependency, generalized geometry framework, or scalar fallback.
+- No native K=8 ranking, complete-scene feasibility, closed-loop safety, or
+  safety claim from candidate index or the bounded 32+5 OBB source.
 - No training, calibration search, holdout opening, evaluation, claim,
   promotion, deployment, activation, or raw-data redistribution in this gate.
 - No reuse of the deleted nuScenes 10k or mutation of unrelated untracked files.

@@ -1278,3 +1278,34 @@ current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_exper
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_preflight_20260711T003754CST
 current_v18_artifact_root_sha256=0032427b9950572cba0ce1c4cdfe0b9a59e93a135810120a62e8305eaf1b9b36
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_test_driven_implementation_only
+
+## Gate 21 Acceptance-Contract Addendum (Record Only)
+
+Status: recorded without rerunning Gate 21 or changing its next target.
+
+- The actual EOF of `docs/diffusion_planner_current_status.md` remains a
+  historical v14 pointer. v18 controllers may read only its
+  `## Current V18 Status` section, and this v18 audit EOF remains the sole
+  current-gate authority. TDD must require the latest five-field v18 pointer
+  tuple in both sources to match exactly.
+- Candidate 0 is the fixed-DP `draw(noise_scale=0)` deterministic/MAP baseline.
+  The historical `dp_top1_index=0` field is position-only and is not evidence
+  that fixed DP natively ranked K=8 candidates. Before the first paired
+  evaluation, an independent same-input fixed-DP deterministic/MAP inference
+  must match candidate 0 elementwise or by tensor SHA256. v18 documentation,
+  evaluation, and claim gates must not call it native ranked Top-1 without
+  separate native-ranking evidence.
+- OBB collision and clearance are exact only within the frozen observable
+  source of at most 32 valid same-call dynamic objects and five current static
+  boxes. The resulting mask is not complete-scene physical feasibility,
+  realized closed-loop safety, or a safety claim. TDD and later artifacts must
+  freeze that 32+5 scope and an explicit false closed-loop-safety-claim flag.
+- These acceptance constraints do not repeat a gate, invoke the model,
+  regenerate candidates, materialize atoms/labels, train, evaluate, access
+  holdout labels, modify DP, or change the implementation-only next target.
+
+current_v18_status=v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_preflight_passed
+current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_preflight_20260711T003754CST
+current_v18_artifact_root_sha256=0032427b9950572cba0ce1c4cdfe0b9a59e93a135810120a62e8305eaf1b9b36
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_test_driven_implementation_only
