@@ -256,6 +256,72 @@ def materialize_nuplan_decision(
     return materialize_causal_dp_input(batch, context)
 
 
+def load_nuplan_expert_ego_future(
+    db_path: str | Path,
+    lidar_pc_token: str | bytes,
+    *,
+    target_dt_s: float,
+    horizon_steps: int = 80,
+) -> np.ndarray:
+    if not np.isfinite(target_dt_s) or target_dt_s <= 0.0:
+        raise NuPlanCausalSourceError("target_dt_s must be finite and positive")
+    if isinstance(horizon_steps, bool) or horizon_steps < 1:
+        raise NuPlanCausalSourceError("horizon_steps must be a positive integer")
+    token = _token_bytes(lidar_pc_token)
+    db = sqlite3.connect(f"file:{Path(db_path).as_posix()}?mode=ro", uri=True)
+    try:
+        decision = db.execute(
+            "SELECT scene_token, timestamp FROM lidar_pc WHERE token = ?",
+            (token,),
+        ).fetchone()
+        if decision is None:
+            raise NuPlanCausalSourceError("decision lidar token is absent")
+        rows = db.execute(
+            """
+            SELECT l.timestamp, e.x, e.y, e.qw, e.qx, e.qy, e.qz
+            FROM lidar_pc AS l
+            JOIN ego_pose AS e ON e.token = l.ego_pose_token
+            WHERE l.scene_token = ? AND l.timestamp >= ?
+            ORDER BY l.timestamp
+            """,
+            decision,
+        ).fetchall()
+    finally:
+        db.close()
+
+    timestamps = np.asarray([row[0] for row in rows], dtype=np.int64)
+    if timestamps.size < 2 or np.any(np.diff(timestamps) <= 0):
+        raise NuPlanCausalSourceError(
+            "expert timestamps must be strictly increasing"
+        )
+    source_t = (timestamps - int(decision[1])) / 1_000_000.0
+    target_t = (
+        np.arange(1, int(horizon_steps) + 1, dtype=np.float64) * target_dt_s
+    )
+    if source_t[0] != 0.0 or source_t[-1] < target_t[-1]:
+        raise NuPlanCausalSourceError(
+            "expert future does not bracket target horizon; extrapolation forbidden"
+        )
+    xy = np.asarray([[row[1], row[2]] for row in rows], dtype=np.float64)
+    yaw = np.unwrap(
+        np.asarray([_quaternion_yaw(*row[3:7]) for row in rows], dtype=np.float64)
+    )
+    if not np.isfinite(xy).all() or not np.isfinite(yaw).all():
+        raise NuPlanCausalSourceError("expert future poses must be finite")
+
+    decision_xy = xy[0]
+    decision_yaw = float(yaw[0])
+    world_xy = np.column_stack(
+        [np.interp(target_t, source_t, xy[:, axis]) for axis in range(2)]
+    )
+    c, s = math.cos(decision_yaw), math.sin(decision_yaw)
+    rotation = np.array([[c, s], [-s, c]], dtype=np.float64)
+    local_xy = (world_xy - decision_xy) @ rotation.T
+    interpolated_yaw = np.interp(target_t, source_t, yaw) - decision_yaw
+    local_yaw = np.arctan2(np.sin(interpolated_yaw), np.cos(interpolated_yaw))
+    return np.column_stack([local_xy, local_yaw]).astype(np.float32)
+
+
 def _load_nuplan_batch(
     db_path: str | Path,
     lidar_pc_token: str | bytes,

@@ -9,6 +9,7 @@ import struct
 import numpy as np
 import pytest
 
+from camp_core.integrations import nuplan_causal_adapter as adapter
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CAUSAL_DP_INPUT_SCHEMA,
     materialize_causal_dp_input,
@@ -68,6 +69,87 @@ def _static_object_db() -> sqlite3.Connection:
             ),
         )
     return db
+
+
+def _expert_future_db(
+    tmp_path: Path,
+    *,
+    end_seconds: float,
+) -> tuple[Path, bytes]:
+    path = tmp_path / "expert.sqlite"
+    db = sqlite3.connect(path)
+    db.executescript(
+        "CREATE TABLE lidar_pc("
+        "token BLOB PRIMARY KEY, scene_token BLOB, timestamp INTEGER, "
+        "ego_pose_token BLOB);"
+        "CREATE TABLE ego_pose("
+        "token BLOB PRIMARY KEY, x REAL, y REAL, "
+        "qw REAL, qx REAL, qy REAL, qz REAL);"
+    )
+    scene = b"s" * 16
+    decision = b"d" * 16
+    decision_yaw = 3.0
+    for index in range(int(round(end_seconds / 0.2)) + 1):
+        pose = index.to_bytes(16, "big")
+        lidar = decision if index == 0 else (1000 + index).to_bytes(16, "big")
+        timestamp = index * 200_000
+        seconds = index * 0.2
+        yaw = decision_yaw + 0.1 * seconds
+        db.execute(
+            "INSERT INTO ego_pose VALUES (?, ?, ?, ?, 0, 0, ?)",
+            (
+                pose,
+                seconds * np.cos(decision_yaw),
+                seconds * np.sin(decision_yaw),
+                np.cos(yaw / 2.0),
+                np.sin(yaw / 2.0),
+            ),
+        )
+        db.execute(
+            "INSERT INTO lidar_pc VALUES (?, ?, ?, ?)",
+            (lidar, scene, timestamp, pose),
+        )
+    other_pose = b"o" * 16
+    db.execute(
+        "INSERT INTO ego_pose VALUES (?, 999, 999, 1, 0, 0, 0)",
+        (other_pose,),
+    )
+    db.execute(
+        "INSERT INTO lidar_pc VALUES (?, ?, ?, ?)",
+        (b"x" * 16, b"z" * 16, 4_000_000, other_pose),
+    )
+    db.commit()
+    db.close()
+    return path, decision
+
+
+def test_expert_future_interpolates_only_same_scene_in_decision_frame(
+    tmp_path: Path,
+) -> None:
+    db_path, decision = _expert_future_db(tmp_path, end_seconds=8.0)
+
+    future = adapter.load_nuplan_expert_ego_future(
+        db_path,
+        decision,
+        target_dt_s=0.1,
+    )
+
+    target = np.arange(1, 81, dtype=np.float64) * 0.1
+    assert future.shape == (80, 3)
+    np.testing.assert_allclose(future[:, 0], target, atol=1e-6)
+    np.testing.assert_allclose(future[:, 1], 0.0, atol=1e-6)
+    np.testing.assert_allclose(future[:, 2], target * 0.1, atol=1e-6)
+
+
+def test_expert_future_rejects_required_extrapolation(tmp_path: Path) -> None:
+    db_path, decision = _expert_future_db(tmp_path, end_seconds=7.8)
+
+    with pytest.raises(NuPlanCausalSourceError, match="bracket|extrapolat"):
+        adapter.load_nuplan_expert_ego_future(
+            db_path,
+            decision,
+            target_dt_s=0.1,
+        )
 
 
 def test_static_objects_use_exact_fixed_dp_schema_and_ignore_dynamic() -> None:
