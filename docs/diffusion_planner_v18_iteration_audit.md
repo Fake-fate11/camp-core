@@ -1038,3 +1038,54 @@ current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_single_record_s
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_execution_evidence_review_20260711T001320CST
 current_v18_artifact_root_sha256=a11bb0d78e4c6fa51b89bc282da42fd689a4bdb11f42fcd2bd42ac92332309fc
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_result_review_only
+
+## Gate 17: Refreshed-Source Single-Record Semantic Result Review
+
+Status: passed after a review-artifact serialization retry; full refreshed
+candidate-regeneration preflight is the only next gate.
+
+- The first review artifact / root SHA256 was
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_result_review_20260711T001643CST`
+  / `7206df3bab64c6a9e82cd791f653d7641b6b6b0473f3c67d42f61f52671caa00`.
+  All `16` tests passed and semantic computation reached result writing, but
+  JSON serialization rejected a `numpy.bool_`. The source NPZ was not changed
+  and the failed review artifact remains immutable.
+- The passing retry review artifact / root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_result_review_retry_20260711T001715CST`
+  / `787ae9f02095a5cea17887052256feb0ca52c4cbdfc4085412bbb9dd33d01582`.
+  Its only repair normalized check values to built-in booleans before JSON
+  serialization. It passed with empty stderr, `run.exit=0`, and a verified
+  SHA chain.
+- The independent reviewer invoked the model zero times and generated no
+  candidate. It reverified execution artifact root
+  `e50b7cff0f6f2422a890718487097f6940b3b146c4007c01a28769284162d9df`
+  and evidence-review root
+  `a11bb0d78e4c6fa51b89bc282da42fd689a4bdb11f42fcd2bd42ac92332309fc`,
+  then opened the sole NPZ with pickle disabled.
+- Semantic failures: `0`. The NPZ has exactly the nine v2 fields, finite
+  float32 candidate `[8,80,4]` and neighbor `[8,32,80,4]` tensors, bool
+  neighbor `[32]` and signal `[8]` masks, K=8, and DP Top-1 index 0. Every
+  tensor/file hash matched the execution record and the review left both the
+  candidate tensor and NPZ bytes unchanged.
+- All `8 / 8` candidates and all `8 / 8` candidate-specific neighbor bundles
+  are unique. All `32` source neighbor slots are valid. Independent causal
+  replay matched refreshed input SHA256
+  `73b924db02289be79e931e895d5107996ce2684b1a2059aee3fe0dec8ab651a8`.
+- The route contains `60` WHITE source points. An independently implemented
+  distance/heading/moving predicate exactly reproduced the saved signal mask:
+  all `8 / 8` candidates retain a resolvable signal source. No future field is
+  present in the NPZ.
+- `materialization_ready=false` remains authoritative because
+  `physical_feasibility_mask` is absent. Signal-source eligibility alone is
+  not canonical-14D readiness. No feasibility/atom/label materialization,
+  training, holdout-label access, evaluation, claim, promotion, deployment,
+  activation, DP modification, or raw-data redistribution occurred.
+- CAMP local/GitHub/AutoDL was
+  `c6a7d182329112fdf19b42601eb5382ce48c63cf`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_result_review_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_result_review_retry_20260711T001715CST
+current_v18_artifact_root_sha256=787ae9f02095a5cea17887052256feb0ca52c4cbdfc4085412bbb9dd33d01582
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_only

@@ -289,6 +289,33 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_m
 current_v18_artifact_root_sha256=a11bb0d78e4c6fa51b89bc282da42fd689a4bdb11f42fcd2bd42ac92332309fc
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_result_review_only
 
+Independent single-record semantic result review then passed at CAMP
+local/GitHub/AutoDL `c6a7d182329112fdf19b42601eb5382ce48c63cf`; fixed DP remained
+clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The first review attempt
+completed its semantic computation but failed while serializing a
+`numpy.bool_`; its immutable failure artifact was retained. The retry changed
+only that evidence serializer boundary and passed with empty stderr.
+
+The no-model review opened the sole NPZ with pickle disabled and found zero
+semantic failures. Exact fields, `[8,80,4]` candidate shape,
+`[8,32,80,4]` paired-neighbor shape, dtypes, finiteness, hashes, K=8, and
+DP Top-1 index 0 all matched. Candidates and neighbor bundles are each 8/8
+unique, all 32 neighbor slots are valid, and independent causal replay matched
+the refreshed input hash without mutating the NPZ.
+
+An independent WHITE distance/heading/moving calculation exactly reproduced
+the saved 8/8-available signal mask despite 60 WHITE route points. Physical
+feasibility is still absent, so `materialization_ready=false`; signal-source
+eligibility is not final canonical-14D readiness. No atom/label/training,
+holdout-label, evaluation, or claim work occurred. Full refreshed candidate
+regeneration preflight is the only next gate.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_result_review_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_result_review_retry_20260711T001715CST
+current_v18_artifact_root_sha256=787ae9f02095a5cea17887052256feb0ca52c4cbdfc4085412bbb9dd33d01582
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_full_candidate_regeneration_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
