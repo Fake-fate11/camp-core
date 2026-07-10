@@ -254,3 +254,58 @@ current_v17_status=v17_phase0_bootstrap_erratum_ponytail_audit_passed
 current_v17_artifact_scope=phase0_docs_and_cross_surface_sync_evidence
 current_v17_artifact=docs/diffusion_planner_v17_iteration_audit.md
 next_work_target=v17_phase1_causal_materializer_contract_leakage_tests_and_minimal_implementation
+
+### Phase 1A: Observable-Only Causal Materializer Boundary
+
+Status: passed; candidate-to-route speed projection and the shared runtime atom
+handoff remain the next gate.
+
+- Implementation checkpoint:
+  `754826cb2011d5c94688d6dd04ca56b4416db977`.
+- Fixed-DP contract-test follow-up:
+  `07bf33784ae168e72f0b0a7bab5376e5012610bc`.
+- The materializer accepts only current-tick trajdata history plus an explicit
+  world-frame map context whose route provenance is
+  `current_map_topology_successors`. Its output schema contains only fields
+  consumed by fixed-DP inference; ego future, neighbor future, and label fields
+  are absent and sentinel properties raise if accessed.
+- `goal_pose` comes from the final point and direction of the validated ordered
+  route, not GT ego future. General-lane enumeration cannot replace or reorder
+  the route.
+- Source `batch.dt` is retained and histories are resampled by physical time to
+  31 samples at `0.1 s`; heading interpolation unwraps across `+/-pi`; short
+  neighbor histories use the fixed-DP all-zero missing-history mask rather than
+  an apparent object trajectory at the ego origin.
+- World-to-ego position and heading consistency, global SE(2) invariance,
+  explicit left/right boundary sides, route endpoint/heading continuity,
+  speed-limit slot alignment, categorical dtypes, traffic-channel binary
+  validity, and explicit traffic/turn availability are fail-closed.
+- nuScenes traffic-light state remains unavailable. The materializer preserves
+  that fact in metadata; no red-light atom is synthesized or approved.
+- AutoDL ran the target suite with `FIXED_DP_REPO` set, so the upstream
+  `DiffusionPlannerData` loader and official `ObservationNormalizer` check did
+  not skip: `18 passed`. Local target tests were `17 passed, 1 skipped`; eight
+  directly related atom/route regressions passed; `py_compile` and diff checks
+  passed.
+- AutoDL file SHA256:
+  - materializer:
+    `dca0fc8ed5d2e1d60ed250228d5453e211823c0b8637d800d52c696a5b5be124`
+  - target tests:
+    `9cb1412ff0bff181235ddaeddf88ee7b0c4f93526226075905519c4782318ff8`
+- Local HEAD, `origin/main`, GitHub ref, AutoDL HEAD, and AutoDL origin all
+  equal `07bf33784ae168e72f0b0a7bab5376e5012610bc`; both CAMP tracked states are
+  clean. AutoDL DP remains tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- `/root/autodl-tmp` has `10 GiB` available. No v17 candidate-generation,
+  training, or paired-evaluation process is active.
+
+Not yet executed or claimed: a nuScenes current-map topology route builder,
+candidate-to-route-segment speed projection, shared canonical atom assembly,
+fixed-model candidate generation from this boundary, corpus generation,
+training, holdout access, paired evaluation, runtime packaging, DP change,
+promotion, deployment, or online activation.
+
+current_v17_status=v17_phase1a_observable_only_causal_materializer_boundary_passed
+current_v17_artifact_scope=causal_materializer_and_fixed_dp_loader_normalizer_contract
+current_v17_artifact=camp_core/camp_core/integrations/diffusion_planner_causal_materializer.py
+next_work_target=v17_phase1b_phase2_candidate_route_speed_and_shared_canonical_atom_handoff
