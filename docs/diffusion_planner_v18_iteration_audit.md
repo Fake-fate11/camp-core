@@ -1690,3 +1690,40 @@ current_v18_artifact_scope=nuplan_mini_static_14d_convex_training_calibration_on
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_static_14d_training_evaluation_implementation_retry1_a8d2e439_20260711T023833CST
 current_v18_artifact_root_sha256=58fb4b4c3a63f8c5d21df41f9ef5ba456b003a2015aa25a70473a438f0c2c4c6
 next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_execution_preflight_only
+
+## Gate 31: Static-14D Training and Calibration Execution Preflight
+
+Status: passed; one atomic train/calibration execution is next.
+
+- CAMP local/GitHub/AutoDL is
+  `018013e33f1193bb4a2b6e206b62013c2982555c`; fixed DP remains tracked-clean
+  at `7a1d33da277a1992ec474b5383a0c963c72e04e4`; no v18 training/evaluation job
+  is active.
+- Artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_execution_preflight_20260711T024457CST`
+  / `96d8a94ce306878a086359ce267a688771f1d6c8d1bb2370bf842bd1293fe673`.
+  Independent review reverified every hash, empty stderr, and `run.exit=0`.
+- The preflight verified 352 canonical output hashes, 367 immutable candidate
+  identities, candidate root
+  `92b2c989187d58387e3310579cc9d3ea9695b2b369684d807020c98f6885b028`,
+  canonical root
+  `7c89f73e2b26308a42fbd453fff7e0ece4c7d0b49e219a9c56f99bdb2a65d1cc`,
+  and equivalence review root
+  `25f8e3f3763b5af53d70cdba7dddcf85872b42ce459b6b223b1b65cb5b59ea50`.
+- Exact materialized shapes/counts passed: train `214 x 8 x 14` with 214
+  stored labels, calibration `65 x 8 x 14` with 65 stored labels, and holdout
+  `71 x 8 x 14` with zero labels. Train-only scales, train/cal ADE/FDE oracles,
+  and `[214,8]` margins were constructed without an optimizer call.
+- CVXPY `1.6.7` has CLARABEL installed. The planned output
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_static_14d_train_calibrate_018013e3_7c89f73e`
+  and its `.tmp` root remain absent; `19940229120` data-disk bytes were free.
+- DB expert-label queries, holdout label reads, model calls, optimizer calls,
+  training, calibration execution, candidate generation/mutation, and claims
+  remained zero. Candidate 0 wording and 32+5/no-safety boundaries are
+  unchanged.
+
+current_v18_status=v18_nuplan_mini_static_14d_convex_training_calibration_execution_preflight_passed
+current_v18_artifact_scope=nuplan_mini_static_14d_convex_training_calibration_execution_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_execution_preflight_20260711T024457CST
+current_v18_artifact_root_sha256=96d8a94ce306878a086359ce267a688771f1d6c8d1bb2370bf842bd1293fe673
+next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_execution_only

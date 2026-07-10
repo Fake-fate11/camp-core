@@ -674,6 +674,32 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_static_14d_training_evaluation
 current_v18_artifact_root_sha256=58fb4b4c3a63f8c5d21df41f9ef5ba456b003a2015aa25a70473a438f0c2c4c6
 next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_execution_preflight_only
 
+The train/calibration execution preflight passed at CAMP local/GitHub/AutoDL
+`018013e33f1193bb4a2b6e206b62013c2982555c`; fixed DP remained tracked-clean
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. It reverified all 352 canonical
+output hashes, 367 candidate/source identities, the equivalence result-review
+root, and the live v18 EOF. Exact materialized counts are 214 train, 65
+calibration, and 71 label-free holdout records.
+
+The preflight constructed train-only scales, train/cal ADE/FDE oracles, and
+the `[214,8]` margin matrix in memory without calling the optimizer. CVXPY
+`1.6.7` reports CLARABEL installed. The planned output and `.tmp` root are
+absent, no job is active, and `/root/autodl-tmp` had `19940229120` free bytes.
+Stored train/cal labels were inspected; DB expert queries, holdout label reads,
+model calls, training, calibration execution, and candidate changes were zero.
+
+The preflight artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_execution_preflight_20260711T024457CST`
+/ `96d8a94ce306878a086359ce267a688771f1d6c8d1bb2370bf842bd1293fe673`.
+Independent review reverified the full SHA chain, empty stderr, counts,
+CLARABEL, sealed holdout, and absent output/staging roots.
+
+current_v18_status=v18_nuplan_mini_static_14d_convex_training_calibration_execution_preflight_passed
+current_v18_artifact_scope=nuplan_mini_static_14d_convex_training_calibration_execution_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_static_14d_training_calibration_execution_preflight_20260711T024457CST
+current_v18_artifact_root_sha256=96d8a94ce306878a086359ce267a688771f1d6c8d1bb2370bf842bd1293fe673
+next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
