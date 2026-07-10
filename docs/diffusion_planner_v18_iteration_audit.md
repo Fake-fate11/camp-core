@@ -1640,3 +1640,53 @@ current_v18_artifact_scope=nuplan_mini_static_14d_convex_training_calibration_on
 current_v18_artifact=docs/superpowers/plans/2026-07-11-v18-static-training-calibration-paired-evaluation.md
 current_v18_artifact_root_sha256=fed21178ec0c2e13d839dc02c3a1fd38add3b0b281c8437bd06292a2b79d3f42
 next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_only
+
+## Gate 30: Static-14D Training/Calibration/Paired-Evaluation Implementation
+
+Status: passed; train/calibration execution preflight only is next.
+
+- TDD produced one thin runner,
+  `scripts/integrations/run_diffusion_planner_dp_camp_v18_training_evaluation.py`,
+  and one focused test file. The runner reuses
+  `solve_robust_margin_cutting_plane`, supports atomic `train-calibrate`, no-
+  label `paired-eval-preflight`, and one-shot `paired-eval` modes, and never
+  uses the legacy epoch trainer or Theta.
+- The existing robust-margin master changed only to expose the actual CVXPY
+  solver name. No objective, constraint, cut, variable, or convergence logic
+  changed. The v18 acceptance gate requires actual CLARABEL plus exact
+  `optimal`, convergence, final gap `<=1e-6`, no final new cut, independent
+  complete-candidate violation agreement, and nonnegative simplex weights.
+- The implementation enforces immutable canonical/candidate/equivalence roots,
+  exact 14D schema, train/cal/holdout materialized-only loading, train-only
+  feasible-row scaling, ADE-primary/FDE-secondary labels, seeded ties, all-K
+  fail-closed exclusion, tuning-free calibration, atomic freeze manifests,
+  zero-label preflight, one label read per holdout identity, derived-metric-only
+  persistence, paired metrics, log/scene CI95, and latency reporting.
+- Local validation passed `75 passed, 2 skipped, 1 deselected`; the deselection
+  is the known Windows torch import abort. Local robust-margin validation was
+  `4 passed, 2 skipped`. AutoDL ran that torch case and all solver tests.
+- The first AutoDL artifact correctly retained failed status because its
+  evidence harness expected local robust-margin skip counts even though the
+  functional run passed `76 passed, 2 skipped` plus six robust-margin tests.
+  Artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_static_14d_training_evaluation_implementation_a8d2e439_20260711T023801CST`
+  / `90654d3b3e55acdf7a07cf94b5f75b1bb928baf4b8286efbdce69cc2e2529c6c`.
+- Retry 1 changed only that expected count and passed compile, the full suite
+  (`76 passed, 2 skipped`), robust-margin regression (`6 passed`), and diff
+  check with empty stderr. Its artifact/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_static_14d_training_evaluation_implementation_retry1_a8d2e439_20260711T023833CST`
+  / `58fb4b4c3a63f8c5d21df41f9ef5ba456b003a2015aa25a70473a438f0c2c4c6`.
+  Independent review reverified all hashes, local/GitHub/AutoDL CAMP
+  `a8d2e439f1984b2a28230c71743b4f676c666987`, fixed DP
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`, tracked-clean status, and no job.
+- Model calls, candidate generation/mutation, training, calibration, expert
+  label reads, and holdout label reads remained zero. Candidate 0 remains the
+  equivalence-proven fixed-DP deterministic/MAP baseline with
+  `native_ranked_top1=false`; feasibility exactness remains bounded 32+5 and
+  is not a safety claim.
+
+current_v18_status=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_implementation_passed
+current_v18_artifact_scope=nuplan_mini_static_14d_convex_training_calibration_one_shot_paired_evaluation_tdd_implementation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_static_14d_training_evaluation_implementation_retry1_a8d2e439_20260711T023833CST
+current_v18_artifact_root_sha256=58fb4b4c3a63f8c5d21df41f9ef5ba456b003a2015aa25a70473a438f0c2c4c6
+next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_execution_preflight_only

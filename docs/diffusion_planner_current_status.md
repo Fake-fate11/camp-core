@@ -631,6 +631,49 @@ current_v18_artifact=docs/superpowers/plans/2026-07-11-v18-static-training-calib
 current_v18_artifact_root_sha256=fed21178ec0c2e13d839dc02c3a1fd38add3b0b281c8437bd06292a2b79d3f42
 next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_only
 
+The static-14D train/calibration/one-shot-evaluation runner implementation
+passed TDD at CAMP/GitHub/AutoDL
+`a8d2e439f1984b2a28230c71743b4f676c666987`; fixed DP remained tracked-clean
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The thin runner loads immutable
+canonical/candidate sources, derives ADE-primary/FDE-tie labels, calls the
+existing robust-margin cutting-plane master, atomically freezes static weights
+and train-only scales, and provides mutually exclusive no-label preflight and
+one-shot paired-evaluation modes. It never implements or calls the v16 epoch
+trainer or scene-conditioned Theta.
+
+The existing master received only an evidence field for the actual CVXPY
+solver name; its objective, variables, constraints, cuts, and convergence math
+are unchanged. The v18 runner now rejects any silent fallback away from
+CLARABEL even if another solver reports `optimal`, as well as
+`optimal_inaccurate`, nonconvergence, gap above `1e-6`, a final new cut, or a
+non-simplex checkpoint before promotion.
+
+Local non-torch validation passed `75` tests with `2` skips and the known one
+Windows torch-only test deselected; robust-margin focused validation passed
+`4` with `2` environment skips. The first AutoDL artifact failed only because
+its wrapper expected those local skips, while AutoDL ran all six robust-margin
+tests. That retained artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_static_14d_training_evaluation_implementation_a8d2e439_20260711T023801CST`
+/ `90654d3b3e55acdf7a07cf94b5f75b1bb928baf4b8286efbdce69cc2e2529c6c`.
+
+Retry 1 changed only the evidence count expectation and passed the complete
+v17/v18 suite with `76 passed, 2 skipped`, all six robust-margin tests, empty
+stderr, compile, and diff check. Independent review reverified its SHA chain,
+zero tracked changes, and no active job. Its artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_static_14d_training_evaluation_implementation_retry1_a8d2e439_20260711T023833CST`
+/ `58fb4b4c3a63f8c5d21df41f9ef5ba456b003a2015aa25a70473a438f0c2c4c6`.
+
+This implementation gate made zero model calls, zero candidate changes, zero
+training/calibration calls, and zero expert or holdout label reads. Candidate
+0 remains the equivalence-proven fixed-DP deterministic/MAP baseline with
+`native_ranked_top1=false`; OBB scope remains frozen 32+5 observable only.
+
+current_v18_status=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_implementation_passed
+current_v18_artifact_scope=nuplan_mini_static_14d_convex_training_calibration_one_shot_paired_evaluation_tdd_implementation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_static_14d_training_evaluation_implementation_retry1_a8d2e439_20260711T023833CST
+current_v18_artifact_root_sha256=58fb4b4c3a63f8c5d21df41f9ef5ba456b003a2015aa25a70473a438f0c2c4c6
+next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_execution_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
