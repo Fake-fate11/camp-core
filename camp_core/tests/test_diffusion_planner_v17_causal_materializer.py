@@ -389,7 +389,6 @@ def test_fixed_dp_loader_and_normalizer_accept_observable_only_schema(
     repo = Path(dp_repo)
     monkeypatch.syspath_prepend(str(repo / "diffusion_planner"))
     import torch
-    from diffusion_planner.train_epoch import heading_to_cos_sin
     from diffusion_planner.utils.dataset import DiffusionPlannerData
     from diffusion_planner.utils.normalizer import ObservationNormalizer
 
@@ -408,8 +407,12 @@ def test_fixed_dp_loader_and_normalizer_accept_observable_only_schema(
     tensors = {
         key: torch.as_tensor(value).unsqueeze(0) for key, value in loaded.items()
     }
-    tensors["ego_agent_past"] = heading_to_cos_sin(tensors["ego_agent_past"])
-    tensors["goal_pose"] = heading_to_cos_sin(tensors["goal_pose"])
+    for key in ("ego_agent_past", "goal_pose"):
+        value = tensors[key]
+        tensors[key] = torch.cat(
+            [value[..., :2], value[..., 2:3].cos(), value[..., 2:3].sin()],
+            dim=-1,
+        )
     normalized = ObservationNormalizer.from_json(
         str(repo / "diffusion_planner" / "normalization.json")
     )(tensors)
