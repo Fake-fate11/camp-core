@@ -984,3 +984,57 @@ current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_and_single_reco
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_preflight_retry_20260711T000659CST
 current_v18_artifact_root_sha256=7a98d8a82bb4e65e774a7145a192098e13ce4180eb9320d20c770613f4c2c3e4
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_execution_only
+
+## Gate 16: Refreshed-Source Single-Record Fixed-DP Execution
+
+Status: execution passed after read-only evidence review; independent semantic
+NPZ result review is the only next gate.
+
+- Execution artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_execution_951edfc0_20260711T001154CST`
+  / `e50b7cff0f6f2422a890718487097f6940b3b146c4007c01a28769284162d9df`.
+- Read-only evidence-review artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_execution_evidence_review_20260711T001320CST`
+  / `a11bb0d78e4c6fa51b89bc282da42fd689a4bdb11f42fcd2bd42ac92332309fc`.
+  The review invoked the model zero times and did not rerun execution.
+- CAMP local/GitHub/AutoDL was
+  `951edfc02538d8318b6d9f5886acb905fad4117c`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- The execution used refreshed v2 manifest SHA256
+  `bcf19b29b9c3654f41502d494a441858142d2d9c3b77bd686b5a764c1107d7a2`,
+  seed `3407`, K=8, and only the predeclared first calibration record
+  `07ef2e232c8450f9` / decision `53710c1319405da6`. Its causal input SHA256
+  remained
+  `73b924db02289be79e931e895d5107996ce2684b1a2059aee3fe0dec8ab651a8`.
+- All `16` target tests passed before execution. Fixed DP completed the eight
+  contract calls in `1.146308s`; DP Top-1 remained index 0. The candidate
+  tensor / same-call neighbor tensor SHA256 values are
+  `95191e53823392010ac5372d1a1dc66ae84c62fb90bd5358e0088b5dfaca3bb5`
+  / `da713dee29d1aa99d93cbd5c7521d3c5570923d84f86ea3e8894d2cfcef29ba5`.
+- The 32-slot neighbor-valid mask SHA256 is
+  `72cd6e8422c407fb6d098690f1130b7ded7ec2f7f5e1d30bd9d521f015363793`;
+  all `32` source neighbor slots are valid. The per-candidate signal-source
+  mask SHA256 is
+  `04abc8821a06e5a30937967d11ad10221cb5ac3b5273e434f1284ee87129a061`;
+  all `8 / 8` candidates retain a resolvable signal source.
+- The saved NPZ SHA256 is
+  `637dcf326c68afab1d06044afdc817705ae64f9a80c3b62636d96b444b9d7c6d`.
+  Execution mechanical checks passed, but this gate intentionally did not
+  open the NPZ for independent semantic review.
+- The source execution's only stderr was the fixed-DP dependency warning that
+  importing `timm.models.layers` is deprecated. The independent review
+  verified the exact two-line FutureWarning, no traceback/error, source
+  `run.exit=0`, result pass, NPZ hash, and the complete SHA chain. Its own
+  stderr is empty and exit is 0.
+- The saved `eligible_for_canonical_14d=true` flag means only that the
+  candidate signal-source mask is all true. Physical feasibility remains
+  explicitly unmaterialized, so final canonical-14D materialization readiness
+  is still false. No feasibility/atom/label materialization, training,
+  holdout-label access, evaluation, claim, promotion, deployment, activation,
+  DP modification, or raw-data redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_execution_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_execution_evidence_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_execution_evidence_review_20260711T001320CST
+current_v18_artifact_root_sha256=a11bb0d78e4c6fa51b89bc282da42fd689a4bdb11f42fcd2bd42ac92332309fc
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_result_review_only

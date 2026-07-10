@@ -261,6 +261,34 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_m
 current_v18_artifact_root_sha256=7a98d8a82bb4e65e774a7145a192098e13ce4180eb9320d20c770613f4c2c3e4
 next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_execution_only
 
+The refreshed-source single-record execution then passed at CAMP
+local/GitHub/AutoDL `951edfc02538d8318b6d9f5886acb905fad4117c`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. All 16 target tests
+passed before the predeclared first calibration record was executed from v2
+manifest SHA `bcf19b29b9c3654f41502d494a441858142d2d9c3b77bd686b5a764c1107d7a2`.
+
+Fixed DP produced K=8 in `1.146308s`, retained DP Top-1 index 0, and froze the
+candidate tensor plus paired first-32 neighbor predictions and masks. All 32
+neighbor slots are real and all 8 candidates have a resolvable signal source.
+The output NPZ SHA256 is
+`637dcf326c68afab1d06044afdc817705ae64f9a80c3b62636d96b444b9d7c6d`.
+Its independent semantic contents have not yet been reviewed.
+
+The execution's only stderr was the fixed-DP timm import deprecation
+FutureWarning. A read-only evidence review invoked the model zero times,
+verified there was no traceback/error, rechecked the source result and SHA
+chain, and passed with empty review stderr. The saved canonical-eligibility
+flag currently covers only signal-source availability; physical feasibility
+is still absent, so canonical 14D remains unready. No atom/label/training,
+holdout-label, evaluation, or claim work occurred. Independent semantic NPZ
+result review is the only next gate.
+
+current_v18_status=v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_execution_passed
+current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_execution_evidence_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_causal_manifest_single_record_source_smoke_execution_evidence_review_20260711T001320CST
+current_v18_artifact_root_sha256=a11bb0d78e4c6fa51b89bc282da42fd689a4bdb11f42fcd2bd42ac92332309fc
+next_work_target=v18_nuplan_mini_refreshed_causal_manifest_and_single_record_source_smoke_result_review_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
