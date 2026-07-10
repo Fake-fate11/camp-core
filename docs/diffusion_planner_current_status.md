@@ -26,17 +26,21 @@ NPZ records through `DiffusionPlannerData`. No existing nuPlan source was found
 under the bounded AutoDL roots.
 
 Official Motional AWS Open Data maps and mini archives are anonymously
-reachable and total `9521657670` compressed bytes. Acquisition did not start:
-Motional Dataset Terms govern downloads from the website or elsewhere,
-non-commercial eligibility and acceptance are not established, and commercial
-use requires license authorization. No source data, candidate corpus, split,
-training, holdout access, evaluation, claim, promotion, deployment, or
-activation occurred.
+reachable and total `9521657670` compressed bytes. The user has now confirmed
+that this project is personal, academic, or otherwise non-commercial research
+with no present or future revenue purpose, accepted the Motional Dataset
+Terms, authorized acquisition from the official anonymous AWS source, and
+forbade redistribution of the raw data. This clears the manual license
+boundary for acquisition only; it does not authorize adapter work before the
+source is acquired and verified.
 
-current_v18_status=v18_nuplan_mini_source_inventory_passed_acquisition_blocked_pending_license_authorization
-current_v18_artifact_scope=nuplan_mini_source_inventory_and_acquisition_preflight
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_source_inventory_preflight_eff4f89a_20260710T142636CST
-next_work_target=user_confirmation_of_noncommercial_terms_acceptance_or_commercial_nuplan_license_before_acquisition
+No source data, candidate corpus, split, training, holdout access, evaluation,
+claim, promotion, deployment, or activation has occurred yet.
+
+current_v18_status=v18_nuplan_mini_noncommercial_license_authorization_recorded
+current_v18_artifact_scope=nuplan_mini_noncommercial_terms_acceptance_and_no_raw_redistribution_authorization
+current_v18_artifact=docs/diffusion_planner_v18_iteration_audit.md
+next_work_target=v18_nuplan_mini_official_aws_maps_and_mini_acquisition_execution_only
 
 ## Historical V17 Closeout
 

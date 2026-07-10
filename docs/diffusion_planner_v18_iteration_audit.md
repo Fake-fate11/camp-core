@@ -130,3 +130,29 @@ current_v18_artifact_scope=nuplan_mini_source_inventory_and_acquisition_prefligh
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_source_inventory_preflight_eff4f89a_20260710T142636CST
 current_v18_artifact_root_sha256=1cdae5c6a7543f8575abca44d25b9a552dca88eb1add9757654add33a0df41c0
 next_work_target=user_confirmation_of_noncommercial_terms_acceptance_or_commercial_nuplan_license_before_acquisition
+
+## Gate 2: Non-Commercial Dataset Authorization
+
+Status: authorization recorded; acquisition execution is the only next gate.
+
+The user confirmed all of the following:
+
+- the project is limited to personal, academic, or other non-commercial
+  research;
+- the project has no present or future revenue purpose;
+- the Motional Dataset Terms were read and accepted;
+- the official Motional AWS anonymous source is authorized for nuPlan mini
+  acquisition and use; and
+- raw nuPlan data must not be redistributed.
+
+This resolves the Gate 1 manual-license blocker without changing the fixed DP,
+K=8, causal-input, atom, split, convexity, or claim boundaries. It authorizes
+only the official maps and mini archive acquisition. No archive was downloaded
+or extracted by this docs-only authorization gate, and no adapter, candidate,
+atom, training, evaluation, claim, promotion, deployment, or activation work
+occurred.
+
+current_v18_status=v18_nuplan_mini_noncommercial_license_authorization_recorded
+current_v18_artifact_scope=nuplan_mini_noncommercial_terms_acceptance_and_no_raw_redistribution_authorization
+current_v18_artifact=docs/diffusion_planner_v18_iteration_audit.md
+next_work_target=v18_nuplan_mini_official_aws_maps_and_mini_acquisition_execution_only
