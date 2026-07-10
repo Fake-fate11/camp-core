@@ -180,11 +180,32 @@ single-record smoke under seed 3407. Train/calibration/holdout remain
 gate is causal 14D atom plus independent expert-label materialization
 preflight only; training and holdout-label access remain blocked.
 
-current_v18_status=v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_passed
-current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_full_semantic_result_review
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_b7a69c6f_20260710T224507CST
-current_v18_artifact_root_sha256=e78707569b7559662d64621140926ee7119519726471acc661a19a57adf7cf81
-next_work_target=v18_nuplan_mini_causal_atom_and_expert_label_materialization_preflight_only
+The causal-atom and expert-label preflight then passed at CAMP/GitHub/AutoDL
+`a7bd279199ac24685e54ff912457240ebcba4a9d` with zero model calls and no
+label or atom materialization. It verified real route speed limits and lane
+boundaries over every candidate horizon for all 367 records. Expert label
+timestamps are bracketed through 8 seconds for all 294 train+calibration
+records, permitting interpolation without extrapolation; holdout label values
+remain sealed.
+
+Canonical 14D materialization is still fail-closed. The current NPZ files have
+neither same-call neighbor predictions nor a feasibility mask. Although 362
+records contain real current non-dynamic boxes, the adapter writes zero static
+objects for all 367, so repairing that causal input requires candidate
+regeneration under a new immutable root. In addition, 13 records / 93 current
+candidates reach a `WHITE/unknown` controlled route segment; that qualification
+must be recomputed after regeneration and unknown cannot be treated as
+green/no-red. The fixed DP already exposes full `[B,321,80,4]` predictions, so
+CAMP can export the required first-32 neighbor predictions and real-slot mask
+from the same calls without modifying DP. The blocked atoms are `clearance`,
+`progress_shortfall`, `planned_red_light_cost`, and
+`red_stopping_margin_cost`; no constant-zero atom or future input was accepted.
+
+current_v18_status=v18_nuplan_mini_causal_atom_and_expert_label_materialization_preflight_complete_source_remediation_required
+current_v18_artifact_scope=nuplan_mini_causal_atom_and_expert_label_materialization_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_expert_label_preflight_20260710T230529CST
+current_v18_artifact_root_sha256=6a6d49474d264da43169ad0bb0328891ff7797a9a0c49a3682502f3ad2f90c85
+next_work_target=v18_nuplan_mini_causal_atom_source_remediation_test_driven_implementation_only
 
 ## Historical V17 Closeout
 

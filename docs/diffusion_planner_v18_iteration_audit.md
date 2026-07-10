@@ -832,3 +832,63 @@ current_v18_artifact_scope=nuplan_mini_smoke_fixed_dp_candidate_generation_full_
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_fixed_dp_candidate_generation_full_result_review_b7a69c6f_20260710T224507CST
 current_v18_artifact_root_sha256=e78707569b7559662d64621140926ee7119519726471acc661a19a57adf7cf81
 next_work_target=v18_nuplan_mini_causal_atom_and_expert_label_materialization_preflight_only
+
+## Gate 13: Causal Atom and Expert-Label Materialization Preflight
+
+Status: preflight passed; canonical 14D materialization remains fail-closed
+pending causal-source remediation.
+
+- Preflight artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_expert_label_preflight_20260710T230529CST`
+  / `6a6d49474d264da43169ad0bb0328891ff7797a9a0c49a3682502f3ad2f90c85`.
+- CAMP local/GitHub/AutoDL was tracked-clean at
+  `a7bd279199ac24685e54ff912457240ebcba4a9d`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+  The preflight invoked the model zero times and did not generate candidates,
+  materialize atoms or labels, train, calibrate, or read holdout label values.
+- The frozen 367-record K=8 candidate corpus remains valid and immutable as
+  its original candidate-generation evidence. It is not eligible for final
+  14D materialization: none of its NPZ files contains same-call neighbor
+  predictions or a frozen feasibility mask, and repairing the causal static
+  input changes the input hashes, so candidates must be regenerated under a
+  new root rather than overwritten.
+- Real route speed limits and lane boundaries are complete for `367 / 367`
+  records and for every projected candidate horizon. Route speed limits span
+  `2.2351362705230713` to `15.645954132080078 m/s`; the shortest encoded route
+  has `80` real points. Candidate kinematics, DP Top-1 index-0 semantics, and
+  the planned lateral / DP-prior inputs are also available.
+- Static context is currently invalid: `362 / 367` records contain real
+  current non-dynamic boxes, but the adapter emits zero `static_objects` for
+  `367 / 367`. Aggregate current counts are `537` barriers, `61` construction
+  zone signs, `2185` traffic cones, and `19287` generic objects. Fixed-DP git
+  history verifies the exact ten-field schema and one-hot order
+  `czone_sign / barrier / traffic_cone / generic_object`; the nearest five
+  real objects must be materialized on the CAMP side.
+- The fixed config has `predicted_neighbor_num=320`, and the unmodified DP
+  call already returns full `[B,321,80,4]` predictions. CAMP can therefore
+  export candidate-specific `[8,32,80,4]` predictions for the causal 32-slot
+  input plus a 32-slot real-neighbor mask from those same calls without
+  modifying DP. Current records contain `3` to `32` real neighbor slots.
+- Traffic state remains fail-closed where unresolved. `352` records contain
+  at least one `WHITE/unknown` controlled route segment; under the current
+  immutable candidates, `13` records / `93` candidates actually reach one
+  using the fixed-DP red-light geometry predicate. This reachability must be
+  recomputed after candidate regeneration, and affected records must be
+  excluded or failed closed rather than treating unknown as green/no-red.
+- Expert-label timestamps were inspected only for all `294` train plus
+  calibration records. Every record has a sample at or after 8 seconds
+  (`8.000001s` to `8.050019s`), the largest timestamp gap through the bracket
+  is `0.057246s`, and a train-only pose bracket is finite. Labels may therefore
+  interpolate to the 0.1-second grid without extrapolation. Holdout label
+  values remain sealed.
+- Current all-record canonical availability blocks `clearance` (same-call
+  neighbor prediction and real static context absent), `progress_shortfall`
+  (feasibility mask absent), and both red-light atoms (reachable unknown phase
+  on a subset). No zero-filled atom, future input, or extrapolated label was
+  accepted.
+
+current_v18_status=v18_nuplan_mini_causal_atom_and_expert_label_materialization_preflight_complete_source_remediation_required
+current_v18_artifact_scope=nuplan_mini_causal_atom_and_expert_label_materialization_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_atom_expert_label_preflight_20260710T230529CST
+current_v18_artifact_root_sha256=6a6d49474d264da43169ad0bb0328891ff7797a9a0c49a3682502f3ad2f90c85
+next_work_target=v18_nuplan_mini_causal_atom_source_remediation_test_driven_implementation_only
