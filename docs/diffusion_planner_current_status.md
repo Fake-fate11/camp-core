@@ -431,6 +431,32 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibili
 current_v18_artifact_root_sha256=20dd71a8c7c03a87e9b2a633c708901f345287677e61c6ac7017d936a30a2361
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_preflight_only
 
+The first materialization-execution preflight then failed before any corpus
+work because the implementation treated every frozen `SHA256SUMS` entry as an
+NPZ. The real immutable root contains `369` entries: `367` candidate NPZ files
+plus `records.jsonl` and `summary.json`. The failure artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_20260711T013841CST`
+/ `e8ee3ffea74f79ddfc20183781c7f16831f2a4f94059ba112a869454c81f46ff`.
+The planned output and staging roots remained absent, so no materialization,
+label read, candidate mutation, or model call occurred.
+
+The minimal SHA-contract remediation passed at CAMP local/GitHub/AutoDL
+`2728c98b472b620439d1b1d504a52ae643ebe045`; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The repaired verifier validates
+all `369` source hashes while counting only the `367` `.npz` entries. AutoDL
+passed `51` tests with `2` skips, and an independent real-root review matched
+`367` records and manifest rows with empty stderr. The remediation
+artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_candidate_root_sha_contract_remediation_20260711T014134CST`
+/ `708e5f854de825132f88200a1f5e9ffe76dd120cacbe9d5bc7f5826a4e1eb718`.
+Execution preflight retry is the only next gate.
+
+current_v18_status=v18_nuplan_mini_canonical_materialization_execution_preflight_sha_contract_remediation_passed
+current_v18_artifact_scope=nuplan_mini_canonical_materialization_execution_preflight_sha_contract_remediation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_candidate_root_sha_contract_remediation_20260711T014134CST
+current_v18_artifact_root_sha256=708e5f854de825132f88200a1f5e9ffe76dd120cacbe9d5bc7f5826a4e1eb718
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

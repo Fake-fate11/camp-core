@@ -1352,3 +1352,37 @@ current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_exper
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materializer_implementation_20260711T013440CST
 current_v18_artifact_root_sha256=20dd71a8c7c03a87e9b2a633c708901f345287677e61c6ac7017d936a30a2361
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_preflight_only
+
+## Gate 23: Execution-Preflight SHA-Contract Failure Review and Remediation
+
+Status: passed remediation; execution preflight retry is the only next gate.
+
+- The first execution-preflight artifact/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_20260711T013841CST`
+  / `e8ee3ffea74f79ddfc20183781c7f16831f2a4f94059ba112a869454c81f46ff`.
+  It failed before execution because `_verified_candidate_source` required the
+  total `SHA256SUMS` line count to equal the NPZ count. The immutable source
+  correctly has `369` lines: `367` NPZ files plus `records.jsonl` and
+  `summary.json`. The planned output and staging roots remained absent.
+- TDD changed the fixture to the exact 369-entry layout and reproduced the
+  failure. The minimal implementation now validates every source entry but
+  classifies/counts only `.npz` entries as candidate files. No atom, split,
+  baseline, feasibility, or label semantics changed.
+- Remediation commit was `2728c98b472b620439d1b1d504a52ae643ebe045` across
+  local/GitHub/AutoDL; fixed DP remained tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The remediation artifact/root is
+  `/root/autodl-tmp/camp_dp_v18_candidate_root_sha_contract_remediation_20260711T014134CST`
+  / `708e5f854de825132f88200a1f5e9ffe76dd120cacbe9d5bc7f5826a4e1eb718`.
+  Its full SHA chain, empty stderr, `run.exit=0`, and `51 passed, 2 skipped`
+  were independently reverified.
+- The real-root verifier now reports exactly `369` source entries, `367` NPZ
+  entries, `367` candidate records, and `367` manifest rows under frozen root
+  SHA256 `92b2c989187d58387e3310579cc9d3ea9695b2b369684d807020c98f6885b028`.
+  Output/staging remain absent; model calls, corpus materialization, candidate
+  mutation, expert-label reads, training, evaluation, and claims remain zero.
+
+current_v18_status=v18_nuplan_mini_canonical_materialization_execution_preflight_sha_contract_remediation_passed
+current_v18_artifact_scope=nuplan_mini_canonical_materialization_execution_preflight_sha_contract_remediation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_candidate_root_sha_contract_remediation_20260711T014134CST
+current_v18_artifact_root_sha256=708e5f854de825132f88200a1f5e9ffe76dd120cacbe9d5bc7f5826a4e1eb718
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_preflight_only
