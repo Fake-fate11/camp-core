@@ -34,13 +34,22 @@ forbade redistribution of the raw data. This clears the manual license
 boundary for acquisition only; it does not authorize adapter work before the
 source is acquired and verified.
 
-No source data, candidate corpus, split, training, holdout access, evaluation,
-claim, promotion, deployment, or activation has occurred yet.
+One resumable official AWS acquisition job is now running on AutoDL. It is
+downloading the maps archive before the mini archive, records stdout/stderr and
+the final exit code, checks the audited Content-Length values, and will create
+archive SHA256 and ZIP-integrity evidence. At the first observation, the maps
+partial was `1867776` bytes, stderr was empty, and `run.exit` was pending.
+Live process inspection then confirmed that the active `curl` inherited the
+`http_proxy` and `https_proxy` keys from `/etc/network_turbo` without recording
+their values; the maps partial had grown to `11862016` bytes.
 
-current_v18_status=v18_nuplan_mini_noncommercial_license_authorization_recorded
-current_v18_artifact_scope=nuplan_mini_noncommercial_terms_acceptance_and_no_raw_redistribution_authorization
-current_v18_artifact=docs/diffusion_planner_v18_iteration_audit.md
-next_work_target=v18_nuplan_mini_official_aws_maps_and_mini_acquisition_execution_only
+No extraction, adapter, candidate corpus, split, training, holdout access,
+evaluation, claim, promotion, deployment, or activation has occurred.
+
+current_v18_status=v18_nuplan_mini_official_aws_acquisition_running
+current_v18_artifact_scope=nuplan_mini_official_aws_maps_and_mini_archive_acquisition
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_1fd91258_20260710T143617CST
+next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only
 
 ## Historical V17 Closeout
 

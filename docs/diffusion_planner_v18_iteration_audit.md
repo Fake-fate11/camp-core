@@ -156,3 +156,41 @@ current_v18_status=v18_nuplan_mini_noncommercial_license_authorization_recorded
 current_v18_artifact_scope=nuplan_mini_noncommercial_terms_acceptance_and_no_raw_redistribution_authorization
 current_v18_artifact=docs/diffusion_planner_v18_iteration_audit.md
 next_work_target=v18_nuplan_mini_official_aws_maps_and_mini_acquisition_execution_only
+
+## Gate 3: Official AWS Acquisition Execution
+
+Status: running; stop and monitor only. Do not launch a second acquisition.
+
+- Authorization checkpoint CAMP HEAD / origin / AutoDL:
+  `1fd912587dd416bac091eb76c976a38c64051903`.
+- Fixed DP HEAD / tracked status:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4 / clean`.
+- Execution artifact:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_1fd91258_20260710T143617CST`
+- AutoDL PID: `439876`.
+- Started: `2026-07-10T14:36:22+08:00`.
+- The single resumable command downloads the official maps archive first and
+  the mini archive second, using `.part` files and an exclusive acquisition
+  lock. It requires the audited sizes `971557640` and `8550100030` bytes,
+  generates `ARCHIVE_SHA256SUMS`, and runs ZIP integrity checks before exit.
+- First observation at approximately 30 seconds:
+  - process: running
+  - maps partial: `1867776` bytes
+  - `run.exit`: pending
+  - stderr tail: empty
+  - data-disk available: approximately `42G`
+- A later live process check confirmed the active `curl` inherited the
+  `http_proxy` and `https_proxy` environment keys from `/etc/network_turbo`;
+  proxy values were not printed or stored. The maps partial had grown to
+  `11862016` bytes and the process remained active.
+- Artifact/root SHA: pending until the job exits and the evidence package is
+  finalized.
+- No mini bytes, extraction, adapter implementation, candidate generation,
+  atom materialization, split, training, evaluation, claim, promotion,
+  deployment, activation, or raw-data redistribution occurred at this
+  observation.
+
+current_v18_status=v18_nuplan_mini_official_aws_acquisition_running
+current_v18_artifact_scope=nuplan_mini_official_aws_maps_and_mini_archive_acquisition
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_1fd91258_20260710T143617CST
+next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only
