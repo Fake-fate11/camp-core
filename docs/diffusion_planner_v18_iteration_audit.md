@@ -259,3 +259,35 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acqui
 current_v18_old_failed_artifact_root_sha256=9e4705e5e6ac00eb378d10e28ed8b5cf65033e6e0e284f88f14276a638bedb02
 current_v18_launch_root_sha256=339af1f78a2bf91ec1d25817b6dea165fe3c923bfaa3bef43fb31aa0c46a8d3f
 next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only
+
+### Gate 3 Retry Remediation Checkpoint Verification
+
+Status: passed; corrected acquisition still running, so stop and monitor only.
+
+- Remediation checkpoint local / GitHub / AutoDL CAMP HEAD and AutoDL origin:
+  `1528681fc612920babfe39b8a1bbddaae63a9f24`.
+- Local and AutoDL CAMP tracked states: clean. Unrelated local untracked files
+  were not staged or modified.
+- AutoDL fixed DP HEAD / tracked state:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4 / clean`.
+- Local and AutoDL causal `py_compile`: passed.
+- Local focused tests: `19 passed, 1 skipped in 1.40s`.
+- AutoDL focused tests: `19 passed, 1 skipped in 0.81s`.
+- Old failure artifact `SHA256SUMS` / root verification and corrected launch
+  artifact `LAUNCH_SHA256SUMS` / launch-root verification: all passed.
+- During AutoDL checkpoint verification, the same active job grew from
+  `586768384` to `588849152` bytes (`+2080768`) without size regression.
+- The active child command contains no `--retry*`; stderr remained empty.
+- Download directory remained exactly two files with one partial:
+  `nuplan-maps-v1.0.zip` and `nuplan-v1.1_mini.zip.part`.
+- No duplicate task, backup partial, extra part file, extraction, adapter work,
+  candidate generation, atom materialization, split, training, evaluation,
+  claim, promotion, deployment, activation, or raw-data redistribution
+  occurred.
+
+current_v18_status=v18_nuplan_mini_official_aws_acquisition_running
+current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_outer_retry_resume_remediation_verified
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_outer_retry_2d92202d_20260710T165604CST
+current_v18_old_failed_artifact_root_sha256=9e4705e5e6ac00eb378d10e28ed8b5cf65033e6e0e284f88f14276a638bedb02
+current_v18_launch_root_sha256=339af1f78a2bf91ec1d25817b6dea165fe3c923bfaa3bef43fb31aa0c46a8d3f
+next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only

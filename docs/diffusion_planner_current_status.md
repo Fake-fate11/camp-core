@@ -51,13 +51,17 @@ starts a fresh curl process, pins `If-Range`, rejects invalid/regressed partials
 and contains no curl `--retry*` option. It resumed at byte `370872320`; a
 same-inode 20-second sample grew from `374747136` to `378183680` bytes. The
 download directory contains exactly the complete maps archive and one mini
-`.part`; no backup or additional partial file exists.
+`.part`; no backup or additional partial file exists. The remediation
+checkpoint `1528681fc612920babfe39b8a1bbddaae63a9f24` was then verified across
+local, GitHub, and AutoDL; local and AutoDL focused tests each passed with
+`19 passed, 1 skipped`, both artifact SHA chains passed, and a later AutoDL
+sample grew monotonically from `586768384` to `588849152` bytes.
 
 No extraction, adapter, candidate corpus, split, training, holdout access,
 evaluation, claim, promotion, deployment, or activation has occurred.
 
 current_v18_status=v18_nuplan_mini_official_aws_acquisition_running
-current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_outer_retry_resume_remediation
+current_v18_artifact_scope=nuplan_mini_official_aws_acquisition_outer_retry_resume_remediation_verified
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_aws_acquisition_outer_retry_2d92202d_20260710T165604CST
 next_work_target=stop_while_v18_nuplan_mini_official_aws_acquisition_job_running_monitor_only
 

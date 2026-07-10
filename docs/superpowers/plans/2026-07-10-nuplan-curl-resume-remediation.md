@@ -119,5 +119,5 @@ Expected: exit `0`; `bash -n COMMAND` also exits `0`.
 
 - [x] **Step 1: Append the root cause, old failure evidence, new PID/artifact, ETag, preserved offset, and no-pollution inventory**
 - [x] **Step 2: Run `py_compile`, focused causal tests, v18 document checks, and `git diff --check`**
-- [ ] **Step 3: Commit only the plan and two status documents, push `main`, and fast-forward AutoDL CAMP**
-- [ ] **Step 4: Re-read the v18 EOF and stop while the corrected acquisition runs**
+- [x] **Step 3: Commit only the plan and two status documents, push `main`, and fast-forward AutoDL CAMP**
+- [x] **Step 4: Re-read the v18 EOF and stop while the corrected acquisition runs**
