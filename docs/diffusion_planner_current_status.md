@@ -10,9 +10,10 @@ qualifications.
 ## Current V17 Status
 
 The user selected the v17 causal-materializer, canonical-14D, and independent
-paired-evaluation remediation path instead of a v16 32k expansion. Initial
-local/GitHub/AutoDL synchronization passed: CAMP is tracked-clean on `main` at
-`4da4a15d20e448835f46f67a33b280532083a33e`; the AutoDL Diffusion Planner is
+paired-evaluation remediation path instead of a v16 32k expansion. Phase 0
+bootstrap, erratum, and read-only audit passed. Local/GitHub/AutoDL CAMP are
+tracked-clean on `main` at
+`7d9d9df137247e3f9d3d1accef3c98a99b8a416b`; the AutoDL Diffusion Planner is
 tracked-clean at the fixed commit
 `7a1d33da277a1992ec474b5383a0c963c72e04e4`; `/root/autodl-tmp` has `7.6 GiB`
 available; no candidate-generation, training, or evaluation job is active;
@@ -24,13 +25,15 @@ comparison metric, while proxy training labels were derived from the same atom
 family. It is not independent CAMP-over-DP Top-1 performance evidence and
 authorizes no claim, promotion, deployment, or online activation.
 
-Phase 0 local documentation is ready for its first checkpoint. No v17 corpus,
-training, evaluation, runtime integration, or DP change has been executed.
+The v17 ledger SHA256 at the verified AutoDL checkpoint is
+`04de5257ac6d54c903f67c98693dd61779f1210b99b8ea711f6ac7da6103e9de`.
+No v17 corpus, training, evaluation, runtime integration, or DP change has been
+executed.
 
-current_v17_status=v17_phase0_bootstrap_erratum_ponytail_audit_local_ready
-current_v17_artifact_scope=docs_only_v17_bootstrap_and_v16_qualification
+current_v17_status=v17_phase0_bootstrap_erratum_ponytail_audit_passed
+current_v17_artifact_scope=phase0_docs_and_cross_surface_sync_evidence
 current_v17_artifact=docs/diffusion_planner_v17_iteration_audit.md
-next_work_target=v17_phase0_commit_push_autodl_ff_only_sync_and_sha_verification_only
+next_work_target=v17_phase1_causal_materializer_contract_leakage_tests_and_minimal_implementation
 
 ## Historical V16 Closeout
 

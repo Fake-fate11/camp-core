@@ -223,3 +223,34 @@ current_v17_status=v17_phase0_bootstrap_erratum_ponytail_audit_local_ready
 current_v17_artifact_scope=docs_only_v17_bootstrap_and_v16_qualification
 current_v17_artifact=docs/diffusion_planner_v17_iteration_audit.md
 next_work_target=v17_phase0_commit_push_autodl_ff_only_sync_and_sha_verification_only
+
+### Phase 0B: Checkpoint and Cross-Surface Verification
+
+Status: passed.
+
+- Checkpoint commit:
+  `7d9d9df137247e3f9d3d1accef3c98a99b8a416b`
+- Local HEAD / origin / GitHub ref / AutoDL HEAD / AutoDL origin:
+  all equal to the checkpoint commit.
+- Local and AutoDL CAMP tracked status: clean.
+- AutoDL DP HEAD / tracked status:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4 / clean`.
+- AutoDL document SHA256:
+  - current status:
+    `8886403dd540d0bdf1d97849aa7950f1d733a1272034fc0bfeb85c4f3206640a`
+  - v16 audit with erratum:
+    `73c31a101387c5c77bc5599eeafe8ed8d9118d992f35a1ad4ade0b48f7843257`
+  - v17 ledger:
+    `04de5257ac6d54c903f67c98693dd61779f1210b99b8ea711f6ac7da6103e9de`
+- AutoDL data-disk available space: `7.6 GiB`.
+- Active v17 candidate-generation/training/evaluation jobs: none.
+- Local verification: document contract checks `10/10`; `py_compile` exit `0`;
+  targeted Benders atom-contract tests `4 passed`; staged diff check exit `0`.
+
+No corpus, holdout, training, paired evaluation, runtime package, DP change,
+promotion, deployment, or online activation occurred in Phase 0.
+
+current_v17_status=v17_phase0_bootstrap_erratum_ponytail_audit_passed
+current_v17_artifact_scope=phase0_docs_and_cross_surface_sync_evidence
+current_v17_artifact=docs/diffusion_planner_v17_iteration_audit.md
+next_work_target=v17_phase1_causal_materializer_contract_leakage_tests_and_minimal_implementation
