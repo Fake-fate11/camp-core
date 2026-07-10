@@ -240,6 +240,119 @@ class UnavailableAtomInputsError(ValueError):
     pass
 
 
+def project_candidates_to_route(
+    candidates: np.ndarray,
+    route_lanes: np.ndarray,
+    route_speed_limits: np.ndarray,
+    route_has_speed_limits: np.ndarray,
+) -> dict[str, np.ndarray]:
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    route = np.asarray(route_lanes, dtype=np.float64)
+    limits = np.asarray(route_speed_limits, dtype=np.float64).reshape(-1)
+    has_limits = np.asarray(route_has_speed_limits, dtype=bool).reshape(-1)
+    if trajectories.shape != (8, 80, 4) or not np.isfinite(trajectories).all():
+        raise ValueError("candidates must be finite with shape [8,80,4]")
+    if route.shape != (25, 20, 33) or not np.isfinite(route).all():
+        raise ValueError("route_lanes must be finite with shape [25,20,33]")
+    if limits.shape != (25,) or has_limits.shape != (25,):
+        raise ValueError("route speed-limit fields must have shape [25,1]")
+
+    points = []
+    left_offsets = []
+    right_offsets = []
+    speeds = []
+    for slot in range(route.shape[0]):
+        valid = route[slot, :, 13] > 0.5
+        if not valid.any():
+            continue
+        if not has_limits[slot] or not np.isfinite(limits[slot]) or limits[slot] <= 0:
+            raise ValueError(f"route slot {slot} requires a positive speed limit")
+        rows = route[slot, valid]
+        if rows.shape[0] < 2:
+            raise ValueError(f"route slot {slot} requires at least two valid points")
+        points.append(rows[:, :2])
+        left_offsets.append(rows[:, 4:6])
+        right_offsets.append(rows[:, 6:8])
+        speeds.append(np.full(rows.shape[0], limits[slot], dtype=np.float64))
+    if not points:
+        raise ValueError("route has no valid points")
+
+    centers = np.concatenate(points)
+    left = np.concatenate(left_offsets)
+    right = np.concatenate(right_offsets)
+    point_speeds = np.concatenate(speeds)
+    deltas = np.diff(centers, axis=0)
+    lengths = np.linalg.norm(deltas, axis=1)
+    valid_segments = lengths > 1e-6
+    if not valid_segments.any():
+        raise ValueError("route has no nonzero segment")
+    starts = centers[:-1][valid_segments]
+    directions = deltas[valid_segments] / lengths[valid_segments, None]
+    segment_lengths = lengths[valid_segments]
+    left_start = left[:-1][valid_segments]
+    left_end = left[1:][valid_segments]
+    right_start = right[:-1][valid_segments]
+    right_end = right[1:][valid_segments]
+    speed_start = point_speeds[:-1][valid_segments]
+    speed_end = point_speeds[1:][valid_segments]
+    arc_starts = np.concatenate([[0.0], np.cumsum(segment_lengths[:-1])])
+
+    shape = trajectories.shape[:2]
+    lateral = np.empty(shape, dtype=np.float64)
+    left_width = np.empty(shape, dtype=np.float64)
+    right_width = np.empty(shape, dtype=np.float64)
+    speed_limit = np.empty(shape, dtype=np.float64)
+    projected_arc = np.empty(shape, dtype=np.float64)
+    for candidate_index, trajectory in enumerate(trajectories):
+        for step, point in enumerate(trajectory[:, :2]):
+            relative = point - starts
+            along = np.clip(
+                np.einsum("ij,ij->i", relative, directions),
+                0.0,
+                segment_lengths,
+            )
+            projections = starts + directions * along[:, None]
+            segment = int(np.argmin(np.linalg.norm(point - projections, axis=1)))
+            fraction = along[segment] / segment_lengths[segment]
+            normal = np.array(
+                [-directions[segment, 1], directions[segment, 0]],
+                dtype=np.float64,
+            )
+            left_offset = (
+                left_start[segment]
+                + fraction * (left_end[segment] - left_start[segment])
+            )
+            right_offset = (
+                right_start[segment]
+                + fraction * (right_end[segment] - right_start[segment])
+            )
+            lateral[candidate_index, step] = np.dot(
+                point - projections[segment], normal
+            )
+            left_width[candidate_index, step] = np.dot(left_offset, normal)
+            right_width[candidate_index, step] = -np.dot(right_offset, normal)
+            speed_limit[candidate_index, step] = (
+                speed_start[segment]
+                + fraction * (speed_end[segment] - speed_start[segment])
+            )
+            projected_arc[candidate_index, step] = arc_starts[segment] + along[segment]
+    if (
+        np.any(left_width <= 0.0)
+        or np.any(right_width <= 0.0)
+        or np.any(speed_limit <= 0.0)
+    ):
+        raise ValueError("projected route boundaries and speed limits must be positive")
+    route_progress = np.maximum.accumulate(projected_arc, axis=1)[:, -1]
+    return {
+        "lateral_offset": lateral,
+        "left_width": left_width,
+        "right_width": right_width,
+        "speed_limit": speed_limit,
+        "projected_arc": projected_arc,
+        "route_progress": route_progress,
+    }
+
+
 def canonical_atom_availability(
     *,
     candidate_count: int,

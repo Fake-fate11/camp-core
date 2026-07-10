@@ -6,6 +6,7 @@ import json
 import numpy as np
 import pytest
 
+from camp_core.integrations import diffusion_planner_causal_atoms as causal_atoms
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CAUSAL_DP_INPUT_SCHEMA,
 )
@@ -27,6 +28,88 @@ def _causal_input() -> dict[str, np.ndarray]:
     }
     data["neighbor_agents_past"][0, 0, 0] = 7.0
     return data
+
+
+def _route_projection_fixture():
+    candidates = np.zeros((8, 80, 4), dtype=np.float64)
+    candidates[:, :, 2] = 1.0
+    candidates[:, :40, 0] = np.linspace(0.25, 19.25, 40)
+    candidates[:, 40:, 0] = np.linspace(20.25, 39.25, 40)
+    route = np.zeros((25, 20, 33), dtype=np.float64)
+    route[0, :, 0] = np.linspace(0.0, 19.5, 20)
+    route[1, :, 0] = np.linspace(20.0, 39.5, 20)
+    route[:2, :, 2] = 1.0
+    route[0, :, 5] = 2.0
+    route[0, :, 7] = -1.5
+    route[1, :, 5] = 3.0
+    route[1, :, 7] = -1.0
+    route[:2, :, 13] = 1.0
+    speed = np.zeros((25, 1), dtype=np.float64)
+    speed[:2, 0] = [5.0, 12.0]
+    has_speed = np.zeros((25, 1), dtype=bool)
+    has_speed[:2, 0] = True
+    return candidates, route, speed, has_speed
+
+
+def test_route_projection_uses_per_segment_speed_and_side_boundaries() -> None:
+    candidates, route, speed, has_speed = _route_projection_fixture()
+
+    projection = causal_atoms.project_candidates_to_route(
+        candidates,
+        route,
+        speed,
+        has_speed,
+    )
+
+    assert projection["lateral_offset"].shape == (8, 80)
+    np.testing.assert_allclose(projection["speed_limit"][:, 10], 5.0)
+    np.testing.assert_allclose(projection["speed_limit"][:, 60], 12.0)
+    np.testing.assert_allclose(projection["left_width"][:, 10], 2.0)
+    np.testing.assert_allclose(projection["right_width"][:, 10], 1.5)
+    np.testing.assert_allclose(projection["left_width"][:, 60], 3.0)
+    np.testing.assert_allclose(projection["right_width"][:, 60], 1.0)
+    assert np.all(projection["route_progress"] > 39.0)
+
+
+def test_route_projection_is_global_se2_invariant() -> None:
+    candidates, route, speed, has_speed = _route_projection_fixture()
+    expected = causal_atoms.project_candidates_to_route(
+        candidates,
+        route,
+        speed,
+        has_speed,
+    )
+    angle = 0.8
+    rotation = np.array(
+        [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+    )
+    translation = np.array([100.0, -45.0])
+    moved_candidates = candidates.copy()
+    moved_candidates[..., :2] = candidates[..., :2] @ rotation.T + translation
+    moved_candidates[..., 2:4] = candidates[..., 2:4] @ rotation.T
+    moved_route = route.copy()
+    valid = moved_route[..., 13] > 0.5
+    moved_route[..., :2][valid] = route[..., :2][valid] @ rotation.T + translation
+    for start in (2, 4, 6):
+        moved_route[..., start : start + 2][valid] = (
+            route[..., start : start + 2][valid] @ rotation.T
+        )
+
+    actual = causal_atoms.project_candidates_to_route(
+        moved_candidates,
+        moved_route,
+        speed,
+        has_speed,
+    )
+
+    for name in (
+        "lateral_offset",
+        "left_width",
+        "right_width",
+        "speed_limit",
+        "route_progress",
+    ):
+        np.testing.assert_allclose(actual[name], expected[name], atol=1e-10)
 
 
 def test_v18_pointer_reader_ignores_historical_file_tail(tmp_path) -> None:
