@@ -29,6 +29,53 @@ def _causal_input() -> dict[str, np.ndarray]:
     return data
 
 
+def test_v18_pointer_reader_ignores_historical_file_tail(tmp_path) -> None:
+    module = _orchestrator()
+    pointer = {
+        "current_v18_status": "ready",
+        "current_v18_artifact_scope": "scope",
+        "current_v18_artifact": "/artifact",
+        "current_v18_artifact_root_sha256": "a" * 64,
+        "next_work_target": "implementation_only",
+    }
+    lines = "\n".join(f"{key}={value}" for key, value in pointer.items())
+    status = tmp_path / "status.md"
+    status.write_text(
+        "## Current V18 Status\n"
+        + lines
+        + "\n## Historical V14\nnext_work_target=wrong\n",
+        encoding="utf-8",
+    )
+    audit = tmp_path / "audit.md"
+    audit.write_text(lines + "\n", encoding="utf-8")
+
+    assert module.read_v18_status_pointer(status, audit) == pointer
+
+
+def test_checked_in_current_v18_pointer_matches_v18_audit_eof() -> None:
+    module = _orchestrator()
+
+    pointer = module.read_v18_status_pointer(
+        module.ROOT / "docs" / "diffusion_planner_current_status.md",
+        module.ROOT / "docs" / "diffusion_planner_v18_iteration_audit.md",
+    )
+
+    assert pointer["next_work_target"].startswith("v18_nuplan_mini_")
+
+
+def test_candidate_zero_metadata_is_deterministic_map_not_native_ranking() -> None:
+    module = _orchestrator()
+
+    assert module.BASELINE_INDEX == 0
+    assert module.BASELINE_SEMANTICS == "fixed_dp_deterministic_map_baseline"
+    assert module.NATIVE_RANKED_TOP1 is False
+    assert (
+        module.FEASIBILITY_SCOPE
+        == "frozen_observable_32_dynamic_plus_5_static_only"
+    )
+    assert module.CLOSED_LOOP_SAFETY_CLAIM is False
+
+
 def test_prepare_causal_arrays_pads_only_neighbor_history() -> None:
     module = _orchestrator()
 
@@ -72,6 +119,12 @@ def test_same_calls_return_paired_ego_and_first_32_neighbors() -> None:
             return None, {"prediction": prediction}
 
     model = Model()
+    latent_scales = []
+
+    def make_initial_latent(batch, agents, horizon, device, scale):
+        latent_scales.append(scale)
+        return torch.zeros((batch, agents, horizon, 4), device=device)
+
     context = {
         "torch": torch,
         "device": torch.device("cpu"),
@@ -86,9 +139,7 @@ def test_same_calls_return_paired_ego_and_first_32_neighbors() -> None:
             },
         )(),
         "heading_to_cos_sin": lambda value: value,
-        "make_initial_latent": lambda batch, agents, horizon, device, scale: torch.zeros(
-            (batch, agents, horizon, 4), device=device
-        ),
+        "make_initial_latent": make_initial_latent,
     }
     data = _causal_input()
     data["neighbor_agents_past"][:3, 0, 0] = 1.0
@@ -96,6 +147,7 @@ def test_same_calls_return_paired_ego_and_first_32_neighbors() -> None:
     candidates, neighbors, valid = module.sample_fixed_dp_sources(data, context)
 
     assert model.calls == 8
+    assert latent_scales == [0.0] + [1.0] * 7
     assert candidates.shape == (8, 80, 4)
     assert neighbors.shape == (8, 32, 80, 4)
     np.testing.assert_array_equal(candidates[:, 0, 0], np.arange(8))

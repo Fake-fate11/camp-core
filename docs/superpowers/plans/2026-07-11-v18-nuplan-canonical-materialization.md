@@ -25,6 +25,7 @@
 - Expert labels are train/calibration only; all 71 holdout labels stay sealed.
 - Reuse the existing runner and helpers; add no dependency or per-gate runner.
 - Use TDD for every behavior change and commit only task files at each checkpoint.
+- For local PowerShell tests set PYTHONPATH to the repo root plus repo\camp_core.
 
 ---
 
