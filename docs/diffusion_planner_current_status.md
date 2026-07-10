@@ -775,6 +775,57 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evalua
 current_v18_artifact_root_sha256=a3727459ab405eab2214c3fe24e80e56c202527ba323fc32ceeba2f78932f4bf
 next_work_target=v18_nuplan_mini_one_shot_holdout_paired_evaluation_execution_only
 
+The unique one-shot holdout paired evaluation completed at CAMP/GitHub/AutoDL
+`88c3a6fbaa498dd943e98360380e20e054419e24` in `5.216912s`. It queried each
+of the 71 materialized holdout expert futures exactly once, wrote 71 identity-
+bound label SHA receipts and derived candidate metrics, persisted no raw
+expert future, made no model/scale update, and left the two source-incomplete
+holdout rows fail-closed excluded. Execution artifact/root SHA256:
+`/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_execution_88c3a6fb_20260711T031042CST`
+/ `fcbae734d847e250c2ef69563b1de1b356ff7d6fca42e26b0e750ba53a66519d`.
+The immutable evaluation output/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_one_shot_paired_eval_b09a81f9_3d720141`
+/ `6ca6bdd70497173356277ce4cb6ed5ba23420a99c381c68f44c5e446c3ffd366`.
+
+On these 71 mini records, CAMP mean ADE/FDE/miss are
+`2.5597696204592677m / 6.806143429715728m / 0.5915492957746479`; the proven
+fixed-DP deterministic/MAP baseline is
+`2.554556872165273m / 7.094755233959905m / 0.6056338028169014`. Paired CAMP
+minus baseline deltas are ADE `+0.005212748293994815m`, FDE
+`-0.28861180424417765m`, and miss `-0.014084507042253521`; better/tie/worse by
+ADE is `39/4/28`. Mean FDE and miss meet the predeclared zero-slack diagnostic,
+but all ADE/FDE cluster CI95 intervals cross zero, and scene-cluster miss CI95
+also crosses zero. The result is therefore directional smoke evidence only.
+
+Log-cluster CI95 for ADE/FDE/miss is
+`[-0.334095,0.265200] / [-1.444354,0.456705] / [-0.049180,0.0]`; scene-cluster
+CI95 is `[-0.292239,0.257032] / [-1.204225,0.390989] /
+[-0.056338,0.028169]`. CAMP/baseline feasible-oracle ADE gaps are
+`0.6932336480525806m / 0.6880208997585857m`. Candidate 0 was selected four
+times; fallback count is zero. Selector latency p50/p95/p99/max is
+`0.045659 / 0.047153 / 0.049877 / 0.653410 ms`.
+
+The independent result reviewer made zero label queries. It reverified all
+execution/output hashes, 71 identities/receipts, selected and oracle indices,
+paired aggregates, deterministic 10,000-replicate log/scene CI95, latency
+ordering, reviewed freeze/source roots, and no-claim boundaries. Its
+artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_result_review_20260711T031321CST`
+/ `92a40093ca9baa7b15df4bfab7dfc1dd5166c2f61969703ad0d62d225f4ee2f1`.
+
+This mini result does not authorize a performance or safety claim, CAMP-over-
+DP language, promotion, deployment, or activation. Candidate 0 remains named
+the fixed-DP deterministic/MAP baseline with `native_ranked_top1=false`. OBB
+exactness remains bounded to the frozen 32+5 observable source, not complete-
+scene feasibility or closed-loop safety. The preauthorized continuous scope
+ends at this reviewed result and now requires a new user decision.
+
+current_v18_status=v18_nuplan_mini_one_shot_holdout_paired_evaluation_result_review_completed_directional_no_claim
+current_v18_artifact_scope=nuplan_mini_reviewed_frozen_static_14d_one_shot_paired_evaluation_directional_smoke_no_claim
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_result_review_20260711T031321CST
+current_v18_artifact_root_sha256=92a40093ca9baa7b15df4bfab7dfc1dd5166c2f61969703ad0d62d225f4ee2f1
+next_work_target=v18_nuplan_mini_user_decision_required_after_paired_evaluation_result_review_before_any_claim_promotion_deployment_activation_or_next_stage
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

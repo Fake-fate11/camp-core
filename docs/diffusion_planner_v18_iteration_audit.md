@@ -1820,3 +1820,59 @@ current_v18_artifact_scope=nuplan_mini_reviewed_frozen_static_14d_one_shot_holdo
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_preflight_20260711T030625CST
 current_v18_artifact_root_sha256=a3727459ab405eab2214c3fe24e80e56c202527ba323fc32ceeba2f78932f4bf
 next_work_target=v18_nuplan_mini_one_shot_holdout_paired_evaluation_execution_only
+
+## Gate 34: One-Shot Holdout Paired-Evaluation Execution and Result Review
+
+Status: completed with directional/no-claim result; the continuous authorization
+ends here and a new user decision is required for any next stage.
+
+- The unique one-shot execution ran at CAMP/GitHub/AutoDL
+  `88c3a6fbaa498dd943e98360380e20e054419e24`, fixed DP tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`, and wall time `5.216912s`.
+- Execution artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_execution_88c3a6fb_20260711T031042CST`
+  / `fcbae734d847e250c2ef69563b1de1b356ff7d6fca42e26b0e750ba53a66519d`.
+  Stderr was empty and `run.exit=0`.
+- Immutable derived evaluation output/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_one_shot_paired_eval_b09a81f9_3d720141`
+  / `6ca6bdd70497173356277ce4cb6ed5ba23420a99c381c68f44c5e446c3ffd366`.
+  It contains exactly 71 label SHA receipts, 71 derived metric records, and one
+  summary; it contains no raw expert future.
+- CAMP ADE/FDE/miss are `2.5597696204592677m / 6.806143429715728m /
+  0.5915492957746479`; fixed-DP deterministic/MAP baseline ADE/FDE/miss are
+  `2.554556872165273m / 7.094755233959905m / 0.6056338028169014`.
+  Paired deltas are ADE `+0.005212748293994815m`, FDE
+  `-0.28861180424417765m`, and miss `-0.014084507042253521`; ADE
+  better/tie/worse is `39/4/28`.
+- Log-cluster CI95 for ADE/FDE/miss is
+  `[-0.3340948932943097,0.26519963817447834] /
+  [-1.4443544304327212,0.45670503604772883] /
+  [-0.04918032786885246,0.0]`. Scene-cluster CI95 is
+  `[-0.2922391449153926,0.25703153468632395] /
+  [-1.2042251649966418,0.39098948966152947] /
+  [-0.056338028169014086,0.028169014084507043]`.
+- Mean FDE and miss pass the preregistered zero-slack diagnostic, but all
+  ADE/FDE CI95 intervals cross zero and scene-cluster miss also crosses zero.
+  This cannot establish a performance advantage.
+- CAMP and baseline feasible-oracle ADE gaps are `0.6932336480525806m` and
+  `0.6880208997585857m`. Candidate 0 was selected four times. Fallback count
+  is zero; two nonmaterialized source holdout rows remain fail-closed excluded.
+- Selector latency p50/p95/p99/max is
+  `0.045659 / 0.04715305 / 0.04987702 / 0.65341 ms`.
+- Independent result-review artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_result_review_20260711T031321CST`
+  / `92a40093ca9baa7b15df4bfab7dfc1dd5166c2f61969703ad0d62d225f4ee2f1`.
+  It made zero label queries and reverified all execution/output hashes,
+  identities/receipts, selector/oracle decisions, aggregates, 10,000-replicate
+  log/scene bootstraps, latency ordering, and immutable upstream roots.
+- The only authorized interpretation is nuPlan-mini smoke/directional evidence.
+  No performance/safety/CAMP-over-DP claim, promotion, deployment, or activation
+  follows. `native_ranked_top1=false`; candidate 0 remains the proven fixed-DP
+  deterministic/MAP baseline. OBB exactness remains frozen 32+5 observable
+  only and is not complete-scene or closed-loop safety evidence.
+
+current_v18_status=v18_nuplan_mini_one_shot_holdout_paired_evaluation_result_review_completed_directional_no_claim
+current_v18_artifact_scope=nuplan_mini_reviewed_frozen_static_14d_one_shot_paired_evaluation_directional_smoke_no_claim
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_result_review_20260711T031321CST
+current_v18_artifact_root_sha256=92a40093ca9baa7b15df4bfab7dfc1dd5166c2f61969703ad0d62d225f4ee2f1
+next_work_target=v18_nuplan_mini_user_decision_required_after_paired_evaluation_result_review_before_any_claim_promotion_deployment_activation_or_next_stage
