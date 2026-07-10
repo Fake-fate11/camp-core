@@ -136,7 +136,7 @@ def test_route_lane_keeps_true_boundaries_speed_and_exact_tick_traffic() -> None
     )
 
     assert encoded.tensor.shape == (20, 33)
-    assert encoded.tensor.dtype == np.float32
+    assert encoded.tensor.dtype == np.float64
     assert encoded.speed_limit_mps == pytest.approx(11.2)
     np.testing.assert_allclose(
         encoded.tensor[:, 4:6], np.tile([0.0, 2.0], (20, 1)), atol=1e-5
@@ -181,7 +181,7 @@ def _batch() -> _Batch:
     batch = _Batch()
     batch.dt = np.array([0.5], dtype=np.float32)
     batch.history_pad_dir = np.array(1, dtype=np.int64)
-    history = np.zeros((1, 7, 8), dtype=np.float32)
+    history = np.zeros((1, 7, 8), dtype=np.float64)
     history[0, :, 0] = np.linspace(-3.0, 0.0, 7)
     history[0, :, 2] = 1.0
     history[0, :, 7] = 1.0
@@ -191,13 +191,13 @@ def _batch() -> _Batch:
         np.array([4.5, 1.8, 1.5], dtype=np.float32), (1, 7, 1)
     )
     batch.curr_agent_state = np.array(
-        [[0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]], dtype=np.float32
+        [[0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]], dtype=np.float64
     )
     batch.neigh_hist = np.zeros((1, 0, 7, 8), dtype=np.float32)
     batch.neigh_hist_len = np.zeros((1, 0), dtype=np.int64)
     batch.neigh_hist_extents = np.zeros((1, 0, 7, 3), dtype=np.float32)
     batch.neigh_types = np.zeros((1, 0), dtype=np.float32)
-    batch.agents_from_world_tf = np.eye(3, dtype=np.float32)[None]
+    batch.agents_from_world_tf = np.eye(3, dtype=np.float64)[None]
     return batch
 
 
@@ -211,8 +211,8 @@ def _lane(start_x: float) -> np.ndarray:
 
 
 def _context() -> dict[str, object]:
-    lanes = np.zeros((140, 20, 33), dtype=np.float32)
-    route = np.zeros((25, 20, 33), dtype=np.float32)
+    lanes = np.zeros((140, 20, 33), dtype=np.float64)
+    route = np.zeros((25, 20, 33), dtype=np.float64)
     lanes[0] = _lane(0.0)
     route[0] = _lane(0.0)
     route[1] = _lane(19.0)
@@ -228,7 +228,7 @@ def _context() -> dict[str, object]:
         "map_frame": "world",
         "decision_id": "scene:lidar-pc",
         "route_source": "nuplan_mission_route_current_roadblock_successors",
-        "mission_goal_pose": np.array([80.0, 7.0, 0.4], dtype=np.float32),
+        "mission_goal_pose": np.array([80.0, 7.0, 0.4], dtype=np.float64),
         "lanes": lanes,
         "lanes_speed_limit": lane_speeds,
         "lanes_has_speed_limit": lane_has_speeds,
@@ -263,9 +263,11 @@ def test_mission_goal_is_invariant_to_global_se2_change() -> None:
     angle = 0.7
     rotation = np.array(
         [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]],
-        dtype=np.float32,
+        dtype=np.float64,
     )
-    translation = np.array([23.0, -9.0], dtype=np.float32)
+    translation = np.array(
+        [664650.3398668566, 3999256.584666652], dtype=np.float64
+    )
     for key in ("lanes", "route_lanes"):
         values = np.asarray(moved[key]).copy()
         valid = np.sum(np.abs(values[..., :8]), axis=-1) > 0.0
@@ -281,7 +283,7 @@ def test_mission_goal_is_invariant_to_global_se2_change() -> None:
     moved["mission_goal_pose"] = goal
 
     batch = _batch()
-    transform = np.eye(3, dtype=np.float32)
+    transform = np.eye(3, dtype=np.float64)
     transform[:2, :2] = rotation.T
     transform[:2, 2] = -rotation.T @ translation
     batch.agents_from_world_tf = transform[None]

@@ -142,9 +142,9 @@ def materialize_causal_dp_input(
     ego_current_state = _ego_current_state(current_state, ego_xyh, source_dt, wheelbase)
     neighbors = _neighbor_history(batch, index, source_dt)
 
-    lanes = _context_array(decision_context, "lanes", (140, 20, 33), np.float32)
+    lanes = _context_array(decision_context, "lanes", (140, 20, 33), np.float64)
     route = _context_array(
-        decision_context, "route_lanes", (25, 20, 33), np.float32
+        decision_context, "route_lanes", (25, 20, 33), np.float64
     )
     lanes = _transform_lanes(lanes, transform)
     route = _transform_lanes(route, transform)
@@ -178,13 +178,13 @@ def materialize_causal_dp_input(
         "lanes_speed_limit": lane_limits,
         "line_strings": _transform_points_tensor(
             _context_array(
-                decision_context, "line_strings", (60, 20, 4), np.float32
+                decision_context, "line_strings", (60, 20, 4), np.float64
             ),
             transform,
         ),
         "neighbor_agents_past": neighbors,
         "polygons": _transform_points_tensor(
-            _context_array(decision_context, "polygons", (10, 40, 3), np.float32),
+            _context_array(decision_context, "polygons", (10, 40, 3), np.float64),
             transform,
         ),
         "route_lanes": route,
@@ -192,7 +192,7 @@ def materialize_causal_dp_input(
         "route_lanes_speed_limit": route_limits,
         "static_objects": _transform_static_objects(
             _context_array(
-                decision_context, "static_objects", (5, 10), np.float32
+                decision_context, "static_objects", (5, 10), np.float64
             ),
             transform,
         ),

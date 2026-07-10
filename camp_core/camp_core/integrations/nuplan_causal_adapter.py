@@ -103,7 +103,7 @@ def load_nuplan_route_snapshot(
         if goal is None:
             raise NuPlanCausalSourceError("scene mission goal does not resolve")
         mission_goal = np.array(
-            [goal[0], goal[1], _quaternion_yaw(*goal[2:])], dtype=np.float32
+            [goal[0], goal[1], _quaternion_yaw(*goal[2:])], dtype=np.float64
         )
         history_timestamps = [
             row[0]
@@ -156,7 +156,7 @@ def load_nuplan_route_snapshot(
             candidate_slots, np.array([ego_x, ego_y], dtype=np.float64)
         )
 
-        route_lanes = np.zeros((25, 20, 33), dtype=np.float32)
+        route_lanes = np.zeros((25, 20, 33), dtype=np.float64)
         route_has_speed = np.zeros((25, 1), dtype=bool)
         route_speed = np.zeros((25, 1), dtype=np.float32)
         for index, candidate in enumerate(selected):
@@ -218,7 +218,7 @@ def materialize_nuplan_decision(
         lidar_pc_token,
         source_dt_s=snapshot.source_dt_s,
     )
-    lanes = np.zeros((140, 20, 33), dtype=np.float32)
+    lanes = np.zeros((140, 20, 33), dtype=np.float64)
     lanes[: len(snapshot.route_roadblock_ids)] = snapshot.route_lanes[
         : len(snapshot.route_roadblock_ids)
     ]
@@ -285,7 +285,7 @@ def _load_nuplan_batch(
         if (timestamps[-1] - timestamps[0]) / 1_000_000.0 < 3.0:
             raise NuPlanCausalSourceError("ego history does not cover three seconds")
 
-        ego_history = np.zeros((len(lidar_rows), 8), dtype=np.float32)
+        ego_history = np.zeros((len(lidar_rows), 8), dtype=np.float64)
         headings = []
         for index, row in enumerate(lidar_rows):
             yaw = _quaternion_yaw(*row[8:12])
@@ -309,7 +309,7 @@ def _load_nuplan_batch(
             ],
             dtype=np.float64,
         )
-        transform = np.eye(3, dtype=np.float32)
+        transform = np.eye(3, dtype=np.float64)
         transform[:2, :2] = rotation
         transform[:2, 2] = -rotation @ np.asarray(current[2:4], dtype=np.float64)
 
@@ -337,7 +337,7 @@ def _load_nuplan_batch(
                     current_yaw,
                 ]
             ],
-            dtype=np.float32,
+            dtype=np.float64,
         )
         batch.neigh_hist = neighbors[None]
         batch.neigh_hist_len = neighbor_lengths[None]
@@ -725,7 +725,7 @@ def encode_route_lane(
         traffic_timestamp_us=traffic_timestamp_us,
         decision_timestamp_us=decision_timestamp_us,
     )
-    tensor = np.zeros((20, 33), dtype=np.float32)
+    tensor = np.zeros((20, 33), dtype=np.float64)
     tensor[:, :2] = center
     tensor[:, 2:4] = direction
     tensor[:, 4:6] = left_offset
