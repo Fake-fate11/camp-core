@@ -1606,3 +1606,37 @@ current_v18_artifact_scope=nuplan_mini_fixed_dp_deterministic_map_baseline_equiv
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equivalence_result_review_20260711T022156CST
 current_v18_artifact_root_sha256=25f8e3f3763b5af53d70cdba7dddcf85872b42ce459b6b223b1b65cb5b59ea50
 next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_spec_and_plan_only
+
+## Gate 29: Static-14D Training, Calibration, and Paired-Evaluation Spec/Plan
+
+Status: frozen design; inline TDD implementation is next without another
+approval checkpoint.
+
+- Frozen combined spec/plan:
+  `docs/superpowers/plans/2026-07-11-v18-static-training-calibration-paired-evaluation.md`
+  / SHA256 `fed21178ec0c2e13d839dc02c3a1fd38add3b0b281c8437bd06292a2b79d3f42`.
+- The plan adds one thin v18 runner and reuses the existing finite-candidate
+  robust-margin cutting-plane master. It forbids the v16 legacy epoch trainer,
+  Theta, candidate changes, non-affine/non-simplex scoring, and any calibration
+  or holdout contribution to scaling/training.
+- It freezes train-only feasible-row 95th-percentile scaling, ADE-primary and
+  FDE-secondary oracle semantics, margin scale/clip `0.1/2.0`, CVaR `0.9`, L2
+  `1e-4`, CLARABEL, 20 iterations, tolerance `1e-6`, exact optimal/convergence/
+  final-cut acceptance, and seeds `3408/3409/3410` with 11/12/13 forbidden.
+- Calibration is tuning-free and cannot modify the checkpoint or paired-eval
+  protocol. Before holdout access, the plan freezes weights/scales/hashes,
+  `2.0m` miss, `1e-9m` tie, zero non-regression slack, 10,000 log/scene cluster
+  bootstrap replicates, latency measurement, one-shot receipt, and all claim
+  boundaries.
+- Candidate 0 remains the equivalence-proven fixed-DP deterministic/MAP
+  baseline with `native_ranked_top1=false`. OBB exactness remains bounded to
+  the frozen 32+5 observable source. Mini results remain smoke/directional only.
+- No model call, training, calibration, holdout label access, evaluation,
+  candidate mutation, claim, promotion, deployment, or activation occurred in
+  this plan-only gate.
+
+current_v18_status=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_spec_plan_passed
+current_v18_artifact_scope=nuplan_mini_static_14d_convex_training_calibration_one_shot_paired_evaluation_frozen_spec_plan
+current_v18_artifact=docs/superpowers/plans/2026-07-11-v18-static-training-calibration-paired-evaluation.md
+current_v18_artifact_root_sha256=fed21178ec0c2e13d839dc02c3a1fd38add3b0b281c8437bd06292a2b79d3f42
+next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_only

@@ -614,6 +614,23 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_fixed_dp_deterministic_map_equ
 current_v18_artifact_root_sha256=25f8e3f3763b5af53d70cdba7dddcf85872b42ce459b6b223b1b65cb5b59ea50
 next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_spec_and_plan_only
 
+The preauthorized static-14D training, tuning-free calibration, and one-shot
+holdout paired-evaluation contract is frozen in
+`docs/superpowers/plans/2026-07-11-v18-static-training-calibration-paired-evaluation.md`.
+It uses one thin v18 runner and the existing robust-margin cutting-plane
+master. Train-only feasible-row 95th-percentile scales, ADE-primary/FDE-tie
+oracle labels, affine simplex scoring, all solver/convergence gates, seeds
+`3408/3409/3410`, metric thresholds, 10,000-replicate log/scene bootstrap,
+latency protocol, one-shot label receipt, and no-claim boundaries are now
+predeclared. Calibration cannot change the model or protocol, and holdout
+labels remain sealed until the post-training frozen-root preflight passes.
+
+current_v18_status=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_spec_plan_passed
+current_v18_artifact_scope=nuplan_mini_static_14d_convex_training_calibration_one_shot_paired_evaluation_frozen_spec_plan
+current_v18_artifact=docs/superpowers/plans/2026-07-11-v18-static-training-calibration-paired-evaluation.md
+current_v18_artifact_root_sha256=fed21178ec0c2e13d839dc02c3a1fd38add3b0b281c8437bd06292a2b79d3f42
+next_work_target=v18_nuplan_mini_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
