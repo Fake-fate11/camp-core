@@ -64,6 +64,7 @@ class RobustMarginResult:
     converged: bool
     cuts_per_scene: list[int]
     solver_status: str
+    solver_name: str
 
 
 def outcome_oracle_and_margins(
@@ -225,7 +226,9 @@ def _solve_master(
     cuts: list[set[int]],
     config: RobustMarginConfig,
     features: Optional[np.ndarray],
-) -> tuple[Optional[np.ndarray], Optional[np.ndarray], np.ndarray, str, float]:
+) -> tuple[
+    Optional[np.ndarray], Optional[np.ndarray], np.ndarray, str, str, float
+]:
     try:
         import cvxpy as cp
     except ImportError as exc:
@@ -337,6 +340,7 @@ def _solve_master(
                 theta_value,
                 np.asarray(loss_vars.value, dtype=np.float64).reshape(-1),
                 str(problem.status),
+                str(problem.solver_stats.solver_name or solver_name).upper(),
                 float(problem.value),
             )
     if last_error is not None:
@@ -410,6 +414,7 @@ def solve_robust_margin_cutting_plane(
     history: list[dict[str, Any]] = []
     converged = False
     solver_status = "not_solved"
+    solver_name = "not_solved"
     master_losses = np.zeros(num_records, dtype=np.float64)
     for iteration in range(1, config.max_iter + 1):
         (
@@ -417,6 +422,7 @@ def solve_robust_margin_cutting_plane(
             theta,
             master_losses,
             solver_status,
+            solver_name,
             master_objective,
         ) = _solve_master(
             atoms,
@@ -469,6 +475,7 @@ def solve_robust_margin_cutting_plane(
             theta,
             master_losses,
             solver_status,
+            solver_name,
             master_objective,
         ) = _solve_master(
             atoms,
@@ -520,4 +527,5 @@ def solve_robust_margin_cutting_plane(
         converged=converged,
         cuts_per_scene=[len(scene_cuts) for scene_cuts in cuts],
         solver_status=solver_status,
+        solver_name=solver_name,
     )

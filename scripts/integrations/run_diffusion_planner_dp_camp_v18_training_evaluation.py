@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import argparse
 import hashlib
 import json
 import os
 from pathlib import Path
 import sys
+import time
 from typing import Any, Mapping
 
 import numpy as np
@@ -26,6 +28,9 @@ from camp_core.outer_master.robust_margin_master import (  # noqa: E402
     candidate_ranking_violations,
     project_simplex_rows,
     solve_robust_margin_cutting_plane,
+)
+from camp_core.integrations.nuplan_causal_adapter import (  # noqa: E402
+    load_nuplan_expert_ego_future,
 )
 from scripts.integrations.run_diffusion_planner_dp_camp_v18 import (  # noqa: E402
     FEASIBILITY_SCOPE,
@@ -579,6 +584,8 @@ def _accepted_weights_and_violations(
     margins: np.ndarray,
     feasible: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
+    if result.solver_name != SOLVER:
+        raise RuntimeError(f"the frozen {SOLVER} solver is required")
     if result.solver_status != "optimal":
         raise RuntimeError("exact optimal solver status is required")
     if not result.converged:
@@ -752,6 +759,7 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         "max_iter": MAX_ITER,
         "tolerance": TOLERANCE,
         "solver": SOLVER,
+        "solver_name": result.solver_name,
         "solver_status": result.solver_status,
         "converged": bool(result.converged),
         "final_master_gap": float(result.final_master_gap),
@@ -779,3 +787,439 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
     _write_root_manifest(staging)
     os.replace(staging, output)
     return summary
+
+
+def load_frozen_selector(root: Path, expected_root: str) -> dict[str, Any]:
+    manifest = root / "SHA256SUMS"
+    _verify_sha_list(root, manifest, expected_root)
+    protocol = json.loads(
+        (root / "paired_eval_protocol.json").read_text(encoding="utf-8")
+    )
+    training = json.loads(
+        (root / "training_summary.json").read_text(encoding="utf-8")
+    )
+    weights = np.asarray(np.load(root / "static_weights.npy"), dtype=np.float64)
+    scales_payload = json.loads(
+        (root / "atom_scales.json").read_text(encoding="utf-8")
+    )
+    scales = np.asarray(scales_payload["scales"], dtype=np.float64)
+    if (
+        training.get("status") != "passed"
+        or training.get("holdout_label_reads") != 0
+        or protocol.get("status") != "frozen"
+        or protocol.get("equivalence_verified") is not True
+        or protocol.get("native_ranked_top1") is not False
+        or protocol.get("baseline_semantics") != BASELINE_SEMANTICS
+        or protocol.get("feasibility_scope") != FEASIBILITY_SCOPE
+        or protocol.get("closed_loop_safety_claim") is not False
+        or protocol.get("holdout_label_reads") != 0
+        or protocol.get("raw_holdout_labels_persisted") is not False
+    ):
+        raise ValueError("frozen selector/protocol contract mismatch")
+    if (
+        weights.shape != (EXPECTED_ATOMS,)
+        or scales.shape != (EXPECTED_ATOMS,)
+        or not np.all(np.isfinite(weights))
+        or not np.all(np.isfinite(scales))
+        or np.any(weights < 0.0)
+        or np.any(scales <= 0.0)
+        or not np.isclose(weights.sum(), 1.0, atol=1e-8, rtol=0.0)
+    ):
+        raise ValueError("frozen selector weights/scales contract mismatch")
+    if (
+        _sha256(root / "static_weights.npy") != protocol["weights_sha256"]
+        or _sha256(root / "atom_scales.json")
+        != protocol["atom_scales_sha256"]
+    ):
+        raise ValueError("frozen selector SHA256 mismatch")
+    return {
+        "weights": weights,
+        "scales": scales,
+        "protocol": protocol,
+        "training": training,
+        "root_sha256": expected_root,
+    }
+
+
+def _identity(row: Mapping[str, Any]) -> tuple[str, str, str]:
+    return (
+        str(row["log_token"]),
+        str(row["scene_token"]),
+        str(row["decision_token"]),
+    )
+
+
+def _verify_evaluation_inputs(args: Any) -> dict[str, Any]:
+    training_inputs = _verify_training_inputs(args)
+    selector = load_frozen_selector(
+        args.freeze_root, args.expected_freeze_root_sha256
+    )
+    _, source_rows, _, _ = _verified_candidate_source(
+        args.candidate_root, args.expected_candidate_root_sha256
+    )
+    source_by_identity = {_identity(row): row for row in source_rows}
+    if len(source_by_identity) != len(source_rows):
+        raise ValueError("candidate source identities are not unique")
+    return {
+        "training_inputs": training_inputs,
+        "freeze": selector["training"],
+        "selector": selector,
+        "source_by_identity": source_by_identity,
+    }
+
+
+def _materialized_identity_sets(
+    canonical_root: Path,
+) -> tuple[dict[str, set[tuple[str, str, str]]], int]:
+    by_split: dict[str, set[tuple[str, str, str]]] = {
+        "train": set(),
+        "calibration": set(),
+        "holdout": set(),
+    }
+    excluded_holdout = 0
+    for row in _canonical_rows(canonical_root):
+        split = str(row["split"])
+        if split == "holdout" and row.get("canonical_output_npz") is None:
+            excluded_holdout += 1
+        if row.get("canonical_output_npz", True) is not None:
+            by_split.setdefault(split, set()).add(_identity(row))
+    if (
+        by_split["train"] & by_split["calibration"]
+        or by_split["train"] & by_split["holdout"]
+        or by_split["calibration"] & by_split["holdout"]
+    ):
+        raise ValueError("materialized split overlap detected")
+    return by_split, excluded_holdout
+
+
+def _evaluation_paths(args: Any) -> tuple[Path, Path]:
+    output = Path(args.output_dir)
+    return output, output.with_name(output.name + ".tmp")
+
+
+def run_paired_eval_preflight(args: Any) -> dict[str, Any]:
+    output, staging = _evaluation_paths(args)
+    if output.exists() or staging.exists():
+        raise FileExistsError(output if output.exists() else staging)
+    context = _verify_evaluation_inputs(args)
+    pointer = read_v18_status_pointer(args.current_status, args.v18_audit)
+    holdout = load_materialized_split(
+        args.canonical_root,
+        args.candidate_root,
+        "holdout",
+        labels_required=False,
+    )
+    if holdout.atoms.shape[0] != EXPECTED_HOLDOUT_COUNT:
+        raise ValueError("unexpected materialized holdout count")
+    if holdout.labels is not None:
+        raise RuntimeError("holdout labels were opened during preflight")
+    by_split, excluded_holdout = _materialized_identity_sets(args.canonical_root)
+    if len(by_split["holdout"]) != EXPECTED_HOLDOUT_COUNT:
+        raise ValueError("holdout identity count mismatch")
+    missing_sources = [
+        _identity(row)
+        for row in holdout.rows
+        if _identity(row) not in context["source_by_identity"]
+    ]
+    if missing_sources:
+        raise ValueError("holdout source identity missing")
+    return {
+        "status": "passed",
+        "holdout_records": EXPECTED_HOLDOUT_COUNT,
+        "excluded_holdout_source_rows": excluded_holdout,
+        "holdout_label_reads": 0,
+        "raw_holdout_labels_persisted": False,
+        "output_absent": True,
+        "staging_absent": True,
+        "split_overlap": 0,
+        "equivalence_verified": True,
+        "baseline_semantics": BASELINE_SEMANTICS,
+        "native_ranked_top1": False,
+        "feasibility_scope": FEASIBILITY_SCOPE,
+        "closed_loop_safety_claim": False,
+        "controller_pointer": pointer,
+    }
+
+
+def _array_sha256(array: np.ndarray) -> str:
+    values = np.ascontiguousarray(array)
+    digest = hashlib.sha256()
+    digest.update(str(values.dtype).encode("utf-8"))
+    digest.update(json.dumps(list(values.shape)).encode("utf-8"))
+    digest.update(values.view(np.uint8))
+    return digest.hexdigest()
+
+
+def _measure_selector_latency_ms(
+    atoms: np.ndarray,
+    scales: np.ndarray,
+    weights: np.ndarray,
+    feasible: np.ndarray,
+    priority: np.ndarray,
+    *,
+    repetitions_per_record: int,
+) -> dict[str, float]:
+    if repetitions_per_record <= 0:
+        raise ValueError("latency repetitions must be positive")
+    samples = np.empty(
+        atoms.shape[0] * repetitions_per_record, dtype=np.float64
+    )
+    sample_index = 0
+    for record_index in range(atoms.shape[0]):
+        for _ in range(repetitions_per_record):
+            started = time.perf_counter_ns()
+            select_indices(
+                atoms[record_index : record_index + 1]
+                / scales.reshape(1, 1, -1),
+                weights,
+                feasible[record_index : record_index + 1],
+                priority=priority,
+            )
+            samples[sample_index] = (time.perf_counter_ns() - started) / 1e6
+            sample_index += 1
+    return {
+        "p50": float(np.percentile(samples, 50.0)),
+        "p95": float(np.percentile(samples, 95.0)),
+        "p99": float(np.percentile(samples, 99.0)),
+        "max": float(np.max(samples)),
+    }
+
+
+def run_paired_eval(
+    args: Any,
+    *,
+    label_loader=load_nuplan_expert_ego_future,
+) -> dict[str, Any]:
+    output, staging = _evaluation_paths(args)
+    if output.exists() or staging.exists():
+        raise FileExistsError(output if output.exists() else staging)
+    preflight = run_paired_eval_preflight(args)
+    context = _verify_evaluation_inputs(args)
+    selector = context["selector"]
+    holdout = load_materialized_split(
+        args.canonical_root,
+        args.candidate_root,
+        "holdout",
+        labels_required=False,
+    )
+    protocol = selector["protocol"]
+    if int(protocol["expected_holdout_records"]) != EXPECTED_HOLDOUT_COUNT:
+        raise ValueError("frozen protocol holdout count mismatch")
+    priority = np.asarray(protocol["tie_priority"], dtype=np.int64)
+    weights = selector["weights"]
+    scales = selector["scales"]
+    selected, scores = select_indices(
+        holdout.atoms / scales.reshape(1, 1, -1),
+        weights,
+        holdout.feasible_mask,
+        priority=priority,
+        score_tolerance=float(protocol["score_tie_tolerance"]),
+    )
+    latency = _measure_selector_latency_ms(
+        holdout.atoms,
+        scales,
+        weights,
+        holdout.feasible_mask,
+        priority,
+        repetitions_per_record=int(protocol["latency_repetitions_per_record"]),
+    )
+
+    staging.mkdir(parents=True)
+    records_path = staging / "records.jsonl"
+    receipts_path = staging / "holdout_label_receipts.jsonl"
+    evaluation_rows: list[dict[str, Any]] = []
+    all_ade = np.empty((EXPECTED_HOLDOUT_COUNT, EXPECTED_CANDIDATES))
+    all_fde = np.empty_like(all_ade)
+    with records_path.open("w", encoding="utf-8") as records_stream, receipts_path.open(
+        "w", encoding="utf-8"
+    ) as receipt_stream:
+        for index, row in enumerate(holdout.rows):
+            identity = _identity(row)
+            source = context["source_by_identity"][identity]
+            label = np.asarray(
+                label_loader(
+                    source["db_path"],
+                    source["decision_token"],
+                    target_dt_s=0.1,
+                    horizon_steps=80,
+                ),
+                dtype=np.float64,
+            )
+            if label.shape != (80, 3) or not np.all(np.isfinite(label)):
+                raise ValueError("holdout expert future must be finite [80,3]")
+            label_sha = _array_sha256(label)
+            ade, fde = candidate_ade_fde(holdout.candidates[index], label)
+            all_ade[index] = ade
+            all_fde[index] = fde
+            oracle = int(
+                oracle_indices(
+                    ade[None, :],
+                    fde[None, :],
+                    holdout.feasible_mask[index : index + 1],
+                    priority=priority,
+                    ade_tolerance_m=float(protocol["ade_tie_tolerance_m"]),
+                )[0]
+            )
+            selected_index = int(selected[index])
+            evidence = {
+                "record_index": index,
+                "split": "holdout",
+                "log_token": identity[0],
+                "scene_token": identity[1],
+                "decision_token": identity[2],
+                "expert_future_sha256": label_sha,
+                "candidate_ade_m": ade.tolist(),
+                "candidate_fde_m": fde.tolist(),
+                "physical_feasible_mask": holdout.feasible_mask[index].tolist(),
+                "candidate_scores": [
+                    float(scores[index, candidate_index])
+                    if holdout.feasible_mask[index, candidate_index]
+                    else None
+                    for candidate_index in range(EXPECTED_CANDIDATES)
+                ],
+                "selected_index": selected_index,
+                "baseline_index": BASELINE_INDEX,
+                "oracle_index": oracle,
+                "selected_ade_m": float(ade[selected_index]),
+                "baseline_ade_m": float(ade[BASELINE_INDEX]),
+                "oracle_ade_m": float(ade[oracle]),
+                "selected_fde_m": float(fde[selected_index]),
+                "baseline_fde_m": float(fde[BASELINE_INDEX]),
+                "baseline_semantics": BASELINE_SEMANTICS,
+                "native_ranked_top1": False,
+            }
+            receipt = {
+                key: evidence[key]
+                for key in (
+                    "record_index",
+                    "log_token",
+                    "scene_token",
+                    "decision_token",
+                    "expert_future_sha256",
+                )
+            }
+            evaluation_rows.append(evidence)
+            records_stream.write(json.dumps(evidence, sort_keys=True) + "\n")
+            records_stream.flush()
+            receipt_stream.write(json.dumps(receipt, sort_keys=True) + "\n")
+            receipt_stream.flush()
+
+    aggregate = _paired_metric_summary(
+        all_ade,
+        all_fde,
+        holdout.feasible_mask,
+        selected,
+        priority=priority,
+    )
+    rows = np.arange(EXPECTED_HOLDOUT_COUNT)
+    selected_ade = all_ade[rows, selected]
+    selected_fde = all_fde[rows, selected]
+    baseline_ade = all_ade[:, BASELINE_INDEX]
+    baseline_fde = all_fde[:, BASELINE_INDEX]
+    deltas = {
+        "ade": selected_ade - baseline_ade,
+        "fde": selected_fde - baseline_fde,
+        "miss": (selected_fde > MISS_THRESHOLD_M).astype(float)
+        - (baseline_fde > MISS_THRESHOLD_M).astype(float),
+    }
+    ci95 = paired_cluster_bootstrap(
+        deltas,
+        log_ids=np.asarray([row["log_token"] for row in holdout.rows]),
+        scene_ids=np.asarray([row["scene_token"] for row in holdout.rows]),
+        replicates=int(protocol["bootstrap_replicates"]),
+        seed=int(protocol["bootstrap_seed"]),
+    )
+    paired_delta = aggregate["paired_delta_camp_minus_baseline"]
+    summary = {
+        "status": "passed",
+        "schema_version": "dp_camp_v18_nuplan_mini_one_shot_paired_eval_v1",
+        "holdout_records": EXPECTED_HOLDOUT_COUNT,
+        "holdout_label_reads": EXPECTED_HOLDOUT_COUNT,
+        "holdout_label_receipts": len(evaluation_rows),
+        "distinct_holdout_label_sha256": len(
+            {row["expert_future_sha256"] for row in evaluation_rows}
+        ),
+        "raw_holdout_labels_persisted": False,
+        "aggregate": aggregate,
+        "paired_ci95": ci95,
+        "non_regression": {
+            "fde": bool(paired_delta["mean_fde_m"] <= 0.0),
+            "miss": bool(paired_delta["miss_rate"] <= 0.0),
+            "slack": 0.0,
+        },
+        "selector_latency_ms": latency,
+        "fallback_count": int(aggregate["fallback_count"]),
+        "fallback_policy": aggregate["fallback_policy"],
+        "excluded_holdout_source_rows": preflight[
+            "excluded_holdout_source_rows"
+        ],
+        "baseline_semantics": BASELINE_SEMANTICS,
+        "equivalence_verified": True,
+        "native_ranked_top1": False,
+        "feasibility_scope": FEASIBILITY_SCOPE,
+        "closed_loop_safety_claim": False,
+        "mini_evidence_scope": "smoke_directional_only_no_performance_or_safety_claim",
+        "candidate_generation_executed": False,
+        "candidate_tensor_mutation": False,
+        "model_or_scale_updates": 0,
+        "freeze_root_sha256": args.expected_freeze_root_sha256,
+        "candidate_root_sha256": args.expected_candidate_root_sha256,
+        "canonical_root_sha256": args.expected_canonical_root_sha256,
+        "equivalence_review_root_sha256": (
+            args.expected_equivalence_review_root_sha256
+        ),
+        "controller_pointer": preflight["controller_pointer"],
+    }
+    _write_json(staging / "summary.json", summary)
+    _write_root_manifest(staging)
+    os.replace(staging, output)
+    return summary
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Train/freeze the v18 static 14D CAMP selector or run its frozen "
+            "one-shot nuPlan-mini paired evaluation."
+        )
+    )
+    parser.add_argument(
+        "--mode",
+        choices=("train-calibrate", "paired-eval-preflight", "paired-eval"),
+        required=True,
+    )
+    parser.add_argument("--canonical_root", type=Path, required=True)
+    parser.add_argument("--canonical_sha256s", type=Path, required=True)
+    parser.add_argument("--expected_canonical_root_sha256", required=True)
+    parser.add_argument("--candidate_root", type=Path, required=True)
+    parser.add_argument("--expected_candidate_root_sha256", required=True)
+    parser.add_argument("--equivalence_review", type=Path, required=True)
+    parser.add_argument(
+        "--expected_equivalence_review_root_sha256", required=True
+    )
+    parser.add_argument("--freeze_root", type=Path)
+    parser.add_argument("--expected_freeze_root_sha256")
+    parser.add_argument("--output_dir", type=Path, required=True)
+    parser.add_argument("--current_status", type=Path, required=True)
+    parser.add_argument("--v18_audit", type=Path, required=True)
+    args = parser.parse_args(argv)
+    if args.mode != "train-calibrate" and (
+        args.freeze_root is None or args.expected_freeze_root_sha256 is None
+    ):
+        parser.error("paired evaluation modes require --freeze_root and its SHA256")
+    return args
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+    if args.mode == "train-calibrate":
+        report = run_train_calibrate(args)
+    elif args.mode == "paired-eval-preflight":
+        report = run_paired_eval_preflight(args)
+    else:
+        report = run_paired_eval(args)
+    print(json.dumps(report, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

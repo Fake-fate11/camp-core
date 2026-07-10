@@ -227,6 +227,7 @@ def _accepted_master_result(atoms, oracle, margins, feasible, config):
         converged=True,
         cuts_per_scene=[1] * atoms.shape[0],
         solver_status="optimal",
+        solver_name="CLARABEL",
     )
 
 
@@ -346,6 +347,7 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
     assert summary["train_records"] == 2
     assert summary["calibration_records"] == 1
     assert summary["solver_status"] == "optimal"
+    assert summary["solver_name"] == "CLARABEL"
     assert summary["native_ranked_top1"] is False
     assert summary["baseline_semantics"] == module.BASELINE_SEMANTICS
     assert (tmp_path / "freeze" / "ROOT_SHA256SUMS").is_file()
@@ -369,17 +371,19 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
 
 
 @pytest.mark.parametrize(
-    ("solver_status", "converged", "gap", "new_cuts", "match"),
+    ("solver_name", "solver_status", "converged", "gap", "new_cuts", "match"),
     [
-        ("optimal_inaccurate", True, 0.0, 0, "exact optimal"),
-        ("optimal", False, 0.0, 0, "converged"),
-        ("optimal", True, 1e-4, 0, "master gap"),
-        ("optimal", True, 0.0, 1, "new cuts"),
+        ("SCS", "optimal", True, 0.0, 0, "CLARABEL solver"),
+        ("CLARABEL", "optimal_inaccurate", True, 0.0, 0, "exact optimal"),
+        ("CLARABEL", "optimal", False, 0.0, 0, "converged"),
+        ("CLARABEL", "optimal", True, 1e-4, 0, "master gap"),
+        ("CLARABEL", "optimal", True, 0.0, 1, "new cuts"),
     ],
 )
 def test_train_calibrate_fail_closed_before_checkpoint_promotion(
     tmp_path,
     monkeypatch,
+    solver_name,
     solver_status,
     converged,
     gap,
@@ -402,6 +406,7 @@ def test_train_calibrate_fail_closed_before_checkpoint_promotion(
 
     def fake_master(atoms, oracle, margins, feasible, *, config, features=None):
         result = _accepted_master_result(atoms, oracle, margins, feasible, config)
+        result.solver_name = solver_name
         result.solver_status = solver_status
         result.converged = converged
         result.final_master_gap = gap
@@ -415,3 +420,205 @@ def test_train_calibrate_fail_closed_before_checkpoint_promotion(
         module.run_train_calibrate(args)
 
     assert not args.output_dir.exists()
+
+
+def _evaluation_args(tmp_path) -> argparse.Namespace:
+    args = _training_args(tmp_path)
+    args.freeze_root = tmp_path / "freeze"
+    args.expected_freeze_root_sha256 = "d" * 64
+    args.output_dir = tmp_path / "paired_eval"
+    return args
+
+
+def _write_test_freeze(root, *, latency_repetitions=2, bootstrap_replicates=50):
+    root.mkdir(parents=True)
+    weights = np.full(14, 1.0 / 14.0)
+    np.save(root / "static_weights.npy", weights)
+    (root / "atom_scales.json").write_text(
+        json.dumps({"scales": [1.0] * 14}), encoding="utf-8"
+    )
+    protocol = {
+        "status": "frozen",
+        "equivalence_verified": True,
+        "native_ranked_top1": False,
+        "baseline_semantics": module.BASELINE_SEMANTICS,
+        "feasibility_scope": module.FEASIBILITY_SCOPE,
+        "closed_loop_safety_claim": False,
+        "holdout_label_reads": 0,
+        "tie_seed": module.TIE_SEED,
+        "tie_priority": module.tie_priority(8).tolist(),
+        "bootstrap_seed": module.BOOTSTRAP_SEED,
+        "bootstrap_replicates": bootstrap_replicates,
+        "ci_level": 0.95,
+        "miss_threshold_m": module.MISS_THRESHOLD_M,
+        "ade_tie_tolerance_m": module.ADE_TIE_TOLERANCE_M,
+        "score_tie_tolerance": module.SCORE_TIE_TOLERANCE,
+        "non_regression_slack": 0.0,
+        "latency_repetitions_per_record": latency_repetitions,
+        "expected_holdout_records": 2,
+        "raw_holdout_labels_persisted": False,
+        "claim_scope": "nuplan_mini_smoke_directional_only_no_performance_or_safety_claim",
+        "weights_sha256": module._sha256(root / "static_weights.npy"),
+        "atom_scales_sha256": module._sha256(root / "atom_scales.json"),
+    }
+    (root / "paired_eval_protocol.json").write_text(
+        json.dumps(protocol), encoding="utf-8"
+    )
+    (root / "training_summary.json").write_text(
+        json.dumps({"status": "passed", "holdout_label_reads": 0}),
+        encoding="utf-8",
+    )
+    return module._write_root_manifest(root)
+
+
+def test_paired_eval_preflight_does_not_read_holdout_labels(
+    tmp_path, monkeypatch
+) -> None:
+    holdout = _split_data("holdout", 1)
+    holdout = module.SplitData(
+        split=holdout.split,
+        rows=holdout.rows,
+        atoms=holdout.atoms,
+        feasible_mask=holdout.feasible_mask,
+        candidates=holdout.candidates,
+        labels=None,
+    )
+    args = _evaluation_args(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_HOLDOUT_COUNT", 1)
+    monkeypatch.setattr(
+        module,
+        "_verify_evaluation_inputs",
+        lambda _args: {
+            "source_by_identity": {
+                (
+                    holdout.rows[0]["log_token"],
+                    holdout.rows[0]["scene_token"],
+                    holdout.rows[0]["decision_token"],
+                ): {"db_path": "db", "decision_token": "decision"}
+            },
+            "freeze": {},
+        },
+    )
+    monkeypatch.setattr(
+        module, "load_materialized_split", lambda *_args, **_kwargs: holdout
+    )
+    monkeypatch.setattr(module, "_canonical_rows", lambda _root: list(holdout.rows))
+    monkeypatch.setattr(module, "read_v18_status_pointer", lambda *_args: {})
+    label_calls = []
+    monkeypatch.setattr(
+        module,
+        "load_nuplan_expert_ego_future",
+        lambda *_args, **_kwargs: label_calls.append(_args),
+    )
+
+    report = module.run_paired_eval_preflight(args)
+
+    assert report["status"] == "passed"
+    assert report["holdout_records"] == 1
+    assert report["holdout_label_reads"] == 0
+    assert label_calls == []
+    assert not args.output_dir.exists()
+    assert not args.output_dir.with_name(args.output_dir.name + ".tmp").exists()
+
+
+def test_paired_eval_reads_each_label_once_and_persists_only_derived_metrics(
+    tmp_path, monkeypatch
+) -> None:
+    holdout = _split_data("holdout", 2)
+    holdout = module.SplitData(
+        split=holdout.split,
+        rows=holdout.rows,
+        atoms=holdout.atoms,
+        feasible_mask=holdout.feasible_mask,
+        candidates=holdout.candidates,
+        labels=None,
+    )
+    args = _evaluation_args(tmp_path)
+    args.expected_freeze_root_sha256 = _write_test_freeze(args.freeze_root)
+    source_by_identity = {
+        (row["log_token"], row["scene_token"], row["decision_token"]): {
+            "db_path": f"db_{index}",
+            "decision_token": row["decision_token"],
+        }
+        for index, row in enumerate(holdout.rows)
+    }
+    monkeypatch.setattr(module, "EXPECTED_HOLDOUT_COUNT", 2)
+    monkeypatch.setattr(
+        module,
+        "_verify_evaluation_inputs",
+        lambda _args: {
+            "source_by_identity": source_by_identity,
+            "freeze": {"status": "passed"},
+            "selector": module.load_frozen_selector(
+                args.freeze_root, args.expected_freeze_root_sha256
+            ),
+        },
+    )
+    monkeypatch.setattr(
+        module, "load_materialized_split", lambda *_args, **_kwargs: holdout
+    )
+    monkeypatch.setattr(module, "_canonical_rows", lambda _root: list(holdout.rows))
+    monkeypatch.setattr(module, "read_v18_status_pointer", lambda *_args: {})
+    calls = []
+
+    def label_loader(db_path, decision_token, **_kwargs):
+        calls.append((db_path, decision_token))
+        return np.zeros((80, 3), dtype=np.float64)
+
+    summary = module.run_paired_eval(args, label_loader=label_loader)
+
+    assert len(calls) == 2
+    assert len(set(calls)) == 2
+    assert summary["holdout_label_reads"] == 2
+    assert summary["raw_holdout_labels_persisted"] is False
+    assert summary["fallback_count"] == 0
+    assert summary["native_ranked_top1"] is False
+    assert set(summary["paired_ci95"]) == {"log_cluster", "scene_cluster"}
+    assert set(summary["selector_latency_ms"]) == {"p50", "p95", "p99", "max"}
+    rows = [
+        json.loads(line)
+        for line in (args.output_dir / "records.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert len(rows) == 2
+    assert all("expert_future_sha256" in row for row in rows)
+    assert all("candidate_ade_m" in row and "candidate_fde_m" in row for row in rows)
+    assert all("expert_ego_future_xyh" not in row for row in rows)
+    assert (args.output_dir / "ROOT_SHA256SUMS").is_file()
+
+
+def test_paired_eval_existing_output_or_staging_blocks_before_label_read(
+    tmp_path, monkeypatch
+) -> None:
+    args = _evaluation_args(tmp_path)
+    calls = []
+    for existing in (
+        args.output_dir,
+        args.output_dir.with_name(args.output_dir.name + ".tmp"),
+    ):
+        if args.output_dir.exists():
+            args.output_dir.rmdir()
+        staging = args.output_dir.with_name(args.output_dir.name + ".tmp")
+        if staging.exists():
+            staging.rmdir()
+        existing.mkdir(parents=True)
+        with pytest.raises(FileExistsError):
+            module.run_paired_eval(
+                args,
+                label_loader=lambda *_args, **_kwargs: calls.append(1),
+            )
+        existing.rmdir()
+    assert calls == []
+
+
+def test_frozen_selector_root_rejects_post_freeze_mutation(tmp_path) -> None:
+    freeze = tmp_path / "freeze"
+    root_sha = _write_test_freeze(freeze)
+    module.load_frozen_selector(freeze, root_sha)
+
+    with (freeze / "static_weights.npy").open("ab") as stream:
+        stream.write(b"mutation")
+
+    with pytest.raises(ValueError, match="SHA256"):
+        module.load_frozen_selector(freeze, root_sha)
