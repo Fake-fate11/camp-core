@@ -481,3 +481,68 @@ current_v18_artifact_scope=nuplan_mini_causal_adapter_source_contract_inventory_
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_source_contract_preflight_397ea2c8_20260710T205550CST
 current_v18_artifact_root_sha256=ddb955794808c28610fe55830eec18d500e693eb0751714879bee46819fcc465
 next_work_target=v18_nuplan_mini_causal_adapter_test_driven_implementation_only
+
+## Gate 6: Causal Adapter Test-Driven Implementation
+
+Status: passed; removal of one unused dependency target is required before the
+mini split/candidate-generation preflight.
+
+- Evidence artifact:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_implementation_19d007ff_20260710T213816CST`.
+- Final CAMP / GitHub main / AutoDL CAMP:
+  `19d007ffb81f4c3865cc28117096732e7acbb1bd`.
+- Fixed DP HEAD / expected HEAD:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4 / 7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- AutoDL py_compile, v17 causal materializer tests, v18 adapter tests, real mini
+  test, and fixed-DP loader/normalizer contract all passed: `22 passed`.
+- Implemented only the authorized CAMP-side files:
+  `camp_core/pyproject.toml`,
+  `camp_core/camp_core/integrations/nuplan_causal_adapter.py`,
+  `camp_core/camp_core/integrations/diffusion_planner_causal_materializer.py`,
+  and
+  `camp_core/tests/test_diffusion_planner_v18_nuplan_causal_adapter.py`.
+- Required causal tests now cover future sentinels and future perturbation
+  invariance, current-roadblock mission-route anchoring/connectivity, complete
+  `speed_limit_mps`, exact lidar-tick traffic state, true left/right boundary
+  semantics, timestamp-derived dt, UTM-scale global SE(2) invariance, and an
+  independent mission goal rather than a route-endpoint surrogate.
+- The real checked decision was
+  `165060762e765a5a:8b9c1329bd1855c9` at timestamp
+  `1620857893850826`, source dt `0.050009s`, current roadblock `66976`, 18
+  selected connected route slots, 18/18 real route speed limits, exact-tick red
+  traffic state, and 32 nonzero neighbor slots.
+- Real materialization produced the exact 16-key fixed-DP input schema with no
+  future key and all finite values. The derived NPZ SHA256 is
+  `85e13ed3b56604938f2a20b322372a7a74808675c336617d6b740c3c3528da69`;
+  one decision snapshot plus materialization took `0.415355s` wall time in the
+  evidence run. This is adapter validation, not a K=8 candidate-generation or
+  performance claim.
+- The preflight's optional Shapely-only dependency assumption was falsified by
+  the real map: GeoPackage geometry is EPSG:4326 and the `meta` layer declares
+  projected CRS EPSG:32611 for this sample. The minimal dependency contract is
+  therefore optional `Shapely>=2.0` plus `pyproj>=3.6`; full GeoPandas, Fiona,
+  GDAL, OGR, pyogrio, and the nuPlan devkit remain unnecessary.
+- The first isolated `pip --target` attempt created
+  `/root/autodl-tmp/camp_v18_site` with an unwanted NumPy 2.5.1. It was never
+  used or added to `PYTHONPATH`; all passing tests used the clean isolated
+  `/root/autodl-tmp/camp_v18_shapely` containing only Shapely 2.1.2 and pyproj
+  3.7.2. The unused directory remains pending explicit recursive deletion
+  authorization under the repository deletion-safety rule.
+- Two transient test overlays, one Git bundle, and the transient artifact
+  runner were each removed by exact name. Existing unrelated untracked files
+  were preserved. Fixed DP code, configuration, weights, checkpoints, and
+  candidate tensors were not modified.
+- Result JSON / MD / artifact-root SHA256:
+  `a2d83098b8c23556fbc633bc69d9159d4acf3bc2eee16adadf9f8e6bd0cfdd3c` /
+  `a639ae3cec2affaa3721c6982998b678de44934b88ec325e4cc0fc71402c375e` /
+  `8dda1bab94afccfbd154c339f2fe16b00c6558dd230870e09e96989c957844ad`.
+- `SHA256SUMS` and `ROOT_SHA256SUMS` both reverified with all entries passing.
+- No fixed-DP candidate generation, candidate corpus, split, atom
+  materialization, training, calibration, holdout access, evaluation, claim,
+  promotion, deployment, activation, or raw-data redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_causal_adapter_implementation_passed_cleanup_pending
+current_v18_artifact_scope=nuplan_mini_causal_adapter_test_driven_implementation_and_real_decision_materialization
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_implementation_19d007ff_20260710T213816CST
+current_v18_artifact_root_sha256=8dda1bab94afccfbd154c339f2fe16b00c6558dd230870e09e96989c957844ad
+next_work_target=v18_nuplan_mini_causal_adapter_unused_dependency_target_cleanup_and_result_review_only

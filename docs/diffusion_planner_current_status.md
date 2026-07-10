@@ -76,18 +76,35 @@ decision ticks after requiring a resolvable mission goal, nonempty mapped
 mission route, strict roadblock connectivity, real baseline/boundary geometry,
 and full route `speed_limit_mps`. Las Vegas contributes 488 eligible scenes and
 Pittsburgh 38; Singapore and Boston fail closed because canonical speed inputs
-are incomplete. The implementation is limited to a CAMP-side SQLite/Shapely
-adapter plus the existing materializer and tests; the full nuPlan devkit stack
-is not required.
+are incomplete.
 
-No adapter, candidate corpus, split, training, holdout access, evaluation,
-claim, promotion, deployment, or activation has occurred.
+The causal adapter implementation then passed at CAMP/GitHub/AutoDL
+`19d007ffb81f4c3865cc28117096732e7acbb1bd`. A real mini decision was read
+causally from SQLite and GeoPackage sources, anchored at current roadblock
+`66976`, and materialized into the exact fixed-DP observable schema with an
+18-slot connected mission-route window, complete route speed limits, exact-tick
+red-light state, independent mission goal, and 32 nonzero neighbor slots.
+AutoDL passed `22` focused tests, including the fixed-DP loader/normalizer
+contract, and the derived causal NPZ SHA256 is
+`85e13ed3b56604938f2a20b322372a7a74808675c336617d6b740c3c3528da69`.
+The preflight's Shapely-only dependency conclusion was incomplete: official map
+geometry is EPSG:4326 while ego poses use the map's projected CRS, so the
+minimal adapter uses standard-library `sqlite3`, optional `Shapely>=2.0`, and
+optional `pyproj>=3.6`; it still does not install the full nuPlan devkit stack.
 
-current_v18_status=v18_nuplan_mini_causal_adapter_source_contract_preflight_complete
-current_v18_artifact_scope=nuplan_mini_causal_adapter_source_contract_inventory_and_test_plan
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_source_contract_preflight_397ea2c8_20260710T205550CST
-current_v18_artifact_root_sha256=ddb955794808c28610fe55830eec18d500e693eb0751714879bee46819fcc465
-next_work_target=v18_nuplan_mini_causal_adapter_test_driven_implementation_only
+No candidate generation, candidate corpus, split, atom materialization,
+training, holdout access, evaluation, claim, promotion, deployment, or
+activation has occurred. One unused failed dependency target remains at
+`/root/autodl-tmp/camp_v18_site`; it contains a pip-installed NumPy incompatible
+with the fixed environment, was never placed on `PYTHONPATH`, and requires
+explicit recursive-cleanup authorization before removal. The active isolated
+dependency directory is `/root/autodl-tmp/camp_v18_shapely`.
+
+current_v18_status=v18_nuplan_mini_causal_adapter_implementation_passed_cleanup_pending
+current_v18_artifact_scope=nuplan_mini_causal_adapter_test_driven_implementation_and_real_decision_materialization
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_implementation_19d007ff_20260710T213816CST
+current_v18_artifact_root_sha256=8dda1bab94afccfbd154c339f2fe16b00c6558dd230870e09e96989c957844ad
+next_work_target=v18_nuplan_mini_causal_adapter_unused_dependency_target_cleanup_and_result_review_only
 
 ## Historical V17 Closeout
 
