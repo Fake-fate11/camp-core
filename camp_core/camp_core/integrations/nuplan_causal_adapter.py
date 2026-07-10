@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import struct
 from typing import Mapping, Sequence
 
 import numpy as np
@@ -14,6 +15,35 @@ class NuPlanCausalSourceError(ValueError):
 class EncodedRouteLane:
     tensor: np.ndarray
     speed_limit_mps: float
+
+
+def decode_projected_gpkg_geometry(blob: bytes, projected_crs: str):
+    data = bytes(blob)
+    if len(data) < 9 or data[:2] != b"GP" or data[2] != 0:
+        raise NuPlanCausalSourceError("unsupported GeoPackage geometry header")
+    flags = data[3]
+    byte_order = "<" if flags & 1 else ">"
+    source_srs = struct.unpack(f"{byte_order}i", data[4:8])[0]
+    envelope_sizes = {0: 0, 1: 4, 2: 6, 3: 6, 4: 8}
+    envelope_type = (flags >> 1) & 0x07
+    if envelope_type not in envelope_sizes:
+        raise NuPlanCausalSourceError("unsupported GeoPackage geometry envelope")
+    wkb_offset = 8 + envelope_sizes[envelope_type] * 8
+    if len(data) <= wkb_offset:
+        raise NuPlanCausalSourceError("GeoPackage geometry contains no WKB payload")
+    try:
+        from pyproj import Transformer
+        from shapely import from_wkb
+        from shapely.ops import transform
+    except ImportError as exc:
+        raise NuPlanCausalSourceError(
+            "Shapely>=2.0 and pyproj>=3.6 are required; install camp_core[nuplan]"
+        ) from exc
+    geometry = from_wkb(data[wkb_offset:])
+    transformer = Transformer.from_crs(
+        f"EPSG:{source_srs}", str(projected_crs), always_xy=True
+    )
+    return transform(transformer.transform, geometry)
 
 
 def derive_source_dt_s(timestamps_us: Sequence[int]) -> float:

@@ -25,6 +25,7 @@ dev = [
   "pytest>=7.0",
 ]
 nuplan = [
+  "pyproj>=3.6",
   "Shapely>=2.0",
 ]
 

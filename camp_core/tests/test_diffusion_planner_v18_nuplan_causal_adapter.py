@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import struct
 
 import numpy as np
 import pytest
@@ -11,10 +12,26 @@ from camp_core.integrations.diffusion_planner_causal_materializer import (
 from camp_core.integrations.nuplan_causal_adapter import (
     NuPlanCausalSourceError,
     causal_history,
+    decode_projected_gpkg_geometry,
     derive_source_dt_s,
     encode_route_lane,
     select_mission_route_window,
 )
+
+
+def test_gpkg_geometry_is_projected_from_header_crs_to_map_crs() -> None:
+    from shapely import LineString, to_wkb
+
+    source = LineString([(-115.1700, 36.1000), (-115.1690, 36.1000)])
+    gpkg_blob = b"GP" + bytes([0, 1]) + struct.pack("<i", 4326) + to_wkb(source)
+
+    projected = decode_projected_gpkg_geometry(gpkg_blob, "epsg:32611")
+
+    start, end = projected.coords
+    assert 600_000.0 < start[0] < 700_000.0
+    assert 3_900_000.0 < start[1] < 4_100_000.0
+    assert 80.0 < projected.length < 100.0
+    assert end[0] > start[0]
 
 
 def test_source_dt_comes_from_real_monotonic_timestamps() -> None:
