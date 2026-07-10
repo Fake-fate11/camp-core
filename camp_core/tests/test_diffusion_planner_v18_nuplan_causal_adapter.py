@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import os
+from pathlib import Path
 import struct
 
 import numpy as np
@@ -15,6 +17,7 @@ from camp_core.integrations.nuplan_causal_adapter import (
     decode_projected_gpkg_geometry,
     derive_source_dt_s,
     encode_route_lane,
+    load_nuplan_route_snapshot,
     select_mission_route_window,
 )
 
@@ -32,6 +35,37 @@ def test_gpkg_geometry_is_projected_from_header_crs_to_map_crs() -> None:
     assert 3_900_000.0 < start[1] < 4_100_000.0
     assert 80.0 < projected.length < 100.0
     assert end[0] > start[0]
+
+
+def test_real_nuplan_mini_route_snapshot_is_causal_and_connected() -> None:
+    dataset_root = os.environ.get("NUPLAN_DATA_ROOT")
+    if not dataset_root:
+        pytest.skip("NUPLAN_DATA_ROOT is required for the real mini contract check")
+    root = Path(dataset_root)
+    snapshot = load_nuplan_route_snapshot(
+        root
+        / "data/cache/mini/2021.05.12.22.00.38_veh-35_01008_01518.db",
+        root / "maps/us-nv-las-vegas-strip/9.15.1915/map.gpkg",
+        "8b9c1329bd1855c9",
+    )
+
+    assert snapshot.decision_timestamp_us == 1_620_857_893_850_826
+    assert snapshot.source_dt_s == pytest.approx(0.05, abs=2e-4)
+    assert snapshot.current_roadblock_id == "66976"
+    assert snapshot.route_roadblock_ids[0] == "66976"
+    assert len(snapshot.route_roadblock_ids) == 18
+    assert snapshot.traffic_light_state_available is True
+    assert np.any(snapshot.route_lanes[:, :, 10] == 1.0)
+    assert np.all(snapshot.route_has_speed_limit[:18])
+    assert np.all(snapshot.route_speed_limit[:18] > 0.0)
+    assert np.linalg.norm(snapshot.mission_goal_pose[:2] - [38.0, 0.0]) > 100.0
+
+    gaps = np.linalg.norm(
+        snapshot.route_lanes[:-1, -1, :2]
+        - snapshot.route_lanes[1:, 0, :2],
+        axis=1,
+    )
+    assert np.max(gaps[:17]) <= 8.0
 
 
 def test_source_dt_comes_from_real_monotonic_timestamps() -> None:
